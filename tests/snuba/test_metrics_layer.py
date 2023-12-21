@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Literal, Mapping
+from typing import Any, Callable, Literal, Mapping
 
 import pytest
 from snuba_sdk import (
@@ -23,13 +23,25 @@ from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
-from sentry.snuba.metrics_layer.query import run_query
+from sentry.snuba.metrics_layer.query import run_query as layer_run_query
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class SnQLTest(TestCase, BaseMetricsTestCase):
+# TODO: This is only needed while we support SnQL and MQL. Once SnQL is removed, this can be removed.
+LayerQuery = Callable[[Request], Mapping[str, Any]]
+
+
+class MQLTest(TestCase, BaseMetricsTestCase):
+    @property
+    def run_query(self) -> LayerQuery:
+        def mql_query_fn(request: Request) -> Mapping[str, Any]:
+            with self.options({"snuba.use-mql-endpoint": 1.0}):
+                return layer_run_query(request)
+
+        return mql_query_fn
+
     def ts(self, dt: datetime) -> int:
         return int(dt.timestamp())
 
@@ -99,7 +111,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert len(result["data"]) == 10
         rows = result["data"]
         for i in range(10):
@@ -138,7 +150,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert len(result["data"]) == 10
         rows = result["data"]
         for i in range(10):
@@ -181,7 +193,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
         assert rows[0]["aggregate_value"] == [0]
@@ -218,7 +230,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
         assert rows[0]["aggregate_value"] == [0]
@@ -253,7 +265,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert len(result["data"]) == 2
         rows = result["data"]
 
@@ -286,7 +298,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert result["modified_start"] == self.hour_ago.replace(minute=16, second=0)
         assert result["modified_end"] == self.now.replace(minute=17, second=0)
         assert result["indexer_mappings"] == {
@@ -321,7 +333,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
         )
 
         with pytest.raises(InvalidParams):
-            run_query(request)
+            self.run_query(request)
 
     def test_interval_with_totals(self) -> None:
         query = MetricsQuery(
@@ -350,7 +362,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert len(result["data"]) == 6
         assert result["totals"]["aggregate_value"] == 8.0
 
@@ -378,7 +390,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
 
         # There's a flaky off by one error here that is very difficult to track down
         # TODO: figure out why this is flaky and assert to one specific value
@@ -409,7 +421,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert request.dataset == "metrics"
         assert len(result["data"]) == 0
 
@@ -437,11 +449,12 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
 
         assert len(result["data"]) == 10
         assert result["totals"]["aggregate_value"] == 9.0
 
+    @pytest.mark.skip(reason="This is not implemented in MQL")
     def test_failure_rate(self) -> None:
         query = MetricsQuery(
             query=Formula(
@@ -487,7 +500,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
 
         assert len(result["data"]) == 10
         assert result["totals"]["aggregate_value"] == 1.0
@@ -517,7 +530,7 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
             query=query,
             tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
         )
-        result = run_query(request)
+        result = self.run_query(request)
         assert len(result["data"]) == 10
         rows = result["data"]
         for i in range(10):
@@ -528,3 +541,16 @@ class SnQLTest(TestCase, BaseMetricsTestCase):
                     self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
                 ).isoformat()
             )
+
+
+class SnQLTest(MQLTest):
+    @property
+    def run_query(self) -> LayerQuery:
+        def snql_query_fn(request: Request) -> Mapping[str, Any]:
+            with self.options({"snuba.use-mql-endpoint": 0}):
+                return layer_run_query(request)
+
+        return snql_query_fn
+
+    def test_failure_rate(self) -> None:
+        super().test_failure_rate()
