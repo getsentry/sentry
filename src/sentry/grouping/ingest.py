@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import copy
+import random
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, MutableMapping
 
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
+from sentry import options
 from sentry.grouping.api import (
+    BackgroundGroupingConfigLoader,
     GroupingConfig,
     GroupingConfigNotFound,
     apply_server_fingerprinting,
@@ -26,6 +30,8 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
+
+Job = MutableMapping[str, Any]
 
 
 def update_grouping_config_if_needed(project: Project) -> None:
@@ -131,3 +137,31 @@ def calculate_event_grouping(
 
         hashes.write_to_event(event.data)
         return hashes
+
+
+def run_background_grouping(project: Project, job: Job) -> None:
+    """Optionally run a fraction of events with a third grouping config
+    This can be helpful to measure its performance impact.
+    This does not affect actual grouping.
+    """
+    try:
+        sample_rate = options.get("store.background-grouping-sample-rate")
+        if sample_rate and random.random() <= sample_rate:
+            config = BackgroundGroupingConfigLoader().get_config_dict(project)
+            if config["id"]:
+                copied_event = copy.deepcopy(job["event"])
+                _calculate_background_grouping(project, copied_event, config)
+    except Exception:
+        sentry_sdk.capture_exception()
+
+
+def _calculate_background_grouping(
+    project: Project, event: Event, config: GroupingConfig
+) -> CalculatedHashes:
+    metric_tags: MutableTags = {
+        "grouping_config": config["id"],
+        "platform": event.platform or "unknown",
+        "sdk": normalized_sdk_tag_from_event(event),
+    }
+    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
+        return calculate_event_grouping(project, event, config)

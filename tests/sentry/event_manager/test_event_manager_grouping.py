@@ -211,7 +211,7 @@ class EventManagerGroupingTest(TestCase):
         event3 = save_event(4)
         assert event3.group_id == event2.group_id
 
-    @mock.patch("sentry.event_manager._calculate_background_grouping")
+    @mock.patch("sentry.grouping.ingest._calculate_background_grouping")
     def test_applies_background_grouping(self, mock_calc_grouping):
         timestamp = time() - 300
         manager = EventManager(
@@ -232,7 +232,7 @@ class EventManagerGroupingTest(TestCase):
 
         assert mock_calc_grouping.call_count == 1
 
-    @mock.patch("sentry.event_manager._calculate_background_grouping")
+    @mock.patch("sentry.grouping.ingest._calculate_background_grouping")
     def test_background_grouping_sample_rate(self, mock_calc_grouping):
         timestamp = time() - 300
         manager = EventManager(

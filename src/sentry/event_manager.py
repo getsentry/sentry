@@ -4,7 +4,6 @@ import copy
 import ipaddress
 import logging
 import mimetypes
-import random
 import re
 import time
 import uuid
@@ -62,13 +61,16 @@ from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
-    BackgroundGroupingConfigLoader,
     GroupingConfig,
     SecondaryGroupingConfigLoader,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
 )
-from sentry.grouping.ingest import calculate_event_grouping, update_grouping_config_if_needed
+from sentry.grouping.ingest import (
+    calculate_event_grouping,
+    run_background_grouping,
+    update_grouping_config_if_needed,
+)
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
@@ -519,7 +521,7 @@ class EventManager:
         # either before or after the main grouping logic, depending on the option value.
         do_background_grouping_before = options.get("store.background-grouping-before")
         if do_background_grouping_before:
-            _run_background_grouping(project, job)
+            run_background_grouping(project, job)
 
         secondary_hashes = None
         migrate_off_hierarchical = False
@@ -579,7 +581,7 @@ class EventManager:
         )
 
         if not do_background_grouping_before:
-            _run_background_grouping(project, job)
+            run_background_grouping(project, job)
 
         if hashes.tree_labels:
             job["finest_tree_label"] = hashes.finest_tree_label
@@ -775,34 +777,6 @@ def _calculate_secondary_hash(
         sentry_sdk.capture_exception()
 
     return secondary_hashes
-
-
-def _calculate_background_grouping(
-    project: Project, event: Event, config: GroupingConfig
-) -> CalculatedHashes:
-    metric_tags: MutableTags = {
-        "grouping_config": config["id"],
-        "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
-    }
-    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
-        return calculate_event_grouping(project, event, config)
-
-
-def _run_background_grouping(project: Project, job: Job) -> None:
-    """Optionally run a fraction of events with a third grouping config
-    This can be helpful to measure its performance impact.
-    This does not affect actual grouping.
-    """
-    try:
-        sample_rate = options.get("store.background-grouping-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
-            config = BackgroundGroupingConfigLoader().get_config_dict(project)
-            if config["id"]:
-                copied_event = copy.deepcopy(job["event"])
-                _calculate_background_grouping(project, copied_event, config)
-    except Exception:
-        sentry_sdk.capture_exception()
 
 
 @metrics.wraps("save_event.pull_out_data")
