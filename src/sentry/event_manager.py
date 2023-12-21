@@ -1499,78 +1499,58 @@ def _save_aggregate(
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
-            all_hash_ids = [h.id for h in flat_grouphashes]
-            if root_hierarchical_grouphash is not None:
-                all_hash_ids.append(root_hierarchical_grouphash.id)
+            group = _create_group(project, event, **kwargs)
 
-            all_hashes = list(GroupHash.objects.filter(id__in=all_hash_ids).select_for_update())
-
-            flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
-
-            existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
-                project, flat_grouphashes, hashes.hierarchical_hashes
-            )
-
-            if root_hierarchical_hash is not None:
-                root_hierarchical_grouphash = GroupHash.objects.get_or_create(
-                    project=project, hash=root_hierarchical_hash
-                )[0]
-            else:
-                root_hierarchical_grouphash = None
-
-            if existing_grouphash is None:
-                group = _create_group(project, event, **kwargs)
-
-                if (
-                    features.has("projects:first-event-severity-calculation", event.project)
-                    and group.data.get("metadata", {}).get("severity") is None
-                ):
-                    logger.error(
-                        "Group created without severity score",
-                        extra={
-                            "event_id": event.data["event_id"],
-                            "group_id": group.id,
-                        },
-                    )
-
-                if root_hierarchical_grouphash is not None:
-                    new_hashes = [root_hierarchical_grouphash]
-                else:
-                    new_hashes = list(flat_grouphashes)
-
-                GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-                    state=GroupHash.State.LOCKED_IN_MIGRATION
-                ).update(group=group)
-
-                is_new = True
-                is_regression = False
-
-                span.set_tag("create_group_transaction.outcome", "new_group")
-                metric_tags["create_group_transaction.outcome"] = "new_group"
-
-                metrics.incr(
-                    "group.created",
-                    skip_internal=True,
-                    tags={
-                        "platform": event.platform or "unknown",
-                        "sdk": normalized_sdk_tag_from_event(event),
+            if (
+                features.has("projects:first-event-severity-calculation", event.project)
+                and group.data.get("metadata", {}).get("severity") is None
+            ):
+                logger.error(
+                    "Group created without severity score",
+                    extra={
+                        "event_id": event.data["event_id"],
+                        "group_id": group.id,
                     },
                 )
 
-                # This only applies to events with stacktraces
-                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
-                if frame_mix:
-                    metrics.incr(
-                        "grouping.in_app_frame_mix",
-                        sample_rate=1.0,
-                        tags={
-                            "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event),
-                            "frame_mix": frame_mix,
-                        },
-                    )
+            if root_hierarchical_grouphash is not None:
+                new_hashes = [root_hierarchical_grouphash]
+            else:
+                new_hashes = list(flat_grouphashes)
 
-                return GroupInfo(group, is_new, is_regression)
+            GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+                state=GroupHash.State.LOCKED_IN_MIGRATION
+            ).update(group=group)
+
+            is_new = True
+            is_regression = False
+
+            span.set_tag("create_group_transaction.outcome", "new_group")
+            metric_tags["create_group_transaction.outcome"] = "new_group"
+
+            metrics.incr(
+                "group.created",
+                skip_internal=True,
+                tags={
+                    "platform": event.platform or "unknown",
+                    "sdk": normalized_sdk_tag_from_event(event),
+                },
+            )
+
+            # This only applies to events with stacktraces
+            frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+            if frame_mix:
+                metrics.incr(
+                    "grouping.in_app_frame_mix",
+                    sample_rate=1.0,
+                    tags={
+                        "platform": event.platform or "unknown",
+                        "sdk": normalized_sdk_tag_from_event(event),
+                        "frame_mix": frame_mix,
+                    },
+                )
+
+            return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
     if group.issue_category != GroupCategory.ERROR:
