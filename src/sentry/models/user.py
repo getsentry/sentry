@@ -159,6 +159,11 @@ class User(BaseModel, AbstractBaseUser):
     )
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # Do we need to ask this user for newsletter consent?
         newsletter_consent_prompt: bool
 
