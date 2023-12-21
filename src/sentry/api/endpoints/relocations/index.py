@@ -139,7 +139,7 @@ class RelocationIndexEndpoint(Endpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="date_added",
+            order_by="-date_added",
             on_results=lambda x: serialize(x, request.user, RelocationSerializer()),
             paginator_cls=OffsetPaginator,
         )
