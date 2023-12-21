@@ -259,8 +259,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       nullCount: 0,
       unparamCount: 1,
     });
-    const platformWithDocs = 'javascript.react' as const;
-    const project = ProjectFixture({platform: 'javascript.react'});
+    const project = ProjectFixture({platform: 'javascript-react'});
     const data = initializeData({
       project: project.id,
       projects: [project],
