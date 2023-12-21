@@ -34,7 +34,7 @@ from sentry.models.project import Project
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField
 from sentry.replays.lib.query import attempt_compressed_condition
-from sentry.replays.usecases.query import InvalidFieldSpecified, search_filter_to_condition
+from sentry.replays.usecases.query import search_filter_to_condition
 from sentry.replays.usecases.query.configs.scalar import click_search_config
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
@@ -173,12 +173,12 @@ def handle_search_filters(
         if isinstance(search_filter, SearchFilter):
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
+                if condition is None:
+                    raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
                 raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
-            except InvalidFieldSpecified as exc:
-                raise ParseError(str(exc))
 
             if look_back == "AND":
                 look_back = None

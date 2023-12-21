@@ -43,10 +43,6 @@ from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
 
-class InvalidFieldSpecified(Exception):
-    ...
-
-
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
     search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
@@ -61,12 +57,12 @@ def handle_search_filters(
         if isinstance(search_filter, SearchFilter):
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
+                if condition is None:
+                    raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
                 raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
-            except InvalidFieldSpecified as exc:
-                raise ParseError(str(exc))
 
             if look_back == "AND":
                 look_back = None
@@ -113,7 +109,7 @@ def attempt_compressed_condition(
 def search_filter_to_condition(
     search_config: dict[str, FieldProtocol],
     search_filter: SearchFilter,
-) -> Condition:
+) -> Condition | None:
     field = search_config.get(search_filter.key.name)
     if isinstance(field, (ColumnField, ComputedField)):
         return field.apply(search_filter)
@@ -121,8 +117,6 @@ def search_filter_to_condition(
     if "*" in search_config:
         field = cast(TagField, search_config["*"])
         return field.apply(search_filter)
-
-    raise InvalidFieldSpecified(f"Unexpected field: {search_filter.key.name}")
 
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.
