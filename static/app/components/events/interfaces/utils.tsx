@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import isString from 'lodash/isString';
 import partition from 'lodash/partition';
 import * as qs from 'query-string';
 
@@ -157,7 +156,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
         break;
 
       default:
-        if (isString(data.data)) {
+        if (typeof data.data === 'string') {
           result += ' \\\n --data "' + escapeBashString(data.data) + '"';
         } else if (Object.keys(data.data).length === 0) {
           // Do nothing with empty object data.
@@ -175,7 +174,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 }
 
 export function stringifyQueryList(query: string | [key: string, value: string][]) {
-  if (isString(query)) {
+  if (typeof query === 'string') {
     return query;
   }
 

@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 import {Theme} from '@emotion/react';
 import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
-import isString from 'lodash/isString';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
@@ -39,7 +38,7 @@ import {
 } from './types';
 
 export const isValidSpanID = (maybeSpanID: any) =>
-  isString(maybeSpanID) && maybeSpanID.length > 0;
+  typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =

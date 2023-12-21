@@ -1,5 +1,4 @@
 import type {SeriesOption} from 'echarts';
-import isArray from 'lodash/isArray';
 
 import XAxis from 'sentry/components/charts/components/xAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
@@ -29,7 +28,7 @@ discoverCharts.push({
       | {seriesName: string; stats: EventsStats}
       | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
       const areaSeries = AreaSeries({
         name: data.seriesName,
@@ -87,7 +86,7 @@ discoverCharts.push({
       | {seriesName: string; stats: EventsStats}
       | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const barSeries = BarSeries({
@@ -147,7 +146,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const areaSeries = AreaSeries({
@@ -204,7 +203,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const lineSeries = LineSeries({
@@ -260,7 +259,7 @@ discoverCharts.push({
   getOption: (
     data: {stats: Record<string, EventsStats>} | {stats: EventsStats; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const color = theme.charts.getColorPalette(data.stats.data.length - 2);
 
       const areaSeries = AreaSeries({
@@ -318,7 +317,7 @@ discoverCharts.push({
       | {seriesName: string; stats: EventsStats}
       | {stats: Record<string, EventsStats>; seriesName?: string}
   ) => {
-    if (isArray(data.stats.data)) {
+    if (Array.isArray(data.stats.data)) {
       const dataMiddleIndex = Math.floor(data.stats.data.length / 2);
       const current = data.stats.data.slice(dataMiddleIndex);
       const previous = data.stats.data.slice(0, dataMiddleIndex);

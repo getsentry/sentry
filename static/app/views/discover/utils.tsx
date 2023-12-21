@@ -1,7 +1,6 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
-import isString from 'lodash/isString';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
@@ -745,7 +744,7 @@ export function getTargetForTransactionSummaryLink(
   let projectID: string | string[] | undefined;
   const filterProjects = location?.query.project;
 
-  if (isString(filterProjects) && filterProjects !== '-1') {
+  if (typeof filterProjects === 'string' && filterProjects !== '-1') {
     // Project selector in discover has just one selected project
     projectID = filterProjects;
   } else {
