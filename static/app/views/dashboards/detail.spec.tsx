@@ -1,7 +1,13 @@
 import {browserHistory} from 'react-router';
+import {
+  Dashboard as DashboardFixture,
+  DashboardListItem as DashboardListItemFixture,
+} from 'sentry-fixture/dashboard';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {Widget as WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -44,13 +50,13 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [
-          TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
-          TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+          DashboardFixture([], {id: 'default-overview', title: 'Default'}),
+          DashboardFixture([], {id: '1', title: 'Custom Errors'}),
         ],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
+        body: DashboardFixture([], {id: 'default-overview', title: 'Default'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
@@ -102,9 +108,9 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: TestStubs.Dashboard(
+        body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -112,6 +118,7 @@ describe('Dashboards > Detail', function () {
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '',
                 },
               ],
               {
@@ -119,7 +126,7 @@ describe('Dashboards > Detail', function () {
                 interval: '1d',
               }
             ),
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -127,6 +134,7 @@ describe('Dashboards > Detail', function () {
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '',
                 },
               ],
               {
@@ -219,7 +227,7 @@ describe('Dashboards > Detail', function () {
         },
       });
       widgets = [
-        TestStubs.Widget(
+        WidgetFixture(
           [
             {
               name: '',
@@ -227,16 +235,17 @@ describe('Dashboards > Detail', function () {
               fields: ['count()'],
               columns: [],
               aggregates: ['count()'],
+              orderby: '',
             },
           ],
           {
             title: 'Errors',
             interval: '1d',
-            widgetType: 'discover',
+            widgetType: types.WidgetType.DISCOVER,
             id: '1',
           }
         ),
-        TestStubs.Widget(
+        WidgetFixture(
           [
             {
               name: '',
@@ -244,16 +253,17 @@ describe('Dashboards > Detail', function () {
               fields: ['count()'],
               columns: [],
               aggregates: ['count()'],
+              orderby: '',
             },
           ],
           {
             title: 'Transactions',
             interval: '1d',
-            widgetType: 'discover',
+            widgetType: types.WidgetType.DISCOVER,
             id: '2',
           }
         ),
-        TestStubs.Widget(
+        WidgetFixture(
           [
             {
               name: '',
@@ -261,6 +271,7 @@ describe('Dashboards > Detail', function () {
               fields: ['p50()'],
               columns: [],
               aggregates: ['p50()'],
+              orderby: '',
             },
           ],
           {
@@ -287,21 +298,21 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [
-          TestStubs.Dashboard([], {
+          DashboardListItemFixture({
             id: 'default-overview',
             title: 'Default',
-            widgetDisplay: ['area'],
+            widgetDisplay: [types.DisplayType.AREA],
           }),
-          TestStubs.Dashboard([], {
+          DashboardListItemFixture({
             id: '1',
             title: 'Custom Errors',
-            widgetDisplay: ['area'],
+            widgetDisplay: [types.DisplayType.AREA],
           }),
         ],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: DashboardFixture(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {},
@@ -310,7 +321,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture(widgets, {id: '1', title: 'Custom Errors'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -364,7 +375,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <OrganizationContext.Provider value={initialData.organization}>
@@ -411,7 +422,7 @@ describe('Dashboards > Detail', function () {
     it('appends dashboard-level filters to series request', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: DashboardFixture(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {release: ['abc@1.2.0']},
@@ -473,7 +484,7 @@ describe('Dashboards > Detail', function () {
     it('shows top level release filter', async function () {
       const mockReleases = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
-        body: [TestStubs.Release()],
+        body: [ReleaseFixture()],
       });
 
       initialData = initializeOrg({
@@ -534,9 +545,9 @@ describe('Dashboards > Detail', function () {
       // A case where someone has async added widgets to a dashboard
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -544,16 +555,17 @@ describe('Dashboards > Detail', function () {
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '',
                 },
               ],
               {
                 title: 'First Widget',
                 interval: '1d',
                 id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+                layout: {x: 0, y: 0, w: 2, h: 6, minH: 1},
               }
             ),
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -561,6 +573,7 @@ describe('Dashboards > Detail', function () {
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '',
                 },
               ],
               {
@@ -594,9 +607,9 @@ describe('Dashboards > Detail', function () {
     it('does not trigger request if layout not updated', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -604,13 +617,14 @@ describe('Dashboards > Detail', function () {
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '',
                 },
               ],
               {
                 title: 'First Widget',
                 interval: '1d',
                 id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+                layout: {x: 0, y: 0, w: 2, h: 6, minH: 1},
               }
             ),
           ],
@@ -641,9 +655,9 @@ describe('Dashboards > Detail', function () {
     it('renders the custom resize handler for a widget', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -651,13 +665,14 @@ describe('Dashboards > Detail', function () {
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '',
                 },
               ],
               {
                 title: 'First Widget',
                 interval: '1d',
                 id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+                layout: {x: 0, y: 0, w: 2, h: 6, minH: 1},
               }
             ),
           ],
@@ -690,9 +705,9 @@ describe('Dashboards > Detail', function () {
     it('does not trigger an alert when the widgets have no layout and user cancels without changes', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -700,6 +715,7 @@ describe('Dashboards > Detail', function () {
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '',
                 },
               ],
               {
@@ -735,7 +751,7 @@ describe('Dashboards > Detail', function () {
 
     it('opens the widget viewer modal using the widget id specified in the url', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-      const widget = TestStubs.Widget(
+      const widget = WidgetFixture(
         [
           {
             name: '',
@@ -755,7 +771,7 @@ describe('Dashboards > Detail', function () {
       );
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widget], {id: '1', title: 'Custom Errors'}),
       });
 
       render(
@@ -786,7 +802,7 @@ describe('Dashboards > Detail', function () {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <ViewEditDashboard
@@ -902,7 +918,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -936,7 +952,7 @@ describe('Dashboards > Detail', function () {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: DashboardFixture(widgets, {
           id: '1',
           filters: {release: ['sentry-android-shop@1.2.0']},
         }),
@@ -967,7 +983,7 @@ describe('Dashboards > Detail', function () {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: DashboardFixture(widgets, {
           id: '1',
           filters: {release: ['sentry-android-shop@1.2.0']},
         }),
@@ -1002,7 +1018,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1056,7 +1072,7 @@ describe('Dashboards > Detail', function () {
     it('can clear dashboard filters in compact select', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: DashboardFixture(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {release: ['sentry-android-shop@1.2.0']},
@@ -1066,7 +1082,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1170,7 +1186,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1231,7 +1247,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1288,7 +1304,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: DashboardFixture(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {},
@@ -1383,7 +1399,7 @@ describe('Dashboards > Detail', function () {
     it('resets release in URL params', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: DashboardFixture(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {
@@ -1444,7 +1460,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1494,7 +1510,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1504,7 +1520,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             id: '9',
             shortVersion: 'search-result',
             version: 'search-result',
