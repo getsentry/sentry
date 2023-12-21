@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Plugin as PluginFixture} from 'sentry-fixture/plugin';
+import {Plugins as PluginsFixture} from 'sentry-fixture/plugins';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -22,14 +24,14 @@ describe('ProjectPluginsContainer', function () {
   beforeEach(function () {
     org = Organization();
     project = ProjectFixture();
-    plugins = TestStubs.Plugins([
-      {
+    plugins = PluginsFixture([
+      PluginFixture({
         enabled: true,
         id: 'disableable plugin',
         name: 'Disableable Plugin',
         slug: 'disableable plugin',
         canDisable: true,
-      },
+      }),
     ]);
     params = {
       projectId: project.slug,

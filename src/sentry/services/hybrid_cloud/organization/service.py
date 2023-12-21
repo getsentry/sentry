@@ -182,6 +182,14 @@ class OrganizationService(RpcService):
             slug=slug, only_visible=only_visible
         )
 
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        """
+        Checks if an organization exists by the id.
+        """
+        return _organization_check_service.check_organization_by_id(
+            id=id, only_visible=only_visible
+        )
+
     def get_organization_by_slug(
         self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
     ) -> Optional[RpcUserOrganizationContext]:
@@ -368,6 +376,13 @@ class OrganizationCheckService(abc.ABC):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
+
+    @abstractmethod
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        """
+        Checks if an organization exists by the id.
         """
         pass
 
