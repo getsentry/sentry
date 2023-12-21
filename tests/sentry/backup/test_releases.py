@@ -3,10 +3,8 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
-from typing import Type
 
 import yaml
-from django.db.models import Model
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.dependencies import NormalizedModelName
@@ -22,7 +20,7 @@ from sentry.testutils.helpers.backups import (
 from sentry.testutils.pytest.fixtures import read_snapshot_file
 from sentry.testutils.silo import region_silo_test, strip_silo_mode_test_suffix
 from sentry.utils import json
-from tests.sentry.backup import expect_models, verify_models_in_output
+from tests.sentry.backup import mark, targets
 
 RELEASE_TESTED: set[NormalizedModelName] = set()
 
@@ -63,8 +61,8 @@ class ReleaseTests(BackupTestCase):
 
         return False
 
-    @expect_models(RELEASE_TESTED, "__all__")
-    def test_at_head(self, expected_models: list[Type[Model]]):
+    @targets(mark(RELEASE_TESTED, "__all__"))
+    def test_at_head(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Convert the existing snapshot from YAML to an equivalent temporary JSON file.
             snapshot_path = self.get_snapshot_path("head")
@@ -95,8 +93,8 @@ class ReleaseTests(BackupTestCase):
                 reference_file=snapshot_path,
             )
 
-            # Check the export so that we can ensure that all models were seen.
-            verify_models_in_output(expected_models, exported)
+            # Return the export so that we can ensure that all models were seen.
+            return exported
 
     def test_at_23_12_0(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
