@@ -168,12 +168,6 @@ def _get_alert_metric_specs(
                     )
                     specs.append(spec)
 
-            # In case the query has an environment, we want to extract with the old environment logic, since we found
-            # a bug in the old logic and this requires us to extract the same metric in parallel but with a different
-            # query hash.
-            if alert_snuba_query.environment_id is not None:
-                pass
-
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
     if len(specs) > max_alert_specs:
         logger.error(
