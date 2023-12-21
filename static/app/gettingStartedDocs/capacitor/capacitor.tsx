@@ -75,10 +75,9 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   }${
     params.isReplaySelected
       ? `
-          new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions({
-            mask: params.mask,
-            block: params.block,
-          })}),`
+          new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
+            params.replayOptions
+          )}),`
       : ''
   }
   ],${
@@ -416,7 +415,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
         link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
       }),
       configurations: getSetupConfiguration({
-        params: {...params, isReplaySelected: true},
+        params,
         showExtraStep: false,
         showDescription: false,
       }),

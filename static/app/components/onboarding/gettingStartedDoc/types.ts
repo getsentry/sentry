@@ -46,10 +46,12 @@ export interface DocsParams<
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
-  block?: boolean;
   cdn?: string;
-  mask?: boolean;
   newOrg?: boolean;
+  replayOptions?: {
+    block?: boolean;
+    mask?: boolean;
+  };
 }
 
 export interface NextStep {

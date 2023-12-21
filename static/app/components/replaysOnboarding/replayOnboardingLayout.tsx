@@ -50,8 +50,10 @@ export function ReplayOnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
-      mask,
-      block,
+      replayOptions: {
+        mask,
+        block,
+      },
     };
 
     return {

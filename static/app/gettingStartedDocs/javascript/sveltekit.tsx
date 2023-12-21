@@ -116,8 +116,8 @@ const replayOnboarding: OnboardingConfig = {
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/sveltekit";`,
                 dsn: params.dsn,
-                mask: params.mask,
-                block: params.block,
+                mask: params.replayOptions?.mask,
+                block: params.replayOptions?.block,
               }),
             },
           ],
