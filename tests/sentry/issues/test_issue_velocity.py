@@ -73,9 +73,9 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
                     insert_time=(self.now - timedelta(days=1)),
                 )
 
-        # with 5 issues that are older than a week, p90 should be approximately in between the
-        # first and second most frequent issues, which in this case have 6 and 5 events respectively
-        expected_threshold = ((6 / WEEK_IN_HOURS) + (5 / WEEK_IN_HOURS)) / 2
+        # with 5 issues that are older than a week, p99 should be approximately the hourly event
+        # rate of the most frequent issue
+        expected_threshold = 6 / WEEK_IN_HOURS
         actual_threshold = calculate_threshold(self.project)
 
         # clickhouse's quantile function is approximate
