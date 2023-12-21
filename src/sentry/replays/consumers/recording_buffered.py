@@ -205,7 +205,7 @@ def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> 
     try:
         headers, recording_data = process_headers(decoded_message["payload"])
     except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", message.replay_id)
+        logger.warning("missing header on %s", decoded_message.replay_id)
         return None
 
     # Useful for computing the average cost of a replay.
@@ -268,7 +268,7 @@ def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> 
 
 
 @metrics.wraps("replays.recording_consumer.commit_uploads")
-def commit_uploads(upload_events: UploadEvent) -> None:
+def commit_uploads(upload_events: list[UploadEvent]) -> None:
     with ThreadPoolExecutor(max_workers=len(upload_events)) as pool:
         pool.map(_upload, upload_events)
 
@@ -286,7 +286,7 @@ def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -
 
 
 @metrics.wraps("replays.recording_consumer.commit_replay_actions")
-def commit_replay_actions(replay_action_events: ReplayActionsEvent) -> None:
+def commit_replay_actions(replay_action_events: list[ReplayActionsEvent]) -> None:
     for actions in replay_action_events:
         emit_replay_actions(actions)
 
