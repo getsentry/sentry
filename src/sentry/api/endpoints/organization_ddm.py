@@ -58,22 +58,22 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         metric_mris = request.GET.getlist("metric", [])
         projects = self.get_projects(request, organization)
 
+        if len(metric_mris) != 1:
+            raise InvalidParams("You can query the spans of only a single metric")
+
         for meta_type in self._extract_meta_types(request):
             data: Any = {}
 
             if meta_type == MetaType.CODE_LOCATIONS:
-                # TODO: refactor code locations to support a single mri.
+                # TODO: refactor code locations to support only a single mri.
                 data = get_code_locations(
-                    metric_mris=metric_mris,
+                    metric_mris=metric_mris[0:],
                     start=start,
                     end=end,
                     organization=organization,
                     projects=projects,
                 )
             elif meta_type == MetaType.METRIC_SPANS:
-                if len(metric_mris) != 1:
-                    raise InvalidParams("You can query the spans of only a single metric")
-
                 min_value = float(request.GET["min"]) if request.GET.get("min") else None
                 max_value = float(request.GET["max"]) if request.GET.get("max") else None
 

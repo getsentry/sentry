@@ -127,6 +127,7 @@ def _get_snuba_conditions_from_query(query: str) -> Optional[ConditionGroup]:
     # returned timeseries.
     phantom_query = f"count(phantom){{{query}}}"
 
+    # TODO: find a way to directly use only filters grammar to avoid making a phantom query.
     parsed_phantom_query = parse_mql(phantom_query).query
     if not isinstance(parsed_phantom_query, Timeseries):
         # For now, we reuse data from `api` but we will soon lift out common components from that file.
