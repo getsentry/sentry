@@ -1,4 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types';
 
-const group = TestStubs.Group({
+const group = GroupFixture({
   level: 'error',
   metadata: {
     type: 'metadata type',
@@ -245,7 +247,7 @@ describe('EventOrGroupHeader', function () {
             function: 'useOverflowTabs',
             display_title_with_tree_label: false,
           },
-          actor: TestStubs.User(),
+          actor: User(),
           isTombstone: true,
         }}
         {...router}

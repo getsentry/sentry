@@ -27,12 +27,7 @@ from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import (
-    all_silo_test,
-    assume_test_silo_mode,
-    control_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
 @region_silo_test
@@ -112,7 +107,7 @@ class InstallationEventWebhookTest(APITestCase):
         assert integration.status == ObjectStatus.ACTIVE
 
 
-@all_silo_test
+@control_silo_test
 class InstallationDeleteEventWebhookTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -126,16 +121,21 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         project = self.project  # force creation
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                name="octocat",
-                organization=self.organization,
-                external_id="2",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(project.organization.id, self.user)
-            assert integration.status == ObjectStatus.ACTIVE
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(project.organization.id, self.user)
+        assert integration.status == ObjectStatus.ACTIVE
+
+        repo = self.create_repo(
+            project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
 
         with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
             response = self.client.post(
@@ -148,33 +148,35 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             )
             assert response.status_code == 204
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.get(external_id=2)
-            assert integration.external_id == "2"
-            assert integration.name == "octocat"
-            assert integration.status == ObjectStatus.DISABLED
+        integration = Integration.objects.get(external_id=2)
+        assert integration.external_id == "2"
+        assert integration.name == "octocat"
+        assert integration.status == ObjectStatus.DISABLED
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.DISABLED
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def test_installation_deleted_no_org_integration(self, get_jwt):
         project = self.project  # force creation
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
-                name="octocat",
-                organization=self.organization,
-                external_id="2",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(project.organization.id, self.user)
-            assert integration.status == ObjectStatus.ACTIVE
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+        )
+        integration.add_organization(project.organization.id, self.user)
+        assert integration.status == ObjectStatus.ACTIVE
 
-            # Set up condition that the OrganizationIntegration is deleted prior to the webhook event
-            OrganizationIntegration.objects.filter(
-                integration_id=integration.id,
-                organization_id=self.organization.id,
-            ).delete()
+        # Set up condition that the OrganizationIntegration is deleted prior to the webhook event
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+        ).delete()
 
         response = self.client.post(
             path=self.url,
@@ -186,11 +188,10 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         )
         assert response.status_code == 204
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.get(external_id=2)
-            assert integration.external_id == "2"
-            assert integration.name == "octocat"
-            assert integration.status == ObjectStatus.DISABLED
+        integration = Integration.objects.get(external_id=2)
+        assert integration.external_id == "2"
+        assert integration.name == "octocat"
+        assert integration.status == ObjectStatus.DISABLED
 
 
 @region_silo_test

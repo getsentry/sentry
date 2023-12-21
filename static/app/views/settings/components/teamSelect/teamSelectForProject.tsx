@@ -62,7 +62,9 @@ function TeamSelect({
       ? t(
           'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
         )
-      : null;
+      : t(
+          'Removing this team from the project means that members of the team can no longer access this project. Do you want to continue?'
+        );
 
     return (
       <Fragment>
@@ -133,6 +135,7 @@ function TeamRow({
         bypass={!confirmMessage}
         onConfirm={() => onRemoveTeam(team.slug)}
         disabled={disabled}
+        confirmText="Remove Team"
       >
         <Button size="xs" icon={<IconSubtract isCircled />} disabled={disabled}>
           {t('Remove')}

@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
@@ -17,7 +18,7 @@ describe('ReleaseActions', function () {
   const organization = Organization();
   const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
   const location: Location = {
-    ...TestStubs.location(),
+    ...LocationFixture(),
     pathname: `/organizations/sentry/releases/${release.version}/`,
     query: {
       project: '1',

@@ -14,6 +14,7 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
@@ -82,12 +83,21 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
                 if is_proxy:
                     assert request.headers[PROXY_OI_HEADER] is not None
 
-        responses.add(
+        expected_header_path = (
+            BitbucketServerAPIPath.repositories.lstrip("/") + "?limit=250&permission=REPO_ADMIN"
+        )
+
+        control_proxy_response = add_control_silo_proxy_response(
             method=responses.GET,
-            # Use regex to create responses both from proxy and integration
-            url=re.compile(rf"\S+{BitbucketServerAPIPath.repositories}"),
+            path=expected_header_path,
             json={"ok": True},
             status=200,
+        )
+
+        jira_response = responses.add(
+            method=responses.GET,
+            url=re.compile(rf"\S+{BitbucketServerAPIPath.repositories}"),
+            json={"ok": True},
         )
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
@@ -101,6 +111,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
 
             assert BitbucketServerAPIPath.repositories in request.url
             assert client.base_url in request.url
+            assert jira_response.call_count == 1
             client.assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -115,9 +126,11 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
 
             assert BitbucketServerAPIPath.repositories in request.url
             assert client.base_url in request.url
+            assert jira_response.call_count == 2
             client.assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
+        assert control_proxy_response.call_count == 0
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = BitbucketServerProxyTestClient(
                 integration=self.integration,
@@ -127,6 +140,6 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             client.get_repos()
             request = responses.calls[0].request
 
-            assert BitbucketServerAPIPath.repositories in request.url
             assert client.base_url not in request.url
+            assert control_proxy_response.call_count == 1
             client.assert_proxy_request(request, is_proxy=True)
