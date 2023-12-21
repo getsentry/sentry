@@ -345,7 +345,7 @@ export class DeprecatedLine extends Component<Props, State> {
     };
 
     const activeLineNumber = data.lineNo;
-    const contextLine = data.context.find(l => l[0] === activeLineNumber);
+    const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
     const hasStacktraceLink = data.inApp && !!data.filename && (isHovering || isExpanded);
     const hasStacktraceLinkInFrameFeatureFlag =
       organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
