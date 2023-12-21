@@ -54,10 +54,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(${getReplayConfigOptions({
-            mask: params.mask,
-            block: params.block,
-          })}),`
+          new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
     }
   ],${
@@ -287,7 +284,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
       }),
-      configurations: getSetupConfiguration({...params, isReplaySelected: true}),
+      configurations: getSetupConfiguration(params),
     },
   ],
   verify: () => [],
