@@ -1,58 +1,26 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  ConfigType,
-  Docs,
-  DocsParams,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
 } from 'sentry/components/onboarding/platformOptionsControl';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
-import {t} from 'sentry/locale';
+import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const ProductSelectionAvailabilityHook = HookOrDefault({
-  hookName: 'component:product-selection-availability',
-  defaultComponent: ProductSelection,
-});
-
-export type OnboardingLayoutProps = {
-  docsConfig: Docs<any>;
-  dsn: string;
-  platformKey: PlatformKey;
-  projectId: Project['id'];
-  projectSlug: Project['slug'];
-  activeProductSelection?: ProductSolution[];
-  cdn?: string;
-  configType?: ConfigType;
-  newOrg?: boolean;
-};
-
-const EMPTY_ARRAY: never[] = [];
-
-export function OnboardingLayout({
+export function ReplayOnboardingLayout({
   cdn,
   docsConfig,
   dsn,
   platformKey,
   projectId,
   projectSlug,
-  activeProductSelection = EMPTY_ARRAY,
   newOrg,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
@@ -60,9 +28,10 @@ export function OnboardingLayout({
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
+  const [mask, setMask] = useState(true);
+  const [block, setBlock] = useState(true);
   const {platformOptions} = docsConfig;
-
-  const {introduction, steps, nextSteps} = useMemo(() => {
+  const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
@@ -72,17 +41,19 @@ export function OnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
-      isPerformanceSelected: activeProductSelection.includes(
-        ProductSolution.PERFORMANCE_MONITORING
-      ),
-      isProfilingSelected: activeProductSelection.includes(ProductSolution.PROFILING),
-      isReplaySelected: activeProductSelection.includes(ProductSolution.SESSION_REPLAY),
+      isPerformanceSelected: false,
+      isProfilingSelected: false,
+      isReplaySelected: true,
       sourcePackageRegistries: {
         isLoading: isLoadingRegistry,
         data: registryData,
       },
       platformOptions: selectedOptions,
       newOrg,
+      replayOptions: {
+        mask,
+        block,
+      },
     };
 
     return {
@@ -96,7 +67,6 @@ export function OnboardingLayout({
     };
   }, [
     cdn,
-    activeProductSelection,
     docsConfig,
     dsn,
     isLoadingRegistry,
@@ -108,6 +78,8 @@ export function OnboardingLayout({
     registryData,
     selectedOptions,
     configType,
+    mask,
+    block,
   ]);
 
   return (
@@ -115,37 +87,33 @@ export function OnboardingLayout({
       <Wrapper>
         <Header>
           {introduction && <div>{introduction}</div>}
-          {configType === 'onboarding' && (
-            <ProductSelectionAvailabilityHook
-              organization={organization}
-              platform={platformKey}
-            />
-          )}
-          {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
+          {platformOptions && !['replayOnboardingJsLoader'].includes(configType) ? (
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
         </Header>
         <Divider withBottomMargin />
         <Steps>
-          {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
-          ))}
+          {steps.map(step =>
+            step.type === StepType.CONFIGURE ? (
+              <Step
+                key={step.title ?? step.type}
+                {...{
+                  ...step,
+                  codeHeader: (
+                    <ReplayConfigToggle
+                      blockToggle={block}
+                      maskToggle={mask}
+                      onBlockToggle={() => setBlock(!block)}
+                      onMaskToggle={() => setMask(!mask)}
+                    />
+                  ),
+                }}
+              />
+            ) : (
+              <Step key={step.title ?? step.type} {...step} />
+            )
+          )}
         </Steps>
-        {nextSteps.length > 0 && (
-          <Fragment>
-            <Divider />
-            <h4>{t('Next Steps')}</h4>
-            <List symbol="bullet">
-              {nextSteps.map(step => (
-                <ListItem key={step.name}>
-                  <ExternalLink href={step.link}>{step.name}</ExternalLink>
-                  {': '}
-                  {step.description}
-                </ListItem>
-              ))}
-            </List>
-          </Fragment>
-        )}
       </Wrapper>
     </AuthTokenGeneratorProvider>
   );

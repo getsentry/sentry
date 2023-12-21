@@ -213,10 +213,7 @@ function getSdkSetupSnippet(params: Params) {
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(${getReplayConfigOptions({
-            mask: params.mask,
-            block: params.block,
-          })}),`
+          new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
     }
   ],${
@@ -274,18 +271,17 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
+      }),
       configurations: [
         {
-          description: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
-          }),
           code: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+              code: getSdkSetupSnippet(params),
             },
           ],
         },

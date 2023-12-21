@@ -9,9 +9,9 @@ import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ProjectKey} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   projectKey: ProjectKey;

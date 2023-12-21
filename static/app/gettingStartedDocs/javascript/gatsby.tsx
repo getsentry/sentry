@@ -30,10 +30,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(${getReplayConfigOptions({
-          mask: params.mask,
-          block: params.block,
-        })}),`
+        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${
@@ -195,11 +192,10 @@ const replayOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/session-replay/',
       }),
-      configurations: [getConfigureStep({...params, isReplaySelected: true})],
+      configurations: [getConfigureStep(params)],
       additionalInfo: tct(
         'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby] plugin, they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
         {
