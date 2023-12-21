@@ -1,5 +1,7 @@
 import {InjectedRouter} from 'react-router';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -139,7 +141,7 @@ describe('Transaction Summary Content', function () {
   });
 
   it('performs basic rendering', function () {
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const {
       organization,
       location,
@@ -148,7 +150,7 @@ describe('Transaction Summary Content', function () {
       transactionName,
       router,
     } = initialize(project, {});
-    const routerContext = TestStubs.routerContext([{organization}]);
+    const routerContext = RouterContextFixture([{organization}]);
 
     render(
       <WrappedComponent

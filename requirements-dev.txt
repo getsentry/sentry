@@ -1,10 +1,10 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 covdefaults>=2.3.0
-docker>=3.7.0,<3.8.0
+docker>=6
 time-machine>=2.13.0
 honcho>=1.1.0
-openapi-core>=0.14.2
+openapi-core>=0.15.0
 psutil
 pytest>=7.2.1
 pytest-cov>=4.0.0
@@ -22,12 +22,13 @@ pre-commit>=3.3
 black>=22.10.0
 flake8>=6.1
 flake8-bugbear>=22.10
+flake8-logging>=1.4
 pyupgrade>=3.2.3
 isort>=5.10.1
 
 # For tools/. To be moved into redistributable dev environments.
 # note: wheel is pulled in by pip-tools
-pip-tools>=6.7.0
+pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking

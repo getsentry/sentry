@@ -40,10 +40,12 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
 import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
 import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
 
@@ -115,6 +117,7 @@ function Sidebar({organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const hasSuperuserSession = isActiveSuperuser();
 
   useOpenOnboardingSidebar();
 
@@ -432,7 +435,7 @@ function Sidebar({organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('DDM')}
+        label={t('Metrics')}
         to={`/organizations/${organization.slug}/ddm/`}
         id="ddm"
         isAlpha
@@ -499,7 +502,7 @@ function Sidebar({organization}: Props) {
   return (
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
-        <SidebarSection>
+        <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
           <SidebarDropdown
             orientation={orientation}
             collapsed={collapsed}
@@ -507,7 +510,7 @@ function Sidebar({organization}: Props) {
             user={config.user}
             config={config}
           />
-        </SidebarSection>
+        </DropdownSidebarSection>
 
         <PrimaryItems>
           {hasOrganization && (
@@ -560,7 +563,13 @@ function Sidebar({organization}: Props) {
           />
           <ProfilingOnboardingSidebar
             currentPanel={activePanel}
-            onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
+            onShowPanel={() => togglePanel(SidebarPanelKey.PROFILING_ONBOARDING)}
+            hidePanel={hidePanel}
+            {...sidebarItemProps}
+          />
+          <MetricsOnboardingSidebar
+            currentPanel={activePanel}
+            onShowPanel={() => togglePanel(SidebarPanelKey.METRICS_ONBOARDING)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />
@@ -736,6 +745,26 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   &:empty {
     display: none;
   }
+`;
+
+const DropdownSidebarSection = styled(SidebarSection)<{
+  isSuperuser?: boolean;
+}>`
+  position: relative;
+  margin: 0;
+  padding: ${space(1)} ${space(2)};
+
+  ${p =>
+    p.isSuperuser &&
+    css`
+      &:before {
+        content: '';
+        position: absolute;
+        inset: 0 ${space(1)};
+        border-radius: ${p.theme.borderRadius};
+        background: ${p.theme.superuserSidebar};
+      }
+    `}
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`

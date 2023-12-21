@@ -6,21 +6,27 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Project} from 'sentry/types';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import type {Event, Group, Project} from 'sentry/types';
+import {
+  getConfigForIssueType,
+  shouldShowCustomErrorResourceConfig,
+} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   event: Event;
   group: Group;
-  projectSlug: Project['slug'];
+  project: Project;
 };
 
 // This section provides users with resources and maybe solutions on how to resolve an issue
-export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
+export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
   const organization = useOrganization();
-  const config = getConfigForIssueType(group);
-  const displayAiSuggestedSolution = organization.aiSuggestedSolution;
+  const config = getConfigForIssueType(group, project);
+  const displayAiSuggestedSolution =
+    // Skip showing AI suggested solution if the issue has a custom resource
+    organization.aiSuggestedSolution &&
+    !shouldShowCustomErrorResourceConfig(group, project);
 
   if (!config.resources && !displayAiSuggestedSolution) {
     return null;
@@ -34,10 +40,14 @@ export function ResourcesAndMaybeSolutions({event, projectSlug, group}: Props) {
     >
       <Content>
         {config.resources && (
-          <Resources eventPlatform={event.platform} configResources={config.resources} />
+          <Resources
+            eventPlatform={event.platform}
+            groupId={group.id}
+            configResources={config.resources}
+          />
         )}
         {displayAiSuggestedSolution && (
-          <AiSuggestedSolution event={event} projectSlug={projectSlug} />
+          <AiSuggestedSolution event={event} projectSlug={project.slug} />
         )}
       </Content>
     </Wrapper>

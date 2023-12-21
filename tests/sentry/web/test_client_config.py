@@ -22,18 +22,13 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.region import override_regions
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.region import get_test_env_directory
+from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.types import region
 from sentry.utils.auth import login
 from sentry.web.client_config import get_client_config
 
 RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
-
-region_data = [
-    Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-    Region("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
-]
 
 
 def request_factory(f):
@@ -172,9 +167,7 @@ def test_client_config_deleted_user():
 
 
 @django_db_all
-@override_regions(regions=[])
-@override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=settings.SENTRY_MONOLITH_REGION)
-def test_client_config_empty_region_data():
+def test_client_config_default_region_data():
     request, user = make_user_request_from_org()
     request.user = user
     result = get_client_config(request)
@@ -186,8 +179,29 @@ def test_client_config_empty_region_data():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@override_settings(SILO_MODE=SiloMode.MONOLITH)
+def test_client_config_empty_region_data():
+    region_directory = region.load_from_config(())
+
+    # Usually, we would want to use other testutils functions rather than calling
+    # `swap_state` directly. We make an exception here in order to test the default
+    # region data that `load_from_config` fills in.
+    with get_test_env_directory().swap_state(tuple(region_directory.regions)):
+        request, user = make_user_request_from_org()
+        request.user = user
+        result = get_client_config(request)
+
+    assert len(result["regions"]) == 1
+    regions = result["regions"]
+    assert regions[0]["name"] == settings.SENTRY_MONOLITH_REGION
+    assert regions[0]["url"] == options.get("system.url-prefix")
+
+
+@django_db_all
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_with_region_data():
     request, user = make_user_request_from_org()
     request.user = user
@@ -199,8 +213,10 @@ def test_client_config_with_region_data():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_with_single_tenant_membership():
     request, user = make_user_request_from_org()
     request.user = user
@@ -217,8 +233,10 @@ def test_client_config_with_single_tenant_membership():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_links_regionurl():
     request, user = make_user_request_from_org()
     request.user = user
@@ -235,8 +253,10 @@ def test_client_config_links_regionurl():
 
 
 @django_db_all
-@override_regions(regions=region_data)
-@override_settings(SILO_MODE=SiloMode.CONTROL)
+@control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
 def test_client_config_links_with_priority_org():
     # request, user = make_user_request_from_non_existant_org()
     request, user = make_user_request_from_org()

@@ -342,7 +342,8 @@ class GroupManager(BaseManager["Group"]):
         return groups
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager, HashDiscarded
+        from sentry.event_manager import EventManager
+        from sentry.exceptions import HashDiscarded
 
         manager = EventManager(kwargs)
         manager.normalize()
@@ -602,9 +603,11 @@ class Group(Model):
         if self.issue_category == GroupCategory.FEEDBACK:
             path = f"/organizations/{organization.slug}/feedback/"
             slug = {"feedbackSlug": f"{self.project.slug}:{self.id}"}
+            project = {"project": self.project.id}
             params = {
                 **(params or {}),
                 **slug,
+                **project,
             }
             query = urlencode(params)
             return organization.absolute_url(path, query=query)
@@ -905,7 +908,7 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
             instance.status not in [GroupStatus.UNRESOLVED, GroupStatus.IGNORED]
             and instance.substatus is not None
         ):
-            logger.exception(
+            logger.error(
                 "No substatus allowed for group",
                 extra={"status": instance.status, "substatus": instance.substatus},
             )
@@ -914,7 +917,7 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
             instance.status == GroupStatus.IGNORED
             and instance.substatus not in IGNORED_SUBSTATUS_CHOICES
         ):
-            logger.exception(
+            logger.error(
                 "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
             )
 
@@ -924,7 +927,7 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
 
             # UNRESOLVED groups must have a substatus
             if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
-                logger.exception(
+                logger.error(
                     "Invalid substatus for UNRESOLVED group",
                     extra={"substatus": instance.substatus},
                 )

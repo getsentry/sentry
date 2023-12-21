@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import FeedbackWidget from 'sentry/components/feedback/widget/feedbackWidget';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,10 +12,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/jsCssView';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
+import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
+import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
+import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
@@ -39,7 +41,7 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     {
       'span.group': groupId,
     },
@@ -53,6 +55,11 @@ function ResourceSummary() {
       SPAN_DESCRIPTION,
       'time_spent_percentage()',
     ]
+  );
+  const spanMetrics = data[0] ?? {};
+
+  const isImage = IMAGE_FILE_EXTENSIONS.includes(
+    spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
   );
 
   return (
@@ -87,7 +94,7 @@ function ResourceSummary() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          <FeedbackWidget />
+          <FloatingFeedbackWidget />
           <HeaderContainer>
             <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
@@ -111,6 +118,7 @@ function ResourceSummary() {
               timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
             />
           </HeaderContainer>
+          {isImage && <SampleImages groupId={groupId} />}
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
           <SampleList

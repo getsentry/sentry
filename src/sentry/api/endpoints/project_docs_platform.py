@@ -40,10 +40,10 @@ def replace_keys(html, project_key):
 
 @region_silo_endpoint
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, project, platform) -> Response:
         data = load_doc(platform)

@@ -6,7 +6,7 @@ export enum MonitorType {
 }
 
 /**
- * Some old monitor configuratiosn do NOT have a schedule_type
+ * Some old monitor configurations do NOT have a schedule_type
  *
  * TODO: This should be removed once we've cleaned up our old data and can
  *       verify we don't have any config objects missing schedule_type
@@ -84,6 +84,7 @@ export interface Monitor {
   dateCreated: string;
   environments: MonitorEnvironment[];
   id: string;
+  isMuted: boolean;
   name: string;
   project: Project;
   slug: string;

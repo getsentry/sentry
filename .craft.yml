@@ -6,15 +6,17 @@ statusProvider:
   name: github
   config:
     contexts:
-      - 'self-hosted-builder (sentryio)'
+      - 'self-hosted'
+artifactProvider:
+  name: none
 targets:
   - id: release
     name: docker
-    source: us.gcr.io/sentryio/sentry
+    source: ghcr.io/getsentry/sentry-self-hosted
     target: getsentry/sentry
   - id: latest
     name: docker
-    source: us.gcr.io/sentryio/sentry
+    source: ghcr.io/getsentry/sentry-self-hosted
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
   - name: github

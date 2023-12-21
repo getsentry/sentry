@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +10,7 @@ import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal'
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
   const mockId = Authenticators().Recovery().authId;
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

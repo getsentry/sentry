@@ -276,7 +276,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
             logger.error(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=409, reason=extra["reason"])
 
         extra = {
             **extra,
@@ -305,7 +305,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
                 "reason"
             ] = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
             logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=409, reason=extra["reason"])
 
         try:
             event = json.loads(request.body.decode("utf-8"))

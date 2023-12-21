@@ -49,6 +49,13 @@ const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
   'left heavy',
 ];
 
+const DIFFERENTIAL_FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
+  'alphabetical',
+  'left heavy',
+];
+
+const DIFFERENTIAL_FLAMEGRAPH_FRAME_OPTIONS = ['all', 'application', 'system'] as const;
+
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: FlamegraphFrame | null;
@@ -206,7 +213,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => dispatch({type: 'set color coding', payload: coding}),
                 })}
-                onClick={() => dispatch({type: 'set color coding', payload: coding})}
                 checked={preferences.colorCoding === coding}
               >
                 {coding}
@@ -222,7 +228,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => dispatch({type: 'set view', payload: view}),
               })}
-              onClick={() => dispatch({type: 'set view', payload: view})}
               checked={preferences.view === view}
             >
               {view}
@@ -241,7 +246,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => dispatch({type: 'set sorting', payload: sorting}),
                 })}
-                onClick={() => dispatch({type: 'set sorting', payload: sorting})}
                 checked={preferences.sorting === sorting}
               >
                 {sorting}
@@ -253,6 +257,70 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
       <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
     </Fragment>
   ) : null;
+}
+
+interface DifferentialFlamegraphMenuProps {
+  contextMenu: ReturnType<typeof useContextMenu>;
+  frameFilter: 'application' | 'system' | 'all';
+  onClose: () => void;
+  onFrameFilterChange: (type: 'application' | 'system' | 'all') => void;
+}
+export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProps) {
+  const preferences = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
+
+  return (
+    <ProfilingContextMenu>
+      <ProfilingContextMenuGroup>
+        <ProfilingContextMenuHeading>{t('Functions')}</ProfilingContextMenuHeading>
+        {DIFFERENTIAL_FLAMEGRAPH_FRAME_OPTIONS.map((filter, idx) => (
+          <ProfilingContextMenuItemCheckbox
+            key={idx}
+            {...props.contextMenu.getMenuItemProps({
+              onClick: () => props.onFrameFilterChange(filter),
+            })}
+            checked={props.frameFilter === filter}
+          >
+            {filter === 'all'
+              ? t('All frames')
+              : filter === 'application'
+              ? t('Application frames')
+              : t('System frames')}
+          </ProfilingContextMenuItemCheckbox>
+        ))}
+      </ProfilingContextMenuGroup>
+      <ProfilingContextMenuGroup>
+        <ProfilingContextMenuHeading>{t('View')}</ProfilingContextMenuHeading>
+        {FLAMEGRAPH_VIEW_OPTIONS.map((view, idx) => (
+          <ProfilingContextMenuItemCheckbox
+            key={idx}
+            {...props.contextMenu.getMenuItemProps({
+              onClick: () => dispatch({type: 'set view', payload: view}),
+            })}
+            checked={preferences.view === view}
+          >
+            {view}
+          </ProfilingContextMenuItemCheckbox>
+        ))}
+      </ProfilingContextMenuGroup>
+      <ProfilingContextMenuGroup>
+        <ProfilingContextMenuHeading>{t('Sorting')}</ProfilingContextMenuHeading>
+        {DIFFERENTIAL_FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => {
+          return (
+            <ProfilingContextMenuItemCheckbox
+              key={idx}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => dispatch({type: 'set sorting', payload: sorting}),
+              })}
+              checked={preferences.sorting === sorting}
+            >
+              {sorting}
+            </ProfilingContextMenuItemCheckbox>
+          );
+        })}
+      </ProfilingContextMenuGroup>
+    </ProfilingContextMenu>
+  );
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

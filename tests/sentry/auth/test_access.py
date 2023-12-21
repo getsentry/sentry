@@ -562,6 +562,7 @@ class FromRequestTest(AccessFactoryTestCase):
         result = self.from_request(request, self.org)
         assert_memberships(result)
         assert not result.has_permission("test.permission")
+        assert "org:superuser" not in result.scopes
 
         request = self.make_request(user=self.superuser, is_superuser=True)
         result = self.from_request(request, self.org)
@@ -569,11 +570,15 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.has_permission("test.permission")
         assert result.requires_sso
         assert not result.sso_is_valid
+        # org:superuser is only attached when an org is present + active superuser
+        assert "org:superuser" in result.scopes
 
     def test_superuser_with_organization_without_membership(self):
         request = self.make_request(user=self.superuser, is_superuser=True)
         result = self.from_request(request, self.org)
         assert result.has_permission("test.permission")
+        # org:superuser is only attached when an org is present + active superuser
+        assert "org:superuser" in result.scopes
 
         assert not result.requires_sso
         assert result.sso_is_valid

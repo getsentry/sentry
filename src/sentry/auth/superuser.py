@@ -22,6 +22,7 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
 
 from sentry.api.exceptions import SentryAPIException
+from sentry.auth.elevated_mode import ElevatedMode
 from sentry.auth.system import is_system_auth
 from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
@@ -64,9 +65,7 @@ UNSET = object()
 
 ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
 
-DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
-    settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
-)
+DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
 
 def is_active_superuser(request):
@@ -93,9 +92,8 @@ class EmptySuperuserAccessForm(SentryAPIException):
     message = "The request contains an empty superuser access form data"
 
 
-class Superuser:
+class Superuser(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
-
     org_id = ORG_ID
 
     def _check_expired_on_org_change(self):
@@ -155,7 +153,7 @@ class Superuser:
         # if we've bound superuser to an organization they must
         # have completed SSO to gain status
         if self.org_id and not has_completed_sso(self.request, self.org_id):
-            if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
+            if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
                 return False, "incomplete-sso"
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:

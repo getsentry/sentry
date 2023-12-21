@@ -1,4 +1,5 @@
 import {Fragment, ReactNode} from 'react';
+import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -44,7 +45,7 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
         >
           {t('Accessibility')}
         </Tooltip>
-        <FeatureBadge
+        <FlexFeatureBadge
           type="alpha"
           title={t('This feature is available for early adopters and may change')}
         />
@@ -91,5 +92,11 @@ function FocusTabs({className}: Props) {
     </ScrollableTabs>
   );
 }
+
+const FlexFeatureBadge = styled(FeatureBadge)`
+  & > span {
+    display: flex;
+  }
+`;
 
 export default FocusTabs;

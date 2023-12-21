@@ -6,6 +6,8 @@ from django.utils.functional import cached_property
 from django.utils.text import slugify
 from typing_extensions import NotRequired
 
+from sentry.monitors.constants import MAX_SLUG_LENGTH
+
 
 class CheckinMessage(TypedDict):
     message_type: Literal["check_in"]
@@ -67,8 +69,6 @@ class CheckinItem:
 
     @cached_property
     def valid_monitor_slug(self):
-        from sentry.monitors.models import MAX_SLUG_LENGTH
-
         return slugify(self.payload["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
 
 

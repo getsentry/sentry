@@ -6,20 +6,31 @@ import pytest
 from django.db.models import F
 
 from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.producer import PayloadType
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
+from sentry.models.statistical_detectors import (
+    RegressionGroup,
+    RegressionType,
+    get_regression_groups,
+)
 from sentry.seer.utils import BreakpointData
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
+from sentry.statistical_detectors.base import DetectorPayload, TrendType
+from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
 from sentry.tasks.statistical_detectors import (
+    EndpointRegressionDetector,
+    FunctionRegressionDetector,
     detect_function_change_points,
     detect_function_trends,
     detect_transaction_change_points,
     detect_transaction_trends,
     emit_function_regression_issue,
-    limit_regressions_by_project,
     query_functions,
     query_transactions,
     query_transactions_timeseries,
@@ -300,6 +311,74 @@ def test_detect_transaction_trends(
     assert detect_transaction_change_points.apply_async.called
 
 
+@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
+@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+@pytest.mark.sentry_metrics
+def test_detect_transaction_trends_auto_resolution(
+    produce_occurrence_to_kafka,
+    detect_transaction_change_points,
+    raw_snql_query,
+    timestamp,
+    project,
+):
+    n = 75
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
+
+    raw_snql_query.side_effect = [
+        {
+            "data": [
+                {
+                    "project_id": project.id,
+                    "transaction_name": "/123",
+                    "count": 100,
+                    "p95": 100 if i < 10 else 300 if i < 20 else 100,
+                },
+            ],
+        }
+        for i, ts in enumerate(timestamps)
+    ]
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:performance-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
+        for ts in timestamps[:20]:
+            detect_transaction_trends([project.organization.id], [project.id], ts)
+
+    assert detect_transaction_change_points.apply_async.called
+
+    with override_options(options), Feature(features):
+        RegressionGroup.objects.create(
+            type=RegressionType.ENDPOINT.value,
+            date_regressed=timestamps[10],
+            version=1,
+            active=True,
+            project_id=project.id,
+            fingerprint=generate_fingerprint(RegressionType.ENDPOINT, "/123"),
+            baseline=100,
+            regressed=300,
+        )
+        for ts in timestamps[20:]:
+            detect_transaction_trends([project.organization.id], [project.id], ts)
+
+    status_change = StatusChangeMessage(
+        fingerprint=[generate_fingerprint(RegressionType.ENDPOINT, "/123")],
+        project_id=project.id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka.assert_has_calls(
+        [mock.call(payload_type=PayloadType.STATUS_CHANGE, status_change=status_change)]
+    )
+
+
 @pytest.mark.parametrize(
     ["ratelimit", "expected_calls"],
     [(-1, 3), (0, 0), (1, 1), (2, 2), (3, 3)],
@@ -382,6 +461,13 @@ def test_detect_transaction_trends_ratelimit(
 
 
 @pytest.mark.parametrize(
+    ["detector_cls"],
+    [
+        pytest.param(EndpointRegressionDetector, id="endpoint"),
+        pytest.param(FunctionRegressionDetector, id="function"),
+    ],
+)
+@pytest.mark.parametrize(
     ["ratelimit", "expected_idx"],
     [
         pytest.param(-1, 4, id="all"),
@@ -391,7 +477,7 @@ def test_detect_transaction_trends_ratelimit(
         pytest.param(3, 4, id="three per project"),
     ],
 )
-def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
+def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx):
     payloads = {
         (project_id, group): DetectorPayload(
             project_id=project_id,
@@ -406,22 +492,123 @@ def test_limit_regressions_by_project(ratelimit, timestamp, expected_idx):
     }
 
     def trends():
-        # we do not need the detector state here so mock it with None
-        yield (None, 0, payloads[(1, 1)], None)
-        yield (TrendType.Improved, 0, payloads[(2, 1)], None)
-        yield (TrendType.Regressed, 0, payloads[(2, 2)], None)
-        yield (TrendType.Regressed, 0, payloads[(3, 1)], None)
-        yield (TrendType.Regressed, 1, payloads[(3, 2)], None)
-        yield (TrendType.Regressed, 2, payloads[(3, 3)], None)
+        yield TrendBundle(TrendType.Skipped, 0, payloads[(1, 1)])
+        yield TrendBundle(TrendType.Improved, 0, payloads[(2, 1)])
+        yield TrendBundle(TrendType.Regressed, 0, payloads[(2, 2)])
+        yield TrendBundle(TrendType.Regressed, 0, payloads[(3, 1)])
+        yield TrendBundle(TrendType.Regressed, 1, payloads[(3, 2)])
+        yield TrendBundle(TrendType.Regressed, 2, payloads[(3, 3)])
 
     expected_regressions = [
-        payloads[(2, 2)],
-        payloads[(3, 3)],
-        payloads[(3, 2)],
-        payloads[(3, 1)],
+        TrendBundle(TrendType.Regressed, 0, payloads[(2, 2)]),
+        TrendBundle(TrendType.Regressed, 2, payloads[(3, 3)]),
+        TrendBundle(TrendType.Regressed, 1, payloads[(3, 2)]),
+        TrendBundle(TrendType.Regressed, 0, payloads[(3, 1)]),
     ][:expected_idx]
-    regressions = limit_regressions_by_project(trends(), ratelimit)
+    regressions = detector_cls.limit_regressions_by_project(trends(), ratelimit)
     assert set(regressions) == set(expected_regressions)
+
+
+@pytest.mark.parametrize(
+    ["detector_cls"],
+    [
+        pytest.param(EndpointRegressionDetector, id="endpoint"),
+        pytest.param(FunctionRegressionDetector, id="function"),
+    ],
+)
+@pytest.mark.parametrize(
+    ["existing", "expected_versions"],
+    [
+        pytest.param([], [1], id="no existing"),
+        pytest.param(
+            [
+                (1, False, "1"),
+                (2, False, "1"),
+            ],
+            [3],
+            id="existing inactive",
+        ),
+        pytest.param(
+            [
+                (1, False, "1"),
+                (2, True, "1"),
+            ],
+            [None],
+            id="existing active",
+        ),
+        pytest.param(
+            [
+                (1, False, "1"),
+                (2, False, "1"),
+                (1, False, "2"),
+                (2, False, "2"),
+                (3, False, "2"),
+                (4, True, "2"),
+            ],
+            [3, None],
+            id="mixed active and inactive",
+        ),
+        pytest.param(
+            [
+                (1, True, "1"),
+                (2, False, "1"),
+            ],
+            [3],
+            id="use latest version",
+        ),
+    ],
+)
+@django_db_all
+def test_get_regression_versions(
+    detector_cls,
+    existing,
+    expected_versions,
+    project,
+    timestamp,
+):
+    if existing:
+        RegressionGroup.objects.bulk_create(
+            RegressionGroup(
+                type=detector_cls.regression_type.value,
+                date_regressed=timestamp,
+                version=version,
+                active=active,
+                project_id=project.id,
+                fingerprint=generate_fingerprint(
+                    detector_cls.regression_type,
+                    transaction,
+                ),
+                baseline=100000000.0,
+                regressed=500000000.0,
+            )
+            for version, active, transaction in existing
+        )
+
+    breakpoints: List[BreakpointData] = [
+        {
+            "absolute_percentage_change": 5.0,
+            "aggregate_range_1": 100000000.0,
+            "aggregate_range_2": 500000000.0,
+            "breakpoint": 1687323600,
+            "project": str(project.id),
+            "transaction": "1",
+            "trend_difference": 400000000.0,
+            "trend_percentage": 5.0,
+            "unweighted_p_value": 0.0,
+            "unweighted_t_value": -float("inf"),
+        }
+    ]
+
+    def mock_regressions():
+        yield from breakpoints
+
+    regressions = list(detector_cls.get_regression_versions(mock_regressions()))
+
+    assert regressions == [
+        (expected_version, breakpoints[i])
+        for i, expected_version in enumerate(expected_versions)
+        if expected_version is not None
+    ]
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
@@ -441,7 +628,7 @@ def test_detect_function_trends(
             DetectorPayload(
                 project_id=project.id,
                 group=123,
-                fingerprint=123,
+                fingerprint=f"{123:x}",
                 count=100,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
@@ -462,6 +649,66 @@ def test_detect_function_trends(
         for ts in timestamps:
             detect_function_trends([project.id], ts)
     assert detect_function_change_points.apply_async.called
+
+
+@mock.patch("sentry.tasks.statistical_detectors.functions.query")
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_detect_function_trends_auto_resolution(
+    produce_occurrence_to_kafka,
+    detect_function_change_points,
+    functions_query,
+    timestamp,
+    project,
+):
+    n = 750
+    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
+
+    functions_query.side_effect = [
+        {
+            "data": [
+                {
+                    "project.id": project.id,
+                    "fingerprint": 123,
+                    "count()": 100,
+                    "p95()": 100 if i < 10 else 300 if i < 20 else 100,
+                    "timestamp": ts.isoformat(),
+                },
+            ],
+        }
+        for i, ts in enumerate(timestamps)
+    ]
+
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    features = {
+        "organizations:profiling-statistical-detectors-ema": [project.organization.slug],
+    }
+
+    with override_options(options), Feature(features):
+        for ts in timestamps[:20]:
+            detect_function_trends([project.id], ts)
+
+    assert detect_function_change_points.apply_async.called
+
+    with override_options(options), Feature(features):
+        RegressionGroup.objects.create(
+            type=RegressionType.FUNCTION.value,
+            date_regressed=timestamps[10],
+            version=1,
+            active=True,
+            project_id=project.id,
+            fingerprint=f"{123:x}",
+            baseline=100,
+            regressed=300,
+        )
+        for ts in timestamps[20:]:
+            detect_function_trends([project.id], ts)
+
+    assert produce_occurrence_to_kafka.called
 
 
 @pytest.mark.parametrize(
@@ -487,7 +734,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=1,
-                fingerprint=1,
+                fingerprint=f"{1:x}",
                 count=100,
                 value=100 if i < n / 2 else 301,
                 timestamp=ts,
@@ -495,7 +742,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=2,
-                fingerprint=2,
+                fingerprint=f"{2:x}",
                 count=100,
                 value=100 if i < n / 2 else 302,
                 timestamp=ts,
@@ -503,7 +750,7 @@ def test_detect_function_trends_ratelimit(
             DetectorPayload(
                 project_id=project.id,
                 group=3,
-                fingerprint=3,
+                fingerprint=f"{3:x}",
                 count=100,
                 value=100 if i < n / 2 else 303,
                 timestamp=ts,
@@ -607,6 +854,84 @@ def test_detect_function_change_points(
     assert mock_emit_function_regression_issue.called
 
 
+@pytest.mark.parametrize(
+    ["detector_cls", "object_name"],
+    [
+        pytest.param(
+            EndpointRegressionDetector,
+            "transaction_1",
+            id="endpoint",
+        ),
+        pytest.param(
+            FunctionRegressionDetector,
+            "123",
+            id="function",
+        ),
+    ],
+)
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_new_regression_group(
+    produce_occurrence_to_kafka,
+    detector_cls,
+    object_name,
+    project,
+    timestamp,
+):
+    def get_regressions():
+        yield {
+            "project": str(project.id),
+            "transaction": object_name,
+            "aggregate_range_1": 100,
+            "aggregate_range_2": 200,
+            "unweighted_t_value": 1.23,
+            "unweighted_p_value": 1.23,
+            "trend_percentage": 1.23,
+            "absolute_percentage_change": 1.23,
+            "trend_difference": 1.23,
+            "breakpoint": (timestamp - timedelta(hours=12)).timestamp(),
+        }
+
+    regressions = get_regressions()
+    regressions = detector_cls.save_regressions_with_versions(regressions)
+    assert len(list(regressions)) == 1  # indicates we should've saved 1 regression group
+
+    regression_groups = get_regression_groups(
+        detector_cls.regression_type,
+        [(project.id, generate_fingerprint(detector_cls.regression_type, object_name))],
+        active=True,
+    )
+    assert len(regression_groups) == 1  # confirm the regression group was saved
+
+    def get_trends():
+        payload = DetectorPayload(
+            project_id=project.id,
+            group=object_name,
+            fingerprint="",  # this fingerprint isn't used so leave it blank
+            count=100,
+            value=100,
+            timestamp=timestamp - timedelta(hours=1),
+        )
+        state = MovingAverageDetectorState(
+            timestamp=timestamp - timedelta(hours=1),
+            count=100,
+            moving_avg_short=100,
+            moving_avg_long=100,
+        )
+        yield TrendBundle(
+            type=TrendType.Unchanged,
+            score=1,
+            payload=payload,
+            state=state,
+        )
+
+    trends = get_trends()
+    trends = detector_cls.get_regression_groups(trends)
+    trends = detector_cls.redirect_resolutions(trends, timestamp)
+    assert len(list(trends)) == 0  # should resolve, so it is redirected, thus 0
+    assert produce_occurrence_to_kafka.called
+
+
 @region_silo_test
 class FunctionsTasksTest(ProfilesSnubaTestCase):
     def setUp(self):
@@ -657,11 +982,12 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
     @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
     def test_functions_query(self):
         results = query_functions(self.projects, self.now)
+        fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
         assert results == [
             DetectorPayload(
                 project_id=project.id,
-                group=self.function_fingerprint({"package": "foo", "function": "foo"}),
-                fingerprint=self.function_fingerprint({"package": "foo", "function": "foo"}),
+                group=fingerprint,
+                fingerprint=f"{fingerprint:x}",
                 count=100,
                 value=pytest.approx(100),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
@@ -676,7 +1002,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         mock_value.data = b'{"occurrences":5}'
         mock_get_from_profiling_service.return_value = mock_value
 
-        breakpoints: List[BreakpointData] = [
+        regressions: List[BreakpointData] = [
             {
                 "project": str(project.id),
                 "transaction": str(
@@ -694,7 +1020,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             for project in self.projects
         ]
         emitted = emit_function_regression_issue(
-            {project.id: project for project in self.projects}, breakpoints, self.now
+            {project.id: project for project in self.projects}, regressions, self.now
         )
         assert emitted == 5
 

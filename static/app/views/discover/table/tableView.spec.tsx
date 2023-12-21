@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
+import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +14,7 @@ import TableView from 'sentry/views/discover/table/tableView';
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
 
-  const location = TestStubs.location({
+  const location = LocationFixture({
     pathname: '/organizations/org-slug/discover/results/',
     query: {
       id: '42',
@@ -67,7 +69,7 @@ describe('TableView > CellActions', function () {
 
     const organization = Organization({
       features: ['discover-basic'],
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
 
     initialData = initializeOrg({
@@ -351,7 +353,7 @@ describe('TableView > CellActions', function () {
 
   it('renders size columns correctly', function () {
     const orgWithFeature = Organization({
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
 
     render(
@@ -403,7 +405,7 @@ describe('TableView > CellActions', function () {
 
   it('shows events with value less than selected custom performance metric', async function () {
     const orgWithFeature = Organization({
-      projects: [TestStubs.Project()],
+      projects: [ProjectFixture()],
     });
 
     render(

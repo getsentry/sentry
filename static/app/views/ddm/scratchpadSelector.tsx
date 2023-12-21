@@ -6,13 +6,14 @@ import {uuid4} from '@sentry/utils';
 import {AnimatePresence} from 'framer-motion';
 import isEmpty from 'lodash/isEmpty';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {openConfirmModal} from 'sentry/components/confirm';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconBookmark, IconDelete, IconStar} from 'sentry/icons';
+import {IconBookmark, IconDashboard, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -22,6 +23,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import useRouter from 'sentry/utils/useRouter';
+
+import {useCreateDashboard} from './useCreateDashboard';
 
 type Scratchpad = {
   id: string;
@@ -160,6 +163,7 @@ export function useScratchpads() {
 export function ScratchpadSelector() {
   const scratchpads = useScratchpads();
   const organization = useOrganization();
+  const createDashboard = useCreateDashboard();
 
   const isDefault = useCallback(
     scratchpad => scratchpads.default === scratchpad.id,
@@ -231,8 +235,18 @@ export function ScratchpadSelector() {
     [scratchpads, isDefault, organization]
   );
 
+  const selectedScratchpad = scratchpads.selected
+    ? scratchpads.all[scratchpads.selected]
+    : undefined;
+
   return (
     <ScratchpadGroup>
+      <Button
+        icon={<IconDashboard />}
+        onClick={() => createDashboard(selectedScratchpad)}
+      >
+        {t('Save to Dashboard')}
+      </Button>
       <SaveAsDropdown
         onSave={name => {
           scratchpads.add(name);
@@ -270,9 +284,8 @@ function SaveAsDropdown({
     state: {setOpen},
   } = useOverlay({});
   const theme = useTheme();
-  const [name, setName] = useState('');
-
   const organization = useOrganization();
+  const [name, setName] = useState('');
 
   const save = useCallback(() => {
     trackAnalytics('ddm.scratchpad.save', {
@@ -296,8 +309,8 @@ function SaveAsDropdown({
 
   return (
     <div>
-      <Button icon={<IconStar isSolid={isFork} />} {...triggerProps}>
-        {isFork ? t('Fork as ...') : t('Save as ...')}
+      <Button icon={isFork ? null : <IconStar isSolid={isFork} />} {...triggerProps}>
+        {isFork ? `${t('Duplicate as')}\u2026` : `${t('Save as')}\u2026`}
       </Button>
       <AnimatePresence>
         {isOpen && (
@@ -312,15 +325,17 @@ function SaveAsDropdown({
                   size="sm"
                   onChange={({target}) => setName(target.value)}
                 />
-                <SaveAsButton
-                  priority="primary"
-                  disabled={!name}
-                  onClick={() => {
-                    save();
-                  }}
-                >
-                  {mode === 'fork' ? t('Fork') : t('Save')}
-                </SaveAsButton>
+                <GuideAnchor target="create_scratchpad" position="bottom">
+                  <SaveAsButton
+                    priority="primary"
+                    disabled={!name}
+                    onClick={() => {
+                      save();
+                    }}
+                  >
+                    {mode === 'fork' ? t('Fork') : t('Save')}
+                  </SaveAsButton>
+                </GuideAnchor>
               </StyledOverlay>
             </PositionWrapper>
           </FocusScope>

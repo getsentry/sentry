@@ -292,10 +292,10 @@ def reduce_stream(response):
 
 @region_silo_endpoint
 class EventAiSuggestedFixEndpoint(ProjectEndpoint):
-    owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.ML_AI
     # go away
     private = True
     enforce_rate_limit = True

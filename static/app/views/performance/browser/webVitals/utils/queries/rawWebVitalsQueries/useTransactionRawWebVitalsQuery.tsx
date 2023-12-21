@@ -5,7 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
@@ -13,6 +13,7 @@ type Props = {
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
+  query?: string;
   sortName?: string;
   transaction?: string | null;
 };
@@ -23,6 +24,7 @@ export const useTransactionRawWebVitalsQuery = ({
   defaultSort,
   sortName = 'sort',
   enabled = true,
+  query,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -35,16 +37,24 @@ export const useTransactionRawWebVitalsQuery = ({
       fields: [
         'transaction',
         'transaction.op',
-        'avg(measurements.lcp)',
-        'avg(measurements.fcp)',
-        'avg(measurements.cls)',
-        'avg(measurements.ttfb)',
-        'avg(measurements.fid)',
+        'p75(measurements.lcp)',
+        'p75(measurements.fcp)',
+        'p75(measurements.cls)',
+        'p75(measurements.ttfb)',
+        'p75(measurements.fid)',
+        'count_web_vitals(measurements.lcp, any)',
+        'count_web_vitals(measurements.fcp, any)',
+        'count_web_vitals(measurements.cls, any)',
+        'count_web_vitals(measurements.ttfb, any)',
+        'count_web_vitals(measurements.fid, any)',
         'count()',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+      query: [
+        'transaction.op:pageload',
+        ...(transaction ? [`transaction:"${transaction}"`] : []),
+        ...(query ? [query] : []),
+      ].join(' '),
       version: 2,
       dataset: DiscoverDatasets.METRICS,
     },
@@ -71,25 +81,34 @@ export const useTransactionRawWebVitalsQuery = ({
           .map(row => ({
             transaction: row.transaction?.toString(),
             'transaction.op': row['transaction.op']?.toString(),
-            'avg(measurements.lcp)': row['avg(measurements.lcp)'] as number,
-            'avg(measurements.fcp)': row['avg(measurements.fcp)'] as number,
-            'avg(measurements.cls)': row['avg(measurements.cls)'] as number,
-            'avg(measurements.ttfb)': row['avg(measurements.ttfb)'] as number,
-            'avg(measurements.fid)': row['avg(measurements.fid)'] as number,
+            'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
+            'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
+            'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
+            'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
+            'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
+            'count_web_vitals(measurements.lcp, any)': row[
+              'count_web_vitals(measurements.lcp, any)'
+            ] as number,
+            'count_web_vitals(measurements.fcp, any)': row[
+              'count_web_vitals(measurements.fcp, any)'
+            ] as number,
+            'count_web_vitals(measurements.cls, any)': row[
+              'count_web_vitals(measurements.cls, any)'
+            ] as number,
+            'count_web_vitals(measurements.ttfb, any)': row[
+              'count_web_vitals(measurements.ttfb, any)'
+            ] as number,
+            'count_web_vitals(measurements.fid, any)': row[
+              'count_web_vitals(measurements.fid, any)'
+            ] as number,
           }))
           .map(row => {
             const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, fidScore} =
-              calculatePerformanceScore({
-                lcp: row['avg(measurements.lcp)'],
-                fcp: row['avg(measurements.fcp)'],
-                cls: row['avg(measurements.cls)'],
-                ttfb: row['avg(measurements.ttfb)'],
-                fid: row['avg(measurements.fid)'],
-              });
+              calculatePerformanceScoreFromTableDataRow({id: '', ...row}); // dummy id to satisfy type
             return {
               ...row,
-              score: totalScore ?? 0,
+              totalScore: totalScore ?? 0,
               clsScore: clsScore ?? 0,
               fcpScore: fcpScore ?? 0,
               lcpScore: lcpScore ?? 0,

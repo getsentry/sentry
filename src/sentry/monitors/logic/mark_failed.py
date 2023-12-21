@@ -21,7 +21,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
-    MonitorObjectStatus,
     MonitorStatus,
 )
 
@@ -42,7 +41,9 @@ def mark_failed(
     computed based on the tasks reference time.
     """
     monitor_env = failed_checkin.monitor_environment
-    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 0)
+    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
+    if not failure_issue_threshold:
+        failure_issue_threshold = 1
 
     # Compute the next check-in time from our reference time
     next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
@@ -95,7 +96,14 @@ def mark_failed(
     monitor_env.refresh_from_db()
 
     # Create incidents + issues
-    if failure_issue_threshold:
+    use_issue_platform = False
+    try:
+        organization = Organization.objects.get_from_cache(id=monitor_env.monitor.organization_id)
+        use_issue_platform = features.has("organizations:issue-platform", organization=organization)
+    except Organization.DoesNotExist:
+        pass
+
+    if use_issue_platform:
         return mark_failed_threshold(failed_checkin, failure_issue_threshold)
     else:
         return mark_failed_no_threshold(failed_checkin)
@@ -106,35 +114,45 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
 
     monitor_env = failed_checkin.monitor_environment
 
-    monitor_disabled = monitor_env.monitor.status == MonitorObjectStatus.DISABLED
+    monitor_muted = monitor_env.monitor.is_muted or monitor_env.is_muted
 
     fingerprint = None
 
     # check to see if we need to update the status
-    if monitor_env.status == MonitorStatus.OK:
-        # reverse the list after slicing in order to start with oldest check-in
-        # use .values() to speed up query
-        previous_checkins = list(
-            reversed(
-                MonitorCheckIn.objects.filter(
-                    monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
+    if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
+        # evaluation logic for multiple check-ins
+        if failure_issue_threshold > 1:
+            # reverse the list after slicing in order to start with oldest check-in
+            # use .values() to speed up query
+            previous_checkins = list(
+                reversed(
+                    MonitorCheckIn.objects.filter(
+                        monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
+                    )
+                    .order_by("-date_added")
+                    .values("id", "date_added", "status")[:failure_issue_threshold]
                 )
-                .exclude(status=CheckInStatus.IN_PROGRESS)
-                .order_by("-date_added")
-                .values("id", "date_added", "status")[:failure_issue_threshold]
             )
-        )
-        # check for successive failed previous check-ins
-        if not all([checkin["status"] != CheckInStatus.OK for checkin in previous_checkins]):
-            return False
+            # check for any successful previous check-in
+            if any([checkin["status"] == CheckInStatus.OK for checkin in previous_checkins]):
+                return False
+        # if threshold is 1, just use the most recent check-in
+        else:
+            previous_checkins = [
+                {
+                    "id": failed_checkin.id,
+                    "date_added": failed_checkin.date_added,
+                    "status": failed_checkin.status,
+                }
+            ]
 
         # change monitor status + update fingerprint timestamp
         monitor_env.status = MonitorStatus.ERROR
         monitor_env.last_state_change = monitor_env.last_checkin
         monitor_env.save(update_fields=("status", "last_state_change"))
 
-        # Do not create incident if monitor is disabled
-        if not monitor_disabled:
+        # Do not create incident if monitor is muted
+        if not monitor_muted:
             starting_checkin = previous_checkins[0]
 
             # for new incidents, generate a new hash from a uuid to use
@@ -152,13 +170,14 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         MonitorStatus.MISSED_CHECKIN,
         MonitorStatus.TIMEOUT,
     ]:
-        # if monitor environment has a failed status, get the most recent
+        # if monitor environment has a failed status, use the failed
         # check-in and send occurrence
         previous_checkins = [
-            MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
-            .order_by("-date_added")
-            .values("id", "date_added", "status")
-            .first()
+            {
+                "id": failed_checkin.id,
+                "date_added": failed_checkin.date_added,
+                "status": failed_checkin.status,
+            }
         ]
 
         # get the existing grouphash from the monitor environment
@@ -167,8 +186,8 @@ def mark_failed_threshold(failed_checkin: MonitorCheckIn, failure_issue_threshol
         # don't send occurrence for other statuses
         return False
 
-    # Do not create event/occurrence if monitor is disabled
-    if monitor_disabled:
+    # Do not create event/occurrence if monitor is muted
+    if monitor_muted:
         return True
 
     for previous_checkin in previous_checkins:
@@ -185,21 +204,17 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
 
     monitor_env = failed_checkin.monitor_environment
 
-    # Do not create event if monitor is disabled
-    if monitor_env.monitor.status == MonitorObjectStatus.DISABLED:
+    failed_status_map = {
+        CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
+        CheckInStatus.TIMEOUT: MonitorStatus.TIMEOUT,
+    }
+    monitor_env.update(status=failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR))
+
+    # Do not create event if monitor or monitor environment is muted
+    if monitor_env.monitor.is_muted or monitor_env.is_muted:
         return True
 
-    use_issue_platform = False
-    try:
-        organization = Organization.objects.get(id=monitor_env.monitor.organization_id)
-        use_issue_platform = features.has("organizations:issue-platform", organization=organization)
-    except Organization.DoesNotExist:
-        pass
-
-    if use_issue_platform:
-        create_issue_platform_occurrence(failed_checkin)
-    else:
-        create_legacy_event(failed_checkin)
+    create_legacy_event(failed_checkin)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 

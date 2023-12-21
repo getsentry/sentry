@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import getProjectsByTeams from 'sentry/utils/getProjectsByTeams';
@@ -9,8 +10,8 @@ describe('getProjectsByTeams', function () {
     const team2 = Team({id: '2', slug: 'team2'});
     const teams = [team1, team2];
     const projects = [
-      TestStubs.Project({slug: 'project1', teams}),
-      TestStubs.Project({slug: 'project2'}),
+      ProjectFixture({slug: 'project1', teams}),
+      ProjectFixture({slug: 'project2'}),
     ];
     projectsByTeams = getProjectsByTeams(teams, projects);
   });

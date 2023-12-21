@@ -37,7 +37,7 @@ export abstract class FlamegraphRenderer {
   roots: ReadonlyArray<FlamegraphFrame>;
 
   colorBuffer: Array<number>;
-  colorMap: Map<string | number, number[]>;
+  colorMap: Map<string | number | FlamegraphFrame['node'], number[]>;
 
   isDifferentialFlamegraph: boolean = false;
 
@@ -74,10 +74,7 @@ export abstract class FlamegraphRenderer {
 
   getColorForFrame(frame: FlamegraphFrame): number[] {
     if (this.isDifferentialFlamegraph) {
-      return (
-        this.colorMap.get(DifferentialFlamegraph.FrameKey(frame)) ??
-        this.theme.COLORS.FRAME_FALLBACK_COLOR
-      );
+      return this.colorMap.get(frame.node) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
     }
     return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
   }

@@ -4,12 +4,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.issues.ingest import process_occurrence_data
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
-from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import STRING_TO_STATUS_LOOKUP, GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -23,6 +23,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
+@apply_feature_flag_on_cls("organizations:profile-file-io-main-thread-ingest")
 class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     def test_event_id_mismatch(self) -> None:
         with self.assertRaisesMessage(
@@ -35,7 +36,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
             )
 
     def test_with_event(self) -> None:
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(project_id=self.project.id)
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
@@ -68,18 +69,18 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
 @apply_feature_flag_on_cls("organizations:issue-platform-api-crons-sd")
 class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
     def setUp(self):
+        self.fingerprint = ["group-1"]
         self.event = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
                 "timestamp": iso_format(datetime.now()),
-                "fingerprint": ["group-1"],
+                "fingerprint": self.fingerprint,
             },
             project_id=self.project.id,
         )
         self.group = self.event.group
         assert self.group
-        self.group_hash = GroupHash.objects.filter(group=self.group, project=self.project).first()
         self.initial_status = self.group.status
         self.initial_substatus = self.group.substatus
 
@@ -102,7 +103,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
 
     def test_with_no_status_change(self) -> None:
         status_change = StatusChangeMessage(
-            fingerprint=[self.group_hash.hash],
+            fingerprint=self.fingerprint,
             project_id=self.group.project_id,
             new_status=self.initial_status,
             new_substatus=self.initial_substatus,
@@ -120,7 +121,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
 
     def test_with_status_change_resolved(self) -> None:
         status_change = StatusChangeMessage(
-            fingerprint=[self.group_hash.hash],
+            fingerprint=self.fingerprint,
             project_id=self.group.project_id,
             new_status=GroupStatus.RESOLVED,
             new_substatus=None,
@@ -147,7 +148,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             GroupSubStatus.FOREVER,
         ]:
             status_change = StatusChangeMessage(
-                fingerprint=[self.group_hash.hash],
+                fingerprint=self.fingerprint,
                 project_id=self.group.project_id,
                 new_status=GroupStatus.IGNORED,
                 new_substatus=substatus,
@@ -177,7 +178,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             (GroupSubStatus.REGRESSED, ActivityType.SET_REGRESSION),
         ]:
             status_change = StatusChangeMessage(
-                fingerprint=[self.group_hash.hash],
+                fingerprint=self.fingerprint,
                 project_id=self.group.project_id,
                 new_status=GroupStatus.UNRESOLVED,
                 new_substatus=substatus,
@@ -215,7 +216,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             (GroupStatus.UNRESOLVED, GroupSubStatus.NEW, "group.update_status.invalid_substatus"),
         ]:
             bad_status_change = StatusChangeMessage(
-                fingerprint=[self.group_hash.hash],
+                fingerprint=self.fingerprint,
                 project_id=self.group.project_id,
                 new_status=status,
                 new_substatus=substatus,
@@ -224,12 +225,15 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
                 payload_type=PayloadType.STATUS_CHANGE,
                 status_change=bad_status_change,
             )
+            processed_fingerprint = {"fingerprint": ["group-1"]}
+            process_occurrence_data(processed_fingerprint)
+
             self.group.refresh_from_db()
             mock_logger_error.assert_called_with(
                 error_msg,
                 extra={
                     "project_id": self.group.project_id,
-                    "fingerprint": [self.group_hash.hash],
+                    "fingerprint": processed_fingerprint["fingerprint"],
                     "new_status": status,
                     "new_substatus": substatus,
                 },
@@ -252,6 +256,8 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         assert group
         initial_status = group.status
         initial_substatus = group.substatus
+        wrong_fingerprint = {"fingerprint": ["wronghash"]}
+        process_occurrence_data(wrong_fingerprint)
 
         bad_status_change_resolve = StatusChangeMessage(
             fingerprint=["wronghash"],
@@ -268,7 +274,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             "grouphash.not_found",
             extra={
                 "project_id": group.project_id,
-                "fingerprint": "wronghash",
+                "fingerprint": wrong_fingerprint["fingerprint"][0],
             },
         )
         assert group.status == initial_status

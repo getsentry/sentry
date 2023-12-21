@@ -57,7 +57,7 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def delete(self, request: Request, group) -> Response:
         id_list = request.GET.getlist("id")
-        if id_list is None:
+        if not id_list:
             return Response()
 
         hash_list = list(

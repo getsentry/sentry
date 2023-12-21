@@ -4,6 +4,7 @@ import collections
 import os
 import random
 import shutil
+import string
 import sys
 from datetime import datetime
 from hashlib import md5
@@ -15,6 +16,9 @@ from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
+from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.types import region
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -44,6 +48,29 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
+def _configure_test_env_regions() -> None:
+
+    # Assign a random name on every test run, as a reminder that test setup and
+    # assertions should not depend on this value. If you need to test behavior that
+    # depends on region attributes, use `override_regions` in your test case.
+    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+
+    default_region = Region(
+        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+    )
+
+    settings.SENTRY_REGION = region_name
+    settings.SENTRY_MONOLITH_REGION = region_name
+
+    # This not only populates the environment with the default region, but also
+    # ensures that a TestEnvRegionDirectory instance is injected into global state.
+    # See sentry.testutils.region.get_test_env_directory, which relies on it.
+    region.set_global_directory(TestEnvRegionDirectory([default_region]))
+
+    settings.SENTRY_SUBNET_SECRET = "secret"
+    settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
@@ -54,7 +81,7 @@ def pytest_configure(config: pytest.Config) -> None:
         category=UnsupportedBackend,
     )
 
-    config.addinivalue_line("markers", "migrations: requires MIGRATIONS_TEST_MIGRATE=1")
+    config.addinivalue_line("markers", "migrations: requires --migrations")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -208,7 +235,8 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
-    settings.SENTRY_REGION = "us"
+
+    _configure_test_env_regions()
 
     # ID controls
     settings.SENTRY_USE_BIG_INTS = True
@@ -249,13 +277,6 @@ def pytest_configure(config: pytest.Config) -> None:
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
     patcher.start()
-
-    if not settings.MIGRATIONS_TEST_MIGRATE:
-        # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
-        # This is a hack to force django to sync the database state from the models rather than use migrations.
-        settings.MIGRATION_MODULES["sentry"] = None  # type: ignore[assignment]
-        settings.MIGRATION_MODULES["hybridcloud"] = None  # type: ignore[assignment]
-        settings.MIGRATION_MODULES["feedback"] = None  # type: ignore[assignment]
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"
@@ -308,10 +329,10 @@ def register_extensions() -> None:
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
-    if not settings.MIGRATIONS_TEST_MIGRATE and any(
+    if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
     ):
-        pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
+        pytest.skip("migrations are not enabled, run with `pytest --migrations ...`")
 
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:

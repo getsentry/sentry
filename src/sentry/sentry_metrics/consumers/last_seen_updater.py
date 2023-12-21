@@ -90,7 +90,7 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
                 }
         return set()
     except rapidjson.JSONDecodeError:
-        logger.error("last_seen_updater.invalid_json", exc_info=True)
+        logger.exception("last_seen_updater.invalid_json")
         return set()
 
 
@@ -135,14 +135,14 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             seen_ints = message.payload
 
             keys_to_pass_to_update = len(seen_ints)
-            logger.debug(f"{keys_to_pass_to_update} unique keys seen")
+            logger.debug("%s unique keys seen", keys_to_pass_to_update)
             self.__metrics.incr(
                 "last_seen_updater.unique_update_candidate_keys", amount=keys_to_pass_to_update
             )
             with self.__metrics.timer("last_seen_updater.postgres_time"):
                 update_count = _update_stale_last_seen(table, seen_ints)
             self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
-            logger.debug(f"{update_count} keys updated")
+            logger.debug("%s keys updated", update_count)
 
         collect_step: Reduce[Set[int], Set[int]] = Reduce(
             self.__max_batch_size,

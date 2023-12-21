@@ -73,7 +73,7 @@ function FlamegraphThreadSelector({
   return (
     <StyledCompactSelect
       triggerProps={{
-        icon: <IconList size="xs" />,
+        icon: <IconList />,
         size: 'xs',
       }}
       options={[

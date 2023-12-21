@@ -36,7 +36,6 @@ from .environment import *  # NOQA
 from .event import *  # NOQA
 from .eventattachment import *  # NOQA
 from .eventerror import *  # NOQA
-from .eventuser import *  # NOQA
 from .featureadoption import *  # NOQA
 from .files import *  # NOQA
 from .group import *  # NOQA

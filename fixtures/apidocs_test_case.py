@@ -1,9 +1,10 @@
+import functools
 import os
 
 from django.conf import settings
-from openapi_core import create_spec
 from openapi_core.contrib.django import DjangoOpenAPIRequest, DjangoOpenAPIResponse
-from openapi_core.validation.response.validators import ResponseValidator
+from openapi_core.spec.shortcuts import create_spec
+from openapi_core.validation.response import openapi_v30_response_validator
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -13,18 +14,15 @@ from sentry.utils import json
 
 @requires_snuba
 class APIDocsTestCase(APITestCase):
-    cached_schema = None
+    @functools.cached_property
+    def cached_schema(self):
+        path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
+        with open(path) as json_file:
+            data = json.load(json_file)
+            data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
+            del data["components"]
 
-    def create_schema(self):
-        if not APIDocsTestCase.cached_schema:
-            path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
-            with open(path) as json_file:
-                data = json.load(json_file)
-                data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
-                del data["components"]
-
-                APIDocsTestCase.cached_schema = create_spec(data)
-        return APIDocsTestCase.cached_schema
+            return create_spec(data)
 
     def validate_schema(self, request, response):
         assert 200 <= response.status_code < 300, response.status_code
@@ -33,8 +31,8 @@ class APIDocsTestCase(APITestCase):
             assert len(response.data) > 0, "Cannot validate an empty list"
 
         response["Content-Type"] = "application/json"
-        result = ResponseValidator(self.create_schema()).validate(
-            DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
+        result = openapi_v30_response_validator.validate(
+            self.cached_schema, DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
         )
 
         result.raise_for_errors()

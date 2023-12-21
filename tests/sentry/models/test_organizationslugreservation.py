@@ -11,10 +11,10 @@ from sentry.models.outbox import outbox_context
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
 
 
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"))
 class TestOrganizationSlugReservationReplication(TestCase):
     def does_replica_match_original_reservation(
         self,

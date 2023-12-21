@@ -1,3 +1,4 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -16,8 +17,8 @@ describe('utils.projects', function () {
     MockApiClient.clearMockResponses();
     act(() =>
       ProjectsStore.loadInitialData([
-        TestStubs.Project({id: '1', slug: 'foo'}),
-        TestStubs.Project({id: '2', slug: 'bar'}),
+        ProjectFixture({id: '1', slug: 'foo'}),
+        ProjectFixture({id: '2', slug: 'bar'}),
       ])
     );
   });
@@ -55,11 +56,11 @@ describe('utils.projects', function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '101',
             slug: 'b',
           }),
@@ -124,7 +125,7 @@ describe('utils.projects', function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
@@ -261,15 +262,15 @@ describe('utils.projects', function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '1',
             slug: 'foo',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '101',
             slug: 'b',
           }),
@@ -330,11 +331,11 @@ describe('utils.projects', function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '100',
             slug: 'a',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '101',
             slug: 'b',
           }),
@@ -413,11 +414,11 @@ describe('utils.projects', function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '102',
             slug: 'test1',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '103',
             slug: 'test2',
           }),
@@ -468,11 +469,11 @@ describe('utils.projects', function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '102',
             slug: 'test1',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '103',
             slug: 'test2',
           }),
@@ -555,15 +556,15 @@ describe('utils.projects', function () {
 
     beforeEach(function () {
       mockProjects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '100',
           slug: 'a',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '101',
           slug: 'b',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '102',
           slug: 'c',
         }),

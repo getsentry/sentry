@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {t} from 'sentry/locale';
 import {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -27,7 +25,6 @@ function _parseMRI(mri: MRI): ParsedMRI {
   const mriArray = mri.split(new RegExp(/[:/@]/));
 
   if (mriArray.length !== 4) {
-    Sentry.captureMessage(`Failed to parse invalid MRI`, {extra: {mri}});
     throw new Error('Invalid MRI');
   }
 
@@ -81,6 +78,10 @@ export function parseField(field: string): {mri: MRI; op: string} | null {
     mri: parsedFunction.arguments[0] as MRI,
     op: parsedFunction.name,
   };
+}
+
+export function isMRIField(field: string): boolean {
+  return !!parseMRI(parseField(field)?.mri);
 }
 
 // convenience function to get the MRI from a field, returns defaut MRI if it fails

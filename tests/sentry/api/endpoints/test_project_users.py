@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest import SkipTest, mock
+from unittest import mock
 
 from django.urls import reverse
 from django.utils import timezone
@@ -10,13 +10,8 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
-class ProjectUsersBaseTest(APITestCase):
-    @classmethod
-    def setUpClass(cls):
-        if cls is ProjectUsersBaseTest:
-            raise SkipTest("Skipping base class")
-        super().setUpClass()
-
+@region_silo_test
+class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
@@ -27,9 +22,37 @@ class ProjectUsersBaseTest(APITestCase):
                 "project_slug": self.project.slug,
             },
         )
-        # Make mypy happy
-        self.euser1 = EventUser(None, None, None, None, None, None)
-        self.euser2 = EventUser(None, None, None, None, None, None)
+
+        timestamp = iso_format(timezone.now() - timedelta(hours=1))
+
+        self.event1 = self.store_event(
+            project_id=self.project.id,
+            data={
+                "user": {
+                    "id": 1,
+                    "email": "foo@example.com",
+                    "username": "foobar",
+                    "ip_address": "127.0.0.1",
+                },
+                "event_id": "b" * 32,
+                "timestamp": timestamp,
+            },
+        )
+        self.euser1 = EventUser.from_event(self.event1)
+        self.event2 = self.store_event(
+            project_id=self.project.id,
+            data={
+                "user": {
+                    "id": 2,
+                    "email": "bar@example.com",
+                    "username": "baz",
+                    "ip_address": "192.168.0.1",
+                },
+                "event_id": "c" * 32,
+                "timestamp": timestamp,
+            },
+        )
+        self.euser2 = EventUser.from_event(self.event2)
 
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
@@ -121,44 +144,3 @@ class ProjectUsersBaseTest(APITestCase):
             assert response.data[0]["id"] is None
         else:
             assert response.data[0]["id"] == str(self.euser2.id)
-
-
-@region_silo_test
-class EventUserProjectUsersTest(ProjectUsersBaseTest, SnubaTestCase):
-    def setUp(self):
-        super().setUp()
-        timestamp = iso_format(timezone.now() - timedelta(hours=1))
-
-        self.event1 = self.store_event(
-            project_id=self.project.id,
-            data={
-                "user": {
-                    "id": 1,
-                    "email": "foo@example.com",
-                    "username": "foobar",
-                    "ip_address": "127.0.0.1",
-                },
-                "event_id": "b" * 32,
-                "timestamp": timestamp,
-            },
-        )
-        self.euser1 = EventUser.from_event(self.event1)
-        self.event2 = self.store_event(
-            project_id=self.project.id,
-            data={
-                "user": {
-                    "id": 2,
-                    "email": "bar@example.com",
-                    "username": "baz",
-                    "ip_address": "192.168.0.1",
-                },
-                "event_id": "c" * 32,
-                "timestamp": timestamp,
-            },
-        )
-        self.euser2 = EventUser.from_event(self.event2)
-        self.feature_manager = self.feature("organizations:eventuser-from-snuba")
-        self.feature_manager.__enter__()
-
-    def tearDown(self):
-        self.feature_manager.__exit__(None, None, None)

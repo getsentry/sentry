@@ -71,6 +71,7 @@ class IntegrationClassification(BaseClassification):
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            VercelRequestParser,
             VstsRequestParser,
         )
 
@@ -85,6 +86,7 @@ class IntegrationClassification(BaseClassification):
             JiraServerRequestParser,
             MsTeamsRequestParser,
             SlackRequestParser,
+            VercelRequestParser,
             VstsRequestParser,
         ]
         return {cast(str, parser.provider): parser for parser in active_parsers}
@@ -95,9 +97,11 @@ class IntegrationClassification(BaseClassification):
             e.g. `/extensions/slack/commands/` -> `slack`
         """
         integration_prefix_regex = re.escape(self.integration_prefix)
-        provider_regex = rf"^{integration_prefix_regex}(\w+)"
+        provider_regex = rf"^{integration_prefix_regex}([^/]+)"
         result = re.search(provider_regex, request.path)
-        return result[1] if result else None
+        if not result:
+            return None
+        return result[1].replace("-", "_")
 
     def should_operate(self, request: HttpRequest) -> bool:
         return (
@@ -127,10 +131,6 @@ class IntegrationClassification(BaseClassification):
             request=request,
             response_handler=self.response_handler,
         )
-        self.logger.info(
-            f"integration_control.routing_request.{parser.provider}",
-            extra={"path": request.path, "method": request.method},
-        )
         response = parser.get_response()
         metrics.incr(
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
@@ -140,9 +140,10 @@ class IntegrationClassification(BaseClassification):
         self.logger.info(
             f"integration_control.routing_request.{parser.provider}.response",
             extra={
-                "path": request.path,
+                "request.path": request.path,
+                "request.method": request.method,
                 "url_name": parser.match.url_name,
-                "status_code": response.status_code,
+                "response.status_code": response.status_code,
             },
         )
         return response
