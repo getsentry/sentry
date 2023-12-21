@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from string import Template
-from typing import Optional
+from typing import Any, Optional
 from zipfile import ZipFile
 
 import yaml
@@ -167,7 +168,7 @@ def uploading_complete(uuid: str) -> None:
         )
         fp = raw_relocation_file.file.getfile()
         with fp:
-            preprocessing_scan.delay(uuid)
+            preprocessing_scan.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -311,8 +312,6 @@ def preprocessing_scan(uuid: str) -> None:
             relocation.want_usernames = sorted(usernames)
             relocation.save()
 
-            preprocessing_transfer.delay(uuid)
-
             # The user's import data looks basically okay - we can use this opportunity to send a
             # "your relocation request has been accepted and is in flight, please give it a few
             # hours" email.
@@ -324,6 +323,8 @@ def preprocessing_scan(uuid: str) -> None:
                     "orgs": relocation.want_org_slugs,
                 },
             )
+
+        preprocessing_transfer.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -403,7 +404,7 @@ def preprocessing_transfer(uuid: str) -> None:
         fp.seek(0)
         relocation_storage.save(path, fp)
 
-        preprocessing_baseline_config.delay(uuid)
+    preprocessing_baseline_config.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -455,7 +456,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         fp.seek(0)
         relocation_storage.save(path, fp)
 
-        preprocessing_colliding_users.delay(uuid)
+    preprocessing_colliding_users.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -505,7 +506,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         fp.seek(0)
         relocation_storage.save(path, fp)
 
-        preprocessing_complete.delay(uuid)
+    preprocessing_complete.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -562,7 +563,7 @@ def preprocessing_complete(uuid: str) -> None:
             relocation.save()
             RelocationValidation.objects.create(relocation=relocation)
 
-        validating_start.delay(uuid)
+    validating_start.apply_async(args=[uuid])
 
 
 def _get_relocation_validation(
@@ -598,16 +599,37 @@ def _get_relocation_validation_attempt(
         return None
 
 
+@dataclass(frozen=True)
+class NextTask:
+    """
+    A task, along with a series of parameters to be passed to its `.apply_async` method, allowing
+    the task to be scheduled at some later point in the execution.
+    """
+
+    task: Task
+    args: list[Any]
+    countdown: int | None = None
+
+    def schedule(self):
+        """
+        Run the `.apply_async()` call defined by this future.
+        """
+        self.task.apply_async(args=self.args, countdown=self.countdown)
+
+
 def _update_relocation_validation_attempt(
     task: OrderedTask,
     relocation: Relocation,
     relocation_validation: RelocationValidation,
     relocation_validation_attempt: RelocationValidationAttempt,
     status: ValidationStatus,
-) -> None:
+) -> NextTask | None:
     """
     After a `RelocationValidationAttempt` resolves, make sure to update the owning
     `RelocationValidation` and `Relocation` as well.
+
+    Returns the subsequent task that should be executed as soon as the wrapping
+    `retry_task_or_fail_relocation` exits, as the last action in the currently running task.
     """
 
     with atomic_transaction(
@@ -623,10 +645,11 @@ def _update_relocation_validation_attempt(
                 "Validation polling: scheduled",
                 extra={"uuid": relocation.uuid, "task": task.name},
             )
-            validating_poll.apply_async(
-                args=[relocation.uuid, str(relocation_validation_attempt.build_id)], countdown=60
+            return NextTask(
+                task=validating_poll,
+                args=[relocation.uuid, str(relocation_validation_attempt.build_id)],
+                countdown=60,
             )
-            return
 
         relocation_validation_attempt.status = status.value
 
@@ -644,8 +667,8 @@ def _update_relocation_validation_attempt(
                     "Validation timed out",
                     extra={"uuid": relocation.uuid, "task": task.name},
                 )
-                validating_start.delay(relocation.uuid)
-                return
+
+                return NextTask(task=validating_start, args=[relocation.uuid])
 
             # Always accept the numerically higher `ValidationStatus`, since that is a more definite
             # result.
@@ -659,7 +682,7 @@ def _update_relocation_validation_attempt(
                 ),
                 using=router.db_for_write(Relocation),
             )
-            return
+            return None
 
         # All remaining statuses are final, so we can update the owning `RelocationValidation` now.
         assert status in {ValidationStatus.INVALID, ValidationStatus.VALID}
@@ -683,7 +706,7 @@ def _update_relocation_validation_attempt(
                 ),
                 using=router.db_for_write(Relocation),
             )
-            return
+            return None
 
         assert status == ValidationStatus.VALID
         relocation.step = Relocation.Step.IMPORTING.value
@@ -694,15 +717,7 @@ def _update_relocation_validation_attempt(
             extra={"uuid": relocation.uuid, "task": task.name},
         )
 
-        # Why wrap in `on_commit()` here rather than calling `.delay()` directly? Because it will
-        # cause tests to fail. We run tasks synchronously (celery's `ALWAYS_EAGER` settings) during
-        # tests, so the `delay`'ed call will actually occur on the stack. That is bad, because we
-        # are currently in an atomic transaction, which will cause the transaction in `importing` to
-        # inevitably cross databases. Instead, by doing `on_commit`, we can ensure that the
-        # `importing` task always runs after this transaction finishes.
-        transaction.on_commit(
-            lambda: importing.delay(relocation.uuid), using=router.db_for_write(Relocation)
-        )
+        return NextTask(task=importing, args=[relocation.uuid])
 
 
 @instrumented_task(
@@ -778,7 +793,7 @@ def validating_start(uuid: str) -> None:
                 build_id=response.metadata.build.id,
             )
 
-        validating_poll.delay(uuid, response.metadata.build.id)
+    validating_poll.apply_async(args=[uuid, str(response.metadata.build.id)])
 
 
 @instrumented_task(
@@ -825,53 +840,59 @@ def validating_poll(uuid: str, build_id: str) -> None:
             "build_id": build_id,
         },
     )
+
+    next_task = None
     with retry_task_or_fail_relocation(
         relocation, OrderedTask.VALIDATING_POLL, attempts_left, ERR_VALIDATING_INTERNAL
     ):
         cb_client = CloudBuildClient()
         build = cb_client.get_build(project_id=gcp_project_id(), id=str(build_id))
-        if build.status == Build.Status.SUCCESS:
-            validating_complete.delay(uuid, str(build_id))
-            return
-
-        if build.status in {
-            Build.Status.FAILURE,
-            Build.Status.INTERNAL_ERROR,
-            Build.Status.CANCELLED,
-        }:
-            return _update_relocation_validation_attempt(
-                OrderedTask.VALIDATING_POLL,
-                relocation,
-                relocation_validation,
-                relocation_validation_attempt,
-                ValidationStatus.FAILURE,
-            )
-
         date_added = (
             relocation_validation_attempt.date_added
             if relocation_validation_attempt.date_added is not None
             else datetime.fromtimestamp(0)
         )
         timeout_limit = datetime.now(tz=timezone.utc) - DEFAULT_VALIDATION_TIMEOUT
-        if (
+
+        if build.status == Build.Status.SUCCESS:
+            next_task = NextTask(
+                task=validating_complete,
+                args=[uuid, str(build_id)],
+            )
+        elif build.status in {
+            Build.Status.FAILURE,
+            Build.Status.INTERNAL_ERROR,
+            Build.Status.CANCELLED,
+        }:
+            next_task = _update_relocation_validation_attempt(
+                OrderedTask.VALIDATING_POLL,
+                relocation,
+                relocation_validation,
+                relocation_validation_attempt,
+                ValidationStatus.FAILURE,
+            )
+        elif (
             build.status in {Build.Status.TIMEOUT, Build.Status.EXPIRED}
             or date_added < timeout_limit
         ):
-            return _update_relocation_validation_attempt(
+            next_task = _update_relocation_validation_attempt(
                 OrderedTask.VALIDATING_POLL,
                 relocation,
                 relocation_validation,
                 relocation_validation_attempt,
                 ValidationStatus.TIMEOUT,
             )
+        else:
+            next_task = _update_relocation_validation_attempt(
+                OrderedTask.VALIDATING_POLL,
+                relocation,
+                relocation_validation,
+                relocation_validation_attempt,
+                ValidationStatus.IN_PROGRESS,
+            )
 
-        return _update_relocation_validation_attempt(
-            OrderedTask.VALIDATING_POLL,
-            relocation,
-            relocation_validation,
-            relocation_validation_attempt,
-            ValidationStatus.IN_PROGRESS,
-        )
+    if next_task is not None:
+        next_task.schedule()
 
 
 @instrumented_task(
@@ -912,6 +933,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     if relocation_validation_attempt is None:
         return
 
+    next_task = None
     with retry_task_or_fail_relocation(
         relocation,
         OrderedTask.VALIDATING_COMPLETE,
@@ -933,13 +955,16 @@ def validating_complete(uuid: str, build_id: str) -> None:
                     final_status = ValidationStatus.INVALID
                     break
 
-        return _update_relocation_validation_attempt(
+        next_task = _update_relocation_validation_attempt(
             OrderedTask.VALIDATING_COMPLETE,
             relocation,
             relocation_validation,
             relocation_validation_attempt,
             final_status,
         )
+
+    if next_task is not None:
+        next_task.schedule()
 
 
 @instrumented_task(
@@ -997,7 +1022,7 @@ def importing(uuid: str) -> None:
                 printer=LoggingPrinter(uuid),
             )
 
-        postprocessing.delay(uuid)
+    postprocessing.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -1068,7 +1093,7 @@ def postprocessing(uuid: str) -> None:
             if isinstance(result, Exception):
                 raise result
 
-        notifying_users.delay(uuid)
+    notifying_users.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -1131,7 +1156,7 @@ def notifying_users(uuid: str) -> None:
         relocation.latest_unclaimed_emails_sent_at = datetime.now()
         relocation.save()
 
-        notifying_owner.delay(uuid)
+    notifying_owner.apply_async(args=[uuid])
 
 
 @instrumented_task(
@@ -1172,7 +1197,8 @@ def notifying_owner(uuid: str) -> None:
                 "orgs": relocation.want_org_slugs,
             },
         )
-        completed.delay(uuid)
+
+    completed.apply_async(args=[uuid])
 
 
 @instrumented_task(
