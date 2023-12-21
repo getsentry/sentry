@@ -147,7 +147,7 @@ function NativeFrame({
   const [expanded, setExpanded] = useState(expandable ? isExpanded ?? false : false);
   const [isHovering, setHovering] = useState(false);
 
-  const contextLine = frame.context.find(l => l[0] === frame.lineNo);
+  const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
   const hasStacktraceLink =
     frame.inApp && !!frame.filename && frame.lineNo && (isHovering || expanded);
   const hasStacktraceLinkInFrameFeatureFlag =

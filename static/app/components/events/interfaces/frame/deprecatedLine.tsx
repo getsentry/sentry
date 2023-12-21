@@ -350,7 +350,7 @@ export class DeprecatedLine extends Component<Props, State> {
     const hasStacktraceLinkInFrameFeatureFlag =
       organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
     const showStacktraceLinkInFrame =
-      hasStacktraceLink && contextLine && hasStacktraceLinkInFrameFeatureFlag;
+      hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
     const showSentryAppStacktraceLinkInFrame =
       showStacktraceLinkInFrame && this.props.components.length > 0;
 
@@ -433,7 +433,7 @@ export class DeprecatedLine extends Component<Props, State> {
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}
-                  line={contextLine[1]}
+                  line={contextLine ? contextLine[1] : ''}
                   event={this.props.event}
                 />
               </ErrorBoundary>
@@ -441,7 +441,7 @@ export class DeprecatedLine extends Component<Props, State> {
             {showSentryAppStacktraceLinkInFrame && (
               <ErrorBoundary mini>
                 <OpenInContextLine
-                  lineNo={contextLine[0]}
+                  lineNo={data.lineNo}
                   filename={data.filename || ''}
                   components={this.props.components}
                 />
