@@ -433,7 +433,7 @@ const IconCloseCircle = styled(IconClose)`
   margin-right: ${space(1)};
 `;
 
-const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
+export const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div
     style={{
       display: 'flex',

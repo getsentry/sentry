@@ -24,6 +24,7 @@ import {
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
@@ -216,7 +217,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     // if we don't have an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
-        {({disabled}) => (
+        {({disabled, disabledReason}) => (
           <AddIntegration
             provider={provider}
             onInstall={this.onInstallWithInstallationId}
@@ -237,6 +238,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                 >
                   {t('Install %s', provider.name)}
                 </Button>
+                {disabled && <DisabledNotice reason={disabledReason} />}
               </ButtonWrapper>
             )}
           </AddIntegration>
@@ -400,4 +402,5 @@ const ButtonWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
+  line-height: 24px;
 `;
