@@ -55,6 +55,19 @@ class PluginRequestParserTest(TestCase):
             # Purge outboxes after checking each route
             ControlOutbox.objects.all().delete()
 
+    def test_routing_for_missing_organization(self):
+        # Delete the mapping to simulate an org being deleted.
+        OrganizationMapping.objects.filter(organization_id=self.organization.id).delete()
+        routes = {
+            reverse("sentry-plugins-github-webhook", args=[self.organization.id]): True,
+            reverse("sentry-plugins-bitbucket-webhook", args=[self.organization.id]): True,
+        }
+        for route in routes:
+            request = self.factory.post(route)
+            parser = PluginRequestParser(request=request, response_handler=self.get_response)
+            response = parser.get_response()
+            assert response.status_code == 400
+
     def test_invalid_webhooks(self):
         routes = {
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]): True,
