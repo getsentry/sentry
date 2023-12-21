@@ -22,7 +22,6 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.monitors.endpoints.base import MonitorEndpoint
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer
-from sentry.monitors.validators import MONITOR_STATUSES
 
 
 @region_silo_endpoint
@@ -56,7 +55,7 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(MonitorEndpoint):
         Update a monitor environment.
         """
         # Only support muting/unmuting monitor environments
-        is_muted = MONITOR_STATUSES.get(request.data.get("isMuted"))
+        is_muted = request.data.get("isMuted")
         if type(is_muted) is bool:
             monitor_environment.update(is_muted=is_muted)
 

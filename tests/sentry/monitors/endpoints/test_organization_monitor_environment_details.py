@@ -24,7 +24,7 @@ class UpdateMonitorEnvironmentTest(MonitorTestCase):
             monitor.slug,
             monitor_environment.environment.name,
             method="PUT",
-            **{"status": "disabled"},
+            **{"isMuted": True},
         )
         assert resp.data["slug"] == monitor.slug
 
@@ -32,7 +32,7 @@ class UpdateMonitorEnvironmentTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status == MonitorStatus.DISABLED
+        assert monitor_environment.is_muted is True
 
         # Test activate
         resp = self.get_success_response(
@@ -40,7 +40,7 @@ class UpdateMonitorEnvironmentTest(MonitorTestCase):
             monitor.slug,
             monitor_environment.environment.name,
             method="PUT",
-            **{"status": "active"},
+            **{"isMuted": False},
         )
         assert resp.data["slug"] == monitor.slug
 
@@ -48,7 +48,7 @@ class UpdateMonitorEnvironmentTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
-        assert monitor_environment.status == MonitorStatus.ACTIVE
+        assert monitor_environment.is_muted is False
 
         # Test other status
         resp = self.get_success_response(
