@@ -48,9 +48,17 @@ const onOpenNoop = (e?: React.MouseEvent) => {
     op: 'ui.render',
   });
 
-  setTimeout(() => {
-    txn.finish();
-  }, 5_000);
+  if (typeof window.requestIdleCallback === 'function') {
+    txn.setTag('finish_strategy', 'idle_callback');
+    window.requestIdleCallback(() => {
+      txn.finish();
+    });
+  } else {
+    txn.setTag('finish_strategy', 'timeout');
+    setTimeout(() => {
+      txn.finish();
+    }, 1_000);
+  }
 };
 
 export type SuggestedAssignee = Actor & {
