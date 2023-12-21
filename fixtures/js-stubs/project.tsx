@@ -30,6 +30,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     groupingAutoUpdate: false,
     groupingConfig: '',
     hasFeedbacks: false,
+    hasNewFeedbacks: false,
     hasMinifiedStackTrace: false,
     hasProfiles: false,
     hasReplays: false,
