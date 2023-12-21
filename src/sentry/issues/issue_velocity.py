@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # for snuba operations
 REFERRER = "sentry.issues.issue_velocity"
-THRESHOLD_QUANTILE = {"name": "p90", "function": "quantile(0.9)"}
+THRESHOLD_QUANTILE = {"name": "p99", "function": "quantile(0.99)"}
 WEEK_IN_HOURS = 7 * 24
 
 # for redis operations
