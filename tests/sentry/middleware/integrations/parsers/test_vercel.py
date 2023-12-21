@@ -19,7 +19,7 @@ class VercelRequestParserTest(TestCase):
         factory.post(reverse("sentry-extensions-vercel-webhook"), data={}),
     ]
 
-    def test_routing_webhooks_to_control(self):
+    def test_routing_all_to_control(self):
         for request in self.vercel_dummy_requests:
             parser = VercelRequestParser(request=request, response_handler=self.get_response)
 
