@@ -3,8 +3,6 @@ from snuba_sdk import ArithmeticOperator, Column, Condition, Formula, Op, Timese
 from sentry.sentry_metrics.querying.registry import RegistryEntry
 from sentry.sentry_metrics.querying.types import (
     Argument,
-    InheritFilters,
-    InheritGroupby,
     MetricArg,
     QueryExpression,
 )
@@ -21,14 +19,11 @@ class FailureRate(RegistryEntry):
                 Timeseries(
                     aggregate="count",
                     metric=Argument(0, MetricArg()),
-                    filters=[InheritFilters(), Condition(Column("failure"), Op.EQ, "true")],
-                    groupby=[InheritGroupby()],
+                    filters=[Condition(Column("failure"), Op.EQ, "true")],
                 ),
                 Timeseries(
                     aggregate="count",
                     metric=Argument(0, MetricArg()),
-                    filters=[InheritFilters()],
-                    groupby=[InheritGroupby()],
                 ),
             ],
         )

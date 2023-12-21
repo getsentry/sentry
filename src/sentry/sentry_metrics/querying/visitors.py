@@ -18,8 +18,6 @@ from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.registry import ExpressionRegistry
 from sentry.sentry_metrics.querying.types import (
     Argument,
-    InheritFilters,
-    InheritGroupby,
     QueryExpression,
 )
 
@@ -144,21 +142,14 @@ class ReplacementVisitor(QueryExpressionVisitor[QueryExpression]):
             timeseries.aggregate, replaced_aggregate_params or None
         )
 
-        replaced_filters = []
-        for filter in timeseries.filters or ():
-            if isinstance(filter, InheritFilters):
-                replaced_filters += self._filters or []
-            else:
-                replaced_filters.append(filter)
-        timeseries = timeseries.set_filters(replaced_filters or None)
+        # We perform an unconditional pushdown of both filters and group bys to all the subexpressions.
+        if self._filters:
+            existing_filters = timeseries.filters or []
+            timeseries.set_groupby(existing_filters + self._filters)
 
-        replaced_groupby = []
-        for groupby in timeseries.groupby:
-            if isinstance(groupby, InheritGroupby):
-                replaced_groupby += self._groupby or []
-            else:
-                replaced_groupby.append(groupby)
-        timeseries = timeseries.set_groupby(replaced_groupby or None)
+        if self._groupby:
+            existing_group_by = timeseries.groupby or []
+            timeseries.set_groupby(existing_group_by + self._groupby)
 
         return timeseries
 

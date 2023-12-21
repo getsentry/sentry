@@ -7,11 +7,15 @@ from sentry.sentry_metrics.querying.types import QueryExpression
 # TODO:
 #  1. Move the `Placeholder` and subclasses in the snuba-sdk.
 #  2. Modify validation in the snuba-sdk to allow for `Placeholder` entities.
-#  3. Properly implement expression parsing in the grammar to allow for parameters in a function (e.g., failure_rate(mri, 10)).
-#  4.
+#  3. Properly implement expression parsing in the grammar to allow for parameters in
+#   a function (e.g., failure_rate(mri, 10)).
 
 
 class RegistryEntry(ABC):
+    """
+    Entry of the registry which maps an operation to an expression.
+    """
+
     @abstractmethod
     def op(self) -> str:
         raise NotImplementedError

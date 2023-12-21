@@ -13,7 +13,6 @@ class ArgumentType(Generic[T], ABC):
         raise NotImplementedError()
 
 
-# TODO: generalize the `isistance` behavior.
 class IntArg(ArgumentType[int]):
     def validate(self, value: T) -> bool:
         return isinstance(value, int)
@@ -41,16 +40,6 @@ class Argument(Generic[T], Placeholder):
 
     def validate(self, value: T) -> bool:
         return self.type.validate(value)
-
-
-@dataclass(frozen=True)
-class InheritFilters(Placeholder):
-    pass
-
-
-@dataclass(frozen=True)
-class InheritGroupby(Placeholder):
-    pass
 
 
 QueryExpression = Union[Timeseries, Formula]
