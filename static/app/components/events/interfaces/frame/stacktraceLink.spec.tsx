@@ -8,7 +8,7 @@ import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -368,5 +368,38 @@ describe('StacktraceLink', function () {
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
+    jest.useFakeTimers();
+    const organization = Organization({
+      features: ['issue-details-stacktrace-link-in-frame'],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: RouterContextFixture([{organization}]),
+      organization,
+    });
+
+    // Assert initial state (loading state)
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+
+    // Fast-forward time by 100ms
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      'https://something.io#L233'
+    );
+
+    expect(await screen.getByText('GitHub')).toBeInTheDocument();
+
+    jest.useRealTimers();
   });
 });
