@@ -131,11 +131,6 @@ class IntegrationClassification(BaseClassification):
             request=request,
             response_handler=self.response_handler,
         )
-        self.logger.info(
-            "integration_control.routing_request.%s",
-            parser.provider,
-            extra={"path": request.path, "method": request.method},
-        )
         response = parser.get_response()
         metrics.incr(
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
@@ -145,9 +140,10 @@ class IntegrationClassification(BaseClassification):
         self.logger.info(
             f"integration_control.routing_request.{parser.provider}.response",
             extra={
-                "path": request.path,
+                "request.path": request.path,
+                "request.method": request.method,
                 "url_name": parser.match.url_name,
-                "status_code": response.status_code,
+                "response.status_code": response.status_code,
             },
         )
         return response
