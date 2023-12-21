@@ -14,7 +14,7 @@ type Props = {
   onInstall: (data: IntegrationWithConfig) => void;
   organization: Organization;
   provider: IntegrationProvider;
-  account?: string; // for analytics
+  account?: string | null; // for analytics
   analyticsParams?: {
     already_installed: boolean;
     view:

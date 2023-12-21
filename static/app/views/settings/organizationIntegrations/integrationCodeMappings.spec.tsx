@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
@@ -27,7 +28,7 @@ describe('IntegrationCodeMappings', function () {
   ];
 
   const org = Organization();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const repos = [
     Repository({
       integrationId: integration.id,
