@@ -558,6 +558,26 @@ class EventManager:
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_primary_hash(project, job, grouping_config)
 
+        if secondary_hashes:
+            tags = {
+                "primary_config": grouping_config["id"],
+                "secondary_config": secondary_grouping_config["id"],
+            }
+            current_values = hashes.hashes
+            secondary_values = secondary_hashes.hashes
+            hashes_match = current_values == secondary_values
+
+            if hashes_match:
+                tags["result"] = "no change"
+            else:
+                shared_hashes = set(current_values) & set(secondary_values)
+                if len(shared_hashes) > 0:
+                    tags["result"] = "partial change"
+                else:
+                    tags["result"] = "full change"
+
+            metrics.incr("grouping.hash_comparison", tags=tags)
+
         # Track the total number of grouping calculations done overall, so we can divide by the
         # count to get an average number of calculations per event
         metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)

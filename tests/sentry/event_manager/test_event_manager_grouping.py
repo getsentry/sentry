@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 from sentry import tsdb
 from sentry.event_manager import EventManager
+from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
@@ -395,3 +396,44 @@ class EventManagerGroupingMetricsTest(TestCase):
         )
         assert len(hashes_calculated_calls) == 2
         assert hashes_calculated_calls[1].kwargs["amount"] == 2
+
+    @mock.patch("sentry.event_manager.metrics.incr")
+    @mock.patch("sentry.event_manager._should_run_secondary_grouping", return_value=True)
+    def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
+        project = self.project
+        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
+        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
+
+        cases = [
+            # primary_hashes, secondary_hashes, expected_tag
+            (["maisey"], ["maisey"], "no change"),
+            (["maisey"], ["charlie"], "full change"),
+            (["maisey", "charlie"], ["maisey", "charlie"], "no change"),
+            (["maisey", "charlie"], ["cory", "charlie"], "partial change"),
+            (["maisey", "charlie"], ["cory", "bodhi"], "full change"),
+        ]
+
+        for primary_hashes, secondary_hashes, expected_tag in cases:
+            with mock.patch(
+                "sentry.event_manager._calculate_primary_hash",
+                return_value=CalculatedHashes(
+                    hashes=primary_hashes, hierarchical_hashes=[], tree_labels=[]
+                ),
+            ):
+                with mock.patch(
+                    "sentry.event_manager._calculate_secondary_hash",
+                    return_value=CalculatedHashes(
+                        hashes=secondary_hashes, hierarchical_hashes=[], tree_labels=[]
+                    ),
+                ):
+                    manager = EventManager(make_event(message="dogs are great"))
+                    manager.normalize()
+                    manager.save(project.id)
+
+                    hash_comparison_calls = get_relevant_metrics_calls(
+                        mock_metrics_incr, "grouping.hash_comparison"
+                    )
+                    assert len(hash_comparison_calls) == 1
+                    assert hash_comparison_calls[0].kwargs["tags"]["result"] == expected_tag
+
+                    mock_metrics_incr.reset_mock()
