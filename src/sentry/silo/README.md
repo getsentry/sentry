@@ -15,6 +15,7 @@ To set up the region silos locally, you'll need to make a few changes:
 
 1. Create the split databases for the two silo modes with `make create-db`
 2. Split your local database with `bin/split-silo-database`
+3. Delete any `DATABASES` settings in your `devlocal.py` or `sentry.conf.py` files, as these can prevent models from routing to the correct databases.
 
 Example Output:
 
