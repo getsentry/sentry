@@ -3,7 +3,7 @@ import {useCallback, useMemo} from 'react';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useProjects from 'sentry/utils/useProjects';
@@ -51,6 +51,8 @@ export default function useReplayData({
   errorsPerPage = 20,
   segmentsPerPage = 100,
 }: Options): Result {
+  const queryClient = useQueryClient();
+
   const {data: replayData, isFetching: isFetchingReplay} = useApiQuery<{data: unknown}>(
     [`/organizations/${orgSlug}/replays/${replayId}/`],
     {staleTime: Infinity}
@@ -66,7 +68,7 @@ export default function useReplayData({
   const getAttachmentsQueryKey = useCallback(
     ({cursor, per_page}): ApiQueryKey => {
       return [
-        `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord?.id}/recording-segments/`,
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
         {
           query: {
             download: true,
@@ -76,7 +78,7 @@ export default function useReplayData({
         },
       ];
     },
-    [orgSlug, projectSlug, replayRecord]
+    [orgSlug, projectSlug, replayId]
   );
 
   const {pages: attachmentPages, isFetching: isFetchingAttachments} =
@@ -122,11 +124,29 @@ export default function useReplayData({
   const linkHeader = lastErrorsResponseHeader?.('Link') ?? null;
   const links = parseLinkHeader(linkHeader);
   const {pages: extraErrorPages} = useFetchSequentialPages<{data: ReplayError[]}>({
-    enabled: !isFetchingErrors,
+    enabled: !isFetchingErrors && Boolean(links.next?.results),
     initialCursor: links.next?.cursor,
     getQueryKey: getErrorsQueryKey,
     perPage: errorsPerPage,
   });
+
+  const clearQueryCache = useCallback(() => {
+    () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        ],
+      });
+      // The next one isn't optimized
+      // This statement will invalidate the cache of fetched error events for replayIds
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
+      });
+    };
+  }, [orgSlug, replayId, projectSlug, queryClient]);
 
   return useMemo(
     () => ({
@@ -134,12 +154,13 @@ export default function useReplayData({
       errors: errorPages.concat(extraErrorPages).flatMap(page => page.data),
       fetchError: undefined,
       fetching: isFetchingReplay || isFetchingAttachments || isFetchingErrors,
-      onRetry: () => {},
+      onRetry: clearQueryCache,
       projectSlug,
       replayRecord,
     }),
     [
       attachmentPages,
+      clearQueryCache,
       errorPages,
       extraErrorPages,
       isFetchingAttachments,
