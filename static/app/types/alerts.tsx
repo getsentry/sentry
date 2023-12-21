@@ -46,6 +46,7 @@ export const enum IssueAlertFilterType {
   AGE_COMPARISON = 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
   ISSUE_OCCURRENCES = 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
   ASSIGNED_TO = 'sentry.rules.filters.assigned_to.AssignedToFilter',
+  LATEST_ADOPTED_RELEASE = 'sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter',
   LATEST_RELEASE = 'sentry.rules.filters.latest_release.LatestReleaseFilter',
   ISSUE_CATEGORY = 'sentry.rules.filters.issue_category.IssueCategoryFilter',
   EVENT_ATTRIBUTE = 'sentry.rules.filters.event_attribute.EventAttributeFilter',

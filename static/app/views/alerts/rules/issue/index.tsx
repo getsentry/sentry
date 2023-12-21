@@ -1297,7 +1297,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                         />
                       </ChevronContainer>
 
-                      <StepContent>
+                      <StepContent data-test-id="rule-filters">
                         <StepLead>
                           {tct('[if:If][selector] of these filters match', {
                             if: <Badge />,
