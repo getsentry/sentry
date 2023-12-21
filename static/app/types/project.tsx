@@ -80,6 +80,7 @@ export type ProjectKey = {
     choices: [key: string, value: string][];
   };
   browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
+  dateCreated: string;
   dsn: {
     cdn: string;
     csp: string;
@@ -105,7 +106,6 @@ export type ProjectKey = {
     window: number;
   } | null;
   secret: string;
-  dateCreated?: string;
 };
 
 export type ProjectSdkUpdates = {
