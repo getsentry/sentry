@@ -2,6 +2,7 @@ import logging
 import signal
 import time
 from datetime import datetime
+from threading import Thread
 from typing import Optional
 
 from sentry import options
@@ -31,14 +32,19 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
     time.sleep(seconds_sleep)
 
 
+def delay_shutdown(consumer_name, processor) -> None:
+    if consumer_name == "ingest-generic-metrics" and options.get(
+        "sentry-metrics.synchronize-kafka-rebalances"
+    ):
+        configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
+        delay_kafka_rebalance(configured_delay)
+    processor.signal_shutdown()
+
+
 def run_processor_with_signals(processor, consumer_name: Optional[str] = None):
     def handler(signum, frame):
-        if consumer_name == "ingest-generic-metrics" and options.get(
-            "sentry-metrics.synchronize-kafka-rebalances"
-        ):
-            configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
-            delay_kafka_rebalance(configured_delay)
-        processor.signal_shutdown()
+        t = Thread(target=delay_shutdown, args=(consumer_name, processor))
+        t.start()
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
