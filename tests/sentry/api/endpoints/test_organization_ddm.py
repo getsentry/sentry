@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, cast
 from unittest.mock import patch
 
 import pytest
@@ -327,17 +327,14 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             codeLocations="true",
         )
 
-    # Tests:
-    # - simple, with filters, with multiple spans
-
     def test_get_metric_spans(self):
         mri = "g:custom/page_load@millisecond"
 
-        span_id_1 = "98230207e6e4a6ad"
+        span_id = "98230207e6e4a6ad"
         self.store_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
-            span_id=span_id_1,
+            span_id=span_id,
             metrics_summary={
                 mri: [
                     {
@@ -363,7 +360,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
-        assert metric_spans[0]["spanId"] == span_id_1
+        assert metric_spans[0]["spanId"] == span_id
 
     def test_get_metric_spans_with_query(self):
         mri = "g:custom/page_load@millisecond"
@@ -391,7 +388,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         span_id_2 = "10220507e6f4e6ad"
         self.store_span(
             project_id=self.project.id,
-            timestamp=before_now(minutes=5),
+            timestamp=before_now(minutes=10),
             span_id=span_id_2,
             metrics_summary={
                 mri: [
@@ -408,9 +405,12 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             },
         )
 
-        for query, expected_span_id in (
-            ("transaction:/hello", span_id_1),
-            ("transaction:/world", span_id_2),
+        for query, expected_span_ids in (
+            ("transaction:/hello", [span_id_1]),
+            ("transaction:/world", [span_id_2]),
+            ("transaction:[/hello,/world]", [span_id_1, span_id_2]),
+            ("!transaction:[/hello,/world]", []),
+            ("(transaction:/hello AND transaction:/world)", []),
         ):
             response = self.get_success_response(
                 self.organization.slug,
@@ -422,8 +422,9 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             )
 
             metric_spans = response.data["metricSpans"]
-            assert len(metric_spans) == 1
-            assert metric_spans[0]["spanId"] == expected_span_id
+            assert len(metric_spans) == len(cast(Sequence[str], expected_span_ids))
+            for i, expected_span_id in enumerate(cast(Sequence[str], expected_span_ids)):
+                assert metric_spans[i]["spanId"] == expected_span_id
 
     def test_get_metric_spans_with_multiple_spans(self):
         mri = "g:custom/page_load@millisecond"
@@ -482,3 +483,61 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         # We expect the first span to be the newest.
         assert metric_spans[0]["spanId"] == span_id_1
         assert metric_spans[1]["spanId"] == span_id_2
+
+    @patch("sentry.sentry_metrics.querying.metadata.metric_spans.MAX_NUMBER_OF_SPANS", 1)
+    def test_get_metric_spans_with_limit_exceeded(self):
+        mri = "g:custom/page_load@millisecond"
+
+        span_id_1 = "10220507e6f4e6ad"
+        # We store an additional span just to show that we return only the spans matching the summary of a metric.
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id=span_id_1,
+        )
+
+        span_id_2 = "98230207e6e4a6ad"
+        for transaction, store_only_summary in (("/hello", False), ("/world", True)):
+            self.store_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                span_id=span_id_2,
+                metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {
+                                "transaction": transaction,
+                            },
+                        }
+                    ]
+                },
+                store_only_summary=store_only_summary,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        # We are storing two summaries on the same span and two different spans. We expect that with a limit of 1,
+        # we get 1 unique span back.
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["spanId"] == span_id_2
+
+    def test_get_metric_spans_with_invalid_query(self):
+        self.get_error_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            status_code=500,
+        )

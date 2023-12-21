@@ -1355,6 +1355,7 @@ class BaseSpansTestCase(SnubaTestCase):
         metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
         timestamp: datetime = None,
         tags: Mapping[str, Any] = None,
+        store_only_summary: bool = False,
     ):
         payload = {
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
@@ -1372,7 +1373,11 @@ class BaseSpansTestCase(SnubaTestCase):
         if metrics_summary:
             payload["_metrics_summary"] = metrics_summary
 
-        self._snuba_insert(payload, "spans")
+        # We want to give the caller the possibility to store only a summary since the database does not deduplicate
+        # on the span_id which makes the assumptions of a unique span_id in the database invalid.
+        if not store_only_summary:
+            self._snuba_insert(payload, "spans")
+
         if "_metrics_summary" in payload:
             self._snuba_insert(payload, "metrics_summaries")
 

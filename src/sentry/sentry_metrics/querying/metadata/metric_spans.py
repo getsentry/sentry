@@ -45,6 +45,16 @@ def _get_spans_by_ids(
     organization: Organization,
     projects: Sequence[Project],
 ) -> Sequence[Span]:
+    """
+    Returns multiple `Span`s given a set of `span_ids`.
+
+    The rationale behind this query is that we want to query the main `spans` entity to get more information about the
+    span. Since this query is relatively inefficient due to the use of the `IN` operator, we might want to change the
+    data representation in the future.
+    """
+    if not span_ids:
+        return []
+
     data = spans_indexed.query(
         selected_columns=[
             "project_id",
@@ -81,6 +91,11 @@ def _get_spans_by_ids(
 
 
 def _convert_to_tags(conditions: Optional[ConditionGroup]) -> Optional[ConditionGroup]:
+    """
+    Converts all the conditions to work on tags, by wrapping each `Column` name with 'tags[x]'.
+
+    This function assumes that the query of a metric only refers to tags.
+    """
     if conditions is None:
         return None
 
@@ -102,6 +117,12 @@ def _convert_to_tags(conditions: Optional[ConditionGroup]) -> Optional[Condition
 
 
 def _get_snuba_conditions_from_query(query: str) -> Optional[ConditionGroup]:
+    """
+    Returns a set of Snuba conditions from a query string which is assumed to contain filters in the MQL grammar.
+
+    Since MQL does not support parsing only filters, we have to create a phantom query to feed the parser, in order for
+    it to correctly resolve a `Timeseries` out of which we extract the `filters`.
+    """
     # We want to create a phantom query to feed into the parser in order to be able to extract the conditions from the
     # returned timeseries.
     phantom_query = f"count(phantom){{{query}}}"
@@ -124,6 +145,14 @@ def _get_metrics_summaries(
     organization: Organization,
     projects: Sequence[Project],
 ) -> Set[str]:
+    """
+    Returns a set of cardinality at most `MAX_NUMBER_OF_SPANS` containing the ids of the spans in which `metric_mri`
+    was emitted.
+
+    In order to honor the filters that the user has in a widget, we take the `query` and parse it to extract a
+    series of Snuba conditions that we apply on the tags of the metric summary. For example, if you are filtering by
+    tag device:iPhone, we will only show you the spans in which the metric with tag device:iPhone was emitted.
+    """
     project_ids = [project.id for project in projects]
 
     where = []
@@ -175,6 +204,12 @@ def get_spans_of_metric(
     organization: Organization,
     projects: Sequence[Project],
 ) -> MetricSpans:
+    """
+    Returns the spans in which the metric with `metric_mri` was emitted.
+
+    The metric can be emitted within a span with different tag values. These are uniquely stored in the
+    metrics_summaries entity.
+    """
     span_ids = _get_metrics_summaries(
         metric_mri, query, start, end, min_value, max_value, organization, projects
     )

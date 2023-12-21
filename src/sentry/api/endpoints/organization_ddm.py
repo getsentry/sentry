@@ -59,11 +59,11 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
 
         for meta_type in self._extract_meta_types(request):
-            response_data: Any = {}
+            data: Any = {}
 
             if meta_type == MetaType.CODE_LOCATIONS:
-                # TODO: refactor code locations to also support a single mri.
-                response_data = get_code_locations(
+                # TODO: refactor code locations to support a single mri.
+                data = get_code_locations(
                     metric_mris=metric_mris,
                     start=start,
                     end=end,
@@ -78,7 +78,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                 max_value = request.GET.get("max")
                 query = request.GET.get("query")
 
-                response_data = get_spans_of_metric(
+                data = get_spans_of_metric(
                     metric_mri=metric_mris[0],
                     query=query,
                     start=start,
@@ -90,7 +90,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                 )
 
             response[meta_type.value] = serialize(
-                response_data, request.user, META_TYPE_SERIALIZER[meta_type.value]
+                data, request.user, META_TYPE_SERIALIZER[meta_type.value]
             )
 
         return Response(response, status=200)
