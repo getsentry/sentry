@@ -10,6 +10,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     slug: 'project-slug',
     name: 'Project Name',
     access: ['project:read'],
+    allowedDomains: ['*'],
     hasAccess: true,
     isMember: true,
     isBookmarked: false,
@@ -38,7 +39,13 @@ export function Project(params: Partial<TProject> = {}): TProject {
     plugins: [],
     processingIssues: 0,
     relayPiiConfig: '',
+    resolveAge: 0,
+    safeFields: [],
+    scrapeJavaScript: true,
+    scrubIPAddresses: false,
+    sensitiveFields: [],
     subjectTemplate: '',
+    verifySSL: false,
     ...params,
   };
 }

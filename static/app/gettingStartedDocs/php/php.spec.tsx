@@ -15,7 +15,7 @@ describe('php onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(textWithMarkupMatcher(/composer require sentry\/sdk/))
+      screen.getByText(textWithMarkupMatcher(/composer require sentry\/sentry/))
     ).toBeInTheDocument();
   });
 

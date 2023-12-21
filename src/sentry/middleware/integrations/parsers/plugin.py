@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from django.http import HttpResponse
+
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -38,7 +40,9 @@ class PluginRequestParser(BaseRequestParser):
             logging_extra["error"] = str(e)
             logging_extra["organization_id"] = organization_id
             logger.info("%s.no_mapping", self.provider, extra=logging_extra)
-            return self.get_response_from_control_silo()
+
+            # Webhook was for an org and that org no longer exists.
+            return HttpResponse(status=400)
 
         try:
             region = get_region_by_name(mapping.region_name)

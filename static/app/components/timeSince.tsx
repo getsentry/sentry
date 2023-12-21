@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
-import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -11,7 +10,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
 function getDateObj(date: RelaxedDateType): Date {
-  return isString(date) || isNumber(date) ? new Date(date) : date;
+  return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
 }
 
 type RelaxedDateType = string | number | Date;
