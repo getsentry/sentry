@@ -210,8 +210,8 @@ def mark_failed_no_threshold(failed_checkin: MonitorCheckIn):
     }
     monitor_env.update(status=failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR))
 
-    # Do not create event if monitor is muted
-    if monitor_env.monitor.is_muted:
+    # Do not create event if monitor or monitor environment is muted
+    if monitor_env.monitor.is_muted or monitor_env.is_muted:
         return True
 
     create_legacy_event(failed_checkin)
