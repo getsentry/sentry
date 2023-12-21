@@ -56,7 +56,7 @@ OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
 
-COMMENT_BODY_TEMPLATE = """## 🔍 Existing Sentry Issues - For Review
+COMMENT_BODY_TEMPLATE = """## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
 {issue_tables}
