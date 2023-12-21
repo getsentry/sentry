@@ -11,7 +11,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
-from sentry.replays.tasks import delete_recording_segments
+from sentry.replays.usecases.delete import archive_replay, delete_replay_recording
 from sentry.replays.usecases.reader import has_archived_segment
 
 
@@ -74,5 +74,6 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         if has_archived_segment(project.id, replay_id):
             return Response(status=404)
 
-        delete_recording_segments.delay(project_id=project.id, replay_id=replay_id)
+        archive_replay(project.id, replay_id)
+        delete_replay_recording(project.id, replay_id)
         return Response(status=202)
