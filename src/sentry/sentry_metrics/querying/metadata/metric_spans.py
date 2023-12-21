@@ -189,7 +189,9 @@ def _get_metrics_summaries(
         tenant_ids={"organization_id": organization.id},
     )
 
-    data = raw_snql_query(request, Referrer.API_DDM_METRICS_SUMMARIES.value, use_cache=True)["data"]
+    data = raw_snql_query(request, Referrer.API_DDM_FETCH_METRICS_SUMMARIES.value, use_cache=True)[
+        "data"
+    ]
 
     return {value["span_id"] for value in data}
 
