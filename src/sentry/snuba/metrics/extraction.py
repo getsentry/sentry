@@ -49,6 +49,13 @@ from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_col
 
 logger = logging.getLogger(__name__)
 
+# This helps us control the different spec versions
+# in order to migrate customers from invalid specs
+SPEC_VERSIONS = [
+    {"use_updated_env_logic": True},  # The latest version
+    {"use_updated_env_logic": False},  # Drop this when migrated
+]
+
 # Name component of MRIs used for custom alert metrics.
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
 QUERY_HASH_KEY = "query_hash"
@@ -1048,7 +1055,7 @@ class OnDemandMetricSpec:
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.spec_version = spec_version if spec_version is not None else {}
+        self.spec_version = spec_version if spec_version else SPEC_VERSIONS[0]
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]

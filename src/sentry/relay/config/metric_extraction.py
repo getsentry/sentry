@@ -24,6 +24,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
+    SPEC_VERSIONS,
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
@@ -50,13 +51,6 @@ _MAX_ON_DEMAND_WIDGETS = 100
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
 _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
-
-# This helps us control the different spec versions
-# in order to migrate customers from invalid specs
-SPEC_VERSIONS = [
-    {"use_updated_env_logic": True},
-    {"use_updated_env_logic": False},  # Drop this when migrated
-]
 
 HashedMetricSpec = Tuple[str, MetricSpec]
 
