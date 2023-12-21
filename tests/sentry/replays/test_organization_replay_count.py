@@ -103,7 +103,7 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
-        query = {"query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]"}
+        query = {"query": f"(issue.id:[{event_a.group.id}, {event_c.group.id}] or abc)"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
 
@@ -460,7 +460,6 @@ class OrganizationReplayCountEndpointTest(
             assert response.data["detail"] == "Too many values provided"
 
     def test_invalid_params_only_one_of_issue_and_transaction(self):
-
         query = {"query": "issue.id:[1] transaction:[2]"}
 
         with self.feature(self.features):
