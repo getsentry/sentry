@@ -1,3 +1,4 @@
+import importlib.resources
 import itertools
 import logging
 import random
@@ -9,7 +10,6 @@ from typing import Callable, ContextManager, TypeVar
 
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from pkg_resources import resource_string
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.compat import crc32
@@ -23,7 +23,9 @@ T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = SentryScript(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
+CountMinScript = SentryScript(
+    None, importlib.resources.files("sentry").joinpath("scripts/tsdb/cmsketch.lua").read_bytes()
+)
 
 
 class SuppressionWrapper:

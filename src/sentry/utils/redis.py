@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import functools
+import importlib.resources
 import logging
-import posixpath
 from copy import deepcopy
 from threading import Lock
 from typing import Any, Generic, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
-from pkg_resources import resource_string
 from redis.client import Script
 from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import BusyLoadingError, ConnectionError
@@ -304,7 +303,10 @@ def load_script(path):
             # XXX: Script is a list here. We're doing this to work around the lack of
             # `nonlocal` in python 3, so that we only instantiate the script once.
             script.append(
-                Script(client, resource_string("sentry", posixpath.join("scripts", path)))
+                Script(
+                    client,
+                    importlib.resources.files("sentry").joinpath("scripts", path).read_bytes(),
+                )
             )
             # Unset the client here to keep things as close to how they worked before
             # as possible. It will always be overridden on `__call__` anyway.
