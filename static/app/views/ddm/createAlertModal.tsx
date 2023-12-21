@@ -152,12 +152,13 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     () =>
       data &&
       getChartSeries(data, {
+        mri: metricsQuery.mri,
         displayType: MetricDisplayType.AREA,
         focusedSeries: undefined,
         groupBy: [],
         hoveredLegend: undefined,
       }),
-    [data]
+    [data, metricsQuery.mri]
   );
 
   const projectOptions = useMemo(() => {

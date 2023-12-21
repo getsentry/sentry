@@ -14,13 +14,13 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsApiResponse, PageFilters} from 'sentry/types';
+import {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
 import {
   getSeriesName,
   MetricDisplayType,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
-import {getMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
@@ -180,6 +180,7 @@ const MetricWidgetBody = memo(
     }
 
     const chartSeries = getChartSeries(dataToBeRendered, {
+      mri,
       focusedSeries,
       hoveredLegend,
       groupBy: metricsQuery.groupBy,
@@ -217,10 +218,21 @@ const MetricWidgetBody = memo(
 
 export function getChartSeries(
   data: MetricsApiResponse,
-  {focusedSeries, groupBy, hoveredLegend, displayType}
+  {
+    mri,
+    focusedSeries,
+    groupBy,
+    hoveredLegend,
+    displayType,
+  }: {
+    displayType: MetricDisplayType;
+    mri: MRI;
+    focusedSeries?: string;
+    groupBy?: string[];
+    hoveredLegend?: string;
+  }
 ) {
   // this assumes that all series have the same unit
-  const mri = getMRI(Object.keys(data.groups[0]?.series ?? {})[0]);
   const parsed = parseMRI(mri);
   const unit = parsed?.unit ?? '';
 
