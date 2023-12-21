@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
+from typing import Mapping
 
 import pytest
 
 from sentry.statistical_detectors.algorithm import (
     MovingAverageDetectorState,
     MovingAverageRelativeChangeDetector,
-    MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.utils.math import ExponentialMovingAverage
@@ -234,7 +236,7 @@ def test_moving_average_detector_state_should_escalate(
 
 
 @pytest.mark.parametrize(
-    ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory", "threshold"],
+    ["min_data_points", "moving_avg_short_factory", "moving_avg_long_factory", "threshold"],
     [
         pytest.param(
             6,
@@ -275,8 +277,8 @@ def test_moving_average_detector_state_should_escalate(
 )
 def test_moving_average_relative_change_detector(
     min_data_points,
-    short_moving_avg_factory,
-    long_moving_avg_factory,
+    moving_avg_long_factory,
+    moving_avg_short_factory,
     threshold,
     values,
     regressed_indices,
@@ -285,7 +287,7 @@ def test_moving_average_relative_change_detector(
     all_regressed = []
     all_improved = []
 
-    now = datetime.now()
+    now = datetime(2023, 8, 31, 11, 28, 52, tzinfo=timezone.utc)
 
     payloads = [
         DetectorPayload(
@@ -302,18 +304,19 @@ def test_moving_average_relative_change_detector(
     detector = MovingAverageRelativeChangeDetector(
         "transaction",
         "endpoint",
-        MovingAverageDetectorState.empty(),
-        MovingAverageRelativeChangeDetectorConfig(
-            min_data_points=min_data_points,
-            short_moving_avg_factory=short_moving_avg_factory,
-            long_moving_avg_factory=long_moving_avg_factory,
-            threshold=threshold,
-        ),
+        min_data_points=min_data_points,
+        moving_avg_short_factory=moving_avg_short_factory,
+        moving_avg_long_factory=moving_avg_long_factory,
+        threshold=threshold,
     )
 
+    raw_state: Mapping[str | bytes, bytes | float | int | str] = {}
+
     for payload in payloads:
-        trend_type, score = detector.update(payload)
+        trend_type, score, state = detector.update(raw_state, payload)
         assert score >= 0
+        if state is not None:
+            raw_state = state.to_redis_dict()
         if trend_type == TrendType.Regressed:
             all_regressed.append(payload)
         elif trend_type == TrendType.Improved:
