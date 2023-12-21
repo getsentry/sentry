@@ -154,7 +154,9 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             initializer=functools.partial(initialize_subprocess_state, self.config),
         )
 
-        if options.get("sentry-metrics.synchronize-kafka-rebalances"):
+        if use_case is UseCaseKey.PERFORMANCE and options.get(
+            "sentry-metrics.synchronize-kafka-rebalances"
+        ):
             configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
             delay_kafka_rebalance(configured_delay)
 
