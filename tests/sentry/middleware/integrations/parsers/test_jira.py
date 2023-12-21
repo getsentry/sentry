@@ -31,14 +31,6 @@ class JiraRequestParserTest(TestCase):
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def assert_outbox_created(self, region: str | None = None):
-        outboxes = ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).all()
-        assert len(outboxes) > 1
-        for outbox in outboxes:
-            assert outbox.payload, "Should have a payload"
-            if region:
-                assert outbox.payload["region_name"] == region
-
     def assert_no_outbox_created(self):
         outboxes = ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).all()
         assert len(outboxes) == 0, "No outboxes should be created"
