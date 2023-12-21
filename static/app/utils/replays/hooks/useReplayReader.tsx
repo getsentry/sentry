@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import useFetchReplayData from 'sentry/utils/replays/hooks/useFetchReplayData';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -17,7 +17,7 @@ export default function useReplayReader({orgSlug, replaySlug}: Props) {
     'session-replay-show-hydration-errors'
   );
 
-  const {attachments, errors, replayRecord, ...replayData} = useFetchReplayData({
+  const {attachments, errors, replayRecord, ...replayData} = useReplayData({
     orgSlug,
     replayId,
   });

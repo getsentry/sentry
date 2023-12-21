@@ -45,7 +45,7 @@ interface Result {
   replayRecord: ReplayRecord | undefined;
 }
 
-export default function useFetchReplayData({
+export default function useReplayData({
   replayId,
   orgSlug,
   errorsPerPage = 20,

@@ -13,7 +13,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {QueryClientProvider} from 'sentry/utils/queryClient';
-import useFetchReplayData from 'sentry/utils/replays/hooks/useFetchReplayData';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -55,7 +55,7 @@ function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
   };
 }
 
-describe('useFetchReplayData', () => {
+describe('useReplayData', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.asyncDelay = undefined;
@@ -85,7 +85,7 @@ describe('useFetchReplayData', () => {
       },
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useFetchReplayData, {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -158,7 +158,7 @@ describe('useFetchReplayData', () => {
       match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useFetchReplayData, {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -246,7 +246,7 @@ describe('useFetchReplayData', () => {
       ],
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useFetchReplayData, {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
@@ -311,7 +311,7 @@ describe('useFetchReplayData', () => {
       body: {data: mockErrorResponse},
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useFetchReplayData, {
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
