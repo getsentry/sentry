@@ -107,9 +107,3 @@ export const enum ErrorHelpType {
   DYNAMIC_SERVER_USAGE = 'dynamic_server_usage',
   HYDRATION_ERROR = 'hydration_error',
 }
-
-export interface ErrorInfo {
-  errorHelpType: ErrorHelpType;
-  errorTitle: string;
-  projectCheck: boolean;
-}

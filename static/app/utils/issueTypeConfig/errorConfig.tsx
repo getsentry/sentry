@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import type {
-  ErrorInfo,
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
@@ -27,6 +26,12 @@ export const errorConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: true},
     usesIssuePlatform: false,
   },
+};
+
+type ErrorInfo = {
+  errorHelpType: ErrorHelpType;
+  errorTitle: string | RegExp;
+  projectCheck: boolean;
 };
 
 const ErrorInfoChecks: Array<ErrorInfo> = [
@@ -56,7 +61,8 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
   },
   {
-    errorTitle: 'Hydration Error',
+    errorTitle:
+      /(does not match server-rendered HTML|Hydration failed because|error while hydrating)/i,
     projectCheck: true,
     errorHelpType: ErrorHelpType.HYDRATION_ERROR,
   },
@@ -157,7 +163,12 @@ export function getErrorHelpResource({
 }): Pick<IssueTypeConfig, 'resources'> | null {
   for (const errorInfo of ErrorInfoChecks) {
     const {errorTitle, errorHelpType, projectCheck} = errorInfo;
-    if (title.includes(errorTitle)) {
+    const shouldShowCustomResource =
+      typeof errorTitle === 'string'
+        ? title.includes(errorTitle)
+        : title.match(errorTitle);
+
+    if (shouldShowCustomResource) {
       if (projectCheck && !(project.platform || '').includes('nextjs')) {
         continue;
       }
