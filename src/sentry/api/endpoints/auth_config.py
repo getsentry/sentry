@@ -28,7 +28,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     }
     owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes = ()
 
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         self.determine_active_organization(request)
