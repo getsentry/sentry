@@ -77,7 +77,7 @@ function BaseTag({
 
   // Links use the IconOpen by default
   const linkIcon = isLink ? <IconOpen /> : null;
-  const tagIcon = icon ?? linkIcon;
+  const tagIcon = icon || icon === null ? icon : linkIcon;
 
   const handleDismiss = useCallback<React.MouseEventHandler>(
     event => {
