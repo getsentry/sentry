@@ -64,6 +64,11 @@ class Referrer(Enum):
         "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
+
+    # DDM
+    API_DDM_FETCH_SPANS = "api.ddm.fetch.spans"
+    API_DDM_FETCH_METRICS_SUMMARIES = "api.ddm.fetch.metrics_summaries"
+
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
