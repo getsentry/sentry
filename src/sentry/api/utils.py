@@ -21,7 +21,7 @@ from sentry_sdk import Scope
 
 from sentry import options
 from sentry.auth.superuser import is_active_superuser
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
@@ -35,10 +35,24 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.snuba import discover
-from sentry.utils import snuba
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.snuba import (
+    DatasetSelectionError,
+    QueryConnectionFailed,
+    QueryExecutionError,
+    QueryExecutionTimeMaximum,
+    QueryIllegalTypeOfArgument,
+    QueryMemoryLimitExceeded,
+    QueryMissingColumn,
+    QueryOutsideRetentionError,
+    QuerySizeExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    SchemaValidationError,
+    SnubaError,
+    UnqualifiedQueryError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -360,7 +374,7 @@ def get_auth_api_token_type(auth: object) -> str | None:
 def handle_query_errors(self) -> Generator[None, None, None]:
     try:
         yield
-    except discover.InvalidSearchQuery as error:
+    except InvalidSearchQuery as error:
         message = str(error)
         # Special case the project message since it has so many variants so tagging is messy otherwise
         if message.endswith("do not exist or are not actively selected."):
@@ -374,10 +388,10 @@ def handle_query_errors(self) -> Generator[None, None, None]:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", message)
         raise ParseError(detail=message)
-    except snuba.QueryOutsideRetentionError as error:
+    except QueryOutsideRetentionError as error:
         sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
         raise ParseError(detail=str(error))
-    except snuba.QueryIllegalTypeOfArgument:
+    except QueryIllegalTypeOfArgument:
         message = "Invalid query. Argument to function is wrong type."
         sentry_sdk.set_tag("query.error_reason", message)
         raise ParseError(detail=message)
@@ -385,31 +399,31 @@ def handle_query_errors(self) -> Generator[None, None, None]:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
-    except snuba.SnubaError as error:
+    except SnubaError as error:
         message = "Internal error. Please try again."
         if isinstance(
             error,
             (
-                snuba.RateLimitExceeded,
-                snuba.QueryMemoryLimitExceeded,
-                snuba.QueryExecutionTimeMaximum,
-                snuba.QueryTooManySimultaneous,
+                RateLimitExceeded,
+                QueryMemoryLimitExceeded,
+                QueryExecutionTimeMaximum,
+                QueryTooManySimultaneous,
             ),
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
-        elif isinstance(error, (snuba.UnqualifiedQueryError)):
+        elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
             raise ParseError(detail=str(error))
         elif isinstance(
             error,
             (
-                snuba.DatasetSelectionError,
-                snuba.QueryConnectionFailed,
-                snuba.QueryExecutionError,
-                snuba.QuerySizeExceeded,
-                snuba.SchemaValidationError,
-                snuba.QueryMissingColumn,
+                DatasetSelectionError,
+                QueryConnectionFailed,
+                QueryExecutionError,
+                QuerySizeExceeded,
+                SchemaValidationError,
+                QueryMissingColumn,
             ),
         ):
             sentry_sdk.capture_exception(error)
