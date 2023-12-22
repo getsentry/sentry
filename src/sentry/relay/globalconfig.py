@@ -6,9 +6,6 @@ from sentry.utils import metrics
 
 # List of options to include in the global config.
 RELAY_OPTIONS: List[str] = [
-    "profiling.profile_metrics.unsampled_profiles.allowed_org_ids",
-    "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
-    "profiling.profile_metrics.unsampled_profiles.excluded_project_ids",
     "profiling.profile_metrics.unsampled_profiles.platforms",
     "profiling.profile_metrics.unsampled_profiles.sample_rate",
 ]
