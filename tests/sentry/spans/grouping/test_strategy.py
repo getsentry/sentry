@@ -253,6 +253,21 @@ def test_parametrize_db_span_strategy(query: str, fingerprint: Optional[List[str
             SpanBuilder().with_op("http.client").with_description("making an http request").build(),
             None,
         ),
+        # best effort when description is not a valid url
+        (
+            SpanBuilder()
+            .with_op("http.client")
+            .with_description("GET https://[this-is-not-a-valid-url?query")
+            .build(),
+            ["GET", "https", "[this-is-not-a-valid-url", ""],
+        ),
+        pytest.param(
+            SpanBuilder()
+            .with_op("http.client")
+            .with_description("GET https://[Filtered]@3x.png")
+            .build(),
+            ["GET", "https", "[Filtered]@3x.png", ""],
+        ),
         (
             SpanBuilder()
             .with_op("http.client")

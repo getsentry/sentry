@@ -317,7 +317,7 @@ def convert_widget_query_to_metric(
 
 def _can_widget_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
-):
+) -> bool:
     if not metrics_specs:
         return False
     spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]

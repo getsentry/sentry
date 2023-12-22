@@ -29,17 +29,17 @@ OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 
 
 @pytest.fixture
-def owner():
+def owner() -> None:
     return Factories.create_user()
 
 
 @pytest.fixture
-def organization(owner):
+def organization(owner) -> None:
     return Factories.create_organization(owner=owner)
 
 
 @pytest.fixture
-def project(organization):
+def project(organization) -> None:
     return Factories.create_project(organization=organization)
 
 
@@ -205,7 +205,7 @@ def test_schedule_on_demand_check(
     expected_discover_queries_run,
     expected_cache_set,
     project,
-):
+) -> None:
     cache.clear()
     options = {
         "on_demand_metrics.check_widgets.enable": option_enable,
@@ -318,8 +318,7 @@ def test_process_widget_specs(
     expected_discover_queries_run,
     expected_low_cardinality,
     project,
-):
-
+) -> None:
     raw_snql_query.return_value = (
         _SNQL_DATA_HIGH_CARDINALITY if set_high_cardinality else _SNQL_DATA_LOW_CARDINALITY
     )
@@ -400,7 +399,7 @@ def assert_on_demand_model(
     has_features: bool,
     expected_applicable: bool,
     expected_hashes: Sequence[str],
-):
+) -> None:
     if not expected_applicable:
         assert model.extraction_state == OnDemandExtractionState.DISABLED_NOT_APPLICABLE
         assert model.spec_hashes == []

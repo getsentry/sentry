@@ -89,7 +89,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
         ),  # error.handled is an error search term
     ],
 )
-def test_should_use_on_demand(agg, query, result):
+def test_should_use_on_demand(agg, query, result) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
@@ -120,13 +120,16 @@ def test_should_use_on_demand(agg, query, result):
         ),
     ],
 )
-def test_should_use_on_demand_with_mri(agg, query, result):
+def test_should_use_on_demand_with_mri(agg, query, result) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
-def create_spec_if_needed(dataset, agg, query):
-    if should_use_on_demand_metrics(dataset, agg, query):
-        return OnDemandMetricSpec(agg, query)
+def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
+    return (
+        OnDemandMetricSpec(agg, query)
+        if should_use_on_demand_metrics(dataset, agg, query)
+        else None
+    )
 
 
 class TestCreatesOndemandMetricSpec:
@@ -176,7 +179,7 @@ class TestCreatesOndemandMetricSpec:
             ("count()", "transaction.source:route"),
         ],
     )
-    def test_creates_on_demand_spec(self, aggregate, query):
+    def test_creates_on_demand_spec(self, aggregate, query) -> None:
         assert create_spec_if_needed(self.dataset, aggregate, query)
 
     @pytest.mark.parametrize(
@@ -210,7 +213,7 @@ class TestCreatesOndemandMetricSpec:
             ("failure_rate()", ""),
         ],
     )
-    def test_does_not_create_on_demand_spec(self, aggregate, query):
+    def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
         assert not create_spec_if_needed(self.dataset, aggregate, query)
 
 
@@ -218,7 +221,7 @@ class TestCreatesOndemandMetricSpec:
     "percentile",
     [0.5, 0.75, 0.9, 0.95, 0.99],
 )
-def test_spec_equivalence_with_percentiles(percentile):
+def test_spec_equivalence_with_percentiles(percentile) -> None:
     fixed_percentile = f"p{int(percentile * 100)}"
 
     spec_1 = OnDemandMetricSpec(f"{fixed_percentile}(measurements.fp)", "transaction.duration:>1s")
@@ -232,7 +235,7 @@ def test_spec_equivalence_with_percentiles(percentile):
     assert spec_1.condition == spec_2.condition
 
 
-def test_spec_simple_query_count():
+def test_spec_simple_query_count() -> None:
     spec = OnDemandMetricSpec("count()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -241,7 +244,7 @@ def test_spec_simple_query_count():
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
 
-def test_spec_simple_query_distribution():
+def test_spec_simple_query_distribution() -> None:
     spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec._metric_type == "d"
@@ -250,7 +253,7 @@ def test_spec_simple_query_distribution():
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
 
 
-def test_spec_simple_query_with_environment():
+def test_spec_simple_query_with_environment() -> None:
     spec = OnDemandMetricSpec("count()", "transaction.duration:>1s", "production")
 
     assert spec._metric_type == "c"
@@ -265,7 +268,7 @@ def test_spec_simple_query_with_environment():
     }
 
 
-def test_spec_simple_query_with_environment_only():
+def test_spec_simple_query_with_environment_only() -> None:
     # We use apdex, since it's the only metric which is on demand also without a query.
     spec = OnDemandMetricSpec("apdex(0.8)", "", "production")
 
@@ -275,7 +278,7 @@ def test_spec_simple_query_with_environment_only():
     assert spec.condition == {"name": "event.environment", "op": "eq", "value": "production"}
 
 
-def test_spec_context_mapping():
+def test_spec_context_mapping() -> None:
     spec = OnDemandMetricSpec("count()", "device:SM-A226B")
 
     assert spec._metric_type == "c"
@@ -288,7 +291,7 @@ def test_spec_context_mapping():
     }
 
 
-def test_spec_query_or_precedence_with_environment():
+def test_spec_query_or_precedence_with_environment() -> None:
     spec_1 = OnDemandMetricSpec(
         "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
     )
@@ -317,7 +320,7 @@ def test_spec_query_or_precedence_with_environment():
     assert spec_1.condition == spec_2.condition
 
 
-def test_spec_count_if_query_with_environment():
+def test_spec_count_if_query_with_environment() -> None:
     spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)",
         "(http.method:GET AND endpoint:/hello)",
@@ -343,7 +346,7 @@ def test_spec_count_if_query_with_environment():
     }
 
 
-def test_spec_complex_query_with_environment():
+def test_spec_complex_query_with_environment() -> None:
     spec = OnDemandMetricSpec(
         "count()",
         "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
@@ -380,7 +383,7 @@ def test_spec_complex_query_with_environment():
     }
 
 
-def test_spec_or_condition():
+def test_spec_or_condition() -> None:
     spec = OnDemandMetricSpec("count()", "transaction.duration:>=100 OR transaction.duration:<1000")
 
     assert spec.condition == {
@@ -392,7 +395,7 @@ def test_spec_or_condition():
     }
 
 
-def test_spec_and_condition():
+def test_spec_and_condition() -> None:
     spec = OnDemandMetricSpec("count()", "release:foo transaction.duration:<10s")
 
     assert spec.condition == {
@@ -404,7 +407,7 @@ def test_spec_and_condition():
     }
 
 
-def test_spec_nested_condition():
+def test_spec_nested_condition() -> None:
     spec = OnDemandMetricSpec("count()", "(release:a OR transaction.op:b) transaction.duration:>1s")
 
     assert spec.condition == {
@@ -422,7 +425,7 @@ def test_spec_nested_condition():
     }
 
 
-def test_spec_boolean_precedence():
+def test_spec_boolean_precedence() -> None:
     spec = OnDemandMetricSpec("count()", "release:a OR transaction.op:b transaction.duration:>1s")
 
     assert spec.condition == {
@@ -440,7 +443,7 @@ def test_spec_boolean_precedence():
     }
 
 
-def test_spec_wildcard():
+def test_spec_wildcard() -> None:
     spec = OnDemandMetricSpec("count()", "release.version:1.*")
 
     assert spec.condition == {
@@ -450,7 +453,7 @@ def test_spec_wildcard():
     }
 
 
-def test_spec_count_if():
+def test_spec_count_if() -> None:
     spec = OnDemandMetricSpec("count_if(transaction.duration,equals,300)", "")
 
     assert spec._metric_type == "c"
@@ -463,7 +466,7 @@ def test_spec_count_if():
     }
 
 
-def test_spec_count_if_with_query():
+def test_spec_count_if_with_query() -> None:
     spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)", "release:a OR transaction.op:b"
     )
@@ -483,7 +486,7 @@ def test_spec_count_if_with_query():
     }
 
 
-def test_spec_in_operator():
+def test_spec_in_operator() -> None:
     in_spec = OnDemandMetricSpec("count()", "transaction.duration:[1,2,3]")
     not_in_spec = OnDemandMetricSpec("count()", "!transaction.duration:[1,2,3]")
 
@@ -494,7 +497,7 @@ def test_spec_in_operator():
     }
 
 
-def test_spec_with_custom_measurement():
+def test_spec_with_custom_measurement() -> None:
     spec = OnDemandMetricSpec("avg(measurements.memoryUsed)", "measurements.memoryUsed:>100")
 
     assert spec._metric_type == "d"
@@ -507,7 +510,7 @@ def test_spec_with_custom_measurement():
     }
 
 
-def test_spec_with_has():
+def test_spec_with_has() -> None:
     spec = OnDemandMetricSpec(
         "avg(measurements.lcp)", "has:measurements.lcp AND !has:measurements.memoryUsage"
     )
@@ -527,7 +530,7 @@ def test_spec_with_has():
     }
 
 
-def test_spec_with_message():
+def test_spec_with_message() -> None:
     spec = OnDemandMetricSpec(
         "avg(measurements.lcp)", 'message:"issues" AND !message:"alerts" AND "api"'
     )
@@ -548,7 +551,7 @@ def test_spec_with_message():
     }
 
 
-def test_spec_with_unknown_error_status():
+def test_spec_with_unknown_error_status() -> None:
     spec = OnDemandMetricSpec(
         "avg(measurements.lcp)", "transaction.status:unknown_error OR transaction.status:unknown"
     )
@@ -565,7 +568,7 @@ def test_spec_with_unknown_error_status():
     }
 
 
-def test_spec_ignore_fields():
+def test_spec_ignore_fields() -> None:
     with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
     without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
@@ -573,7 +576,7 @@ def test_spec_ignore_fields():
 
 
 @django_db_all
-def test_spec_failure_count(default_project):
+def test_spec_failure_count(default_project) -> None:
     spec = OnDemandMetricSpec("failure_count()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -584,7 +587,7 @@ def test_spec_failure_count(default_project):
 
 
 @django_db_all
-def test_spec_failure_rate(default_project):
+def test_spec_failure_rate(default_project) -> None:
     spec = OnDemandMetricSpec("failure_rate()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -596,7 +599,7 @@ def test_spec_failure_rate(default_project):
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project):
+def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project) -> None:
     _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
@@ -610,7 +613,7 @@ def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project):
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex_decimal(_get_satisfactory_threshold_and_metric, default_project):
+def test_spec_apdex_decimal(_get_satisfactory_threshold_and_metric, default_project) -> None:
     _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(0.8)", "release:a")
@@ -623,7 +626,7 @@ def test_spec_apdex_decimal(_get_satisfactory_threshold_and_metric, default_proj
 
 
 @django_db_all
-def test_spec_epm(default_project):
+def test_spec_epm(default_project) -> None:
     spec = OnDemandMetricSpec("epm()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -634,7 +637,7 @@ def test_spec_epm(default_project):
 
 
 @django_db_all
-def test_spec_eps(default_project):
+def test_spec_eps(default_project) -> None:
     spec = OnDemandMetricSpec("eps()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
@@ -644,7 +647,7 @@ def test_spec_eps(default_project):
     assert spec.tags_conditions(default_project) == []
 
 
-def test_cleanup_equivalent_specs():
+def test_cleanup_equivalent_specs() -> None:
     simple_spec = OnDemandMetricSpec("count()", "transaction.duration:>0")
     event_type_spec = OnDemandMetricSpec(
         "count()", "transaction.duration:>0 event.type:transaction"
@@ -672,7 +675,7 @@ def test_cleanup_equivalent_specs():
         "(isNightlyBuild:true OR environment:production)",
     ],
 )
-def test_cleanup_with_environment_injection(query):
+def test_cleanup_with_environment_injection(query) -> None:
     # We are simulating the transformation that the frontend performs in the query, since they add the
     # AND (`event.type:transaction`) at the end.
     field = "count()"
@@ -701,7 +704,9 @@ def test_cleanup_with_environment_injection(query):
 
 @django_db_all
 @patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex_without_condition(_get_satisfactory_threshold_and_metric, default_project):
+def test_spec_apdex_without_condition(
+    _get_satisfactory_threshold_and_metric, default_project
+) -> None:
     _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "")
@@ -713,7 +718,7 @@ def test_spec_apdex_without_condition(_get_satisfactory_threshold_and_metric, de
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
 
 
-def test_spec_custom_tag():
+def test_spec_custom_tag() -> None:
     custom_tag_spec = OnDemandMetricSpec("count()", "foo:bar")
 
     assert custom_tag_spec.condition == {"name": "event.tags.foo", "op": "eq", "value": "bar"}
@@ -727,7 +732,7 @@ def test_spec_custom_tag():
         "(release:a OR (transaction.op:b and browser.version:1)) transaction.duration:>1s",
     ],
 )
-def test_query_tokens_to_string(query):
+def test_query_tokens_to_string(query) -> None:
     tokens = parse_search_query(query)
     new_query = query_tokens_to_string(tokens)
     new_tokens = parse_search_query(new_query)
@@ -748,7 +753,7 @@ def test_query_tokens_to_string(query):
         ),
     ],
 )
-def test_to_standard_metrics_query(dirty, clean):
+def test_to_standard_metrics_query(dirty, clean) -> None:
     cleaned_up_query = to_standard_metrics_query(dirty)
     cleaned_up_tokens = parse_search_query(cleaned_up_query)
     clean_tokens = parse_search_query(clean)
@@ -772,7 +777,7 @@ def test_to_standard_metrics_query(dirty, clean):
         ),
     ],
 )
-def test_search_query_converter(query, expected):
+def test_search_query_converter(query, expected) -> None:
     tokens = parse_search_query(query)
     converter = SearchQueryConverter(tokens)
     condition = converter.convert()
@@ -797,7 +802,7 @@ def test_search_query_converter(query, expected):
         (" (AND) And (And) Or release:initial or (and) or", "release:initial"),
     ],
 )
-def test_cleanup_query(dirty, clean):
+def test_cleanup_query(dirty, clean) -> None:
     dirty_tokens = parse_search_query(dirty)
     clean_tokens = parse_search_query(clean)
     actual_clean = cleanup_search_query(dirty_tokens)
@@ -805,7 +810,7 @@ def test_cleanup_query(dirty, clean):
     assert actual_clean == clean_tokens
 
 
-def test_cleanup_query_with_empty_parens():
+def test_cleanup_query_with_empty_parens() -> None:
     """
     Separate test with empty parens because we can't parse a string with empty parens correctly
     """
