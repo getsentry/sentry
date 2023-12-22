@@ -1,5 +1,4 @@
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_slug
 from django.db.models import SlugField
 
 
@@ -10,4 +9,4 @@ class NoNumericValidator:
 
 
 class SentrySlugField(SlugField):
-    default_validators = [validate_slug, NoNumericValidator()]
+    default_validators = list(SlugField.default_validators) + [NoNumericValidator()]
