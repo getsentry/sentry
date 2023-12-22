@@ -77,7 +77,7 @@ export default storyBook(Tag, story => {
         <p>
           The <JSXProperty name="to" value /> prop should be used for internal links.
         </p>
-        <Tag type="info" to="stories/?name=app/components/badge.stories.tsx">
+        <Tag type="info" to="/stories/?name=app/components/badge.stories.tsx">
           Internal link
         </Tag>
         <p>
