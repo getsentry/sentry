@@ -685,7 +685,7 @@ def test_cleanup_with_environment_injection(query) -> None:
     # We test with both new and old env logic, in this case queries should be identical in both logics since we
     # scrape away parentheses.
     for updated_env_logic in (True, False):
-        spec_version = get_spec("use_updated_env_logic")
+        spec_version = get_spec("use_updated_env_logic") if updated_env_logic else get_spec()
         spec = OnDemandMetricSpec(
             field,
             query,

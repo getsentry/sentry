@@ -74,12 +74,16 @@ def get_spec_versions(min_version: int = 0) -> Sequence[SpecVersion]:
     return [spec_version for spec_version in SPEC_VERSIONS if spec_version.version >= min_version]
 
 
-def get_spec(flag: str) -> SpecVersion | None:
+def get_spec(flag: Optional[str] = None) -> SpecVersion | None:
     """Get first matching spec version which contains that flag."""
     result = None
-    for spec_version in SPEC_VERSIONS:
-        if spec_version.has_flag(flag):
-            result = spec_version
+    if flag is None:
+        result = SPEC_VERSIONS[0]
+        assert result.flags == []
+    else:
+        for spec_version in SPEC_VERSIONS:
+            if spec_version.has_flag(flag):
+                result = spec_version
     return result
 
 
