@@ -285,21 +285,13 @@ function buildRoutes() {
           component={errorHandler(withDomainRequired(OrganizationContextContainer))}
           key="orgless-relocation"
         >
-          <IndexRedirect to="welcome/" />
+          <IndexRedirect to="get-started/" />
           <Route
             path=":step/"
             component={make(() => import('sentry/views/relocation'))}
           />
         </Route>
       )}
-      <Route
-        path="/relocation/:orgId/"
-        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
-        key="org-relocation"
-      >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
-      </Route>
       {usingCustomerDomain && (
         <Route
           path="/onboarding/"

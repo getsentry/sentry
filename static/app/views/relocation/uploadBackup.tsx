@@ -87,7 +87,7 @@ export function UploadBackup(__props: StepProps) {
     const formData = new FormData();
     formData.set('orgs', orgSlugs);
     formData.set('file', file);
-    formData.set('owner', user.email);
+    formData.set('owner', user.username);
     try {
       await api.requestPromise(`/relocations/`, {
         method: 'POST',
