@@ -292,6 +292,18 @@ def test_built_in_borked_path_blow_up():
 def test_built_in_borked_file_doesnt_blow_up(tmp_path, caplog):
     with open(tmp_path / "foo.txt", "w") as foo:
         foo.write("a malformed rule file that ought to be ignored")
+    with open(tmp_path / "bar.txt", "w") as foo:
+        foo.write("type:DatabaseUnavailable -> DatabaseUnavailable")
     rules = FingerprintingRules(rules=[], _config_dir=tmp_path)
-    assert not rules.built_in_rules
+    assert rules.built_in_rules
+    assert rules._to_config_structure(include_builtin=True) == {
+        "rules": [
+            {
+                "matchers": [["type", "DatabaseUnavailable"]],
+                "fingerprint": ["DatabaseUnavailable"],
+                "attributes": {},
+            },
+        ],
+        "version": 1,
+    }
     assert not rules.rules
