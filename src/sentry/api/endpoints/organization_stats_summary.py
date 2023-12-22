@@ -21,11 +21,11 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.exceptions import InvalidParams as InvalidParamsApi
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import COLUMN_MAP, QueryDefinition, run_outcomes_query_totals
-from sentry.snuba.sessions_v2 import InvalidField, InvalidParams, massage_sessions_result_summary
+from sentry.snuba.sessions_v2 import InvalidField, massage_sessions_result_summary
 from sentry.utils.outcomes import Outcome
 
 
@@ -256,5 +256,5 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
             with super().handle_query_errors():
                 yield
-        except (InvalidField, NoProjects, InvalidParams, InvalidQuery, InvalidParamsApi) as error:
+        except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
             raise ParseError(detail=str(error))
