@@ -231,7 +231,6 @@ module = [
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.prompts_activity",
     "sentry.api.endpoints.rule_snooze",
-    "sentry.api.endpoints.shared_group_details",
     "sentry.api.endpoints.source_map_debug",
     "sentry.api.endpoints.team_details",
     "sentry.api.endpoints.team_release_count",
