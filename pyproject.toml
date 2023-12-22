@@ -116,7 +116,6 @@ module = [
     "sqlparse.*",
     "statsd.*",
     "u2flib_server.model.*",
-    "ua_parser.user_agent_parser.*",
     "unidiff.*",
 ]
 ignore_missing_imports = true

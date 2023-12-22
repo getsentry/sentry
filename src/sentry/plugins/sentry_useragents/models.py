@@ -31,10 +31,7 @@ class UserAgentPlugin(TagPlugin):
         for key, value in headers:
             if key != "User-Agent":
                 continue
-            ua = Parse(value)
-            if not ua:
-                continue
-            result = self.get_tag_from_ua(ua)
+            result = self.get_tag_from_ua(Parse(value))
             if result:
                 output.append(result)
         return output
