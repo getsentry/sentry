@@ -157,7 +157,6 @@ module = [
     "sentry.api.endpoints.group_integration_details",
     "sentry.api.endpoints.group_integrations",
     "sentry.api.endpoints.group_notes",
-    "sentry.api.endpoints.group_similar_issues",
     "sentry.api.endpoints.group_tagkey_details",
     "sentry.api.endpoints.group_tagkey_values",
     "sentry.api.endpoints.group_tags",
