@@ -733,14 +733,14 @@ disable_error_code = [
 ]
 # end: sentry modules with typing issues
 
-# begging: stronger typing
+# beginning: stronger typing
 [[tool.mypy.overrides]]
 module = [
-    "src.sentry.relay.config.metric_extraction.py",
-    "src.sentry.snuba.metrics.extraction.py",
-    "tests.sentry.relay.config.test_metric_extraction.py",
-    "tests.sentry.snuba.test_extraction.py",
-    "tests.sentry.tasks.test_on_demand_metrics.py",
+    "src.sentry.relay.config.metric_extraction",
+    "src.sentry.snuba.metrics.extraction",
+    "tests.sentry.relay.config.test_metric_extraction",
+    "tests.sentry.snuba.test_extraction",
+    "tests.sentry.tasks.test_on_demand_metrics",
 ]
 disallow_untyped_defs = true
 # end: stronger typing
