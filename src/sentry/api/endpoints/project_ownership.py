@@ -190,7 +190,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = [ProjectOwnershipPermission]
+    permission_classes = (ProjectOwnershipPermission,)
 
     def get_ownership(self, project):
         try:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
@@ -51,7 +52,7 @@ class MonitorEndpoint(Endpoint):
           MonitorIngestEndpoint for that.
     """
 
-    permission_classes = (ProjectMonitorPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
 
     def convert_args(
         self,

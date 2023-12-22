@@ -458,7 +458,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = [RelaxedProjectPermission]
+    permission_classes = (RelaxedProjectPermission,)
 
     def _get_unresolved_count(self, project):
         queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, project=project)

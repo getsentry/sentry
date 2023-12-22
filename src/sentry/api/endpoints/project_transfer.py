@@ -29,7 +29,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = [RelaxedProjectPermission]
+    permission_classes = (RelaxedProjectPermission,)
 
     @sudo_required
     def post(self, request: Request, project) -> Response:

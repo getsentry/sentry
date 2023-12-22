@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
@@ -96,7 +97,7 @@ class ProjectOwnershipPermission(ProjectPermission):
 
 
 class ProjectEndpoint(Endpoint):
-    permission_classes = (ProjectPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectPermission,)
 
     def convert_args(
         self,

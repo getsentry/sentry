@@ -55,7 +55,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes = ()
 
     rate_limits = {
         "POST": {

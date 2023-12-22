@@ -51,7 +51,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.UNKNOWN,
     }
     owner = ApiOwner.ENTERPRISE
-    permission_classes = [AccessRequestPermission]
+    permission_classes = (AccessRequestPermission,)
 
     # TODO(dcramer): this should go onto AccessRequestPermission
     def _can_access(self, request: Request, access_request):

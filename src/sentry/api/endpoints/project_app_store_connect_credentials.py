@@ -133,7 +133,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
         serializer = AppStoreConnectCredentialsSerializer(data=request.data)
@@ -219,7 +219,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
         serializer = AppStoreCreateCredentialsSerializer(data=request.data)
@@ -297,7 +297,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
         serializer = AppStoreUpdateCredentialsSerializer(data=request.data)
@@ -365,7 +365,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [StrictProjectPermission]
+    permission_classes = (StrictProjectPermission,)
 
     enforce_rate_limit = True
 
@@ -441,7 +441,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.OWNERS_NATIVE
-    permission_classes = [ProjectPermission]
+    permission_classes = (ProjectPermission,)
 
     def get(self, request: Request, project: Project) -> Response:
         config_ids = appconnect.AppStoreConnectConfig.all_config_ids(project)

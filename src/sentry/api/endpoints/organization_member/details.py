@@ -114,7 +114,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
-    permission_classes = [RelaxedMemberPermission]
+    permission_classes = (RelaxedMemberPermission,)
 
     def _get_member(
         self,
