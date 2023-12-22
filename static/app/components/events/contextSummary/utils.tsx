@@ -21,6 +21,16 @@ export const makeContextFilter = (event: Event) =>
       }
     }
 
+    if (event.sdk?.name === 'sentry.javascript.nextjs') {
+      if (context.keys.includes('browser')) {
+        const runtime = event.contexts?.runtime;
+
+        if (runtime?.name !== 'browser') {
+          return false;
+        }
+      }
+    }
+
     // do not show the context summary if only runtime raw_description is defined
     // (without name or version)
     if (
