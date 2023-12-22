@@ -84,9 +84,11 @@ class RegionDirectoryTest(TestCase):
                 get_region_by_name("nowhere")
 
     def test_region_config_parsing_in_control(self):
-        with override_settings(SILO_MODE=SiloMode.CONTROL):
-            with override_settings(SENTRY_MONOLITH_REGION="us"):
-                directory = load_from_config(self._INPUTS)
+        with (
+            override_settings(SILO_MODE=SiloMode.CONTROL),
+            override_settings(SENTRY_MONOLITH_REGION="us"),
+        ):
+            directory = load_from_config(self._INPUTS)
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -103,12 +105,14 @@ class RegionDirectoryTest(TestCase):
             assert get_local_region() == self._EXPECTED_OUTPUTS[0]
 
     def test_get_generated_monolith_region(self):
-        with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"):
-            with self._in_global_state(load_from_config(())):
-                local_region = get_local_region()
-                assert local_region.name == "defaultland"
-                assert local_region.snowflake_id == 0
-                assert local_region.category == RegionCategory.MULTI_TENANT
+        with (
+            override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
+            self._in_global_state(load_from_config(())),
+        ):
+            local_region = get_local_region()
+            assert local_region.name == "defaultland"
+            assert local_region.snowflake_id == 0
+            assert local_region.category == RegionCategory.MULTI_TENANT
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
@@ -177,9 +181,11 @@ class RegionDirectoryTest(TestCase):
             actual_regions = find_regions_for_user(user_id=user.id)
             assert actual_regions == {"us"}
 
-        with override_settings(SILO_MODE=SiloMode.REGION):
-            with pytest.raises(SiloLimit.AvailabilityError):
-                find_regions_for_user(user_id=user.id)
+        with (
+            override_settings(SILO_MODE=SiloMode.REGION),
+            pytest.raises(SiloLimit.AvailabilityError),
+        ):
+            find_regions_for_user(user_id=user.id)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_region_names(self):

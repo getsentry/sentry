@@ -145,9 +145,11 @@ class _SiloModeTestModification:
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        with override_regions(self.regions) if self.regions else nullcontext():
-            with assume_test_silo_mode(silo_mode, can_be_monolith=False):
-                yield
+        with (
+            override_regions(self.regions) if self.regions else nullcontext(),
+            assume_test_silo_mode(silo_mode, can_be_monolith=False),
+        ):
+            yield
 
     def _create_overriding_test_class(
         self, test_class: Type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
