@@ -121,7 +121,7 @@ export default storyBook(AlertLink, story => {
         <AlertLink
           priority="info"
           size="normal"
-          to="stories/?name=app/components/badge.stories.tsx"
+          to="/stories/?name=app/components/badge.stories.tsx"
         >
           View the badge story page
         </AlertLink>
