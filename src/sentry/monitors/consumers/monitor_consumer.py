@@ -135,7 +135,7 @@ def check_ratelimit(
     """
     ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
-    is_blocked = ratelimits.is_limited(
+    is_blocked = ratelimits.backend.is_limited(
         f"monitor-checkins:{ratelimit_key}",
         limit=CHECKIN_QUOTA_LIMIT,
         window=CHECKIN_QUOTA_WINDOW,
