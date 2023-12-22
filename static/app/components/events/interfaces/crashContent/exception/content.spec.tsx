@@ -2,7 +2,10 @@ import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiC
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
 import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
-import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
+import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -14,14 +17,25 @@ import {EntryType} from 'sentry/types';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
+  const organization = Organization();
+  const project = Project({});
+  const integration = TestStubs.GitHubIntegration();
+  const repo = Repository({integrationId: integration.id});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
+
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/prompts-activity/`,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
   });
 
   it('display redacted values from exception entry', async function () {
-    const project = Project({id: '0'});
     const projectDetails = Project({
       ...project,
       relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
@@ -30,11 +44,14 @@ describe('Exception Content', function () {
       url: `/projects/org-slug/${project.slug}/`,
       body: projectDetails,
     });
-    ProjectsStore.loadInitialData([project]);
 
-    const {organization, router, routerContext} = initializeOrg({
+    const {
+      organization: org,
+      router,
+      routerContext,
+    } = initializeOrg({
       router: {
-        location: {query: {project: '0'}},
+        location: {query: {project: project.id}},
       },
       projects: [project],
     });
@@ -127,7 +144,7 @@ describe('Exception Content', function () {
         meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
-      {organization, router, context: routerContext}
+      {organization: org, router, context: routerContext}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -159,6 +176,7 @@ describe('Exception Content', function () {
 
   it('respects platform overrides in stacktrace frames', function () {
     const event = EventFixture({
+      projectID: project.id,
       platform: 'python',
       entries: [
         {
@@ -188,7 +206,7 @@ describe('Exception Content', function () {
         stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
-        projectSlug="project-slug"
+        projectSlug={project.slug}
       />
     );
 
@@ -200,9 +218,14 @@ describe('Exception Content', function () {
   });
 
   describe('exception groups', function () {
-    const event = EventFixture({entries: [EventEntryExceptionGroupFixture()]});
-    const project = ProjectFixture();
+    const event = EventFixture({
+      entries: [EventEntryExceptionGroupFixture()],
+      projectID: project.id,
+    });
+
     beforeEach(() => {
+      MockApiClient.clearMockResponses();
+
       const promptResponse = {
         dismissed_ts: undefined,
         snoozed_ts: undefined,
@@ -211,6 +234,11 @@ describe('Exception Content', function () {
         url: '/prompts-activity/',
         body: promptResponse,
       });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+        body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+      });
+      ProjectsStore.loadInitialData([project]);
     });
 
     const defaultProps = {

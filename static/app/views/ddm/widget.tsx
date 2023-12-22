@@ -179,6 +179,18 @@ const MetricWidgetBody = memo(
       );
     }
 
+    if (dataToBeRendered.groups.length === 0) {
+      return (
+        <StyledMetricWidgetBody>
+          <EmptyMessage
+            icon={<IconSearch size="xxl" />}
+            title={t('No results')}
+            description={t('No results found for the given query')}
+          />
+        </StyledMetricWidgetBody>
+      );
+    }
+
     const chartSeries = getChartSeries(dataToBeRendered, {
       mri,
       focusedSeries,
@@ -290,7 +302,9 @@ function sortSeries(
 }
 
 function getChartColorPalette(displayType: MetricDisplayType, length: number) {
-  const palette = theme.charts.getColorPalette(length - 2);
+  // We do length - 2 to be aligned with the colors in other parts of the app (copy-pasta)
+  // We use Math.max to avoid numbers < -1 as then `getColorPalette` returns undefined (not typesafe because of array access)
+  const palette = theme.charts.getColorPalette(Math.max(length - 2, -1));
 
   if (displayType === MetricDisplayType.BAR) {
     return palette;

@@ -558,6 +558,12 @@ class MonitorEnvironment(Model):
     check-ins. It is denormalized for simplicity.
     """
 
+    is_muted = models.BooleanField(default=False)
+    """
+    Monitor environment is operating normally but will not produce incidents or produce
+    occurrences into the issues platform.
+    """
+
     next_checkin = models.DateTimeField(null=True)
     """
     The expected time that the next-checkin will occur

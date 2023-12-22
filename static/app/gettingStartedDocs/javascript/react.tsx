@@ -31,10 +31,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(${getReplayConfigOptions({
-          mask: params.mask,
-          block: params.block,
-        })}),`
+        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${
@@ -191,7 +188,6 @@ const replayOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
       }),
@@ -202,7 +198,7 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+              code: getSdkSetupSnippet(params),
             },
           ],
         },
