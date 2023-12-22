@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
+import {BooleanOperator, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
@@ -214,6 +214,12 @@ const EMPTY_ARRAY = [];
 const EMPTY_SET = new Set<never>();
 const DISSALLOWED_LOGICAL_OPERATORS = new Set([BooleanOperator.OR]);
 
+const INVALID_QUERY_MESSAGES = {
+  [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+    'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*something*"'
+  ),
+};
+
 export function MetricSearchBar({
   mri,
   disabled,
@@ -276,6 +282,7 @@ export function MetricSearchBar({
       // don't highlight tags while loading as we don't know yet if they are supported
       highlightUnsupportedTags={!isLoading}
       disallowedLogicalOperators={DISSALLOWED_LOGICAL_OPERATORS}
+      invalidMessages={INVALID_QUERY_MESSAGES}
       disallowFreeText
       onClose={handleChange}
       onSearch={handleChange}
