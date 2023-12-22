@@ -247,8 +247,16 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
     if method not in HTTP_METHODS:
         return None
 
-    url = urlparse(url_str)
-    return [method, url.scheme, url.netloc, url.path]
+    try:
+        url = urlparse(url_str)
+    except ValueError:
+        # attempt a "best effort" splitting
+        url_str, _, _ = url_str.partition("?")
+        scheme, _, rest = url_str.partition("://")
+        netloc, _, path = rest.partition("/")
+        return [method, scheme, netloc, path]
+    else:
+        return [method, url.scheme, url.netloc, url.path]
 
 
 @span_op(["redis", "db.redis"])
