@@ -1,5 +1,6 @@
 import {Authenticators} from 'sentry-fixture/authenticators';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +26,7 @@ describe('AccountSecurityEnroll', function () {
     const routerContext = RouterContextFixture([
       {
         router: {
-          ...TestStubs.router(),
+          ...RouterFixture(),
           params: {authId: authenticator.authId},
         },
       },
@@ -86,7 +87,7 @@ describe('AccountSecurityEnroll', function () {
       const routerContextWithMock = RouterContextFixture([
         {
           router: {
-            ...TestStubs.router({push: pushMock}),
+            ...RouterFixture({push: pushMock}),
             params: {authId: authenticator.authId},
           },
         },
