@@ -491,7 +491,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                             'The wildcard operator is not supported here.'
                           ),
                           [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*something*"'
+                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
                           ),
                         }}
                         customInvalidTagMessage={item => {
