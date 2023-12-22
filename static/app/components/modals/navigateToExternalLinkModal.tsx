@@ -22,7 +22,7 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: 
       <Body>
         <p>
           {t(
-            'You are now leaving Sentry and will be redirected to the following external website'
+            'Heads up. You're leaving Sentry and will be redirected to the following external website:'
           )}
         </p>
         <p>{linkText}</p>
