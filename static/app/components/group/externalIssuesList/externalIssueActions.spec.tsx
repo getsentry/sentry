@@ -1,3 +1,5 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
+
 import {
   render,
   renderGlobalModal,
@@ -8,7 +10,7 @@ import {
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
 
 describe('ExternalIssueActions', function () {
-  const group = TestStubs.Group();
+  const group = GroupFixture();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

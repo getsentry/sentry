@@ -1,4 +1,5 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
@@ -13,7 +14,7 @@ import {
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 
 describe('SentryAppExternalIssueActions', () => {
-  const group = TestStubs.Group();
+  const group = GroupFixture();
   const sentryApp = SentryApp();
   const component = TestStubs.SentryAppComponent({
     sentryApp: {

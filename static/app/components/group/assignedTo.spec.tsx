@@ -1,6 +1,7 @@
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
@@ -55,12 +56,12 @@ describe('Group > AssignedTo', () => {
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: PROJECT_1.id,
         slug: PROJECT_1.slug,
-      },
+      }),
     });
     event = EventFixture();
 

@@ -1,28 +1,31 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {GroupStatus} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import IssueContext from './issueContext';
 import {defaultRow} from './testUtils';
 
-let mockedGroup = TestStubs.Group({
+const mockedGroup = GroupFixture({
   id: '3512441874',
-  project: {
+  project: ProjectFixture({
     id: '1',
     slug: 'cool-team',
-  },
-  status: 'ignored',
+  }),
+  status: GroupStatus.IGNORED,
   assignedTo: {
     id: '12312',
     name: 'ingest',
     type: 'team',
   },
-  count: 2500000,
+  count: '2500000',
   userCount: 64000,
   title: 'typeError: error description',
 });
@@ -75,11 +78,11 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   it('Renders resolved issue status context', async () => {
-    mockedGroup = {...mockedGroup, status: 'resolved'};
+    const group = {...mockedGroup, status: GroupStatus.RESOLVED};
     MockApiClient.addMockResponse({
       url: '/issues/3512441874/',
       method: 'GET',
-      body: mockedGroup,
+      body: group,
     });
     renderIssueContext();
 
@@ -89,11 +92,11 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   it('Renders unresolved issue status context', async () => {
-    mockedGroup = {...mockedGroup, status: 'unresolved'};
+    const group = {...mockedGroup, status: GroupStatus.UNRESOLVED};
     MockApiClient.addMockResponse({
       url: '/issues/3512441874/',
       method: 'GET',
-      body: mockedGroup,
+      body: group,
     });
 
     renderIssueContext();
