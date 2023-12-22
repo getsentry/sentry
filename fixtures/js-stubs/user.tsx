@@ -15,6 +15,7 @@ export function User(params: Partial<UserType> = {}): UserType {
       defaultIssueEvent: 'recommended',
       avatarType: 'letter_avatar',
       stacktraceOrder: -1,
+      issueDetailsNewExperienceQ42023: false,
     },
     ip_address: '127.0.0.1',
     hasPasswordAuth: true,
