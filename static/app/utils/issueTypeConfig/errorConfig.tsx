@@ -51,6 +51,11 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
   {
+    errorTitle: "Module not found: Can't resolve",
+    projectCheck: true,
+    errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
+  },
+  {
     errorTitle: 'Dynamic server usage',
     projectCheck: true,
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
@@ -116,6 +121,21 @@ const errorHelpTypeResourceMap: Record<
         {
           text: t('Fixing handleHardNavigation errors in Next.js'),
           link: 'https://sentry.io/answers/handle-hard-navigation-errors-in-nextjs/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.MODULE_NOT_FOUND]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Next.js applications when an imported module cannot be accessed. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Module not found errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "module not found" errors in Next.js'),
+          link: 'https://sentry.io/answers/module-not-found-nextjs/',
         },
       ],
       linksByPlatform: {},
