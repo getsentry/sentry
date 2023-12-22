@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
@@ -15,18 +16,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-export function useImportDashboard() {
+export function useDashboardImport() {
   const organization = useOrganization();
 
   return useMemo(() => {
     return function () {
-      return openModal(deps => (
-        <OrganizationContext.Provider value={organization}>
-          <DDMContextProvider>
-            <ImportDashboardModal {...deps} />
-          </DDMContextProvider>
-        </OrganizationContext.Provider>
-      ));
+      return openModal(
+        deps => (
+          <OrganizationContext.Provider value={organization}>
+            <DDMContextProvider>
+              <DashboardImportModal {...deps} />
+            </DDMContextProvider>
+          </OrganizationContext.Provider>
+        ),
+        {modalCss}
+      );
     };
   }, [organization]);
 }
@@ -38,7 +42,7 @@ type FormState = {
   step: 'initial' | 'importing' | 'add-widgets';
 };
 
-function ImportDashboardModal({Header, Body, Footer}: ModalRenderProps) {
+function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
   const {metricsMeta, addWidgets} = useDDMContext();
   const [formState, setFormState] = useState<FormState>({
     step: 'initial',
@@ -145,10 +149,16 @@ const ContentWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${space(2)};
+  max-height: 70vh;
+  overflow-y: scroll;
 `;
 
 const JSONTextArea = styled(TextArea)`
   min-height: 200px;
+`;
+
+const modalCss = css`
+  width: 80%;
 `;
 
 const isValidJson = (str: string) => {

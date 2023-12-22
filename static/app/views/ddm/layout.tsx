@@ -25,8 +25,8 @@ import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {useDashboardImport} from 'sentry/views/ddm/dashboardImportModal';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
-import {useImportDashboard} from 'sentry/views/ddm/importDashboardModal';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {TrayContent} from 'sentry/views/ddm/trayContent';
@@ -39,7 +39,7 @@ function MainContent() {
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
-  const importDashboard = useImportDashboard();
+  const importDashboard = useDashboardImport();
 
   return (
     <Fragment>
