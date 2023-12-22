@@ -15,6 +15,7 @@ from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 class MonitorEnvironmentSerializerResponse(TypedDict):
     name: str
     status: str
+    isMuted: bool
     dateCreated: datetime
     lastCheckIn: datetime
     nextCheckIn: datetime
@@ -27,6 +28,7 @@ class MonitorEnvironmentSerializer(Serializer):
         return {
             "name": obj.environment.name,
             "status": obj.get_status_display(),
+            "isMuted": obj.is_muted,
             "dateCreated": obj.monitor.date_added,
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
