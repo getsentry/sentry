@@ -139,14 +139,8 @@ export default storyBook(AlertLink, story => {
         <p>
           Lastly, you can get creative with the <JSXProperty name="onClick" value /> prop.
         </p>
-        <AlertLink
-          priority="info"
-          size="normal"
-          href="https://sentry.io/for/session-replay/"
-          openInNewTab
-          onClick={() => setCount(count + 1)}
-        >
-          You clicked this link {count} times.
+        <AlertLink priority="info" size="normal" onClick={() => setCount(count + 1)}>
+          You clicked this {count} times.
         </AlertLink>
       </Fragment>
     );
