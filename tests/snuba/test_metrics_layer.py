@@ -19,7 +19,7 @@ from snuba_sdk import (
     Timeseries,
 )
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey

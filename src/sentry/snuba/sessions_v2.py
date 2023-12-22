@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
@@ -395,10 +396,6 @@ ONE_MINUTE = timedelta(minutes=1).total_seconds()
 SNUBA_LIMIT = 5000
 
 
-class InvalidParams(Exception):
-    pass
-
-
 class NonPreflightOrderByException(InvalidParams):
     """
     An exception that is raised when parsing orderBy, to indicate that this is only an exception
@@ -578,7 +575,7 @@ def massage_sessions_result(
             else:
                 row = None
 
-            for (name, field, series) in fields:
+            for name, field, series in fields:
                 series.append(field.extract_from_row(row, group))
 
         return {name: series for (name, field, series) in fields}

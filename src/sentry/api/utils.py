@@ -18,6 +18,7 @@ from sentry_sdk import Scope
 
 from sentry import options
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
@@ -36,10 +37,6 @@ from sentry.utils.sdk import capture_exception, merge_context_into_scope
 logger = logging.getLogger(__name__)
 
 MAX_STATS_PERIOD = timedelta(days=90)
-
-
-class InvalidParams(Exception):
-    pass
 
 
 def get_datetime_from_stats_period(
