@@ -99,7 +99,7 @@ class BetterSignal(Signal):
                     ):
                         raise
 
-                logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=True)
+                logging.exception("signal.failure", extra={"receiver": repr(receiver)})
                 responses.append((receiver, err))
             else:
                 responses.append((receiver, response))
@@ -131,6 +131,7 @@ first_transaction_received = BetterSignal()  # ["project", "event"]
 first_profile_received = BetterSignal()  # ["project"]
 first_replay_received = BetterSignal()  # ["project"]
 first_feedback_received = BetterSignal()  # ["project"]
+first_new_feedback_received = BetterSignal()  # ["project"]
 first_cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 first_cron_checkin_received = BetterSignal()  # ["project", "monitor_id"]

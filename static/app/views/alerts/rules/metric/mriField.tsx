@@ -28,24 +28,23 @@ function filterAndSortOperations(operations: string[]) {
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], {
-    useCases: ['custom'],
-  });
+  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], ['custom']);
+
   const metaArr = useMemo(() => {
-    return Object.values(meta)
-      .map(
-        metric =>
-          ({
-            ...metric,
-            ...parseMRI(metric.mri),
-          }) as ParsedMRI & MetricMeta
-      )
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return meta.map(
+      metric =>
+        ({
+          ...metric,
+          ...parseMRI(metric.mri),
+        }) as ParsedMRI & MetricMeta
+    );
   }, [meta]);
 
   const selectedValues = parseField(aggregate) ?? {mri: '' as MRI, op: ''};
 
-  const selectedMriMeta = selectedValues.mri ? meta[selectedValues.mri] : null;
+  const selectedMriMeta = useMemo(() => {
+    return meta.find(metric => metric.mri === selectedValues.mri);
+  }, [meta, selectedValues.mri]);
 
   useEffect(() => {
     // Auto-select the first mri if none of the available ones is selected
@@ -67,8 +66,12 @@ function MriField({aggregate, project, onChange}: Props) {
 
   const handleMriChange = useCallback(
     option => {
+      const selectedMeta = meta.find(metric => metric.mri === option.value);
+      if (!selectedMeta) {
+        return;
+      }
       // Make sure that the selected operation matches the new metric
-      const availableOps = filterAndSortOperations(meta[option.value].operations);
+      const availableOps = filterAndSortOperations(selectedMeta.operations);
       const selectedOp =
         selectedValues.op && availableOps.includes(selectedValues.op)
           ? selectedValues.op

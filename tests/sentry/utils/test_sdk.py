@@ -113,7 +113,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.org.slug" in mock_scope._tags
         assert mock_scope._contexts["scope_bleed"] == extra
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (org.slug).", extra=extra
+            "Tag already set and different (%s).", "org.slug", extra=extra
         )
 
     def test_different_existing_tag_incoming_is_multiple_orgs(self, mock_logger_warning: MagicMock):
@@ -131,7 +131,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.organization.slug" in mock_scope._tags
         assert mock_scope._contexts["scope_bleed"] == extra
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (organization.slug).", extra=extra
+            "Tag already set and different (%s).", "organization.slug", extra=extra
         )
 
     def test_getting_more_specific_doesnt_count_as_mismatch(self, mock_logger_warning: MagicMock):
@@ -169,7 +169,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.organization.slug" in mock_scope._tags
         assert mock_scope._contexts["scope_bleed"] == extra
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (organization.slug).", extra=extra
+            "Tag already set and different (%s).", "organization.slug", extra=extra
         )
 
     def test_add_to_scope_being_false(self, mock_logger_warning: MagicMock):
@@ -189,7 +189,7 @@ class CheckTagForScopeBleedTest(TestCase):
         assert "scope_bleed.tag.org.slug" not in mock_scope._tags
         assert "scope_bleed" not in mock_scope._contexts
         mock_logger_warning.assert_called_with(
-            "Tag already set and different (org.slug).", extra=extra
+            "Tag already set and different (%s).", "org.slug", extra=extra
         )
 
     def test_string_vs_int(self, mock_logger_warning: MagicMock):

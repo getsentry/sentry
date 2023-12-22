@@ -50,6 +50,9 @@ function getSentryIntegrations(routes?: Function) {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
+
+    new Sentry.metrics.MetricsAggregator(),
+
     new BrowserTracing({
       ...(typeof routes === 'function'
         ? {
@@ -168,6 +171,14 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       return event;
     },
   });
+
+  if (process.env.NODE_ENV !== 'production') {
+    if (sentryConfig.environment === 'development') {
+      import('@spotlightjs/spotlight').then(Spotlight => {
+        /* #__PURE__ */ Spotlight.init();
+      });
+    }
+  }
 
   // Event processor to fill the debug_meta field with debug IDs based on the
   // files the error touched. (files inside the stacktrace)

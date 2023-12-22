@@ -158,7 +158,6 @@ function ThroughputChart({
       height={CHART_HEIGHT}
       data={throughputTimeSeries}
       loading={isLoading}
-      utc={false}
       grid={{
         left: '0',
         right: '0',
@@ -217,7 +216,6 @@ function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Eleme
       height={CHART_HEIGHT}
       data={[...avgSeries]}
       loading={isLoading}
-      utc={false}
       grid={{
         left: '0',
         right: '0',
@@ -251,7 +249,6 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       height={CHART_HEIGHT}
       data={[errorRateSeries]}
       loading={isLoading}
-      utc={false}
       grid={{
         left: '0',
         right: '0',

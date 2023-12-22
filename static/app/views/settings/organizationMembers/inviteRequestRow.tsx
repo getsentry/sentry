@@ -90,7 +90,7 @@ function InviteRequestRow({
       {canApprove ? (
         <TeamSelectControl
           name="teams"
-          placeholder={t('Add to teams\u2026')}
+          placeholder={t('None')}
           onChange={teams => onUpdate({teams: (teams || []).map(team => team.value)})}
           value={inviteRequest.teams}
           clearable

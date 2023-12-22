@@ -3,16 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
-import celery
-
-from sentry.tasks.sentry_functions import send_sentry_function_webhook
-
-if celery.version_info >= (5, 2):
-    from celery import current_task
-else:
-    from celery.task import current as current_task
-
+from celery import current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
 
@@ -33,6 +24,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.sentry_functions import send_sentry_function_webhook
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request

@@ -192,7 +192,7 @@ class ProjectManager(BaseManager["Project"]):
             try:
                 team = team_list[team_list.index(team)]
             except ValueError:
-                logging.info(f"User does not have access to team: {team.id}")
+                logging.info("User does not have access to team: %s", team.id)
                 return []
 
         base_qs = self.filter(teams=team, status=ObjectStatus.ACTIVE)
@@ -237,6 +237,11 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     first_event = models.DateTimeField(null=True)
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # This Project has sent release data
         has_releases: bool
         # This Project has issue alerts targeting
@@ -260,9 +265,11 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         # This project has sent feedbacks
         has_feedbacks: bool
 
-        # spike_protection_error_currently_active
-        spike_protection_error_currently_active: bool
+        # This project has sent new feedbacks, from the user-initiated widget
+        has_new_feedbacks: bool
 
+        # spike protection flags are DEPRECATED
+        spike_protection_error_currently_active: bool
         spike_protection_transaction_currently_active: bool
         spike_protection_attachment_currently_active: bool
 
@@ -277,6 +284,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # This Project has event with sourcemaps
         has_sourcemaps: bool
+
+        # This Project has custom metrics
+        has_custom_metrics: bool
 
         bitfield_default = 10
         bitfield_null = True

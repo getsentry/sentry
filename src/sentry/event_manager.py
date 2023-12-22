@@ -29,12 +29,13 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, router, transaction
+from django.db import OperationalError, connection, router, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError
+from usageaccountant import UsageUnit
 
 from sentry import (
     eventstore,
@@ -59,6 +60,7 @@ from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
+from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
@@ -71,6 +73,7 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.ingest import update_grouping_config_if_needed
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
@@ -78,12 +81,10 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
-from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
 from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
-from sentry.models.eventuser import EventUser
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -104,7 +105,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
-from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -122,17 +122,19 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
+from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.tag_normalization import normalize_sdk_tag
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -178,26 +180,6 @@ def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
 
 def is_sample_event(job):
     return get_tag(job["data"], "sample_event") == "yes"
-
-
-def normalized_sdk_tag_from_event(event: Event) -> str:
-    """
-     Normalize tags coming from SDKs to more manageable canonical form, by:
-
-     - combining synonymous tags (`sentry.react` -> `sentry.javascript.react`),
-     - ignoring framework differences (`sentry.python.flask` and `sentry.python.django` -> `sentry.python`)
-     - collapsing all community/third-party SDKs into a single `other` category
-
-    Note: Some platforms may keep their framework-specific values, as needed for analytics.
-
-    This is done to reduce the cardinality of the `sdk.name` tag, while keeping
-    the ones interesinting to us as granual as possible.
-    """
-    try:
-        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
-    except Exception:
-        logger.warning("failed to get SDK name", exc_info=True)
-        return "other"
 
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
@@ -296,15 +278,6 @@ def get_stored_crashreports(cache_key: Optional[str], event: Event, max_crashrep
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
     return query[:max_crashreports].count()
-
-
-class HashDiscarded(Exception):
-    def __init__(
-        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
-    ):
-        super().__init__(message)
-        self.reason = reason
-        self.tombstone_id = tombstone_id
 
 
 class ScoreClause(Func):
@@ -546,6 +519,9 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
+        # Background grouping is a way for us to get performance metrics for a new
+        # config without having it actually affect on how events are grouped. It runs
+        # either before or after the main grouping logic, depending on the option value.
         do_background_grouping_before = options.get("store.background-grouping-before")
         if do_background_grouping_before:
             _run_background_grouping(project, job)
@@ -553,9 +529,12 @@ class EventManager:
         secondary_hashes = None
         migrate_off_hierarchical = False
 
-        if _check_to_run_secondary_grouping(project):
+        if _should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-                secondary_hashes = calculate_secondary_hash_if_needed(project, job)
+                secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
+                secondary_hashes = _calculate_secondary_hash(
+                    project, job, secondary_grouping_config
+                )
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -577,7 +556,31 @@ class EventManager:
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = _calculate_event_grouping(project, job["event"], grouping_config)
+            hashes = _calculate_primary_hash(project, job, grouping_config)
+
+        if secondary_hashes:
+            tags = {
+                "primary_config": grouping_config["id"],
+                "secondary_config": secondary_grouping_config["id"],
+            }
+            current_values = hashes.hashes
+            secondary_values = secondary_hashes.hashes
+            hashes_match = current_values == secondary_values
+
+            if hashes_match:
+                tags["result"] = "no change"
+            else:
+                shared_hashes = set(current_values) & set(secondary_values)
+                if len(shared_hashes) > 0:
+                    tags["result"] = "partial change"
+                else:
+                    tags["result"] = "full change"
+
+            metrics.incr("grouping.hash_comparison", tags=tags)
+
+        # Track the total number of grouping calculations done overall, so we can divide by the
+        # count to get an average number of calculations per event
+        metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
 
         # Because this logic is not complex enough we want to special case the situation where we
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
@@ -683,7 +686,7 @@ class EventManager:
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
-        _nodestore_save_many(jobs)
+        _nodestore_save_many(jobs=jobs, app_feature="errors")
         save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
@@ -747,13 +750,12 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if _project_should_update_grouping(project):
-            _auto_update_grouping(project)
+        update_grouping_config_if_needed(project)
 
         return job["event"]
 
 
-def _check_to_run_secondary_grouping(project: Project) -> bool:
+def _should_run_secondary_grouping(project: Project) -> bool:
     result = False
     # These two values are basically always set
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
@@ -763,7 +765,20 @@ def _check_to_run_secondary_grouping(project: Project) -> bool:
     return result
 
 
-def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | CalculatedHashes:
+def _calculate_primary_hash(
+    project: Project, job: Job, grouping_config: GroupingConfig
+) -> CalculatedHashes:
+    """
+    Get the primary hash for the event.
+
+    This is pulled out into a separate function mostly in order to make testing easier.
+    """
+    return _calculate_event_grouping(project, job["event"], grouping_config)
+
+
+def _calculate_secondary_hash(
+    project: Project, job: Job, secondary_grouping_config: GroupingConfig
+) -> None | CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
@@ -775,11 +790,11 @@ def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | Cal
             op="event_manager",
             description="event_manager.save.secondary_calculate_event_grouping",
         ):
-            secondary_event = copy.deepcopy(job["event"])
-            loader = SecondaryGroupingConfigLoader()
-            secondary_grouping_config = loader.get_config_dict(project)
+            # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
+            # of grouping info and we don't want the backup grouping data in there
+            event_copy = copy.deepcopy(job["event"])
             secondary_hashes = _calculate_event_grouping(
-                project, secondary_event, secondary_grouping_config
+                project, event_copy, secondary_grouping_config
             )
     except Exception:
         sentry_sdk.capture_exception()
@@ -787,57 +802,6 @@ def calculate_secondary_hash_if_needed(project: Project, job: Job) -> None | Cal
     return secondary_hashes
 
 
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
-
-
-def _auto_update_grouping(project: Project) -> None:
-    old_grouping = project.get_option("sentry:grouping_config")
-    new_grouping = DEFAULT_GROUPING_CONFIG
-
-    # update to latest grouping config but not if a user is already on
-    # beta.
-    if old_grouping == new_grouping or old_grouping == BETA_GROUPING_CONFIG:
-        return
-
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry only and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
-    cache_key = f"grouping-config-update:{project.id}:{old_grouping}"
-    lock = f"grouping-update-lock:{project.id}"
-    if cache.get(cache_key) is not None:
-        return
-
-    with locks.get(lock, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
-            return
-
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
-
-        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-        changes = {
-            "sentry:secondary_grouping_config": old_grouping,
-            "sentry:secondary_grouping_expiry": expiry,
-            "sentry:grouping_config": new_grouping,
-        }
-        for key, value in changes.items():
-            project.update_option(key, value)
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**changes, **project.get_audit_log_data()},
-        )
-
-
-# TODO: this seems to be dead code, validate and remove
 def _calculate_background_grouping(
     project: Project, event: Event, config: GroupingConfig
 ) -> CalculatedHashes:
@@ -1345,7 +1309,7 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
 
 @metrics.wraps("save_event.nodestore_save_many")
-def _nodestore_save_many(jobs: Sequence[Job]) -> None:
+def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
     inserted_time = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
     for job in jobs:
         # Write the event to Nodestore
@@ -1361,6 +1325,17 @@ def _nodestore_save_many(jobs: Sequence[Job]) -> None:
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
 
+        if app_feature:
+            event_size = 0
+            event_metrics = job.get("event_metrics")
+            if event_metrics:
+                event_size = event_metrics.get("bytes.stored.event", 0)
+            record(
+                resource_id=settings.COGS_EVENT_STORE_LABEL,
+                app_feature=app_feature,
+                amount=event_size,
+                usage_type=UsageUnit.BYTES,
+            )
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
 
@@ -1488,46 +1463,12 @@ def _get_event_user_impl(
 
     euser = EventUser(
         project_id=project.id,
-        ident=user_data.get("id"),
+        user_ident=user_data.get("id"),
         email=user_data.get("email"),
         username=user_data.get("username"),
         ip_address=ip_address,
         name=user_data.get("name"),
     )
-    euser.set_hash()
-    if not euser.hash:
-        return None
-
-    cache_key = f"euserid:1:{project.id}:{euser.hash}"
-    euser_id = cache.get(cache_key)
-    if euser_id is None:
-        metrics_tags["cache_hit"] = "false"
-
-        try:
-            euser, created = EventUser.objects.get_or_create(
-                project_id=euser.project_id,
-                hash=euser.hash,
-                defaults={
-                    "ident": euser.ident,
-                    "email": euser.email,
-                    "username": euser.username,
-                    "ip_address": euser.ip_address,
-                    "name": euser.name,
-                },
-            )
-        except IntegrityError:
-            # TODO(michal): This is result of project_id, ident duplicate and
-            # should not be possible since we prioritize ident for hash
-            created = False
-            cache.set(cache_key, -1, 3600)
-        else:
-            if not created and user_data.get("name") and euser.name != user_data.get("name"):
-                euser.update(name=user_data["name"])
-            cache.set(cache_key, euser.id, 3600)
-
-        metrics_tags["created"] = str(created).lower()
-    else:
-        metrics_tags["cache_hit"] = "true"
 
     return euser
 
@@ -1904,12 +1845,8 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # get severity score for use in alerting
-    if features.has("projects:first-event-severity-calculation", event.project):
-        severity = _get_severity_score(event)
-        if severity is not None:  # Severity can be 0
-            group_data.setdefault("metadata", {})
-            group_data["metadata"]["severity"] = severity
+    # add severity to metadata for alert filtering
+    group_data["metadata"].update(_get_severity_metadata_for_group(event))
 
     return Group.objects.create(
         project=project,
@@ -2126,17 +2063,39 @@ severity_connection_pool = connection_from_url(
 )
 
 
-def _get_severity_score(event: Event) -> float | None:
+def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
+    """
+    Returns severity metadata for an event if the feature flag is enabled.
+    Returns {} on feature flag not enabled or exception.
+    """
+    if features.has("projects:first-event-severity-calculation", event.project):
+        try:
+            severity, reason = _get_severity_score(event)
+
+            return {
+                "severity": severity,
+                "severity_reason": reason,
+            }
+        except Exception as e:
+            logger.warning("Failed to calculate severity score for group", repr(e))
+
+            return {}
+
+    return {}
+
+
+def _get_severity_score(event: Event) -> Tuple[float, str]:
     # Short circuit the severity value if we know the event is fatal or info/debug
     level = str(event.data.get("level", "error"))
     if LOG_LEVELS_MAP[level] == logging.FATAL:
-        return 1.0
+        return 1.0, "log_level_fatal"
     if LOG_LEVELS_MAP[level] <= logging.INFO:
-        return 0.0
+        return 0.0, "log_level_info"
 
     op = "event_manager._get_severity_score"
     logger_data = {"event_id": event.data["event_id"], "op": op}
-    severity = None
+    severity = 1.0
+    reason = None
 
     event_type = get_event_type(event.data)
     metadata = event_type.get_metadata(event.data)
@@ -2166,10 +2125,11 @@ def _get_severity_score(event: Event) -> float | None:
             {"event_type": event_type.key, "event_title": event.title, "computed_title": title}
         )
         logger.warning(
-            f"Unable to get severity score because of unusable `message` value '{title}'",
+            "Unable to get severity score because of unusable `message` value '%s'",
+            title,
             extra=logger_data,
         )
-        return None
+        return 0.0, "bad_title"
 
     payload = {
         "message": title,
@@ -2194,23 +2154,32 @@ def _get_severity_score(event: Event) -> float | None:
                     headers={"content-type": "application/json;charset=utf-8"},
                 )
                 severity = json.loads(response.data).get("severity")
+                reason = "ml"
             except MaxRetryError as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice after {SEVERITY_DETECTION_RETRIES} retr{'ies' if SEVERITY_DETECTION_RETRIES >1 else 'y'}. Got MaxRetryError caused by: {repr(e.reason)}.",
+                    "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                    SEVERITY_DETECTION_RETRIES,
+                    "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                    repr(e.reason),
                     extra=logger_data,
                 )
+                reason = "microservice_max_retry"
             except Exception as e:
                 logger.warning(
-                    f"Unable to get severity score from microservice. Got: {repr(e)}.",
+                    "Unable to get severity score from microservice. Got: %s.",
+                    repr(e),
                     extra=logger_data,
                 )
+                reason = "microservice_error"
             else:
                 logger.info(
-                    f"Got severity score of {severity} for event {event.data['event_id']}",
+                    "Got severity score of %s for event %s",
+                    severity,
+                    event.data["event_id"],
                     extra=logger_data,
                 )
 
-    return severity
+    return severity, reason
 
 
 Attachment = CachedAttachment
@@ -2685,7 +2654,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         if features.has("organizations:issue-platform-extra-logging", project.organization):
             if performance_problems and len(performance_problems) > 0:
                 logger.warning(
-                    f"Detected {len(performance_problems)} performance problems",
+                    "Detected %s performance problems",
+                    len(performance_problems),
                     extra={
                         "performance_problems": performance_problems,
                         "project_id": project.id,
@@ -2750,7 +2720,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _get_or_create_release_associated_models(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     _detect_performance_problems(jobs, projects)
@@ -2784,6 +2754,6 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs)
+    _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
 
     return jobs

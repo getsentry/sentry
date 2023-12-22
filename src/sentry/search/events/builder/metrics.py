@@ -26,8 +26,10 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.builder.utils import (
@@ -152,12 +154,21 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
+            # This feature flag is used to control the rollout of the new environment logic which fixes the previous
+            # implementation. The usage of this flag should be that it is set to true only when the extraction of the
+            # new environment specs has been running for at least 14 days.
+            use_updated_env_logic = features.has(
+                "organizations:on-demand-query-with-new-env-logic",
+                Organization.objects.get_from_cache(id=self.organization_id),
+            )
+
             return OnDemandMetricSpec(
                 field=field,
                 query=self.query,
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
+                use_updated_env_logic=use_updated_env_logic,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -341,6 +352,16 @@ class MetricsQueryBuilder(QueryBuilder):
                 self.orderby = self.resolve_orderby(orderby)
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
+        else:
+            # On demand still needs to call resolve since resolving columns has a side_effect
+            # of adding their alias to the function_alias_map, which is required to convert snuba
+            # aliases back to their original functions.
+            for column in selected_columns:
+                try:
+                    self.resolve_select([column], [])
+                except (IncompatibleMetricsQuery, InvalidSearchQuery):
+                    # This may fail for some columns like apdex but it will still enter into the field_alias_map
+                    pass
 
         if len(self.metric_ids) > 0 and not self.use_metrics_layer:
             self.where.append(
@@ -1127,17 +1148,26 @@ class MetricsQueryBuilder(QueryBuilder):
                     f"{referrer}.{referrer_suffix}",
                     use_cache,
                 )
+                for meta in current_result["meta"]:
+                    meta_dict[meta["name"]] = meta["type"]
                 for row in current_result["data"]:
                     # Arrays in clickhouse cannot contain multiple types, and since groupby values
                     # can contain any type, we must use tuples instead
-                    groupby_key = tuple(row[key] for key in groupby_aliases)
-                    value_map_key = ",".join(str(value) for value in groupby_key)
+                    groupby_key = tuple()
+                    value_map_strings = []
+                    for key in groupby_aliases:
+                        value = row[key]
+                        if meta_dict.get(key) == "DateTime":
+                            value = datetime.fromisoformat(value).replace(tzinfo=None)
+                            groupby_key += (str(value),)
+                        else:
+                            groupby_key += (value,)
+                        value_map_strings.append(str(value))
+                    value_map_key = ",".join(value_map_strings)
                     # First time we're seeing this value, add it to the values we're going to filter by
                     if value_map_key not in value_map and groupby_key:
                         groupby_values.append(groupby_key)
                     value_map[value_map_key].update(row)
-                for meta in current_result["meta"]:
-                    meta_dict[meta["name"]] = meta["type"]
 
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]

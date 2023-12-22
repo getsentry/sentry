@@ -1,5 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {SentryApp} from 'sentry-fixture/sentryApp';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -134,7 +136,7 @@ describe('Avatar', function () {
     });
 
     it('can display a team Avatar', function () {
-      const team = TestStubs.Team({slug: 'test-team_test'});
+      const team = Team({slug: 'test-team_test'});
 
       render(<AvatarComponent team={team} />);
 
@@ -173,8 +175,7 @@ describe('Avatar', function () {
     });
 
     it('displays platform list icons for project Avatar', function () {
-      const project = TestStubs.Project({
-        platforms: ['python', 'javascript'],
+      const project = ProjectFixture({
         platform: 'java',
       });
 
@@ -189,7 +190,7 @@ describe('Avatar', function () {
     });
 
     it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function () {
-      const project = TestStubs.Project({platform: 'java'});
+      const project = ProjectFixture({platform: 'java'});
 
       render(<AvatarComponent project={project} />);
 
@@ -202,7 +203,7 @@ describe('Avatar', function () {
     });
 
     it('uses onboarding project when platforms is an empty array', function () {
-      const project = TestStubs.Project({platforms: [], platform: 'java'});
+      const project = ProjectFixture({platform: 'java'});
 
       render(<AvatarComponent project={project} />);
 

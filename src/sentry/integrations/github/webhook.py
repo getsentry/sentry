@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import analytics, features, options
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
@@ -37,9 +38,9 @@ from sentry.services.hybrid_cloud.integration.model import (
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.services.hybrid_cloud.repository.service import repository_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
 from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONData
@@ -68,6 +69,10 @@ def get_file_language(filename: str) -> str | None:
 
 
 class Webhook:
+    """
+    Base class for GitHub webhooks handled in region silos.
+    """
+
     provider = "github"
 
     def _handle(
@@ -109,8 +114,6 @@ class Webhook:
                     id__in=[install.organization_id for install in installs]
                 )
             }
-
-            # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
@@ -178,8 +181,15 @@ class Webhook:
             )
 
 
-class InstallationEventWebhook(Webhook):
-    # https://developer.github.com/v3/activity/events/types/#installationevent
+class InstallationEventWebhook:
+    """
+    Unlike other GitHub webhooks, installation webhooks are handled in control silo.
+
+    https://developer.github.com/v3/activity/events/types/#installationevent
+    """
+
+    provider = "github"
+
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         installation = event["installation"]
 
@@ -220,7 +230,7 @@ class InstallationEventWebhook(Webhook):
                         "external_id": str(external_id),
                     },
                 )
-                logger.exception("Installation is missing.")
+                logger.error("Installation is missing.")
 
     def _handle_delete(
         self,
@@ -241,13 +251,12 @@ class InstallationEventWebhook(Webhook):
         integration_service.update_integration(
             integration_id=integration.id, status=ObjectStatus.DISABLED
         )
-
-        if len(org_ids) > 0 and SiloMode.get_current_mode() != SiloMode.CONTROL:
-            Repository.objects.filter(
-                organization_id__in=org_ids,
+        for organization_id in org_ids:
+            repository_service.disable_repositories_for_integration(
+                organization_id=organization_id,
                 provider=f"integrations:{self.provider}",
                 integration_id=integration.id,
-            ).update(status=ObjectStatus.DISABLED)
+            )
 
 
 class PushEventWebhook(Webhook):
@@ -537,11 +546,26 @@ class PullRequestEventWebhook(Webhook):
             pass
 
 
-class GitHubWebhookBase(Endpoint):
-    """https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks"""
+@all_silo_endpoint
+class GitHubIntegrationsWebhookEndpoint(Endpoint):
+    """
+    GitHub Webhook API reference:
+    https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks
+    """
 
     authentication_classes = ()
     permission_classes = ()
+
+    owner = ApiOwner.ECOSYSTEM
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+
+    _handlers = {
+        "push": PushEventWebhook,
+        "pull_request": PullRequestEventWebhook,
+        "installation": InstallationEventWebhook,
+    }
 
     def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
         handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
@@ -564,11 +588,16 @@ class GitHubWebhookBase(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def get_logging_data(self) -> Dict[str, Any] | None:
-        """TODO(mgaeta): Get logger.error() to with with Mapping."""
-        return None
+        return {
+            "request_method": self.request.method,
+            "request_path": self.request.path,
+        }
 
     def get_secret(self) -> str | None:
-        raise NotImplementedError
+        return options.get("github-app.webhook-secret")
+
+    def post(self, request: Request) -> HttpResponse:
+        return self.handle(request)
 
     def handle(self, request: Request) -> HttpResponse:
         clear_tags_and_context()
@@ -586,7 +615,7 @@ class GitHubWebhookBase(Endpoint):
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
-            logger.error("github.webhook.missing-event", extra=self.get_logging_data())
+            logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
             logger.exception("Missing Github event in webhook.")
             return HttpResponse(status=400)
 
@@ -600,7 +629,7 @@ class GitHubWebhookBase(Endpoint):
         try:
             method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
         except (KeyError, IndexError):
-            logger.error("github.webhook.missing-signature", extra=self.get_logging_data())
+            logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
             logger.exception("Missing webhook secret.")
             return HttpResponse(status=400)
 
@@ -611,36 +640,9 @@ class GitHubWebhookBase(Endpoint):
         try:
             event = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.error(
-                "github.webhook.invalid-json", extra=self.get_logging_data(), exc_info=True
-            )
+            logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
         handler()(event)
         return HttpResponse(status=204)
-
-
-@all_silo_endpoint
-class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
-    publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
-    }
-    _handlers = {
-        "push": PushEventWebhook,
-        "pull_request": PullRequestEventWebhook,
-        "installation": InstallationEventWebhook,
-    }
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if request.method != "POST":
-            return HttpResponse(status=405)
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
-
-    def post(self, request: Request) -> HttpResponse:
-        return self.handle(request)

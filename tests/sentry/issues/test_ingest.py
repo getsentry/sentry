@@ -141,7 +141,10 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
     def test_new_group(self) -> None:
         occurrence = self.build_occurrence(type=ErrorGroupType.type_id)
         event = self.store_event(
-            data={"platform": "javascript"},
+            data={
+                "platform": "javascript",
+                "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"},
+            },
             project_id=self.project.id,
         )
 
@@ -171,6 +174,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 tags={
                     "platform": "javascript",
                     "type": ErrorGroupType.type_id,
+                    "sdk": "sentry.javascript.nextjs",
                 },
             )
 
@@ -267,7 +271,10 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
     def test_frame_mix_metric_logged(self) -> None:
         event = self.store_event(
-            data={"platform": "javascript"},
+            data={
+                "platform": "javascript",
+                "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"},
+            },
             project_id=self.project.id,
         )
 
@@ -286,6 +293,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 tags={
                     "platform": "javascript",
                     "frame_mix": "in-app-only",
+                    "sdk": "sentry.javascript.nextjs",
                 },
             )
 

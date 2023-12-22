@@ -1,5 +1,7 @@
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -19,10 +21,10 @@ describe('TeamMembers', function () {
   let createMock;
 
   const organization = Organization();
-  const team = TestStubs.Team();
-  const managerTeam = TestStubs.Team({orgRole: 'manager'});
+  const team = Team();
+  const managerTeam = Team({orgRole: 'manager'});
   const members = Members();
-  const member = TestStubs.Member({
+  const member = MemberFixture({
     id: '9',
     email: 'sentry9@test.com',
     name: 'Sentry 9 Name',
@@ -281,7 +283,7 @@ describe('TeamMembers', function () {
   });
 
   it('can only remove self from team', async function () {
-    const me = TestStubs.Member({
+    const me = MemberFixture({
       id: '123',
       email: 'foo@example.com',
     });
@@ -321,7 +323,7 @@ describe('TeamMembers', function () {
   });
 
   it('renders team-level roles without flag', async function () {
-    const owner = TestStubs.Member({
+    const owner = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       orgRole: 'owner',
@@ -349,7 +351,7 @@ describe('TeamMembers', function () {
   });
 
   it('renders team-level roles with flag', async function () {
-    const manager = TestStubs.Member({
+    const manager = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       orgRole: 'manager',
@@ -404,18 +406,23 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members if team is idp:provisioned', function () {
-    const team2 = TestStubs.Team({
+    const team2 = Team({
       flags: {
         'idp:provisioned': true,
       },
     });
 
-    const me = TestStubs.Member({
+    const me = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       role: 'owner',
       flags: {
         'idp:provisioned': true,
+        'idp:role-restricted': false,
+        'member-limit:restricted': false,
+        'partnership:restricted': false,
+        'sso:invalid': false,
+        'sso:linked': false,
       },
     });
 
@@ -452,9 +459,9 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members or leave if team has org role and no access', function () {
-    const team2 = TestStubs.Team({orgRole: 'manager'});
+    const team2 = Team({orgRole: 'manager'});
 
-    const me = TestStubs.Member({
+    const me = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       role: 'member',

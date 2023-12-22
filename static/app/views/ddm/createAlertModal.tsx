@@ -22,15 +22,11 @@ import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
   formatMetricUsingFixedUnit,
   getDDMInterval,
+  getFieldFromMetricsQuery as getAlertAggregate,
   MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
-import {
-  formatMRIField,
-  getUseCaseFromMRI,
-  MRIToField,
-  parseMRI,
-} from 'sentry/utils/metrics/mri';
+import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -44,10 +40,6 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getChartSeries} from 'sentry/views/ddm/widget';
-
-interface Props extends ModalRenderProps {
-  metricsQuery: MetricsQuery;
-}
 
 interface FormState {
   environment: string | null;
@@ -100,7 +92,7 @@ const TIME_WINDOWS_TO_CHECK = [
   TimeWindow.ONE_DAY,
 ];
 
-function getAlertInterval(metricsQuery, period: TimePeriod) {
+export function getAlertInterval(metricsQuery, period: TimePeriod) {
   const useCase = getUseCaseFromMRI(metricsQuery.mri) ?? 'custom';
   const interval = getDDMInterval(metricsQuery.datetime, useCase);
   const inMinutes = parsePeriodToHours(interval) * 60;
@@ -117,6 +109,10 @@ function getAlertInterval(metricsQuery, period: TimePeriod) {
   }
 
   return toInterval(TimeWindow.ONE_HOUR);
+}
+
+interface Props extends ModalRenderProps {
+  metricsQuery: MetricsQuery;
 }
 
 export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
@@ -136,6 +132,8 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     [metricsQuery, alertPeriod]
   );
 
+  const aggregate = useMemo(() => getAlertAggregate(metricsQuery), [metricsQuery]);
+
   const {data, isLoading, refetch, isError} = useMetricsData(
     {
       mri: metricsQuery.mri,
@@ -154,12 +152,13 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
     () =>
       data &&
       getChartSeries(data, {
+        mri: metricsQuery.mri,
         displayType: MetricDisplayType.AREA,
         focusedSeries: undefined,
         groupBy: [],
         hoveredLegend: undefined,
       }),
-    [data]
+    [data, metricsQuery.mri]
   );
 
   const projectOptions = useMemo(() => {
@@ -212,29 +211,27 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const handleSubmit = useCallback(() => {
     router.push(
       `/organizations/${organization.slug}/alerts/new/metric/?${qs.stringify({
-        // Needed, so alerts-create also collects environment via event view
+        aggregate,
+        query: `${metricsQuery.query} event.type:transaction`.trim(),
         createFromDiscover: true,
         dataset: Dataset.GENERIC_METRICS,
-        eventTypes: EventTypes.TRANSACTION,
-        aggregate: MRIToField(metricsQuery.mri, metricsQuery.op!),
         interval: alertInterval,
         statsPeriod: alertPeriod,
-        referrer: 'ddm',
-        // Event type also needs to be added to the query
-        query: `${metricsQuery.query}  event.type:transaction`.trim(),
         environment: formState.environment ?? undefined,
         project: selectedProject!.slug,
+        referrer: 'ddm',
+        // Event type also needs to be added to the query
+        eventTypes: EventTypes.TRANSACTION,
       })}`
     );
   }, [
+    router,
+    aggregate,
+    metricsQuery.query,
+    organization.slug,
     alertInterval,
     alertPeriod,
     formState.environment,
-    metricsQuery.mri,
-    metricsQuery.op,
-    metricsQuery.query,
-    organization.slug,
-    router,
     selectedProject,
   ]);
 
@@ -313,9 +310,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
                 <Tooltip
                   title={
                     <Fragment>
-                      <Filters>
-                        {formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!))}
-                      </Filters>
+                      <Filters>{formatMRIField(aggregate)}</Filters>
                       {metricsQuery.query}
                     </Fragment>
                   }
@@ -329,9 +324,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
                   showOnlyOnOverflow
                 >
                   <QueryFilters>
-                    <Filters>
-                      {formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!))}
-                    </Filters>
+                    <Filters>{formatMRIField(aggregate)}</Filters>
                     {metricsQuery.query}
                   </QueryFilters>
                 </Tooltip>

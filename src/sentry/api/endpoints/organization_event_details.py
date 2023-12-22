@@ -14,7 +14,7 @@ from sentry.models.project import Project
 @region_silo_endpoint
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization, project_slug, event_id) -> Response:
@@ -46,7 +46,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
-        data = serialize(event, request.user, SqlFormatEventSerializer())
+        data = serialize(
+            event, request.user, SqlFormatEventSerializer(), include_full_release_data=False
+        )
         data["projectSlug"] = project_slug
 
         return Response(data)

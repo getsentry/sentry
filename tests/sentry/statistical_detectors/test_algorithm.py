@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
+from typing import Mapping
 
 import pytest
 
 from sentry.statistical_detectors.algorithm import (
     MovingAverageDetectorState,
     MovingAverageRelativeChangeDetector,
-    MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.utils.math import ExponentialMovingAverage
 
 
@@ -187,7 +189,54 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error):
 
 
 @pytest.mark.parametrize(
-    ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory", "threshold"],
+    ["baseline", "avg", "rel_threshold", "auto_resolve"],
+    [
+        pytest.param(100, 100, 0.1, True, id="equal"),
+        pytest.param(100, 105, 0.1, True, id="within threshold above"),
+        pytest.param(100, 95, 0.1, True, id="within threshold below"),
+        pytest.param(100, 115, 0.1, False, id="exceed threshold above"),
+        pytest.param(100, 85, 0.1, True, id="exceed threshold below"),
+    ],
+)
+def test_moving_average_detector_state_should_auto_resolve(
+    baseline, avg, rel_threshold, auto_resolve
+):
+    state = MovingAverageDetectorState(
+        timestamp=datetime(2023, 8, 31, 11, 28, 52),
+        count=10,
+        moving_avg_short=avg,
+        moving_avg_long=avg,
+    )
+    assert state.should_auto_resolve(baseline, rel_threshold) == auto_resolve
+
+
+@pytest.mark.parametrize(
+    ["baseline", "regressed", "avg", "min_change", "rel_threshold", "escalate"],
+    [
+        pytest.param(50, 100, 100, 10, 0.1, False, id="equal"),
+        pytest.param(50, 100, 105, 10, 0.1, False, id="within threshold above"),
+        pytest.param(50, 100, 95, 10, 0.1, False, id="within threshold below"),
+        pytest.param(50, 100, 115, 10, 0.1, True, id="exceed threshold above"),
+        pytest.param(50, 100, 85, 10, 0.1, False, id="exceed threshold below"),
+        pytest.param(
+            50, 100, 115, 20, 0.1, False, id="exceed threshold above but below min_change"
+        ),
+    ],
+)
+def test_moving_average_detector_state_should_escalate(
+    baseline, regressed, avg, min_change, rel_threshold, escalate
+):
+    state = MovingAverageDetectorState(
+        timestamp=datetime(2023, 8, 31, 11, 28, 52),
+        count=10,
+        moving_avg_short=avg,
+        moving_avg_long=avg,
+    )
+    assert state.should_escalate(baseline, regressed, min_change, rel_threshold) == escalate
+
+
+@pytest.mark.parametrize(
+    ["min_data_points", "moving_avg_short_factory", "moving_avg_long_factory", "threshold"],
     [
         pytest.param(
             6,
@@ -228,8 +277,8 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error):
 )
 def test_moving_average_relative_change_detector(
     min_data_points,
-    short_moving_avg_factory,
-    long_moving_avg_factory,
+    moving_avg_long_factory,
+    moving_avg_short_factory,
     threshold,
     values,
     regressed_indices,
@@ -238,13 +287,13 @@ def test_moving_average_relative_change_detector(
     all_regressed = []
     all_improved = []
 
-    now = datetime.now()
+    now = datetime(2023, 8, 31, 11, 28, 52, tzinfo=timezone.utc)
 
     payloads = [
         DetectorPayload(
             project_id=1,
             group=0,
-            fingerprint=0,
+            fingerprint="0",
             count=i + 1,
             value=value,
             timestamp=now + timedelta(hours=i + 1),
@@ -255,18 +304,19 @@ def test_moving_average_relative_change_detector(
     detector = MovingAverageRelativeChangeDetector(
         "transaction",
         "endpoint",
-        MovingAverageDetectorState.empty(),
-        MovingAverageRelativeChangeDetectorConfig(
-            min_data_points=min_data_points,
-            short_moving_avg_factory=short_moving_avg_factory,
-            long_moving_avg_factory=long_moving_avg_factory,
-            threshold=threshold,
-        ),
+        min_data_points=min_data_points,
+        moving_avg_short_factory=moving_avg_short_factory,
+        moving_avg_long_factory=moving_avg_long_factory,
+        threshold=threshold,
     )
 
+    raw_state: Mapping[str | bytes, bytes | float | int | str] = {}
+
     for payload in payloads:
-        trend_type, score = detector.update(payload)
+        trend_type, score, state = detector.update(raw_state, payload)
         assert score >= 0
+        if state is not None:
+            raw_state = state.to_redis_dict()
         if trend_type == TrendType.Regressed:
             all_regressed.append(payload)
         elif trend_type == TrendType.Improved:

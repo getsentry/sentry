@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
 
 import {
   act,
@@ -39,7 +41,7 @@ jest.mock('lodash/debounce', () => {
 describe('ProjectsDashboard', function () {
   const api = new MockApiClient();
   const org = Organization();
-  const team = TestStubs.Team();
+  const team = Team();
   const teams = [team];
 
   beforeEach(function () {
@@ -57,7 +59,7 @@ describe('ProjectsDashboard', function () {
 
   describe('empty state', function () {
     it('renders with no projects', function () {
-      const noProjectTeams = [TestStubs.Team({isMember: false, projects: []})];
+      const noProjectTeams = [Team({isMember: false, projects: []})];
 
       render(
         <Dashboard
@@ -74,10 +76,10 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders with 1 project, with no first event', function () {
-      const projects = [TestStubs.Project({teams, firstEvent: false})];
+      const projects = [ProjectFixture({teams, firstEvent: null})];
       ProjectsStore.loadInitialData(projects);
 
-      const teamsWithOneProject = [TestStubs.Team({projects})];
+      const teamsWithOneProject = [Team({projects})];
 
       render(
         <Dashboard
@@ -103,25 +105,25 @@ describe('ProjectsDashboard', function () {
 
   describe('with projects', function () {
     it('renders with two projects', function () {
-      const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+      const teamA = Team({slug: 'team1', isMember: true});
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'project1',
           teams: [teamA],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'project2',
           teams: [teamA],
           isBookmarked: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithTwoProjects = [TestStubs.Team({projects})];
+      const teamsWithTwoProjects = [Team({projects})];
 
       render(
         <Dashboard
@@ -138,27 +140,27 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders correct project with selected team', function () {
-      const teamC = TestStubs.Team({
+      const teamC = Team({
         id: '1',
         slug: 'teamC',
         isMember: true,
         projects: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '1',
             slug: 'project1',
           }),
-          TestStubs.Project({
+          ProjectFixture({
             id: '2',
             slug: 'project2',
           }),
         ],
       });
-      const teamD = TestStubs.Team({
+      const teamD = Team({
         id: '2',
         slug: 'teamD',
         isMember: true,
         projects: [
-          TestStubs.Project({
+          ProjectFixture({
             id: '3',
             slug: 'project3',
           }),
@@ -173,26 +175,26 @@ describe('ProjectsDashboard', function () {
       });
 
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'project1',
           teams: [teamC],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
           stats: [],
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'project2',
           teams: [teamC],
           isBookmarked: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
           stats: [],
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'project3',
           teams: [teamD],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
           stats: [],
         }),
       ];
@@ -229,29 +231,29 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders projects by search', async function () {
-      const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+      const teamA = Team({slug: 'team1', isMember: true});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: [],
       });
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'project1',
           teams: [teamA],
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'project2',
           teams: [teamA],
           isBookmarked: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithTwoProjects = [TestStubs.Team({projects})];
+      const teamsWithTwoProjects = [Team({projects})];
 
       render(
         <Dashboard
@@ -274,44 +276,44 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders bookmarked projects first in team list', function () {
-      const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+      const teamA = Team({slug: 'team1', isMember: true});
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '11',
           slug: 'm',
           teams: [teamA],
           isBookmarked: false,
           stats: [],
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '12',
           slug: 'm-fave',
           teams: [teamA],
           isBookmarked: true,
           stats: [],
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '13',
           slug: 'a-fave',
           teams: [teamA],
           isBookmarked: true,
           stats: [],
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '14',
           slug: 'z-fave',
           teams: [teamA],
           isBookmarked: true,
           stats: [],
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '15',
           slug: 'a',
           teams: [teamA],
           isBookmarked: false,
           stats: [],
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '16',
           slug: 'z',
           teams: [teamA],
@@ -321,12 +323,12 @@ describe('ProjectsDashboard', function () {
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithFavProjects = [TestStubs.Team({projects})];
+      const teamsWithFavProjects = [Team({projects})];
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: [
-          TestStubs.Project({
+          ProjectFixture({
             teams,
             stats: [
               [1517281200, 2],
@@ -365,39 +367,39 @@ describe('ProjectsDashboard', function () {
   });
 
   describe('ProjectsStatsStore', function () {
-    const teamA = TestStubs.Team({slug: 'team1', isMember: true});
+    const teamA = Team({slug: 'team1', isMember: true});
     const projects = [
-      TestStubs.Project({
+      ProjectFixture({
         id: '1',
         slug: 'm',
         teams,
         isBookmarked: false,
       }),
-      TestStubs.Project({
+      ProjectFixture({
         id: '2',
         slug: 'm-fave',
         teams: [teamA],
         isBookmarked: true,
       }),
-      TestStubs.Project({
+      ProjectFixture({
         id: '3',
         slug: 'a-fave',
         teams: [teamA],
         isBookmarked: true,
       }),
-      TestStubs.Project({
+      ProjectFixture({
         id: '4',
         slug: 'z-fave',
         teams: [teamA],
         isBookmarked: true,
       }),
-      TestStubs.Project({
+      ProjectFixture({
         id: '5',
         slug: 'a',
         teams: [teamA],
         isBookmarked: false,
       }),
-      TestStubs.Project({
+      ProjectFixture({
         id: '6',
         slug: 'z',
         teams: [teamA],
@@ -405,7 +407,7 @@ describe('ProjectsDashboard', function () {
       }),
     ];
 
-    const teamsWithStatTestProjects = [TestStubs.Team({projects})];
+    const teamsWithStatTestProjects = [Team({projects})];
 
     it('uses ProjectsStatsStore to load stats', async function () {
       ProjectsStore.loadInitialData(projects);

@@ -204,10 +204,13 @@ def get_task_kwargs_for_message_from_headers(
             try:
                 group_states = decode_optional_list_str(group_states_str)
             except ValueError:
-                logger.error(f"Received event with malformed group_states: '{group_states_str}'")
+                logger.exception(
+                    "Received event with malformed group_states: '%s'", group_states_str
+                )
             except Exception:
-                logger.error(
-                    f"Uncaught exception thrown when trying to parse group_states: '{group_states_str}'"
+                logger.exception(
+                    "Uncaught exception thrown when trying to parse group_states: '%s'",
+                    group_states_str,
                 )
             task_state["group_states"] = group_states
 

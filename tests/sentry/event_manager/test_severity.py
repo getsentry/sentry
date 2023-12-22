@@ -61,7 +61,7 @@ class TestGetEventSeverity(TestCase):
         )
         event = manager.save(self.project.id)
 
-        severity = _get_severity_score(event)
+        severity, reason = _get_severity_score(event)
 
         payload = {
             "message": "NopeError: Nopey McNopeface",
@@ -76,7 +76,9 @@ class TestGetEventSeverity(TestCase):
             headers={"content-type": "application/json;charset=utf-8"},
         )
         mock_logger_info.assert_called_with(
-            f"Got severity score of 0.1231 for event {event.event_id}",
+            "Got severity score of %s for event %s",
+            severity,
+            event.event_id,
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
@@ -84,6 +86,7 @@ class TestGetEventSeverity(TestCase):
             },
         )
         assert severity == 0.1231
+        assert reason == "ml"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -104,7 +107,7 @@ class TestGetEventSeverity(TestCase):
             manager = EventManager(make_event(**case))
             event = manager.save(self.project.id)
 
-            severity = _get_severity_score(event)
+            severity, reason = _get_severity_score(event)
 
             payload = {
                 "message": "Dogs are great!",
@@ -119,7 +122,9 @@ class TestGetEventSeverity(TestCase):
                 headers={"content-type": "application/json;charset=utf-8"},
             )
             mock_logger_info.assert_called_with(
-                f"Got severity score of 0.1231 for event {event.event_id}",
+                "Got severity score of %s for event %s",
+                severity,
+                event.event_id,
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
@@ -127,6 +132,7 @@ class TestGetEventSeverity(TestCase):
                 },
             )
             assert severity == 0.1231
+            assert reason == "ml"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -161,14 +167,14 @@ class TestGetEventSeverity(TestCase):
         self,
         mock_urlopen: MagicMock,
     ) -> None:
-        cases: list[tuple[str, float]] = [
-            ("fatal", 1.0),
-            ("info", 0.0),
-            ("debug", 0.0),
-            ("error", 0.1231),
+        cases: list[tuple[str, float, str]] = [
+            ("fatal", 1.0, "log_level_fatal"),
+            ("info", 0.0, "log_level_info"),
+            ("debug", 0.0, "log_level_info"),
+            ("error", 0.1231, "ml"),
         ]
 
-        for level, expected_severity in cases:
+        for level, expected_severity, expected_reason in cases:
             manager = EventManager(
                 make_event(
                     exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
@@ -176,9 +182,10 @@ class TestGetEventSeverity(TestCase):
                 )
             )
             event = manager.save(self.project.id)
-            severity = _get_severity_score(event)
+            severity, reason = _get_severity_score(event)
 
             assert severity == expected_severity
+            assert reason == expected_reason
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -197,11 +204,12 @@ class TestGetEventSeverity(TestCase):
             # to set it there. (We have to ignore mypy because `metadata` isn't supposed to be mutable.)
             event.get_event_metadata()["title"] = title  # type: ignore[index]
 
-            severity = _get_severity_score(event)
+            severity, reason = _get_severity_score(event)
 
             mock_urlopen.assert_not_called()
             mock_logger_warning.assert_called_with(
-                "Unable to get severity score because of unusable `message` value '<unlabeled event>'",
+                "Unable to get severity score because of unusable `message` value '%s'",
+                "<unlabeled event>",
                 extra={
                     "event_id": event.event_id,
                     "op": "event_manager._get_severity_score",
@@ -210,7 +218,8 @@ class TestGetEventSeverity(TestCase):
                     "computed_title": "<unlabeled event>",
                 },
             )
-            assert severity is None
+            assert severity == 0.0
+            assert reason == "bad_title"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -239,10 +248,13 @@ class TestGetEventSeverity(TestCase):
         )
         event = manager.save(self.project.id)
 
-        severity = _get_severity_score(event)
+        severity, reason = _get_severity_score(event)
 
         mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice after 1 retry. Got MaxRetryError caused by: Exception('It broke').",
+            "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+            1,
+            "y",
+            "Exception('It broke')",
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
@@ -253,7 +265,8 @@ class TestGetEventSeverity(TestCase):
                 },
             },
         )
-        assert severity is None
+        assert severity == 1.0
+        assert reason == "microservice_max_retry"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -280,10 +293,11 @@ class TestGetEventSeverity(TestCase):
         )
         event = manager.save(self.project.id)
 
-        severity = _get_severity_score(event)
+        severity, reason = _get_severity_score(event)
 
         mock_logger_warning.assert_called_with(
-            "Unable to get severity score from microservice. Got: Exception('It broke').",
+            "Unable to get severity score from microservice. Got: %s.",
+            "Exception('It broke')",
             extra={
                 "event_id": event.event_id,
                 "op": "event_manager._get_severity_score",
@@ -294,12 +308,13 @@ class TestGetEventSeverity(TestCase):
                 },
             },
         )
-        assert severity is None
+        assert severity == 1.0
+        assert reason == "microservice_error"
 
 
 @region_silo_test
 class TestEventManagerSeverity(TestCase):
-    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_on(self, mock_get_severity_score: MagicMock):
         with self.feature({"projects:first-event-severity-calculation": True}):
             manager = EventManager(
@@ -310,9 +325,13 @@ class TestEventManagerSeverity(TestCase):
             event = manager.save(self.project.id)
 
             mock_get_severity_score.assert_called()
-            assert event.group and event.group.get_event_metadata()["severity"] == 0.1121
+            assert (
+                event.group
+                and event.group.get_event_metadata()["severity"] == 0.1121
+                and event.group.get_event_metadata()["severity_reason"] == "ml"
+            )
 
-    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_flag_off(self, mock_get_severity_score: MagicMock):
         with self.feature({"projects:first-event-severity-calculation": False}):
             manager = EventManager(
@@ -323,35 +342,13 @@ class TestEventManagerSeverity(TestCase):
             event = manager.save(self.project.id)
 
             mock_get_severity_score.assert_not_called()
-            assert event.group and "severity" not in event.group.get_event_metadata()
-
-    @patch("sentry.event_manager._get_severity_score", return_value=None)
-    def test_no_score_assigned_when_value_is_None(self, mock_get_severity_score: MagicMock):
-        with self.feature({"projects:first-event-severity-calculation": True}):
-            manager = EventManager(
-                make_event(
-                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
-                )
+            assert (
+                event.group
+                and "severity" not in event.group.get_event_metadata()
+                and "severity.reason" not in event.group.get_event_metadata()
             )
-            event = manager.save(self.project.id)
 
-            mock_get_severity_score.assert_called()
-            assert event.group and "severity" not in event.group.get_event_metadata()
-
-    @patch("sentry.event_manager._get_severity_score", return_value=0)
-    def test_score_still_assigned_when_value_is_zero(self, mock_get_severity_score: MagicMock):
-        with self.feature({"projects:first-event-severity-calculation": True}):
-            manager = EventManager(
-                make_event(
-                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]}
-                )
-            )
-            event = manager.save(self.project.id)
-
-            mock_get_severity_score.assert_called()
-            assert event.group and event.group.get_event_metadata().get("severity") == 0
-
-    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_get_severity_score_not_called_on_second_event(
         self, mock_get_severity_score: MagicMock
     ):
@@ -376,7 +373,7 @@ class TestEventManagerSeverity(TestCase):
             assert broken_stuff_event.group_id == nope_event.group_id
             assert mock_get_severity_score.call_count == 1
 
-    @patch("sentry.event_manager._get_severity_score", return_value=0.1121)
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_score_not_clobbered_by_second_event(self, mock_get_severity_score: MagicMock):
         with self.feature({"projects:first-event-severity-calculation": True}):
             with TaskRunner():  # Needed because updating groups is normally async
@@ -415,7 +412,7 @@ class TestEventManagerSeverity(TestCase):
 class TestSaveAggregateSeverity(TestCase):
     @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
     @patch("sentry.event_manager.logger.error")
-    @patch("sentry.event_manager._get_severity_score", return_value=None)
+    @patch("sentry.event_manager._get_severity_score", return_value=(None, None))
     def test_error_logged_on_no_score_when_enabled(
         self,
         mock_get_severity_score: MagicMock,
@@ -465,7 +462,7 @@ class TestSaveAggregateSeverity(TestCase):
 
     @patch("sentry.event_manager._save_aggregate", wraps=_save_aggregate)
     @patch("sentry.event_manager.logger.error")
-    @patch("sentry.event_manager._get_severity_score", return_value=0)
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.0, "ml"))
     def test_no_error_logged_on_zero_score_when_enabled(
         self,
         mock_get_severity_score: MagicMock,
@@ -484,14 +481,14 @@ class TestSaveAggregateSeverity(TestCase):
 
             mock_save_aggregate.assert_called()
             mock_get_severity_score.assert_called()
-            assert event.group and event.group.data["metadata"]["severity"] == 0
+            assert event.group and event.group.data["metadata"]["severity"] == 0.0
             assert "Group created without severity score" not in logger_messages
 
 
 @region_silo_test
 class TestSaveGroupHashAndGroupSeverity(TestCase):
     @patch("sentry.event_manager.logger.error")
-    @patch("sentry.event_manager._get_severity_score", return_value=None)
+    @patch("sentry.event_manager._get_severity_score", return_value=(None, None))
     def test_error_logged_on_no_score_when_enabled(
         self,
         mock_get_severity_score: MagicMock,
@@ -518,7 +515,7 @@ class TestSaveGroupHashAndGroupSeverity(TestCase):
             )
 
     @patch("sentry.event_manager.logger.error")
-    @patch("sentry.event_manager._get_severity_score", return_value=None)
+    @patch("sentry.event_manager._get_severity_score", return_value=(None, None))
     def test_no_error_logged_on_no_score_when_disabled(
         self,
         mock_get_severity_score: MagicMock,
@@ -540,7 +537,7 @@ class TestSaveGroupHashAndGroupSeverity(TestCase):
             assert "Group created without severity score" not in logger_messages
 
     @patch("sentry.event_manager.logger.error")
-    @patch("sentry.event_manager._get_severity_score", return_value=0)
+    @patch("sentry.event_manager._get_severity_score", return_value=(0.0, "ml"))
     def test_no_error_logged_on_zero_score_when_enabled(
         self,
         mock_get_severity_score: MagicMock,
@@ -559,5 +556,5 @@ class TestSaveGroupHashAndGroupSeverity(TestCase):
             logger_messages = [call.args[0] for call in mock_logger_error.mock_calls]
 
             mock_get_severity_score.assert_called()
-            assert group.data["metadata"]["severity"] == 0
+            assert group.data["metadata"]["severity"] == 0.0
             assert "Group created without severity score" not in logger_messages

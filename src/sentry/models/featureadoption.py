@@ -150,7 +150,6 @@ class FeatureAdoptionRedisBackend:
 
 
 class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
-
     cache_backend: FeatureAdoptionRedisBackend = cast(
         FeatureAdoptionRedisBackend,
         build_instance_from_options(settings.SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS),
@@ -172,7 +171,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
         try:
             feature_id = manager.get_by_slug(feature_slug).id
         except UnknownFeature as e:
-            logger.exception(e)
+            logger.exception(str(e))
             return False
 
         if not self.in_cache(organization_id, feature_id):
@@ -190,7 +189,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
         try:
             feature_ids = {manager.get_by_slug(slug).id for slug in feature_slugs}
         except UnknownFeature as e:
-            logger.exception(e)
+            logger.exception(str(e))
             return False
 
         incomplete_feature_ids = feature_ids - self.get_all_cache(organization_id)

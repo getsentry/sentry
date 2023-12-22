@@ -1,3 +1,5 @@
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
@@ -28,7 +30,7 @@ describe('ProjectDetail > ProjectFilters', () => {
         tagValueLoader={tagValueLoader}
         relativeDateOptions={{}}
       />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
 
     await userEvent.click(

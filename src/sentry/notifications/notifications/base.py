@@ -10,13 +10,7 @@ import sentry_sdk
 from sentry import analytics
 from sentry.db.models import Model
 from sentry.models.environment import Environment
-from sentry.notifications.types import (
-    NOTIFICATION_SETTING_TYPES,
-    NotificationSettingEnum,
-    NotificationSettingTypes,
-    UnsubscribeContext,
-    get_notification_setting_type_name,
-)
+from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -42,16 +36,6 @@ class BaseNotification(abc.ABC):
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
-
-    # TODO(Steve): Remove notification_setting_type
-    @property
-    def notification_setting_type(self) -> NotificationSettingTypes | None:
-        if self.notification_setting_type_enum is not None:
-            # find the matching NotificationSettingTypes
-            for key, value in NOTIFICATION_SETTING_TYPES.items():
-                if value == self.notification_setting_type_enum.value:
-                    return key
-        return None
 
     @property
     def from_email(self) -> str | None:
@@ -218,8 +202,8 @@ class BaseNotification(abc.ABC):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
-            if self.notification_setting_type:
-                fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
+            if self.notification_setting_type_enum:
+                fine_tuning_key = self.notification_setting_type_enum.value
                 if fine_tuning_key:
                     url_str += f"{fine_tuning_key}/"
 
@@ -255,8 +239,8 @@ class BaseNotification(abc.ABC):
         )
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
-        # need a notification_setting_type to call this function
-        if not self.notification_setting_type:
+        # need a notification_setting_type_enum to call this function
+        if not self.notification_setting_type_enum:
             raise NotImplementedError
 
         available_providers = self.get_notification_providers()

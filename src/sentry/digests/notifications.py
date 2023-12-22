@@ -65,7 +65,7 @@ def event_to_record(
     event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
 ) -> Record:
     if not rules:
-        logger.warning(f"Creating record for {event} that does not contain any rules!")
+        logger.warning("Creating record for %s that does not contain any rules!", event)
 
     return Record(
         event.event_id,
@@ -146,7 +146,7 @@ def rewrite_record(
     if group is not None:
         event.group = group
     else:
-        logger.debug(f"{record} could not be associated with a group.")
+        logger.debug("%s could not be associated with a group.", record)
         return None
 
     return Record(
@@ -166,7 +166,7 @@ def group_records(
     group = record.value.event.group
     rules = record.value.rules
     if not rules:
-        logger.debug(f"{record} has no associated rules, and will not be added to any groups.")
+        logger.debug("%s has no associated rules, and will not be added to any groups.", record)
 
     for rule in rules:
         groups[rule][group].append(record)

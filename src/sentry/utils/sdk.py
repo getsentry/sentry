@@ -22,6 +22,7 @@ from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.openai_sdk_integration import OpenAiIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -353,7 +354,13 @@ def configure_sdk():
                     args_list = list(args)
                     envelope = args_list[0]
                     # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                    safe_items = [x for x in envelope.items if x.data_category != "statsd"]
+                    # unless we allow them via a separate sample rate.
+                    ddm_sample_rate = options.get("store.allow-s4s-ddm-sample-rate")
+                    safe_items = [
+                        x
+                        for x in envelope.items
+                        if x.data_category != "statsd" or random.random() < ddm_sample_rate
+                    ]
                     if len(safe_items) != len(envelope.items):
                         relay_envelope = copy.copy(envelope)
                         relay_envelope.items = safe_items
@@ -420,6 +427,7 @@ def configure_sdk():
 
     # exclude monitors with sub-minute schedules from using crons
     exclude_beat_tasks = [
+        "deliver-from-outbox-control",
         "flush-buffers",
         "sync-options",
         "sync-options-control",
@@ -454,7 +462,9 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
+            OpenAiIntegration(capture_prompts=True),
         ],
+        spotlight=settings.IS_DEV,
         **sdk_options,
     )
 
@@ -510,7 +520,7 @@ def check_tag_for_scope_bleed(
                 scope.set_tag("possible_mistag", True)
                 scope.set_tag(f"scope_bleed.{tag_key}", True)
                 merge_context_into_scope("scope_bleed", extra, scope)
-            logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
 
 
 def get_transaction_name_from_request(request: Request) -> str:

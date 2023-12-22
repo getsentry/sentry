@@ -1,10 +1,8 @@
 from urllib.parse import urlencode
 
-import pytest
 import responses
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
-from rest_framework.exceptions import NotFound
 
 from sentry.hybridcloud.apigateway.proxy import proxy_request
 from sentry.silo.util import INVALID_OUTBOUND_HEADERS, PROXY_DIRECT_LOCATION_HEADER
@@ -15,9 +13,11 @@ from sentry.testutils.helpers.apigateway import (
     verify_request_headers,
 )
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
 class ProxyTestCase(ApiGatewayTestCase):
     @responses.activate
     def test_simple(self):
@@ -59,8 +59,8 @@ class ProxyTestCase(ApiGatewayTestCase):
     @responses.activate
     def test_bad_org(self):
         request = RequestFactory().get("http://sentry.io/get")
-        with pytest.raises(NotFound):
-            proxy_request(request, "doesnotexist")
+        resp = proxy_request(request, "doesnotexist")
+        assert resp.status_code == 404
 
     @responses.activate
     def test_post(self):

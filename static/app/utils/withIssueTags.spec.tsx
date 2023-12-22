@@ -1,4 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -76,12 +78,9 @@ describe('withIssueTags HoC', function () {
 
     act(() => {
       TeamStore.loadInitialData([
-        TestStubs.Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
+        Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
       ]);
-      MemberListStore.loadInitialData([
-        TestStubs.User(),
-        TestStubs.User({username: 'joe@example.com'}),
-      ]);
+      MemberListStore.loadInitialData([User(), User({username: 'joe@example.com'})]);
     });
 
     expect(
@@ -98,13 +97,10 @@ describe('withIssueTags HoC', function () {
   it('groups assignees and puts suggestions first', function () {
     const Container = withIssueTags(MyComponent);
     TeamStore.loadInitialData([
-      TestStubs.Team({id: 1, slug: 'best-team', name: 'Best Team', isMember: true}),
-      TestStubs.Team({id: 2, slug: 'worst-team', name: 'Worst Team', isMember: false}),
+      Team({id: '1', slug: 'best-team', name: 'Best Team', isMember: true}),
+      Team({id: '2', slug: 'worst-team', name: 'Worst Team', isMember: false}),
     ]);
-    MemberListStore.loadInitialData([
-      TestStubs.User(),
-      TestStubs.User({username: 'joe@example.com'}),
-    ]);
+    MemberListStore.loadInitialData([User(), User({username: 'joe@example.com'})]);
     const {container} = render(
       <Container organization={Organization()} forwardedValue="value" />
     );

@@ -33,7 +33,7 @@ class Icon extends Component<Props, State> {
     return (
       <StyledIcon
         size={size}
-        src={this.state.imgSrc}
+        src={this.state.imgSrc || undefined}
         onError={() => {
           this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
         }}

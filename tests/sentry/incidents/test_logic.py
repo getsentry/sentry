@@ -68,6 +68,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.integrations.discord.utils.channel import ChannelType
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for_user
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -1434,8 +1435,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             external_id="example-pagerduty",
             metadata={"services": services},
         )
-        integration.add_organization(self.organization, self.user)
-        service = integration.organizationintegration_set.first().add_pagerduty_service(
+        org_integration = integration.add_organization(self.organization, self.user)
+        service = add_service(
+            org_integration,
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
         )
@@ -1726,8 +1728,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             external_id="example-pagerduty",
             metadata={"services": services},
         )
-        integration.add_organization(self.organization, self.user)
-        service = integration.organizationintegration_set.first().add_pagerduty_service(
+        org_integration = integration.add_organization(self.organization, self.user)
+        service = add_service(
+            org_integration,
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
         )

@@ -1,5 +1,6 @@
-import {ReactNode} from 'react';
+import {Fragment, ReactNode} from 'react';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
@@ -151,11 +152,17 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Replay',
     icon: <IconWarning size="xs" />,
   }),
-  'replay.hydrate': frame => ({
+  'replay.hydrate-error': () => ({
     color: 'red300',
-    description: frame.data.mutations,
+    description: t(
+      'There was a conflict between the server rendered html and the first client render.'
+    ),
     tabKey: TabKey.BREADCRUMBS,
-    title: 'Hydration Error',
+    title: (
+      <Fragment>
+        Hydration Error <FeatureBadge type="beta" />
+      </Fragment>
+    ),
     icon: <IconFire size="xs" />,
   }),
   'ui.click': frame => ({

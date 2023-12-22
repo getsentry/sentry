@@ -1,7 +1,10 @@
 import selectEvent from 'react-select-event';
-import {Authenticators} from 'sentry-fixture/authenticators';
+import {UserEnrolledAuthenticator} from 'sentry-fixture/authenticators';
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Organization} from 'sentry-fixture/organization';
 import {OrgRoleList} from 'sentry-fixture/roleList';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -22,8 +25,8 @@ jest.mock('sentry/actionCreators/members', () => ({
 }));
 
 describe('OrganizationMemberDetail', function () {
-  const team = TestStubs.Team();
-  const idpTeam = TestStubs.Team({
+  const team = Team();
+  const idpTeam = Team({
     id: '3',
     slug: 'idp-member-team',
     name: 'Idp Member Team',
@@ -32,8 +35,8 @@ describe('OrganizationMemberDetail', function () {
       'idp:provisioned': true,
     },
   });
-  const managerTeam = TestStubs.Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
-  const otherManagerTeam = TestStubs.Team({
+  const managerTeam = Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
+  const otherManagerTeam = Team({
     id: '4',
     slug: 'org-role-team',
     name: 'Org Role Team',
@@ -42,7 +45,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const teams = [
     team,
-    TestStubs.Team({
+    Team({
       id: '2',
       slug: 'new-team',
       name: 'New Team',
@@ -63,32 +66,32 @@ describe('OrganizationMemberDetail', function () {
     ],
   };
 
-  const member = TestStubs.Member({
+  const member = MemberFixture({
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     ...teamAssignment,
   });
-  const pendingMember = TestStubs.Member({
-    id: 2,
+  const pendingMember = MemberFixture({
+    id: '2',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
-  const expiredMember = TestStubs.Member({
-    id: 3,
+  const expiredMember = MemberFixture({
+    id: '3',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
     expired: true,
   });
-  const idpTeamMember = TestStubs.Member({
-    id: 4,
+  const idpTeamMember = MemberFixture({
+    id: '4',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     teams: [idpTeam.slug],
     teamRoles: [
       {
@@ -97,10 +100,10 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
-  const managerTeamMember = TestStubs.Member({
-    id: 5,
+  const managerTeamMember = MemberFixture({
+    id: '5',
     roles: OrgRoleList(),
-    dateCreated: new Date(),
+    dateCreated: new Date().toISOString(),
     teams: [otherManagerTeam.slug],
     teamRoles: [
       {
@@ -109,8 +112,8 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
-  const managerMember = TestStubs.Member({
-    id: 6,
+  const managerMember = MemberFixture({
+    id: '6',
     roles: OrgRoleList(),
     role: 'manager',
   });
@@ -512,42 +515,42 @@ describe('OrganizationMemberDetail', function () {
   describe('Reset member 2FA', function () {
     const fields = {
       roles: OrgRoleList(),
-      dateCreated: new Date(),
+      dateCreated: new Date().toISOString(),
       ...teamAssignment,
     };
 
-    const noAccess = TestStubs.Member({
+    const noAccess = MemberFixture({
       ...fields,
       id: '4',
-      user: TestStubs.User({has2fa: false, authenticators: undefined}),
+      user: User({has2fa: false, authenticators: undefined}),
     });
 
-    const no2fa = TestStubs.Member({
+    const no2fa = MemberFixture({
       ...fields,
       id: '5',
-      user: TestStubs.User({has2fa: false, authenticators: [], canReset2fa: true}),
+      user: User({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
-    const has2fa = TestStubs.Member({
+    const has2fa = MemberFixture({
       ...fields,
       id: '6',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
         authenticators: [
-          Authenticators().Totp(),
-          Authenticators().Sms(),
-          Authenticators().U2f(),
+          UserEnrolledAuthenticator({type: 'totp', id: 'totp'}),
+          UserEnrolledAuthenticator({type: 'sms', id: 'sms'}),
+          UserEnrolledAuthenticator({type: 'u2f', id: 'u2f'}),
         ],
         canReset2fa: true,
       }),
     });
 
-    const multipleOrgs = TestStubs.Member({
+    const multipleOrgs = MemberFixture({
       ...fields,
       id: '7',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
-        authenticators: [Authenticators().Totp()],
+        authenticators: [UserEnrolledAuthenticator({type: 'totp', id: 'totp'})],
         canReset2fa: false,
       }),
     });
@@ -643,9 +646,9 @@ describe('OrganizationMemberDetail', function () {
     it('can reset member 2FA', async function () {
       const {routerContext, routerProps} = initializeOrg({organization});
 
-      const deleteMocks = has2fa.user.authenticators.map(auth =>
+      const deleteMocks = (has2fa.user?.authenticators || []).map(auth =>
         MockApiClient.addMockResponse({
-          url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
+          url: `/users/${has2fa.user?.id}/authenticators/${auth.id}/`,
           method: 'DELETE',
         })
       );
@@ -707,21 +710,21 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Org Roles affect Team Roles', () => {
     // Org Admin will be deprecated
-    const admin = TestStubs.Member({
+    const admin = MemberFixture({
       id: '4',
       role: 'admin',
       roleName: 'Admin',
       orgRole: 'admin',
       ...teamAssignment,
     });
-    const manager = TestStubs.Member({
+    const manager = MemberFixture({
       id: '5',
       role: 'manager',
       roleName: 'Manager',
       orgRole: 'manager',
       ...teamAssignment,
     });
-    const owner = TestStubs.Member({
+    const owner = MemberFixture({
       id: '6',
       role: 'owner',
       roleName: 'Owner',

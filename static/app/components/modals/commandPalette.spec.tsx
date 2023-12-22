@@ -1,5 +1,8 @@
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -26,12 +29,12 @@ function renderMockRequests() {
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
-    body: [TestStubs.Project({slug: 'foo-project'})],
+    body: [ProjectFixture({slug: 'foo-project'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/teams/',
-    body: [TestStubs.Team({slug: 'foo-team'})],
+    body: [Team({slug: 'foo-team'})],
   });
 
   MockApiClient.addMockResponse({
@@ -92,7 +95,7 @@ describe('Command Palette Modal', function () {
         Footer={ModalFooter}
       />,
       {
-        context: TestStubs.routerContext([
+        context: RouterContextFixture([
           {
             router: TestStubs.router({
               params: {orgId: 'org-slug'},

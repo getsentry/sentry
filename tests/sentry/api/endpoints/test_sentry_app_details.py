@@ -340,6 +340,16 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 200
         assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read"]
 
+    def test_updating_scopes_maintains_scope_hierarchy(self):
+        self.login_as(user=self.user)
+        app = self.create_sentry_app(
+            name="SampleApp", organization=self.org, scopes=["event:read", "event:write"]
+        )
+        url = reverse("sentry-api-0-sentry-app-details", args=[app.slug])
+        response = self.client.put(url, data={"scopes": ["event:write"]}, format="json")
+        assert response.status_code == 200
+        assert SentryApp.objects.get(id=app.id).get_scopes() == ["event:read", "event:write"]
+
     @patch("sentry.analytics.record")
     def test_bad_schema(self, record):
         self.login_as(user=self.user)
@@ -498,4 +508,13 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         self.login_as(user=self.user)
         self.published_app.update(metadata={"partnership_restricted": True})
         response = self.client.delete(self.url)
+        assert response.status_code == 403
+
+    def test_cannot_delete_by_manager(self):
+        self.user_manager = self.create_user("manager@example.com", is_superuser=False)
+        self.create_member(user=self.user_manager, organization=self.org, role="manager", teams=[])
+        self.login_as(self.user_manager)
+
+        url = reverse("sentry-api-0-sentry-app-details", args=[self.internal_integration.slug])
+        response = self.client.delete(url)
         assert response.status_code == 403

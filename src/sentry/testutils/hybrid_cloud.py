@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import ipaddress
 import os
 import threading
+from contextlib import contextmanager
 from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
+from unittest.mock import patch
 
 from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -256,3 +259,11 @@ def use_split_dbs() -> bool:
     # in stone.
     SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
     return not SENTRY_USE_MONOLITH_DBS
+
+
+@contextmanager
+def override_allowed_region_silo_ip_addresses(*allowed_ip_addresses):
+    with patch("sentry.silo.client.get_region_ip_addresses") as mock_get_region_ip_addresses:
+        override_value = frozenset(ipaddress.ip_address(str(ip)) for ip in allowed_ip_addresses)
+        mock_get_region_ip_addresses.return_value = override_value
+        yield

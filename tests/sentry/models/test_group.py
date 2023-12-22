@@ -215,7 +215,7 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
-        for (org_slug, group_id, params, expected) in [
+        for org_slug, group_id, params, expected in [
             ("org1", 23, None, "http://testserver/organizations/org1/issues/23/"),
             (
                 "org2",
@@ -242,9 +242,7 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project(organization=org)
         group_id = 23
         params = None
-        expected = (
-            f"http://testserver/organizations/org1/feedback/?feedbackSlug={project.slug}%3A23"
-        )
+        expected = f"http://testserver/organizations/org1/feedback/?feedbackSlug={project.slug}%3A23&project={project.id}"
 
         group = self.create_group(id=group_id, project=project, type=FeedbackGroup.type_id)
         actual = group.get_absolute_url(params)
@@ -353,7 +351,7 @@ class GroupTest(TestCase, SnubaTestCase):
         for status, substatus in status_substatus_pairs:
             self.create_group(status=status, substatus=substatus)
 
-        assert logger.exception.call_count == len(status_substatus_pairs)
+        assert logger.error.call_count == len(status_substatus_pairs)
 
 
 @region_silo_test

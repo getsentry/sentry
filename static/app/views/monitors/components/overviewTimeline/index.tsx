@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
+import {deleteMonitorEnvironment, updateMonitor} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
@@ -95,6 +95,23 @@ export function OverviewTimeline({monitorList}: Props) {
     });
   };
 
+  const handleToggleStatus = async (monitor: Monitor) => {
+    const status = monitor.status === 'active' ? 'disabled' : 'active';
+    const resp = await updateMonitor(api, organization.slug, monitor.slug, {status});
+
+    if (resp === null) {
+      return;
+    }
+
+    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx], status: resp.status};
+
+      return oldMonitorList;
+    });
+  };
+
   return (
     <MonitorListPanel>
       <TimelineWidthTracker ref={elementRef} />
@@ -128,6 +145,7 @@ export function OverviewTimeline({monitorList}: Props) {
           end={nowRef.current}
           width={timelineWidth}
           onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
+          onToggleStatus={handleToggleStatus}
         />
       ))}
     </MonitorListPanel>

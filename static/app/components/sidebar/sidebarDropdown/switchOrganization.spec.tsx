@@ -1,11 +1,12 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SwitchOrganization} from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
 
 describe('SwitchOrganization', function () {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = RouterContextFixture();
   it('can list organizations', async function () {
     jest.useFakeTimers();
     render(
@@ -16,7 +17,7 @@ describe('SwitchOrganization', function () {
           Organization({name: 'Organization 2', slug: 'org2'}),
         ]}
       />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});

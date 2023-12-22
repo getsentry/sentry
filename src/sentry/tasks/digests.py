@@ -51,7 +51,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str
     try:
         project, target_type, target_identifier, fallthrough_choice = split_key(key)
     except Project.DoesNotExist as error:
-        logger.info(f"Cannot deliver digest {key} due to error: {error}")
+        logger.info("Cannot deliver digest %s due to error: %s", key, error)
         digests.delete(key)
         return
 
@@ -67,7 +67,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str
                 if not notification_uuid:
                     notification_uuid = get_notification_uuid_from_records(records)
         except InvalidState as error:
-            logger.info(f"Skipped digest delivery: {error}", exc_info=True)
+            logger.info("Skipped digest delivery: %s", error, exc_info=True)
             return
 
         if digest:

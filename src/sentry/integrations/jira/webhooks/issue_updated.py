@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.integrations.utils import get_integration_from_jwt
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

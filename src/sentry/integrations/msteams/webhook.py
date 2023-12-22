@@ -4,13 +4,13 @@ import logging
 import time
 from typing import Any, Callable, Mapping
 
-import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
 from sentry import analytics, audit_log, eventstore, features, options
 from sentry.api import client
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.models.activity import ActivityIntegration
@@ -94,7 +94,7 @@ def verify_signature(request):
     try:
         jwt.peek_claims(token)
     except jwt.DecodeError:
-        logger.error("msteams.webhook.invalid-token-no-verify")
+        logger.exception("msteams.webhook.invalid-token-no-verify")
         raise AuthenticationFailed("Could not decode JWT token")
 
     # get the open id config and jwks
@@ -120,7 +120,7 @@ def verify_signature(request):
             algorithms=open_id_config["id_token_signing_alg_values_supported"],
         )
     except Exception as err:
-        logger.error("msteams.webhook.invalid-token-with-verify")
+        logger.exception("msteams.webhook.invalid-token-with-verify")
         raise AuthenticationFailed(f"Could not validate JWT. Got {err}")
 
     # now validate iss, service url, and expiration
@@ -147,8 +147,8 @@ class MsTeamsWebhookMixin:
             channel_data = data["channelData"]
             team_id = channel_data["team"]["id"]
             return team_id
-        except Exception as err:
-            sentry_sdk.capture_exception(err)
+        except Exception:
+            pass
         return None
 
     def get_integration_from_channel_data(self, data: Mapping[str, Any]) -> RpcIntegration | None:
@@ -168,8 +168,8 @@ class MsTeamsWebhookMixin:
             payload = data["value"]["payload"]
             integration_id = payload["integrationId"]
             return integration_id
-        except Exception as err:
-            sentry_sdk.capture_exception(err)
+        except Exception:
+            pass
         return None
 
     def get_integration_from_card_action(self, data: Mapping[str, Any]) -> RpcIntegration | None:
@@ -187,6 +187,7 @@ class MsTeamsWebhookMixin:
 
 @all_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }

@@ -407,6 +407,7 @@ class WebhookProviderIdentifier(IntEnum):
     LEGACY_PLUGIN = 10
     GETSENTRY = 11
     DISCORD = 12
+    VERCEL = 13
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -535,7 +536,7 @@ class OutboxBase(Model):
     def save(self, **kwds: Any) -> None:  # type: ignore[override]
         if OutboxCategory(self.category) not in _outbox_categories_for_scope[int(self.shard_scope)]:
             raise InvalidOutboxError(
-                f"Outbox.category {self.category} not configured for scope {self.shard_scope}"
+                f"Outbox.category {self.category} ({OutboxCategory(self.category).name}) not configured for scope {self.shard_scope} ({OutboxScope(self.shard_scope).name})"
             )
 
         if _outbox_context.flushing_enabled:
@@ -632,7 +633,8 @@ class OutboxBase(Model):
                         coalesced.send_signal()
                     except Exception as e:
                         raise OutboxFlushError(
-                            f"Could not flush shard category={coalesced.category}", coalesced
+                            f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
+                            coalesced,
                         ) from e
 
                 return True

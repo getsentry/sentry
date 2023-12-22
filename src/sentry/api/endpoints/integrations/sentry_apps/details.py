@@ -7,13 +7,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
-from sentry.mediators import InstallationNotifier
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.apps import SentryAppUpdater
@@ -27,6 +28,7 @@ PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active
 
 @control_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -55,7 +57,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 actor=request.user,
             )
         ):
-
             return Response(
                 {
                     "non_field_errors": [

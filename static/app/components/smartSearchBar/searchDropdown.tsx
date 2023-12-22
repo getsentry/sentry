@@ -17,12 +17,10 @@ import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {TagCollection} from 'sentry/types';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
 import {invalidTypes, ItemType, SearchGroup, SearchItem, Shortcut} from './types';
-import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
@@ -37,7 +35,6 @@ type Props = {
   booleanKeys?: Set<string>;
   className?: string;
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
-  customPerformanceMetrics?: CustomMeasurementCollection;
   dateKeys?: Set<string>;
   disallowFreeText?: boolean;
   disallowWildcard?: boolean;
@@ -66,7 +63,6 @@ function SearchDropdown({
   onIconClick,
   searchSubstring = '',
   onClick = () => {},
-  customPerformanceMetrics,
   supportedTags,
   customInvalidTagMessage,
   mergeItemsWith,
@@ -123,9 +119,6 @@ function SearchDropdown({
                           percentageKeys,
                           sizeKeys,
                           textOperatorKeys,
-                          ...getSearchConfigFromCustomPerformanceMetrics(
-                            customPerformanceMetrics
-                          ),
                         }}
                         customInvalidTagMessage={customInvalidTagMessage}
                       />

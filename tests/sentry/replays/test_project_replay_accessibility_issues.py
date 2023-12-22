@@ -164,3 +164,41 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert request_accessibility_issues.called
             assert len(request_accessibility_issues.call_args[0][0]) == 1
             assert response.status_code == 200
+
+    @patch(
+        "sentry.replays.endpoints.project_replay_accessibility_issues.request_accessibility_issues"
+    )
+    def test_get_replay_accessibility_issues_by_timestamp_nothing_found(
+        self, request_accessibility_issues
+    ):
+        request_accessibility_issues.return_value = {
+            "meta": {"total": 1},
+            "data": [
+                {
+                    "elements": [
+                        {
+                            "alternatives": [{"id": "button-has-visible-text", "message": "m"}],
+                            "element": '<button class="svelte-19ke1iv">',
+                            "target": ["button:nth-child(1)"],
+                        }
+                    ],
+                    "help_url": "url",
+                    "help": "Buttons must have discernible text",
+                    "id": "button-name",
+                    "impact": "critical",
+                    "timestamp": 1695967678108,
+                }
+            ],
+        }
+
+        replay_id = self.replay_id
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay_id, segment_id=0))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay_id, segment_id=1))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?timestamp=0")
+            assert not request_accessibility_issues.called
+            assert response.status_code == 200

@@ -12,6 +12,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.region import RegionResolutionError
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -42,32 +43,26 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         return None
 
     def get_response(self) -> HttpResponseBase:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("path", self.request.path)
-            scope.set_extra("request_method", self.request.method)
-            scope.set_extra("view_class", self.view_class)
-            sentry_sdk.capture_message(
-                f"{self.provider}.request_parser.get_response",
-            )
-
         if self.view_class not in self.region_view_classes:
             return self.get_response_from_control_silo()
 
         if not self.can_infer_integration(data=self.request_data):
-            sentry_sdk.capture_message(
-                f"{self.provider}.request_parser.get_response.unable_to_infer_integration",
-            )
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()
-        with sentry_sdk.push_scope() as scope:
-            scope.set_extra("regions", regions)
-            sentry_sdk.capture_message(
-                f"{self.provider}.request_parser.get_response.regions",
-            )
-
         if len(regions) == 0:
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("view_class", self.view_class)
+                scope.set_extra("request_method", self.request.method)
+                scope.set_extra("request_path", self.request.path)
+                # Since self.can_infer_integration is True, we should be able to resolve a non-empty set of regions.
+                # If the list of regions is empty, then we need to investigate.
+                sentry_sdk.capture_exception(
+                    RegionResolutionError(
+                        f"Regions list is empty for {self.provider}.request_parser."
+                    )
+                )
+            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         return self.get_response_from_outbox_creation(regions=regions)

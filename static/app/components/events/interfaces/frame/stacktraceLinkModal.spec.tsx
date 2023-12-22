@@ -1,6 +1,9 @@
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
   act,
@@ -18,8 +21,8 @@ jest.mock('sentry/utils/analytics');
 
 describe('StacktraceLinkModal', () => {
   const org = Organization();
-  const project = TestStubs.Project();
-  const integration = TestStubs.GitHubIntegration();
+  const project = ProjectFixture();
+  const integration = GitHubIntegrationFixture();
   const filename = '/sentry/app.py';
   const repo = Repository({integrationId: integration.id});
   const config = RepositoryProjectPathConfig({project, repo, integration});
@@ -121,7 +124,7 @@ describe('StacktraceLinkModal', () => {
       statusCode: 400,
     });
 
-    renderGlobalModal({context: TestStubs.routerContext()});
+    renderGlobalModal({context: RouterContextFixture()});
     act(() =>
       openModal(modalProps => (
         <StacktraceLinkModal

@@ -44,7 +44,7 @@ class HistogramSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
 

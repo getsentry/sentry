@@ -110,6 +110,9 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
                     for row in results["data"]
                 ]
 
+            if len(segments) == 0:
+                return {"meta": {"total": 0}, "data": []}
+
             # Make a POST request to the replay-analyzer service. The files will be downloaded
             # and evaluated on the remote system. The accessibility output is then redirected to
             # the client.

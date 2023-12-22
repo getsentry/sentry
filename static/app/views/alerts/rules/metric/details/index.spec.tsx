@@ -1,5 +1,7 @@
 import {EventsStats} from 'sentry-fixture/events';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Incident} from 'sentry-fixture/incident';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +14,7 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 jest.mock('sentry/utils/analytics');
 
 describe('MetricAlertDetails', () => {
-  const project = TestStubs.Project({slug: 'earth', platform: 'javascript'});
+  const project = ProjectFixture({slug: 'earth', platform: 'javascript'});
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({
@@ -29,7 +31,7 @@ describe('MetricAlertDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2017-10-10T02%3A41%3A20',
-      body: [TestStubs.Group()],
+      body: [GroupFixture()],
     });
   });
 
@@ -100,7 +102,7 @@ describe('MetricAlertDetails', () => {
     // Related issues to the selected incident
     const issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2016-04-26T19%3A44%3A05&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2016-03-29T19%3A44%3A05',
-      body: [TestStubs.Group()],
+      body: [GroupFixture()],
     });
 
     render(

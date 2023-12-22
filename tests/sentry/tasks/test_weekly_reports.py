@@ -758,7 +758,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             email_override="doesntmatter@smad.com",
         )
 
-        logger.exception.assert_called_with(
+        logger.error.assert_called_with(
             "Target user must have an ID",
             extra={
                 "organization": org.id,

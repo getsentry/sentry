@@ -3,6 +3,9 @@ import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import LocationFixture from 'sentry-fixture/locationFixture';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 
@@ -35,9 +38,9 @@ const makeDefaultMockData = (
   return {
     organization: organization ?? initializeOrg().organization,
     project: project ?? initializeOrg().project,
-    group: TestStubs.Group(),
+    group: GroupFixture(),
     router: TestStubs.router({
-      location: TestStubs.location({
+      location: LocationFixture({
         query: {
           environment: environments,
         },
@@ -74,7 +77,6 @@ function TestComponent(
   );
 
   const mergedProps: GroupEventDetailsProps = {
-    api: new MockApiClient(),
     group,
     event,
     project,
@@ -261,8 +263,9 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sentry-app-components/?projectId=${project.id}`,
+    url: `/organizations/${organization.slug}/sentry-app-components/`,
     body: [],
+    match: [MockApiClient.matchQuery({projectId: project.id})],
   });
 
   MockApiClient.addMockResponse({
@@ -358,7 +361,7 @@ describe('groupEventDetails', () => {
 
   it('renders the Span Evidence and Resources section for Performance Issues', async function () {
     const props = makeDefaultMockData();
-    const group: Group = TestStubs.Group({
+    const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
@@ -381,7 +384,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
       context: routerContext,
@@ -401,7 +404,7 @@ describe('groupEventDetails', () => {
 
   it('renders the Function Evidence and Resources section for Profile Issues', async function () {
     const props = makeDefaultMockData();
-    const group: Group = TestStubs.Group({
+    const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });
@@ -431,7 +434,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
       context: routerContext,
@@ -555,8 +558,9 @@ describe('Platform Integrations', () => {
     });
 
     componentsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/sentry-app-components/?projectId=${props.project.id}`,
+      url: `/organizations/${props.organization.slug}/sentry-app-components/`,
       body: [component],
+      match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
     render(<TestComponent />, {organization: props.organization});
@@ -582,7 +586,7 @@ describe('Platform Integrations', () => {
         props.event,
         mockedTrace(props.project)
       );
-      const routerContext = TestStubs.routerContext();
+      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
@@ -608,7 +612,7 @@ describe('Platform Integrations', () => {
         ...trace,
         performance_issues: [],
       });
-      const routerContext = TestStubs.routerContext();
+      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,

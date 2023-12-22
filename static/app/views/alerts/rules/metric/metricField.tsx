@@ -80,10 +80,15 @@ export const getFieldOptionConfig = ({
     return key;
   });
 
-  const {measurementKeys} = config;
+  const {measurementKeys, spanOperationBreakdownKeys} = config;
 
   return {
-    fieldOptionsConfig: {aggregations, fieldKeys, measurementKeys},
+    fieldOptionsConfig: {
+      aggregations,
+      fieldKeys,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+    },
     hidePrimarySelector,
     hideParameterSelector,
   };

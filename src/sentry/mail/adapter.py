@@ -98,7 +98,7 @@ class MailAdapter:
                 notification, target_type, target_identifier, fallthrough_choice, notification_uuid
             )
 
-        logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
+        logger.info("mail.adapter.notification.%s", log_event, extra=extra)
 
     @staticmethod
     def get_sendable_user_objects(project):
@@ -167,7 +167,7 @@ class MailAdapter:
         metrics.incr("mail_adapter.notify_about_activity")
         email_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type)
         if not email_cls:
-            logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
+            logger.debug("No email associated with activity type `%s`", activity.get_type_display())
             return
 
         email_cls(activity).send()

@@ -7,6 +7,7 @@ import {
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
@@ -24,7 +25,6 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
-  platform: StackTraceProps['platform'];
   projectSlug: Project['slug'];
   type: StackType;
   meta?: Record<any, any>;
@@ -125,7 +125,6 @@ export function Content({
   stackView,
   groupingCurrentLevel,
   hasHierarchicalGrouping,
-  platform,
   projectSlug,
   values,
   type,
@@ -165,6 +164,8 @@ export function Content({
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
       return null;
     }
+
+    const platform = getStacktracePlatform(event, exc.stacktrace);
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">

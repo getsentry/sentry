@@ -9,13 +9,14 @@ from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
-from django.http import HttpRequest, StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
+from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import request as external_request
 from requests.exceptions import Timeout
-from rest_framework.exceptions import NotFound
 
 from sentry.api.exceptions import RequestTimeout
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.util import (
@@ -76,35 +77,59 @@ class _body_with_length:
         return self.request.read(size)
 
 
-def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
+def proxy_request(request: HttpRequest, org_slug: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a remote location given an org_slug"""
 
     try:
         region = get_region_for_organization(org_slug)
     except RegionResolutionError as e:
-        logger.info("region_resolution_error", extra={"org_slug": org_slug})
-        raise NotFound from e
+        logger.info("region_resolution_error", extra={"org_slug": org_slug, "error": str(e)})
+        return HttpResponse(status=404)
 
     return proxy_region_request(request, region)
 
 
 def proxy_sentryappinstallation_request(
     request: HttpRequest, installation_uuid: str
-) -> StreamingHttpResponse:
+) -> HttpResponseBase:
     """Take a django request object and proxy it to a remote location given a sentryapp installation uuid"""
     try:
         installation = SentryAppInstallation.objects.get(uuid=installation_uuid)
     except SentryAppInstallation.DoesNotExist as e:
-        logger.info("region_resolution_error", extra={"installation_uuid": installation_uuid})
-        raise NotFound from e
+        logger.info(
+            "region_resolution_error",
+            extra={"installation_uuid": installation_uuid, "error": str(e)},
+        )
+        return HttpResponse(status=404)
+
     try:
         organization_mapping = OrganizationMapping.objects.get(
             organization_id=installation.organization_id
         )
         region = get_region_by_name(organization_mapping.region_name)
     except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info("region_resolution_error", extra={"installation_id": installation_uuid})
-        raise NotFound from e
+        logger.info(
+            "region_resolution_error", extra={"installation_id": installation_uuid, "error": str(e)}
+        )
+        return HttpResponse(status=404)
+
+    return proxy_region_request(request, region)
+
+
+def proxy_sentryapp_request(request: HttpRequest, app_slug: str) -> HttpResponseBase:
+    """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
+    try:
+        sentry_app = SentryApp.objects.get(slug=app_slug)
+    except SentryApp.DoesNotExist as e:
+        logger.info("region_resolution_error", extra={"app_slug": app_slug, "error": str(e)})
+        return HttpResponse(status=404)
+
+    try:
+        organization_mapping = OrganizationMapping.objects.get(organization_id=sentry_app.owner_id)
+        region = get_region_by_name(organization_mapping.region_name)
+    except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
+        logger.info("region_resolution_error", extra={"app_slug": app_slug, "error": str(e)})
+        return HttpResponse(status=404)
 
     return proxy_region_request(request, region)
 

@@ -27,6 +27,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -208,7 +209,11 @@ def save_issue_from_occurrence(
             metrics.incr(
                 "group.created",
                 skip_internal=True,
-                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
+                tags={
+                    "platform": event.platform or "unknown",
+                    "type": occurrence.type.type_id,
+                    "sdk": normalized_sdk_tag_from_event(event),
+                },
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
 
@@ -221,6 +226,7 @@ def save_issue_from_occurrence(
                     tags={
                         "platform": event.platform or "unknown",
                         "frame_mix": frame_mix,
+                        "sdk": normalized_sdk_tag_from_event(event),
                     },
                 )
     else:

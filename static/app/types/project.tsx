@@ -3,7 +3,7 @@ import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {Deploy} from './release';
-import type {DynamicSamplingBias, DynamicSamplingRule} from './sampling';
+import type {DynamicSamplingBias} from './sampling';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -14,6 +14,7 @@ export type AvatarProject = {
 
 export type Project = {
   access: Scope[];
+  allowedDomains: string[];
   dateCreated: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
@@ -30,6 +31,7 @@ export type Project = {
   hasAccess: boolean;
   hasFeedbacks: boolean;
   hasMinifiedStackTrace: boolean;
+  hasNewFeedbacks: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
@@ -43,22 +45,30 @@ export type Project = {
 
   processingIssues: number;
   relayPiiConfig: string;
-
+  resolveAge: number;
+  safeFields: string[];
+  scrapeJavaScript: boolean;
+  scrubIPAddresses: boolean;
+  sensitiveFields: string[];
   subjectTemplate: string;
   team: Team;
   teams: Team[];
+  verifySSL: boolean;
   builtinSymbolSources?: string[];
-  dynamicSamplingRules?: DynamicSamplingRule[] | null;
+  defaultEnvironment?: string;
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  securityToken?: string;
+  securityTokenHeader?: string;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
     previousCrashFreeRate: number | null;
   };
   stats?: TimeseriesValue[];
+  subjectPrefix?: string;
   symbolSources?: string;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
@@ -70,7 +80,7 @@ export type ProjectKey = {
   browserSdk: {
     choices: [key: string, value: string][];
   };
-  browserSdkVersion: string;
+  browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
   dsn: {
     cdn: string;
@@ -90,11 +100,11 @@ export type ProjectKey = {
   isActive: boolean;
   label: string;
   name: string;
-  projectId: string;
+  projectId: number;
   public: string;
   rateLimit: {
     count: number;
-    window: string;
+    window: number;
   } | null;
   secret: string;
 };

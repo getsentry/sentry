@@ -2,6 +2,7 @@ import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {MissingMembers} from 'sentry-fixture/missingMembers';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -32,7 +33,7 @@ const mockRefObject = {
 };
 
 describe('InviteMissingMembersModal', function () {
-  const team = TestStubs.Team();
+  const team = Team();
   const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
   const missingMembers = MissingMembers();

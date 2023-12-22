@@ -81,7 +81,7 @@ def get_browser_sdk_version(project_key):
     try:
         return match_selected_version_to_browser_sdk_version(selected_version)
     except Exception:
-        logger.error("error occurred while trying to read js sdk information from the registry")
+        logger.exception("error occurred while trying to read js sdk information from the registry")
         return Version(settings.JS_SDK_LOADER_SDK_VERSION)
 
 

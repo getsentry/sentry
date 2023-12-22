@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
@@ -39,6 +40,7 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

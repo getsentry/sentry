@@ -1,4 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Team} from 'sentry-fixture/team';
 import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
 import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
 
@@ -7,7 +10,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project, Team} from 'sentry/types';
+import {Project, Team as TeamType} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
@@ -20,33 +23,33 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 describe('TeamStatsIssues', () => {
   const env1 = 'prod';
   const env2 = 'dev';
-  const project1 = TestStubs.Project({
+  const project1 = ProjectFixture({
     id: '2',
     name: 'js',
     slug: 'js',
     environments: [env1, env2],
   });
-  const project2 = TestStubs.Project({
+  const project2 = ProjectFixture({
     id: '3',
     name: 'py',
     slug: 'py',
     environments: [env1, env2],
   });
-  const team1 = TestStubs.Team({
+  const team1 = Team({
     id: '2',
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
     isMember: true,
   });
-  const team2 = TestStubs.Team({
+  const team2 = Team({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
     isMember: true,
   });
-  const team3 = TestStubs.Team({
+  const team3 = Team({
     id: '4',
     slug: 'internal',
     name: 'internal',
@@ -129,7 +132,10 @@ describe('TeamStatsIssues', () => {
     jest.resetAllMocks();
   });
 
-  function createWrapper({projects, teams}: {projects?: Project[]; teams?: Team[]} = {}) {
+  function createWrapper({
+    projects,
+    teams,
+  }: {projects?: Project[]; teams?: TeamType[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
@@ -137,7 +143,7 @@ describe('TeamStatsIssues', () => {
       teams,
       projects,
     });
-    const context = TestStubs.routerContext([{organization}]);
+    const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
     return render(<TeamStatsIssues {...routerProps} />, {

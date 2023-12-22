@@ -12,11 +12,10 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import {Project, ProjectKey} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   data: ProjectKey;

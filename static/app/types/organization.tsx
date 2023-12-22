@@ -101,6 +101,10 @@ export interface Team {
   orgRole?: string | null;
 }
 
+export interface DetailedTeam extends Team {
+  projects: Project[];
+}
+
 // TODO: Rename to BaseRole
 export interface MemberRole {
   desc: string;

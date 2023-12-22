@@ -1,23 +1,82 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
+from django.db import router, transaction
 from django.http import Http404
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.models.integrations.organization_integration import (
-    OrganizationIntegration,
-    PagerDutyServiceDict,
-)
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
+
+
+class PagerDutyServiceDict(TypedDict):
+    integration_id: int
+    integration_key: str
+    service_name: str
+    id: int
+
+
+@control_silo_function
+def add_service(
+    organization_integration: OrganizationIntegration, integration_key: str, service_name: str
+) -> PagerDutyServiceDict:
+    with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+        OrganizationIntegration.objects.filter(id=organization_integration.id).select_for_update()
+
+        with transaction.get_connection(
+            router.db_for_write(OrganizationIntegration)
+        ).cursor() as cursor:
+            cursor.execute(
+                "SELECT nextval(%s)", [f"{OrganizationIntegration._meta.db_table}_id_seq"]
+            )
+            next_id: int = cursor.fetchone()[0]
+
+        service: PagerDutyServiceDict = {
+            "id": next_id,
+            "integration_key": integration_key,
+            "service_name": service_name,
+            "integration_id": organization_integration.integration_id,
+        }
+
+        existing = organization_integration.config.get("pagerduty_services", [])
+        new_services: list[PagerDutyServiceDict] = existing + [service]
+        organization_integration.config["pagerduty_services"] = new_services
+        organization_integration.save()
+    return service
+
+
+def get_services(
+    org_integration: OrganizationIntegration | RpcOrganizationIntegration | None,
+) -> list[PagerDutyServiceDict]:
+    if not org_integration:
+        return []
+    return org_integration.config.get("pagerduty_services", [])
+
+
+def get_service(
+    org_integration: OrganizationIntegration | RpcOrganizationIntegration | None,
+    service_id: int | str,
+) -> PagerDutyServiceDict | None:
+    services = get_services(org_integration)
+    if not services:
+        return None
+    service: PagerDutyServiceDict | None = None
+    for candidate in services:
+        if str(candidate["id"]) == str(service_id):
+            service = candidate
+            break
+    return service
 
 
 def build_incident_attachment(
@@ -82,9 +141,7 @@ def send_incident_alert_notification(
         org_integration_id = org_integration.id
 
     if org_integration and action.target_identifier:
-        service = OrganizationIntegration.find_service(
-            org_integration.config, action.target_identifier
-        )
+        service = get_service(org_integration, action.target_identifier)
 
     if service is None:
         # service has been removed after rule creation
@@ -99,8 +156,11 @@ def send_incident_alert_notification(
         raise Http404
 
     integration_key = service["integration_key"]
+    # TODO(hybridcloud) This should use the integration.installation client workflow instead.
     client = PagerDutyProxyClient(
-        org_integration_id=org_integration_id, integration_key=integration_key
+        org_integration_id=org_integration_id,
+        integration_key=integration_key,
+        keyid=str(service["id"]),
     )
     attachment = build_incident_attachment(
         incident, integration_key, new_status, metric_value, notification_uuid

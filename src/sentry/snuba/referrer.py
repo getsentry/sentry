@@ -64,6 +64,11 @@ class Referrer(Enum):
         "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
+
+    # DDM
+    API_DDM_FETCH_SPANS = "api.ddm.fetch.spans"
+    API_DDM_FETCH_METRICS_SUMMARIES = "api.ddm.fetch.metrics_summaries"
+
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
@@ -419,6 +424,12 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
     API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
     API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
+    API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"
+    API_STARFISH_MOBILE_STARTUP_BAR_CHART = "api.starfish.mobile-startup-bar-chart"
+    API_STARFISH_MOBILE_STARTUP_SERIES = "api.starfish.mobile-startup-series"
+    API_STARFISH_MOBILE_STARTUP_EVENT_SAMPLES = "api.starfish.mobile-startup-event-samples"
+    API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
+    API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"

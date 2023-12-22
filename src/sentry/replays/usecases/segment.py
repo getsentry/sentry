@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 
 from snuba_sdk import Column, Condition, Entity, Granularity, Op, Query, Request
@@ -16,12 +16,8 @@ def query_segment_storage_meta_by_timestamp(
     replay_id: str,
     timestamp: float,
 ) -> Mapping[str, Any]:
-    # These timestamps do not specify a timezone. They are presumed UTC but we can not verify.
-    # Since these times originate from the same place it is enough to treat them relatively. We
-    # ignore the issue of timezone and utilize the replay's internal consistency.
-    #
-    # This means calls to the server's internal clock are prohibited.
-    end = datetime.fromtimestamp(timestamp + 1)
+    # Timestamps must be in UTC.
+    end = datetime.fromtimestamp(timestamp + 1, tz=timezone.utc)
 
     # For safety look back one additional hour.
     start = end - timedelta(hours=REPLAY_DURATION_HOURS + 1)
@@ -50,10 +46,6 @@ def query_segment_storage_meta_by_timestamp(
         # then this is disabled to save us from a request to redis.
         use_cache=False,
     )
-
-    items = results["data"]
-    if len(items) == 0:
-        raise ValueError("No segment could be found for timestamp.")
 
     return results
 

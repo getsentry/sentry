@@ -55,14 +55,15 @@ class JiraRequestParser(BaseRequestParser):
 
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
-            logger.info(f"{self.provider}.no_regions", extra={"path": self.request.path})
+            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
         if len(regions) > 1:
             # Since Jira is region_restricted (see JiraIntegrationProvider) we can just pick the
             # first region to forward along to.
             logger.info(
-                f"{self.provider}.too_many_regions",
+                "%s.too_many_regions",
+                self.provider,
                 extra={"path": self.request.path, "regions": regions},
             )
             return self.get_response_from_control_silo()

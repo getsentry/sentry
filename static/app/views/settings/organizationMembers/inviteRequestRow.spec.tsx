@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {
   render,
@@ -47,8 +49,8 @@ describe('InviteRequestRow', function () {
 
   const inviteRequest = TestStubs.Member({
     user: null,
-    inviterName: TestStubs.User().name,
-    inviterId: TestStubs.User().id,
+    inviterName: User().name,
+    inviterId: User().id,
     inviteStatus: 'requested_to_be_invited',
     role: 'member',
     teams: ['myteam'],
@@ -165,16 +167,16 @@ describe('InviteRequestRow', function () {
   it('admin can change role and teams', async function () {
     const adminInviteRequest = TestStubs.Member({
       user: null,
-      inviterName: TestStubs.User().name,
-      inviterId: TestStubs.User().id,
+      inviterName: User().name,
+      inviterId: User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'admin',
       teams: ['myteam'],
     });
 
     void TeamStore.loadInitialData([
-      TestStubs.Team({id: '1', slug: 'one'}),
-      TestStubs.Team({id: '2', slug: 'two'}),
+      Team({id: '1', slug: 'one'}),
+      Team({id: '2', slug: 'two'}),
     ]);
     const mockUpdate = jest.fn();
 
@@ -204,8 +206,8 @@ describe('InviteRequestRow', function () {
   it('cannot be approved when invitee role is not allowed', function () {
     const ownerInviteRequest = TestStubs.Member({
       user: null,
-      inviterName: TestStubs.User().name,
-      inviterId: TestStubs.User().id,
+      inviterName: User().name,
+      inviterId: User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'owner',
       teams: ['myteam'],

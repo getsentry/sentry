@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from collections import namedtuple
 from dataclasses import dataclass
 from time import time
 from typing import ClassVar, List, Mapping, Optional, Sequence, Union
@@ -66,6 +67,12 @@ class UnsafeReleaseDeletion(Exception):
 
 
 class ReleaseCommitError(Exception):
+    pass
+
+
+class SemverVersion(
+    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
+):
     pass
 
 
@@ -480,7 +487,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
-    # Deprecated, we no longer write to this field
+    # Deprecated, in favor of ReleaseProject new_groups field
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
@@ -634,6 +641,17 @@ class Release(Model):
             return release_date > other_release_date
 
         return False
+
+    @property
+    def semver_tuple(self) -> SemverVersion:
+        return SemverVersion(
+            self.major,
+            self.minor,
+            self.patch,
+            self.revision,
+            1 if self.prerelease == "" else 0,
+            self.prerelease,
+        )
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -1291,7 +1309,6 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     follows_semver = cache.get(cache_key)
 
     if follows_semver is None:
-
         # Check if the latest ten releases are semver compliant
         releases_list = list(
             Release.objects.filter(organization_id=org_id, projects__id__in=[project_id])
