@@ -289,7 +289,7 @@ def test_built_in_borked_path_blow_up():
     assert not rules.built_in_rules
 
 
-def test_built_in_borked_file_doesnt_blow_up(tmp_path, caplog):
+def test_built_in_borked_file_doesnt_blow_up(tmp_path):
     with open(tmp_path / "foo.txt", "w") as foo:
         foo.write("a malformed rule file that ought to be ignored")
     with open(tmp_path / "bar.txt", "w") as foo:
