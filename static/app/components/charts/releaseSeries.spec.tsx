@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +26,7 @@ describe('ReleaseSeries', function () {
     });
   });
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const baseSeriesProps: ReleaseSeriesProps = {
     api: new MockApiClient(),
     organization: Organization(),

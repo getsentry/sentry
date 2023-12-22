@@ -1,3 +1,4 @@
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 import {SentryApp as SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequest} from 'sentry-fixture/sentryAppWebhookRequest';
 
@@ -72,7 +73,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the total install/uninstall stats', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -83,7 +84,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the request log', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -105,7 +106,7 @@ describe('Sentry Application Dashboard', function () {
 
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -118,7 +119,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows integration and interactions chart', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -171,7 +172,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the request log', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -195,7 +196,7 @@ describe('Sentry Application Dashboard', function () {
 
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -207,7 +208,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the component interactions in a line chart', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );

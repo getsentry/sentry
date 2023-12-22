@@ -4,6 +4,7 @@ import {AuthProvider} from 'sentry-fixture/authProvider';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
 
@@ -88,7 +89,7 @@ describe('OrganizationMembersList', function () {
       name: 'active',
     },
   });
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const defaultProps = {
     organization,
     router,

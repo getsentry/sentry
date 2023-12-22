@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +11,7 @@ import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 describe('SettingsIndex', function () {
   const props = {
-    router: TestStubs.router(),
+    router: RouterFixture(),
     location: {} as any,
     routes: [],
     route: {},

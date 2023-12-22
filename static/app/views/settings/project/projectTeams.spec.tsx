@@ -1,3 +1,4 @@
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -71,7 +72,7 @@ describe('ProjectTeams', function () {
   it('renders', function () {
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -102,7 +103,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -159,7 +160,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -210,7 +211,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -258,7 +259,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -304,7 +305,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         project={project}
         organization={org}

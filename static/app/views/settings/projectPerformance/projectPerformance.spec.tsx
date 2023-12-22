@@ -1,6 +1,7 @@
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -26,7 +27,7 @@ describe('projectPerformance', function () {
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
     router,
     location: LocationFixture(),

@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import {DiscoverSavedQuery} from 'sentry-fixture/discover';
 import {Organization} from 'sentry-fixture/organization';
+import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -89,7 +90,7 @@ describe('Discover > QueryList', function () {
   it('renders an empty list', function () {
     render(
       <QueryList
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={[]}
         savedQuerySearchQuery="no matches"
@@ -107,7 +108,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         renderPrebuilt
@@ -124,7 +125,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -157,7 +158,7 @@ describe('Discover > QueryList', function () {
       <QueryList
         savedQuerySearchQuery=""
         renderPrebuilt={false}
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -183,7 +184,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -205,7 +206,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -241,7 +242,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -272,7 +273,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -312,7 +313,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
@@ -338,7 +339,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -366,7 +367,7 @@ describe('Discover > QueryList', function () {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={TestStubs.router()}
+          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
@@ -432,7 +433,7 @@ describe('Discover > QueryList', function () {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={TestStubs.router()}
+          router={RouterFixture()}
           renderPrebuilt={false}
           organization={featuredOrganization}
           savedQueries={[
