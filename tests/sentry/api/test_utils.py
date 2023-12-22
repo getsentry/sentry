@@ -9,11 +9,29 @@ from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
+    APIException,
+    DatasetSelectionError,
+    IncompatibleMetricsQuery,
+    InvalidParams,
+    InvalidSearchQuery,
+    QueryConnectionFailed,
+    QueryExecutionError,
+    QueryExecutionTimeMaximum,
+    QueryIllegalTypeOfArgument,
+    QueryMemoryLimitExceeded,
+    QueryMissingColumn,
+    QueryOutsideRetentionError,
+    QuerySizeExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    SchemaValidationError,
+    SnubaError,
+    UnqualifiedQueryError,
     customer_domain_path,
     get_date_range_from_params,
+    handle_query_errors,
     print_and_capture_handler_exception,
 )
-from sentry.exceptions import InvalidParams
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -200,3 +218,38 @@ def test_customer_domain_path():
     ]
     for input_path, expected in scenarios:
         assert expected == customer_domain_path(input_path)
+
+
+class HandleQueryErrorsTest:
+    @patch("sentry.api.utils.ParseError")
+    def test_handle_query_errors(self, mock_parse_error):
+        exceptions = [
+            DatasetSelectionError,
+            IncompatibleMetricsQuery,
+            InvalidParams,
+            InvalidSearchQuery,
+            QueryConnectionFailed,
+            QueryExecutionError,
+            QueryExecutionTimeMaximum,
+            QueryIllegalTypeOfArgument,
+            QueryMemoryLimitExceeded,
+            QueryMissingColumn,
+            QueryOutsideRetentionError,
+            QuerySizeExceeded,
+            QueryTooManySimultaneous,
+            RateLimitExceeded,
+            SchemaValidationError,
+            SnubaError,
+            UnqualifiedQueryError,
+        ]
+
+        class FooBar(Exception):
+            pass
+
+        mock_parse_error.return_value = FooBar()
+        for ex, idx in enumerate(exceptions):
+            try:
+                with handle_query_errors():
+                    raise ex
+            except Exception as e:
+                assert isinstance(e, [FooBar, APIException])
