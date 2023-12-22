@@ -118,14 +118,11 @@ function ImageContainer(props: {
 
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
-      {
-        // TODO - this is temporary, this will be controlled by a project setting
-        showImage && !hasError ? (
-          <img onError={() => setHasError(true)} src={src} style={commonStyles} />
-        ) : (
-          <div style={{...commonStyles, backgroundColor: theme.gray100}} />
-        )
-      }
+      {showImage && !hasError ? (
+        <img onError={() => setHasError(true)} src={src} style={commonStyles} />
+      ) : (
+        <div style={{...commonStyles, backgroundColor: theme.gray100}} />
+      )}
       {fileName} ({fileSize})
     </div>
   );
