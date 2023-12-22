@@ -79,7 +79,9 @@ class MonitorEndpoint(Endpoint):
 
         if environment:
             try:
-                environment_object = Environment.objects.get(name=environment)
+                environment_object = Environment.objects.get(
+                    organization_id=organization.id, name=environment
+                )
                 monitor_environment = MonitorEnvironment.objects.get(
                     monitor_id=monitor.id, environment_id=environment_object.id
                 )
