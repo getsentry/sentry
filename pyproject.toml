@@ -734,7 +734,6 @@ module = [
     "src.sentry.relay.config.metric_extraction",
     "src.sentry.snuba.metrics.extraction",
     "tests.sentry.relay.config.test_metric_extraction",
-    "tests.sentry.search.events.builder.test_metrics",
 ]
 disallow_untyped_defs = true
 # end: stronger typing
