@@ -18,7 +18,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
-from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer, ListField
+from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LANGUAGES
 from sentry.models.options.user_option import UserOption
@@ -138,7 +138,9 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
 
 
 class DeleteUserSerializer(serializers.Serializer):
-    organizations = ListField(child=serializers.CharField(required=False), required=True)
+    organizations = serializers.ListField(
+        child=serializers.CharField(required=False), required=True
+    )
     hardDelete = serializers.BooleanField(required=False)
 
 

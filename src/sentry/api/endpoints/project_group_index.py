@@ -9,13 +9,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
-    ValidationError,
     delete_groups,
     get_by_short_id,
     prep_search,
     track_slo_response,
     update_groups,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models.environment import Environment

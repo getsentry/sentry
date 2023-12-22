@@ -15,7 +15,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
-    ValidationError,
     build_query_params_from_request,
     calculate_stats_period,
     delete_groups,
@@ -23,6 +22,7 @@ from sentry.api.helpers.group_index import (
     track_slo_response,
     update_groups,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba

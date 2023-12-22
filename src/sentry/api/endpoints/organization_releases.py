@@ -8,6 +8,7 @@ from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ListField
 
 from sentry import analytics, release_health
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -19,7 +20,6 @@ from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
 from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
-    ListField,
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
