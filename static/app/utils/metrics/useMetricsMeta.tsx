@@ -17,7 +17,7 @@ function useMetaUseCase(
     [`/organizations/${slug}/metrics/meta/`, {query: {useCase, project: projects}}],
     {
       ...options,
-      staleTime: Infinity,
+      staleTime: 2000, // 2 seconds to cover page load
     }
   );
 

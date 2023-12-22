@@ -46,7 +46,6 @@ class PullRequestIssue:
     url: str
     affected_users: Optional[int] = None
     event_count: Optional[int] = None
-    is_handled: Optional[bool] = None
     function_name: Optional[str] = None
 
 

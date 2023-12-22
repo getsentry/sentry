@@ -37,7 +37,6 @@ cryptography==41.0.7
 cssselect==1.0.3
 cssutils==2.4.0
 datadog==0.44.0
-dictpath==0.1.3
 distlib==0.3.4
 distro==1.8.0
 django==3.2.23
@@ -85,9 +84,8 @@ iniconfig==1.1.1
 isodate==0.6.1
 isort==5.10.1
 jmespath==0.10.0
-jsonschema==3.2.0
+jsonschema==4.17.3
 kombu==5.3.4
-lazy-object-proxy==1.7.1
 lxml==4.9.3
 lxml-stubs==0.4.0
 markupsafe==2.1.2
@@ -104,13 +102,14 @@ mypy-extensions==1.0.0
 nodeenv==1.8.0
 oauthlib==3.1.0
 openai==1.3.5
-openapi-core==0.14.2
+openapi-core==0.15.0
 openapi-schema-validator==0.2.3
 openapi-spec-validator==0.4.0
 outcome==1.2.0
 packaging==21.3
 parse==1.19.0
 parsimonious==0.9.0
+pathable==0.4.3
 pathspec==0.9.0
 pep517==0.12.0
 petname==2.6
@@ -170,7 +169,7 @@ rfc3986-validator==0.1.1
 rsa==4.8
 s3transfer==0.6.1
 selenium==4.16.0
-sentry-arroyo==2.15.2
+sentry-arroyo==2.15.3
 sentry-cli==2.16.0
 sentry-forked-django-stubs==4.2.7.post1
 sentry-forked-djangorestframework-stubs==3.14.5.post1

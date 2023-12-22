@@ -173,6 +173,8 @@ def handle_search_filters(
         if isinstance(search_filter, SearchFilter):
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
+                if condition is None:
+                    raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
