@@ -9,11 +9,11 @@ from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
-    InvalidParams,
     customer_domain_path,
     get_date_range_from_params,
     print_and_capture_handler_exception,
 )
+from sentry.exceptions import InvalidParams
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 

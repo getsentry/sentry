@@ -10,7 +10,8 @@ from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import convert_query_values, parse_search_query
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 

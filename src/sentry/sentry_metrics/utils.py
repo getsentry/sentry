@@ -1,6 +1,6 @@
 from typing import Collection, Dict, Mapping, Optional, Sequence, Set, Union, cast
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import to_use_case_id
@@ -98,7 +98,6 @@ def reverse_resolve(use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, inde
 def bulk_reverse_resolve(
     use_case_id: UseCaseID, org_id: int, indexes: Collection[int]
 ) -> Mapping[int, str]:
-
     # de duplicate indexes
     indexes_to_resolve = set()
     for idx in indexes:

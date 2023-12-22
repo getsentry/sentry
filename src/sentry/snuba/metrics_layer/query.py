@@ -21,7 +21,7 @@ from snuba_sdk import (
 from snuba_sdk.formula import FormulaParameterGroup
 
 from sentry import options
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
 from sentry.snuba.dataset import Dataset, EntityKey

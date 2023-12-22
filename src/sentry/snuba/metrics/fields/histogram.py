@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import sentry_sdk
 from snuba_sdk import Column, Function
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 
 MAX_HISTOGRAM_BUCKET = 250
 

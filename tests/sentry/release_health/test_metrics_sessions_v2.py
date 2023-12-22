@@ -6,11 +6,11 @@ from django.urls import reverse
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Function, Op
 
+from sentry.exceptions import InvalidParams
 from sentry.release_health.metrics_sessions_v2 import (
     SessionStatus,
     _extract_status_filter_from_conditions,
 )
-from sentry.snuba.sessions_v2 import InvalidParams
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 

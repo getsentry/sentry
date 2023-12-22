@@ -4,7 +4,7 @@ from typing import Any, Optional, Sequence
 
 from snuba_sdk import Column, Function
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.search.events import constants
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.search.events.types import SelectType

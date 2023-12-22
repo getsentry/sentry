@@ -2,8 +2,8 @@ from typing import Optional
 
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.api.utils import InvalidParams
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidParams
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus

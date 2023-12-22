@@ -11,7 +11,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
 from sentry.api.serializers.models.metric_spans import MetricSpansSerializer
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.metadata.code_locations import get_code_locations
 from sentry.sentry_metrics.querying.metadata.metric_spans import get_spans_of_metric
 
