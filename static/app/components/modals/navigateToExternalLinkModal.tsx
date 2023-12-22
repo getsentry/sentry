@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -30,15 +30,9 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: 
       </Body>
       <ButtonContainer>
         <ButtonBar>
-          <Button
-            priority="primary"
-            onClick={() => {
-              window.open(linkText, '_blank', 'noreferrer');
-              closeModal();
-            }}
-          >
+          <LinkButton priority="primary" href={linkText} external>
             {t('Continue')}{' '}
-          </Button>
+          </LinkButton>
           <Button
             priority="default"
             onClick={() => {
