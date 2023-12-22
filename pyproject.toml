@@ -229,7 +229,6 @@ module = [
     "sentry.api.endpoints.project_tagkey_values",
     "sentry.api.endpoints.project_tags",
     "sentry.api.endpoints.project_transaction_names",
-    "sentry.api.endpoints.prompts_activity",
     "sentry.api.endpoints.rule_snooze",
     "sentry.api.endpoints.source_map_debug",
     "sentry.api.endpoints.team_details",
