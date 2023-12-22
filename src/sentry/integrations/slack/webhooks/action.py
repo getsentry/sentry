@@ -494,7 +494,9 @@ class SlackActionEndpoint(Endpoint):
         # Handle interaction actions
         for action in action_list:
             try:
-                if action.name == "status":
+                if action.name == "status" or (
+                    use_block_kit and action.name in ("ignored:forever", "ignored:until_escalating")
+                ):
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
                     self.on_assign(request, identity_user, group, action)
