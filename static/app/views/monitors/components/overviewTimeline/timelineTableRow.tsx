@@ -26,6 +26,7 @@ interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment
   monitor: Monitor;
   bucketedData?: MonitorBucket[];
   onDeleteEnvironment?: (env: string) => void;
+  onToggleMuteEnvironment?: (env: string, isMuted: boolean) => void;
   onToggleStatus?: (monitor: Monitor) => void;
   /**
    * Whether only one monitor is being rendered in a larger view with this component
@@ -41,6 +42,7 @@ export function TimelineTableRow({
   bucketedData,
   singleMonitorView,
   onDeleteEnvironment,
+  onToggleMuteEnvironment,
   onToggleStatus,
   ...timelineProps
 }: Props) {
@@ -77,6 +79,43 @@ export function TimelineTableRow({
     </DetailsArea>
   );
 
+  const environmentActionCreators = [
+    (env: string) => ({
+      label: t('View Environment'),
+      key: 'view',
+      to: `/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${env}`,
+    }),
+    ...(onToggleMuteEnvironment
+      ? [
+          (env: string, isMuted: boolean) => ({
+            label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
+            key: 'mute',
+            onAction: () => onToggleMuteEnvironment(env, !isMuted),
+          }),
+        ]
+      : []),
+    ...(onDeleteEnvironment
+      ? [
+          (env: string) => ({
+            label: t('Delete Environment'),
+            key: 'delete',
+            onAction: () => {
+              openConfirmModal({
+                onConfirm: () => onDeleteEnvironment(env),
+                header: t('Delete Environment?'),
+                message: tct(
+                  'Are you sure you want to permanently delete the "[envName]" environment?',
+                  {envName: env}
+                ),
+                confirmText: t('Delete'),
+                priority: 'danger',
+              });
+            },
+          }),
+        ]
+      : []),
+  ];
+
   return (
     <TimelineRow
       key={monitor.id}
@@ -85,47 +124,25 @@ export function TimelineTableRow({
     >
       {monitorDetails}
       <MonitorEnvContainer>
-        {environments.map(({name, status}) => {
-          const envStatus = monitor.isMuted ? MonitorStatus.DISABLED : status;
+        {environments.map(({name, status, isMuted}) => {
+          const envStatus = monitor.isMuted || isMuted ? MonitorStatus.DISABLED : status;
           const {label, icon} = statusIconColorMap[envStatus];
           return (
             <EnvRow key={name}>
-              {onDeleteEnvironment && (
-                <DropdownMenu
-                  size="sm"
-                  trigger={triggerProps => (
-                    <EnvActionButton
-                      {...triggerProps}
-                      aria-label={t('Monitor environment actions')}
-                      size="xs"
-                      icon={<IconEllipsis />}
-                    />
-                  )}
-                  items={[
-                    {
-                      label: t('View Environment'),
-                      key: 'view',
-                      to: `/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${name}`,
-                    },
-                    {
-                      label: t('Delete Environment'),
-                      key: 'delete',
-                      onAction: () => {
-                        openConfirmModal({
-                          onConfirm: () => onDeleteEnvironment(name),
-                          header: t('Delete Environment?'),
-                          message: tct(
-                            'Are you sure you want to permanently delete the "[envName]" environment?',
-                            {envName: name}
-                          ),
-                          confirmText: t('Delete'),
-                          priority: 'danger',
-                        });
-                      },
-                    },
-                  ]}
-                />
-              )}
+              <DropdownMenu
+                size="sm"
+                trigger={triggerProps => (
+                  <EnvActionButton
+                    {...triggerProps}
+                    aria-label={t('Monitor environment actions')}
+                    size="xs"
+                    icon={<IconEllipsis />}
+                  />
+                )}
+                items={environmentActionCreators.map(actionCreator =>
+                  actionCreator(name, isMuted)
+                )}
+              />
               <EnvWithStatus>
                 <MonitorEnvLabel status={envStatus}>{name}</MonitorEnvLabel>
                 <Tooltip title={label} skipWrapper>
