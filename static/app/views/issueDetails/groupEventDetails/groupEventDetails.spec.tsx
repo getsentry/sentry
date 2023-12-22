@@ -6,6 +6,7 @@ import {Event as EventFixture} from 'sentry-fixture/event';
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 
@@ -39,7 +40,7 @@ const makeDefaultMockData = (
     organization: organization ?? initializeOrg().organization,
     project: project ?? initializeOrg().project,
     group: GroupFixture(),
-    router: TestStubs.router({
+    router: RouterFixture({
       location: LocationFixture({
         query: {
           environment: environments,

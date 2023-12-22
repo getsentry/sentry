@@ -5,6 +5,7 @@ import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -88,14 +89,14 @@ const createWrapper = (props = {}) => {
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <ProjectAlerts
-      {...TestStubs.routeComponentProps()}
+      {...RouteComponentPropsFixture()}
       organization={organization}
       project={project}
       params={params}
     >
       <IssueRuleEditor
-        route={TestStubs.routeComponentProps().route}
-        routeParams={TestStubs.routeComponentProps().routeParams}
+        route={RouteComponentPropsFixture().route}
+        routeParams={RouteComponentPropsFixture().routeParams}
         params={params}
         location={router.location}
         routes={projectAlertRuleDetailsRoutes}
