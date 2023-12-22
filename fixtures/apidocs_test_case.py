@@ -3,8 +3,8 @@ import os
 
 from django.conf import settings
 from openapi_core.contrib.django import DjangoOpenAPIRequest, DjangoOpenAPIResponse
-from openapi_core.spec.shortcuts import create_spec
-from openapi_core.validation.response import openapi_v30_response_validator
+from openapi_core.spec import Spec
+from openapi_core.validation.response.validators import V30ResponseDataValidator
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -22,7 +22,7 @@ class APIDocsTestCase(APITestCase):
             data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
             del data["components"]
 
-            return create_spec(data)
+            return Spec.from_dict(data)
 
     def validate_schema(self, request, response):
         assert 200 <= response.status_code < 300, response.status_code
@@ -31,12 +31,9 @@ class APIDocsTestCase(APITestCase):
             assert len(response.data) > 0, "Cannot validate an empty list"
 
         response["Content-Type"] = "application/json"
-        result = openapi_v30_response_validator.validate(
-            self.cached_schema, DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
+        V30ResponseDataValidator(self.cached_schema).validate(
+            DjangoOpenAPIRequest(request), DjangoOpenAPIResponse(response)
         )
-
-        result.raise_for_errors()
-        assert result.errors == []
 
     def create_event(self, name, **kwargs):
         # Somewhat sane default data.
