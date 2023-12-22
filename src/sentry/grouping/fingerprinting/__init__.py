@@ -1,4 +1,9 @@
+from __future__ import annotations
+
+import functools
 import inspect
+import logging
+from pathlib import Path
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -11,6 +16,8 @@ from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.strings import unescape_string
+
+logger = logging.getLogger(__name__)
 
 VERSION = 1
 
@@ -149,19 +156,23 @@ class EventAccess:
 
 
 class FingerprintingRules:
-    def __init__(self, rules, changelog=None, version=None):
+    def __init__(self, rules, changelog=None, version=None, _config_dir: str = None):
+        self._config_dir = (
+            Path(__file__).with_name("configs") if _config_dir is None else Path(_config_dir)
+        )
         if version is None:
             version = VERSION
         self.version = version
         self.rules = rules
         self.changelog = changelog
 
-    def iter_rules(self):
-        return iter(self.rules)
+    def iter_rules(self, include_builtin=True):
+        if include_builtin and self.built_in_rules:
+            yield from self.built_in_rules
+        if self.rules:
+            yield from self.rules
 
     def get_fingerprint_values_for_event(self, event):
-        if not self.rules:
-            return
         access = EventAccess(event)
         for rule in self.iter_rules():
             new_values = rule.get_fingerprint_values_for_event_access(access)
@@ -175,11 +186,42 @@ class FingerprintingRules:
             raise ValueError("Unknown version")
         return cls(rules=[Rule._from_config_structure(x) for x in data["rules"]], version=version)
 
-    def _to_config_structure(self):
-        return {"version": self.version, "rules": [x._to_config_structure() for x in self.rules]}
+    def _to_config_structure(self, include_builtin=False):
+        rules = self.iter_rules() if include_builtin else self.rules
+
+        return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
 
     def to_json(self):
         return self._to_config_structure()
+
+    @functools.cached_property
+    def built_in_rules(self) -> list[Rule]:
+        built_in_rules = []
+        if not self._config_dir.exists():
+            logger.warning(
+                "Failed to load Fingerprinting Configs, invalid _config_dir: %s",
+                self._config_dir,
+            )
+        for config_file_path in self._config_dir.glob("*.txt"):
+            try:
+                with open(config_file_path) as config_file:
+                    str_conf = config_file.read().rstrip()
+                    built_in_rules.extend(self.from_config_string(str_conf).rules)
+
+            except InvalidFingerprintingConfig as ex:
+                logger.warning(
+                    "Fingerprinting Config %s Invalid: %s",
+                    config_file_path,
+                    ex,
+                )
+            except Exception as ex:
+                logger.warning(
+                    "Failed to load Fingerprinting Config %s: %s",
+                    config_file_path,
+                    ex,
+                )
+        # print(f"{built_in_rules=}")
+        return built_in_rules
 
     @classmethod
     def from_json(cls, value):
@@ -189,7 +231,7 @@ class FingerprintingRules:
             raise ValueError("invalid fingerprinting config: %s" % e)
 
     @classmethod
-    def from_config_string(self, s):
+    def from_config_string(cls, s):
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:

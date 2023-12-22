@@ -184,3 +184,114 @@ def test_event_hash_variant(insta_snapshot, input):
             },
         }
     )
+
+
+def test_built_in_chunkload_rules():
+    rules = FingerprintingRules(rules=[])
+    assert rules.built_in_rules
+    assert not rules.rules
+
+    # breakpoint()
+    assert rules._to_config_structure() == {"rules": [], "version": 1}
+    assert rules._to_config_structure(include_builtin=True) == {
+        "rules": [
+            {
+                "matchers": [["type", "ChunkLoadError"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+            {
+                "matchers": [["value", "ChunkLoadError*"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+        ],
+        "version": 1,
+    }
+
+
+def test_built_in_chunkload_rules_from_empty_config_string():
+    rules = FingerprintingRules.from_config_string("")
+    assert rules.built_in_rules
+    assert not rules.rules
+
+    # breakpoint()
+    assert rules._to_config_structure() == {"rules": [], "version": 1}
+    assert rules._to_config_structure(include_builtin=True) == {
+        "rules": [
+            {
+                "matchers": [["type", "ChunkLoadError"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+            {
+                "matchers": [["value", "ChunkLoadError*"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+        ],
+        "version": 1,
+    }
+
+
+def test_built_in_chunkload_rules_from_config_string_with_custom():
+    rules = FingerprintingRules.from_config_string(
+        """
+# This is a config
+error.type:DatabaseUnavailable                        -> DatabaseUnavailable
+"""
+    )
+    assert rules.built_in_rules
+    assert rules.rules
+
+    # breakpoint()
+    assert rules._to_config_structure() == {
+        "rules": [
+            {
+                "matchers": [["type", "DatabaseUnavailable"]],
+                "fingerprint": ["DatabaseUnavailable"],
+                "attributes": {},
+            },
+        ],
+        "version": 1,
+    }
+    assert rules._to_config_structure(include_builtin=True) == {
+        "rules": [
+            {
+                "matchers": [["type", "ChunkLoadError"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+            {
+                "matchers": [["value", "ChunkLoadError*"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+            {
+                "matchers": [["type", "DatabaseUnavailable"]],
+                "fingerprint": ["DatabaseUnavailable"],
+                "attributes": {},
+            },
+        ],
+        "version": 1,
+    }
+
+
+def test_built_in_empty_doesnt_blow_up(tmp_path):
+    rules = FingerprintingRules(rules=[], _config_dir=tmp_path)
+    assert not rules.built_in_rules
+    assert not rules.rules
+
+
+def test_built_in_borked_path_blow_up():
+    rules = FingerprintingRules(rules=[], _config_dir="/a/non/existent/path")
+    assert not rules.rules
+    assert not rules.built_in_rules
+
+
+def test_built_in_borked_file_doesnt_blow_up(tmp_path, caplog):
+    with open(tmp_path / "foo.txt", "w") as foo:
+        foo.write("a malformed rule file that ought to be ignored")
+    rules = FingerprintingRules(rules=[], _config_dir=tmp_path)
+    assert not rules.built_in_rules
+    assert not rules.rules
