@@ -58,7 +58,7 @@ export default storyBook(Alert, story => {
           This is an error alert. Something went wrong.
         </Alert>
         <Alert type="info" showIcon>
-          Info alerts. Put some exciting info here.
+          Info alert. Put some exciting info here.
         </Alert>
         <Alert type="muted" showIcon>
           Muted alerts look like this.
@@ -78,7 +78,7 @@ export default storyBook(Alert, story => {
       <Fragment>
         <p>
           The <JSXProperty name="icon" value /> prop can be changed if you want to
-          customize default icon. Just directly pass in the icon, like{' '}
+          customize the default icon. Just directly pass in the icon, like{' '}
           <JSXNode name="IconDelete" /> for example, to the prop.
         </p>
         <Alert type="warning" showIcon icon={<IconDelete />}>
