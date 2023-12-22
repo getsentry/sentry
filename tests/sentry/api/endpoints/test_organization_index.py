@@ -198,7 +198,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert not org.slug.isdecimal()
 
     @patch(
-        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
+        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.backend.is_limited",
         return_value=False,
     )
     def test_name_slugify(self, is_limited):
