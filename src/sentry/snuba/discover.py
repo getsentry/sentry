@@ -74,10 +74,6 @@ class EventsMeta(TypedDict):
     isMetricsExtractedData: NotRequired[bool]
 
 
-# When calling make build-spectacular-docs we hit this issue
-# https://github.com/tfranzel/drf-spectacular/issues/1041
-
-
 class EventsResponse(TypedDict):
     data: List[Dict[str, Any]]
     meta: EventsMeta
