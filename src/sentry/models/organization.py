@@ -26,6 +26,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -172,7 +173,7 @@ class Organization(
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
-    slug: models.Field[str, str] = models.SlugField(unique=True)
+    slug: models.Field[str, str] = SentrySlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
