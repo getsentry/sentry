@@ -470,14 +470,28 @@ function MonitorForm({
                 multiple
                 menuPlacement="auto"
               />
-              <SelectField
-                label={t('Environment')}
-                help={t('Only receive notifications from a specific environment.')}
-                name="alertRule.environment"
-                options={alertRuleEnvs}
-                menuPlacement="auto"
-                defaultValue=""
-              />
+              <Observer>
+                {() => {
+                  const selectedAssignee = form.current.getValue('alertRule.targets');
+                  // Check for falsey value or empty array value
+                  const disabled = !selectedAssignee || !selectedAssignee.toString();
+
+                  return (
+                    <SelectField
+                      label={t('Environment')}
+                      help={t('Only receive notifications from a specific environment.')}
+                      name="alertRule.environment"
+                      options={alertRuleEnvs}
+                      disabled={disabled}
+                      menuPlacement="auto"
+                      defaultValue=""
+                      disabledReason={t(
+                        'Please select which teams or members to notify first.'
+                      )}
+                    />
+                  );
+                }}
+              </Observer>
             </PanelBody>
           </Panel>
         </InputGroup>
