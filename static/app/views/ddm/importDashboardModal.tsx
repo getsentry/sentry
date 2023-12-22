@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
+import TextArea from 'sentry/components/forms/controls/textarea';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import Tag from 'sentry/components/tag';
@@ -76,9 +76,11 @@ function ImportDashboardModal({Header, Body, Footer}: ModalRenderProps) {
       <Body>
         <ContentWrapper>
           {formState.step === 'initial' && (
-            <Input
+            <JSONTextArea
+              rows={4}
+              maxRows={20}
               name="dashboard"
-              placeholder={t('Paste dashboard JSON')}
+              placeholder={t('Paste dashboard JSON ')}
               value={formState.dashboard}
               onChange={e => {
                 const isValid = isValidJson(e.target.value);
@@ -143,6 +145,10 @@ const ContentWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${space(2)};
+`;
+
+const JSONTextArea = styled(TextArea)`
+  min-height: 200px;
 `;
 
 const isValidJson = (str: string) => {
