@@ -2,10 +2,11 @@ import styled from '@emotion/styled';
 
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {t} from 'sentry/locale';
-import {RegionData} from 'sentry/utils/regions';
+import {Organization} from 'sentry/types';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 
 type Props = {
-  region: RegionData;
+  organization?: Organization;
 };
 
 const OrganizationRegionInformationWrapper = styled('div')`
@@ -17,12 +18,21 @@ const OrganizationFlag = styled('span')`
   font-size: large;
 `;
 
-export function OrganizationRegionAction({region, ...props}: Props) {
+export function OrganizationRegionAction({organization, ...props}: Props) {
+  if (!organization) {
+    return null;
+  }
+
+  const regionData = getRegionDataFromOrganization(organization);
+
+  if (!regionData) {
+    return null;
+  }
   return (
     <OrganizationRegionInformationWrapper {...props}>
       <div>
-        {`${region.regionDisplayName} `}
-        <OrganizationFlag>{region.regionFlag}</OrganizationFlag>
+        {`${regionData.regionDisplayName} `}
+        <OrganizationFlag>{regionData.regionFlag}</OrganizationFlag>
       </div>
       <FieldHelp>
         {t("Your org's data storage location. ")}

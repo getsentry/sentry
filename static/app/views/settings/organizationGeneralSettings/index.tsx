@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import {EmotionJSX} from '@emotion/react/types/jsx-namespace';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -19,7 +18,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -106,13 +104,9 @@ function OrganizationGeneralSettings(props: Props) {
     });
   };
 
-  const regionData = getRegionDataFromOrganization(organization);
-  let organizationRegionInfo: EmotionJSX.Element | undefined = undefined;
-  if (regionData) {
-    organizationRegionInfo = OrganizationRegionAction({
-      region: regionData,
-    });
-  }
+  const organizationRegionInfo = OrganizationRegionAction({
+    organization,
+  });
 
   return (
     <Fragment>
