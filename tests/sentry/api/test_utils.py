@@ -4,16 +4,22 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import APIException
 from sentry_sdk import Scope
 from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
-    APIException,
+    customer_domain_path,
+    get_date_range_from_params,
+    handle_query_errors,
+    print_and_capture_handler_exception,
+)
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.snuba import (
     DatasetSelectionError,
-    IncompatibleMetricsQuery,
-    InvalidParams,
-    InvalidSearchQuery,
     QueryConnectionFailed,
     QueryExecutionError,
     QueryExecutionTimeMaximum,
@@ -27,13 +33,7 @@ from sentry.api.utils import (
     SchemaValidationError,
     SnubaError,
     UnqualifiedQueryError,
-    customer_domain_path,
-    get_date_range_from_params,
-    handle_query_errors,
-    print_and_capture_handler_exception,
 )
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -220,6 +220,10 @@ def test_customer_domain_path():
         assert expected == customer_domain_path(input_path)
 
 
+class TestException(Exception):
+    pass
+
+
 class HandleQueryErrorsTest:
     @patch("sentry.api.utils.ParseError")
     def test_handle_query_errors(self, mock_parse_error):
@@ -242,14 +246,10 @@ class HandleQueryErrorsTest:
             SnubaError,
             UnqualifiedQueryError,
         ]
-
-        class FooBar(Exception):
-            pass
-
-        mock_parse_error.return_value = FooBar()
-        for ex, idx in enumerate(exceptions):
+        mock_parse_error.return_value = TestException()
+        for ex in exceptions:
             try:
                 with handle_query_errors(self):
                     raise ex
             except Exception as e:
-                assert isinstance(e, (FooBar, APIException))
+                assert isinstance(e, (TestException, APIException))
