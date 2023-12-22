@@ -21,7 +21,7 @@ const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexed
 const imageWidth = '200px';
 
 function SampleImages({groupId}: Props) {
-  const isImagesEnabled = false; // TODO - this is temporary, this will be controlled by a project setting
+  const isImagesEnabled = true; // TODO - this is temporary, this will be controlled by a project setting
   const [showImages, setShowImages] = useState(isImagesEnabled);
 
   const imageResources = useIndexedResourcesQuery({
@@ -44,7 +44,7 @@ function SampleImages({groupId}: Props) {
     .splice(0, 5);
 
   return (
-    <ChartPanel title={showImages ? t('Example Images') : undefined}>
+    <ChartPanel title={showImages ? t('Largest Images') : undefined}>
       {showImages ? (
         <ImageWrapper>
           {filteredResources.map(resource => {
@@ -106,6 +106,7 @@ function ImageContainer(props: {
   src: string;
 }) {
   const theme = useTheme();
+  const [hasError, setHasError] = useState(false);
 
   const {fileName, size, src, showImage = true} = props;
   const fileSize = getDynamicText({
@@ -119,8 +120,8 @@ function ImageContainer(props: {
     <div style={{width: '100%', wordWrap: 'break-word'}}>
       {
         // TODO - this is temporary, this will be controlled by a project setting
-        showImage ? (
-          <img src={src} style={commonStyles} />
+        showImage && !hasError ? (
+          <img onError={() => setHasError(true)} src={src} style={commonStyles} />
         ) : (
           <div style={{...commonStyles, backgroundColor: theme.gray100}} />
         )
