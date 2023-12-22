@@ -490,8 +490,7 @@ def _convert_aggregate_and_query_to_metric(
             return None
 
         metric_specs_and_hashes = []
-        hashes = set()
-        # Create as many specs as we support without duplication
+        # Create as many specs as we support
         for spec_version in get_spec_versions():
             on_demand_spec = OnDemandMetricSpec(
                 field=aggregate,
@@ -502,11 +501,6 @@ def _convert_aggregate_and_query_to_metric(
                 spec_version=spec_version,
             )
             metric_spec = on_demand_spec.to_metric_spec(project)
-            # This prevents returning duplicates
-            if on_demand_spec.query_hash in hashes:
-                continue
-            hashes.add(on_demand_spec.query_hash)
-
             # TODO: switch to validate_rule_condition
             if (condition := metric_spec.get("condition")) is not None:
                 validate_sampling_condition(json.dumps(condition))
