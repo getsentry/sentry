@@ -41,7 +41,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams as UtilsInvalidParams
+from sentry.exceptions import InvalidParams as UtilsInvalidParams
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.release_health.base import (

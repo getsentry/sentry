@@ -9,8 +9,9 @@ from sentry_sdk import Scope
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import bind_organization_context, configure_scope
