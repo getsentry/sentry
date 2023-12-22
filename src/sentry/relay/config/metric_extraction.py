@@ -24,11 +24,11 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
-    SPEC_VERSIONS,
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
     RuleCondition,
+    get_spec_versions,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
@@ -492,7 +492,7 @@ def _convert_aggregate_and_query_to_metric(
         metric_specs_and_hashes = []
         hashes = set()
         # Create as many specs as we support without duplication
-        for spec_version in SPEC_VERSIONS:
+        for spec_version in get_spec_versions():
             on_demand_spec = OnDemandMetricSpec(
                 field=aggregate,
                 query=query,
