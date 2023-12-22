@@ -334,7 +334,6 @@ module = [
     "sentry.incidents.endpoints.organization_alert_rule_index",
     "sentry.incidents.endpoints.organization_incident_comment_details",
     "sentry.incidents.endpoints.organization_incident_index",
-    "sentry.incidents.events",
     "sentry.incidents.logic",
     "sentry.incidents.models",
     "sentry.incidents.subscription_processor",
