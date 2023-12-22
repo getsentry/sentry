@@ -1352,6 +1352,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
 
 
 MAX_NEW_ESCALATION_AGE_HOURS = 24
+MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
 
 def detect_new_escalation(job: PostProcessJob):
@@ -1383,7 +1384,11 @@ def detect_new_escalation(job: PostProcessJob):
     group_age_hours = group_age_seconds / 3600 if group_age_seconds >= 3600 else 1
     times_seen = group.times_seen_with_pending
     has_valid_status = group.substatus == GroupSubStatus.NEW
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status or times_seen <= 1:
+    if (
+        group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS
+        or not has_valid_status
+        or times_seen < MIN_EVENTS_FOR_NEW_ESCALATION
+    ):
         logger.warning(
             "tasks.post_process.detect_new_escalation.skipping_detection",
             extra={
