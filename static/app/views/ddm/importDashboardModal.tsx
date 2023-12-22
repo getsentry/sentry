@@ -10,7 +10,7 @@ import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {parseDashboard, ParseResult} from 'sentry/utils/metrics/import';
+import {parseDashboard, ParseResult} from 'sentry/utils/metrics/dashboardImport';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {OrganizationContext} from 'sentry/views/organizationContext';

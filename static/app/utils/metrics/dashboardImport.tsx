@@ -4,13 +4,13 @@ import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
 import {MetricMeta, MRI} from '../../types/metrics';
 
 // import types
-type Dashboard = {
+export type ImportDashboard = {
   description: string;
   title: string;
-  widgets: Widget[];
+  widgets: ImportWidget[];
 };
 
-type Widget = {
+export type ImportWidget = {
   definition: WidgetDefinition;
   id: number;
 };
@@ -19,7 +19,7 @@ type WidgetDefinition = {
   query: string;
   title: string;
   type: string;
-  widgets: Widget[];
+  widgets: ImportWidget[];
   legend_columns?: ('avg' | 'max' | 'min' | 'sum' | 'value')[];
   requests?: Request[];
 };
@@ -65,7 +65,7 @@ export type ParseResult = {
 };
 
 export async function parseDashboard(
-  dashboard: Dashboard,
+  dashboard: ImportDashboard,
   availableMetrics: MetricMeta[]
 ): Promise<ParseResult> {
   const {widgets = []} = dashboard;
@@ -99,7 +99,7 @@ export class WidgetParser {
   private api = new Client();
 
   constructor(
-    private importedWidget: Widget,
+    private importedWidget: ImportWidget,
     private availableMetrics: MetricMeta[]
   ) {}
 
@@ -114,19 +114,18 @@ export class WidgetParser {
       if (!SUPPORTED_WIDGET_TYPES.has(widgetType)) {
         throw new Error(`widget - unsupported type ${widgetType}`);
       }
-
       const widgets = await this.parseWidget();
 
       const notes: string[] = [];
+      if (!widgets.length) {
+        throw new Error('widget - no queries found');
+      }
       if (widgets.length > 1) {
         notes.push(`Exploded widget into ${widgets.length} widgets`);
       }
 
-      const outcome: ImportOutcome = widgets.length
-        ? this.errors.length || notes.length
-          ? 'warning'
-          : 'success'
-        : 'error';
+      const outcome: ImportOutcome =
+        this.errors.length || notes.length ? 'warning' : 'success';
 
       return {
         report: {
@@ -143,7 +142,7 @@ export class WidgetParser {
         report: {
           id,
           title,
-          errors: [e.message],
+          errors: [e.message, ...this.errors],
           notes: [],
           outcome: 'error' as const,
         },
@@ -275,7 +274,7 @@ export class WidgetParser {
 
     if (!metric) {
       this.errors.push(
-        `widget.request.query - could not parse name: ${str}, assuming count`
+        `widget.request.query - could not parse name: ${str}, assuming ${metric}`
       );
       metric = 'sentry.event_manager.save';
     }
@@ -324,15 +323,14 @@ export class WidgetParser {
   }
 
   // Mapping functions
-
   private async mapToMetricWidget(widget): Promise<MetricWidget | null> {
     const {metric, op, filters} = widget;
 
-    // @ts-expect-error
+    // @ts-expect-error name is actually defined on MetricMeta
     const metricMeta = this.availableMetrics.find(m => m.name === metric);
 
     if (!metricMeta) {
-      this.errors.push(`widget - metric not found: ${metric}`);
+      this.errors.push(`widget.request.query - metric not found: ${metric}`);
       return null;
     }
 
@@ -370,6 +368,7 @@ export class WidgetParser {
   ) {
     const queryFilters = filters.map(filter => {
       const {key, value} = filter;
+
       if (!availableTags.includes(key)) {
         this.errors.push(`widget.request.query - unsupported filter: ${key}`);
         return null;
