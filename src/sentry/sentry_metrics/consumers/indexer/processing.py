@@ -1,5 +1,7 @@
+import cProfile
 import logging
 import random
+import time
 from typing import Any, Callable, Mapping
 
 import sentry_kafka_schemas
@@ -80,7 +82,10 @@ class MessageProcessor:
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
             sampled=random.random() < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,
         ):
-            return self._process_messages_impl(outer_message)
+            with cProfile.Profile() as pr:
+                res = self._process_messages_impl(outer_message)
+                pr.dump_stats(f"{time.time()}_processing.prof")
+                return res
 
     def _process_messages_impl(
         self,
