@@ -158,7 +158,9 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             "sentry-metrics.synchronize-kafka-rebalances"
         ):
             configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
+            logger.info("Starting delay in subscription step")
             delay_kafka_rebalance(configured_delay)
+            logger.info("Finished delay in subscription step")
 
     def create_with_partitions(
         self,
