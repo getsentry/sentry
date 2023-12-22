@@ -10,25 +10,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
+import {
+  getRegionChoices,
+  RegionDisplayName,
+  shouldDisplayRegions,
+} from 'sentry/utils/regions';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-
-enum RegionDisplayName {
-  US = '🇺🇸 United States of America (US)',
-  DE = '🇪🇺 European Union (EU)',
-}
-
-function getRegionChoices(): [string, string][] {
-  const regions = ConfigStore.get('regions') ?? [];
-
-  return regions.map(({name, url}) => {
-    const regionName = name.toUpperCase();
-    if (RegionDisplayName[regionName]) {
-      return [url, RegionDisplayName[regionName]];
-    }
-
-    return [url, name];
-  });
-}
 
 function getDefaultRegionChoice(
   regionChoices: [string, string][]
@@ -46,14 +33,6 @@ function getDefaultRegionChoice(
   }
 
   return regionChoices[0];
-}
-
-function shouldDisplayRegions(): boolean {
-  const regionCount = (ConfigStore.get('regions') ?? []).length;
-  return (
-    ConfigStore.get('features').has('organizations:multi-region-selector') &&
-    regionCount > 1
-  );
 }
 
 function removeRegionFromRequestForm(formData: Record<string, any>) {
