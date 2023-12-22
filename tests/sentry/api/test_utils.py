@@ -220,7 +220,7 @@ def test_customer_domain_path():
         assert expected == customer_domain_path(input_path)
 
 
-class TestException(Exception):
+class FooBarError(Exception):
     pass
 
 
@@ -246,10 +246,10 @@ class HandleQueryErrorsTest:
             SnubaError,
             UnqualifiedQueryError,
         ]
-        mock_parse_error.return_value = TestException()
+        mock_parse_error.return_value = FooBarError()
         for ex in exceptions:
             try:
                 with handle_query_errors(self):
                     raise ex
             except Exception as e:
-                assert isinstance(e, (TestException, APIException))
+                assert isinstance(e, (FooBarError, APIException))
