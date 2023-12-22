@@ -100,7 +100,6 @@ class IndexerBatch:
 
         self._extract_messages()
 
-    @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
         """
         For each messages:
@@ -246,7 +245,6 @@ class IndexerBatch:
             )
             raise ValueError(f"Invalid metric tags: {tags}")
 
-    @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[BrokerMeta]) -> None:
         # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
         for broker_meta in keys_to_remove:
@@ -267,7 +265,6 @@ class IndexerBatch:
 
         self.filtered_msg_meta.update(keys_to_remove)
 
-    @metrics.wraps("process_messages.extract_strings")
     def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, Set[str]]]:
         strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]] = defaultdict(
             lambda: defaultdict(set)
@@ -301,7 +298,6 @@ class IndexerBatch:
 
         return strings
 
-    @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
         mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
