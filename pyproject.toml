@@ -239,7 +239,6 @@ module = [
     "sentry.api.endpoints.user_details",
     "sentry.api.endpoints.user_identity_config",
     "sentry.api.endpoints.user_index",
-    "sentry.api.endpoints.user_notification_details",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
     "sentry.api.helpers.deprecation",
