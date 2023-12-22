@@ -1,7 +1,10 @@
 import {Fragment, ReactElement} from 'react';
-import {urlEncode} from '@sentry/utils';
+import {Link} from 'react-router';
+import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+// import {urlEncode} from '@sentry/utils';
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {IconOpen} from 'sentry/icons';
 import type {Frame} from 'sentry/types';
 import {isUrl} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
@@ -44,13 +47,17 @@ export const renderLinksInText = ({
   const elements = parts.flatMap((part, index) => {
     const isUrlValid = urls[index] && isUrl(urls[index]);
     const link = isUrlValid ? (
-      <ExternalLink
+      <Link
+        to=""
         key={`link-${index}`}
-        href={`${window.location.origin}/redirect?${urlEncode({url: urls[index]})}`}
-        openInNewTab
+        onClick={() => {
+          const linkText = urls[index];
+          openNavigateToExternalLinkModal({linkText});
+        }}
       >
         {urls[index]}
-      </ExternalLink>
+        <IconPlacement size="xs" />
+      </Link>
     ) : urls[index] ? (
       <span key={`invalid-url-${index}`}>{urls[index]}</span>
     ) : null;
@@ -78,3 +85,9 @@ export const sourceMapSdkDocsMap: Record<string, string> = {
   'sentry.javascript.react-native': 'react-native',
   'sentry.javascript.atro': 'astro',
 };
+
+const IconPlacement = styled(IconOpen)`
+  display: inline-block;
+  margin-left: 5px;
+  vertical-align: center;
+`;

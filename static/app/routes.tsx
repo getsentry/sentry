@@ -312,11 +312,6 @@ function buildRoutes() {
         component={withDomainRedirect(make(() => import('sentry/views/stories/index')))}
         key="org-stories"
       />
-      <Route
-        path="/redirect/"
-        component={make(() => import('sentry/views/externalRedirect/index'))}
-        key="external-redirect"
-      />
     </Fragment>
   );
 
