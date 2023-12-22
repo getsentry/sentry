@@ -5,6 +5,7 @@ import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -44,7 +45,7 @@ describe('projectGeneralSettings', function () {
   let routerContext;
   let putMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
     location: LocationFixture(),
     routes: router.routes,
@@ -57,7 +58,7 @@ describe('projectGeneralSettings', function () {
     jest.spyOn(window.location, 'assign');
     routerContext = RouterContextFixture([
       {
-        router: TestStubs.router({
+        router: RouterFixture({
           params: {
             projectId: project.slug,
           },

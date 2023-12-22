@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppToken} from 'sentry-fixture/sentryAppToken';
 
@@ -17,7 +18,7 @@ describe('Sentry Application Details', function () {
 
   const maskedValue = '*'.repeat(64);
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
