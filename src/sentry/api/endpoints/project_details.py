@@ -544,7 +544,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         if has_elevated_scopes:
-            serializer_cls = ProjectAdminSerializer
+            serializer_cls: type[ProjectMemberSerializer] = ProjectAdminSerializer
         else:
             serializer_cls = ProjectMemberSerializer
 
