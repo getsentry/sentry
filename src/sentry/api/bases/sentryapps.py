@@ -177,15 +177,15 @@ class SentryAppPermission(SentryPermission):
     unpublished_scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
         "PUT": ("org:write", "org:admin"),
-        "POST": ("org:write", "org:admin"),  # used for publishing an app
-        "DELETE": ("org:write", "org:admin"),
+        "POST": ("org:admin",),  # used for publishing an app
+        "DELETE": ("org:admin",),
     }
 
     published_scope_map = {
         "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
-        "POST": ("org:write", "org:admin"),
-        "DELETE": ("org:admin"),
+        "POST": ("org:admin",),
+        "DELETE": ("org:admin",),
     }
 
     @property
