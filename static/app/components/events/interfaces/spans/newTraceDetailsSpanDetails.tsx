@@ -22,7 +22,6 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import {useTransactionProfileId} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
@@ -99,7 +98,7 @@ export type SpanDetailProps = {
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
-  const profileId = useTransactionProfileId();
+  const profileId = props.event.contexts.profile?.profile_id || '';
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
 
@@ -232,7 +231,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     );
 
     return (
-      <Row title="Child Transaction" extra={viewChildButton}>
+      <Row title={t('Child Transaction')} extra={viewChildButton}>
         {`${transactionResult.transaction} (${transactionResult['project.name']})`}
       </Row>
     );
@@ -467,12 +466,12 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   {profileId}
                 </Row>
               )}
-              <Row title="Description" extra={renderSpanDetailActions()}>
+              <Row title={t('Description')} extra={renderSpanDetailActions()}>
                 {span?.description ?? ''}
               </Row>
-              <Row title="Status">{span.status || ''}</Row>
-              <Row title="Duration">{durationString}</Row>
-              <Row title="Date Range">
+              <Row title={t('Status')}>{span.status || ''}</Row>
+              <Row title={t('Duration')}>{durationString}</Row>
+              <Row title={t('Date Range')}>
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
                   value: (
@@ -493,20 +492,20 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   ),
                 })}
               </Row>
-              <Row title="Origin">
+              <Row title={t('Origin')}>
                 {span.origin !== undefined ? String(span.origin) : null}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               {renderSpanChild()}
-              <Row title="Same Process as Parent">
+              <Row title={t('Same Process as Parent')}>
                 {span.same_process_as_parent !== undefined
                   ? String(span.same_process_as_parent)
                   : null}
               </Row>
-              <Row title="Span Group">
+              <Row title={t('Span Group')}>
                 {defined(span.hash) ? String(span.hash) : null}
               </Row>
-              <Row title="Span Self Time">
+              <Row title={t('Span Self Time')}>
                 {defined(span.exclusive_time)
                   ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
                   : null}

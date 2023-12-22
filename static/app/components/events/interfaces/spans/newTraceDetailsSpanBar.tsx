@@ -2,7 +2,6 @@ import 'intersection-observer'; // this is a polyfill
 
 import {Component, createRef, Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
@@ -12,7 +11,7 @@ import {
   FREQUENCY_BOX_WIDTH,
   SpanFrequencyBox,
 } from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
-import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   Row,
@@ -50,12 +49,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {
-  AggregateEventTransaction,
-  EventOrGroupType,
-  EventTransaction,
-} from 'sentry/types/event';
+import {EventOrGroupType, EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -77,19 +71,11 @@ import {
 } from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {SpanDetailProps} from './newTraceDetailsSpanDetails';
-import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
+import {withScrollbarManager} from './scrollbarManager';
+import {SpanBarProps} from './spanBar';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {
-  AggregateSpanType,
-  FetchEmbeddedChildrenState,
-  GapSpanType,
-  GroupType,
-  ParsedTraceType,
-  ProcessedSpanType,
-  SpanType,
-  TreeDepthType,
-} from './types';
+import {AggregateSpanType, GapSpanType, GroupType, ProcessedSpanType} from './types';
 import {
   durationlessBrowserOps,
   formatSpanTreeLabel,
@@ -103,7 +89,6 @@ import {
   isOrphanSpan,
   isOrphanTreeDepth,
   shouldLimitAffectedToTiming,
-  SpanBoundsType,
   SpanGeneratedBoundsType,
   spanTargetHash,
   SpanViewBoundsType,
@@ -126,55 +111,13 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 export const MARGIN_LEFT = 0;
 
-export type SpanBarProps = ScrollbarManagerChildrenProps & {
-  addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
-  cellMeasurerCache: CellMeasurerCache;
-  continuingTreeDepths: Array<TreeDepthType>;
-  didAnchoredSpanMount: () => boolean;
-  event: Readonly<EventTransaction | AggregateEventTransaction>;
-  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  getCurrentLeftPos: () => number;
-  isEmbeddedTransactionTimeAdjusted: boolean;
-  isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
-  isSpanInEmbeddedTree: boolean;
-  listRef: React.RefObject<ReactVirtualizedList>;
+export type NewTraceDetailsSpanBarProps = SpanBarProps & {
   location: Location;
-  numOfSpanChildren: number;
-  numOfSpans: number;
-  onWheel: (deltaX: number) => void;
-  organization: Organization;
   quickTrace: QuickTraceContextChildrenProps;
-  removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
-  resetCellMeasureCache: () => void;
-  showEmbeddedChildren: boolean;
-  showSpanTree: boolean;
-  span: ProcessedSpanType | AggregateSpanType;
-  spanNumber: number;
-  storeSpanBar: (spanBar: NewTraceDetailsSpanBar) => void;
-  toggleEmbeddedChildren:
-    | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
-    | undefined;
-  toggleSpanGroup: (() => void) | undefined;
-  toggleSpanTree: () => void;
-  trace: Readonly<ParsedTraceType>;
-  treeDepth: number;
-  fromTraceView?: boolean;
-  groupOccurrence?: number;
-  groupType?: GroupType;
-  isLast?: boolean;
-  isRoot?: boolean;
-  markAnchoredSpanIsMounted?: () => void;
-  measure?: () => void;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
-  spanBarColor?: string;
-  spanBarType?: SpanBarType;
-  toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
-export class NewTraceDetailsSpanBar extends Component<SpanBarProps> {
+export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProps> {
   componentDidMount() {
     this._mounted = true;
     this.updateHighlightedState();
@@ -203,14 +146,8 @@ export class NewTraceDetailsSpanBar extends Component<SpanBarProps> {
       this.spanContentRef.style.transformOrigin = 'left';
     }
 
-    const {
-      span,
-      markAnchoredSpanIsMounted,
-      addExpandedSpan,
-      isSpanExpanded,
-      measure,
-      didAnchoredSpanMount,
-    } = this.props;
+    const {span, markAnchoredSpanIsMounted, addExpandedSpan, didAnchoredSpanMount} =
+      this.props;
 
     if (isGapSpan(span)) {
       return;
@@ -222,13 +159,9 @@ export class NewTraceDetailsSpanBar extends Component<SpanBarProps> {
       addExpandedSpan(span);
       return;
     }
-
-    if (isSpanExpanded(span)) {
-      this.setState({showDetail: true}, measure);
-    }
   }
 
-  componentDidUpdate(prevProps: Readonly<SpanBarProps>): void {
+  componentDidUpdate(prevProps: Readonly<NewTraceDetailsSpanBarProps>): void {
     if (this.props.location.query !== prevProps.location.query) {
       this.updateHighlightedState();
     }
@@ -267,6 +200,9 @@ export class NewTraceDetailsSpanBar extends Component<SpanBarProps> {
       this.span_id &&
       this.span_id === this.props.span.span_id
     );
+
+    // TODO Abdullah Khan: Converting the component to a functional component will help us get rid
+    // of the forcedUpdate.
     this.forceUpdate();
   };
 
@@ -289,21 +225,15 @@ export class NewTraceDetailsSpanBar extends Component<SpanBarProps> {
   };
 
   scrollIntoView = () => {
-    const {addExpandedSpan, span, measure} = this.props;
-
     const element = this.spanRowDOMRef.current;
     if (!element) {
       return;
     }
 
-    this.setState({showDetail: true}, () => {
-      addExpandedSpan(span, measure);
-
-      const boundingRect = element.getBoundingClientRect();
-      // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
-      const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
-      window.scrollTo(0, offset);
-    });
+    const boundingRect = element.getBoundingClientRect();
+    // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
+    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
+    window.scrollTo(0, offset);
   };
 
   getBounds(bounds?: SpanGeneratedBoundsType): SpanViewBoundsType {

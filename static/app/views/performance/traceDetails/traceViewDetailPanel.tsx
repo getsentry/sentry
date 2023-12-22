@@ -43,7 +43,6 @@ import {
   ErrorMessageTitle,
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -483,13 +482,7 @@ function SpanDetailsBody({
                 input={profiles?.type === 'resolved' ? profiles.data : null}
                 traceID={profileId || ''}
               >
-                <TransactionProfileIdProvider
-                  projectId={detail.event.projectID}
-                  transactionId={detail.event.id}
-                  timestamp={detail.event.dateReceived}
-                >
-                  <NewTraceDetailsSpanDetail {...detail} />
-                </TransactionProfileIdProvider>
+                <NewTraceDetailsSpanDetail {...detail} />
               </ProfileGroupProvider>
             )}
           </ProfileContext.Consumer>
