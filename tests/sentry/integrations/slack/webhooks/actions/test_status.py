@@ -76,7 +76,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def get_ignore_status_action(self, text, selection):
         return {
-            "action_id": "status",
+            "action_id": selection,
             "block_id": "bXwil",
             "text": {
                 "type": "plain_text",
