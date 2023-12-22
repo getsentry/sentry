@@ -38,7 +38,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
 
 
 @control_silo_endpoint
-class AuthIndexBaseEndpoint(Endpoint):
+class BaseAuthIndexEndpoint(Endpoint):
     """
     Base endpoint to manage session authentication. Shared between
     AuthIndexEndpoint and StaffAuthIndexEndpoint (in getsentry)
@@ -113,7 +113,7 @@ class AuthIndexBaseEndpoint(Endpoint):
 
 
 @control_silo_endpoint
-class AuthIndexEndpoint(AuthIndexBaseEndpoint):
+class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
