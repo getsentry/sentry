@@ -1630,6 +1630,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-performance": False,
     # Enable issue stream performance improvements (cache)
     "organizations:issue-stream-performance-cache": False,
+    # Enable issue similarity embeddings
+    "organizations:issues-similarity-embeddings": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable metric alert charts in email/slack
