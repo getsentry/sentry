@@ -70,7 +70,17 @@ SPEC_VERSIONS = [
 
 
 def get_spec_versions(min_version: int = 0) -> Sequence[SpecVersion]:
-    return [v for v in SPEC_VERSIONS if v.version >= min_version]
+    """Get all spec versions starting at a minimum version."""
+    return [spec_version for spec_version in SPEC_VERSIONS if spec_version.version >= min_version]
+
+
+def get_spec(flag: str) -> SpecVersion | None:
+    """Get first matching spec version which contains that flag."""
+    result = None
+    for spec_version in SPEC_VERSIONS:
+        if spec_version.has_flag(flag):
+            result = spec_version
+    return result
 
 
 # Name component of MRIs used for custom alert metrics.
