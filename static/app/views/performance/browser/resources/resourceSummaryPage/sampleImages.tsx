@@ -1,3 +1,5 @@
+import {CSSProperties, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -19,13 +21,13 @@ const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexed
 const imageWidth = '200px';
 
 function SampleImages({groupId}: Props) {
-  const isImagesEnabled = true; // TODO - this is temporary, this will be controlled by a project setting
+  const isImagesEnabled = false; // TODO - this is temporary, this will be controlled by a project setting
+  const [showImages, setShowImages] = useState(isImagesEnabled);
 
   const imageResources = useIndexedResourcesQuery({
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
     sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
     limit: 100,
-    enabled: isImagesEnabled,
   });
 
   const uniqueResources = new Set();
@@ -42,13 +44,14 @@ function SampleImages({groupId}: Props) {
     .splice(0, 5);
 
   return (
-    <ChartPanel title={t('Example Images')}>
-      {isImagesEnabled ? (
+    <ChartPanel title={showImages ? t('Example Images') : undefined}>
+      {showImages ? (
         <ImageWrapper>
           {filteredResources.map(resource => {
             return (
               <ImageContainer
                 src={resource[SPAN_DESCRIPTION]}
+                showImage={isImagesEnabled}
                 fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
                 size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
                 key={resource[SPAN_DESCRIPTION]}
@@ -57,13 +60,15 @@ function SampleImages({groupId}: Props) {
           })}
         </ImageWrapper>
       ) : (
-        <DisabledImages />
+        // TODO - the selection to show only links should be persisted for awhile
+        <DisabledImages onClickShowLinks={() => setShowImages(true)} />
       )}
     </ChartPanel>
   );
 }
 
-function DisabledImages() {
+function DisabledImages(props: {onClickShowLinks?: () => void}) {
+  const {onClickShowLinks} = props;
   const {
     selection: {projects: selectedProjects},
   } = usePageFilters();
@@ -81,7 +86,7 @@ function DisabledImages() {
         )}
       </DisabledImageTextContainer>
       <ButtonContainer>
-        <Button>Only show links</Button>
+        <Button onClick={onClickShowLinks}>Only show links</Button>
         <Link
           to={normalizeUrl(
             `/settings/projects/${firstProjectSelected?.slug}/performance/`
@@ -94,23 +99,32 @@ function DisabledImages() {
   );
 }
 
-function ImageContainer({
-  src,
-  fileName,
-  size,
-}: {
+function ImageContainer(props: {
   fileName: string;
+  showImage: boolean;
   size: number;
   src: string;
 }) {
+  const theme = useTheme();
+
+  const {fileName, size, src, showImage = true} = props;
   const fileSize = getDynamicText({
     value: formatBytesBase2(size),
     fixed: 'xx KB',
   });
 
+  const commonStyles: CSSProperties = {minWidth: imageWidth, height: '200px'};
+
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
-      <img src={src} style={{minWidth: imageWidth, height: '200px'}} />
+      {
+        // TODO - this is temporary, this will be controlled by a project setting
+        showImage ? (
+          <img src={src} style={commonStyles} />
+        ) : (
+          <div style={{...commonStyles, backgroundColor: theme.gray100}} />
+        )
+      }
       {fileName} ({fileSize})
     </div>
   );
@@ -128,6 +142,7 @@ const getFileNameFromDescription = (description: string) => {
 const ImageWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, ${imageWidth});
+  padding-top: ${space(2)};
   gap: 30px;
 `;
 
