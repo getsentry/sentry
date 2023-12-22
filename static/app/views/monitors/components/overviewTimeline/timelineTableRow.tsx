@@ -85,6 +85,15 @@ export function TimelineTableRow({
       key: 'view',
       to: `/organizations/${organization.slug}/crons/${monitor.slug}/?environment=${env}`,
     }),
+    ...(onToggleMuteEnvironment
+      ? [
+          (env: string, isMuted: boolean) => ({
+            label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
+            key: 'mute',
+            onAction: () => onToggleMuteEnvironment(env, !isMuted),
+          }),
+        ]
+      : []),
     ...(onDeleteEnvironment
       ? [
           (env: string) => ({
@@ -102,15 +111,6 @@ export function TimelineTableRow({
                 priority: 'danger',
               });
             },
-          }),
-        ]
-      : []),
-    ...(onToggleMuteEnvironment
-      ? [
-          (env: string, isMuted: boolean) => ({
-            label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
-            key: 'mute',
-            onAction: () => onToggleMuteEnvironment(env, !isMuted),
           }),
         ]
       : []),
