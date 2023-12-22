@@ -290,13 +290,9 @@ def test_built_in_borked_path_blow_up():
 
 
 def test_built_in_borked_file_doesnt_blow_up(tmp_path):
-    with open(tmp_path / "foo.txt", "w") as f:
-        f.write("a malformed rule file that ought to be ignored")
-    with open(tmp_path / "bar.txt", "w") as f:
-        f.write("type:DatabaseUnavailable -> DatabaseUnavailable")
-    with open(tmp_path / "baz.txt", "w") as f:
-        f.write("inaccessible file")
-
+    (tmp_path / "foo.txt").write_text("a malformed rule file that ought to be ignored")
+    (tmp_path / "bar.txt").write_text("type:DatabaseUnavailable -> DatabaseUnavailable")
+    (tmp_path / "baz.txt").write_text("inaccessible file")
     (tmp_path / "baz.txt").chmod(0o111)
 
     rules = FingerprintingRules(rules=[], _config_dir=tmp_path)
