@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ObjectInspector from 'sentry/components/objectInspector';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
@@ -49,6 +50,47 @@ export default storyBook('usePrismTokens', story => {
     return (
       <Fragment>
         <p>
+          By default <code>usePrismTokens</code> will return an array of lines, each line
+          containing an array of code tokens. Each token is an object with{' '}
+          <code>className</code> and <code>children</code> props for your to render.
+        </p>
+        <p>
+          Here is the result of passing in this code with the language set to{' '}
+          <code>js</code>
+        </p>
+        <table>
+          <tr>
+            <th>Input</th>
+            <td>
+              <code>
+                <pre>{JS_CODE}</pre>
+              </code>
+            </td>
+          </tr>
+          <tr>
+            <th>Output</th>
+            <td>
+              <ObjectInspector
+                data={lines}
+                expandLevel={2}
+                theme={{
+                  TREENODE_FONT_SIZE: '0.7rem',
+                  ARROW_FONT_SIZE: '0.5rem',
+                }}
+              />
+            </td>
+          </tr>
+        </table>
+      </Fragment>
+    );
+  });
+
+  story('With custom renderer', () => {
+    const lines = usePrismTokens({code: JS_CODE, language: 'js'});
+
+    return (
+      <Fragment>
+        <p>
           The <code>usePrismTokens</code> hook is meant to be used for code blocks which
           require custom UI or behavior, such as customizing line numbers of highlighting
           parts of the code. If this is not required, use the{' '}
@@ -64,14 +106,13 @@ export default storyBook('usePrismTokens', story => {
 });
 
 const Wrapper = styled('div')`
-  max-width: 400px;
   background: var(--prism-block-background);
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
 
   ${p => prismStyles(p.theme)}
+
   pre {
     margin: 0;
+    padding: 0;
   }
 `;
 
