@@ -364,7 +364,7 @@ export type NavigateToExternalLinkModalOptions = {
 };
 
 export async function openNavigateToExternalLinkModal(
-  options?: NavigateToExternalLinkModalOptions
+  options: NavigateToExternalLinkModalOptions
 ) {
   const mod = await import('sentry/components/modals/navigateToExternalLinkModal');
   const {default: Modal} = mod;

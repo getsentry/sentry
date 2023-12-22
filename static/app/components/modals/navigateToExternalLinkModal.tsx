@@ -10,7 +10,7 @@ type Props = ModalRenderProps & {
   linkText: string;
 };
 
-function NavigateToExternalLinkModal({Body, Header, linkText, closeModal}: Props) {
+function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: Props) {
   return (
     <Fragment>
       <Header closeButton>
