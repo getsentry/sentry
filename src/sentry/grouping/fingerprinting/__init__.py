@@ -156,7 +156,7 @@ class EventAccess:
 
 
 class FingerprintingRules:
-    def __init__(self, rules, changelog=None, version=None, _config_dir: str = None):
+    def __init__(self, rules, changelog=None, version=None, _config_dir: str | None = None):
         self._config_dir = (
             Path(__file__).with_name("configs") if _config_dir is None else Path(_config_dir)
         )
