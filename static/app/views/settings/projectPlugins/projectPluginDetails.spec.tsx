@@ -2,6 +2,7 @@ import {Organization} from 'sentry-fixture/organization';
 import {Plugin} from 'sentry-fixture/plugin';
 import {Plugins} from 'sentry-fixture/plugins';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -15,7 +16,7 @@ describe('ProjectPluginDetails', function () {
   const project = ProjectFixture();
   const plugins = Plugins();
   const plugin = Plugin();
-  const routerProps = TestStubs.routeComponentProps();
+  const routerProps = RouteComponentPropsFixture();
 
   beforeAll(function () {
     jest.spyOn(console, 'info').mockImplementation(() => {});
