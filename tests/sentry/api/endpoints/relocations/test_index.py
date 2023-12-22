@@ -382,6 +382,33 @@ class PostRelocationsTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_FEATURE_DISABLED
 
+    def test_fail_expired_superuser_when_feature_disabled(self):
+        self.login_as(user=self.owner, superuser=True)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": "testing, foo",
+                        },
+                        format="multipart",
+                    )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data.get("detail") is not None
+        assert response.data.get("detail") == ERR_FEATURE_DISABLED
+
     # pytest parametrize does not work in TestCase subclasses, so hack around this
     for org_slugs, expected in [
         ("testing,foo,", ["testing", "foo"]),

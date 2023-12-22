@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.api.exceptions import SuperuserRequired
 from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
@@ -164,7 +165,10 @@ class RelocationIndexEndpoint(Endpoint):
 
         logger.info("relocations.index.post.start", extra={"caller": request.user.id})
 
-        is_superuser = SuperuserPermission().has_permission(request, None)
+        try:
+            is_superuser = SuperuserPermission().has_permission(request, None)
+        except SuperuserRequired:
+            is_superuser = False
         if not options.get("relocation.enabled") and not is_superuser:
             return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
 
