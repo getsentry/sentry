@@ -220,7 +220,6 @@ class FingerprintingRules:
                     config_file_path,
                     ex,
                 )
-        # print(f"{built_in_rules=}")
         return built_in_rules
 
     @classmethod
@@ -230,8 +229,8 @@ class FingerprintingRules:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid fingerprinting config: %s" % e)
 
-    @classmethod
-    def from_config_string(cls, s):
+    @staticmethod
+    def from_config_string(s):
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
