@@ -21,7 +21,9 @@ import SplitPanel, {BaseSplitDivider, DividerProps} from 'sentry/components/spli
 import {IconDownload, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {useImportDashboard} from 'sentry/views/ddm/importDashboardModal';
@@ -32,6 +34,7 @@ import {TrayContent} from 'sentry/views/ddm/trayContent';
 const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
 
 function MainContent() {
+  const organization = useOrganization();
   const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
@@ -64,9 +67,15 @@ function MainContent() {
               label={t('Discussion')}
               title={null}
             />
-            <Button size="sm" icon={<IconDownload size="xs" />} onClick={importDashboard}>
-              Import
-            </Button>
+            {hasDDMExperimentalFeature(organization) && (
+              <Button
+                size="sm"
+                icon={<IconDownload size="xs" />}
+                onClick={importDashboard}
+              >
+                {t('Import Dashboard')}
+              </Button>
+            )}
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
