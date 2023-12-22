@@ -66,3 +66,29 @@ export async function updateMonitor(
 
   return null;
 }
+
+export async function setEnvironmentIsMuted(
+  api: Client,
+  orgId: string,
+  monitorSlug: string,
+  environment: string,
+  isMuted: boolean
+) {
+  addLoadingMessage();
+
+  try {
+    const resp = await api.requestPromise(
+      `/organizations/${orgId}/monitors/${monitorSlug}/environments/${environment}`,
+      {method: 'PUT', data: {isMuted}}
+    );
+    clearIndicators();
+    return resp;
+  } catch (err) {
+    logException(err);
+    addErrorMessage(
+      isMuted ? t('Unable to mute environment.') : t('Unable to unmute environment.')
+    );
+  }
+
+  return null;
+}
