@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 import pytest
 from django.http import QueryDict
 
+from sentry.exceptions import InvalidParams
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.snuba.sessions_v2 import (
-    InvalidParams,
     QueryDefinition,
     get_constrained_date_range,
     get_timestamps,

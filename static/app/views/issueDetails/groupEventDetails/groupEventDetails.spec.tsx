@@ -3,8 +3,10 @@ import {Location} from 'history';
 import {Commit} from 'sentry-fixture/commit';
 import {CommitAuthor} from 'sentry-fixture/commitAuthor';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 
@@ -37,8 +39,8 @@ const makeDefaultMockData = (
   return {
     organization: organization ?? initializeOrg().organization,
     project: project ?? initializeOrg().project,
-    group: TestStubs.Group(),
-    router: TestStubs.router({
+    group: GroupFixture(),
+    router: RouterFixture({
       location: LocationFixture({
         query: {
           environment: environments,
@@ -360,7 +362,7 @@ describe('groupEventDetails', () => {
 
   it('renders the Span Evidence and Resources section for Performance Issues', async function () {
     const props = makeDefaultMockData();
-    const group: Group = TestStubs.Group({
+    const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
@@ -403,7 +405,7 @@ describe('groupEventDetails', () => {
 
   it('renders the Function Evidence and Resources section for Profile Issues', async function () {
     const props = makeDefaultMockData();
-    const group: Group = TestStubs.Group({
+    const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });

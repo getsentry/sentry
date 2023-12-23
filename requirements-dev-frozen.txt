@@ -84,8 +84,12 @@ iniconfig==1.1.1
 isodate==0.6.1
 isort==5.10.1
 jmespath==0.10.0
-jsonschema==4.17.3
+jsonschema==4.20.0
+jsonschema-path==0.3.2
+jsonschema-spec==0.2.4
+jsonschema-specifications==2023.7.1
 kombu==5.3.4
+lazy-object-proxy==1.10.0
 lxml==4.9.3
 lxml-stubs==0.4.0
 markupsafe==2.1.2
@@ -102,9 +106,9 @@ mypy-extensions==1.0.0
 nodeenv==1.8.0
 oauthlib==3.1.0
 openai==1.3.5
-openapi-core==0.15.0
-openapi-schema-validator==0.2.3
-openapi-spec-validator==0.4.0
+openapi-core==0.18.2
+openapi-schema-validator==0.6.2
+openapi-spec-validator==0.7.1
 outcome==1.2.0
 packaging==21.3
 parse==1.19.0
@@ -136,7 +140,6 @@ pyflakes==3.1.0
 pyjwt==2.4.0
 pymemcache==4.0.0
 pyparsing==3.0.9
-pyrsistent==0.18.1
 pysocks==1.7.1
 pytest==7.2.1
 pytest-cov==4.0.0
@@ -159,6 +162,7 @@ pyyaml==5.4
 rb==1.10.0
 redis==3.4.1
 redis-py-cluster==2.1.0
+referencing==0.30.2
 regex==2022.9.13
 reportlab==4.0.7
 requests==2.31.0
@@ -166,6 +170,7 @@ requests-oauthlib==1.2.0
 responses==0.23.1
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
+rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.6.1
 selenium==4.16.0

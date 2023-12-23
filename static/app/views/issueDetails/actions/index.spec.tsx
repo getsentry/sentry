@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
@@ -14,7 +15,7 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
-import {IssueCategory} from 'sentry/types';
+import {GroupStatus, IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
@@ -24,7 +25,7 @@ const project = ProjectFixture({
   slug: 'project',
 });
 
-const group = TestStubs.Group({
+const group = GroupFixture({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
@@ -69,7 +70,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isSubscribed: false}),
+        body: GroupFixture({isSubscribed: false}),
       });
     });
 
@@ -100,7 +101,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isBookmarked: false}),
+        body: GroupFixture({isBookmarked: false}),
       });
     });
 
@@ -287,7 +288,7 @@ describe('GroupActions', function () {
 
     rerender(
       <GroupActions
-        group={{...group, status: 'resolved'}}
+        group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
         organization={organization}
         disabled={false}

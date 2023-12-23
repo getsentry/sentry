@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {
@@ -90,7 +91,7 @@ describe('ReleaseActions', function () {
 
     render(
       <ReleaseActions
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         projectSlug={release.projects[0].slug}
         release={{...release, status: 'archived'}}

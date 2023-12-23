@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
