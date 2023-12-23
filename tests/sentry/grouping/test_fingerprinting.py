@@ -201,18 +201,22 @@ def default_bases():
 def test_default_bases(default_bases):
     assert FINGERPRINTING_BASES
     assert set(default_bases) == set(FINGERPRINTING_BASES.keys())
-    assert [r._to_config_structure() for r in FINGERPRINTING_BASES["nextjs@2023-12-22"]] == [
-        {
-            "matchers": [["type", "ChunkLoadError"]],
-            "fingerprint": ["chunkloaderror"],
-            "attributes": {},
-        },
-        {
-            "matchers": [["value", "ChunkLoadError*"]],
-            "fingerprint": ["chunkloaderror"],
-            "attributes": {},
-        },
-    ]
+    assert {
+        k: [r._to_config_structure() for r in rs] for k, rs in FINGERPRINTING_BASES.items()
+    } == {
+        "nextjs@2023-12-22": [
+            {
+                "matchers": [["type", "ChunkLoadError"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+            {
+                "matchers": [["value", "ChunkLoadError*"]],
+                "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+        ]
+    }
 
 
 def test_built_in_chunkload_rules(default_bases):
@@ -259,10 +263,7 @@ def test_built_in_chunkload_rules_from_empty_config_string(default_bases):
 
 def test_built_in_chunkload_rules_from_config_string_with_custom(default_bases):
     rules = FingerprintingRules.from_config_string(
-        """
-# This is a config
-error.type:DatabaseUnavailable                        -> DatabaseUnavailable
-""",
+        "error.type:DatabaseUnavailable -> DatabaseUnavailable",
         bases=default_bases,
     )
     assert rules._to_config_structure(include_builtin=False) == {
