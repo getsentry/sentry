@@ -1,7 +1,14 @@
+from unittest import mock
+
 import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.grouping.fingerprinting import (
+    FINGERPRINTING_BASES,
+    FingerprintingRules,
+    InvalidFingerprintingConfig,
+    _load_configs,
+)
 from tests.sentry.grouping import with_fingerprint_input
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
@@ -186,12 +193,31 @@ def test_event_hash_variant(insta_snapshot, input):
     )
 
 
-def test_built_in_chunkload_rules():
-    rules = FingerprintingRules(rules=[])
-    assert rules.built_in_rules
-    assert not rules.rules
+@pytest.fixture
+def default_bases():
+    return ["nextjs@2023-12-22"]
 
-    # breakpoint()
+
+def test_default_bases(default_bases):
+    assert FINGERPRINTING_BASES
+    assert set(default_bases) == set(FINGERPRINTING_BASES.keys())
+    assert [r._to_config_structure() for r in FINGERPRINTING_BASES["nextjs@2023-12-22"]] == [
+        {
+            "matchers": [["type", "ChunkLoadError"]],
+            "fingerprint": ["chunkloaderror"],
+            "attributes": {},
+        },
+        {
+            "matchers": [["value", "ChunkLoadError*"]],
+            "fingerprint": ["chunkloaderror"],
+            "attributes": {},
+        },
+    ]
+
+
+def test_built_in_chunkload_rules(default_bases):
+    rules = FingerprintingRules(rules=[], bases=default_bases)
+
     assert rules._to_config_structure() == {"rules": [], "version": 1}
     assert rules._to_config_structure(include_builtin=True) == {
         "rules": [
@@ -210,12 +236,9 @@ def test_built_in_chunkload_rules():
     }
 
 
-def test_built_in_chunkload_rules_from_empty_config_string():
-    rules = FingerprintingRules.from_config_string("")
-    assert rules.built_in_rules
-    assert not rules.rules
+def test_built_in_chunkload_rules_from_empty_config_string(default_bases):
+    rules = FingerprintingRules.from_config_string("", bases=default_bases)
 
-    # breakpoint()
     assert rules._to_config_structure() == {"rules": [], "version": 1}
     assert rules._to_config_structure(include_builtin=True) == {
         "rules": [
@@ -234,18 +257,15 @@ def test_built_in_chunkload_rules_from_empty_config_string():
     }
 
 
-def test_built_in_chunkload_rules_from_config_string_with_custom():
+def test_built_in_chunkload_rules_from_config_string_with_custom(default_bases):
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
 error.type:DatabaseUnavailable                        -> DatabaseUnavailable
-"""
+""",
+        bases=default_bases,
     )
-    assert rules.built_in_rules
-    assert rules.rules
-
-    # breakpoint()
-    assert rules._to_config_structure() == {
+    assert rules._to_config_structure(include_builtin=False) == {
         "rules": [
             {
                 "matchers": [["type", "DatabaseUnavailable"]],
@@ -277,34 +297,36 @@ error.type:DatabaseUnavailable                        -> DatabaseUnavailable
     }
 
 
-def test_built_in_empty_doesnt_blow_up(tmp_path):
-    rules = FingerprintingRules(rules=[], _config_dir=tmp_path)
-    assert not rules.built_in_rules
-    assert not rules.rules
+def test_load_configs_empty_doesnt_blow_up(tmp_path):
+    with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
+        assert _load_configs() == {}
 
 
-def test_built_in_borked_path_blow_up():
-    rules = FingerprintingRules(rules=[], _config_dir="/a/non/existent/path")
-    assert not rules.rules
-    assert not rules.built_in_rules
+def test_load_configs_nx_path_doesnt_blow_up(tmp_path):
+    tmp_path.rmdir()
+    with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
+        assert _load_configs() == {}
 
 
-def test_built_in_borked_file_doesnt_blow_up(tmp_path):
-    (tmp_path / "foo.txt").write_text("a malformed rule file that ought to be ignored")
-    (tmp_path / "bar.txt").write_text("type:DatabaseUnavailable -> DatabaseUnavailable")
-    (tmp_path / "baz.txt").write_text("inaccessible file")
-    (tmp_path / "baz.txt").chmod(0o111)
+def test_load_configs_borked_file_doesnt_blow_up(tmp_path):
+    base = "foo@2077-01-02"
+    rule_dir = tmp_path / base
+    rule_dir.mkdir()
+    (rule_dir / "foo.txt").write_text("a malformed rule file that ought to be ignored")
+    (rule_dir / "bar.txt").write_text("type:DatabaseUnavailable -> DatabaseUnavailable")
+    (rule_dir / "baz.txt").write_text("inaccessible file")
+    (rule_dir / "baz.txt").chmod(0o111)
 
-    rules = FingerprintingRules(rules=[], _config_dir=tmp_path)
-    assert rules.built_in_rules
-    assert rules._to_config_structure(include_builtin=True) == {
-        "rules": [
-            {
-                "matchers": [["type", "DatabaseUnavailable"]],
-                "fingerprint": ["DatabaseUnavailable"],
-                "attributes": {},
-            },
-        ],
-        "version": 1,
-    }
-    assert not rules.rules
+    with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
+        configs = _load_configs()
+
+    assert base in configs
+    rules = configs[base]
+
+    assert [r._to_config_structure() for r in rules] == [
+        {
+            "matchers": [["type", "DatabaseUnavailable"]],
+            "fingerprint": ["DatabaseUnavailable"],
+            "attributes": {},
+        },
+    ]
