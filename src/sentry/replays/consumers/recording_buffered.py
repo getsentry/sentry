@@ -270,7 +270,7 @@ def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> 
 @metrics.wraps("replays.recording_consumer.commit_uploads")
 def commit_uploads(upload_events: list[UploadEvent]) -> None:
     with ThreadPoolExecutor(max_workers=len(upload_events)) as pool:
-        pool.map(_upload, upload_events)
+        pool.map(_do_upload, upload_events)
 
 
 @metrics.wraps("replays.recording_consumer.commit_initial_segments")
@@ -291,7 +291,8 @@ def commit_replay_actions(replay_action_events: list[ReplayActionsEvent]) -> Non
         emit_replay_actions(actions)
 
 
-def _upload(upload_event: UploadEvent) -> None:
+@metrics.wraps("replays.recording_consumer._do_upload")
+def _do_upload(upload_event: UploadEvent) -> None:
     recording_metadata = RecordingSegmentStorageMeta(
         project_id=upload_event["project_id"],
         replay_id=upload_event["replay_id"],
