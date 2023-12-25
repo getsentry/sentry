@@ -67,7 +67,7 @@ def ingest_replay_recordings_buffered_options() -> List[click.Option]:
             ["--max-buffer-size-in-bytes", "max_buffer_size_in_bytes"], type=int, default=0
         ),
         click.Option(
-            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"], type=int, default=0
+            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"], type=int, default=1
         ),
     ]
     return options
