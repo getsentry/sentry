@@ -124,47 +124,32 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
 }
 
 /**
- * Omit deeply nested keys from an object. If you require shallow cloning, use omit
- * function instead. This function will clone the object deeply using structuredClone.
- * @param obj
- * @param keys
- * @returns
+ * Omit keys from an object. The return value will be a deep clone of the input,
+ * meaning none of the references will be preserved. If you require faster shallow cloning,
+ * use {prop, ...rest} = obj spread syntax instead.
  */
-
-// omit<T extends object, K extends PropertyName[]>(
-//   object: T | null | undefined,
-//   ...paths: K
-// ): Pick<T, Exclude<keyof T, K[number]>>;
-// /**
-// * @see _.omit
-// */
-// omit<T extends object, K extends keyof T>(object: T | null | undefined, ...paths: Array<Many<K>>): Omit<T, K>;
-// /**
-// * @see _.omit
-// */
-// omit<T extends object>(object: T | null | undefined, ...paths: Array<Many<PropertyName>>): PartialObject<T>;
-export function omit<T extends object, K extends (string | number | symbol)[]>(
+export function omit<T extends object, K extends Extract<keyof T, string>>(
   obj: T | null | undefined,
-  key: K
-): Pick<T, Exclude<keyof T, K[]>>;
-export function omit<T extends object, K extends keyof T>(
-  obj: T | null | undefined,
-  key: K
+  key: K | (string & {})
 ): Omit<T, K>;
-export function omit<T extends object, K extends string>(
-  // omit(obj, 'prop'), omit(obj, ['prop1', 'prop2'])
+export function omit<T extends object, K extends Extract<keyof T, string>>(
+  obj: T | null | undefined,
+  key: (K | (string & {}))[] | readonly (K | (string & {}))[]
+): Pick<T, Exclude<keyof T, K[]>>;
+export function omit<T extends object, K extends Extract<keyof T, string>>(
   obj: T | null | undefined,
   // @TODO: If keys can be statically known, we should provide a ts helper to
   // enforce it. I am fairly certain this will not work with generics as we'll
   // just end up blowing through the stack recursion, but it could be done on-demand.
-  keys: K | K[]
+  keys: (K | (string & {})) | (K | (string & {}))[]
   // T return type is wrong, but we cannot statically infer nested keys without
   // narrowing the type, which seems impossible for a generic implementation? Because
   // of this, allow users to type the return value and not
-): Omit<T, K> | Pick<T, Exclude<keyof T, K[]>> {
+) {
   if (!obj || Array.isArray(obj) || typeof obj !== 'object') {
-    throw new TypeError();
+    throw new TypeError('Omit expected object-like input value');
   }
+
   const returnValue = window.structuredClone(obj);
 
   if (typeof keys === 'string') {
@@ -185,6 +170,9 @@ export function omit<T extends object, K extends string>(
 
 function deepRemoveKey(obj: Record<string, any>, key: string) {
   if (typeof key === 'string') {
+    if (key in obj) {
+      delete obj[key];
+    }
     const components = key.split('.');
 
     const componentsSize = components.length;
