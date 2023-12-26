@@ -1,4 +1,3 @@
-import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
@@ -15,7 +14,7 @@ import {
   SessionsMeta,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined, omitDeep} from 'sentry/utils';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -282,7 +281,7 @@ export function transformSessionsResponseToTable(
     // derived status metrics through the Sessions API,
     // they are injected into the payload and need to be
     // stripped.
-    ...omit(mapDerivedMetricsToFields(group.totals), injectedFields),
+    ...omitDeep(mapDerivedMetricsToFields(group.totals), injectedFields),
     // if session.status is a groupby, some post processing
     // is needed to calculate the status derived metrics
     // from grouped results of `sum(session)` or `count_unique(user)`
@@ -290,8 +289,9 @@ export function transformSessionsResponseToTable(
   }));
 
   const singleRow = rows[0];
+  const {id: _, ...rowWithoutId} = singleRow;
   const meta = {
-    ...changeObjectValuesToTypes(omit(singleRow, 'id')),
+    ...changeObjectValuesToTypes(rowWithoutId),
   };
   return {meta, data: rows};
 }

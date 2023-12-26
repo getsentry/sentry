@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -112,6 +111,8 @@ export function ProjectInstallPlatform({location, params}: Props) {
       return;
     }
 
+    const {id, ...rest} = platforms[platformKey];
+
     gettingStartedWithProjectContext.setProject({
       id: project.id,
       name: project.name,
@@ -119,8 +120,8 @@ export function ProjectInstallPlatform({location, params}: Props) {
       teamSlug: project.team?.slug,
       alertRules: projectAlertRules,
       platform: {
-        ...omit(platforms[platformKey], 'id'),
-        key: platforms[platformKey].id,
+        ...rest,
+        key: id,
       } as OnboardingSelectedSDK,
     });
   }, [

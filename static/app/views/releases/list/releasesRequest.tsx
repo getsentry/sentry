@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -24,7 +23,7 @@ import {
   SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types';
-import {defined, percent} from 'sentry/utils';
+import {defined, omitDeep, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 
@@ -33,7 +32,7 @@ import {getCrashFreePercent} from '../utils';
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 function omitIgnoredProps(props: Props) {
-  return omit(props, [
+  return omitDeep(props, [
     'api',
     'organization',
     'children',

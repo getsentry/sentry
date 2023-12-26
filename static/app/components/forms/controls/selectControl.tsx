@@ -14,7 +14,6 @@ import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {CSSObject, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -189,8 +188,9 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     [theme]
   );
 
-  const defaultStyles = useMemo<StylesConfig>(
-    () => ({
+  const defaultStyles = useMemo<StylesConfig>(() => {
+    const {height: _height, ...formStyles} = theme.form[size ?? 'md'];
+    return {
       control: (_, state: any) => ({
         display: 'flex',
         color: theme.formText,
@@ -213,7 +213,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...(!state.isSearchable && {
           cursor: 'pointer',
         }),
-        ...omit(theme.form[size ?? 'md'], 'height'),
+        ...formStyles,
       }),
 
       menu: provided => ({
@@ -342,9 +342,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           borderBottom: `solid 1px ${theme.innerBorder}`,
         },
       }),
-    }),
-    [theme, size, maxMenuWidth, indicatorStyles]
-  );
+    };
+  }, [theme, size, maxMenuWidth, indicatorStyles]);
 
   const getFieldLabelStyle = (label?: string): CSSObject => ({
     ':before': {

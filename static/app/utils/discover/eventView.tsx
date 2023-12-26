@@ -1,7 +1,6 @@
 import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
 import moment from 'moment';
@@ -20,6 +19,7 @@ import {
   SelectValue,
   User,
 } from 'sentry/types';
+import {omitDeep} from 'sentry/utils';
 import {
   aggregateOutputType,
   Column,
@@ -1197,7 +1197,7 @@ class EventView {
 
     // generate event query
     const eventQuery = Object.assign(
-      omit(picked, DATETIME_QUERY_STRING_KEYS),
+      omitDeep(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
         team,

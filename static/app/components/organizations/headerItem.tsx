@@ -2,7 +2,6 @@ import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -59,7 +58,7 @@ function HeaderItem({
     <StyledHeaderItem
       ref={forwardedRef}
       loading={!!loading}
-      {...omit(props, 'onClear')}
+      {...props}
       {...textColorProps}
     >
       <IconContainer {...textColorProps}>{icon}</IconContainer>

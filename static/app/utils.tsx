@@ -123,6 +123,111 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
   return item !== undefined && item !== null;
 }
 
+/**
+ * Checks if a value is a plain record like object, i.e. an object literal.
+ * null, arrays, functions, etc. are not considered record like objects.
+ *
+ * note: this function is polymorphic and could be deoptimized at runtime
+ */
+type ReturnPick<T, K> = K extends never
+  ? T
+  : K extends string
+  ? Pick<T, Exclude<keyof T, K>>
+  : K extends any[]
+  ? Pick<T, Exclude<keyof T, ReadonlyArray<K>[number]>>
+  : never;
+
+export function omit<T extends Record<any, any>, K extends keyof T>(
+  arg: [T, K] | [T, K[]] | [T, ...K[]]
+): ReturnPick<T, K> {
+  const [obj, ...keys] = arg;
+  if (!obj || Array.isArray(obj) || typeof obj !== 'object') {
+    throw new TypeError(
+      `Omit expected object-like input value, got ${obj?.toString?.() ?? obj}`
+    );
+  }
+
+  const returnValue = {...obj};
+
+  for (const key of keys) {
+    if (typeof key === 'string') {
+      delete returnValue[key];
+    }
+    if (Array.isArray(key)) {
+      key.forEach(k => delete returnValue[k]);
+    }
+  }
+  return returnValue as unknown as ReturnPick<T, K>;
+}
+
+/**
+ * Omit deeply nested keys from an object. If you require shallow cloning, use omit
+ * function instead. This function will clone the object deeply using structuredClone.
+ *
+ * note: this function is polymorphic and could be deoptimized at runtime
+ * @param obj
+ * @param keys
+ * @returns
+ */
+function omitDeep<T extends Record<string, any>, K extends Extract<keyof T, string>>(
+  // omit(obj, 'prop'), omit(obj, ['prop1', 'prop2'])
+  arg: [T, K] | [T, K[]]
+  // @TODO: If keys can be statically known, we should provide a ts helper to
+  // enforce it. I am fairly certain this will not work with generics as we'll
+  // just end up blowing through the stack recursion, but it could be done on-demand.
+
+  // T return type is wrong, but we cannot statically infer nested keys without
+  // narrowing the type, which seems impossible for a generic implementation? Because
+  // of this, allow users to type the return value and not
+): ReturnPick<T, K> {
+  const obj = arg[0];
+
+  if (!obj || Array.isArray(obj) || typeof obj !== 'object') {
+    throw new TypeError(
+      `Omit expected object-like input value, got ${obj?.toString?.() ?? obj}`
+    );
+  }
+  const returnValue = window.structuredClone(obj);
+
+  const keys = arg[1];
+  if (typeof keys === 'string') {
+    deepRemoveKey(returnValue, keys);
+    return returnValue as unknown as ReturnPick<T, K>;
+  }
+  const normalizedKeys = Array.isArray(keys) ? keys : [keys];
+  // @TODO: there is an optimization opportunity here. If we presort the keys,
+  // then we can treat the traversal as a tree and avoid having to traverse the
+  // entire object for each key. This would be a good idea if we expect to
+  // omit many deep keys from an object.
+  for (const key of normalizedKeys) {
+    deepRemoveKey(returnValue, key);
+  }
+
+  return returnValue as unknown as ReturnPick<T, K>;
+}
+
+function deepRemoveKey(obj: Record<string, any>, key: string) {
+  if (typeof key === 'string') {
+    const components = key.split('.');
+
+    const componentsSize = components.length;
+    let componentIndex = 0;
+
+    let v = obj;
+    while (componentIndex < componentsSize - 1) {
+      v = v[components[componentIndex]];
+      if (v === undefined) {
+        break;
+      }
+      componentIndex++;
+    }
+    // will only be defined if we traversed the entire path
+    if (v !== undefined) {
+      delete v[components[componentsSize - 1]];
+    }
+  }
+}
+
 export function nl2br(str: string): string {
   return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
 }

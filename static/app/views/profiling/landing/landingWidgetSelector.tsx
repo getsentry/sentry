@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {omit} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useRouter from 'sentry/utils/useRouter';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -39,10 +39,10 @@ export function LandingWidgetSelector({
 
   const onWidgetChange = useCallback(
     opt => {
-      const newQuery = omit(router.location.query, [cursorName]);
+      const {[cursorName]: _cursor, ...queryWithoutCursor} = router.location.query;
       router.push({
         pathname: router.location.pathname,
-        query: newQuery,
+        query: queryWithoutCursor,
       });
       setSelectedWidget(opt.value);
     },

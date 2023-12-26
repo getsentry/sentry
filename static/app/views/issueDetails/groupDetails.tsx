@@ -10,7 +10,6 @@ import {
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
@@ -290,9 +289,10 @@ function useEventApiQuery({
     if (latestOrRecommendedEvent.isError) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again.
+      const {query: _, ...rest} = qs.parse(window.location.search);
       browserHistory.replace({
         ...window.location,
-        query: omit(qs.parse(window.location.search), 'query'),
+        query: rest,
       });
 
       // 404s are expected if all events have exceeded retention

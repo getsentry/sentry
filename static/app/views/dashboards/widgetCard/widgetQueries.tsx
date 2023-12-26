@@ -1,5 +1,4 @@
 import {useContext} from 'react';
-import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
@@ -79,8 +78,9 @@ export function flattenMultiSeriesDataWithGrouping(
   const groupNames = Object.keys(result);
 
   groupNames.forEach(groupName => {
+    const {order: _, ...groupWithoutOrder} = result[groupName];
     // Each group contains an order key which we should ignore
-    const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+    const aggregateNames = Object.keys(groupWithoutOrder);
 
     aggregateNames.forEach(aggregate => {
       const seriesName = `${groupName} : ${aggregate}`;

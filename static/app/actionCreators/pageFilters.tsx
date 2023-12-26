@@ -2,7 +2,6 @@ import {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isInteger from 'lodash/isInteger';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
@@ -32,7 +31,7 @@ import {
   PinnedPageFilter,
   Project,
 } from 'sentry/types';
-import {defined, valueIsEqual} from 'sentry/utils';
+import {defined, omitDeep, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 
 type EnvironmentId = Environment['id'];
@@ -618,8 +617,8 @@ function getNewQueryParams(
 ) {
   const {resetParams, keepCursor} = options;
 
-  const cleanCurrentQuery = resetParams?.length
-    ? omit(currentQuery, resetParams)
+  const cleanCurrentQuery = Array.isArray(resetParams)
+    ? omitDeep(currentQuery, resetParams)
     : currentQuery;
 
   // Normalize existing query parameters
@@ -630,9 +629,13 @@ function getNewQueryParams(
 
   // Extract non page filter parameters.
   const cursorParam = !keepCursor ? 'cursor' : null;
-  const omittedParameters = [...Object.values(URL_PARAM), cursorParam].filter(defined);
+  const paramsToOmit = Object.values(URL_PARAM).filter(defined);
 
-  const extraParams = omit(cleanCurrentQuery, omittedParameters);
+  if (cursorParam) {
+    paramsToOmit.push(cursorParam);
+  }
+
+  const extraParams = omitDeep(cleanCurrentQuery, paramsToOmit);
 
   // Override parameters
   const {project, environment, start, end, utc} = {

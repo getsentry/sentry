@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
 import scrollToElement from 'scroll-to-element';
 
@@ -96,7 +95,7 @@ const mapFormErrors = (responseJSON?: any) => {
   if (!responseJSON) {
     return responseJSON;
   }
-  const formErrors = omit(responseJSON, ['scopes']);
+  const {scopes: _, ...formErrors} = responseJSON;
   if (responseJSON.scopes) {
     responseJSON.scopes.forEach((message: string) => {
       // find the scope from the error message of a specific format

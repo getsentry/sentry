@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
@@ -15,9 +13,10 @@ type Props = {
 
 export function Exception({breadcrumb, searchTerm, meta}: Props) {
   const {data, message} = breadcrumb;
+  const {type: _t, value: _v, ...rest} = data || {};
 
   return (
-    <Summary kvData={!data ? data : omit(data, ['type', 'value'])} meta={meta}>
+    <Summary kvData={!data ? data : rest} meta={meta}>
       {meta?.type?.[''] ? (
         <AnnotatedText value={data?.type} meta={meta?.type?.['']} />
       ) : (

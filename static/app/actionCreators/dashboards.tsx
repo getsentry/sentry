@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -46,7 +44,10 @@ export function createDashboard(
       method: 'POST',
       data: {
         title,
-        widgets: widgets.map(widget => omit(widget, ['tempId'])),
+        widgets: widgets.map(widget => {
+          const {tempId: _, ...rest} = widget;
+          return rest;
+        }),
         duplicate,
         projects,
         environment,
@@ -126,7 +127,10 @@ export function updateDashboard(
     dashboard;
   const data = {
     title,
-    widgets: widgets.map(widget => omit(widget, ['tempId'])),
+    widgets: widgets.map(widget => {
+      const {tempId: _, ...rest} = widget;
+      return rest;
+    }),
     projects,
     environment,
     period,

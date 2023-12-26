@@ -1,5 +1,5 @@
 import {Location} from 'history';
-import omit from 'lodash/omit';
+import {omit} from 'sentry/utils';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -24,11 +24,12 @@ function DiscoverBreadcrumb({
   isHomepage,
 }: Props) {
   const crumbs: Crumb[] = [];
+  const {homepage: _, ...queryWithoutHomepage} = location.query;
   const discoverTarget = organization.features.includes('discover-query')
     ? {
         pathname: getDiscoverLandingUrl(organization),
         query: {
-          ...omit(location.query, 'homepage'),
+          ...queryWithoutHomepage,
           ...eventView.generateBlankQueryStringObject(),
           ...eventView.getPageFiltersQuery(),
         },

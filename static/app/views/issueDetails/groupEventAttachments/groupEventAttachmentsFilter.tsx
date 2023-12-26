@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -22,7 +21,7 @@ function GroupEventAttachmentsFilter(props: Props) {
   const {query, pathname} = useLocation();
   const router = useRouter();
   const {types} = query;
-  const allAttachmentsQuery = omit(query, 'types');
+  const {types: _types, ...allAttachmentsQuery} = query;
   const onlyCrashReportsQuery = {
     ...query,
     types: crashReportTypes,

@@ -2,7 +2,6 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
@@ -34,6 +33,7 @@ import {
   PageFilters,
   Project,
 } from 'sentry/types';
+import {omitDeep} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -43,8 +43,7 @@ import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
-
-const relativeOptions = omit(DEFAULT_RELATIVE_PERIODS, ['1h']);
+const {'1h': _, ...relativeOptions} = DEFAULT_RELATIVE_PERIODS;
 
 export const PAGE_QUERY_PARAMS = [
   // From DatePageFilter
@@ -187,7 +186,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     };
 
     // Do not leak out page-specific keys
-    nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
+    nextLocation.query = omitDeep(nextLocation.query, PAGE_QUERY_PARAMS);
 
     return {
       performance: {

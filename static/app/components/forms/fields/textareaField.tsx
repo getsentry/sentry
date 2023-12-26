@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import FormModel from 'sentry/components/forms/model';
@@ -30,20 +28,31 @@ function TextareaField({
         children: React.ReactNode;
         model: FormModel;
         name: string;
-      }) => (
-        <InputGroup>
-          <InputGroup.TextArea
-            {...{monospace, rows, autosize, name}}
-            // Do not forward required to `textarea` to avoid default browser behavior
-            {...omit(fieldProps, ['onKeyDown', 'children', 'required'])}
-          />
-          {!hideControlState && (
-            <InputGroup.TrailingItems>
-              <FormFieldControlState model={model} name={name} />
-            </InputGroup.TrailingItems>
-          )}
-        </InputGroup>
-      )}
+      }) => {
+        const {
+          onKeyDown: _,
+          children: _c,
+          required: _r,
+          ...rest
+        } = fieldProps as Record<any, any>;
+        return (
+          <InputGroup>
+            <InputGroup.TextArea
+              monospace={monospace}
+              rows={rows}
+              autosize={autosize}
+              name={name}
+              // Do not forward required to `textarea` to avoid default browser behavior
+              {...rest}
+            />
+            {!hideControlState && (
+              <InputGroup.TrailingItems>
+                <FormFieldControlState model={model} name={name} />
+              </InputGroup.TrailingItems>
+            )}
+          </InputGroup>
+        );
+      }}
     </FormField>
   );
 }

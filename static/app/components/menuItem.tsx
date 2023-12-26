@@ -1,6 +1,5 @@
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
@@ -153,6 +152,8 @@ function MenuItem({
     renderChildren = renderAnchor();
   }
 
+  const {href: _h, title: _t, onSelect: _s, eventKey: _e, to: _to, ...rest} = props;
+
   return (
     <MenuListItem
       className={className}
@@ -161,7 +162,7 @@ function MenuItem({
       divider={divider}
       noAnchor={noAnchor}
       header={header}
-      {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to', 'as'])}
+      {...rest}
     >
       {renderChildren}
     </MenuListItem>

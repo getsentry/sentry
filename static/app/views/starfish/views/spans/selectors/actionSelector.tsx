@@ -1,10 +1,10 @@
 import {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {omitDeep} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -104,7 +104,10 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const query = buildEventViewQuery({
     moduleName,
-    location: {...location, query: omit(location.query, ['span.action', 'span.domain'])},
+    location: {
+      ...location,
+      query: omitDeep(location.query, ['span.action', 'span.domain']),
+    },
     spanCategory,
   }).join(' ');
   return EventView.fromNewQueryWithLocation(

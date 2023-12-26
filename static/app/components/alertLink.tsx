@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -67,7 +66,8 @@ function AlertLink({
 export default AlertLink;
 
 const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) => {
-  const linkProps = omit(props, ['withoutMarginBottom', 'priority', 'size']);
+  const {withoutMarginBottom: _, priority: _p, size: _s, ...linkProps} = props;
+
   if (href) {
     return <ExternalLink {...linkProps} href={href} openInNewTab={openInNewTab} />;
   }

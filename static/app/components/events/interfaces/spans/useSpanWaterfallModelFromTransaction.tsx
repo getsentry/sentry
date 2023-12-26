@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import omit from 'lodash/omit';
 
 import {useAggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -84,11 +83,10 @@ export function useSpanWaterfallModelFromTransaction(
   }, [spanList]);
 
   const event: AggregateEventTransaction = useMemo(() => {
+    const {type: _, ...trace} = parentSpan;
     return {
       contexts: {
-        trace: {
-          ...omit(parentSpan, 'type'),
-        },
+        trace,
       },
       endTimestamp: 0,
       entries: [

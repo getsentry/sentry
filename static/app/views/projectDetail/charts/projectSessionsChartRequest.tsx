@@ -2,7 +2,6 @@ import {Component} from 'react';
 import {Theme, withTheme} from '@emotion/react';
 import {LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -17,6 +16,7 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {omitDeep} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {
   filterSessionsInTimeWindow,
@@ -30,7 +30,7 @@ import {getCrashFreePercent} from 'sentry/views/releases/utils';
 import {DisplayModes} from '../projectCharts';
 
 const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
-  omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
+  omitDeep(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
 type ProjectSessionsChartRequestRenderProps = {
   errored: boolean;

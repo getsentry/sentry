@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import EventView from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -23,12 +21,15 @@ function getRequestPayload({
   eventView,
   location,
 }: Pick<DiscoverQueryProps, 'eventView' | 'location'>) {
-  return omit(eventView.getEventsAPIPayload(location), [
-    'field',
-    'sort',
-    'per_page',
-    'query',
-  ]);
+  const {
+    field: _f,
+    sort: _s,
+    per_page: _p,
+    query: _c,
+    ...additionalApiPayload
+  } = eventView.getEventsAPIPayload(location);
+
+  return additionalApiPayload;
 }
 
 export default function MetricsCompatibilitySumsQuery({children, ...props}: QueryProps) {

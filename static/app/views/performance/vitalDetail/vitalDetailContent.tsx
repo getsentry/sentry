@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -24,6 +23,7 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {omit} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -79,11 +79,11 @@ function VitalDetailContent(props: Props) {
     });
 
     // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
+    const {cursor: _, ...queryWithoutCursor} = queryParams;
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: queryWithoutCursor,
     });
   }
 

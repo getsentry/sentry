@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -76,9 +75,15 @@ export function ScreenLoadSpanSamples({
   );
 
   function defaultOnClose() {
+    const {
+      transaction: _,
+      transactionMethod: _t,
+      ...queryWithoutTransaction
+    } = router.location.query;
+
     router.replace({
       pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod'),
+      query: queryWithoutTransaction,
     });
   }
 

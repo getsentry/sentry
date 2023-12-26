@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -261,11 +260,13 @@ function AnomaliesContent(props: Props) {
       });
 
       // do not propagate pagination when making a new search
-      const toOmit = ['cursor'];
+      const {cursor: _c, ...queryParamsWithoutCursor} = queryParams;
+      let searchQueryParams = queryParamsWithoutCursor;
+
       if (!defined(value)) {
-        toOmit.push(key);
+        const {[key]: _, ...searchQueryParamsWithoutKey} = queryParamsWithoutCursor;
+        searchQueryParams = searchQueryParamsWithoutKey;
       }
-      const searchQueryParams = omit(queryParams, toOmit);
 
       browserHistory.push({
         ...location,

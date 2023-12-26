@@ -2,7 +2,6 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -23,6 +22,7 @@ import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {omitDeep} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
@@ -428,7 +428,7 @@ function EndpointList({
       <DiscoverQuery
         eventView={overallEventView}
         orgSlug={organization.slug}
-        location={omit(location, 'cursor')}
+        location={omitDeep(location, 'query.cursor')}
         setError={error => setError(error?.message)}
         referrer="api.starfish.web-service-overall"
         queryExtras={{dataset: 'metrics', cursor: ''}}

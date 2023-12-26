@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import omit from 'lodash/omit';
 
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -43,11 +42,13 @@ function getHistogramRequestPayload(props: RequestProps) {
     precision,
     dataFilter,
   };
-  const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
-    'field',
-    'sort',
-    'per_page',
-  ]);
+  const {
+    field: _f,
+    sort: _s,
+    per_page: _so,
+    ...additionalApiPayload
+  } = eventView.getEventsAPIPayload(location);
+
   const apiPayload = Object.assign(baseApiPayload, additionalApiPayload);
   return apiPayload;
 }
@@ -81,12 +82,13 @@ function HistogramQuery(props: Props) {
     );
   }
 
+  const {children: _, ...propsWithoutChildren} = props;
   return (
     <GenericDiscoverQuery<Histograms, HistogramProps>
       route="events-histogram"
       getRequestPayload={getHistogramRequestPayload}
       didFetch={didFetch}
-      {...omit(props, 'children')}
+      {...propsWithoutChildren}
     >
       {({tableData, ...rest}) => {
         return props.children({histograms: tableData, ...rest});

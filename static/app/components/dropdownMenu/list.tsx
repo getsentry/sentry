@@ -8,7 +8,6 @@ import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
 import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
-import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
@@ -153,24 +152,29 @@ function DropdownMenuList({
       return null;
     }
 
-    const trigger = triggerProps => (
-      <DropdownMenuItem
-        renderAs="div"
-        node={node}
-        state={state}
-        showDivider={showDividers}
-        closeOnSelect={false}
-        {...omit(triggerProps, [
-          'onClick',
-          'onDragStart',
-          'onKeyDown',
-          'onKeyUp',
-          'onMouseDown',
-          'onPointerDown',
-          'onPointerUp',
-        ])}
-      />
-    );
+    const trigger = triggerProps => {
+      const {
+        onClick: _onClick,
+        onDragStart: _onDragStart,
+        onKeyDown: _onKeyDown,
+        onKeyUp: _onKeyUp,
+        onMouseDown: _onMouseDown,
+        onPointerDown: _onPointerDown,
+        onPointerUp: _onPointerUp,
+        ...rest
+      } = triggerProps;
+
+      return (
+        <DropdownMenuItem
+          renderAs="div"
+          node={node}
+          state={state}
+          showDivider={showDividers}
+          closeOnSelect={false}
+          {...rest}
+        />
+      );
+    };
 
     return (
       <DropdownMenu

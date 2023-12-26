@@ -3,7 +3,6 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
-import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
@@ -376,7 +375,7 @@ function WidgetBuilder({
   };
 
   const currentDashboardId = state.selectedDashboard ?? dashboardId;
-  const queryParamsWithoutSource = omit(location.query, 'source');
+  const {source: _, ...queryParamsWithoutSource} = location.query;
   const previousLocation = {
     pathname:
       defined(currentDashboardId) && currentDashboardId !== NEW_DASHBOARD_ID
@@ -880,6 +879,7 @@ function WidgetBuilder({
       queryData.queryConditions.push(query.conditions);
     });
 
+    const {period: _p, ...dateTimeWithoutPeriod} = pageFilters.datetime;
     const pathQuery = {
       displayType: widgetData.displayType,
       interval: widgetData.interval,
@@ -888,7 +888,7 @@ function WidgetBuilder({
       // Propagate page filters
       project: pageFilters.projects,
       environment: pageFilters.environments,
-      ...omit(pageFilters.datetime, 'period'),
+      ...dateTimeWithoutPeriod,
       statsPeriod: pageFilters.datetime?.period,
     };
 
@@ -905,7 +905,7 @@ function WidgetBuilder({
           }
         : {};
 
-    const sanitizedQuery = omit(pathQuery, ['defaultWidgetQuery', 'defaultTitle']);
+    const {defaultWidgetQuery: _d, defaultTitle: _t, ...sanitizedQuery} = pathQuery;
 
     if (id === NEW_DASHBOARD_ID) {
       router.push(

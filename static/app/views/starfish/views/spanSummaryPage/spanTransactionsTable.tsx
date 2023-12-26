@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
@@ -152,6 +151,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
     });
   };
 
+  const {endpoint: _, ...query} = location.query;
   return (
     <Fragment>
       <VisuallyCompleteWithData
@@ -181,7 +181,7 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
           <Button
             to={{
               pathname: location.pathname,
-              query: omit(location.query, 'endpoint'),
+              query,
             }}
           >
             {t('View More')}

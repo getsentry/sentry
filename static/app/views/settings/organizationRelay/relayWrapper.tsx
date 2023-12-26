@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -68,7 +67,10 @@ class RelayWrapper extends DeprecatedAsyncView<Props, State> {
 
     const trustedRelays = relays
       .filter(relay => relay.publicKey !== publicKey)
-      .map(relay => omit(relay, ['created', 'lastModified']));
+      .map(relay => {
+        const {created: _, lastModified: _l, ...rest} = relay;
+        return rest;
+      });
 
     try {
       const response = await this.api.requestPromise(

@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -93,9 +92,12 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
   }
 
   clearError<F extends keyof Values>(field: F) {
-    this.setState(prevState => ({
-      errors: omit(prevState.errors, field),
-    }));
+    this.setState(prevState => {
+      const {[field]: _, ...errors} = prevState.errors;
+      return {
+        errors,
+      };
+    });
   }
 
   handleErrorResponse(error: ReturnType<typeof createTrustedRelaysResponseError>) {
@@ -118,21 +120,25 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
   }
 
   handleChange = <F extends keyof Values>(field: F, value: Values[F]) => {
-    this.setState(prevState => ({
-      values: {
-        ...prevState.values,
-        [field]: value,
-      },
-      errors: omit(prevState.errors, field),
-    }));
+    this.setState(prevState => {
+      const {[field]: _, ...errors} = prevState;
+      return {
+        values: {
+          ...prevState.values,
+          [field]: value,
+        },
+        errors,
+      };
+    });
   };
 
   handleSave = async () => {
     const {onSubmitSuccess, closeModal, orgSlug, api} = this.props;
 
-    const trustedRelays = this.getData().trustedRelays.map(trustedRelay =>
-      omit(trustedRelay, ['created', 'lastModified'])
-    );
+    const trustedRelays = this.getData().trustedRelays.map(trustedRelay => {
+      const {created: _, lastModified: _l, ...relay} = trustedRelay;
+      return relay;
+    });
 
     try {
       const response = await api.requestPromise(`/organizations/${orgSlug}/`, {
@@ -190,8 +196,9 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
     }
 
     if (errors.publicKey) {
+      const {publicKey: _, ...rest} = errors;
       this.setState({
-        errors: omit(errors, 'publicKey'),
+        errors: rest,
       });
     }
 

@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -115,16 +114,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     }
 
     // Widget title changes should not update the WidgetCardChart component tree
+    const {windowWidth: _, ...propsWithoutWindowWidth} = this.props;
     const currentProps = {
-      ...omit(this.props, ['windowWidth']),
+      ...propsWithoutWindowWidth,
       widget: {
         ...this.props.widget,
         title: '',
       },
     };
 
+    const {windowWidth: _w, ...nextPropsWithoutWindowWidth} = this.props;
     nextProps = {
-      ...omit(nextProps, ['windowWidth']),
+      ...nextPropsWithoutWindowWidth,
       widget: {
         ...nextProps.widget,
         title: '',

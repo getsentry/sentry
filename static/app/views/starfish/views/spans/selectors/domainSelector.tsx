@@ -3,11 +3,11 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
-import omit from 'lodash/omit';
 import uniq from 'lodash/uniq';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {omitDeep} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -181,7 +181,7 @@ function getEventView(
       moduleName,
       location: {
         ...location,
-        query: omit(location.query, ['span.action', 'span.domain']),
+        query: omitDeep(location.query, ['span.action', 'span.domain']),
       },
       spanCategory,
     }),

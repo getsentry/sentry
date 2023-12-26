@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
@@ -64,6 +63,12 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     DataDisplayType.DURATION_AVG
   );
 
+  const {cursor: _, ...query} = location.query;
+  const locationWithoutCursor = {
+    ...location,
+    query,
+  };
+
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
       selection,
@@ -74,7 +79,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.span-category-breakdown',
-    location: omit(location, 'query.cursor'),
+    location: locationWithoutCursor,
     limit: 4,
   });
 
@@ -88,7 +93,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.total-time',
-    location: omit(location, 'query.cursor'),
+    location: locationWithoutCursor,
   });
 
   const {

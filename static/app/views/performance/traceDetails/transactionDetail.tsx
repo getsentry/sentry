@@ -2,7 +2,6 @@ import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -22,6 +21,7 @@ import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {omitDeep} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -99,7 +99,7 @@ class TransactionDetail extends Component<Props> {
       organization.slug,
       eventSlug,
       transaction.transaction,
-      omit(location.query, Object.values(PAGE_URL_PARAM))
+      omitDeep(location.query, Object.values(PAGE_URL_PARAM))
     );
 
     return (
@@ -115,7 +115,7 @@ class TransactionDetail extends Component<Props> {
     const target = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transaction.transaction,
-      query: omit(location.query, Object.values(PAGE_URL_PARAM)),
+      query: omitDeep(location.query, Object.values(PAGE_URL_PARAM)),
       projectID: String(transaction.project_id),
     });
 

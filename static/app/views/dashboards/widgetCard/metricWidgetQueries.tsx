@@ -1,11 +1,11 @@
 import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {omitDeep} from 'sentry/utils';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {mapToMRIFields} from 'sentry/utils/metrics';
@@ -83,13 +83,13 @@ class MetricWidgetQueries extends Component<Props, State> {
       !isSelectionEqual(selection, prevProps.selection) ||
       // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
       !isEqual(
-        omit(widget, ignoredWidgetProps),
-        omit(prevProps.widget, ignoredWidgetProps)
+        omitDeep(widget, ignoredWidgetProps),
+        omitDeep(prevProps.widget, ignoredWidgetProps)
       ) ||
       // If the queries changed (ignore unimportant name, + fields as they are handled lower)
       !isEqual(
-        widget.queries.map(q => omit(q, ignoredQueryProps)),
-        prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
+        widget.queries.map(q => omitDeep(q, ignoredQueryProps)),
+        prevProps.widget.queries.map(q => omitDeep(q, ignoredQueryProps))
       ) ||
       // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
       !isEqual(

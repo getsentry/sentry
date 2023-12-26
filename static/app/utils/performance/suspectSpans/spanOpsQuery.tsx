@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -20,11 +18,12 @@ type Props = RequestProps & {
 };
 
 function SpanOpsQuery(props: Props) {
+  const {children: _, ...propsWithoutChildren} = props;
   return (
     <GenericDiscoverQuery<SpanOps, SpanOpsProps>
       route="events-span-ops"
       limit={20}
-      {...omit(props, 'children')}
+      {...propsWithoutChildren}
     >
       {({tableData, ...rest}) => {
         return props.children({spanOps: tableData, ...rest});

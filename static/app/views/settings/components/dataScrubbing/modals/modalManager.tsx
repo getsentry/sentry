@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -102,9 +101,12 @@ class ModalManager extends Component<Props, State> {
   }
 
   clearError<F extends keyof Values>(field: F) {
-    this.setState(prevState => ({
-      errors: omit(prevState.errors, field),
-    }));
+    this.setState(prevState => {
+      const {[field]: _, ...errors} = prevState.errors;
+      return {
+        errors,
+      };
+    });
   }
 
   async loadSourceSuggestions() {
@@ -206,11 +208,14 @@ class ModalManager extends Component<Props, State> {
       values.placeholder = '';
     }
 
-    this.setState(prevState => ({
-      values,
-      requiredValues: this.getRequiredValues(values),
-      errors: omit(prevState.errors, field),
-    }));
+    this.setState(prevState => {
+      const {[field]: _, ...errors} = prevState.errors;
+      return {
+        values,
+        requiredValues: this.getRequiredValues(values),
+        errors,
+      };
+    });
   };
 
   handleSave = async () => {

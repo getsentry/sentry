@@ -1,6 +1,5 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -91,7 +90,10 @@ function BreadcrumbsContainer({data, event, organization}: Props) {
       options.push({
         key: 'types',
         label: t('Types'),
-        options: typeOptions.map(typeOption => omit(typeOption, 'levels')),
+        options: typeOptions.map(typeOption => {
+          const {levels: _, ...rest} = typeOption;
+          return rest;
+        }),
       });
     }
 

@@ -7,7 +7,6 @@ import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
-import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import moment from 'moment';
 import * as qs from 'query-string';
@@ -526,8 +525,9 @@ class IssueListOverview extends Component<Props, State> {
       fetchAllCounts ||
       !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
     ) {
+      const {query: _, ...endpointParamsWithoutQuery} = endpointParams;
       const requestParams: CountsEndpointParams = {
-        ...omit(endpointParams, 'query'),
+        ...endpointParamsWithoutQuery,
         // fetch the counts for the tabs whose counts haven't been fetched yet
         query: tabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
       };
@@ -957,8 +957,14 @@ class IssueListOverview extends Component<Props, State> {
     newParams: Partial<EndpointParams> = {},
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
+    const {
+      page: _p,
+      cursor: _c,
+      ...queryWithoutCursorAndPage
+    } = this.props.location.query;
+
     const query = {
-      ...omit(this.props.location.query, ['page', 'cursor']),
+      ...queryWithoutCursorAndPage,
       referrer: 'issue-list',
       ...this.getEndpointParams(),
       ...newParams,

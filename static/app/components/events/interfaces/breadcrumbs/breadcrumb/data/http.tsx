@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -37,11 +35,9 @@ export function Http({breadcrumb, searchTerm, meta}: Props) {
     }
   };
 
+  const {method: _, url: _u, status_code: _s, ...kvData} = data || {};
   return (
-    <Summary
-      kvData={!data ? data : omit(data, ['method', 'url', 'status_code'])}
-      meta={meta}
-    >
+    <Summary kvData={!data ? data : kvData} meta={meta}>
       {meta?.data?.method?.[''] ? (
         <AnnotatedText value={data?.method} meta={meta?.data?.method?.['']} />
       ) : (

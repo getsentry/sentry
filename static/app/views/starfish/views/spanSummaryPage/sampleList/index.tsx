@@ -1,7 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -99,9 +98,16 @@ export function SampleList({
   }
 
   function defaultOnClose() {
+    const {
+      transaction: _,
+      transactionMethod: _t,
+      query: _q,
+      ...queryWithoutTransaction
+    } = router.location.query;
+
     router.replace({
       pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod', 'query'),
+      query: queryWithoutTransaction,
     });
   }
 

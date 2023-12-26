@@ -1,7 +1,6 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import omit from 'lodash/omit';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import PlatformPicker from 'sentry/components/platformPicker';
@@ -48,10 +47,16 @@ export function PlatformSelection(props: StepProps) {
           platform={onboardingContext.data.selectedSDK?.key}
           defaultCategory={onboardingContext.data.selectedSDK?.category}
           setPlatform={platform => {
+            // If we dont use nonnullable here, TS correctly complains that we
+            // are passing undefined keys as selectedSDK, however that was already the case
+            // in the previous implementation, it just didn't complain as omit is not type safe
+            const {id: _, ...platformWithoutId} =
+              platform ?? ({} as NonNullable<typeof platform>);
+
             onboardingContext.setData({
               ...onboardingContext.data,
               selectedSDK: platform
-                ? {...omit(platform, 'id'), key: platform.id}
+                ? {...platformWithoutId, key: platform.id}
                 : undefined,
             });
           }}

@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import TransactionsList, {
   DropdownOption,
@@ -114,11 +113,11 @@ function SummaryContent({
     });
 
     // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
+    const {cursor: _, ...queryWithoutCursor} = queryParams;
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: queryWithoutCursor,
     });
   }
 

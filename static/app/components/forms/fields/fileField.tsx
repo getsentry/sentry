@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
@@ -58,6 +57,12 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
         name: string;
         onChange: (value, event?: React.FormEvent<HTMLInputElement>) => void;
       }) => {
+        const {
+          value: _,
+          onBlur: _ob,
+          onKeyDown: _ok,
+          ...rest
+        } = fieldProps as Record<any, any>;
         return (
           <InputGroup>
             <InputGroup.LeadingItems disablePointerEvents>
@@ -66,7 +71,7 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
               </FileName>
             </InputGroup.LeadingItems>
             <FileInput
-              {...omit(fieldProps, 'value', 'onBlur', 'onKeyDown')}
+              {...rest}
               type="file"
               name={name}
               accept={accept?.join(', ')}

@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Link, {LinkProps} from 'sentry/components/links/link';
@@ -95,7 +94,7 @@ interface NameProps {
 }
 
 const StyledName = styled(({useLink, to, ...props}: NameProps) => {
-  const forwardProps = omit(props, 'hideEmail');
+  const {hideEmail: _, ...forwardProps} = props;
   return useLink ? <Link to={to} {...forwardProps} /> : <span {...forwardProps} />;
 })`
   font-weight: ${(p: NameProps) => (p.hideEmail ? 'inherit' : 'bold')};

@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
@@ -76,9 +75,10 @@ export function SpanOperationSelector({
 }
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
+  const {[SPAN_OP]: _, ...queryWithoutSpanOp} = location.query;
   const query = buildEventViewQuery({
     moduleName,
-    location: {...location, query: omit(location.query, SPAN_OP)},
+    location: {...location, query: queryWithoutSpanOp},
     spanCategory,
   }).join(' ');
   return EventView.fromNewQueryWithLocation(

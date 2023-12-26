@@ -2,7 +2,6 @@ import {useCallback, useContext, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import omit from 'lodash/omit';
 import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
@@ -248,9 +247,10 @@ function CreateProject() {
     const userModifiedName = !!projectName && projectName !== platform?.key;
     const newName = userModifiedName ? projectName : selectedPlatform.id;
 
+    const {id, ...rest} = selectedPlatform;
     setPlatform({
-      ...omit(selectedPlatform, 'id'),
-      key: selectedPlatform.id,
+      ...rest,
+      key: id,
     });
 
     setProjectName(newName);

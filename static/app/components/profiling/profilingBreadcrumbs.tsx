@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import _Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -32,13 +31,14 @@ function trailToCrumb(
     organization: Organization;
   }
 ): Crumb {
+  const {cursor: _c, query: _q, ...queryWithoutCursorAndQuery} = trail.payload.query;
   switch (trail.type) {
     case 'landing': {
       return {
         to: generateProfilingRouteWithQuery({
           // cursor and query are not used in the landing page
           // and break the API call as the qs gets forwarded to the API
-          query: omit(trail.payload.query, ['cursor', 'query']),
+          query: queryWithoutCursorAndQuery,
           orgSlug: organization.slug,
         }),
         label: t('Profiling'),
@@ -50,7 +50,7 @@ function trailToCrumb(
         to: generateProfileSummaryRouteWithQuery({
           // cursor and query are not used in the summary page
           // and break the API call as the qs gets forwarded to the API
-          query: omit(trail.payload.query, ['cursor', 'query']),
+          query: queryWithoutCursorAndQuery,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           transaction: trail.payload.transaction,

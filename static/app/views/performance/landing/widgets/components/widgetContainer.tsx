@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
@@ -12,6 +11,7 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {omit} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {Field} from 'sentry/utils/discover/fields';
@@ -350,9 +350,8 @@ const getEventViewDiscoverPath = (
   // `EventView#getResultsViewUrlTarget` omits those! Get them manually
   discoverUrlTarget.query.query = eventView.getQueryWithAdditionalConditions();
 
-  return `${discoverUrlTarget.pathname}?${qs.stringify(
-    omit(discoverUrlTarget.query, ['widths']) // Column widths are not useful in this case
-  )}`;
+  const {widths: _, ...query} = discoverUrlTarget.query; // Column widths are not useful in this case
+  return `${discoverUrlTarget.pathname}?${qs.stringify(query)}`;
 };
 
 /**

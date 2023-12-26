@@ -6,7 +6,6 @@ import classNames from 'classnames';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {
@@ -61,6 +60,7 @@ import {
   IssueAlertRuleActionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
+import {omitDeep} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -302,9 +302,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       this.props.onChangeTitle?.(data.name);
     }
     if (stateKey === 'duplicateTargetRule') {
+      const {id: _, ...rest} = data;
       this.setState({
         rule: {
-          ...omit(data, ['id']),
+          ...rest,
           name: data.name + ' copy',
         } as UnsavedIssueAlertRule,
       });
@@ -615,7 +616,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
       set(clonedState, `rule[${prop}]`, val);
-      return {...clonedState, detailedError: omit(prevState.detailedError, prop)};
+      return {...clonedState, detailedError: omitDeep(prevState.detailedError, prop)};
     });
   };
 

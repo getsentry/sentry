@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import {defined} from 'sentry/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -32,18 +30,21 @@ function getSuspectSpanPayload(props: RequestProps) {
   const payload = defined(span)
     ? {span, min_exclusive_time: minExclusiveTime, max_exclusive_time: maxExclusiveTime}
     : {};
-  const additionalPayload = omit(props.eventView.getEventsAPIPayload(props.location), [
-    'field',
-  ]);
+
+  const {field: _, ...additionalPayload} = props.eventView.getEventsAPIPayload(
+    props.location
+  );
+
   return {...payload, ...additionalPayload};
 }
 
 function SuspectSpansQuery(props: Props) {
+  const {children: _, ...propsWithoutChildren} = props;
   return (
     <GenericDiscoverQuery<SpanExample[], SpanExamplesProps>
       route="events-spans"
       getRequestPayload={getSuspectSpanPayload}
-      {...omit(props, 'children')}
+      {...propsWithoutChildren}
     >
       {({tableData, ...rest}) => {
         return props.children({

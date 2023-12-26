@@ -2,7 +2,6 @@ import {Component, Fragment} from 'react';
 import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
@@ -22,6 +21,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
+import {omitDeep} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -107,8 +107,8 @@ class GroupList extends Component<Props, State> {
       prevProps.endpointPath !== this.props.endpointPath ||
       prevProps.query !== this.props.query ||
       !isEqual(
-        omit(prevProps.queryParams, ignoredQueryParams),
-        omit(this.props.queryParams, ignoredQueryParams)
+        omitDeep(prevProps.queryParams, ignoredQueryParams),
+        omitDeep(this.props.queryParams, ignoredQueryParams)
       )
     ) {
       this.fetchData();

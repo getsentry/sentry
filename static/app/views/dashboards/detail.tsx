@@ -3,7 +3,6 @@ import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
-import omit from 'lodash/omit';
 
 import {
   createDashboard,
@@ -27,7 +26,7 @@ import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
+import {defined, omitDeep} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -175,7 +174,7 @@ class DashboardDetail extends Component<Props, State> {
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omit(location.query, Object.values(WidgetViewerQueryField));
+            const query = omitDeep(location.query, Object.values(WidgetViewerQueryField));
             router.push({
               pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
               query,
@@ -358,9 +357,18 @@ class DashboardDetail extends Component<Props, State> {
       hasDashboardChanged = !isEqual(
         {
           ...modifiedDashboard,
-          widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
+          widgets: modifiedDashboard?.widgets.map(widget => {
+            const {layout: _, ...widgetWithoutLayout} = widget;
+            return widgetWithoutLayout;
+          }),
         },
-        {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
+        {
+          ...dashboard,
+          widgets: dashboard.widgets.map(widget => {
+            const {layout: _, ...widgetWithoutLayout} = widget;
+            return widgetWithoutLayout;
+          }),
+        }
       );
     }
 
@@ -543,7 +551,7 @@ class DashboardDetail extends Component<Props, State> {
                 normalizeUrl({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                   query: {
-                    query: omit(location.query, Object.values(DashboardFilterKeys)),
+                    query: omitDeep(location.query, Object.values(DashboardFilterKeys)),
                   },
                 })
               );
@@ -892,7 +900,7 @@ class DashboardDetail extends Component<Props, State> {
                                       browserHistory.replace(
                                         normalizeUrl({
                                           pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                          query: omit(
+                                          query: omitDeep(
                                             location.query,
                                             Object.values(DashboardFilterKeys)
                                           ),

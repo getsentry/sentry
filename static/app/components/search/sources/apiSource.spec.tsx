@@ -1,5 +1,4 @@
 import {ComponentProps} from 'react';
-import omit from 'lodash/omit';
 import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
@@ -232,8 +231,9 @@ describe('ApiSource', function () {
 
   it('only queries org endpoint if there is no org in context', function () {
     const mock = jest.fn().mockReturnValue(null);
+    const {organization: _org, ...props} = defaultProps;
     render(
-      <ApiSource {...omit(defaultProps, 'organization')} params={{orgId: ''}} query="foo">
+      <ApiSource {...props} params={{orgId: ''}} query="foo">
         {mock}
       </ApiSource>
     );

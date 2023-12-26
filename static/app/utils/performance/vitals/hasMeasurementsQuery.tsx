@@ -1,4 +1,3 @@
-import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -40,11 +39,12 @@ function getHasMeasurementsRequestPayload(props: RequestProps) {
 }
 
 function HasMeasurementsQuery(props: Props) {
+  const {children: _, ...propsWithoutChildren} = props;
   return (
     <GenericDiscoverQuery<HasMeasurements, HasMeasurementsProps>
       route="events-has-measurements"
       getRequestPayload={getHasMeasurementsRequestPayload}
-      {...omit(props, 'children')}
+      {...propsWithoutChildren}
     >
       {({tableData, ...rest}) => {
         return props.children({

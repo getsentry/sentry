@@ -1,7 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
-import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
@@ -123,7 +122,7 @@ class OrganizationUserFeedback extends DeprecatedAsyncView<Props, State> {
     const {status} = getQuery(search);
     const {reportListPageLinks} = this.state;
 
-    const unresolvedQuery = omit(query, 'status');
+    const {status: _, ...unresolvedQuery} = query;
     const allIssuesQuery = {...query, status: ''};
     const hasNewFeedback = organization.features.includes('user-feedback-ui');
 

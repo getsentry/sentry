@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
-import omit from 'lodash/omit';
 
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -206,7 +205,7 @@ function GroupHeader({
   }, [organization, groupReprocessingStatus]);
 
   const eventRoute = useMemo(() => {
-    const searchTermWithoutQuery = omit(location.query, 'query');
+    const {query: _, ...searchTermWithoutQuery} = location.query;
     return {
       pathname: `${baseUrl}events/`,
       query: searchTermWithoutQuery,
@@ -234,6 +233,7 @@ function GroupHeader({
   );
 
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const {sort: _, ...queryWithoutSort} = location.query;
 
   return (
     <Layout.Header>
@@ -246,7 +246,7 @@ function GroupHeader({
                 to: {
                   pathname: `/organizations/${organization.slug}/issues/`,
                   // Sanitize sort queries from query
-                  query: omit(location.query, 'sort'),
+                  query: queryWithoutSort,
                 },
               },
               {label: shortIdBreadcrumb},

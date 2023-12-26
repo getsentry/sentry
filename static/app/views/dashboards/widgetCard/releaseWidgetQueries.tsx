@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -16,6 +15,7 @@ import {
   SessionApiResponse,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {omitDeep} from 'sentry/utils';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
@@ -249,13 +249,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       !isSelectionEqual(selection, prevProps.selection) ||
       // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
       !isEqual(
-        omit(widget, ignoredWidgetProps),
-        omit(prevProps.widget, ignoredWidgetProps)
+        omitDeep(widget, ignoredWidgetProps),
+        omitDeep(prevProps.widget, ignoredWidgetProps)
       ) ||
       // If the queries changed (ignore unimportant name, + fields as they are handled lower)
       !isEqual(
-        widget.queries.map(q => omit(q, ignoredQueryProps)),
-        prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
+        widget.queries.map(q => omitDeep(q, ignoredQueryProps)),
+        prevProps.widget.queries.map(q => omitDeep(q, ignoredQueryProps))
       ) ||
       // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
       !isEqual(

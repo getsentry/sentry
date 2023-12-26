@@ -1,6 +1,5 @@
-import omit from 'lodash/omit';
-
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
+import {omitDeep} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
@@ -66,7 +65,7 @@ export function transformSessionsResponseToTable(
       // derived status metrics through the Sessions API,
       // they are injected into the payload and need to be
       // stripped.
-      ...omit(mapDerivedMetricsToFields(group.totals), injectedFields),
+      ...omitDeep(mapDerivedMetricsToFields(group.totals), injectedFields),
       // if session.status is a groupby, some post processing
       // is needed to calculate the status derived metrics
       // from grouped results of `sum(session)` or `count_unique(user)`
@@ -75,8 +74,9 @@ export function transformSessionsResponseToTable(
 
   const singleRow = data[0];
   // TODO(metrics): these should come from the API in the future
+  const {id: _, ...singleRowWithoutId} = singleRow;
   const meta = {
-    ...changeObjectValuesToTypes(omit(singleRow, 'id')),
+    ...changeObjectValuesToTypes(singleRowWithoutId),
   };
 
   return {meta, data};

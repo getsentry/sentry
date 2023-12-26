@@ -1,7 +1,6 @@
 import {useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -255,9 +254,10 @@ export default function PageOverview() {
         <PageOverviewWebVitalsDetailPanel
           webVital={state.webVital}
           onClose={() => {
+            const {webVital: _, ...queryWithoutWebVital} = router.location.query;
             router.replace({
               pathname: router.location.pathname,
-              query: omit(router.location.query, 'webVital'),
+              query: queryWithoutWebVital,
             });
             setState({...state, webVital: null});
           }}

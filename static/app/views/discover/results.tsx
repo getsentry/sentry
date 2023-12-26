@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
@@ -305,7 +304,12 @@ export class Results extends Component<Props, State> {
         : DEFAULT_EVENT_VIEW.fields,
     });
 
-    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
+    // TODO: check if we can omit id. This might have been a type issue before
+    // when the code was using omit(savedQuery, 'id') which is incorrect
+    // as per the type definition, but keeping it in case type was incorrect
+    // @ts-expect-error
+    const {id: _, ...queryWithoutId} = savedQuery;
+    const query = isHomepage && savedQuery ? queryWithoutId : defaultEventView;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
@@ -362,7 +366,7 @@ export class Results extends Component<Props, State> {
     });
 
     // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
+    const {cursor: _, ...searchQueryParams} = queryParams;
 
     router.push({
       pathname: location.pathname,

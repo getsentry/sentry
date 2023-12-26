@@ -1,9 +1,9 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import {omit} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -117,8 +117,9 @@ export function handleLandingDisplayChange(
   const searchConditions = new MutableSearch(query);
   searchConditions.removeFilter('transaction.op');
 
+  const {landingDisplay: _, sort: _s, ...locationQuery} = location.query;
   const queryWithConditions = {
-    ...omit(location.query, ['landingDisplay', 'sort']),
+    ...locationQuery,
     query: searchConditions.formatString(),
   };
 

@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -39,21 +37,24 @@ function getHistogramRequestPayload(props: RequestProps) {
     precision,
     dataFilter,
   };
-  const additionalApiPayload = omit(eventView.getEventsAPIPayload(location), [
-    'sort',
-    'per_page',
-    'cursor',
-  ]);
-  const apiPayload = {...baseApiPayload, ...additionalApiPayload};
-  return apiPayload;
+
+  const {
+    sort: _s,
+    per_page: _p,
+    cursor: _c,
+    ...additionalApiPayload
+  } = eventView.getEventsAPIPayload(location);
+
+  return {...baseApiPayload, ...additionalApiPayload};
 }
 
 function SpanCountHistogramQuery(props: Props) {
+  const {children: _, ...propsWithoutChildren} = props;
   return (
     <GenericDiscoverQuery<HistogramData, HistogramProps>
       route="events-spans-counts-histogram"
       getRequestPayload={getHistogramRequestPayload}
-      {...omit(props, 'children')}
+      {...propsWithoutChildren}
     >
       {({tableData, ...rest}) => {
         return props.children({histogram: tableData, ...rest});

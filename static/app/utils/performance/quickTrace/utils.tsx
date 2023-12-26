@@ -1,10 +1,10 @@
-import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {OrganizationSummary} from 'sentry/types';
 import {Event, EventTransaction} from 'sentry/types/event';
+import {omit} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -102,7 +102,8 @@ export function flattenRelevantPaths(
 }
 
 function simplifyEvent(event: TraceFull): QuickTraceEvent {
-  return omit(event, ['children']);
+  const {children: _, ...rest} = event;
+  return rest;
 }
 
 type ParsedQuickTrace = {
@@ -235,7 +236,14 @@ export function getTraceRequestPayload({
   eventView,
   location,
 }: Pick<DiscoverQueryProps, 'eventView' | 'location'>) {
-  return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
+  const {
+    field: _,
+    sort: _s,
+    per_page: _p,
+    ...additionalApiPayload
+  } = eventView.getEventsAPIPayload(location);
+
+  return additionalApiPayload;
 }
 
 export function makeEventView({

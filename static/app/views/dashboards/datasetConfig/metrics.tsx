@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse, Organization, PageFilters, TagCollection} from 'sentry/types';
@@ -289,8 +287,9 @@ export function transformMetricsResponseToTable(data: MetricsApiResponse): Table
   });
 
   const singleRow = rows[0];
+  const {id: _, ...rowWithoutId} = singleRow;
   const meta = {
-    ...changeObjectValuesToTypes(omit(singleRow, 'id')),
+    ...changeObjectValuesToTypes(rowWithoutId),
   };
   return {meta, data: rows};
 }

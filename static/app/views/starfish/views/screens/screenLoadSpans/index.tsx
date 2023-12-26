@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
-import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -11,6 +10,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {omitDeep} from 'sentry/utils';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -52,13 +52,11 @@ function ScreenLoadSpans() {
 
   const screenLoadModule: LocationDescriptor = {
     pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
-    query: {
-      ...omit(location.query, [
-        QueryParameterNames.SPANS_SORT,
-        'transaction',
-        SpanMetricsField.SPAN_OP,
-      ]),
-    },
+    query: omitDeep(location.query, [
+      QueryParameterNames.SPANS_SORT,
+      'transaction',
+      SpanMetricsField.SPAN_OP,
+    ]),
   };
 
   const crumbs: Crumb[] = [
@@ -144,13 +142,15 @@ function ScreenLoadSpans() {
                     transactionName={transactionName}
                     spanDescription={spanDescription}
                     onClose={() => {
+                      const {
+                        spanGroup: _,
+                        transactionMethod: _t,
+                        ...query
+                      } = router.location.query;
+
                       router.replace({
                         pathname: router.location.pathname,
-                        query: omit(
-                          router.location.query,
-                          'spanGroup',
-                          'transactionMethod'
-                        ),
+                        query,
                       });
                     }}
                   />

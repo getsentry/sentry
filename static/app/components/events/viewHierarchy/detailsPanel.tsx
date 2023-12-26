@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -14,7 +13,8 @@ type DetailsPanelProps = {
 };
 
 function DetailsPanel({data, getTitle}: DetailsPanelProps) {
-  const keyValueData = Object.entries(omit(data, 'children')).map(([key, value]) => ({
+  const {children: _, ...dataWithoutChildren} = data;
+  const keyValueData = Object.entries(dataWithoutChildren).map(([key, value]) => ({
     key,
     value,
     subject: key,

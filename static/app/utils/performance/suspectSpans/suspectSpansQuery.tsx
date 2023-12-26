@@ -1,5 +1,3 @@
-import omit from 'lodash/omit';
-
 import {defined} from 'sentry/utils';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -52,11 +50,12 @@ function getSuspectSpanPayload(props: RequestProps) {
 }
 
 function SuspectSpansQuery(props: Props) {
+  const {children: _, ...propsWithoutChildren} = props;
   return (
     <GenericDiscoverQuery<SuspectSpans, SuspectSpansProps>
       route="events-spans-performance"
       getRequestPayload={getSuspectSpanPayload}
-      {...omit(props, 'children')}
+      {...propsWithoutChildren}
     >
       {({tableData, ...rest}) => {
         return props.children({suspectSpans: tableData, ...rest});

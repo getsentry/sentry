@@ -1,5 +1,4 @@
 import {RouteComponentProps} from 'react-router';
-import omit from 'lodash/omit';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -19,8 +18,9 @@ function EventDetails({organization, location, params}: Props) {
   const eventSlug = typeof params.eventSlug === 'string' ? params.eventSlug.trim() : '';
 
   const isHomepage = location.query.homepage;
+  const {id: _, ...queryWithoutId} = location.query;
   const eventView = EventView.fromLocation(
-    isHomepage ? {...location, query: omit(location.query, 'id')} : location
+    isHomepage ? {...location, query: queryWithoutId} : location
   );
   const eventName = eventView.name;
 

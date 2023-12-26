@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -11,6 +10,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {omit} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -117,9 +117,10 @@ export default function WebVitalsLandingPage() {
       <WebVitalsDetailPanel
         webVital={state.webVital}
         onClose={() => {
+          const {webVital: _, ...queryWithoutWebVital} = router.location.query;
           router.replace({
             pathname: router.location.pathname,
-            query: omit(router.location.query, 'webVital'),
+            query: queryWithoutWebVital,
           });
           setState({...state, webVital: null});
         }}

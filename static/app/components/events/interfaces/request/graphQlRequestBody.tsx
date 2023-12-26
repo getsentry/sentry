@@ -1,7 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import isEmpty from 'lodash/isEmpty';
-import omit from 'lodash/omit';
 import uniq from 'lodash/uniq';
 import Prism from 'prismjs';
 
@@ -116,6 +115,8 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
   const errors = getGraphQlErrorsFromResponseContext(event);
   const erroredLines = getErrorLineNumbers(errors);
 
+  const {query: _, ...keyListValues} = data;
+
   return (
     <div>
       <pre className="language-graphql" data-line={erroredLines.join(',')}>
@@ -125,7 +126,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
       </pre>
       <ErrorsAlert errors={errors} />
       <KeyValueList
-        data={Object.entries(omit(data, 'query')).map(([key, value]) => ({
+        data={Object.entries(keyListValues).map(([key, value]) => ({
           key,
           subject: key,
           value,
