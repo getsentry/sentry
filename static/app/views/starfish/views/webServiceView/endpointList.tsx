@@ -22,7 +22,6 @@ import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {omitDeep} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
@@ -422,13 +421,17 @@ function EndpointList({
 
   const columnSortBy = eventView.getSorts();
 
+  const {
+    query: {cursor: _, ...queryWithoutCursor},
+  } = location;
+
   return (
     <GuideAnchor target="performance_table" position="top-start">
       <StyledSearchBar placeholder={t('Search for endpoints')} onSearch={handleSearch} />
       <DiscoverQuery
         eventView={overallEventView}
         orgSlug={organization.slug}
-        location={omitDeep(location, 'query.cursor')}
+        location={{...location, query: queryWithoutCursor}}
         setError={error => setError(error?.message)}
         referrer="api.starfish.web-service-overall"
         queryExtras={{dataset: 'metrics', cursor: ''}}

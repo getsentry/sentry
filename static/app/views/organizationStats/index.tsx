@@ -33,7 +33,7 @@ import {
   PageFilters,
   Project,
 } from 'sentry/types';
-import {omitDeep} from 'sentry/utils';
+import {omit} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -186,7 +186,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     };
 
     // Do not leak out page-specific keys
-    nextLocation.query = omitDeep(nextLocation.query, PAGE_QUERY_PARAMS);
+    nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
 
     return {
       performance: {

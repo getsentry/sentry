@@ -8,7 +8,7 @@ import {defaultConfig, SearchConfig} from 'sentry/components/searchSyntax/parser
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
-import {defined, omitDeep} from 'sentry/utils';
+import {defined, omit} from 'sentry/utils';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
   Field,
@@ -128,7 +128,7 @@ const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
   return tags;
 }, {});
 
-const STATIC_FIELD_TAGS_WITHOUT_TRACING = omitDeep(STATIC_FIELD_TAGS, TRACING_FIELDS);
+const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
 
 const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
   tags[key] = {name: key, kind: FieldKind.METRICS};
@@ -261,7 +261,7 @@ function SearchBar(props: SearchBarProps) {
     };
 
     const list =
-      omitTags && omitTags.length > 0 ? omitDeep(combinedTags, omitTags) : combinedTags;
+      omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
     return list;
   };
 

@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
-import {omitDeep} from 'sentry/utils';
+import {omit} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -106,7 +106,7 @@ function getEventView(location: Location, moduleName: ModuleName, spanCategory?:
     moduleName,
     location: {
       ...location,
-      query: omitDeep(location.query, ['span.action', 'span.domain']),
+      query: omit(location.query, ['span.action', 'span.domain']),
     },
     spanCategory,
   }).join(' ');

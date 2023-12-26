@@ -26,7 +26,7 @@ import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {defined, omitDeep} from 'sentry/utils';
+import {defined, omit} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -174,7 +174,7 @@ class DashboardDetail extends Component<Props, State> {
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
-            const query = omitDeep(location.query, Object.values(WidgetViewerQueryField));
+            const query = omit(location.query, Object.values(WidgetViewerQueryField));
             router.push({
               pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
               query,
@@ -551,7 +551,7 @@ class DashboardDetail extends Component<Props, State> {
                 normalizeUrl({
                   pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
                   query: {
-                    query: omitDeep(location.query, Object.values(DashboardFilterKeys)),
+                    query: omit(location.query, Object.values(DashboardFilterKeys)),
                   },
                 })
               );
@@ -900,7 +900,7 @@ class DashboardDetail extends Component<Props, State> {
                                       browserHistory.replace(
                                         normalizeUrl({
                                           pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                          query: omitDeep(
+                                          query: omit(
                                             location.query,
                                             Object.values(DashboardFilterKeys)
                                           ),

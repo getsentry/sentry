@@ -1,5 +1,4 @@
 import {Location} from 'history';
-import {omit} from 'sentry/utils';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';

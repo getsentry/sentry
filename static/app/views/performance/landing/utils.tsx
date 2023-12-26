@@ -3,7 +3,6 @@ import {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {omit} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {

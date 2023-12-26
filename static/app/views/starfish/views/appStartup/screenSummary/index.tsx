@@ -12,7 +12,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {omitDeep} from 'sentry/utils';
+import {omit} from 'sentry/utils';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -41,7 +41,7 @@ function ScreenSummary() {
   const startupModule: LocationDescriptor = {
     pathname: `/organizations/${organization.slug}/starfish/appStartup/`,
     query: {
-      ...omitDeep(location.query, [
+      ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
         'transaction',
         SpanMetricsField.SPAN_OP,

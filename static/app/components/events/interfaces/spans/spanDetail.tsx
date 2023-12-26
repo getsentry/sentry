@@ -33,7 +33,7 @@ import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
-import {defined, omitDeep} from 'sentry/utils';
+import {defined, omit} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -215,7 +215,7 @@ function SpanDetail(props: Props) {
           const target = transactionSummaryRouteWithQuery({
             orgSlug: organization.slug,
             transaction: transactionResult.transaction,
-            query: omitDeep(location.query, Object.values(PAGE_URL_PARAM)),
+            query: omit(location.query, Object.values(PAGE_URL_PARAM)),
             projectID: String(childTransaction.project_id),
           });
 

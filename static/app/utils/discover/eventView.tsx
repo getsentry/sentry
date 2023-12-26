@@ -19,7 +19,7 @@ import {
   SelectValue,
   User,
 } from 'sentry/types';
-import {omitDeep} from 'sentry/utils';
+import {omit} from 'sentry/utils';
 import {
   aggregateOutputType,
   Column,
@@ -1197,7 +1197,7 @@ class EventView {
 
     // generate event query
     const eventQuery = Object.assign(
-      omitDeep(picked, DATETIME_QUERY_STRING_KEYS),
+      omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
         team,

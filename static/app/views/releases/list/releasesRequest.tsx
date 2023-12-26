@@ -23,7 +23,7 @@ import {
   SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types';
-import {defined, omitDeep, percent} from 'sentry/utils';
+import {defined, omit, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 
@@ -32,7 +32,7 @@ import {getCrashFreePercent} from '../utils';
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 function omitIgnoredProps(props: Props) {
-  return omitDeep(props, [
+  return omit(props, [
     'api',
     'organization',
     'children',

@@ -124,75 +124,52 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
 }
 
 /**
- * Checks if a value is a plain record like object, i.e. an object literal.
- * null, arrays, functions, etc. are not considered record like objects.
- *
- * note: this function is polymorphic and could be deoptimized at runtime
- */
-type ReturnPick<T, K> = K extends never
-  ? T
-  : K extends string
-  ? Pick<T, Exclude<keyof T, K>>
-  : K extends any[]
-  ? Pick<T, Exclude<keyof T, ReadonlyArray<K>[number]>>
-  : never;
-
-export function omit<T extends Record<any, any>, K extends keyof T>(
-  arg: [T, K] | [T, K[]] | [T, ...K[]]
-): ReturnPick<T, K> {
-  const [obj, ...keys] = arg;
-  if (!obj || Array.isArray(obj) || typeof obj !== 'object') {
-    throw new TypeError(
-      `Omit expected object-like input value, got ${obj?.toString?.() ?? obj}`
-    );
-  }
-
-  const returnValue = {...obj};
-
-  for (const key of keys) {
-    if (typeof key === 'string') {
-      delete returnValue[key];
-    }
-    if (Array.isArray(key)) {
-      key.forEach(k => delete returnValue[k]);
-    }
-  }
-  return returnValue as unknown as ReturnPick<T, K>;
-}
-
-/**
  * Omit deeply nested keys from an object. If you require shallow cloning, use omit
  * function instead. This function will clone the object deeply using structuredClone.
- *
- * note: this function is polymorphic and could be deoptimized at runtime
  * @param obj
  * @param keys
  * @returns
  */
-function omitDeep<T extends Record<string, any>, K extends Extract<keyof T, string>>(
+
+// omit<T extends object, K extends PropertyName[]>(
+//   object: T | null | undefined,
+//   ...paths: K
+// ): Pick<T, Exclude<keyof T, K[number]>>;
+// /**
+// * @see _.omit
+// */
+// omit<T extends object, K extends keyof T>(object: T | null | undefined, ...paths: Array<Many<K>>): Omit<T, K>;
+// /**
+// * @see _.omit
+// */
+// omit<T extends object>(object: T | null | undefined, ...paths: Array<Many<PropertyName>>): PartialObject<T>;
+export function omit<T extends object, K extends (string | number | symbol)[]>(
+  obj: T | null | undefined,
+  key: K
+): Pick<T, Exclude<keyof T, K[]>>;
+export function omit<T extends object, K extends keyof T>(
+  obj: T | null | undefined,
+  key: K
+): Omit<T, K>;
+export function omit<T extends object, K extends string>(
   // omit(obj, 'prop'), omit(obj, ['prop1', 'prop2'])
-  arg: [T, K] | [T, K[]]
+  obj: T | null | undefined,
   // @TODO: If keys can be statically known, we should provide a ts helper to
   // enforce it. I am fairly certain this will not work with generics as we'll
   // just end up blowing through the stack recursion, but it could be done on-demand.
-
+  keys: K | K[]
   // T return type is wrong, but we cannot statically infer nested keys without
   // narrowing the type, which seems impossible for a generic implementation? Because
   // of this, allow users to type the return value and not
-): ReturnPick<T, K> {
-  const obj = arg[0];
-
+): Omit<T, K> | Pick<T, Exclude<keyof T, K[]>> {
   if (!obj || Array.isArray(obj) || typeof obj !== 'object') {
-    throw new TypeError(
-      `Omit expected object-like input value, got ${obj?.toString?.() ?? obj}`
-    );
+    throw new TypeError();
   }
   const returnValue = window.structuredClone(obj);
 
-  const keys = arg[1];
   if (typeof keys === 'string') {
     deepRemoveKey(returnValue, keys);
-    return returnValue as unknown as ReturnPick<T, K>;
+    return returnValue;
   }
   const normalizedKeys = Array.isArray(keys) ? keys : [keys];
   // @TODO: there is an optimization opportunity here. If we presort the keys,
@@ -203,7 +180,7 @@ function omitDeep<T extends Record<string, any>, K extends Extract<keyof T, stri
     deepRemoveKey(returnValue, key);
   }
 
-  return returnValue as unknown as ReturnPick<T, K>;
+  return returnValue;
 }
 
 function deepRemoveKey(obj: Record<string, any>, key: string) {

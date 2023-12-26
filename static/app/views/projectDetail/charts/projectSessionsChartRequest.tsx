@@ -16,7 +16,7 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {omitDeep} from 'sentry/utils';
+import {omit} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {
   filterSessionsInTimeWindow,
@@ -30,7 +30,7 @@ import {getCrashFreePercent} from 'sentry/views/releases/utils';
 import {DisplayModes} from '../projectCharts';
 
 const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
-  omitDeep(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
+  omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
 type ProjectSessionsChartRequestRenderProps = {
   errored: boolean;

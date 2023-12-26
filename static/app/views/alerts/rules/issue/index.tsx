@@ -60,7 +60,7 @@ import {
   IssueAlertRuleActionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
-import {omitDeep} from 'sentry/utils';
+import {omit} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -616,7 +616,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
       set(clonedState, `rule[${prop}]`, val);
-      return {...clonedState, detailedError: omitDeep(prevState.detailedError, prop)};
+      return {...clonedState, detailedError: omit(prevState.detailedError, prop)};
     });
   };
 

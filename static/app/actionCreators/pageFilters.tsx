@@ -31,7 +31,7 @@ import {
   PinnedPageFilter,
   Project,
 } from 'sentry/types';
-import {defined, omitDeep, valueIsEqual} from 'sentry/utils';
+import {defined, omit, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 
 type EnvironmentId = Environment['id'];
@@ -618,7 +618,7 @@ function getNewQueryParams(
   const {resetParams, keepCursor} = options;
 
   const cleanCurrentQuery = Array.isArray(resetParams)
-    ? omitDeep(currentQuery, resetParams)
+    ? omit(currentQuery, resetParams)
     : currentQuery;
 
   // Normalize existing query parameters
@@ -635,7 +635,7 @@ function getNewQueryParams(
     paramsToOmit.push(cursorParam);
   }
 
-  const extraParams = omitDeep(cleanCurrentQuery, paramsToOmit);
+  const extraParams = omit(cleanCurrentQuery, paramsToOmit);
 
   // Override parameters
   const {project, environment, start, end, utc} = {

@@ -14,7 +14,7 @@ import {
   SessionsMeta,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {defined, omitDeep} from 'sentry/utils';
+import {defined, omit} from 'sentry/utils';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -281,7 +281,7 @@ export function transformSessionsResponseToTable(
     // derived status metrics through the Sessions API,
     // they are injected into the payload and need to be
     // stripped.
-    ...omitDeep(mapDerivedMetricsToFields(group.totals), injectedFields),
+    ...omit(mapDerivedMetricsToFields(group.totals), injectedFields),
     // if session.status is a groupby, some post processing
     // is needed to calculate the status derived metrics
     // from grouped results of `sum(session)` or `count_unique(user)`
