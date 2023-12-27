@@ -1,4 +1,5 @@
 import merge from 'lodash/merge';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
@@ -15,7 +16,7 @@ import {EntryType, Event} from 'sentry/types/event';
 describe('Threads', function () {
   const organization = Organization();
   const project = ProjectFixture({});
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const repo = Repository({integrationId: integration.id});
   const config = RepositoryProjectPathConfig({project, repo, integration});
 
