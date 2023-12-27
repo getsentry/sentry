@@ -57,7 +57,7 @@ export type GenericWidgetQueriesChildrenProps = {
 
 export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.ReactNode;
   config: DatasetConfig<SeriesResponse, TableResponse>;
   organization: Organization;
   selection: PageFilters;
