@@ -71,7 +71,7 @@ class GroupSnoozeTest(
 
     @freeze_time()
     def test_user_delta_reached(self):
-        for i in range(0, 100):
+        for i in range(5):
             self.store_event(
                 data={
                     "user": {"id": i},
@@ -82,7 +82,7 @@ class GroupSnoozeTest(
             )
 
         group = list(Group.objects.all())[-1]
-        snooze = GroupSnooze.objects.create(group=group, user_count=100, state={"users_seen": 0})
+        snooze = GroupSnooze.objects.create(group=group, user_count=5, state={"users_seen": 0})
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
