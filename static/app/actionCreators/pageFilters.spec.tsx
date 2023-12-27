@@ -333,6 +333,34 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
+    it('does invalidate all projects from query params if forced into single project', function () {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '-1',
+        },
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
+        // User does not have access to global views
+        shouldEnforceSingleProject: true,
+        router,
+      });
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [1],
+          environments: [],
+        },
+        new Set(),
+        true
+      );
+    });
+
     it('does not add non-pinned filters to query for pages with new page filters', function () {
       // Mock storage to have a saved value
       const pageFilterStorageMock = jest
