@@ -2,6 +2,7 @@ import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {User as UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -68,14 +69,14 @@ describe('Dashboards - DashboardList', function () {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: {id: '1'},
+        createdBy: UserFixture({id: '1'}),
         widgetPreview: [],
       }),
       DashboardFixture(widgets, {
         id: '2',
         title: 'Dashboard 2',
         dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: {id: '1'},
+        createdBy: UserFixture({id: '1'}),
         widgetPreview: [
           {
             displayType: 'line',
@@ -233,7 +234,7 @@ describe('Dashboards - DashboardList', function () {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: {id: '1'},
+        createdBy: UserFixture({id: '1'}),
         widgetPreview: [],
       }),
     ];
