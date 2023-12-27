@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {HeaderTitle} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import Tag from 'sentry/components/tag';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,7 +21,9 @@ import {
   isTransactionDuration,
   MetricDisplayType,
   MetricsQuery,
+  MetricsQuerySubject,
   MetricWidgetQueryParams,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -30,8 +34,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type QueryBuilderProps = {
-  displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
-  metricsQuery: Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
+  displayType: MetricDisplayType;
+  isEdit: boolean;
+  // TODO(ddm): move display type out of the query builder
+  metricsQuery: MetricsQuerySubject;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   powerUserMode?: boolean;
@@ -50,6 +56,7 @@ export function QueryBuilder({
   displayType,
   powerUserMode,
   onChange,
+  isEdit,
 }: QueryBuilderProps) {
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
@@ -88,116 +95,128 @@ export function QueryBuilder({
     }
   }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
+  const stringifiedMetricWidget = stringifyMetricWidget(metricsQuery);
+
   return (
     <QueryBuilderWrapper>
-      <QueryBuilderRow>
-        <WrapPageFilterBar>
-          <CompactSelect
-            searchable
-            sizeLimit={100}
-            triggerProps={{prefix: t('Metric'), size: 'sm'}}
-            options={displayedMetrics.map(metric => ({
-              label: mriMode ? metric.mri : formatMRI(metric.mri),
-              value: metric.mri,
-              trailingItems: mriMode ? undefined : (
-                <Fragment>
-                  <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
-                  <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                </Fragment>
-              ),
-            }))}
-            value={metricsQuery.mri}
-            onChange={option => {
-              const availableOps =
-                meta
-                  .find(metric => metric.mri === option.value)
-                  ?.operations.filter(isAllowedOp) ?? [];
+      {isEdit ? (
+        <Fragment>
+          <QueryBuilderRow>
+            <WrapPageFilterBar>
+              <CompactSelect
+                searchable
+                sizeLimit={100}
+                triggerProps={{prefix: t('Metric'), size: 'sm'}}
+                options={displayedMetrics.map(metric => ({
+                  label: mriMode ? metric.mri : formatMRI(metric.mri),
+                  value: metric.mri,
+                  trailingItems: mriMode ? undefined : (
+                    <Fragment>
+                      <Tag tooltipText={t('Type')}>
+                        {getReadableMetricType(metric.type)}
+                      </Tag>
+                      <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+                    </Fragment>
+                  ),
+                }))}
+                value={metricsQuery.mri}
+                onChange={option => {
+                  const availableOps =
+                    meta
+                      .find(metric => metric.mri === option.value)
+                      ?.operations.filter(isAllowedOp) ?? [];
 
-              // @ts-expect-error .op is an operation
-              const selectedOp = availableOps.includes(metricsQuery.op ?? '')
-                ? metricsQuery.op
-                : availableOps?.[0];
-              onChange({
-                mri: option.value,
-                op: selectedOp,
-                groupBy: undefined,
-                focusedSeries: undefined,
-                displayType: getWidgetDisplayType(option.value, selectedOp),
-              });
-            }}
-          />
-          <CompactSelect
-            triggerProps={{prefix: t('Op'), size: 'sm'}}
-            options={
-              selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                label: op,
-                value: op,
-              })) ?? []
-            }
-            disabled={!metricsQuery.mri}
-            value={metricsQuery.op}
-            onChange={option =>
-              onChange({
-                op: option.value,
-              })
-            }
-          />
-          <CompactSelect
-            multiple
-            triggerProps={{prefix: t('Group by'), size: 'sm'}}
-            options={tags.map(tag => ({
-              label: tag.key,
-              value: tag.key,
-              trailingItems: (
-                <Fragment>
-                  {tag.key === 'release' && <IconReleases size="xs" />}
-                  {tag.key === 'transaction' && <IconLightning size="xs" />}
-                </Fragment>
-              ),
-            }))}
-            disabled={!metricsQuery.mri}
-            value={metricsQuery.groupBy}
-            onChange={options =>
-              onChange({
-                groupBy: options.map(o => o.value),
-                focusedSeries: undefined,
-              })
-            }
-          />
-          <CompactSelect
-            triggerProps={{prefix: t('Display'), size: 'sm'}}
-            value={displayType ?? defaultMetricDisplayType}
-            options={[
-              {
-                value: MetricDisplayType.LINE,
-                label: t('Line'),
-              },
-              {
-                value: MetricDisplayType.AREA,
-                label: t('Area'),
-              },
-              {
-                value: MetricDisplayType.BAR,
-                label: t('Bar'),
-              },
-            ]}
-            onChange={({value}) => {
-              onChange({displayType: value});
-            }}
-          />
-        </WrapPageFilterBar>
-      </QueryBuilderRow>
-      {/* Stop propagation so widget does not get selected immediately */}
-      <QueryBuilderRow onClick={stopPropagation}>
-        <MetricSearchBar
-          // TODO(aknaus): clean up projectId type in ddm
-          projectIds={projects.map(id => id.toString())}
-          mri={metricsQuery.mri}
-          disabled={!metricsQuery.mri}
-          onChange={query => onChange({query})}
-          query={metricsQuery.query}
-        />
-      </QueryBuilderRow>
+                  // @ts-expect-error .op is an operation
+                  const selectedOp = availableOps.includes(metricsQuery.op ?? '')
+                    ? metricsQuery.op
+                    : availableOps?.[0];
+                  onChange({
+                    mri: option.value,
+                    op: selectedOp,
+                    groupBy: undefined,
+                    focusedSeries: undefined,
+                    displayType: getWidgetDisplayType(option.value, selectedOp),
+                  });
+                }}
+              />
+              <CompactSelect
+                triggerProps={{prefix: t('Op'), size: 'sm'}}
+                options={
+                  selectedMeta?.operations.filter(isAllowedOp).map(op => ({
+                    label: op,
+                    value: op,
+                  })) ?? []
+                }
+                disabled={!metricsQuery.mri}
+                value={metricsQuery.op}
+                onChange={option =>
+                  onChange({
+                    op: option.value,
+                  })
+                }
+              />
+              <CompactSelect
+                multiple
+                triggerProps={{prefix: t('Group by'), size: 'sm'}}
+                options={tags.map(tag => ({
+                  label: tag.key,
+                  value: tag.key,
+                  trailingItems: (
+                    <Fragment>
+                      {tag.key === 'release' && <IconReleases size="xs" />}
+                      {tag.key === 'transaction' && <IconLightning size="xs" />}
+                    </Fragment>
+                  ),
+                }))}
+                disabled={!metricsQuery.mri}
+                value={metricsQuery.groupBy}
+                onChange={options =>
+                  onChange({
+                    groupBy: options.map(o => o.value),
+                    focusedSeries: undefined,
+                  })
+                }
+              />
+              <CompactSelect
+                triggerProps={{prefix: t('Display'), size: 'sm'}}
+                value={displayType ?? defaultMetricDisplayType}
+                options={[
+                  {
+                    value: MetricDisplayType.LINE,
+                    label: t('Line'),
+                  },
+                  {
+                    value: MetricDisplayType.AREA,
+                    label: t('Area'),
+                  },
+                  {
+                    value: MetricDisplayType.BAR,
+                    label: t('Bar'),
+                  },
+                ]}
+                onChange={({value}) => {
+                  onChange({displayType: value});
+                }}
+              />
+            </WrapPageFilterBar>
+          </QueryBuilderRow>
+          {/* Stop propagation so widget does not get selected immediately */}
+          <QueryBuilderRow onClick={stopPropagation}>
+            <MetricSearchBar
+              // TODO(aknaus): clean up projectId type in ddm
+              projectIds={projects.map(id => id.toString())}
+              mri={metricsQuery.mri}
+              disabled={!metricsQuery.mri}
+              onChange={query => onChange({query})}
+              query={metricsQuery.query}
+            />
+          </QueryBuilderRow>
+        </Fragment>
+      ) : (
+        <WidgetTitle>
+          <TextOverflow>{metricsQuery.title || stringifiedMetricWidget}</TextOverflow>
+        </WidgetTitle>
+      )}
     </QueryBuilderWrapper>
   );
 }
@@ -324,4 +343,10 @@ const WrapPageFilterBar = styled(PageFilterBar)`
   max-width: max-content;
   height: auto;
   flex-wrap: wrap;
+`;
+
+const WidgetTitle = styled(HeaderTitle)`
+  padding-left: ${space(2)};
+  padding-top: ${space(1.5)};
+  padding-right: ${space(1)};
 `;

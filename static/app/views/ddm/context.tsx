@@ -42,6 +42,7 @@ const emptyWidget: MetricWidgetQueryParams = {
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
+  title: undefined,
 };
 
 export function useMetricWidgets() {
@@ -63,6 +64,7 @@ export function useMetricWidgets() {
         showSummaryTable: widget.showSummaryTable ?? true, // temporary default
         powerUserMode: widget.powerUserMode,
         sort: widget.sort ?? DEFAULT_SORT_STATE,
+        title: widget.title,
       };
     });
   }, [router.location.query.widgets]);

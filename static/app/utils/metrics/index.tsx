@@ -83,8 +83,7 @@ export type SortState = {
   order: 'asc' | 'desc';
 };
 
-export interface MetricWidgetQueryParams
-  extends Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> {
+export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
   focusedSeries?: string;
   powerUserMode?: boolean;
@@ -110,7 +109,13 @@ export type MetricsQuery = {
   groupBy?: string[];
   op?: string;
   query?: string;
+  title?: string;
 };
+
+export type MetricsQuerySubject = Pick<
+  MetricsQuery,
+  'mri' | 'op' | 'query' | 'groupBy' | 'title'
+>;
 
 export type MetricCodeLocationFrame = {
   absPath?: string;
@@ -548,4 +553,24 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
     acc[newKeys[index]] = obj[key];
     return acc;
   }, {});
+}
+
+export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
+  const {mri, op, query, groupBy} = metricWidget;
+
+  if (!op) {
+    return '';
+  }
+
+  let result = `${op}(${formatMRI(mri)})`;
+
+  if (query) {
+    result += `{${query.trim()}}`;
+  }
+
+  if (groupBy && groupBy.length) {
+    result += ` by ${groupBy.join(', ')}`;
+  }
+
+  return result;
 }
