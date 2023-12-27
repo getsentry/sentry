@@ -22,7 +22,7 @@ describe('SentryAppRuleModal', function () {
 
   beforeEach(function () {
     sentryApp = SentryApp();
-    sentryAppInstallation = SentryAppInstallationFixture({sentryApp});
+    sentryAppInstallation = SentryAppInstallationFixture();
   });
 
   const _submit = async () => {
