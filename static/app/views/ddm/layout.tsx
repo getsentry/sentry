@@ -22,7 +22,7 @@ import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
-import {WidgetDetails} from 'sentry/views/ddm/trayContent';
+import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
   const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
