@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {HeaderTitle} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import Tag from 'sentry/components/tag';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,7 +21,9 @@ import {
   isTransactionDuration,
   MetricDisplayType,
   MetricsQuery,
+  MetricsQuerySubject,
   MetricWidgetQueryParams,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -30,8 +34,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type QueryBuilderProps = {
-  displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
-  metricsQuery: Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
+  displayType: MetricDisplayType;
+  isEdit: boolean;
+  // TODO(ddm): move display type out of the query builder
+  metricsQuery: MetricsQuerySubject;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   powerUserMode?: boolean;
@@ -50,6 +56,7 @@ export function QueryBuilder({
   displayType,
   powerUserMode,
   onChange,
+  isEdit,
 }: QueryBuilderProps) {
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
@@ -87,6 +94,18 @@ export function QueryBuilder({
       onChange({mri: '' as MRI, op: '', groupBy: []});
     }
   }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
+
+  const stringifiedMetricWidget = stringifyMetricWidget(metricsQuery);
+
+  if (!isEdit) {
+    return (
+      <QueryBuilderWrapper>
+        <WidgetTitle>
+          <TextOverflow>{metricsQuery.title || stringifiedMetricWidget}</TextOverflow>
+        </WidgetTitle>
+      </QueryBuilderWrapper>
+    );
+  }
 
   return (
     <QueryBuilderWrapper>
@@ -324,4 +343,10 @@ const WrapPageFilterBar = styled(PageFilterBar)`
   max-width: max-content;
   height: auto;
   flex-wrap: wrap;
+`;
+
+const WidgetTitle = styled(HeaderTitle)`
+  padding-left: ${space(2)};
+  padding-top: ${space(1.5)};
+  padding-right: ${space(1)};
 `;
