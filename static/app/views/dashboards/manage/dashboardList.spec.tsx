@@ -1,3 +1,4 @@
+import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
@@ -63,14 +64,14 @@ describe('Dashboards - DashboardList', function () {
       ),
     ];
     dashboards = [
-      TestStubs.Dashboard([], {
+      DashboardFixture([], {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: {id: '1'},
         widgetPreview: [],
       }),
-      TestStubs.Dashboard(widgets, {
+      DashboardFixture(widgets, {
         id: '2',
         title: 'Dashboard 2',
         dateCreated: '2021-04-19T13:13:23.962105Z',
@@ -228,7 +229,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('cannot delete last dashboard', async function () {
     const singleDashboard = [
-      TestStubs.Dashboard([], {
+      DashboardFixture([], {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
