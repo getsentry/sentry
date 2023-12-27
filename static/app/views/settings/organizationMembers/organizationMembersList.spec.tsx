@@ -453,7 +453,7 @@ describe('OrganizationMembersList', function () {
       id: '123',
       user: null,
       inviteStatus: 'requested_to_be_invited',
-      inviter: User(),
+      inviterName: User().name,
       role: 'member',
       teams: [],
     });

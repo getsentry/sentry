@@ -51,7 +51,6 @@ describe('InviteRequestRow', function () {
   const inviteRequest = MemberFixture({
     user: null,
     inviterName: User().name,
-    inviterId: User().id,
     inviteStatus: 'requested_to_be_invited',
     role: 'member',
     teams: ['myteam'],
@@ -169,7 +168,6 @@ describe('InviteRequestRow', function () {
     const adminInviteRequest = MemberFixture({
       user: null,
       inviterName: User().name,
-      inviterId: User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'admin',
       teams: ['myteam'],
@@ -208,7 +206,6 @@ describe('InviteRequestRow', function () {
     const ownerInviteRequest = MemberFixture({
       user: null,
       inviterName: User().name,
-      inviterId: User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'owner',
       teams: ['myteam'],
