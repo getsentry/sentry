@@ -69,7 +69,7 @@ describe('Issues Similar View', function () {
     jest.clearAllMocks();
   });
 
-  const selectNthSimilarItem = async index => {
+  const selectNthSimilarItem = async (index: number) => {
     const items = await screen.findAllByTestId('similar-item-row');
 
     const item = items.at(index);
