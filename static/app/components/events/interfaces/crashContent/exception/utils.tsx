@@ -34,6 +34,19 @@ interface RenderLinksInTextProps {
 export const renderLinksInText = ({
   exceptionText,
 }: RenderLinksInTextProps): ReactElement => {
+  // https?: Matches both "http" and "https"
+  // :\/\/: This is a literal match for "://"
+  // (?:www\.)?: Matches URLs with or without "www."
+  // [-a-zA-Z0-9@:%._\+~#=]{1,256}: Matches the domain name
+  //    It allows for a range of characters (letters, digits, and special characters)
+  //    The {1,256} specifies that these characters can occur anywhere from 1 to 256 times, which covers the range of typical domain name lengths
+  // \.: Matches the dot before the top-level domain (like ".com")
+  // [a-zA-Z0-9]{1,6}: Matches the top-level domain (like "com" or "org"). It's limited to letters and digits and can be between 1 and 6 characters long
+  // \b: Marks the end of the domain part of the URL
+  // (?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*): Matches the path or query parameters that can follow the domain in a URL
+  //    It includes a wide range of characters typically found in paths and query strings
+  // /gi: The regex will match all occurrences in the string, not just the first one
+  //    i makes the regex match both upper and lower case characters
   const urlRegex =
     /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
   const parts = exceptionText.split(urlRegex);
