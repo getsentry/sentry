@@ -21,6 +21,7 @@ describe('PullRequestLink', () => {
   it('renders github links for integrations:github repositories', () => {
     const repository = RepositoryFixture({
       provider: {
+        name: 'GitHub',
         id: 'integrations:github',
       },
     });
@@ -37,6 +38,7 @@ describe('PullRequestLink', () => {
   it('renders github links for github repositories', () => {
     const repository = RepositoryFixture({
       provider: {
+        name: 'GitHub',
         id: 'github',
       },
     });
@@ -52,6 +54,7 @@ describe('PullRequestLink', () => {
   it('renders gitlab links for integrations:gitlab repositories', () => {
     const repository = RepositoryFixture({
       provider: {
+        name: 'GitLab',
         id: 'integrations:gitlab',
       },
     });
@@ -67,6 +70,7 @@ describe('PullRequestLink', () => {
   it('renders github links for gitlab repositories', () => {
     const repository = RepositoryFixture({
       provider: {
+        name: 'GitLab',
         id: 'gitlab',
       },
     });
