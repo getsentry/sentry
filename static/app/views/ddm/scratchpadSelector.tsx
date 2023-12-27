@@ -245,7 +245,7 @@ export function ScratchpadSelector() {
         icon={<IconDashboard />}
         onClick={() => createDashboard(selectedScratchpad)}
       >
-        {t('Save to Dashboard')}
+        {t('Add to Dashboard')}
       </Button>
       <SaveAsDropdown
         onSave={name => {
