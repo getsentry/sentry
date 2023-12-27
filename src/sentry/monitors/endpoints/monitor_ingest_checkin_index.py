@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from datetime import timedelta
 
 from django.db import router, transaction
@@ -39,8 +38,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 from .base import MonitorIngestEndpoint
-
-logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
@@ -169,20 +166,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
                     if created:
                         signal_monitor_created(project, request.user, True)
-                    # TODO(rjo100): Temporarily log to measure impact of a bug incorrectly scoping
-                    # the Monitor lookups to the DSN's project_id. This means that any DSN check-in
-                    # will automatically get attached to a monitor with the given slug, regardless
-                    # of the monitor's attached project.
-                    if monitor.project_id != project.id:
-                        logger.error(
-                            "Monitor project + DSN project do not match",
-                            extra={
-                                "organization.id": project.organization_id,
-                                "monitor.project_id": monitor.project_id,
-                                "project.id": project.id,
-                            },
-                        )
-
             except MonitorLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=400)
 
