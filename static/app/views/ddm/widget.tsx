@@ -40,11 +40,13 @@ export const MetricWidget = memo(
     isSelected,
     onSelect,
     onChange,
+    numberOfSiblings,
   }: {
     datetime: PageFilters['datetime'];
     environments: PageFilters['environments'];
     index: number;
     isSelected: boolean;
+    numberOfSiblings: number;
     onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
     onSelect: (index: number) => void;
     projects: PageFilters['projects'];
@@ -83,7 +85,11 @@ export const MetricWidget = memo(
     const shouldDisplayEditControls = (isEdit && isSelected) || !metricsQuery.mri;
 
     return (
-      <MetricWidgetPanel isSelected={isSelected} onClick={() => onSelect(index)}>
+      <MetricWidgetPanel
+        // show the selection border only if we have more widgets than one
+        isSelected={isSelected && !!numberOfSiblings}
+        onClick={() => onSelect(index)}
+      >
         <PanelBody>
           <MetricWidgetHeader>
             <QueryBuilder
@@ -379,6 +385,7 @@ const MetricWidgetPanel = styled(Panel)<{isSelected: boolean}>`
     p.isSelected &&
     // Use ::after to avoid layout shifts when the border changes from 1px to 2px
     `
+  border: 1px solid transparent;
   &::after {
     content: '';
     position: absolute;
@@ -387,7 +394,7 @@ const MetricWidgetPanel = styled(Panel)<{isSelected: boolean}>`
     bottom: -1px;
     right: -1px;
     pointer-events: none;
-    border: 2px solid ${p.theme.purple300};
+    border: 2px solid ${p.theme.purple200};
     border-radius: ${p.theme.borderRadius};
   `}
 `;
