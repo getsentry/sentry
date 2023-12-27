@@ -200,10 +200,14 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if duration > 3600:
             # Round to 15 minutes if over 30 days, otherwise round to the minute
             round_to = 15 * 60 if duration >= 30 * 24 * 3600 else 60
-            for key in ["start", "end"]:
-                results[key] = snuba.quantize_time(
-                    params[key], params.get("organization_id", 0), duration=round_to
-                )
+            key = params.get("organization_id", 0)
+
+            results["start"] = snuba.quantize_time(
+                params["start"], key, duration=round_to, rounding=snuba.ROUND_DOWN
+            )
+            results["end"] = snuba.quantize_time(
+                params["end"], key, duration=round_to, rounding=snuba.ROUND_UP
+            )
         return results
 
     @contextmanager
