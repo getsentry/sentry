@@ -26,7 +26,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
     statsPeriod = serializers.CharField(required=False, allow_null=True)
     statsPeriodStart = serializers.CharField(required=False, allow_null=True)
     statsPeriodEnd = serializers.CharField(required=False, allow_null=True)
-    fields = ListField(child=serializers.CharField(), required=False, default=[])
+    fields = ListField(child=serializers.CharField(), required=False, default=[])  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
     conditionFields = ListField(child=ListField(), required=False, allow_null=True)
     limit = EmptyIntegerField(min_value=0, max_value=10000, required=False, allow_null=True)
     rollup = EmptyIntegerField(required=False, allow_null=True)
@@ -145,7 +145,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
     range = serializers.CharField(required=False, allow_null=True)
-    fields = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    fields = ListField(child=serializers.CharField(), required=False, allow_null=True)  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
     orderby = serializers.CharField(required=False, allow_null=True)
 
     # This block of fields is only accepted by discover 1 which omits the version
@@ -215,6 +215,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if "query" in query:
             if "interval" in query:
                 interval = parse_stats_period(query["interval"])
+                if interval is None:
+                    raise serializers.ValidationError("Interval could not be parsed")
                 date_range = self.context["params"]["end"] - self.context["params"]["start"]
                 validate_interval(
                     interval,
