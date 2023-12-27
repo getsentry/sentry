@@ -3,14 +3,12 @@ from __future__ import annotations
 import copy
 import ipaddress
 import logging
-import mimetypes
 import random
 import re
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -85,7 +83,6 @@ from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
 from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
-from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -2408,7 +2405,7 @@ def save_attachment(
         timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     try:
-        data = attachment.data
+        attachment.data
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,
@@ -2424,18 +2421,7 @@ def save_attachment(
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
 
-    content_type = normalize_content_type(attachment.content_type, attachment.name)
-
-    file = File.objects.create(
-        name=attachment.name,
-        type=attachment.type,
-        headers={"Content-Type": content_type},
-    )
-    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
-
-    size = file.size
-    sha1 = file.checksum
-    file_id = file.id
+    file = EventAttachment.putfile(project.id, attachment)
 
     EventAttachment.objects.create(
         # lookup:
@@ -2445,11 +2431,12 @@ def save_attachment(
         # metadata:
         type=attachment.type,
         name=attachment.name,
-        content_type=content_type,
-        size=size,
-        sha1=sha1,
+        content_type=file.content_type,
+        size=file.size,
+        sha1=file.sha1,
         # storage:
-        file_id=file_id,
+        file_id=file.file_id,
+        blob_path=file.blob_path,
     )
 
     track_outcome(
@@ -2463,12 +2450,6 @@ def save_attachment(
         category=DataCategory.ATTACHMENT,
         quantity=attachment.size or 1,
     )
-
-
-def normalize_content_type(content_type: str | None, name: str) -> str:
-    if content_type:
-        return content_type.split(";")[0].strip()
-    return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 
 def save_attachments(cache_key: Optional[str], attachments: list[Attachment], job: Job) -> None:

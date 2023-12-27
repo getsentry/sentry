@@ -842,6 +842,11 @@ register(
 # Whether to use `zstd` instead of `zlib` for the attachment cache.
 register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Set of projects that will always store `EventAttachment` blobs directly.
+register("eventattachments.store-blobs.projects", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Percentage sample rate for `EventAttachment`s that should use direct blob storage.
+register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
