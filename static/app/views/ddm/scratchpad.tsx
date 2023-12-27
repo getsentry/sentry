@@ -51,19 +51,24 @@ export function MetricScratchpad() {
           environments={selection.environments}
         />
       ))}
-      {!hasEmptyWidget && (
-        <AddWidgetPanel
-          onClick={() => {
-            trackAnalytics('ddm.widget.add', {
-              organization,
-            });
+      <AddWidgetPanel
+        disabled={hasEmptyWidget}
+        onClick={
+          !hasEmptyWidget
+            ? () => {
+                trackAnalytics('ddm.widget.add', {
+                  organization,
+                });
 
-            addWidget();
-          }}
-        >
-          <Button icon={<IconAdd isCircled />}>{t('Add widget')}</Button>
-        </AddWidgetPanel>
-      )}
+                addWidget();
+              }
+            : undefined
+        }
+      >
+        <Button disabled={hasEmptyWidget} icon={<IconAdd isCircled />}>
+          {t('Add widget')}
+        </Button>
+      </AddWidgetPanel>
     </Wrapper>
   );
 }
@@ -84,13 +89,10 @@ const StyledMetricDashboard = styled('div')`
 
 const StyledSingleWidgetWrapper = styled('div')`
   display: grid;
-  grid-template-columns: minmax(${MIN_WIDGET_WIDTH}px, 1fr);
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(min-content, 10%);
+  grid-template-columns: minmax(${MIN_WIDGET_WIDTH}px, 90%) minmax(180px, 10%);
 
   @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(1, minmax(${MIN_WIDGET_WIDTH}px, 1fr));
-    grid-auto-flow: row;
   }
 
   gap: ${space(2)};
@@ -98,7 +100,7 @@ const StyledSingleWidgetWrapper = styled('div')`
   grid-auto-rows: auto;
 `;
 
-const AddWidgetPanel = styled(Panel)`
+const AddWidgetPanel = styled(Panel)<{disabled: boolean}>`
   height: 100%;
   margin-bottom: 0;
   padding: ${space(4)};
@@ -106,10 +108,14 @@ const AddWidgetPanel = styled(Panel)`
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => (p.disabled ? p.theme.disabledBorder : p.theme.border)};
 
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-    cursor: pointer;
-  }
+  ${p =>
+    !p.disabled &&
+    `
+    &:hover {
+      background-color: ${p.theme.backgroundSecondary};
+      cursor: pointer;
+    }
+  `}
 `;
