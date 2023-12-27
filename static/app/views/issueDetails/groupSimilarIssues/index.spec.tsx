@@ -74,7 +74,7 @@ describe('Issues Similar View', function () {
 
     const item = items.at(index);
 
-    expect(item).toBeDefined()
+    expect(item).toBeDefined();
 
     await userEvent.click(item);
   };
