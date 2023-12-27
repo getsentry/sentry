@@ -1,9 +1,8 @@
 import {Fragment, ReactElement} from 'react';
 import styled from '@emotion/styled';
 
-// import {urlEncode} from '@sentry/utils';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import type {Frame} from 'sentry/types';
 import {isUrl} from 'sentry/utils';
@@ -47,17 +46,17 @@ export const renderLinksInText = ({
   const elements = parts.flatMap((part, index) => {
     const isUrlValid = urls[index] && isUrl(urls[index]);
     const link = isUrlValid ? (
-      <Button
+      <ExternalLink
         key={`link-${index}`}
-        priority="link"
-        onClick={() => {
+        onClick={e => {
+          e.preventDefault();
           const linkText = urls[index];
           openNavigateToExternalLinkModal({linkText});
         }}
       >
         {urls[index]}
         <IconPlacement size="xs" />
-      </Button>
+      </ExternalLink>
     ) : urls[index] ? (
       <span key={`invalid-url-${index}`}>{urls[index]}</span>
     ) : null;

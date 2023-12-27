@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = ModalRenderProps & {
@@ -14,18 +13,15 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: 
   return (
     <Fragment>
       <Header closeButton>
-        <HeaderContainer>
-          <IconWarning size="sm" color="warningText" />
-          <h2>{t('Leaving Sentry Warning')}</h2>
-        </HeaderContainer>
+        <h2>{t('Heads up')}</h2>
       </Header>
       <Body>
         <p>
           {t(
-            "Heads up. You're leaving Sentry and will be redirected to the following external website:"
+            "You're leaving Sentry and will be redirected to the following external website:"
           )}
         </p>
-        <p>{linkText}</p>
+        <ParagraphContainer>{linkText}</ParagraphContainer>
         <p />
       </Body>
       <ButtonContainer>
@@ -60,10 +56,9 @@ const ButtonContainer = styled('div')`
   gap: 10px;
 `;
 
-const HeaderContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: 10px;
+const ParagraphContainer = styled('p')`
+  word-break: break-all;
+  white-space: normal;
 `;
 
 const ButtonBar = styled('div')`
