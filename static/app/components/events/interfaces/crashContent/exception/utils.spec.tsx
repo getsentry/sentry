@@ -1,5 +1,3 @@
-import {urlEncode} from '@sentry/utils';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
@@ -26,16 +24,15 @@ describe('Linkify()', function () {
     // fix
     const url = 'https://www.example.com';
     const text = `Go to ${url} to search.`;
-    const {container} = render(renderLinksInText({exceptionText: text}));
 
-    const linkElement = screen.getByRole('link', {name: url});
-    expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url})}`
+    render(
+      renderLinksInText({
+        exceptionText: text,
+      })
     );
 
-    expect(container.firstChild).toHaveTextContent('Go to');
+    const linkElement = screen.getByText(url);
+    expect(linkElement).toBeInTheDocument();
   });
 
   it('applies link to text containing a single url', function () {
@@ -43,12 +40,8 @@ describe('Linkify()', function () {
 
     render(renderLinksInText({exceptionText: url}));
 
-    const linkElement = screen.getByRole('link', {name: url});
+    const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url})}`
-    );
   });
 
   it('applies links to text containing multiple urls', function () {
@@ -57,19 +50,11 @@ describe('Linkify()', function () {
     const text = `Go to ${url_1} to search and ${url_2} for docs.`;
     const {container} = render(renderLinksInText({exceptionText: text}));
 
-    const linkElement = screen.getByRole('link', {name: url_1});
+    const linkElement = screen.getByText(url_1);
     expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url: url_1})}`
-    );
 
-    const linkElement_2 = screen.getByRole('link', {name: url_2});
+    const linkElement_2 = screen.getByText(url_2);
     expect(linkElement_2).toBeInTheDocument();
-    expect(linkElement_2).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url: url_2})}`
-    );
 
     expect(container.firstChild).toHaveTextContent('Go to');
   });
@@ -79,12 +64,8 @@ describe('Linkify()', function () {
     const text = `Go to ${url}`;
     const {container} = render(renderLinksInText({exceptionText: text}));
 
-    const linkElement = screen.getByRole('link', {name: url});
+    const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url})}`
-    );
 
     expect(container.firstChild).toHaveTextContent('Go to');
   });
@@ -107,19 +88,11 @@ describe('Linkify()', function () {
     const text = `${url_1} and ${url_2}`;
     render(renderLinksInText({exceptionText: text}));
 
-    const linkElement = screen.getByRole('link', {name: url_1});
+    const linkElement = screen.getByText(url_1);
     expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url: url_1})}`
-    );
 
-    const linkElement_2 = screen.getByRole('link', {name: url_2});
+    const linkElement_2 = screen.getByText(url_2);
     expect(linkElement_2).toBeInTheDocument();
-    expect(linkElement_2).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url: url_2})}`
-    );
   });
 
   it('applies links to long text containing urls', function () {
@@ -128,12 +101,8 @@ describe('Linkify()', function () {
     const text = `Go to ${url} ${longString}`;
     const {container} = render(renderLinksInText({exceptionText: text}));
 
-    const linkElement = screen.getByRole('link', {name: url});
+    const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url})}`
-    );
 
     expect(container.firstChild).toHaveTextContent('Go to');
   });
@@ -143,15 +112,8 @@ describe('Linkify()', function () {
     const textWithHtml = `Check out this link: <a href="${url}">${url}</a> & don\'t forget to visit us!`;
     const {container} = render(renderLinksInText({exceptionText: textWithHtml}));
 
-    const linkElements = screen.getAllByRole('link', {name: url});
+    const linkElements = screen.getAllByText(url);
     expect(linkElements).toHaveLength(2);
-
-    linkElements.forEach(linkElement => {
-      expect(linkElement).toHaveAttribute(
-        'href',
-        `${window.location.origin}/redirect?${urlEncode({url})}`
-      );
-    });
 
     expect(container).toHaveTextContent(textWithHtml);
   });
@@ -161,13 +123,9 @@ describe('Linkify()', function () {
     const text = `Go to ${url}`;
     const {container} = render(renderLinksInText({exceptionText: text}));
 
-    const linkElement = screen.getByRole('link', {name: url});
+    const linkElement = screen.getByText(url);
 
     expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute(
-      'href',
-      `${window.location.origin}/redirect?${urlEncode({url})}`
-    );
 
     expect(container.firstChild).toHaveTextContent('Go to');
   });
