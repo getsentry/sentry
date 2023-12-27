@@ -75,9 +75,12 @@ describe('ExternalIssueActions', function () {
   describe('with an external issue linked', function () {
     const externalIssues = [
       {
-        id: 100,
+        id: '100',
         url: 'https://github.com/MeredithAnya/testing/issues/2',
         key: 'getsentry/sentry#2',
+        title: 'SyntaxError: XYZ',
+        description: 'something else, sorry',
+        displayName: '',
       },
     ];
     const integration = GitHubIntegrationFixture({externalIssues});
