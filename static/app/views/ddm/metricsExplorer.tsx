@@ -37,6 +37,7 @@ export default function MetricsExplorer() {
       }}
       projects={[]}
       environments={[]}
+      numberOfSiblings={0}
     />
   );
 }
