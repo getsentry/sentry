@@ -3,6 +3,7 @@ import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -479,7 +480,7 @@ describe('Dashboards > Detail', function () {
     it('shows top level release filter', async function () {
       const mockReleases = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
-        body: [TestStubs.Release()],
+        body: [ReleaseFixture()],
       });
 
       initialData = initializeOrg({
@@ -908,7 +909,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1008,7 +1009,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1072,7 +1073,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1176,7 +1177,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1237,7 +1238,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1450,7 +1451,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1500,7 +1501,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1510,7 +1511,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          ReleaseFixture({
             id: '9',
             shortVersion: 'search-result',
             version: 'search-result',
