@@ -51,8 +51,12 @@ describe('NavigateToExternalLinkModal', function () {
       )
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-    expect(window.open).toHaveBeenCalledWith(linkText, '_blank', 'noreferrer');
+    const button = screen.getByRole('button', {name: 'Continue'});
+
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('href', linkText);
+
+    await userEvent.click(button);
     expect(closeModal).toHaveBeenCalled();
   });
 });

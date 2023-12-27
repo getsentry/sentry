@@ -26,7 +26,14 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: 
       </Body>
       <ButtonContainer>
         <ButtonBar>
-          <LinkButton priority="primary" href={linkText} external>
+          <LinkButton
+            priority="primary"
+            href={linkText}
+            onClick={() => {
+              closeModal();
+            }}
+            external
+          >
             {t('Continue')}{' '}
           </LinkButton>
           <Button
