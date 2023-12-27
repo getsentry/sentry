@@ -14,6 +14,7 @@ import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import List from './list';
@@ -47,7 +48,8 @@ function SimilarStackTrace({params, location, project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
-  const hasSimilarityEmbeddingsFeature = project.organization?.features?.includes(
+  const organization = useOrganization();
+  const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
     'issues-similarity-embeddings'
   );
 
@@ -168,6 +170,7 @@ function SimilarStackTrace({params, location, project}: Props) {
             onMerge={handleMerge}
             orgId={orgId}
             project={project}
+            organization={organization}
             groupId={groupId}
             pageLinks={items.pageLinks}
           />
@@ -179,6 +182,7 @@ function SimilarStackTrace({params, location, project}: Props) {
             onMerge={handleMerge}
             orgId={orgId}
             project={project}
+            organization={organization}
             groupId={groupId}
             pageLinks={items.pageLinks}
           />

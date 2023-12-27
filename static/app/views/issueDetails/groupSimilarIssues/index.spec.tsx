@@ -1,5 +1,5 @@
 import {Groups} from 'sentry-fixture/groups';
-import {Organization as OrganizationFixture} from 'sentry-fixture/organization';
+import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import RouterFixture from 'sentry-fixture/routerFixture';
@@ -12,7 +12,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import useOrganization from 'sentry/utils/useOrganization';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
+
+jest.mock('sentry/utils/useOrganization');
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -48,11 +51,17 @@ describe('Issues Similar View', function () {
 
   const router = RouterFixture();
 
+  function mockOrganization(props?: {features: string[]}) {
+    const features = props?.features ?? [];
+    jest.mocked(useOrganization).mockReturnValue(Organization({features}));
+  }
+
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
       body: mockData.similar,
     });
+    mockOrganization();
   });
 
   afterEach(() => {
@@ -135,14 +144,13 @@ describe('Issues Similar View', function () {
   });
 
   it('renders all filtered issues with issues-similarity-embeddings flag', async function () {
-    const projectSimilarityEmbeddings = ProjectFixture({
-      features: ['similarity-view'],
-      organization: OrganizationFixture({features: ['issues-similarity-embeddings']}),
+    mockOrganization({
+      features: ['issues-similarity-embeddings'],
     });
 
     render(
       <GroupSimilarIssues
-        project={projectSimilarityEmbeddings}
+        project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
         router={router}

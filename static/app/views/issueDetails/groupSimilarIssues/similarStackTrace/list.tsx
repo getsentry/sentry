@@ -24,6 +24,7 @@ type Props = {
   items: Array<SimilarItem>;
   onMerge: () => void;
   orgId: Organization['id'];
+  organization: Organization;
   pageLinks: string | null;
   project: Project;
 } & DefaultProps;
@@ -44,6 +45,7 @@ function List({
   orgId,
   groupId,
   project,
+  organization,
   items,
   filteredItems = [],
   pageLinks,
@@ -54,7 +56,7 @@ function List({
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
-  const hasSimilarityEmbeddingsFeature = project.organization?.features?.includes(
+  const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
     'issues-similarity-embeddings'
   );
 
@@ -79,6 +81,7 @@ function List({
               orgId={orgId}
               groupId={groupId}
               project={project}
+              organization={organization}
               {...item}
             />
           ))}

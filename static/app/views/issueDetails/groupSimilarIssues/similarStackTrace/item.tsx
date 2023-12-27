@@ -22,6 +22,7 @@ type Props = {
   groupId: Group['id'];
   issue: Group;
   orgId: Organization['id'];
+  organization: Organization;
   project: Project;
   aggregate?: {
     exception: number;
@@ -94,10 +95,10 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue, project} = this.props;
+    const {aggregate, scoresByInterface, issue, organization} = this.props;
     const {visible, busy} = this.state;
     const similarInterfaces = ['exception', 'message'];
-    const hasSimilarityEmbeddingsFeature = project.organization?.features?.includes(
+    const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
       'issues-similarity-embeddings'
     );
 
@@ -157,7 +158,6 @@ class Item extends Component<Props, State> {
               </Column>
             );
           })}
-          ;
         </Columns>
       </StyledPanelItem>
     );
