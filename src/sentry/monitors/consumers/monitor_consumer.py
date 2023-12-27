@@ -101,7 +101,7 @@ def _ensure_monitor_with_config(
         # the Monitor lookups to the wrapper's project_id. This means that any consumer check-in
         # will automatically get attached to a monitor with the given slug, regardless
         # of the monitor's attached project.
-        if monitor.project_id != project.id:
+        if monitor and monitor.project_id != project.id:
             logger.error(
                 "Monitor project + wrapper project do not match",
                 extra={

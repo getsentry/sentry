@@ -173,7 +173,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     # the Monitor lookups to the DSN's project_id. This means that any DSN check-in
                     # will automatically get attached to a monitor with the given slug, regardless
                     # of the monitor's attached project.
-                    if monitor.project_id != project.id:
+                    if monitor and monitor.project_id != project.id:
                         logger.error(
                             "Monitor project + DSN project do not match",
                             extra={
