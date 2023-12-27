@@ -87,7 +87,8 @@ export const MetricWidget = memo(
     return (
       <MetricWidgetPanel
         // show the selection border only if we have more widgets than one
-        isSelected={isSelected && !!numberOfSiblings}
+        isHighlighted={isSelected && !!numberOfSiblings}
+        isHighlightable={!!numberOfSiblings}
         onClick={() => onSelect(index)}
       >
         <PanelBody>
@@ -376,26 +377,30 @@ export type Series = {
   transaction?: string;
 };
 
-const MetricWidgetPanel = styled(Panel)<{isSelected: boolean}>`
+const MetricWidgetPanel = styled(Panel)<{
+  isHighlightable: boolean;
+  isHighlighted: boolean;
+}>`
   padding-bottom: 0;
   margin-bottom: 0;
   min-width: ${MIN_WIDGET_WIDTH}px;
   position: relative;
+  transition: box-shadow 0.2s ease;
   ${p =>
-    p.isSelected &&
-    // Use ::after to avoid layout shifts when the border changes from 1px to 2px
+    p.isHighlightable &&
     `
-  border: 1px solid transparent;
-  &::after {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    bottom: -1px;
-    right: -1px;
-    pointer-events: none;
-    border: 2px solid ${p.theme.purple200};
-    border-radius: ${p.theme.borderRadius};
+  &:focus,
+  &:hover {
+    box-shadow: 0px 0px 0px 3px
+      ${p.isHighlighted ? p.theme.purple200 : 'rgba(209, 202, 216, 0.2)'};
+  }
+  `}
+
+  ${p =>
+    p.isHighlighted &&
+    `
+  box-shadow: 0px 0px 0px 3px ${p.theme.purple200};
+  border-color: transparent;
   `}
 `;
 
