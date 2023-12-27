@@ -105,7 +105,7 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={{
             ...member,
-            user: {...member.user, has2fa: false},
+            user: User({...member.user, has2fa: false}),
           }}
         />
       );
@@ -218,7 +218,7 @@ describe('OrganizationMemberRow', function () {
           member={{
             ...member,
             flags: {'sso:linked': true},
-            user: {...member.user, has2fa: false},
+            user: User({...member.user, has2fa: false}),
           }}
         />
       );
@@ -307,7 +307,7 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={{...member, user: {...member.user}}}
+          member={{...member, user: User({...member.user})}}
         />
       );
 
@@ -322,7 +322,7 @@ describe('OrganizationMemberRow', function () {
     render(
       <OrganizationMemberRow
         {...defaultProps}
-        member={{...memberOnManagerTeam, user: {...memberOnManagerTeam.user}}}
+        member={{...memberOnManagerTeam, user: User({...memberOnManagerTeam.user})}}
       />
     );
 
