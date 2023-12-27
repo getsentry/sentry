@@ -217,8 +217,8 @@ export function initializeUrlState({
    * shared links.
    */
   function validateProjectId(projectId: number): boolean {
-    if (projectId === ALL_ACCESS_PROJECTS && !shouldEnforceSingleProject) {
-      return true;
+    if (projectId === ALL_ACCESS_PROJECTS) {
+      return !shouldEnforceSingleProject;
     }
 
     return (
