@@ -27,12 +27,12 @@ class UserIndexEndpoint(Endpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
+                    joined = " ".join(value)
                     queryset = queryset.filter(
-                        Q(name__icontains=value)
-                        | Q(username__icontains=value)
-                        | Q(email__icontains=value)
-                        | Q(emails__email__icontains=value)
+                        Q(name__icontains=joined)
+                        | Q(username__icontains=joined)
+                        | Q(email__icontains=joined)
+                        | Q(emails__email__icontains=joined)
                     )
                 elif key == "id":
                     queryset = queryset.filter(

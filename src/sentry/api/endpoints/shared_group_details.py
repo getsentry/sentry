@@ -34,6 +34,9 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
         specifically for sharing.
 
         """
+        if share_id is None:
+            raise ResourceDoesNotExist
+
         try:
             group = Group.objects.from_share_id(share_id)
         except Group.DoesNotExist:

@@ -49,7 +49,7 @@ class PromptsActivityEndpoint(Endpoint):
         if len(features) == 0:
             return Response({"details": "No feature specified"}, status=400)
 
-        conditions = None
+        conditions: Q | None = None
         for feature in features:
             if not prompt_config.has(feature):
                 return Response({"detail": "Invalid feature name " + feature}, status=400)
