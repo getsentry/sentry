@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 
 from django.conf import settings
@@ -184,7 +183,7 @@ class BaseTSDB(Service):
     def get_rollups(self):
         return self.rollups
 
-    def normalize_to_epoch(self, timestamp, seconds):
+    def normalize_to_epoch(self, timestamp: datetime, seconds: int) -> int:
         """
         Given a ``timestamp`` (datetime object) normalize to an epoch timestamp.
 
@@ -271,7 +270,7 @@ class BaseTSDB(Service):
         return rollups
 
     def make_series(self, default, start, end=None, rollup=None):
-        f = default if isinstance(default, Callable) else lambda timestamp: default
+        f = default if callable(default) else lambda timestamp: default
         return [
             (timestamp, f(timestamp))
             for timestamp in self.get_optimal_rollup_series(start, end, rollup)[1]
@@ -415,7 +414,7 @@ class BaseTSDB(Service):
         using the ``rollup`` time (in seconds).
         """
         normalize_ts_to_epoch = self.normalize_ts_to_epoch
-        result = {}
+        result: dict[int, list[list[float]]] = {}
         for key, points in values.items():
             result[key] = []
             last_new_ts = None
