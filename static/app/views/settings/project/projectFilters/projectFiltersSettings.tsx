@@ -324,7 +324,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
-    staleTime: Infinity,
+    staleTime: 0,
   });
 
   const filterList = filterListData ?? [];
@@ -379,6 +379,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       apiMethod="PUT"
                       apiEndpoint={`${filtersEndpoint}${filter.id}/`}
                       initialData={{[filter.id]: filter.active}}
+                      onSubmitSuccess={() => refetch()}
                       saveOnBlur
                     >
                       {filter.id !== 'legacy-browsers' ? (
