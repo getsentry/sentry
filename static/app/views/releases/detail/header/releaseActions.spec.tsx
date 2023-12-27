@@ -17,7 +17,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ReleaseProject} from 'sentry/types';
+import {ReleaseProject, ReleaseStatus} from 'sentry/types';
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
@@ -115,7 +115,7 @@ describe('ReleaseActions', function () {
         {...RouteComponentPropsFixture()}
         organization={organization}
         projectSlug={release.projects[0].slug}
-        release={{...release, status: 'archived'}}
+        release={{...release, status: ReleaseStatus.ARCHIVED}}
         refetchData={refetchDataMock}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
