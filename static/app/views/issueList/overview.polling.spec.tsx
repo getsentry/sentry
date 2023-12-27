@@ -1,6 +1,7 @@
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import {GroupStats} from 'sentry-fixture/groupStats';
 import LocationFixture from 'sentry-fixture/locationFixture';
+import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Search} from 'sentry-fixture/search';
 import {Tags} from 'sentry-fixture/tags';
 
@@ -113,7 +114,7 @@ describe('IssueList -> Polling', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
-      body: [TestStubs.Member({projects: [project.slug]})],
+      body: [MemberFixture({projects: [project.slug]})],
     });
 
     MockApiClient.addMockResponse({
