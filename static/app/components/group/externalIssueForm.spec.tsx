@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 
@@ -32,7 +33,7 @@ describe('ExternalIssueForm', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     group = GroupFixture();
-    integration = TestStubs.GitHubIntegration({externalIssues: []});
+    integration = GitHubIntegrationFixture({externalIssues: []});
   });
 
   afterEach(() => {

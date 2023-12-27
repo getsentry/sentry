@@ -19,9 +19,10 @@ interface CodeOwnerParams extends Partial<TCodeOwner> {
 export function CodeOwner({
   project = Project(),
   repo = Repository(),
-  integration = GitHubIntegration(),
   ...params
 }: CodeOwnerParams = {}): TCodeOwner {
+  const integration = GitHubIntegration();
+
   return {
     id: '1225',
     raw: '',

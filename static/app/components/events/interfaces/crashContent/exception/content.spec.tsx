@@ -2,6 +2,7 @@ import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiC
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
 import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
@@ -19,7 +20,7 @@ import {StackType, StackView} from 'sentry/types/stacktrace';
 describe('Exception Content', function () {
   const organization = Organization();
   const project = Project({});
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const repo = Repository({integrationId: integration.id});
   const config = RepositoryProjectPathConfig({project, repo, integration});
 
