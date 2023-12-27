@@ -132,7 +132,7 @@
     "mobx": "^6.8.0",
     "mobx-react": "~7.6.0",
     "mockdate": "3.0.5",
-    "moment": "2.29.4",
+    "moment": "2.30.1",
     "moment-timezone": "0.5.43",
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
