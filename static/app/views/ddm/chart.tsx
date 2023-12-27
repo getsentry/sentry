@@ -77,6 +77,7 @@ export function MetricChart({
     bucketSize,
     showTimeInTooltip: true,
     addSecondsToTimeFormat: isSubMinuteBucket,
+    limit: 10,
   };
   const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
