@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
@@ -22,6 +22,11 @@ export function MetricScratchpad() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
+  // Make sure all charts are connected to the same group whenever the widgets definition changes
+  useLayoutEffect(() => {
+    echarts.connect(DDM_CHART_GROUP);
+  }, [widgets]);
+
   const handleChange = useCallback(
     (index: number, widget: Partial<MetricWidgetQueryParams>) => {
       updateWidget(index, widget);
@@ -29,12 +34,9 @@ export function MetricScratchpad() {
     [updateWidget]
   );
 
+  const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
   const Wrapper =
     widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
-
-  echarts.connect(DDM_CHART_GROUP);
-
-  const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
 
   return (
     <Wrapper>
