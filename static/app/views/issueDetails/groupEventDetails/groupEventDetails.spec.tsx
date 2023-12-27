@@ -9,6 +9,7 @@ import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import RouterFixture from 'sentry-fixture/routerFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallation as SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -516,14 +517,14 @@ describe('Platform Integrations', () => {
     const unpublishedIntegration = SentryApp({status: 'unpublished'});
     const internalIntegration = SentryApp({status: 'internal'});
 
-    const unpublishedInstall = TestStubs.SentryAppInstallation({
+    const unpublishedInstall = SentryAppInstallationFixture({
       app: {
         slug: unpublishedIntegration.slug,
         uuid: unpublishedIntegration.uuid,
       },
     });
 
-    const internalInstall = TestStubs.SentryAppInstallation({
+    const internalInstall = SentryAppInstallationFixture({
       app: {
         slug: internalIntegration.slug,
         uuid: internalIntegration.uuid,
