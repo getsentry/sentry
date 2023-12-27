@@ -47,6 +47,9 @@ function SimilarStackTrace({params, location, project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
+  const hasSimilarityEmbeddingsFeature = project.organization?.features?.includes(
+    'issues-similarity-embeddings'
+  );
 
   const fetchData = useCallback(() => {
     setStatus('loading');
@@ -158,10 +161,21 @@ function SimilarStackTrace({params, location, project}: Props) {
             </EmptyStateWarning>
           </Panel>
         )}
-        {status === 'ready' && hasSimilarItems && (
+        {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
           <List
             items={items.similar}
             filteredItems={items.filtered}
+            onMerge={handleMerge}
+            orgId={orgId}
+            project={project}
+            groupId={groupId}
+            pageLinks={items.pageLinks}
+          />
+        )}
+        {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+          <List
+            items={items.similar.concat(items.filtered)}
+            filteredItems={[]}
             onMerge={handleMerge}
             orgId={orgId}
             project={project}

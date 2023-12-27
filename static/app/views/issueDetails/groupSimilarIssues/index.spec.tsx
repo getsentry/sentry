@@ -1,4 +1,5 @@
 import {Groups} from 'sentry-fixture/groups';
+import {Organization as OrganizationFixture} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 import RouterFixture from 'sentry-fixture/routerFixture';
@@ -59,6 +60,18 @@ describe('Issues Similar View', function () {
     jest.clearAllMocks();
   });
 
+  const selectNthSimilarItem = async index => {
+    const items = await screen.findAllByTestId('similar-item-row');
+
+    const item = items.at(index);
+
+    if (item === undefined) {
+      throw new Error('Invalid item index');
+    }
+
+    await userEvent.click(item);
+  };
+
   it('renders with mocked data', async function () {
     render(
       <GroupSimilarIssues
@@ -76,6 +89,8 @@ describe('Issues Similar View', function () {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(screen.getByText('Show 3 issues below threshold')).toBeInTheDocument();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -101,7 +116,7 @@ describe('Issues Similar View', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByTestId('similar-item-row'));
+    await selectNthSimilarItem(0);
     await userEvent.click(await screen.findByRole('button', {name: 'Merge (1)'}));
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
@@ -117,5 +132,31 @@ describe('Issues Similar View', function () {
     expect(MockNavigate).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/321/similar/'
     );
+  });
+
+  it('renders all filtered issues with issues-similarity-embeddings flag', async function () {
+    const projectSimilarityEmbeddings = ProjectFixture({
+      features: ['similarity-view'],
+      organization: OrganizationFixture({features: ['issues-similarity-embeddings']}),
+    });
+
+    render(
+      <GroupSimilarIssues
+        project={projectSimilarityEmbeddings}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
   });
 });

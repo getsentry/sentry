@@ -54,6 +54,9 @@ function List({
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
+  const hasSimilarityEmbeddingsFeature = project.organization?.features?.includes(
+    'issues-similarity-embeddings'
+  );
 
   if (!hasResults) {
     return <Empty />;
@@ -61,10 +64,11 @@ function List({
 
   return (
     <Fragment>
-      <Header>
-        <SimilarSpectrum />
-      </Header>
-
+      {!hasSimilarityEmbeddingsFeature && (
+        <Header>
+          <SimilarSpectrum />
+        </Header>
+      )}
       <Panel>
         <Toolbar onMerge={onMerge} />
 
@@ -79,7 +83,7 @@ function List({
             />
           ))}
 
-          {hasHiddenItems && !showAllItems && (
+          {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
             <Footer>
               <Button onClick={() => setShowAllItems(true)}>
                 {t('Show %s issues below threshold', filteredItems.length)}
