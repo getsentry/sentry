@@ -5,6 +5,7 @@ import {User} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {OrgRoleFixture} from 'sentry/types/role';
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', function () {
@@ -23,11 +24,11 @@ describe('OrganizationMemberRow', function () {
       'partnership:restricted': false,
       'sso:invalid': false,
     },
-    user: {
+    user: User({
       id: '',
       has2fa: false,
       name: 'sentry@test.com',
-    },
+    }),
     groupOrgRoles: [],
   });
 
@@ -42,7 +43,7 @@ describe('OrganizationMemberRow', function () {
     groupOrgRoles: [
       {
         teamSlug: managerTeam.slug,
-        role: {name: 'Manager'},
+        role: OrgRoleFixture({name: 'Manager'}),
       },
     ],
   });

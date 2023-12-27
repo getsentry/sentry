@@ -21,6 +21,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrgRoleFixture} from 'sentry/types/role';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
@@ -82,7 +83,7 @@ describe('OrganizationMembersList', function () {
     groupOrgRoles: [
       {
         teamSlug: ownerTeam.slug,
-        role: {id: 'owner'},
+        role: OrgRoleFixture({id: 'owner'}),
       },
     ],
   });
