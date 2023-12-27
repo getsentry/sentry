@@ -89,6 +89,7 @@ describe('OrganizationMembersList', function () {
   });
 
   const currentUser = members[1];
+  currentUser.user = User({...currentUser, flags: {newsletter_consent_prompt: true}});
   const organization = Organization({
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
@@ -107,7 +108,7 @@ describe('OrganizationMembersList', function () {
     routeParams: router.params,
   };
 
-  jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser);
+  jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser.user);
 
   afterAll(function () {
     (ConfigStore.get as jest.Mock).mockRestore();
