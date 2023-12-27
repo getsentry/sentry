@@ -5,6 +5,7 @@ import * as echarts from 'echarts/core';
 import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
@@ -33,6 +34,8 @@ export function MetricScratchpad() {
 
   echarts.connect(DDM_CHART_GROUP);
 
+  const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
+
   return (
     <Wrapper>
       {widgets.map((widget, index) => (
@@ -48,17 +51,19 @@ export function MetricScratchpad() {
           environments={selection.environments}
         />
       ))}
-      <AddWidgetPanel
-        onClick={() => {
-          trackAnalytics('ddm.widget.add', {
-            organization,
-          });
+      {!hasEmptyWidget && (
+        <AddWidgetPanel
+          onClick={() => {
+            trackAnalytics('ddm.widget.add', {
+              organization,
+            });
 
-          addWidget();
-        }}
-      >
-        <Button icon={<IconAdd isCircled />}>Add widget</Button>
-      </AddWidgetPanel>
+            addWidget();
+          }}
+        >
+          <Button icon={<IconAdd isCircled />}>{t('Add widget')}</Button>
+        </AddWidgetPanel>
+      )}
     </Wrapper>
   );
 }
@@ -74,24 +79,26 @@ const StyledMetricDashboard = styled('div')`
   @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(1, minmax(${MIN_WIDGET_WIDTH}px, 1fr));
   }
-  grid-auto-rows: 1fr;
+  grid-auto-rows: auto;
 `;
 
 const StyledSingleWidgetWrapper = styled('div')`
   display: grid;
-  grid-template-columns: minmax(${MIN_WIDGET_WIDTH}px, 90%) minmax(180px, 10%);
+  grid-template-columns: minmax(${MIN_WIDGET_WIDTH}px, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(min-content, 10%);
 
   @media (max-width: ${props => props.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(1, minmax(${MIN_WIDGET_WIDTH}px, 1fr));
+    grid-auto-flow: row;
   }
 
   gap: ${space(2)};
 
-  grid-auto-rows: 1fr;
+  grid-auto-rows: auto;
 `;
 
 const AddWidgetPanel = styled(Panel)`
-  width: 100%;
   height: 100%;
   margin-bottom: 0;
   padding: ${space(4)};
