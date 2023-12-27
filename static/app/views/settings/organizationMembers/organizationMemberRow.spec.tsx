@@ -17,6 +17,11 @@ describe('OrganizationMemberRow', function () {
     pending: false,
     flags: {
       'sso:linked': false,
+      'idp:provisioned': false,
+      'idp:role-restricted': false,
+      'member-limit:restricted': false,
+      'partnership:restricted': false,
+      'sso:invalid': false,
     },
     user: {
       id: '',

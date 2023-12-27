@@ -73,6 +73,11 @@ describe('OrganizationMembersList', function () {
     ],
     flags: {
       'sso:linked': true,
+      'idp:provisioned': false,
+      'idp:role-restricted': false,
+      'member-limit:restricted': false,
+      'partnership:restricted': false,
+      'sso:invalid': false,
     },
     groupOrgRoles: [
       {
