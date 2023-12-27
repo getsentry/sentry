@@ -5,7 +5,6 @@ import {useHover} from '@react-aria/interactions';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
@@ -15,7 +14,7 @@ import {DateString, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import theme from 'sentry/utils/theme';
-import useRouter from 'sentry/utils/useRouter';
+import {useChartSelection} from 'sentry/views/ddm/chartSelection';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
@@ -45,14 +44,14 @@ export function MetricChart({
   operation,
   projects,
   environments,
-  onZoom,
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
-  const router = useRouter();
 
-  const {hoverProps, isHovered} = useHover({
+  const {hoverProps /* isHovered */} = useHover({
     isDisabled: false,
   });
+
+  const {startSelection, overlay, options: brushOptions} = useChartSelection(chartRef);
 
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
@@ -81,6 +80,7 @@ export function MetricChart({
   const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
   const chartProps = {
+    ...brushOptions,
     forwardedRef: chartRef,
     isGroupedByDate: true,
     height: 300,
@@ -111,68 +111,51 @@ export function MetricChart({
   };
 
   return (
-    <ChartWrapper {...hoverProps}>
-      <ChartZoom
-        router={router}
-        period={period}
-        start={start}
-        end={end}
+    <ChartWrapper {...hoverProps} onMouseDownCapture={startSelection}>
+      {overlay}
+      <ReleaseSeries
         utc={utc}
-        onZoom={zoomPeriod => {
-          onZoom?.(zoomPeriod.start, zoomPeriod.end);
-        }}
+        period={period}
+        start={start!}
+        end={end!}
+        projects={projects}
+        environments={environments}
+        preserveQueryParams
       >
-        {zoomRenderProps => (
-          <ReleaseSeries
-            utc={utc}
-            period={period}
-            start={zoomRenderProps.start!}
-            end={zoomRenderProps.end!}
-            projects={projects}
-            environments={environments}
-            preserveQueryParams
-          >
-            {({releaseSeries}) => {
-              const releaseSeriesData = releaseSeries?.[0]?.markLine?.data ?? [];
+        {({releaseSeries}) => {
+          const releaseSeriesData = releaseSeries?.[0]?.markLine?.data ?? [];
 
-              const selected =
-                releaseSeriesData?.length >= RELEASE_LINES_THRESHOLD
-                  ? {[t('Releases')]: false}
-                  : {};
+          const selected =
+            releaseSeriesData?.length >= RELEASE_LINES_THRESHOLD
+              ? {[t('Releases')]: false}
+              : {};
 
-              const legend = releaseSeriesData?.length
-                ? Legend({
-                    itemGap: 20,
-                    top: 0,
-                    right: 20,
-                    data: releaseSeries.map(s => s.seriesName),
-                    theme: theme as Theme,
-                    selected,
-                  })
-                : undefined;
+          const legend = releaseSeriesData?.length
+            ? Legend({
+                itemGap: 20,
+                top: 0,
+                right: 20,
+                data: releaseSeries.map(s => s.seriesName),
+                theme: theme as Theme,
+                selected,
+              })
+            : undefined;
 
-              // Zoom render props are slowing down the chart rendering,
-              // so we only pass them when the chart is hovered over
-              const zoomProps = isHovered ? zoomRenderProps : {};
+          const allProps = {
+            ...chartProps,
+            series: [...seriesToShow, ...releaseSeries],
+            legend,
+          };
 
-              const allProps = {
-                ...chartProps,
-                ...zoomProps,
-                series: [...seriesToShow, ...releaseSeries],
-                legend,
-              };
-
-              return displayType === MetricDisplayType.LINE ? (
-                <LineChart {...allProps} />
-              ) : displayType === MetricDisplayType.AREA ? (
-                <AreaChart {...allProps} />
-              ) : (
-                <BarChart stacked animation={false} {...allProps} />
-              );
-            }}
-          </ReleaseSeries>
-        )}
-      </ChartZoom>
+          return displayType === MetricDisplayType.LINE ? (
+            <LineChart {...allProps} />
+          ) : displayType === MetricDisplayType.AREA ? (
+            <AreaChart {...allProps} />
+          ) : (
+            <BarChart stacked animation={false} {...allProps} />
+          );
+        }}
+      </ReleaseSeries>
       {displayFogOfWar && (
         <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
       )}
