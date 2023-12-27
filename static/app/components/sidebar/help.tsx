@@ -45,6 +45,9 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               <SidebarMenuItem href="https://help.sentry.io/">
                 {t('Visit Help Center')}
               </SidebarMenuItem>
+              <SidebarMenuItem href="https://discord.com/invite/sentry">
+                {t('Join our Discord')}
+              </SidebarMenuItem>
               <Hook name="sidebar:help-menu" organization={organization} />
             </HelpMenu>
           )}
