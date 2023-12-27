@@ -97,126 +97,126 @@ export function QueryBuilder({
 
   const stringifiedMetricWidget = stringifyMetricWidget(metricsQuery);
 
-  return (
-    <QueryBuilderWrapper>
-      {isEdit ? (
-        <Fragment>
-          <QueryBuilderRow>
-            <WrapPageFilterBar>
-              <CompactSelect
-                searchable
-                sizeLimit={100}
-                triggerProps={{prefix: t('Metric'), size: 'sm'}}
-                options={displayedMetrics.map(metric => ({
-                  label: mriMode ? metric.mri : formatMRI(metric.mri),
-                  value: metric.mri,
-                  trailingItems: mriMode ? undefined : (
-                    <Fragment>
-                      <Tag tooltipText={t('Type')}>
-                        {getReadableMetricType(metric.type)}
-                      </Tag>
-                      <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                    </Fragment>
-                  ),
-                }))}
-                value={metricsQuery.mri}
-                onChange={option => {
-                  const availableOps =
-                    meta
-                      .find(metric => metric.mri === option.value)
-                      ?.operations.filter(isAllowedOp) ?? [];
-
-                  // @ts-expect-error .op is an operation
-                  const selectedOp = availableOps.includes(metricsQuery.op ?? '')
-                    ? metricsQuery.op
-                    : availableOps?.[0];
-                  onChange({
-                    mri: option.value,
-                    op: selectedOp,
-                    groupBy: undefined,
-                    focusedSeries: undefined,
-                    displayType: getWidgetDisplayType(option.value, selectedOp),
-                  });
-                }}
-              />
-              <CompactSelect
-                triggerProps={{prefix: t('Op'), size: 'sm'}}
-                options={
-                  selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                    label: op,
-                    value: op,
-                  })) ?? []
-                }
-                disabled={!metricsQuery.mri}
-                value={metricsQuery.op}
-                onChange={option =>
-                  onChange({
-                    op: option.value,
-                  })
-                }
-              />
-              <CompactSelect
-                multiple
-                triggerProps={{prefix: t('Group by'), size: 'sm'}}
-                options={tags.map(tag => ({
-                  label: tag.key,
-                  value: tag.key,
-                  trailingItems: (
-                    <Fragment>
-                      {tag.key === 'release' && <IconReleases size="xs" />}
-                      {tag.key === 'transaction' && <IconLightning size="xs" />}
-                    </Fragment>
-                  ),
-                }))}
-                disabled={!metricsQuery.mri}
-                value={metricsQuery.groupBy}
-                onChange={options =>
-                  onChange({
-                    groupBy: options.map(o => o.value),
-                    focusedSeries: undefined,
-                  })
-                }
-              />
-              <CompactSelect
-                triggerProps={{prefix: t('Display'), size: 'sm'}}
-                value={displayType ?? defaultMetricDisplayType}
-                options={[
-                  {
-                    value: MetricDisplayType.LINE,
-                    label: t('Line'),
-                  },
-                  {
-                    value: MetricDisplayType.AREA,
-                    label: t('Area'),
-                  },
-                  {
-                    value: MetricDisplayType.BAR,
-                    label: t('Bar'),
-                  },
-                ]}
-                onChange={({value}) => {
-                  onChange({displayType: value});
-                }}
-              />
-            </WrapPageFilterBar>
-          </QueryBuilderRow>
-          {/* Stop propagation so widget does not get selected immediately */}
-          <QueryBuilderRow onClick={stopPropagation}>
-            <MetricSearchBar
-              // TODO(aknaus): clean up projectId type in ddm
-              projectIds={projects.map(id => id.toString())}
-              mri={metricsQuery.mri}
-              disabled={!metricsQuery.mri}
-              onChange={query => onChange({query})}
-              query={metricsQuery.query}
-            />
-          </QueryBuilderRow>
-        </Fragment>
-      ) : (
+  if (!isEdit) {
+    return (
+      <QueryBuilderWrapper>
         <WidgetTitle>
           <TextOverflow>{metricsQuery.title || stringifiedMetricWidget}</TextOverflow>
         </WidgetTitle>
-      )}
+      </QueryBuilderWrapper>
+    );
+  }
+
+  return (
+    <QueryBuilderWrapper>
+      <QueryBuilderRow>
+        <WrapPageFilterBar>
+          <CompactSelect
+            searchable
+            sizeLimit={100}
+            triggerProps={{prefix: t('Metric'), size: 'sm'}}
+            options={displayedMetrics.map(metric => ({
+              label: mriMode ? metric.mri : formatMRI(metric.mri),
+              value: metric.mri,
+              trailingItems: mriMode ? undefined : (
+                <Fragment>
+                  <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
+                  <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+                </Fragment>
+              ),
+            }))}
+            value={metricsQuery.mri}
+            onChange={option => {
+              const availableOps =
+                meta
+                  .find(metric => metric.mri === option.value)
+                  ?.operations.filter(isAllowedOp) ?? [];
+
+              // @ts-expect-error .op is an operation
+              const selectedOp = availableOps.includes(metricsQuery.op ?? '')
+                ? metricsQuery.op
+                : availableOps?.[0];
+              onChange({
+                mri: option.value,
+                op: selectedOp,
+                groupBy: undefined,
+                focusedSeries: undefined,
+                displayType: getWidgetDisplayType(option.value, selectedOp),
+              });
+            }}
+          />
+          <CompactSelect
+            triggerProps={{prefix: t('Op'), size: 'sm'}}
+            options={
+              selectedMeta?.operations.filter(isAllowedOp).map(op => ({
+                label: op,
+                value: op,
+              })) ?? []
+            }
+            disabled={!metricsQuery.mri}
+            value={metricsQuery.op}
+            onChange={option =>
+              onChange({
+                op: option.value,
+              })
+            }
+          />
+          <CompactSelect
+            multiple
+            triggerProps={{prefix: t('Group by'), size: 'sm'}}
+            options={tags.map(tag => ({
+              label: tag.key,
+              value: tag.key,
+              trailingItems: (
+                <Fragment>
+                  {tag.key === 'release' && <IconReleases size="xs" />}
+                  {tag.key === 'transaction' && <IconLightning size="xs" />}
+                </Fragment>
+              ),
+            }))}
+            disabled={!metricsQuery.mri}
+            value={metricsQuery.groupBy}
+            onChange={options =>
+              onChange({
+                groupBy: options.map(o => o.value),
+                focusedSeries: undefined,
+              })
+            }
+          />
+          <CompactSelect
+            triggerProps={{prefix: t('Display'), size: 'sm'}}
+            value={displayType ?? defaultMetricDisplayType}
+            options={[
+              {
+                value: MetricDisplayType.LINE,
+                label: t('Line'),
+              },
+              {
+                value: MetricDisplayType.AREA,
+                label: t('Area'),
+              },
+              {
+                value: MetricDisplayType.BAR,
+                label: t('Bar'),
+              },
+            ]}
+            onChange={({value}) => {
+              onChange({displayType: value});
+            }}
+          />
+        </WrapPageFilterBar>
+      </QueryBuilderRow>
+      {/* Stop propagation so widget does not get selected immediately */}
+      <QueryBuilderRow onClick={stopPropagation}>
+        <MetricSearchBar
+          // TODO(aknaus): clean up projectId type in ddm
+          projectIds={projects.map(id => id.toString())}
+          mri={metricsQuery.mri}
+          disabled={!metricsQuery.mri}
+          onChange={query => onChange({query})}
+          query={metricsQuery.query}
+        />
+      </QueryBuilderRow>
     </QueryBuilderWrapper>
   );
 }
