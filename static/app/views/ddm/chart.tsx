@@ -1,7 +1,6 @@
-import {useEffect, useRef} from 'react';
+import {useRef} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useHover} from '@react-aria/interactions';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -15,7 +14,6 @@ import {ReactEchartsRef} from 'sentry/types/echarts';
 import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import theme from 'sentry/utils/theme';
 import {useChartSelection} from 'sentry/views/ddm/chartSelection';
-import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
@@ -47,19 +45,15 @@ export function MetricChart({
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
 
-  const {hoverProps /* isHovered */} = useHover({
-    isDisabled: false,
-  });
-
   const {startSelection, overlay, options: brushOptions} = useChartSelection(chartRef);
 
-  // TODO(ddm): Try to do this in a more elegant way
-  useEffect(() => {
-    const echartsInstance = chartRef?.current?.getEchartsInstance();
-    if (echartsInstance && !echartsInstance.group) {
-      echartsInstance.group = DDM_CHART_GROUP;
-    }
-  });
+  // // TODO(ddm): Try to do this in a more elegant way
+  // useEffect(() => {
+  //   const echartsInstance = chartRef?.current?.getEchartsInstance();
+  //   if (echartsInstance && !echartsInstance.group) {
+  //     echartsInstance.group = DDM_CHART_GROUP;
+  //   }
+  // });
 
   const unit = series[0]?.unit;
   const seriesToShow = series.filter(s => !s.hidden);
@@ -111,7 +105,7 @@ export function MetricChart({
   };
 
   return (
-    <ChartWrapper {...hoverProps} onMouseDownCapture={startSelection}>
+    <ChartWrapper onMouseDownCapture={startSelection}>
       {overlay}
       <ReleaseSeries
         utc={utc}

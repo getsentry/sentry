@@ -25,12 +25,18 @@ const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 export function useChartSelection(chartRef: any) {
+  // Since the charts are in the same group the onBrushEnd event gets fired for all
+  // so we need to keep track of which one is selecting
+
   const [selection, setSelection] = useState<Selection | null>(null);
   const router = useRouter();
 
   const onBrushEnd = params => {
+    if (selection) {
+      return;
+    }
     const rect = params.areas[0];
-    if (!rect || selection) {
+    if (!rect) {
       return;
     }
 
@@ -51,6 +57,9 @@ export function useChartSelection(chartRef: any) {
   };
 
   const startSelection = () => {
+    if (selection) {
+      return;
+    }
     chartRef.current?.getEchartsInstance().dispatchAction({
       type: 'takeGlobalCursor',
       key: 'brush',
@@ -58,6 +67,10 @@ export function useChartSelection(chartRef: any) {
         brushType: 'rect',
       },
     });
+  };
+
+  const cancelSelection = () => {
+    removeSelection();
   };
 
   const zoomInSelection = () => {
@@ -91,14 +104,9 @@ export function useChartSelection(chartRef: any) {
   }
 
   return {
-    overlay: (
-      <SelectionOverlay
-        selection={selection}
-        onRemove={removeSelection}
-        onZoom={zoomInSelection}
-      />
-    ),
+    overlay: null,
     startSelection,
+    cancelSelection,
     options: {
       onBrushEnd,
       toolBox: {
@@ -158,7 +166,7 @@ const StyledSelection = styled('div')<{
   outline: 2px solid ${p => p.theme.purple300};
   outline-offset: -1px;
   padding: ${space(1)};
-  z-index: 100;
+  z-index: 1;
 
   & > div {
     display: none;
