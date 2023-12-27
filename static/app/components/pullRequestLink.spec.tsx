@@ -7,7 +7,9 @@ import PullRequestLink from 'sentry/components/pullRequestLink';
 
 describe('PullRequestLink', () => {
   it('renders no url on missing externalUrl', () => {
-    const repository = RepositoryFixture({provider: null});
+    const repository = RepositoryFixture({
+      provider: {id: 'unknown', name: 'Unknown Provider'},
+    });
     const pullRequest = PullRequest({
       repository,
       externalUrl: undefined,
