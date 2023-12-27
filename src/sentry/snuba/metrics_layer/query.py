@@ -33,7 +33,7 @@ from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition]
+FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition, str, list]
 
 
 ALLOWED_GRANULARITIES = [10, 60, 3600, 86400]
@@ -172,15 +172,15 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         # There are two kinds of resolving: lookup up in the indexer, and resolving things like
         # aggregate_alias, entities and use_case_id.
         metrics_query, mappings = _resolve_query_metadata(metrics_query)
-        indexer_mappings = _lookup_indexer_resolve(metrics_query)
-        mappings.update(indexer_mappings)
-        request.query = metrics_query.set_indexer_mappings(mappings)
-        request.tenant_ids["use_case_id"] = metrics_query.scope.use_case_id
         # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
         # This is necessary here because the product code that uses this isn't aware of which feature is
         # using it.
         if metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
             request.dataset = Dataset.Metrics.value
+        indexer_mappings = _lookup_indexer_resolve(metrics_query, request.dataset)
+        mappings.update(indexer_mappings)
+        request.query = metrics_query.set_indexer_mappings(mappings)
+        request.tenant_ids["use_case_id"] = metrics_query.scope.use_case_id
     except Exception as e:
         metrics.incr(
             "metrics_layer.query",
@@ -354,23 +354,23 @@ GENERIC_ENTITIES = {
 }
 
 
-def _lookup_indexer_resolve(metrics_query: MetricsQuery) -> Mapping[str, str | int]:
+def _lookup_indexer_resolve(metrics_query: MetricsQuery, dataset: str) -> Mapping[str, str | int]:
     """
     Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
     that shows all the strings that were resolved and what they were resolved too.
     """
     org_id = metrics_query.scope.org_ids[0]
     use_case_id = string_to_use_case_id(metrics_query.scope.use_case_id)
-    return _lookup_indexer_resolve_exp(metrics_query.query, org_id, use_case_id)
+    return _lookup_indexer_resolve_exp(metrics_query.query, org_id, use_case_id, dataset)
 
 
 def _lookup_indexer_resolve_exp(
-    exp: Formula | Timeseries, org_id: int, use_case_id: UseCaseID
+    exp: Formula | Timeseries, org_id: int, use_case_id: UseCaseID, dataset: str
 ) -> Mapping[str, str | int]:
     indexer_mappings: dict[str, str | int] = {}
     new_mappings = _lookup_resolve_groupby(exp.groupby, use_case_id, org_id)
     indexer_mappings.update(new_mappings)
-    new_mappings = _lookup_resolve_filters(exp.filters, use_case_id, org_id)
+    new_mappings = _lookup_resolve_filters(exp.filters, use_case_id, org_id, dataset)
     indexer_mappings.update(new_mappings)
 
     if isinstance(exp, Formula):
@@ -404,7 +404,7 @@ def _lookup_resolve_groupby(
 
 
 def _lookup_resolve_filters(
-    filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int
+    filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int, dataset: str
 ) -> Mapping[str, str | int]:
     """
     Go through the columns in the filter and resolve any that can be resolved.
@@ -416,22 +416,38 @@ def _lookup_resolve_filters(
 
     mappings = {}
 
-    def lookup_resolve_exp(exp: FilterTypes) -> None:
-        if isinstance(exp, Column):
+    def lookup_resolve_exp(exp: FilterTypes, dataset: str) -> None:
+        if dataset == Dataset.Metrics.value and (isinstance(exp, str) or isinstance(exp, list)):
+            if isinstance(exp, str):
+                resolved = resolve_weak(use_case_id, org_id, exp)
+                if resolved > -1:
+                    mappings[exp] = resolved
+            elif isinstance(exp, list):
+                for value in exp:
+                    assert isinstance(value, str)
+                    resolved = resolve_weak(use_case_id, org_id, value)
+                    if resolved > -1:
+                        mappings[value] = resolved
+            else:
+                raise InvalidParams("Invalid filter tag value type")
+        elif isinstance(exp, Column):
             resolved = resolve_weak(use_case_id, org_id, exp.name)
             if resolved > -1:
                 mappings[exp.name] = resolved
         elif isinstance(exp, CurriedFunction):
             for p in exp.parameters:
-                lookup_resolve_exp(p)
+                lookup_resolve_exp(p, dataset)
         elif isinstance(exp, BooleanCondition):
             for c in exp.conditions:
-                lookup_resolve_exp(c)
+                lookup_resolve_exp(c, dataset)
         elif isinstance(exp, Condition):
-            lookup_resolve_exp(exp.lhs)
+            lookup_resolve_exp(exp.lhs, dataset)
+            # If the dataset is metrics, then we need to resolve the tag values as well
+            if dataset == Dataset.Metrics.value:
+                lookup_resolve_exp(exp.rhs, dataset)
 
     for exp in filters:
-        lookup_resolve_exp(exp)
+        lookup_resolve_exp(exp, dataset)
     return mappings
 
 
@@ -449,7 +465,7 @@ def snql_query(request: Request, start: datetime, end: datetime) -> Mapping[str,
     try:
         # Replace any aggregate aliases with the appropriate aggregate
         metrics_query = metrics_query.set_query(_resolve_aggregate_aliases(metrics_query.query))
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query, request.dataset)
         request.query = resolved_metrics_query.set_indexer_mappings(mappings)
         request.tenant_ids["use_case_id"] = resolved_metrics_query.scope.use_case_id
         # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
@@ -553,7 +569,7 @@ def _resolve_formula_metrics(
 
 
 def _resolve_metrics_query(
-    metrics_query: MetricsQuery,
+    metrics_query: MetricsQuery, dataset: str
 ) -> tuple[MetricsQuery, Mapping[str, str | int]]:
     """
     Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
@@ -570,7 +586,15 @@ def _resolve_metrics_query(
     use_case_id = string_to_use_case_id(use_case_id_str)
     metrics_query, mappings = _resolve_query_metrics(metrics_query, use_case_id, org_id)
 
-    new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
+    # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
+    # This is necessary here because the product code that uses this isn't aware of which feature is
+    # using it.
+    if metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
+        dataset = Dataset.Metrics.value
+
+    new_groupby, new_mappings = _resolve_groupby(
+        metrics_query.query.groupby, use_case_id, org_id, dataset
+    )
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
     mappings.update(new_mappings)
 
@@ -578,13 +602,17 @@ def _resolve_metrics_query(
         parameters = metrics_query.query.parameters
         for i, p in enumerate(parameters):
             if isinstance(p, Timeseries):
-                new_groupby, new_mappings = _resolve_groupby(p.groupby, use_case_id, org_id)
+                new_groupby, new_mappings = _resolve_groupby(
+                    p.groupby, use_case_id, org_id, dataset
+                )
                 parameters[i] = p.set_groupby(new_groupby)
                 mappings.update(new_mappings)
 
         metrics_query = metrics_query.set_query(metrics_query.query.set_parameters(parameters))
 
-    new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
+    new_filters, new_mappings = _resolve_filters(
+        metrics_query.query.filters, use_case_id, org_id, dataset
+    )
     metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
     mappings.update(new_mappings)
 
@@ -592,7 +620,9 @@ def _resolve_metrics_query(
         parameters = metrics_query.query.parameters
         for i, p in enumerate(parameters):
             if isinstance(p, Timeseries):
-                new_filters, new_mappings = _resolve_filters(p.filters, use_case_id, org_id)
+                new_filters, new_mappings = _resolve_filters(
+                    p.filters, use_case_id, org_id, dataset
+                )
                 parameters[i] = p.set_filters(new_filters)
                 mappings.update(new_mappings)
 
@@ -602,7 +632,7 @@ def _resolve_metrics_query(
 
 
 def _resolve_groupby(
-    groupby: list[Column] | None, use_case_id: UseCaseID, org_id: int
+    groupby: list[Column] | None, use_case_id: UseCaseID, org_id: int, dataset: str
 ) -> tuple[list[Column] | None, Mapping[str, int]]:
     """
     Go through the groupby columns and resolve any that need to be resolved.
@@ -619,9 +649,16 @@ def _resolve_groupby(
         if resolved > -1:
             # TODO: This currently assumes the use of `tags_raw` but that might not always be correct
             # It also doesn't take into account mapping indexed tag values back to their original values
-            new_groupby.append(
-                AliasedExpression(exp=replace(col, name=f"tags_raw[{resolved}]"), alias=col.name)
-            )
+            if dataset == Dataset.Metrics.value:
+                new_groupby.append(
+                    AliasedExpression(exp=replace(col, name=f"tags[{resolved}]"), alias=col.name)
+                )
+            else:
+                new_groupby.append(
+                    AliasedExpression(
+                        exp=replace(col, name=f"tags_raw[{resolved}]"), alias=col.name
+                    )
+                )
             mappings[col.name] = resolved
         else:
             new_groupby.append(col)
@@ -630,7 +667,7 @@ def _resolve_groupby(
 
 
 def _resolve_filters(
-    filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int
+    filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int, dataset: str
 ) -> tuple[list[Condition | BooleanCondition] | None, Mapping[str, int]]:
     """
     Go through the columns in the filter and resolve any that can be resolved.
@@ -642,19 +679,43 @@ def _resolve_filters(
 
     mappings = {}
 
-    def resolve_exp(exp: FilterTypes) -> FilterTypes:
-        if isinstance(exp, Column):
+    def resolve_exp(exp: FilterTypes, dataset: str) -> None:
+        if dataset == Dataset.Metrics.value and (isinstance(exp, str) or isinstance(exp, list)):
+            if isinstance(exp, str):
+                resolved = resolve_weak(use_case_id, org_id, exp)
+                if resolved > -1:
+                    mappings[exp] = resolved
+                    return resolved
+            elif isinstance(exp, list):
+                resolved_values: list[int] = []
+                for value in exp:
+                    assert isinstance(value, str)
+                    resolved = resolve_weak(use_case_id, org_id, value)
+                    if resolved > -1:
+                        resolved_values.append(resolved)
+                        mappings[value] = resolved
+                    return resolved_values
+            else:
+                raise InvalidParams("Invalid filter tag value type")
+        elif isinstance(exp, Column):
             resolved = resolve_weak(use_case_id, org_id, exp.name)
             if resolved > -1:
                 mappings[exp.name] = resolved
-                return replace(exp, name=f"tags_raw[{resolved}]")
+                if dataset == Dataset.Metrics.value:
+                    return replace(exp, name=f"tags[{resolved}]")
+                else:
+                    return replace(exp, name=f"tags_raw[{resolved}]")
         elif isinstance(exp, CurriedFunction):
-            return replace(exp, parameters=[resolve_exp(p) for p in exp.parameters])
+            return replace(exp, parameters=[resolve_exp(p, dataset) for p in exp.parameters])
         elif isinstance(exp, BooleanCondition):
-            return replace(exp, conditions=[resolve_exp(c) for c in exp.conditions])
+            return replace(exp, conditions=[resolve_exp(c, dataset) for c in exp.conditions])
         elif isinstance(exp, Condition):
-            return replace(exp, lhs=resolve_exp(exp.lhs))
+            exp = replace(exp, lhs=resolve_exp(exp.lhs, dataset))
+            # If the dataset is metrics, then we need to resolve the tag values as well
+            if dataset == Dataset.Metrics.value:
+                exp = replace(exp, rhs=resolve_exp(exp.rhs, dataset))
+            return exp
         return exp
 
-    new_filters = [resolve_exp(exp) for exp in filters]
+    new_filters = [resolve_exp(exp, dataset) for exp in filters]
     return new_filters, mappings
