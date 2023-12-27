@@ -50,12 +50,21 @@ export const MetricWidget = memo(
     projects: PageFilters['projects'];
     widget: MetricWidgetQueryParams;
   }) => {
+    const [isEdit, setIsEdit] = useState(true);
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
         onChange(index, data);
       },
       [index, onChange]
     );
+
+    useEffect(() => {
+      // exit the edit mode when the focus is lost
+      // it would work without it (because we do edit && focus) but when you focus again, we want the edit mode to be turned off by default
+      if (!isSelected) {
+        setIsEdit(false);
+      }
+    }, [isSelected]);
 
     const metricsQuery = useMemo(
       () => ({
@@ -66,9 +75,12 @@ export const MetricWidget = memo(
         projects,
         datetime,
         environments,
+        title: widget.title,
       }),
       [widget, projects, datetime, environments]
     );
+
+    const shouldDisplayEditControls = (isEdit && isSelected) || !metricsQuery.mri;
 
     return (
       <MetricWidgetPanel isSelected={isSelected} onClick={() => onSelect(index)}>
@@ -80,11 +92,14 @@ export const MetricWidget = memo(
               displayType={widget.displayType}
               onChange={handleChange}
               powerUserMode={widget.powerUserMode}
+              isEdit={shouldDisplayEditControls}
             />
             <MetricWidgetContextMenu
               widgetIndex={index}
               metricsQuery={metricsQuery}
               displayType={widget.displayType}
+              isEdit={shouldDisplayEditControls}
+              onEdit={() => setIsEdit(true)}
             />
           </MetricWidgetHeader>
           {widget.mri ? (
@@ -114,7 +129,6 @@ const MetricWidgetHeader = styled('div')`
   display: flex;
 
   justify-content: space-between;
-  margin-bottom: ${space(1)};
 `;
 
 interface MetricWidgetProps extends MetricWidgetQueryParams {
