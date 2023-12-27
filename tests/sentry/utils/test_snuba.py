@@ -11,6 +11,7 @@ from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import (
+    ROUND_UP,
     SnubaQueryParams,
     UnqualifiedQueryError,
     _prepare_query_params,
@@ -322,6 +323,14 @@ class QuantizeTimeTest(unittest.TestCase):
         time = datetime(2023, 12, 27, 21, 22, 41)
 
         assert quantize_time(time, key_hash, duration) == datetime(2023, 12, 27, 21, 22, 31)
+
+    def test_quantizes_with_rounding_up(self):
+        assert quantize_time(datetime(2023, 12, 27, 4, 4, 0), 0, 60, ROUND_UP) == datetime(
+            2023, 12, 27, 4, 4, 0
+        )
+        assert quantize_time(datetime(2023, 12, 27, 4, 4, 24), 0, 60, ROUND_UP) == datetime(
+            2023, 12, 27, 4, 5, 0
+        )
 
     def test_cache_suffix_time(self):
         starting_key = quantize_time(self.now, 0)
