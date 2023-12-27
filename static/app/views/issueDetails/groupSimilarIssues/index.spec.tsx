@@ -74,9 +74,7 @@ describe('Issues Similar View', function () {
 
     const item = items.at(index);
 
-    if (item === undefined) {
-      throw new Error('Invalid item index');
-    }
+    expect(item).toBeDefined()
 
     await userEvent.click(item);
   };
