@@ -88,7 +88,6 @@ jobs:
 
       - name: webpack
         env:
-          SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
