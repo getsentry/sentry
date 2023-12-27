@@ -33,13 +33,15 @@ export function MetricWidgetContextMenu({
   widgetIndex,
 }: ContextMenuProps) {
   const organization = useOrganization();
-  const {removeWidget, duplicateWidget} = useDDMContext();
+  const {removeWidget, duplicateWidget, widgets} = useDDMContext();
   const createAlert = useCreateAlert(organization, metricsQuery);
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
     displayType
   );
+
+  const canDelete = widgets.length > 1;
 
   const items = useMemo<MenuItemProps[]>(
     () => [
@@ -67,10 +69,18 @@ export function MetricWidgetContextMenu({
         leadingItems: [<IconDelete key="icon" />],
         key: 'delete',
         label: t('Delete'),
+        disabled: !canDelete,
         onAction: () => removeWidget(widgetIndex),
       },
     ],
-    [createAlert, createDashboardWidget, duplicateWidget, removeWidget, widgetIndex]
+    [
+      createAlert,
+      createDashboardWidget,
+      duplicateWidget,
+      removeWidget,
+      widgetIndex,
+      canDelete,
+    ]
   );
 
   if (!hasDDMFeature(organization)) {
