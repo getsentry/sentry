@@ -1,4 +1,4 @@
-import {Fragment, memo, useRef} from 'react';
+import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
@@ -8,7 +8,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
-import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
@@ -17,23 +16,19 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SplitPanel, {BaseSplitDivider, DividerProps} from 'sentry/components/splitPanel';
-import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
-import {TrayContent} from 'sentry/views/ddm/trayContent';
+import {WidgetDetails} from 'sentry/views/ddm/trayContent';
 
-const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
-
-function MainContent() {
+export const DDMLayout = memo(() => {
   const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
+
   return (
     <Fragment>
       <Layout.Header>
@@ -76,7 +71,10 @@ function MainContent() {
           {isLoading ? (
             <LoadingIndicator />
           ) : hasMetrics ? (
-            <MetricScratchpad />
+            <Fragment>
+              <MetricScratchpad />
+              <WidgetDetails />
+            </Fragment>
           ) : (
             <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
               <h3>{t('Get started with custom metrics')}</h3>
@@ -94,53 +92,7 @@ function MainContent() {
       </Layout.Body>
     </Fragment>
   );
-}
-
-export const DDMLayout = memo(() => {
-  const measureRef = useRef<HTMLDivElement>(null);
-  const {height} = useDimensions({elementRef: measureRef});
-  const hasSize = height > 0;
-
-  return (
-    <FullViewport ref={measureRef}>
-      {
-        // FullViewport has a grid layout with `grid-template-rows: auto 1fr;`
-        // therefore we need the empty div so that SplitPanel can span the whole height
-        // TODO(arthur): Check on the styles of FullViewport
-      }
-      <div />
-      {hasSize && (
-        <SplitPanel
-          availableSize={height}
-          SplitDivider={SplitDivider}
-          sizeStorageKey={SIZE_LOCAL_STORAGE_KEY}
-          top={{
-            content: (
-              <ScrollingPage>
-                <MainContent />
-              </ScrollingPage>
-            ),
-            default: height * 0.7,
-            min: 100,
-            max: height - 58,
-          }}
-          bottom={<TrayContent />}
-        />
-      )}
-    </FullViewport>
-  );
 });
-
-const SplitDivider = styled((props: DividerProps) => (
-  <BaseSplitDivider {...props} icon={<IconGrabbable size="xs" />} />
-))<DividerProps>`
-  border-top: 1px solid ${$p => $p.theme.border};
-`;
-
-const ScrollingPage = styled(Layout.Page)`
-  height: 100%;
-  overflow: auto;
-`;
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
