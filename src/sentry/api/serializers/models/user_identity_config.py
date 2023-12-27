@@ -5,6 +5,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, List, MutableMapping, Optional, Union
 
+from django.db.models.base import Model
+
 import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import ControlSiloOrganizationSerializer
@@ -107,7 +109,7 @@ class UserIdentityConfig:
         else:
             raise TypeError
 
-    def get_model_type_for_category(self) -> type:
+    def get_model_type_for_category(self) -> type[Model]:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
 
 
