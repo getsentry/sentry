@@ -1,4 +1,5 @@
 import {Query} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 import isObject from 'lodash/isObject';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -146,11 +147,18 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
   // narrowing the type, which seems impossible for a generic implementation? Because
   // of this, allow users to type the return value and not
 ) {
-  if (!obj || Array.isArray(obj) || typeof obj !== 'object') {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
     throw new TypeError('Omit expected object-like input value');
   }
 
-  const returnValue = window.structuredClone(obj);
+  let returnValue: T;
+  try {
+    returnValue = window.structuredClone(obj);
+  } catch (e) {
+    // structuredClone cannot clone functions. If this happens,
+    // fallback to deep clone which will preseve the fn references
+    returnValue = cloneDeep(obj);
+  }
 
   if (typeof keys === 'string') {
     deepRemoveKey(returnValue, keys);

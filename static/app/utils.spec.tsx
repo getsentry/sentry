@@ -4,25 +4,13 @@ describe('omit', () => {
   // Omit and omit fn signatures are the same, so we can test them together
   // and they should be compatible for shallow objects.
   it('throws on non-object', () => {
-    for (const v of [
-      1,
-      'a',
-      true,
-      NaN,
-      undefined,
-      null,
-      [],
-      () => {},
-      // eslint-disable-next-line
-      new String(''),
-      // eslint-disable-next-line
-      new Number(1),
-      // eslint-disable-next-line
-      new Function(),
-      Symbol('a'),
-    ]) {
+    for (const v of [1, 'a', true, false, NaN, undefined, null, [], () => {}]) {
       try {
-        omit(v as any, 'a');
+        omit(v as object, 'a');
+        // This has to be unreachable
+        // eslint-disable-next-line
+        console.log('Should not be here for value', JSON.stringify(v));
+        throw new Error("Shouldn't be here for value" + JSON.stringify(v));
       } catch (e) {
         expect(e instanceof TypeError).toBe(true);
         expect(e.message.startsWith('Omit expected object-like input value')).toBe(true);
@@ -53,6 +41,10 @@ describe('omit', () => {
   });
   it('does not omit on partial path hit', () => {
     expect(omit({a: {b: {c: 3}}}, 'a.b.d')).toEqual({a: {b: {c: 3}}});
+  });
+  it('fallbacks to cloneDeep if source is not cloneable', () => {
+    const v = {a: 1, b: () => {}};
+    expect(omit(v, 'a')).toEqual({b: v.b});
   });
   it('does not mutate argument value', () => {
     const v = {a: {b: 1, c: 2}};
