@@ -6,6 +6,7 @@ import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -156,6 +157,9 @@ export function Content({
         event
       )
     );
+    const exceptionValue = exc.value
+      ? renderLinksInText({exceptionText: exc.value})
+      : null;
 
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
       return null;
@@ -176,7 +180,7 @@ export function Content({
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
-            exc.value
+            exceptionValue
           )}
         </StyledPre>
         <ToggleExceptionButton
