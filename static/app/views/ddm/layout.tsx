@@ -6,7 +6,7 @@ import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -49,7 +49,6 @@ export const DDMLayout = memo(() => {
                 {t('Add Custom Metric')}
               </Button>
             )}
-            <FeedbackWidgetButton />
             <GithubFeedbackButton
               href="https://github.com/getsentry/sentry/discussions/58584"
               label={t('Discussion')}
@@ -59,6 +58,7 @@ export const DDMLayout = memo(() => {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
+        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <PaddedContainer>
             <PageFilterBar condensed>
