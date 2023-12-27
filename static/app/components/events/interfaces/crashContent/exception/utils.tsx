@@ -34,32 +34,32 @@ interface RenderLinksInTextProps {
 export const renderLinksInText = ({
   exceptionText,
 }: RenderLinksInTextProps): ReactElement => {
-  if (!exceptionText) {
-    return <Fragment />;
-  }
-
   const urlRegex =
     /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/=,\[\]]*)/gi;
   const parts = exceptionText.split(urlRegex);
   const urls = exceptionText.match(urlRegex) || [];
 
   const elements = parts.flatMap((part, index) => {
-    const isUrlValid = urls[index] && isUrl(urls[index]);
-    const link = isUrlValid ? (
-      <ExternalLink
-        key={`link-${index}`}
-        onClick={e => {
-          e.preventDefault();
-          const linkText = urls[index];
-          openNavigateToExternalLinkModal({linkText});
-        }}
-      >
-        {urls[index]}
-        <IconPlacement size="xs" />
-      </ExternalLink>
-    ) : urls[index] ? (
-      <span key={`invalid-url-${index}`}>{urls[index]}</span>
-    ) : null;
+    const url = urls[index];
+    const isUrlValid = isUrl(url);
+
+    let link: ReactElement | undefined;
+    if (isUrlValid) {
+      link = (
+        <ExternalLink
+          key={`link-${index}`}
+          onClick={e => {
+            e.preventDefault();
+            openNavigateToExternalLinkModal({linkText: url});
+          }}
+        >
+          {url}
+          <IconPlacement size="xs" />
+        </ExternalLink>
+      );
+    } else if (url) {
+      link = <span key={`invalid-url-${index}`}>{url}</span>;
+    }
 
     return [<Fragment key={`text-${index}`}>{part}</Fragment>, link];
   });

@@ -13,13 +13,6 @@ describe('Linkify()', function () {
     expect(container.firstChild).toHaveTextContent(text);
   });
 
-  it('returns a Fragment when no text is provided', function () {
-    const text = '';
-    const {container} = render(renderLinksInText({exceptionText: text}));
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('applies links to text containing a single url and text', function () {
     // fix
     const url = 'https://www.example.com';

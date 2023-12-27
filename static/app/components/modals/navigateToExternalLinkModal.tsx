@@ -9,7 +9,9 @@ type Props = ModalRenderProps & {
   linkText: string;
 };
 
-function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: Props) {
+function NavigateToExternalLinkModal({Body, closeModal, Header, linkText}: Props) {
+  const handleClose = () => closeModal();
+
   return (
     <Fragment>
       <Header closeButton>
@@ -22,26 +24,14 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: 
           )}
         </p>
         <ParagraphContainer>{linkText}</ParagraphContainer>
-        <p />
+        &nbsp;
       </Body>
       <ButtonContainer>
         <ButtonBar>
-          <LinkButton
-            priority="primary"
-            href={linkText}
-            onClick={() => {
-              closeModal();
-            }}
-            external
-          >
-            {t('Continue')}{' '}
+          <LinkButton priority="primary" href={linkText} onClick={handleClose} external>
+            {t('Continue')}
           </LinkButton>
-          <Button
-            priority="default"
-            onClick={() => {
-              closeModal();
-            }}
-          >
+          <Button priority="default" onClick={handleClose}>
             {t('Cancel')}
           </Button>
         </ButtonBar>
@@ -52,10 +42,6 @@ function NavigateToExternalLinkModal({Body, closeModal, Header, linkText = ''}: 
 
 export default NavigateToExternalLinkModal;
 export {NavigateToExternalLinkModal};
-// const ButtonWrapper = styled('div')`
-//   display: flex;
-//   justify-content: flex-end;
-// `;
 
 const ButtonContainer = styled('div')`
   display: flex;
