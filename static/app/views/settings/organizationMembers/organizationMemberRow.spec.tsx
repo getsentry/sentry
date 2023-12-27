@@ -217,7 +217,14 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={{
             ...member,
-            flags: {'sso:linked': true},
+            flags: {
+              'sso:linked': true,
+              'idp:provisioned': false,
+              'idp:role-restricted': false,
+              'member-limit:restricted': false,
+              'partnership:restricted': false,
+              'sso:invalid': false,
+            },
             user: User({...member.user, has2fa: false}),
           }}
         />
