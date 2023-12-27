@@ -92,7 +92,8 @@ jobs:
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
-          yarn build-acceptance
+          export NODE_OPTIONS="$NODE_OPTIONS --trace-sigint"
+          timeout --signal=SIGINT 10m yarn build-acceptance
 
       - name: Build chartcuterie configuration module
         run: |
