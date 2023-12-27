@@ -5,6 +5,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {ReleaseStatus} from 'sentry/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import ReleaseContext from './releaseContext';
@@ -17,7 +18,7 @@ export const mockedReleaseWithHealth = ReleaseFixture({
   dateCreated: '2010-05-17T02:41:20Z',
   lastEvent: '2011-10-17T02:41:20Z',
   firstEvent: '2010-05-17T02:41:20Z',
-  status: 'open',
+  status: ReleaseStatus.ACTIVE,
   commitCount: 4,
   lastCommit: mockedCommit,
   newGroups: 21,
