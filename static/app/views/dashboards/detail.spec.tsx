@@ -5,6 +5,7 @@ import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {Widget as WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -107,7 +108,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/default-overview/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -122,7 +123,7 @@ describe('Dashboards > Detail', function () {
                 interval: '1d',
               }
             ),
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -222,7 +223,7 @@ describe('Dashboards > Detail', function () {
         },
       });
       widgets = [
-        TestStubs.Widget(
+        WidgetFixture(
           [
             {
               name: '',
@@ -239,7 +240,7 @@ describe('Dashboards > Detail', function () {
             id: '1',
           }
         ),
-        TestStubs.Widget(
+        WidgetFixture(
           [
             {
               name: '',
@@ -256,7 +257,7 @@ describe('Dashboards > Detail', function () {
             id: '2',
           }
         ),
-        TestStubs.Widget(
+        WidgetFixture(
           [
             {
               name: '',
@@ -543,7 +544,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -560,7 +561,7 @@ describe('Dashboards > Detail', function () {
                 layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
               }
             ),
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -603,7 +604,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -650,7 +651,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -699,7 +700,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
+            WidgetFixture(
               [
                 {
                   name: '',
@@ -742,7 +743,7 @@ describe('Dashboards > Detail', function () {
 
     it('opens the widget viewer modal using the widget id specified in the url', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-      const widget = TestStubs.Widget(
+      const widget = WidgetFixture(
         [
           {
             name: '',
