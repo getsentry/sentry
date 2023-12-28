@@ -148,7 +148,10 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
   // of this, allow users to type the return value and not
 ) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-    throw new TypeError('Omit expected object-like input value');
+    // It would have been more correct to throw and error, however
+    // the lodash implementation we were using before did not do that
+    // and we have a lot of code that relies on this behavior.
+    return {};
   }
 
   let returnValue: T;

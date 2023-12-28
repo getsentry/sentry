@@ -3,18 +3,11 @@ import {omit} from './utils';
 describe('omit', () => {
   // Omit and omit fn signatures are the same, so we can test them together
   // and they should be compatible for shallow objects.
-  it('throws on non-object', () => {
+  it('returns empty object for invalid input', () => {
     for (const v of [1, 'a', true, false, NaN, undefined, null, [], () => {}]) {
-      try {
-        omit(v as object, 'a');
-        // This has to be unreachable
-        // eslint-disable-next-line
-        console.log('Should not be here for value', JSON.stringify(v));
-        throw new Error("Shouldn't be here for value" + JSON.stringify(v));
-      } catch (e) {
-        expect(e instanceof TypeError).toBe(true);
-        expect(e.message.startsWith('Omit expected object-like input value')).toBe(true);
-      }
+      const o = omit(v as object, 'a');
+      expect(Object.prototype.toString.call(o)).toBe('[object Object]');
+      expect(Object.keys(o)).toHaveLength(0);
     }
   });
   it('does nothing if key does not exist', () => {

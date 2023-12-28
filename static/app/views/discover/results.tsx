@@ -304,11 +304,7 @@ export class Results extends Component<Props, State> {
         : DEFAULT_EVENT_VIEW.fields,
     });
 
-    // TODO: check if we can omit id. This might have been a type issue before
-    // when the code was using omit(savedQuery, 'id') which is incorrect
-    // as per the type definition, but keeping it in case type was incorrect
-    // @ts-expect-error
-    const {id: _, ...queryWithoutId} = savedQuery;
+    const {id: _, ...queryWithoutId} = savedQuery ?? ({} as SavedQuery);
     const query = isHomepage && savedQuery ? queryWithoutId : defaultEventView;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {

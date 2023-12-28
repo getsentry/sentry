@@ -123,7 +123,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
     };
 
-    const {windowWidth: _w, ...nextPropsWithoutWindowWidth} = this.props;
+    const {windowWidth: _w, ...nextPropsWithoutWindowWidth} = nextProps;
     nextProps = {
       ...nextPropsWithoutWindowWidth,
       widget: {

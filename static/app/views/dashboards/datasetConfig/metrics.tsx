@@ -288,9 +288,7 @@ export function transformMetricsResponseToTable(data: MetricsApiResponse): Table
 
   const singleRow = rows[0];
   const {id: _, ...rowWithoutId} = singleRow;
-  const meta = {
-    ...changeObjectValuesToTypes(rowWithoutId),
-  };
+  const meta = changeObjectValuesToTypes(rowWithoutId);
   return {meta, data: rows};
 }
 

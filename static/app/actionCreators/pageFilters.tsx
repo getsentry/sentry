@@ -617,7 +617,7 @@ function getNewQueryParams(
 ) {
   const {resetParams, keepCursor} = options;
 
-  const cleanCurrentQuery = Array.isArray(resetParams)
+  const cleanCurrentQuery = resetParams?.length
     ? omit(currentQuery, resetParams)
     : currentQuery;
 
