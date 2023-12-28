@@ -89,6 +89,7 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(screen.getByText('Show 3 issues below threshold')).toBeInTheDocument();
+    expect(screen.queryByText('Would Group')).not.toBeInTheDocument();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -132,7 +133,9 @@ describe('Issues Similar View', function () {
     );
   });
 
-  it('renders all filtered issues with issues-similarity-embeddings flag', async function () {
+  it('renders all filtered issues and would group in table', async function () {
+    // Check that filtered issues and "Would Group" column are rendered when the
+    // issues-similarity-embeddings flag is on
     const features = ['issues-similarity-embeddings'];
 
     render(
@@ -153,5 +156,6 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
+    expect(screen.queryByText('Would Group')).toBeInTheDocument();
   });
 });

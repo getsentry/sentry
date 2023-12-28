@@ -98,6 +98,8 @@ function SimilarStackTrace({params, location, project}: Props) {
     [navigate, groupId, orgId]
   );
 
+  // TODO(jangjodi): Add call to /vector-similar/ somewhere here
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);

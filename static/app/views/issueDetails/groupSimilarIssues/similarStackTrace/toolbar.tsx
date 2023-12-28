@@ -8,9 +8,11 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 
 type Props = {
   onMerge: () => void;
+  organization?: Organization;
 };
 
 const initialState = {
@@ -39,8 +41,11 @@ class SimilarToolbar extends Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupChange, undefined);
 
   render() {
-    const {onMerge} = this.props;
+    const {onMerge, organization} = this.props;
     const {mergeCount} = this.state;
+    const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
+      'issues-similarity-embeddings'
+    );
 
     return (
       <PanelHeader hasButtons>
@@ -58,6 +63,9 @@ class SimilarToolbar extends Component<Props, State> {
           <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
           <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
           <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
+          {hasSimilarityEmbeddingsFeature && (
+            <StyledToolbarHeader>{t('Would Group')}</StyledToolbarHeader>
+          )}
         </Columns>
       </PanelHeader>
     );
@@ -69,8 +77,8 @@ const Columns = styled('div')`
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  min-width: 300px;
-  width: 300px;
+  min-width: 350px;
+  width: 350px;
 `;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`

@@ -72,7 +72,7 @@ function List({
         </Header>
       )}
       <Panel>
-        <Toolbar onMerge={onMerge} />
+        <Toolbar onMerge={onMerge} organization={organization} />
 
         <PanelBody>
           {itemsWithFiltered.map(item => (
