@@ -137,7 +137,16 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
+  metricSpans?: any[];
 };
+
+export type MetricRange = {
+  end?: DateString;
+  max?: number;
+  min?: number;
+  start?: DateString;
+};
+
 export function getDdmUrl(
   orgSlug: string,
   {

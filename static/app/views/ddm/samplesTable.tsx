@@ -3,9 +3,12 @@ import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
 
 import Badge from 'sentry/components/badge';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import {space} from 'sentry/styles/space';
+import {MRI} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {useMetricsSpans} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -16,12 +19,20 @@ import {
 } from 'sentry/views/performance/transactionSummary/utils';
 
 import TransactionsTable from '../../components/discover/transactionsTable';
+import {MetricRange} from '../../utils/metrics/index';
+
+export type SamplesTableProps = MetricRange & {
+  mri: MRI;
+};
 
 // TODO(ddm): This is a placeholder component. Shown data is bogus.
-export function TraceTable() {
+export function TraceTable({mri, ...range}: SamplesTableProps) {
   const location = useLocation();
   const organization = useOrganization();
+
   const eventView = EventView.fromLocation(location);
+
+  const {isLoading} = useMetricsSpans(mri, range);
 
   const tableData: any = {
     data: [
@@ -294,6 +305,10 @@ export function TraceTable() {
       width: -1,
     },
   ];
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <TraceTableWrapper>

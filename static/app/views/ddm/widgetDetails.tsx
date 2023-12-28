@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {TraceTable} from 'sentry/views/ddm/traceTable';
+import {TraceTable} from 'sentry/views/ddm/samplesTable';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -18,7 +18,7 @@ enum Tab {
 }
 
 export function WidgetDetails() {
-  const {selectedWidgetIndex, widgets} = useDDMContext();
+  const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.CODE_LOCATIONS);
   // the tray is minimized when the main content is maximized
   const selectedWidget = widgets[selectedWidgetIndex] as
@@ -63,13 +63,9 @@ export function WidgetDetails() {
             />
           </CenterContent>
         ) : selectedTab === Tab.SAMPLES ? (
-          <TraceTable
-            // Force re-render when selectedWidget changes so the mocked data updates
-            // TODO: remove this when we have real data
-            key={selectedWidget.mri}
-          />
+          <TraceTable mri={selectedWidget.mri} {...focusArea?.range} />
         ) : (
-          <CodeLocations mri={selectedWidget.mri} />
+          <CodeLocations mri={selectedWidget.mri} {...focusArea?.range} />
         )}
       </ContentWrapper>
     </TrayWrapper>

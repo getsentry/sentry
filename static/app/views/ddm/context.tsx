@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import {MRI} from 'sentry/types';
 import {
@@ -141,6 +148,8 @@ export function useMetricWidgets() {
 }
 
 export function DDMContextProvider({children}: {children: React.ReactNode}) {
+  const router = useRouter();
+
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
@@ -161,6 +170,31 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     meta => parseMRI(meta)?.useCase === 'custom'
   );
 
+  const handleAddFocusArea = useCallback(
+    (area: FocusArea) => {
+      setFocusArea(area);
+      setSelectedWidgetIndex(area.widgetIndex);
+      updateQuery(router, {focusArea: JSON.stringify(area)});
+    },
+    [router]
+  );
+
+  const handleRemoveFocusArea = useCallback(() => {
+    setFocusArea(null);
+    updateQuery(router, {focusArea: null});
+  }, [router]);
+
+  // Load focus area from URL
+  useEffect(() => {
+    if (focusArea) {
+      return;
+    }
+    const urlFocusArea = router.location.query.focusArea;
+    if (urlFocusArea) {
+      handleAddFocusArea(JSON.parse(urlFocusArea));
+    }
+  }, [router, handleAddFocusArea, focusArea]);
+
   const handleAddWidget = useCallback(() => {
     addWidget();
     setSelectedWidgetIndex(widgets.length);
@@ -170,8 +204,11 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     (index: number, data: Partial<MetricWidgetQueryParams>) => {
       updateWidget(index, data);
       setSelectedWidgetIndex(index);
+      if (index === focusArea?.widgetIndex) {
+        handleRemoveFocusArea();
+      }
     },
-    [updateWidget]
+    [updateWidget, handleRemoveFocusArea, focusArea?.widgetIndex]
   );
 
   const handleDuplicate = useCallback(
@@ -181,15 +218,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     },
     [duplicateWidget]
   );
-
-  const handleAddFocusArea = useCallback((area: FocusArea) => {
-    setFocusArea(area);
-    setSelectedWidgetIndex(area.widgetIndex);
-  }, []);
-
-  const handleRemoveFocusArea = useCallback(() => {
-    setFocusArea(null);
-  }, []);
 
   const contextValue = useMemo<DDMContextValue>(
     () => ({
