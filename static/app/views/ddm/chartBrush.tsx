@@ -4,11 +4,10 @@ import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
-import {IconDelete, IconStack, IconZoom} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconDelete, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {MetricRange} from 'sentry/utils/metrics';
 import theme from 'sentry/utils/theme';
 
 import {DateTimeObject} from '../../components/charts/utils';
@@ -21,11 +20,8 @@ interface AbsolutePosition {
 }
 
 export interface FocusArea {
-  datapoints: {
-    x: number[];
-    y: number[];
-  };
   position: AbsolutePosition;
+  range: MetricRange;
   widgetIndex: number;
 }
 
@@ -57,15 +53,10 @@ export function useFocusAreaBrush(
 
       const chartWidth = chartRef.current?.getEchartsInstance().getWidth() ?? 100;
 
-      const position = getPosition(brushEnd, chartWidth);
-
       onAdd({
         widgetIndex,
-        position,
-        datapoints: {
-          x: rect.coordRange[0],
-          y: rect.coordRange[1],
-        },
+        position: getPosition(brushEnd, chartWidth),
+        range: getMetricRange(brushEnd),
       });
     },
     [chartRef, isDisabled, onAdd, widgetIndex]
@@ -82,18 +73,12 @@ export function useFocusAreaBrush(
   }, [chartRef]);
 
   const handleZoomIn = useCallback(() => {
-    const startFormatted = getDate(focusArea?.datapoints.x[0]);
-    const endFormatted = getDate(focusArea?.datapoints.x[1]);
     onZoom({
       period: null,
-      start: startFormatted ? getUtcToLocalDateObject(startFormatted) : startFormatted,
-      end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
+      ...focusArea?.range,
     });
-
     onRemove();
   }, [focusArea, onRemove, onZoom]);
-
-  const renderOverlay = focusArea && focusArea.widgetIndex === widgetIndex;
 
   const brushOptions = useMemo(() => {
     return {
@@ -114,7 +99,9 @@ export function useFocusAreaBrush(
     };
   }, [onBrushEnd]);
 
-  if (renderOverlay) {
+  const shouldRenderOverlay = focusArea && focusArea.widgetIndex === widgetIndex;
+
+  if (shouldRenderOverlay) {
     return {
       overlay: (
         <BrushRectOverlay rect={focusArea} onRemove={onRemove} onZoom={handleZoomIn} />
@@ -141,9 +128,6 @@ function BrushRectOverlay({rect, onZoom, onRemove}) {
   return (
     <FocusAreaRect top={top} left={left} width={width} height={height}>
       <FocusAreaRectActions top={height}>
-        <Button size="xs" disabled icon={<IconStack />}>
-          {t('Show samples')}
-        </Button>
         <Button
           size="xs"
           onClick={onZoom}
@@ -161,14 +145,6 @@ const getDate = date =>
 
 const getPosition = (params: BrushEndResult, chartWidth: number): AbsolutePosition => {
   const rect = params.areas[0];
-  if (!rect) {
-    return {
-      left: '0',
-      top: '0',
-      width: '0',
-      height: '0',
-    };
-  }
 
   const left = rect.range[0][0];
   const width = rect.range[0][1] - left;
@@ -187,14 +163,35 @@ const getPosition = (params: BrushEndResult, chartWidth: number): AbsolutePositi
   };
 };
 
+const getMetricRange = (params: BrushEndResult): MetricRange => {
+  const rect = params.areas[0];
+
+  const startTimestamp = Math.min(...rect.coordRange[0]);
+  const endTimestamp = Math.max(...rect.coordRange[0]);
+
+  const startDate = getDate(startTimestamp);
+  const endDate = getDate(endTimestamp);
+
+  const min = Math.min(...rect.coordRange[1]);
+  const max = Math.max(...rect.coordRange[1]);
+
+  return {
+    start: startDate,
+    end: endDate,
+    min,
+    max,
+  };
+};
+
 const FocusAreaRectActions = styled('div')<{
   top: string;
 }>`
   position: absolute;
   top: ${p => p.top};
   display: flex;
+  left: 0;
   gap: ${space(0.5)};
-  padding: ${space(1)};
+  padding: ${space(0.5)};
   z-index: 2;
   pointer-events: auto;
 `;
