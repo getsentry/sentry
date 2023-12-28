@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -8,7 +10,7 @@ import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconLightning, IconReleases} from 'sentry/icons';
+import {IconLightning, IconReleases, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MRI, SavedSearchType, TagCollection} from 'sentry/types';
@@ -32,6 +34,7 @@ import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 
 type QueryBuilderProps = {
   displayType: MetricDisplayType;
@@ -59,6 +62,7 @@ export function QueryBuilder({
   isEdit,
 }: QueryBuilderProps) {
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
+  const router = useRouter();
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
 
@@ -118,12 +122,34 @@ export function QueryBuilder({
             options={displayedMetrics.map(metric => ({
               label: mriMode ? metric.mri : formatMRI(metric.mri),
               value: metric.mri,
-              trailingItems: mriMode ? undefined : (
-                <Fragment>
-                  <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
-                  <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                </Fragment>
-              ),
+              trailingItems: mriMode
+                ? undefined
+                : ({isFocused}) => (
+                    <Fragment>
+                      {isFocused && isCustomMetric({mri: metric.mri}) && (
+                        <Button
+                          borderless
+                          size="zero"
+                          icon={<IconSettings />}
+                          aria-label={t('Metric Settings')}
+                          onPointerDown={() => {
+                            // not using onClick to beat the dropdown listener
+                            navigateTo(
+                              `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                                metric.mri
+                              )}`,
+                              router
+                            );
+                          }}
+                        />
+                      )}
+
+                      <Tag tooltipText={t('Type')}>
+                        {getReadableMetricType(metric.type)}
+                      </Tag>
+                      <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+                    </Fragment>
+                  ),
             }))}
             value={metricsQuery.mri}
             onChange={option => {
