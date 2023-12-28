@@ -1,19 +1,12 @@
-import {useEffect, useRef} from 'react';
-import {Theme} from '@emotion/react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import Legend from 'sentry/components/charts/components/legend';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
-import {DateString, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
-import theme from 'sentry/utils/theme';
 import {useChartBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 
@@ -23,30 +16,16 @@ import {Series} from './widget';
 
 type ChartProps = {
   displayType: MetricDisplayType;
-  environments: PageFilters['environments'];
-  projects: PageFilters['projects'];
   series: Series[];
   widgetIndex: number;
   end?: string;
-  onZoom?: (start: DateString, end: DateString) => void;
   operation?: string;
   period?: string;
   start?: string;
   utc?: boolean;
 };
 
-export function MetricChart({
-  series,
-  displayType,
-  start,
-  end,
-  period,
-  utc,
-  operation,
-  projects,
-  environments,
-  widgetIndex,
-}: ChartProps) {
+export function MetricChart({series, displayType, operation, widgetIndex}: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
 
   const {hoverProps, isHovered} = useHover({
@@ -68,7 +47,13 @@ export function MetricChart({
   });
 
   const unit = series[0]?.unit;
-  const seriesToShow = series.filter(s => !s.hidden);
+  const seriesToShow = useMemo(
+    () =>
+      series
+        .filter(s => !s.hidden)
+        .map(s => ({...s, silent: displayType === MetricDisplayType.BAR})),
+    [series, displayType]
+  );
 
   // TODO(ddm): This assumes that all series have the same bucket size
   const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
@@ -82,10 +67,13 @@ export function MetricChart({
     bucketSize,
     showTimeInTooltip: true,
     addSecondsToTimeFormat: isSubMinuteBucket,
+    limit: 10,
   };
+
   const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
   const chartProps = {
+    series: seriesToShow,
     ...brushOptions,
     forwardedRef: chartRef,
     isGroupedByDate: true,
@@ -106,7 +94,6 @@ export function MetricChart({
         return '';
       },
     },
-
     yAxis: {
       axisLabel: {
         formatter: (value: number) => {
@@ -114,54 +101,23 @@ export function MetricChart({
         },
       },
     },
+    xAxis: {
+      axisPointer: {
+        snap: true,
+      },
+    },
   };
 
   return (
     <ChartWrapper {...hoverProps} onMouseDownCapture={startBrush}>
       {brushRectOverlay}
-      <ReleaseSeries
-        utc={utc}
-        period={period}
-        start={start!}
-        end={end!}
-        projects={projects}
-        environments={environments}
-        preserveQueryParams
-      >
-        {({releaseSeries}) => {
-          const releaseSeriesData = releaseSeries?.[0]?.markLine?.data ?? [];
-
-          const selected =
-            releaseSeriesData?.length >= RELEASE_LINES_THRESHOLD
-              ? {[t('Releases')]: false}
-              : {};
-
-          const legend = releaseSeriesData?.length
-            ? Legend({
-                itemGap: 20,
-                top: 0,
-                right: 20,
-                data: releaseSeries.map(s => s.seriesName),
-                theme: theme as Theme,
-                selected,
-              })
-            : undefined;
-
-          const allProps = {
-            ...chartProps,
-            series: [...seriesToShow, ...releaseSeries],
-            legend,
-          };
-
-          return displayType === MetricDisplayType.LINE ? (
-            <LineChart {...allProps} />
-          ) : displayType === MetricDisplayType.AREA ? (
-            <AreaChart {...allProps} />
-          ) : (
-            <BarChart stacked animation={false} {...allProps} />
-          );
-        }}
-      </ReleaseSeries>
+      {displayType === MetricDisplayType.LINE ? (
+        <LineChart {...chartProps} />
+      ) : displayType === MetricDisplayType.AREA ? (
+        <AreaChart {...chartProps} />
+      ) : (
+        <BarChart stacked animation={false} {...chartProps} />
+      )}
       {displayFogOfWar && (
         <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
       )}

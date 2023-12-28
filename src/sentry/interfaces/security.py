@@ -211,7 +211,13 @@ class Csp(SecurityReport):
         if ":" not in value:
             scheme, hostname = value, ""
         else:
-            scheme, hostname = urlsplit(value)[:2]
+            try:
+                scheme, hostname = urlsplit(value)[:2]
+            except ValueError:
+                # best effort url splitting
+                scheme, _, rest = value.partition("://")
+                hostname, _, _ = rest.partition("/")
+
             if scheme in ("http", "https"):
                 return hostname
         return self._unsplit(scheme, hostname)
