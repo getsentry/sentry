@@ -1,6 +1,7 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -13,7 +14,8 @@ import {DateString, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import theme from 'sentry/utils/theme';
-import {useChartSelection} from 'sentry/views/ddm/chartSelection';
+import {useChartBrush} from 'sentry/views/ddm/chartBrush';
+import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
@@ -24,6 +26,7 @@ type ChartProps = {
   environments: PageFilters['environments'];
   projects: PageFilters['projects'];
   series: Series[];
+  widgetIndex: number;
   end?: string;
   onZoom?: (start: DateString, end: DateString) => void;
   operation?: string;
@@ -42,18 +45,27 @@ export function MetricChart({
   operation,
   projects,
   environments,
+  widgetIndex,
 }: ChartProps) {
   const chartRef = useRef<ReactEchartsRef>(null);
 
-  const {startSelection, overlay, options: brushOptions} = useChartSelection(chartRef);
+  const {hoverProps, isHovered} = useHover({
+    isDisabled: false,
+  });
 
-  // // TODO(ddm): Try to do this in a more elegant way
-  // useEffect(() => {
-  //   const echartsInstance = chartRef?.current?.getEchartsInstance();
-  //   if (echartsInstance && !echartsInstance.group) {
-  //     echartsInstance.group = DDM_CHART_GROUP;
-  //   }
-  // });
+  const {
+    startBrush,
+    overlay: brushRectOverlay,
+    options: brushOptions,
+  } = useChartBrush(chartRef, widgetIndex, {isDisabled: !isHovered});
+
+  // TODO(ddm): Try to do this in a more elegant way
+  useEffect(() => {
+    const echartsInstance = chartRef?.current?.getEchartsInstance();
+    if (echartsInstance && !echartsInstance.group) {
+      echartsInstance.group = DDM_CHART_GROUP;
+    }
+  });
 
   const unit = series[0]?.unit;
   const seriesToShow = series.filter(s => !s.hidden);
@@ -105,8 +117,8 @@ export function MetricChart({
   };
 
   return (
-    <ChartWrapper onMouseDownCapture={startSelection}>
-      {overlay}
+    <ChartWrapper {...hoverProps} onMouseDownCapture={startBrush}>
+      {brushRectOverlay}
       <ReleaseSeries
         utc={utc}
         period={period}
