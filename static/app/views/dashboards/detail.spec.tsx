@@ -200,7 +200,7 @@ describe('Dashboards > Detail', function () {
                 },
               ],
               title: 'Events',
-              widgetType: 'discover',
+              widgetType: types.WidgetType.DISCOVER,
             }),
             onClose: expect.anything(),
           })
@@ -234,7 +234,7 @@ describe('Dashboards > Detail', function () {
           ],
           title: 'Errors',
           interval: '1d',
-          widgetType: 'discover',
+          widgetType: types.WidgetType.DISCOVER,
           id: '1',
         }),
         WidgetFixture({
@@ -250,7 +250,7 @@ describe('Dashboards > Detail', function () {
           ],
           title: 'Transactions',
           interval: '1d',
-          widgetType: 'discover',
+          widgetType: types.WidgetType.DISCOVER,
           id: '2',
         }),
         WidgetFixture({
