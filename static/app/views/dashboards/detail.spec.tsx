@@ -553,7 +553,7 @@ describe('Dashboards > Detail', function () {
               title: 'First Widget',
               interval: '1d',
               id: '1',
-              layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              layout: {x: 0, y: 0, w: 2, h: 6, minH: 0},
             }),
             WidgetFixture({
               queries: [
@@ -611,7 +611,7 @@ describe('Dashboards > Detail', function () {
               title: 'First Widget',
               interval: '1d',
               id: '1',
-              layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              layout: {x: 0, y: 0, w: 2, h: 6, minH: 0},
             }),
           ],
           {id: '1', title: 'Custom Errors'}
@@ -657,7 +657,7 @@ describe('Dashboards > Detail', function () {
               title: 'First Widget',
               interval: '1d',
               id: '1',
-              layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+              layout: {x: 0, y: 0, w: 2, h: 6, minH: 0},
             }),
           ],
           {id: '1', title: 'Custom Errors'}
