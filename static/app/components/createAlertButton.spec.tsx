@@ -111,13 +111,13 @@ describe('CreateAlertFromViewButton', () => {
         ...ProjectFixture(),
         id: '1',
         slug: 'admin-team',
-        access: ['alerts:write'],
+        access: ['alerts:write' as const],
       },
       {
         ...ProjectFixture(),
         id: '2',
         slug: 'contributor-team',
-        access: ['alerts:read'],
+        access: ['alerts:read' as const],
       },
     ];
 
