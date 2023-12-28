@@ -1,18 +1,25 @@
-import {forwardRef, useEffect, useMemo, useRef} from 'react';
+import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {DateString} from 'sentry/types';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  MetricDisplayType,
+  updateQuery,
+} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
+import {useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
+import {useDDMContext} from 'sentry/views/ddm/context';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
@@ -21,23 +28,67 @@ import {Series} from './widget';
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
-  end?: string;
-  onZoom?: (start: DateString, end: DateString) => void;
+  widgetIndex: number;
   operation?: string;
-  period?: string;
-  start?: string;
-  utc?: boolean;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
 // Once we use it in more places, this should probably move to a more global place
 // But for now we keep it here to not invluence the bundle size of the main chunks.
-echarts.use([CanvasRenderer]);
+echarts.use(CanvasRenderer);
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
-  ({series, displayType, start, end, period, utc, operation, onZoom}, forwardedRef) => {
-    const chartRef = useRef<ReactEchartsRef>(null);
+  ({series, displayType, operation, widgetIndex}, forwardedRef) => {
     const router = useRouter();
+    const chartRef = useRef<ReactEchartsRef>(null);
+
+    const {hoverProps, isHovered} = useHover({
+      isDisabled: false,
+    });
+
+    const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
+
+    const handleAddFocusArea = useCallback(
+      newFocusArea => {
+        addFocusArea(newFocusArea);
+        updateQuery(router, {focusArea: JSON.stringify(newFocusArea)});
+      },
+      [addFocusArea, router]
+    );
+
+    const handleRemoveFocusArea = useCallback(() => {
+      removeFocusArea();
+      updateQuery(router, {focusArea: null});
+    }, [removeFocusArea, router]);
+
+    const handleZoom = useCallback(
+      (range: DateTimeObject) => {
+        updateDateTime(range, router, {save: true});
+      },
+      [router]
+    );
+
+    const focusAreaBrush = useFocusAreaBrush(
+      chartRef,
+      focusArea,
+      handleAddFocusArea,
+      handleRemoveFocusArea,
+      handleZoom,
+      {
+        widgetIndex,
+        isDisabled: !isHovered,
+      }
+    );
+
+    useEffect(() => {
+      if (focusArea) {
+        return;
+      }
+      const urlFocusArea = router.location.query.focusArea;
+      if (urlFocusArea) {
+        addFocusArea(JSON.parse(urlFocusArea));
+      }
+    }, [router, addFocusArea, focusArea]);
 
     // TODO(ddm): Try to do this in a more elegant way
     useEffect(() => {
@@ -73,6 +124,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         limit: 10,
       };
       return {
+        ...focusAreaBrush.options,
+        forwardedRef: mergeRefs([forwardedRef, chartRef]),
+        series: seriesToShow,
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
         height: 300,
@@ -105,37 +159,26 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
       };
-    }, [bucketSize, isSubMinuteBucket, operation, seriesToShow, unit]);
+    }, [
+      bucketSize,
+      focusAreaBrush.options,
+      forwardedRef,
+      isSubMinuteBucket,
+      operation,
+      seriesToShow,
+      unit,
+    ]);
 
     return (
-      <ChartWrapper>
-        <ChartZoom
-          router={router}
-          period={period}
-          start={start}
-          end={end}
-          utc={utc}
-          onZoom={zoomPeriod => {
-            onZoom?.(zoomPeriod.start, zoomPeriod.end);
-          }}
-        >
-          {zoomRenderProps => {
-            const allProps = {
-              ...chartProps,
-              ...zoomRenderProps,
-              forwardedRef: mergeRefs([chartRef, forwardedRef]),
-              series: seriesToShow,
-            };
-
-            return displayType === MetricDisplayType.LINE ? (
-              <LineChart {...allProps} />
-            ) : displayType === MetricDisplayType.AREA ? (
-              <AreaChart {...allProps} />
-            ) : (
-              <BarChart stacked animation={false} {...allProps} />
-            );
-          }}
-        </ChartZoom>
+      <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
+        {focusAreaBrush.overlay}
+        {displayType === MetricDisplayType.LINE ? (
+          <LineChart {...chartProps} />
+        ) : displayType === MetricDisplayType.AREA ? (
+          <AreaChart {...chartProps} />
+        ) : (
+          <BarChart stacked animation={false} {...chartProps} />
+        )}
         {displayFogOfWar && (
           <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
         )}

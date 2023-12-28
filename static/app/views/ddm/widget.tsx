@@ -112,6 +112,7 @@ export const MetricWidget = memo(
           </MetricWidgetHeader>
           {widget.mri ? (
             <MetricWidgetBody
+              widgetIndex={index}
               datetime={datetime}
               projects={projects}
               environments={environments}
@@ -141,6 +142,7 @@ const MetricWidgetHeader = styled('div')`
 
 interface MetricWidgetProps extends MetricWidgetQueryParams {
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  widgetIndex: number;
 }
 
 const MetricWidgetBody = memo(
@@ -149,11 +151,12 @@ const MetricWidgetBody = memo(
     displayType,
     focusedSeries,
     sort,
+    widgetIndex,
     ...metricsQuery
   }: MetricWidgetProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-    const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom(
+    const {data, isLoading, isError, error} = useMetricsDataZoom(
       {
         mri,
         op,
@@ -235,7 +238,7 @@ const MetricWidgetBody = memo(
           displayType={displayType}
           operation={metricsQuery.op}
           {...normalizeChartTimeParams(data)}
-          onZoom={onZoom}
+          widgetIndex={widgetIndex}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
