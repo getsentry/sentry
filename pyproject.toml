@@ -54,7 +54,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
