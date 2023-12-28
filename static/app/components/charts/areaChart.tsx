@@ -35,6 +35,9 @@ export function AreaChart({series, stacked, colors, ...props}: AreaChartProps) {
             color: colors?.[i],
             opacity: 1.0,
           },
+          // Define the z level so that the series remain stacked in the correct order
+          // even after operations like hiding / highlighting series
+          z: i,
           animation: false,
           animationThreshold: 1,
           animationDuration: 0,

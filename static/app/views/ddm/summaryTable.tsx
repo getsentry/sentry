@@ -24,13 +24,13 @@ export function SummaryTable({
   onRowClick,
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
-  setHoveredLegend,
+  setHoveredSeries,
 }: {
   onRowClick: (seriesName: string) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
-  setHoveredLegend: React.Dispatch<React.SetStateAction<string>> | undefined;
   operation?: string;
+  setHoveredSeries?: (seriesName: string) => void;
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
@@ -155,79 +155,81 @@ export function SummaryTable({
           {t('Actions')}
         </HeaderCell>
       )}
+      <TableBodyWrapper
+        onMouseLeave={() => {
+          if (hasMultipleSeries) {
+            setHoveredSeries?.('');
+          }
+        }}
+      >
+        {rows.map(
+          ({
+            name,
+            seriesName,
+            color,
+            hidden,
+            unit,
+            transaction,
+            release,
+            avg,
+            min,
+            max,
+            sum,
+          }) => {
+            return (
+              <Fragment key={seriesName}>
+                <CellWrapper
+                  onClick={() => {
+                    if (hasMultipleSeries) {
+                      onRowClick(seriesName);
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (hasMultipleSeries) {
+                      setHoveredSeries?.(seriesName);
+                    }
+                  }}
+                >
+                  <Cell>
+                    <ColorDot color={color} isHidden={!!hidden} />
+                  </Cell>
+                  <TextOverflowCell>{name}</TextOverflowCell>
+                  {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
+                  <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
+                  <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
+                  <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
+                  <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
+                </CellWrapper>
+                {hasActions && (
+                  <Cell right>
+                    <ButtonBar gap={0.5}>
+                      {transaction && (
+                        <div>
+                          <Tooltip title={t('Open Transaction Summary')}>
+                            <LinkButton to={transactionTo(transaction)} size="xs">
+                              <IconLightning size="xs" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
 
-      {rows.map(
-        ({
-          name,
-          seriesName,
-          color,
-          hidden,
-          unit,
-          transaction,
-          release,
-          avg,
-          min,
-          max,
-          sum,
-        }) => {
-          return (
-            <Fragment key={seriesName}>
-              <CellWrapper
-                onClick={() => {
-                  if (hasMultipleSeries) {
-                    onRowClick(seriesName);
-                  }
-                }}
-                onMouseEnter={() => {
-                  if (hasMultipleSeries) {
-                    setHoveredLegend?.(seriesName);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (hasMultipleSeries) {
-                    setHoveredLegend?.('');
-                  }
-                }}
-              >
-                <Cell>
-                  <ColorDot color={color} isHidden={!!hidden} />
-                </Cell>
-                <TextOverflowCell>{name}</TextOverflowCell>
-                {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-              </CellWrapper>
-              {hasActions && (
-                <Cell right>
-                  <ButtonBar gap={0.5}>
-                    {transaction && (
-                      <div>
-                        <Tooltip title={t('Open Transaction Summary')}>
-                          <LinkButton to={transactionTo(transaction)} size="xs">
-                            <IconLightning size="xs" />
-                          </LinkButton>
-                        </Tooltip>
-                      </div>
-                    )}
-
-                    {release && (
-                      <div>
-                        <Tooltip title={t('Open Release Details')}>
-                          <LinkButton to={releaseTo(release)} size="xs">
-                            <IconReleases size="xs" />
-                          </LinkButton>
-                        </Tooltip>
-                      </div>
-                    )}
-                  </ButtonBar>
-                </Cell>
-              )}
-            </Fragment>
-          );
-        }
-      )}
+                      {release && (
+                        <div>
+                          <Tooltip title={t('Open Release Details')}>
+                            <LinkButton to={releaseTo(release)} size="xs">
+                              <IconReleases size="xs" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
+                    </ButtonBar>
+                  </Cell>
+                )}
+              </Fragment>
+            );
+          }
+        )}
+      </TableBodyWrapper>
     </SummaryTableWrapper>
   );
 }
@@ -339,6 +341,10 @@ const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
   border-radius: 50%;
   width: ${space(1)};
   height: ${space(1)};
+`;
+
+const TableBodyWrapper = styled('div')`
+  display: contents;
 `;
 
 const CellWrapper = styled('div')`
