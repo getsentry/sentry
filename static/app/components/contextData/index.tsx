@@ -1,8 +1,6 @@
 import {isValidElement} from 'react';
 import styled from '@emotion/styled';
-import isArray from 'lodash/isArray';
 import isNumber from 'lodash/isNumber';
-import isString from 'lodash/isString';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -60,7 +58,7 @@ function walk({
     );
   }
 
-  if (isString(value)) {
+  if (typeof value === 'string') {
     const valueInfo = analyzeStringForRepr(value);
 
     const valueToBeReturned = withAnnotatedText ? (
@@ -103,7 +101,7 @@ function walk({
     return <span>{valueToBeReturned}</span>;
   }
 
-  if (isArray(value)) {
+  if (Array.isArray(value)) {
     for (i = 0; i < value.length; i++) {
       children.push(
         <span className="val-array-item" key={i}>

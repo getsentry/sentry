@@ -122,7 +122,6 @@ const replayOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/electron/session-replay/',
       }),
@@ -136,8 +135,8 @@ const replayOnboarding: OnboardingConfig = {
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/electron";`,
                 dsn: params.dsn,
-                mask: params.mask,
-                block: params.block,
+                mask: params.replayOptions?.mask,
+                block: params.replayOptions?.block,
               }),
             },
           ],

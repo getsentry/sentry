@@ -41,7 +41,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams as UtilsInvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.release_health.base import (
@@ -64,7 +64,6 @@ from sentry.snuba.metrics.query import (
 )
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
-    InvalidParams,
     NonPreflightOrderByException,
     QueryDefinition,
     finite_or_none,
@@ -575,8 +574,6 @@ def run_sessions_query(
         )
     except OrderByNotSupportedOverCompositeEntityException:
         raise InvalidParams(f"Cannot order by {query.raw_orderby[0]} with the current filters")
-    except UtilsInvalidParams as e:
-        raise InvalidParams(e)
 
     input_groups = {
         GroupKey.from_input_dict(group["by"]): group for group in metrics_results["groups"]

@@ -12,15 +12,19 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {FocusArea} from 'sentry/views/ddm/chartBrush';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 
 interface DDMContextValue {
+  addFocusArea: (area: FocusArea) => void;
   addWidget: () => void;
   addWidgets: (widgets: Partial<MetricWidgetQueryParams>[]) => void;
   duplicateWidget: (index: number) => void;
+  focusArea: FocusArea | null;
   hasCustomMetrics: boolean;
   isLoading: boolean;
   metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
+  removeFocusArea: () => void;
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setSelectedWidgetIndex: (index: number) => void;
@@ -35,11 +39,14 @@ export const DDMContext = createContext<DDMContextValue>({
   addWidgets: () => {},
   updateWidget: () => {},
   removeWidget: () => {},
+  addFocusArea: () => {},
+  removeFocusArea: () => {},
   duplicateWidget: () => {},
   widgets: [],
   metricsMeta: [],
   hasCustomMetrics: false,
   isLoading: false,
+  focusArea: null,
 });
 
 export function useDDMContext() {
@@ -53,6 +60,7 @@ const emptyWidget: MetricWidgetQueryParams = {
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
   displayType: MetricDisplayType.LINE,
+  title: undefined,
 };
 
 export function useMetricWidgets() {
@@ -74,6 +82,7 @@ export function useMetricWidgets() {
         showSummaryTable: widget.showSummaryTable ?? true, // temporary default
         powerUserMode: widget.powerUserMode,
         sort: widget.sort ?? DEFAULT_SORT_STATE,
+        title: widget.title,
       };
     });
   }, [router.location.query.widgets]);
@@ -148,6 +157,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, addWidgets, removeWidget, duplicateWidget} =
     useMetricWidgets();
+  const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
   const pageFilters = usePageFilters().selection;
 
@@ -184,6 +194,15 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     [duplicateWidget]
   );
 
+  const handleAddFocusArea = useCallback((area: FocusArea) => {
+    setFocusArea(area);
+    setSelectedWidgetIndex(area.widgetIndex);
+  }, []);
+
+  const handleRemoveFocusArea = useCallback(() => {
+    setFocusArea(null);
+  }, []);
+
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
@@ -198,6 +217,9 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       hasCustomMetrics,
       isLoading,
       metricsMeta,
+      focusArea,
+      addFocusArea: handleAddFocusArea,
+      removeFocusArea: handleRemoveFocusArea,
     }),
     [
       addWidgets,
@@ -210,6 +232,9 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       metricsMeta,
       selectedWidgetIndex,
       widgets,
+      focusArea,
+      handleAddFocusArea,
+      handleRemoveFocusArea,
     ]
   );
 

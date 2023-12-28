@@ -2,8 +2,16 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconCopy, IconDashboard, IconDelete, IconEllipsis, IconSiren} from 'sentry/icons';
+import {
+  IconCopy,
+  IconDashboard,
+  IconDelete,
+  IconEdit,
+  IconEllipsis,
+  IconSiren,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -23,7 +31,9 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
+  isEdit: boolean;
   metricsQuery: MetricsQuery;
+  onEdit: () => void;
   widgetIndex: number;
 };
 
@@ -31,15 +41,19 @@ export function MetricWidgetContextMenu({
   metricsQuery,
   displayType,
   widgetIndex,
+  onEdit,
+  isEdit,
 }: ContextMenuProps) {
   const organization = useOrganization();
-  const {removeWidget, duplicateWidget} = useDDMContext();
+  const {removeWidget, duplicateWidget, widgets} = useDDMContext();
   const createAlert = useCreateAlert(organization, metricsQuery);
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
     displayType
   );
+
+  const canDelete = widgets.length > 1;
 
   const items = useMemo<MenuItemProps[]>(
     () => [
@@ -67,10 +81,18 @@ export function MetricWidgetContextMenu({
         leadingItems: [<IconDelete key="icon" />],
         key: 'delete',
         label: t('Delete'),
+        disabled: !canDelete,
         onAction: () => removeWidget(widgetIndex),
       },
     ],
-    [createAlert, createDashboardWidget, duplicateWidget, removeWidget, widgetIndex]
+    [
+      createAlert,
+      createDashboardWidget,
+      duplicateWidget,
+      removeWidget,
+      widgetIndex,
+      canDelete,
+    ]
   );
 
   if (!hasDDMFeature(organization)) {
@@ -78,22 +100,36 @@ export function MetricWidgetContextMenu({
   }
 
   return (
-    <StyledDropdownMenuControl
-      items={items}
-      triggerProps={{
-        'aria-label': t('Widget actions'),
-        size: 'xs',
-        borderless: true,
-        showChevron: false,
-        icon: <IconEllipsis direction="down" size="sm" />,
-      }}
-      position="bottom-end"
-    />
+    <Wrapper>
+      {!isEdit && (
+        <Button
+          onClick={onEdit}
+          borderless
+          size="xs"
+          aria-label={t('Edit widget')}
+          icon={<IconEdit />}
+        />
+      )}
+
+      <DropdownMenu
+        items={items}
+        triggerProps={{
+          'aria-label': t('Widget actions'),
+          size: 'xs',
+          borderless: true,
+          showChevron: false,
+          icon: <IconEllipsis direction="down" size="sm" />,
+        }}
+        position="bottom-end"
+      />
+    </Wrapper>
   );
 }
 
-const StyledDropdownMenuControl = styled(DropdownMenu)`
-  margin: ${space(1)};
+const Wrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  margin: ${space(1)} ${space(0.5)} 0 0;
 `;
 
 export function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {

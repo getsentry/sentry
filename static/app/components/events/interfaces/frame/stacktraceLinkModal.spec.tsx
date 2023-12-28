@@ -1,3 +1,4 @@
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
@@ -21,7 +22,7 @@ jest.mock('sentry/utils/analytics');
 describe('StacktraceLinkModal', () => {
   const org = Organization();
   const project = ProjectFixture();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const filename = '/sentry/app.py';
   const repo = Repository({integrationId: integration.id});
   const config = RepositoryProjectPathConfig({project, repo, integration});

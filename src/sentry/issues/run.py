@@ -2,10 +2,7 @@ import logging
 from typing import Mapping, Optional
 
 import rapidjson
-from arroyo import Topic
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload, build_kafka_consumer_configuration
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing import StreamProcessor
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
@@ -14,73 +11,8 @@ from arroyo.processing.strategies import (
 from arroyo.types import Commit, Message, Partition
 
 from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
-from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
-
-
-def get_occurrences_ingest_consumer(
-    consumer_type: str,
-    auto_offset_reset: str,
-    group_id: str,
-    strict_offset_reset: bool,
-    max_batch_size: int,
-    max_batch_time: int,
-    num_processes: int,
-    input_block_size: Optional[int],
-    output_block_size: Optional[int],
-) -> StreamProcessor[KafkaPayload]:
-    return create_ingest_occurrences_consumer(
-        consumer_type,
-        auto_offset_reset,
-        group_id,
-        strict_offset_reset,
-        max_batch_size,
-        max_batch_time,
-        num_processes,
-        input_block_size,
-        output_block_size,
-    )
-
-
-def create_ingest_occurrences_consumer(
-    topic_name: str,
-    auto_offset_reset: str,
-    group_id: str,
-    strict_offset_reset: bool,
-    max_batch_size: int,
-    max_batch_time: int,
-    num_processes: int,
-    input_block_size: Optional[int],
-    output_block_size: Optional[int],
-) -> StreamProcessor[KafkaPayload]:
-    from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
-
-    kafka_cluster = get_topic_definition(topic_name)["cluster"]
-
-    consumer = KafkaConsumer(
-        build_kafka_consumer_configuration(
-            get_kafka_consumer_cluster_options(kafka_cluster),
-            auto_offset_reset=auto_offset_reset,
-            group_id=group_id,
-            strict_offset_reset=strict_offset_reset,
-        )
-    )
-
-    strategy_factory = OccurrenceStrategyFactory(
-        max_batch_size,
-        max_batch_time,
-        num_processes,
-        input_block_size,
-        output_block_size,
-    )
-
-    return StreamProcessor(
-        consumer,
-        Topic(topic_name),
-        strategy_factory,
-        ONCE_PER_SECOND,
-    )
 
 
 class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

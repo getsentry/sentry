@@ -15,6 +15,7 @@ export default function MetricsExplorer() {
     powerUserMode: true,
     showSummaryTable: true,
     sort: {name: 'name', order: 'asc'},
+    title: undefined,
   });
 
   return (
@@ -36,6 +37,7 @@ export default function MetricsExplorer() {
       }}
       projects={[]}
       environments={[]}
+      numberOfSiblings={0}
     />
   );
 }
