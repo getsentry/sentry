@@ -304,8 +304,17 @@ export class WidgetParser {
     }
 
     // TODO: check which other functions are supported
-    if (appliedFunction && appliedFunction !== 'as_count') {
-      this.errors.push(`widget.request.query - unsupported function ${appliedFunction}`);
+    if (appliedFunction) {
+      if (appliedFunction === 'as_count') {
+        op = 'sum';
+        this.errors.push(
+          `widget.request.query - unsupported function ${appliedFunction}, assuming sum`
+        );
+      } else {
+        this.errors.push(
+          `widget.request.query - unsupported function ${appliedFunction}`
+        );
+      }
     }
 
     return {
