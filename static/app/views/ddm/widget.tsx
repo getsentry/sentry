@@ -227,8 +227,6 @@ const MetricWidgetBody = memo(
           series={chartSeries}
           displayType={displayType}
           operation={metricsQuery.op}
-          projects={metricsQuery.projects}
-          environments={metricsQuery.environments}
           {...normalizeChartTimeParams(dataToBeRendered)}
           onZoom={onZoom}
         />
