@@ -111,7 +111,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
       return;
     }
 
-    const {id, ...rest} = platforms[platformKey];
+    const {id, ...rest} = platforms[platformKey] ?? {};
 
     gettingStartedWithProjectContext.setProject({
       id: project.id,

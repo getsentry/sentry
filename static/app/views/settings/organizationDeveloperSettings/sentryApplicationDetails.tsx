@@ -34,6 +34,7 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types';
+import {omit} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -95,7 +96,7 @@ const mapFormErrors = (responseJSON?: any) => {
   if (!responseJSON) {
     return responseJSON;
   }
-  const {scopes: _, ...formErrors} = responseJSON;
+  const formErrors = omit(responseJSON, 'scopes');
   if (responseJSON.scopes) {
     responseJSON.scopes.forEach((message: string) => {
       // find the scope from the error message of a specific format
