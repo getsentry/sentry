@@ -246,7 +246,7 @@ export class WidgetParser {
         return MetricDisplayType.LINE;
       default:
         this.errors.push(
-          `widget.request.display_type - unsupported: ${displayType}, asusming line`
+          `widget.request.display_type - unsupported: ${displayType}, assuming line`
         );
         return MetricDisplayType.LINE;
     }
