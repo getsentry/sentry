@@ -1,15 +1,22 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {DateString} from 'sentry/types';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
-import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  MetricDisplayType,
+  updateQuery,
+} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
+import {useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
+import {useDDMContext} from 'sentry/views/ddm/context';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
@@ -18,26 +25,65 @@ import {Series} from './widget';
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
+  widgetIndex: number;
   end?: string;
-  onZoom?: (start: DateString, end: DateString) => void;
   operation?: string;
   period?: string;
   start?: string;
   utc?: boolean;
 };
 
-export function MetricChart({
-  series,
-  displayType,
-  start,
-  end,
-  period,
-  utc,
-  operation,
-  onZoom,
-}: ChartProps) {
-  const chartRef = useRef<ReactEchartsRef>(null);
+export function MetricChart({series, displayType, operation, widgetIndex}: ChartProps) {
   const router = useRouter();
+  const chartRef = useRef<ReactEchartsRef>(null);
+
+  const {hoverProps, isHovered} = useHover({
+    isDisabled: false,
+  });
+
+  const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
+
+  const handleAddFocusArea = useCallback(
+    newFocusArea => {
+      addFocusArea(newFocusArea);
+      updateQuery(router, {focusArea: JSON.stringify(newFocusArea)});
+    },
+    [addFocusArea, router]
+  );
+
+  const handleRemoveFocusArea = useCallback(() => {
+    removeFocusArea();
+    updateQuery(router, {focusArea: null});
+  }, [removeFocusArea, router]);
+
+  const handleZoom = useCallback(
+    (range: DateTimeObject) => {
+      updateDateTime(range, router, {save: true});
+    },
+    [router]
+  );
+
+  const focusAreaBrush = useFocusAreaBrush(
+    chartRef,
+    focusArea,
+    handleAddFocusArea,
+    handleRemoveFocusArea,
+    handleZoom,
+    {
+      widgetIndex,
+      isDisabled: !isHovered,
+    }
+  );
+
+  useEffect(() => {
+    if (focusArea) {
+      return;
+    }
+    const urlFocusArea = router.location.query.focusArea;
+    if (urlFocusArea) {
+      addFocusArea(JSON.parse(urlFocusArea));
+    }
+  }, [router, addFocusArea, focusArea]);
 
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
@@ -73,6 +119,8 @@ export function MetricChart({
       limit: 10,
     };
     return {
+      ...focusAreaBrush.options,
+      series: seriesToShow,
       forwardedRef: chartRef,
       isGroupedByDate: true,
       height: 300,
@@ -105,36 +153,25 @@ export function MetricChart({
         },
       },
     };
-  }, [bucketSize, isSubMinuteBucket, operation, seriesToShow, unit]);
+  }, [
+    bucketSize,
+    isSubMinuteBucket,
+    operation,
+    seriesToShow,
+    unit,
+    focusAreaBrush.options,
+  ]);
 
   return (
-    <ChartWrapper>
-      <ChartZoom
-        router={router}
-        period={period}
-        start={start}
-        end={end}
-        utc={utc}
-        onZoom={zoomPeriod => {
-          onZoom?.(zoomPeriod.start, zoomPeriod.end);
-        }}
-      >
-        {zoomRenderProps => {
-          const allProps = {
-            ...chartProps,
-            ...zoomRenderProps,
-            series: seriesToShow,
-          };
-
-          return displayType === MetricDisplayType.LINE ? (
-            <LineChart {...allProps} />
-          ) : displayType === MetricDisplayType.AREA ? (
-            <AreaChart {...allProps} />
-          ) : (
-            <BarChart stacked animation={false} {...allProps} />
-          );
-        }}
-      </ChartZoom>
+    <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
+      {focusAreaBrush.overlay}
+      {displayType === MetricDisplayType.LINE ? (
+        <LineChart {...chartProps} />
+      ) : displayType === MetricDisplayType.AREA ? (
+        <AreaChart {...chartProps} />
+      ) : (
+        <BarChart stacked animation={false} {...chartProps} />
+      )}
       {displayFogOfWar && (
         <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
       )}
