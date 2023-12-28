@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
@@ -53,7 +53,13 @@ export function MetricChart({
   });
 
   const unit = series[0]?.unit;
-  const seriesToShow = series.filter(s => !s.hidden);
+  const seriesToShow = useMemo(
+    () =>
+      series
+        .filter(s => !s.hidden)
+        .map(s => ({...s, silent: displayType === MetricDisplayType.BAR})),
+    [series, displayType]
+  );
 
   // TODO(ddm): This assumes that all series have the same bucket size
   const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
@@ -91,12 +97,16 @@ export function MetricChart({
         return '';
       },
     },
-
     yAxis: {
       axisLabel: {
         formatter: (value: number) => {
           return formatMetricsUsingUnitAndOp(value, unit, operation);
         },
+      },
+    },
+    xAxis: {
+      axisPointer: {
+        snap: true,
       },
     },
   };
