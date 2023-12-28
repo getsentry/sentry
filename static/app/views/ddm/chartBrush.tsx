@@ -1,52 +1,76 @@
-import {RefObject, useCallback} from 'react';
+import {RefObject, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {Button} from 'sentry/components/button';
-import Panel from 'sentry/components/panels/panel';
+import {IconDelete, IconStack, IconZoom} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ReactEchartsRef} from 'sentry/types/echarts';
+import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import theme from 'sentry/utils/theme';
 import useRouter from 'sentry/utils/useRouter';
-import {useDDMContext} from 'sentry/views/ddm/context';
 
-const getDate = date =>
-  date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
+interface AbsolutePosition {
+  height: string;
+  left: string;
+  top: string;
+  width: string;
+}
 
-export function useChartBrush(
+export interface FocusArea {
+  datapoints: {
+    x: number[];
+    y: number[];
+  };
+  position: AbsolutePosition;
+  widgetIndex: number;
+}
+
+interface UseFocusAreaBrushOptions {
+  widgetIndex: number;
+  isDisabled?: boolean;
+}
+
+type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
+
+export function useFocusAreaBrush(
   chartRef: RefObject<ReactEchartsRef>,
-  widgetIndex: number,
-  {isDisabled = false} = {}
+  focusArea: FocusArea | null,
+  onAdd: (area: FocusArea) => void,
+  onRemove: () => void,
+  {widgetIndex, isDisabled = false}: UseFocusAreaBrushOptions
 ) {
-  const {focusArea: focusArea, addFocusArea, removeFocusArea} = useDDMContext();
   const router = useRouter();
 
-  const onBrushEnd = params => {
-    if (isDisabled) {
-      return;
-    }
+  const onBrushEnd = useCallback(
+    (brushEnd: BrushEndResult) => {
+      if (isDisabled) {
+        return;
+      }
 
-    const rect = params.areas[0];
-    if (!rect) {
-      return;
-    }
+      const rect = brushEnd.areas[0];
+      if (!rect) {
+        return;
+      }
 
-    addFocusArea({
-      widgetIndex,
-      coordinates: {
-        x: rect.range[0],
-        y: rect.range[1],
-      },
-      datapoints: {
-        x: rect.coordRange[0],
-        y: rect.coordRange[1],
-      },
-    });
-  };
+      const chartWidth = chartRef.current?.getEchartsInstance().getWidth() ?? 100;
+
+      const position = getPosition(brushEnd, chartWidth);
+
+      onAdd({
+        widgetIndex,
+        position,
+        datapoints: {
+          x: rect.coordRange[0],
+          y: rect.coordRange[1],
+        },
+      });
+    },
+    [chartRef, isDisabled, onAdd, widgetIndex]
+  );
 
   const startBrush = useCallback(() => {
     chartRef.current?.getEchartsInstance().dispatchAction({
@@ -71,36 +95,34 @@ export function useChartBrush(
       router,
       {save: true}
     );
-    removeFocusArea();
-  }, [focusArea, removeFocusArea, router]);
+    onRemove();
+  }, [focusArea, onRemove, router]);
 
   const renderOverlay = focusArea && focusArea.widgetIndex === widgetIndex;
 
-  const brushOptions = {
-    onBrushEnd,
-    toolBox: {
-      show: false,
-    },
-    brush: {
-      toolbox: ['rect'],
-      xAxisIndex: 0,
-      brushStyle: {
-        borderWidth: 2,
-        borderColor: theme.purple300,
-        color: 'transparent',
+  const brushOptions = useMemo(() => {
+    return {
+      onBrushEnd,
+      toolBox: {
+        show: false,
       },
-      z: 10,
-    } as EChartsOption['brush'],
-  };
+      brush: {
+        toolbox: ['rect'],
+        xAxisIndex: 0,
+        brushStyle: {
+          borderWidth: 2,
+          borderColor: theme.purple300,
+          color: 'transparent',
+        },
+        z: 10,
+      } as EChartsOption['brush'],
+    };
+  }, [onBrushEnd]);
 
   if (renderOverlay) {
     return {
       overlay: (
-        <BrushRectOverlay
-          rect={focusArea}
-          onRemove={removeFocusArea}
-          onZoom={handleZoomIn}
-        />
+        <BrushRectOverlay rect={focusArea} onRemove={onRemove} onZoom={handleZoomIn} />
       ),
       startBrush,
       options: {},
@@ -118,54 +140,83 @@ function BrushRectOverlay({rect, onZoom, onRemove}) {
   if (!rect) {
     return null;
   }
-  const top = Math.min(...rect.coordinates.y);
-  const left = Math.min(...rect.coordinates.x);
-  const width = Math.max(...rect.coordinates.x) - left;
-  const height = Math.max(...rect.coordinates.y) - top;
+
+  const {top, left, width, height} = rect.position;
 
   return (
     <FocusAreaRect top={top} left={left} width={width} height={height}>
-      <FocusAreaRectActions left={left} top={height}>
-        <Panel>
-          <Button size="sm" disabled>
-            {t('Show samples')}
-          </Button>
-          <Button size="sm" onClick={onZoom}>
-            {t('Zoom in')}
-          </Button>
-          <Button size="sm" onClick={onRemove}>
-            {t('Remove')}
-          </Button>
-        </Panel>
+      <FocusAreaRectActions top={height}>
+        <Button size="xs" disabled icon={<IconStack />}>
+          {t('Show samples')}
+        </Button>
+        <Button
+          size="xs"
+          onClick={onZoom}
+          icon={<IconZoom isZoomIn />}
+          aria-label="zoom"
+        />
+        <Button size="xs" onClick={onRemove} icon={<IconDelete />} aria-label="remove" />
       </FocusAreaRectActions>
     </FocusAreaRect>
   );
 }
 
+const getDate = date =>
+  date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
+
+const getPosition = (params: BrushEndResult, chartWidth: number): AbsolutePosition => {
+  const rect = params.areas[0];
+  if (!rect) {
+    return {
+      left: '0',
+      top: '0',
+      width: '0',
+      height: '0',
+    };
+  }
+
+  const left = rect.range[0][0];
+  const width = rect.range[0][1] - left;
+
+  const leftPercentage = (left / chartWidth) * 100;
+  const widthPercentage = (width / chartWidth) * 100;
+
+  const topPx = Math.min(...rect.range[1]);
+  const heightPx = Math.max(...rect.range[1]) - topPx;
+
+  return {
+    left: `${leftPercentage}%`,
+    top: `${topPx}px`,
+    width: `${widthPercentage}%`,
+    height: `${heightPx}px`,
+  };
+};
+
 const FocusAreaRectActions = styled('div')<{
-  left: number;
-  top: number;
+  top: string;
 }>`
   position: absolute;
-  top: ${p => p.top}px;
-  left: 0px;
-  gap: ${space(1)};
+  top: ${p => p.top};
+  display: flex;
+  gap: ${space(0.5)};
+  padding: ${space(1)};
   z-index: 2;
+  pointer-events: auto;
 `;
 
 const FocusAreaRect = styled('div')<{
-  height: number;
-  left: number;
-  top: number;
-  width: number;
+  height: string;
+  left: string;
+  top: string;
+  width: string;
 }>`
   position: absolute;
-  top: ${p => p.top}px;
-  left: ${p => p.left}px;
-  width: ${p => p.width}px;
-  height: ${p => p.height}px;
+  top: ${p => p.top};
+  left: ${p => p.left};
+  width: ${p => p.width};
+  height: ${p => p.height};
   outline: 2px solid ${p => p.theme.purple300};
   outline-offset: -1px;
   padding: ${space(1)};
-  z-index: 1;
+  pointer-events: none;
 `;

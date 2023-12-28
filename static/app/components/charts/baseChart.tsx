@@ -29,6 +29,9 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
 import {
+  EChartBrushEndHandler,
+  EChartBrushSelectedHandler,
+  EChartBrushStartHandler,
   EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -193,20 +196,9 @@ export interface BaseChartProps {
    * states whether or not to merge with previous `option`
    */
   notMerge?: boolean;
-  onBrushEnd?: EChartEventHandler<{
-    areas: unknown[];
-    brushId: string;
-    type: 'brushEnd';
-  }>;
-  onBrushSelected?: EChartEventHandler<{
-    batch: Record<string, boolean>[];
-    type: 'brushselected';
-  }>;
-  onBrushStart?: EChartEventHandler<{
-    areas: unknown[];
-    brushId: string;
-    type: 'brush';
-  }>;
+  onBrushEnd?: EChartBrushEndHandler;
+  onBrushSelected?: EChartBrushSelectedHandler;
+  onBrushStart?: EChartBrushStartHandler;
   onChartReady?: EChartChartReadyHandler;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;

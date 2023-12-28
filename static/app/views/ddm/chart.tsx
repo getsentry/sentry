@@ -7,8 +7,9 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
-import {useChartBrush} from 'sentry/views/ddm/chartBrush';
+import {useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
+import {useDDMContext} from 'sentry/views/ddm/context';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
@@ -32,11 +33,18 @@ export function MetricChart({series, displayType, operation, widgetIndex}: Chart
     isDisabled: false,
   });
 
-  const {
-    startBrush,
-    overlay: brushRectOverlay,
-    options: brushOptions,
-  } = useChartBrush(chartRef, widgetIndex, {isDisabled: !isHovered});
+  const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
+
+  const focusAreaBrush = useFocusAreaBrush(
+    chartRef,
+    focusArea,
+    addFocusArea,
+    removeFocusArea,
+    {
+      widgetIndex,
+      isDisabled: !isHovered,
+    }
+  );
 
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {
@@ -74,7 +82,7 @@ export function MetricChart({series, displayType, operation, widgetIndex}: Chart
 
   const chartProps = {
     series: seriesToShow,
-    ...brushOptions,
+    ...focusAreaBrush.options,
     forwardedRef: chartRef,
     isGroupedByDate: true,
     height: 300,
@@ -109,8 +117,8 @@ export function MetricChart({series, displayType, operation, widgetIndex}: Chart
   };
 
   return (
-    <ChartWrapper {...hoverProps} onMouseDownCapture={startBrush}>
-      {brushRectOverlay}
+    <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
+      {focusAreaBrush.overlay}
       {displayType === MetricDisplayType.LINE ? (
         <LineChart {...chartProps} />
       ) : displayType === MetricDisplayType.AREA ? (

@@ -12,19 +12,8 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {FocusArea} from 'sentry/views/ddm/chartBrush';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
-
-interface FocusArea {
-  coordinates: {
-    x: number[];
-    y: number[];
-  };
-  datapoints: {
-    x: number[];
-    y: number[];
-  };
-  widgetIndex: number;
-}
 
 interface DDMContextValue {
   addFocusArea: (area: FocusArea) => void;

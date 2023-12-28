@@ -155,7 +155,7 @@ const MetricWidgetBody = memo(
   }: MetricWidgetProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-    const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom(
+    const {data, isLoading, isError, error} = useMetricsDataZoom(
       {
         mri,
         op,
@@ -231,7 +231,6 @@ const MetricWidgetBody = memo(
           displayType={displayType}
           operation={metricsQuery.op}
           {...normalizeChartTimeParams(dataToBeRendered)}
-          onZoom={onZoom}
           widgetIndex={widgetIndex}
         />
         {metricsQuery.showSummaryTable && (
