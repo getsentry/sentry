@@ -220,7 +220,7 @@ export function getDDMInterval(
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= 60 && useCase === 'custom') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && fidelity === 'high') {
     return '10s';
   }
 
