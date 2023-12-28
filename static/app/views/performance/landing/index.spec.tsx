@@ -271,7 +271,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
 
     const updatedData = initializeData({
-      projects: [ProjectFixture({id: 123, platform: 'unknown'})],
+      projects: [ProjectFixture({id: '123', platform: 'unknown})],
       selectedProject: 123,
     });
 
@@ -282,7 +282,7 @@ describe('Performance > Landing > Index', function () {
 
   it('View correctly defaults based on project without url param', function () {
     const data = initializeData({
-      projects: [ProjectFixture({id: 99, platform: 'javascript-react'})],
+      projects: [ProjectFixture({id: '99', platform: 'javascript-react'})],
       selectedProject: 99,
     });
 

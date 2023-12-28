@@ -109,13 +109,13 @@ describe('CreateAlertFromViewButton', () => {
     const projects = [
       {
         ...ProjectFixture(),
-        id: 1,
+        id: '1',
         slug: 'admin-team',
         access: ['alerts:write'],
       },
       {
         ...ProjectFixture(),
-        id: 2,
+        id: '2',
         slug: 'contributor-team',
         access: ['alerts:read'],
       },
