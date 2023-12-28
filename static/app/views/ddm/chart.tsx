@@ -71,14 +71,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       }
     });
 
-    // TODO(ddm): Try to do this in a more elegant way
-    useEffect(() => {
-      const echartsInstance = chartRef?.current?.getEchartsInstance();
-      if (echartsInstance && !echartsInstance.group) {
-        echartsInstance.group = DDM_CHART_GROUP;
-      }
-    });
-
     const unit = series[0]?.unit;
     const seriesToShow = useMemo(
       () =>
