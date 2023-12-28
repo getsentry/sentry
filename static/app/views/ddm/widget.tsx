@@ -281,7 +281,7 @@ export function getChartSeries(
   return sortSeries(series, displayType).map((item, i) => ({
     seriesName: item.name,
     unit,
-    color: colorFn(colors[i])
+    color: colorFn(colors[i % colors.length])
       .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
       .string(),
     hidden: focusedSeries && focusedSeries !== item.name,
