@@ -276,7 +276,7 @@ def configure_structlog() -> None:
     if lvl and lvl not in logging._nameToLevel:
         raise AttributeError("%s is not a valid logging level." % lvl)
 
-    settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})  # type: ignore[union-attr]  # https://github.com/python/typeshed/pull/6193/files#r1408253621
+    settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
 
     if lvl:
         for logger in settings.LOGGING["overridable"]:
