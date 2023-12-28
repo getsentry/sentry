@@ -18,6 +18,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
@@ -36,7 +37,7 @@ export const DDMLayout = memo(() => {
           <Layout.Title>
             {t('Metrics')}
             <PageHeadingQuestionTooltip
-              docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
+              docsUrl={METRICS_DOCS_URL}
               title={t('Delightful Developer Metrics.')}
             />
             <FeatureBadge type="alpha" />

@@ -50,6 +50,9 @@ import {
 
 import {DateString, PageFilters} from '../../types/core';
 
+export const METRICS_DOCS_URL =
+  'https://develop.sentry.dev/delightful-developer-metrics/';
+
 export enum MetricDisplayType {
   LINE = 'line',
   AREA = 'area',

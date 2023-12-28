@@ -112,6 +112,15 @@ export default function getConfiguration({
           title: t('Performance'),
           show: () => !!organization?.features?.includes('performance-view'),
         },
+        {
+          path: `${pathPrefix}/metrics/`,
+          title: t('Metrics'),
+          show: () =>
+            !!(
+              organization?.features?.includes('custom-metrics') &&
+              organization?.features?.includes('ddm-ui')
+            ),
+        },
       ],
     },
     {
