@@ -32,7 +32,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const filterDescriptions = {
@@ -313,6 +313,7 @@ type Filter = {
 
 export function ProjectFiltersSettings({project, params, features}: Props) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const {projectId: projectSlug} = params;
 
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
@@ -379,7 +380,18 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       apiMethod="PUT"
                       apiEndpoint={`${filtersEndpoint}${filter.id}/`}
                       initialData={{[filter.id]: filter.active}}
-                      onSubmitSuccess={() => refetch()}
+                      onSubmitSuccess={() =>
+                        setApiQueryData<Filter[]>(
+                          queryClient,
+                          [`/projects/${organization.slug}/${projectSlug}/filters/`],
+                          oldFilterList =>
+                            oldFilterList.map(oldFilter =>
+                              oldFilter.id === filter.id
+                                ? {...filter, active: !filter.active}
+                                : oldFilter
+                            )
+                        )
+                      }
                       saveOnBlur
                     >
                       {filter.id !== 'legacy-browsers' ? (
