@@ -12,10 +12,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
-
-jest.mock('sentry/utils/useOrganization');
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -51,17 +48,11 @@ describe('Issues Similar View', function () {
 
   const router = RouterFixture();
 
-  function mockOrganization(props?: {features: string[]}) {
-    const features = props?.features ?? [];
-    jest.mocked(useOrganization).mockReturnValue(Organization({features}));
-  }
-
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
       body: mockData.similar,
     });
-    mockOrganization();
   });
 
   afterEach(() => {
@@ -76,7 +67,7 @@ describe('Issues Similar View', function () {
 
     expect(item).toBeDefined();
 
-    await userEvent.click(item);
+    await userEvent.click(item!);
   };
 
   it('renders with mocked data', async function () {
@@ -142,9 +133,7 @@ describe('Issues Similar View', function () {
   });
 
   it('renders all filtered issues with issues-similarity-embeddings flag', async function () {
-    mockOrganization({
-      features: ['issues-similarity-embeddings'],
-    });
+    const features = ['issues-similarity-embeddings'];
 
     render(
       <GroupSimilarIssues
@@ -156,7 +145,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {context: routerContext, organization: Organization({features})}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
