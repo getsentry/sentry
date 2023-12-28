@@ -93,7 +93,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
 
   clearError<F extends keyof Values>(field: F) {
     this.setState(prevState => {
-      const {[field]: _, ...errors} = prevState.errors;
+      const {[field]: _, ...errors} = prevState.errors ?? {};
       return {
         errors,
       };

@@ -74,7 +74,7 @@ export function transformSessionsResponseToTable(
 
   const singleRow = data[0];
   // TODO(metrics): these should come from the API in the future
-  const {id: _, ...singleRowWithoutId} = singleRow;
+  const {id: _, ...singleRowWithoutId} = singleRow ?? {};
   const meta = changeObjectValuesToTypes(singleRowWithoutId);
 
   return {meta, data};

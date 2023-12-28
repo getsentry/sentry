@@ -83,7 +83,7 @@ export function useSpanWaterfallModelFromTransaction(
   }, [spanList]);
 
   const event: AggregateEventTransaction = useMemo(() => {
-    const {type: _, ...trace} = parentSpan;
+    const {type: _, ...trace} = parentSpan ?? {};
     return {
       contexts: {
         trace,

@@ -289,10 +289,8 @@ export function transformSessionsResponseToTable(
   }));
 
   const singleRow = rows[0];
-  const {id: _, ...rowWithoutId} = singleRow;
-  const meta = {
-    ...changeObjectValuesToTypes(rowWithoutId),
-  };
+  const {id: _, ...rowWithoutId} = singleRow ?? {};
+  const meta = changeObjectValuesToTypes(rowWithoutId);
   return {meta, data: rows};
 }
 

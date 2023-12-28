@@ -102,7 +102,7 @@ class ModalManager extends Component<Props, State> {
 
   clearError<F extends keyof Values>(field: F) {
     this.setState(prevState => {
-      const {[field]: _, ...errors} = prevState.errors;
+      const {[field]: _, ...errors} = prevState.errors ?? {};
       return {
         errors,
       };
@@ -209,7 +209,7 @@ class ModalManager extends Component<Props, State> {
     }
 
     this.setState(prevState => {
-      const {[field]: _, ...errors} = prevState.errors;
+      const {[field]: _, ...errors} = prevState.errors ?? {} ?? {};
       return {
         values,
         requiredValues: this.getRequiredValues(values),

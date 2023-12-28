@@ -302,7 +302,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       this.props.onChangeTitle?.(data.name);
     }
     if (stateKey === 'duplicateTargetRule') {
-      const {id: _, ...rest} = data;
+      const {id: _, ...rest} = data ?? {};
       this.setState({
         rule: {
           ...rest,

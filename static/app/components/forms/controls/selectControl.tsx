@@ -189,7 +189,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 
   const defaultStyles = useMemo<StylesConfig>(() => {
-    const {height: _height, ...formStyles} = theme.form[size ?? 'md'];
+    const {height: _height, ...formStyles} = theme.form[size ?? 'md'] ?? {};
     return {
       control: (_, state: any) => ({
         display: 'flex',
