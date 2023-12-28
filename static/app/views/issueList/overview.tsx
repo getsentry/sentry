@@ -188,6 +188,8 @@ class IssueListOverview extends Component<Props, State> {
     ) {
       const loadedFromCache = this.loadFromCache();
       if (!loadedFromCache) {
+        // It's possible the projects query parameter is not yet ready and this
+        // request will be repeated in componentDidUpdate
         this.fetchData();
       }
     }
@@ -216,14 +218,9 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
-    if (this.props.savedSearchLoading) {
-      return;
-    }
-
     if (
-      prevProps.savedSearchLoading &&
-      !this.props.savedSearchLoading &&
-      this.props.organization.features.includes('issue-stream-performance')
+      this.props.savedSearchLoading &&
+      !this.props.organization.features.includes('issue-stream-performance')
     ) {
       return;
     }
@@ -263,8 +260,10 @@ class IssueListOverview extends Component<Props, State> {
       prevUrlQuery.cursor !== newUrlQuery.cursor ||
       prevUrlQuery.statsPeriod !== newUrlQuery.statsPeriod ||
       prevUrlQuery.groupStatsPeriod !== newUrlQuery.groupStatsPeriod ||
-      prevQuery !== newQuery ||
-      prevSort !== newSort
+      prevSort !== newSort ||
+      // Ignore query changes when issue-stream-performance is live
+      (!this.props.organization.features.includes('issue-stream-performance') &&
+        prevQuery !== newQuery)
     ) {
       this.fetchData(selectionChanged);
     } else if (
