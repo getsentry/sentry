@@ -106,54 +106,53 @@ export function MetricChart({series, displayType, operation, widgetIndex}: Chart
   const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
   const isSubMinuteBucket = bucketSize < 60_000;
   const seriesLength = seriesToShow[0]?.data.length;
-
-  const formatters = {
-    valueFormatter: (value: number) =>
-      formatMetricsUsingUnitAndOp(value, unit, operation),
-    isGroupedByDate: true,
-    bucketSize,
-    showTimeInTooltip: true,
-    addSecondsToTimeFormat: isSubMinuteBucket,
-    limit: 10,
-  };
-
   const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
-  const chartProps = {
-    series: seriesToShow,
-    ...focusAreaBrush.options,
-    forwardedRef: chartRef,
-    isGroupedByDate: true,
-    height: 300,
-    colors: seriesToShow.map(s => s.color),
-    grid: {top: 20, bottom: 20, left: 15, right: 25},
-    tooltip: {
-      formatter: (params, asyncTicket) => {
-        const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
-          element => {
+  const chartProps = useMemo(() => {
+    const formatters = {
+      valueFormatter: (value: number) =>
+        formatMetricsUsingUnitAndOp(value, unit, operation),
+      isGroupedByDate: true,
+      bucketSize,
+      showTimeInTooltip: true,
+      addSecondsToTimeFormat: isSubMinuteBucket,
+      limit: 10,
+    };
+    return {
+      series: seriesToShow,
+      forwardedRef: chartRef,
+      isGroupedByDate: true,
+      height: 300,
+      colors: seriesToShow.map(s => s.color),
+      grid: {top: 20, bottom: 20, left: 15, right: 25},
+      tooltip: {
+        formatter: (params, asyncTicket) => {
+          const hoveredEchartElement = Array.from(
+            document.querySelectorAll(':hover')
+          ).find(element => {
             return element.classList.contains('echarts-for-react');
-          }
-        );
+          });
 
-        if (hoveredEchartElement === chartRef?.current?.ele) {
-          return getFormatter(formatters)(params, asyncTicket);
-        }
-        return '';
-      },
-    },
-    yAxis: {
-      axisLabel: {
-        formatter: (value: number) => {
-          return formatMetricsUsingUnitAndOp(value, unit, operation);
+          if (hoveredEchartElement === chartRef?.current?.ele) {
+            return getFormatter(formatters)(params, asyncTicket);
+          }
+          return '';
         },
       },
-    },
-    xAxis: {
-      axisPointer: {
-        snap: true,
+      yAxis: {
+        axisLabel: {
+          formatter: (value: number) => {
+            return formatMetricsUsingUnitAndOp(value, unit, operation);
+          },
+        },
       },
-    },
-  };
+      xAxis: {
+        axisPointer: {
+          snap: true,
+        },
+      },
+    };
+  }, [bucketSize, isSubMinuteBucket, operation, seriesToShow, unit]);
 
   return (
     <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>

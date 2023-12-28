@@ -168,17 +168,7 @@ const MetricWidgetBody = memo(
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
 
-    const [dataToBeRendered, setDataToBeRendered] = useState<
-      MetricsApiResponse | undefined
-    >(undefined);
-
     const [hoveredLegend, setHoveredLegend] = useState('');
-
-    useEffect(() => {
-      if (data) {
-        setDataToBeRendered(data);
-      }
-    }, [data]);
 
     const toggleSeriesVisibility = useCallback(
       (seriesName: string) => {
@@ -190,7 +180,20 @@ const MetricWidgetBody = memo(
       [focusedSeries, onChange]
     );
 
-    if (!dataToBeRendered || isError) {
+    const chartSeries = useMemo(
+      () =>
+        data &&
+        getChartSeries(data, {
+          mri,
+          focusedSeries,
+          hoveredLegend,
+          groupBy: metricsQuery.groupBy,
+          displayType,
+        }),
+      [data, displayType, focusedSeries, hoveredLegend, metricsQuery.groupBy, mri]
+    );
+
+    if (!chartSeries || !data || isError) {
       return (
         <StyledMetricWidgetBody>
           {isLoading && <LoadingIndicator />}
@@ -203,7 +206,7 @@ const MetricWidgetBody = memo(
       );
     }
 
-    if (dataToBeRendered.groups.length === 0) {
+    if (data.groups.length === 0) {
       return (
         <StyledMetricWidgetBody>
           <EmptyMessage
@@ -215,14 +218,6 @@ const MetricWidgetBody = memo(
       );
     }
 
-    const chartSeries = getChartSeries(dataToBeRendered, {
-      mri,
-      focusedSeries,
-      hoveredLegend,
-      groupBy: metricsQuery.groupBy,
-      displayType,
-    });
-
     return (
       <StyledMetricWidgetBody>
         <TransparentLoadingMask visible={isLoading} />
@@ -230,7 +225,7 @@ const MetricWidgetBody = memo(
           series={chartSeries}
           displayType={displayType}
           operation={metricsQuery.op}
-          {...normalizeChartTimeParams(dataToBeRendered)}
+          {...normalizeChartTimeParams(data)}
           widgetIndex={widgetIndex}
         />
         {metricsQuery.showSummaryTable && (
@@ -284,7 +279,7 @@ export function getChartSeries(
   return sortSeries(series, displayType).map((item, i) => ({
     seriesName: item.name,
     unit,
-    color: colorFn(colors[i])
+    color: colorFn(colors[i % colors.length])
       .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
       .string(),
     hidden: focusedSeries && focusedSeries !== item.name,
