@@ -119,6 +119,7 @@ export function MetricChart({series, displayType, operation, widgetIndex}: Chart
       limit: 10,
     };
     return {
+      ...focusAreaBrush.options,
       series: seriesToShow,
       forwardedRef: chartRef,
       isGroupedByDate: true,
@@ -152,7 +153,14 @@ export function MetricChart({series, displayType, operation, widgetIndex}: Chart
         },
       },
     };
-  }, [bucketSize, isSubMinuteBucket, operation, seriesToShow, unit]);
+  }, [
+    bucketSize,
+    isSubMinuteBucket,
+    operation,
+    seriesToShow,
+    unit,
+    focusAreaBrush.options,
+  ]);
 
   return (
     <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
