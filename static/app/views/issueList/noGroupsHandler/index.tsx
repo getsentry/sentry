@@ -88,7 +88,7 @@ class NoGroupsHandler extends Component<Props, State> {
       api.requestPromise(`/organizations/${organization.slug}/sent-first-event/`, {
         query: firstEventQuery,
       }),
-      // retrieves a single project to feed to the ErrorRobot from renderStreamBody
+      // retrieves a single project to feed to WaitingForError from renderStreamBody
       api.requestPromise(`/organizations/${organization.slug}/projects/`, {
         query: projectsQuery,
       }),
@@ -117,11 +117,15 @@ class NoGroupsHandler extends Component<Props, State> {
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    const ErrorRobot = lazy(() => import('sentry/components/errorRobot'));
+    const WaitingForError = lazy(() => import('sentry/components/waitingForError'));
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
-        <ErrorRobot org={organization} project={project} sampleIssueId={sampleIssueId} />
+        <WaitingForError
+          org={organization}
+          project={project}
+          sampleIssueId={sampleIssueId}
+        />
       </Suspense>
     );
   }
