@@ -45,6 +45,7 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
 import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
 import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
@@ -426,6 +427,7 @@ function Sidebar({organization}: Props) {
     </Feature>
   );
 
+  const ddmPath = `/organizations/${organization?.slug}/ddm/`;
   const ddm = hasOrganization && (
     <Feature
       features={['ddm-ui', 'custom-metrics']}
@@ -436,7 +438,8 @@ function Sidebar({organization}: Props) {
         {...sidebarItemProps}
         icon={<IconGraph />}
         label={t('Metrics')}
-        to={`/organizations/${organization.slug}/ddm/`}
+        to={ddmPath}
+        search={location.pathname === normalizeUrl(ddmPath) ? location.search : ''}
         id="ddm"
         isAlpha
       />
