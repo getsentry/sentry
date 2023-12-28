@@ -1,5 +1,7 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {forwardRef, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import * as echarts from 'echarts/core';
+import {CanvasRenderer} from 'echarts/renderers';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -7,6 +9,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateString} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
@@ -26,121 +29,120 @@ type ChartProps = {
   utc?: boolean;
 };
 
-export function MetricChart({
-  series,
-  displayType,
-  start,
-  end,
-  period,
-  utc,
-  operation,
-  onZoom,
-}: ChartProps) {
-  const chartRef = useRef<ReactEchartsRef>(null);
-  const router = useRouter();
+// We need to enable canvas renderer for echarts before we use it here.
+// Once we use it in more places, this should probably move to a more global place
+// But for now we keep it here to not invluence the bundle size of the main chunks.
+echarts.use([CanvasRenderer]);
 
-  // TODO(ddm): Try to do this in a more elegant way
-  useEffect(() => {
-    const echartsInstance = chartRef?.current?.getEchartsInstance();
-    if (echartsInstance && !echartsInstance.group) {
-      echartsInstance.group = DDM_CHART_GROUP;
-    }
-  });
+export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
+  ({series, displayType, start, end, period, utc, operation, onZoom}, forwardedRef) => {
+    const chartRef = useRef<ReactEchartsRef>(null);
+    const router = useRouter();
 
-  const unit = series[0]?.unit;
-  const seriesToShow = useMemo(
-    () =>
-      series
-        .filter(s => !s.hidden)
-        .map(s => ({...s, silent: displayType === MetricDisplayType.BAR})),
-    [series, displayType]
-  );
+    // TODO(ddm): Try to do this in a more elegant way
+    useEffect(() => {
+      const echartsInstance = chartRef?.current?.getEchartsInstance();
+      if (echartsInstance && !echartsInstance.group) {
+        echartsInstance.group = DDM_CHART_GROUP;
+      }
+    });
 
-  // TODO(ddm): This assumes that all series have the same bucket size
-  const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
-  const isSubMinuteBucket = bucketSize < 60_000;
-  const seriesLength = seriesToShow[0]?.data.length;
-  const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
+    const unit = series[0]?.unit;
+    const seriesToShow = useMemo(
+      () =>
+        series
+          .filter(s => !s.hidden)
+          .map(s => ({...s, silent: displayType === MetricDisplayType.BAR})),
+      [series, displayType]
+    );
 
-  const chartProps = useMemo(() => {
-    const formatters = {
-      valueFormatter: (value: number) =>
-        formatMetricsUsingUnitAndOp(value, unit, operation),
-      isGroupedByDate: true,
-      bucketSize,
-      showTimeInTooltip: true,
-      addSecondsToTimeFormat: isSubMinuteBucket,
-      limit: 10,
-    };
-    return {
-      forwardedRef: chartRef,
-      isGroupedByDate: true,
-      height: 300,
-      colors: seriesToShow.map(s => s.color),
-      grid: {top: 20, bottom: 20, left: 15, right: 25},
-      tooltip: {
-        formatter: (params, asyncTicket) => {
-          const hoveredEchartElement = Array.from(
-            document.querySelectorAll(':hover')
-          ).find(element => {
-            return element.classList.contains('echarts-for-react');
-          });
+    // TODO(ddm): This assumes that all series have the same bucket size
+    const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
+    const isSubMinuteBucket = bucketSize < 60_000;
+    const seriesLength = seriesToShow[0]?.data.length;
+    const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
 
-          if (hoveredEchartElement === chartRef?.current?.ele) {
-            return getFormatter(formatters)(params, asyncTicket);
-          }
-          return '';
-        },
-      },
-      yAxis: {
-        axisLabel: {
-          formatter: (value: number) => {
-            return formatMetricsUsingUnitAndOp(value, unit, operation);
+    const chartProps = useMemo(() => {
+      const formatters = {
+        valueFormatter: (value: number) =>
+          formatMetricsUsingUnitAndOp(value, unit, operation),
+        isGroupedByDate: true,
+        bucketSize,
+        showTimeInTooltip: true,
+        addSecondsToTimeFormat: isSubMinuteBucket,
+        limit: 10,
+      };
+      return {
+        renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
+        isGroupedByDate: true,
+        height: 300,
+        colors: seriesToShow.map(s => s.color),
+        grid: {top: 20, bottom: 20, left: 15, right: 25},
+        tooltip: {
+          formatter: (params, asyncTicket) => {
+            const hoveredEchartElement = Array.from(
+              document.querySelectorAll(':hover')
+            ).find(element => {
+              return element.classList.contains('echarts-for-react');
+            });
+
+            if (hoveredEchartElement === chartRef?.current?.ele) {
+              return getFormatter(formatters)(params, asyncTicket);
+            }
+            return '';
           },
         },
-      },
-      xAxis: {
-        axisPointer: {
-          snap: true,
+        yAxis: {
+          axisLabel: {
+            formatter: (value: number) => {
+              return formatMetricsUsingUnitAndOp(value, unit, operation);
+            },
+          },
         },
-      },
-    };
-  }, [bucketSize, isSubMinuteBucket, operation, seriesToShow, unit]);
+        xAxis: {
+          axisPointer: {
+            snap: true,
+          },
+        },
+      };
+    }, [bucketSize, isSubMinuteBucket, operation, seriesToShow, unit]);
 
-  return (
-    <ChartWrapper>
-      <ChartZoom
-        router={router}
-        period={period}
-        start={start}
-        end={end}
-        utc={utc}
-        onZoom={zoomPeriod => {
-          onZoom?.(zoomPeriod.start, zoomPeriod.end);
-        }}
-      >
-        {zoomRenderProps => {
-          const allProps = {
-            ...chartProps,
-            ...zoomRenderProps,
-            series: seriesToShow,
-          };
+    return (
+      <ChartWrapper>
+        <ChartZoom
+          router={router}
+          period={period}
+          start={start}
+          end={end}
+          utc={utc}
+          onZoom={zoomPeriod => {
+            onZoom?.(zoomPeriod.start, zoomPeriod.end);
+          }}
+        >
+          {zoomRenderProps => {
+            const allProps = {
+              ...chartProps,
+              ...zoomRenderProps,
+              forwardedRef: mergeRefs([chartRef, forwardedRef]),
+              series: seriesToShow,
+            };
 
-          return displayType === MetricDisplayType.LINE ? (
-            <LineChart {...allProps} />
-          ) : displayType === MetricDisplayType.AREA ? (
-            <AreaChart {...allProps} />
-          ) : (
-            <BarChart stacked animation={false} {...allProps} />
-          );
-        }}
-      </ChartZoom>
-      {displayFogOfWar && (
-        <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
-      )}
-    </ChartWrapper>
-  );
-}
+            return displayType === MetricDisplayType.LINE ? (
+              <LineChart {...allProps} />
+            ) : displayType === MetricDisplayType.AREA ? (
+              <AreaChart {...allProps} />
+            ) : (
+              <BarChart stacked animation={false} {...allProps} />
+            );
+          }}
+        </ChartZoom>
+        {displayFogOfWar && (
+          <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
+        )}
+      </ChartWrapper>
+    );
+  }
+);
 
 function FogOfWar({
   bucketSize,
