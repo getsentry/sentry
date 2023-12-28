@@ -2,7 +2,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 11
+LATEST_EPOCH = 12
 
 # grouping related configs
 #
@@ -65,13 +65,13 @@ register(
 )
 
 # Default legacy-browsers filter
-register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
+register(key="filters:legacy-browsers", epoch_defaults={1: "0", 12: "1"})
 
 # Default web crawlers filter
-register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0"})
+register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0", 12: "1"})
 
 # Default browser extensions filter
-register(key="filters:browser-extensions", epoch_defaults={1: "0"})
+register(key="filters:browser-extensions", epoch_defaults={1: "0", 12: "1"})
 
 # Default localhost filter
 register(key="filters:localhost", epoch_defaults={1: "0"})
