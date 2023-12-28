@@ -158,6 +158,8 @@ export function toTitleCase(str: string): string {
   );
 }
 
+export function noop() {}
+
 /**
  * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
  * means that:
