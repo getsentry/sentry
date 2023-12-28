@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -15,6 +15,7 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
+import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getSeriesName,
   MetricDisplayType,
@@ -168,16 +169,27 @@ const MetricWidgetBody = memo(
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
 
-    const [hoveredLegend, setHoveredLegend] = useState('');
+    const chartRef = useRef<ReactEchartsRef>(null);
+
+    const setHoveredSeries = useCallback((legend: string) => {
+      if (!chartRef.current) {
+        return;
+      }
+      const echartsInstance = chartRef.current.getEchartsInstance();
+      echartsInstance.dispatchAction({
+        type: 'highlight',
+        seriesName: legend,
+      });
+    }, []);
 
     const toggleSeriesVisibility = useCallback(
       (seriesName: string) => {
-        setHoveredLegend('');
+        setHoveredSeries('');
         onChange({
           focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
         });
       },
-      [focusedSeries, onChange]
+      [focusedSeries, onChange, setHoveredSeries]
     );
 
     const chartSeries = useMemo(
@@ -186,11 +198,10 @@ const MetricWidgetBody = memo(
         getChartSeries(data, {
           mri,
           focusedSeries,
-          hoveredLegend,
           groupBy: metricsQuery.groupBy,
           displayType,
         }),
-      [data, displayType, focusedSeries, hoveredLegend, metricsQuery.groupBy, mri]
+      [data, displayType, focusedSeries, metricsQuery.groupBy, mri]
     );
 
     if (!chartSeries || !data || isError) {
@@ -222,6 +233,7 @@ const MetricWidgetBody = memo(
       <StyledMetricWidgetBody>
         <TransparentLoadingMask visible={isLoading} />
         <MetricChart
+          ref={chartRef}
           series={chartSeries}
           displayType={displayType}
           operation={metricsQuery.op}
@@ -237,7 +249,7 @@ const MetricWidgetBody = memo(
             sort={sort}
             operation={metricsQuery.op}
             onRowClick={toggleSeriesVisibility}
-            setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
+            setHoveredSeries={focusedSeries ? undefined : setHoveredSeries}
           />
         )}
       </StyledMetricWidgetBody>
