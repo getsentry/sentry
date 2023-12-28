@@ -215,7 +215,6 @@ module = [
     "sentry.api.endpoints.project_servicehook_stats",
     "sentry.api.endpoints.project_stacktrace_link",
     "sentry.api.endpoints.project_stacktrace_links",
-    "sentry.api.endpoints.project_tags",
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.rule_snooze",
     "sentry.api.endpoints.source_map_debug",
