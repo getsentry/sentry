@@ -94,6 +94,19 @@ export async function parseDashboard(
 const SUPPORTED_COLUMNS = new Set(['avg', 'max', 'min', 'sum', 'value']);
 const SUPPORTED_WIDGET_TYPES = new Set(['timeseries']);
 
+const METRIC_SUFFIX_TO_OP = {
+  avg: 'avg',
+  max: 'max',
+  min: 'min',
+  sum: 'sum',
+  count: 'count',
+  '50percentile': 'p50',
+  '75percentile': 'p75',
+  '90percentile': 'p90',
+  '95percentile': 'p95',
+  '99percentile': 'p99',
+};
+
 export class WidgetParser {
   private errors: string[] = [];
   private api = new Client();
@@ -257,6 +270,17 @@ export class WidgetParser {
 
     const metricNameMatch = str.match(/:(\S*){/);
     let metric = metricNameMatch ? metricNameMatch[1] : undefined;
+
+    if (metric && metric.includes('.')) {
+      const lastIndex = metric.lastIndexOf('.');
+      const metricName = metric.slice(0, lastIndex);
+      const operationSuffix = metric.slice(lastIndex + 1);
+
+      if (METRIC_SUFFIX_TO_OP[operationSuffix]) {
+        op = METRIC_SUFFIX_TO_OP[operationSuffix];
+        metric = metricName;
+      }
+    }
 
     const filtersMatch = str.match(/{([^}]*)}/);
     const filters = filtersMatch ? this.parseFilters(filtersMatch[1]) : [];

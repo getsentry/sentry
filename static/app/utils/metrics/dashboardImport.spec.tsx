@@ -122,6 +122,25 @@ describe('WidgetParser', () => {
     });
   });
 
+  it('should parse a widget with operation appended to metric name', async () => {
+    const widget = mockWidget({
+      requests: mockRequests(['sum:sentry.foo.bar.avg{foo:bar} by {baz}']),
+    });
+
+    const result = new WidgetParser(widget, availableMetrics).parse();
+    const {report, widgets} = await result;
+
+    expect(report.outcome).toEqual('success');
+    expect(widgets[0]).toEqual({
+      displayType: 'line',
+      groupBy: ['baz'],
+      mri: 'c:custom/sentry.foo.bar@none',
+      op: 'avg',
+      query: 'foo:bar',
+      title: 'Test widget',
+    });
+  });
+
   it('should fail to parse widget with unknown metric', async () => {
     const widget = mockWidget({
       requests: mockRequests(['sum:sentry.unknown-metric{foo:bar} by {baz}']),
