@@ -333,7 +333,7 @@ function SaveAsDropdown({
                       save();
                     }}
                   >
-                    {mode === 'fork' ? t('Fork') : t('Save')}
+                    {mode === 'fork' ? t('Duplicate') : t('Save')}
                   </SaveAsButton>
                 </GuideAnchor>
               </StyledOverlay>
