@@ -108,8 +108,8 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/default-overview/',
         body: DashboardFixture(
           [
-            WidgetFixture(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
@@ -118,13 +118,11 @@ describe('Dashboards > Detail', function () {
                   columns: [],
                 },
               ],
-              {
-                title: 'Default Widget 1',
-                interval: '1d',
-              }
-            ),
-            WidgetFixture(
-              [
+              title: 'Default Widget 1',
+              interval: '1d',
+            }),
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:transaction',
@@ -133,11 +131,9 @@ describe('Dashboards > Detail', function () {
                   columns: [],
                 },
               ],
-              {
-                title: 'Default Widget 2',
-                interval: '1d',
-              }
-            ),
+              title: 'Default Widget 2',
+              interval: '1d',
+            }),
           ],
           {id: 'default-overview', title: 'Default'}
         ),
@@ -223,8 +219,8 @@ describe('Dashboards > Detail', function () {
         },
       });
       widgets = [
-        WidgetFixture(
-          [
+        WidgetFixture({
+          queries: [
             {
               name: '',
               conditions: 'event.type:error',
@@ -233,15 +229,13 @@ describe('Dashboards > Detail', function () {
               aggregates: ['count()'],
             },
           ],
-          {
-            title: 'Errors',
-            interval: '1d',
-            widgetType: 'discover',
-            id: '1',
-          }
-        ),
-        WidgetFixture(
-          [
+          title: 'Errors',
+          interval: '1d',
+          widgetType: 'discover',
+          id: '1',
+        }),
+        WidgetFixture({
+          queries: [
             {
               name: '',
               conditions: 'event.type:transaction',
@@ -250,15 +244,13 @@ describe('Dashboards > Detail', function () {
               aggregates: ['count()'],
             },
           ],
-          {
-            title: 'Transactions',
-            interval: '1d',
-            widgetType: 'discover',
-            id: '2',
-          }
-        ),
-        WidgetFixture(
-          [
+          title: 'Transactions',
+          interval: '1d',
+          widgetType: 'discover',
+          id: '2',
+        }),
+        WidgetFixture({
+          queries: [
             {
               name: '',
               conditions: 'event.type:transaction transaction:/api/cats',
@@ -267,12 +259,10 @@ describe('Dashboards > Detail', function () {
               aggregates: ['p50()'],
             },
           ],
-          {
-            title: 'p50 of /api/cats',
-            interval: '1d',
-            id: '3',
-          }
-        ),
+          title: 'p50 of /api/cats',
+          interval: '1d',
+          id: '3',
+        }),
       ];
       mockVisit = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
@@ -544,8 +534,8 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            WidgetFixture(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
@@ -554,15 +544,13 @@ describe('Dashboards > Detail', function () {
                   columns: [],
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-              }
-            ),
-            WidgetFixture(
-              [
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+            }),
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
@@ -571,12 +559,10 @@ describe('Dashboards > Detail', function () {
                   columns: [],
                 },
               ],
-              {
-                title: 'Second Widget',
-                interval: '1d',
-                id: '2',
-              }
-            ),
+              title: 'Second Widget',
+              interval: '1d',
+              id: '2',
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -604,8 +590,8 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            WidgetFixture(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
@@ -614,13 +600,11 @@ describe('Dashboards > Detail', function () {
                   columns: [],
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-              }
-            ),
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -651,8 +635,8 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            WidgetFixture(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
@@ -661,13 +645,11 @@ describe('Dashboards > Detail', function () {
                   columns: [],
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-              }
-            ),
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -700,8 +682,8 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            WidgetFixture(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
@@ -710,13 +692,11 @@ describe('Dashboards > Detail', function () {
                   columns: [],
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: null,
-              }
-            ),
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: null,
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -743,8 +723,8 @@ describe('Dashboards > Detail', function () {
 
     it('opens the widget viewer modal using the widget id specified in the url', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-      const widget = WidgetFixture(
-        [
+      const widget = WidgetFixture({
+        queries: [
           {
             name: '',
             conditions: 'event.type:error',
@@ -754,13 +734,11 @@ describe('Dashboards > Detail', function () {
             orderby: '',
           },
         ],
-        {
-          title: 'First Widget',
-          interval: '1d',
-          id: '1',
-          layout: null,
-        }
-      );
+        title: 'First Widget',
+        interval: '1d',
+        id: '1',
+        layout: null,
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture([widget], {id: '1', title: 'Custom Errors'}),
