@@ -40,6 +40,29 @@ def patch_memcached():
     MemcachedCache.delete = fixed_delete  # type: ignore[method-assign]
 
 
+def patch_celery_shutdown():
+    # Lifted from the Python SDK -- we need to run various shutdown handlers
+    # when celery decides to reap worker processes, and it seems that Celery 5
+    # still has no better solution than the monkeypatching solution we came up
+    # in the SDK with. See sentry.utils.celery for motivation, and
+    # sentry_sdk.integrations.celery for the original code.
+
+    from billiard.pool import Worker  # type: ignore
+
+    from sentry.utils.celery import run_shutdown
+
+    old_workloop = Worker.workloop
+
+    def sentry_patched_workloop(*args, **kwargs):
+        try:
+            return old_workloop(*args, **kwargs)
+        finally:
+            run_shutdown()
+
+    Worker.workloop = sentry_patched_workloop
+
+
 patch_celery_imgcat()
 patch_pickle_loaders()
 patch_memcached()
+patch_celery_shutdown()

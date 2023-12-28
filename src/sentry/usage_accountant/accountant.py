@@ -17,6 +17,7 @@ from django.conf import settings
 from usageaccountant import UsageAccumulator, UsageUnit
 
 from sentry.options import get
+from sentry.utils.celery import register_shutdown
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ def _shutdown() -> None:
         _accountant_backend.flush()
         _accountant_backend.close()
         logger.info("Usage accountant flushed and closed.")
+        reset_backend()
 
 
 def record(
@@ -82,6 +84,6 @@ def record(
         )
 
         _accountant_backend = UsageAccumulator(producer=producer)
-        atexit.register(_shutdown)
+        register_shutdown(_shutdown)
 
     _accountant_backend.record(resource_id, app_feature, amount, usage_type)
