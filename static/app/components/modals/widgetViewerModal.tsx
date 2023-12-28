@@ -757,7 +757,7 @@ function WidgetViewerModal(props: Props) {
                 <CodeLocations mri={parsedField.mri} />
               </TabPanels.Item>
               <TabPanels.Item key="samples">
-                <TraceTable />
+                <TraceTable mri={parsedField.mri} />
               </TabPanels.Item>
             </TabPanels>
           </MetricWidgetTabContent>
