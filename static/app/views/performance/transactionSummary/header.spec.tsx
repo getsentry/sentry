@@ -31,7 +31,7 @@ function initializeData(opts?: InitialOpts) {
         },
       },
     },
-    project: project.id,
+    project,
     projects: [],
   });
   const router = initialData.router;

@@ -662,7 +662,7 @@ describe('Performance > TransactionSummary', function () {
         {
           context: routerContext,
           organization,
-          projects,
+          projects: projects.map(project => project.id),
         }
       );
 
