@@ -17,7 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
-from sentry.security import capture_security_activity
+from sentry.security.utils import capture_security_activity
 
 
 class ApiTokenSerializer(serializers.Serializer):
