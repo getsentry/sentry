@@ -202,6 +202,8 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         )
         raise e
 
+    # TODO: Right now, if the query is release health, the tag values in the results are left unresolved. We need to fix this.
+
     # If we normalized the start/end, return those values in the response so the caller is aware
     results = {
         **snuba_result,
@@ -490,6 +492,8 @@ def snql_query(request: Request, start: datetime, end: datetime) -> Mapping[str,
         )
         raise e
 
+    # TODO: Right now, if the query is release health, the tag values in the results are left unresolved. We need to fix this.
+
     # If we normalized the start/end, return those values in the response so the caller is aware
     results = {
         **snuba_results,
@@ -647,8 +651,6 @@ def _resolve_groupby(
     for col in groupby:
         resolved = resolve_weak(use_case_id, org_id, col.name)
         if resolved > -1:
-            # TODO: This currently assumes the use of `tags_raw` but that might not always be correct
-            # It also doesn't take into account mapping indexed tag values back to their original values
             if dataset == Dataset.Metrics.value:
                 new_groupby.append(
                     AliasedExpression(exp=replace(col, name=f"tags[{resolved}]"), alias=col.name)
