@@ -92,3 +92,140 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["description"] == "bar"
         assert data[1]["description"] == "foo"
         assert meta["dataset"] == "spansIndexed"
+
+    def test_duration_types(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "exclusive_time_ms": 500},
+                    start_ts=self.ten_mins_ago,
+                    duration=2000,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "span.duration", "span.self_time"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert data[0]["span.duration"] == 2000
+        assert data[0]["span.self_time"] == 500
+        assert meta["dataset"] == "spansIndexed"
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["fields"]["span.self_time"] == "duration"
+
+    def test_project_alias(self):
+        self.store_spans(
+            [
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "project"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert data[0]["project"] == self.project.slug
+        assert meta["dataset"] == "spansIndexed"
+        assert meta["fields"]["project"] == "string"
+
+    def test_span_module(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "aaa", "sentry_tags": {"op": "db.redis"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bbb", "sentry_tags": {"op": "db.sql.room"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "ccc", "sentry_tags": {"span.category": "cache"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "ddd", "sentry_tags": {"span.category": "db"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "eee", "sentry_tags": {"span.category": "http"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "fff", "sentry_tags": {"span.category": "something"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "span.module"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 6
+        assert data[0]["description"] == "aaa"
+        assert data[0]["span.module"] == "cache"
+        assert data[1]["description"] == "bbb"
+        assert data[1]["span.module"] == "other"
+        assert data[2]["description"] == "ccc"
+        assert data[2]["span.module"] == "cache"
+        assert data[3]["description"] == "ddd"
+        assert data[3]["span.module"] == "db"
+        assert data[4]["description"] == "eee"
+        assert data[4]["span.module"] == "http"
+        assert data[5]["description"] == "fff"
+        assert data[5]["span.module"] == "other"
+        assert meta["dataset"] == "spansIndexed"
+        assert meta["fields"]["span.module"] == "string"
+
+    def test_device_class(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"device.class": 1}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "device.class"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "low"
+        assert meta["dataset"] == "spansIndexed"
+        assert meta["fields"]["device.class"] == "string"
