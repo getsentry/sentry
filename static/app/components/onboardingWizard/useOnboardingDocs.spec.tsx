@@ -8,7 +8,7 @@ import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/performanceOnboarding/utils';
-import {PlatformIntegration} from 'sentry/types';
+import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useOnboardingDocs', function () {
@@ -27,7 +27,7 @@ describe('useOnboardingDocs', function () {
     const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const apiMocks: any = {};
 
@@ -81,7 +81,7 @@ describe('useOnboardingDocs', function () {
     const project = ProjectFixture({
       platform: 'javascript-angular',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const apiMocks: any = {};
 
@@ -130,7 +130,7 @@ describe('useOnboardingDocs', function () {
     const project = ProjectFixture({
       platform: 'elixir',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const apiMocks: any = {};
 

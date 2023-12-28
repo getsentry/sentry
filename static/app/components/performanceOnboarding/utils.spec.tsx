@@ -1,5 +1,6 @@
-import {PlatformIntegration} from 'sentry/types';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+
+import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 import {generateDocKeys, isPlatformSupported} from './utils';
 
@@ -8,7 +9,7 @@ describe('performanceOnboarding/utils/generateDocKeys()', () => {
     const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const docKeys = generateDocKeys(project.platform);
 
@@ -23,7 +24,7 @@ describe('performanceOnboarding/utils/generateDocKeys()', () => {
     const project = ProjectFixture({
       platform: 'javascript-angular',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const docKeys = generateDocKeys(project.platform);
 
@@ -38,7 +39,7 @@ describe('performanceOnboarding/utils/generateDocKeys()', () => {
     const project = ProjectFixture({
       platform: 'elixir',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const docKeys = generateDocKeys(project.platform);
 
