@@ -1,6 +1,8 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import * as echarts from 'echarts/core';
+import {CanvasRenderer} from 'echarts/renderers';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -8,6 +10,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import {
   formatMetricsUsingUnitAndOp,
   MetricDisplayType,
@@ -26,158 +29,163 @@ type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
   widgetIndex: number;
-  end?: string;
   operation?: string;
-  period?: string;
-  start?: string;
-  utc?: boolean;
 };
 
-export function MetricChart({series, displayType, operation, widgetIndex}: ChartProps) {
-  const router = useRouter();
-  const chartRef = useRef<ReactEchartsRef>(null);
+// We need to enable canvas renderer for echarts before we use it here.
+// Once we use it in more places, this should probably move to a more global place
+// But for now we keep it here to not invluence the bundle size of the main chunks.
+echarts.use(CanvasRenderer);
 
-  const {hoverProps, isHovered} = useHover({
-    isDisabled: false,
-  });
+export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
+  ({series, displayType, operation, widgetIndex}, forwardedRef) => {
+    const router = useRouter();
+    const chartRef = useRef<ReactEchartsRef>(null);
 
-  const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
+    const {hoverProps, isHovered} = useHover({
+      isDisabled: false,
+    });
 
-  const handleAddFocusArea = useCallback(
-    newFocusArea => {
-      addFocusArea(newFocusArea);
-      updateQuery(router, {focusArea: JSON.stringify(newFocusArea)});
-    },
-    [addFocusArea, router]
-  );
+    const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
 
-  const handleRemoveFocusArea = useCallback(() => {
-    removeFocusArea();
-    updateQuery(router, {focusArea: null});
-  }, [removeFocusArea, router]);
-
-  const handleZoom = useCallback(
-    (range: DateTimeObject) => {
-      updateDateTime(range, router, {save: true});
-    },
-    [router]
-  );
-
-  const focusAreaBrush = useFocusAreaBrush(
-    chartRef,
-    focusArea,
-    handleAddFocusArea,
-    handleRemoveFocusArea,
-    handleZoom,
-    {
-      widgetIndex,
-      isDisabled: !isHovered,
-    }
-  );
-
-  useEffect(() => {
-    if (focusArea) {
-      return;
-    }
-    const urlFocusArea = router.location.query.focusArea;
-    if (urlFocusArea) {
-      addFocusArea(JSON.parse(urlFocusArea));
-    }
-  }, [router, addFocusArea, focusArea]);
-
-  // TODO(ddm): Try to do this in a more elegant way
-  useEffect(() => {
-    const echartsInstance = chartRef?.current?.getEchartsInstance();
-    if (echartsInstance && !echartsInstance.group) {
-      echartsInstance.group = DDM_CHART_GROUP;
-    }
-  });
-
-  const unit = series[0]?.unit;
-  const seriesToShow = useMemo(
-    () =>
-      series
-        .filter(s => !s.hidden)
-        .map(s => ({...s, silent: displayType === MetricDisplayType.BAR})),
-    [series, displayType]
-  );
-
-  // TODO(ddm): This assumes that all series have the same bucket size
-  const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
-  const isSubMinuteBucket = bucketSize < 60_000;
-  const seriesLength = seriesToShow[0]?.data.length;
-  const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
-
-  const chartProps = useMemo(() => {
-    const formatters = {
-      valueFormatter: (value: number) =>
-        formatMetricsUsingUnitAndOp(value, unit, operation),
-      isGroupedByDate: true,
-      bucketSize,
-      showTimeInTooltip: true,
-      addSecondsToTimeFormat: isSubMinuteBucket,
-      limit: 10,
-    };
-    return {
-      ...focusAreaBrush.options,
-      series: seriesToShow,
-      forwardedRef: chartRef,
-      isGroupedByDate: true,
-      height: 300,
-      colors: seriesToShow.map(s => s.color),
-      grid: {top: 20, bottom: 20, left: 15, right: 25},
-      tooltip: {
-        formatter: (params, asyncTicket) => {
-          const hoveredEchartElement = Array.from(
-            document.querySelectorAll(':hover')
-          ).find(element => {
-            return element.classList.contains('echarts-for-react');
-          });
-
-          if (hoveredEchartElement === chartRef?.current?.ele) {
-            return getFormatter(formatters)(params, asyncTicket);
-          }
-          return '';
-        },
+    const handleAddFocusArea = useCallback(
+      newFocusArea => {
+        addFocusArea(newFocusArea);
+        updateQuery(router, {focusArea: JSON.stringify(newFocusArea)});
       },
-      yAxis: {
-        axisLabel: {
-          formatter: (value: number) => {
-            return formatMetricsUsingUnitAndOp(value, unit, operation);
+      [addFocusArea, router]
+    );
+
+    const handleRemoveFocusArea = useCallback(() => {
+      removeFocusArea();
+      updateQuery(router, {focusArea: null});
+    }, [removeFocusArea, router]);
+
+    const handleZoom = useCallback(
+      (range: DateTimeObject) => {
+        updateDateTime(range, router, {save: true});
+      },
+      [router]
+    );
+
+    const focusAreaBrush = useFocusAreaBrush(
+      chartRef,
+      focusArea,
+      handleAddFocusArea,
+      handleRemoveFocusArea,
+      handleZoom,
+      {
+        widgetIndex,
+        isDisabled: !isHovered,
+      }
+    );
+
+    useEffect(() => {
+      if (focusArea) {
+        return;
+      }
+      const urlFocusArea = router.location.query.focusArea;
+      if (urlFocusArea) {
+        addFocusArea(JSON.parse(urlFocusArea));
+      }
+    }, [router, addFocusArea, focusArea]);
+
+    // TODO(ddm): Try to do this in a more elegant way
+    useEffect(() => {
+      const echartsInstance = chartRef?.current?.getEchartsInstance();
+      if (echartsInstance && !echartsInstance.group) {
+        echartsInstance.group = DDM_CHART_GROUP;
+      }
+    });
+
+    const unit = series[0]?.unit;
+    const seriesToShow = useMemo(
+      () =>
+        series
+          .filter(s => !s.hidden)
+          .map(s => ({...s, silent: displayType === MetricDisplayType.BAR})),
+      [series, displayType]
+    );
+
+    // TODO(ddm): This assumes that all series have the same bucket size
+    const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
+    const isSubMinuteBucket = bucketSize < 60_000;
+    const seriesLength = seriesToShow[0]?.data.length;
+    const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
+
+    const chartProps = useMemo(() => {
+      const formatters = {
+        valueFormatter: (value: number) =>
+          formatMetricsUsingUnitAndOp(value, unit, operation),
+        isGroupedByDate: true,
+        bucketSize,
+        showTimeInTooltip: true,
+        addSecondsToTimeFormat: isSubMinuteBucket,
+        limit: 10,
+      };
+      return {
+        ...focusAreaBrush.options,
+        forwardedRef: mergeRefs([forwardedRef, chartRef]),
+        series: seriesToShow,
+        renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
+        isGroupedByDate: true,
+        height: 300,
+        colors: seriesToShow.map(s => s.color),
+        grid: {top: 20, bottom: 20, left: 15, right: 25},
+        tooltip: {
+          formatter: (params, asyncTicket) => {
+            const hoveredEchartElement = Array.from(
+              document.querySelectorAll(':hover')
+            ).find(element => {
+              return element.classList.contains('echarts-for-react');
+            });
+
+            if (hoveredEchartElement === chartRef?.current?.ele) {
+              return getFormatter(formatters)(params, asyncTicket);
+            }
+            return '';
           },
         },
-      },
-      xAxis: {
-        axisPointer: {
-          snap: true,
+        yAxis: {
+          axisLabel: {
+            formatter: (value: number) => {
+              return formatMetricsUsingUnitAndOp(value, unit, operation);
+            },
+          },
         },
-      },
-    };
-  }, [
-    bucketSize,
-    isSubMinuteBucket,
-    operation,
-    seriesToShow,
-    unit,
-    focusAreaBrush.options,
-  ]);
+        xAxis: {
+          axisPointer: {
+            snap: true,
+          },
+        },
+      };
+    }, [
+      bucketSize,
+      focusAreaBrush.options,
+      forwardedRef,
+      isSubMinuteBucket,
+      operation,
+      seriesToShow,
+      unit,
+    ]);
 
-  return (
-    <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
-      {focusAreaBrush.overlay}
-      {displayType === MetricDisplayType.LINE ? (
-        <LineChart {...chartProps} />
-      ) : displayType === MetricDisplayType.AREA ? (
-        <AreaChart {...chartProps} />
-      ) : (
-        <BarChart stacked animation={false} {...chartProps} />
-      )}
-      {displayFogOfWar && (
-        <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
-      )}
-    </ChartWrapper>
-  );
-}
+    return (
+      <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
+        {focusAreaBrush.overlay}
+        {displayType === MetricDisplayType.LINE ? (
+          <LineChart {...chartProps} />
+        ) : displayType === MetricDisplayType.AREA ? (
+          <AreaChart {...chartProps} />
+        ) : (
+          <BarChart stacked animation={false} {...chartProps} />
+        )}
+        {displayFogOfWar && (
+          <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
+        )}
+      </ChartWrapper>
+    );
+  }
+);
 
 function FogOfWar({
   bucketSize,
