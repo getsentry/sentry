@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable, Deque, Optional, Union
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue, Partition, Topic
 
-from sentry.utils.shutdown import register_shutdown
+from sentry.utils.celery import register_shutdown
 
 if TYPE_CHECKING:
     ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
