@@ -79,6 +79,7 @@ export enum DataCategory {
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
   REPLAYS = 'replays',
+  MONITOR_SEATS = 'monitorSeats',
 }
 
 /**
