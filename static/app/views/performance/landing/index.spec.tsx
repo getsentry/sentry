@@ -271,7 +271,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
 
     const updatedData = initializeData({
-      projects: [ProjectFixture({id: '123', platform: 'unknown})],
+      projects: [ProjectFixture({id: '123', platform: undefined})],
       selectedProject: 123,
     });
 
