@@ -1,12 +1,19 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
-import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  MetricDisplayType,
+  updateQuery,
+} from 'sentry/utils/metrics';
+import useRouter from 'sentry/utils/useRouter';
 import {useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -27,6 +34,7 @@ type ChartProps = {
 };
 
 export function MetricChart({series, displayType, operation, widgetIndex}: ChartProps) {
+  const router = useRouter();
   const chartRef = useRef<ReactEchartsRef>(null);
 
   const {hoverProps, isHovered} = useHover({
@@ -35,16 +43,47 @@ export function MetricChart({series, displayType, operation, widgetIndex}: Chart
 
   const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
 
+  const handleAddFocusArea = useCallback(
+    newFocusArea => {
+      addFocusArea(newFocusArea);
+      updateQuery(router, {focusArea: JSON.stringify(newFocusArea)});
+    },
+    [addFocusArea, router]
+  );
+
+  const handleRemoveFocusArea = useCallback(() => {
+    removeFocusArea();
+    updateQuery(router, {focusArea: null});
+  }, [removeFocusArea, router]);
+
+  const handleZoom = useCallback(
+    (range: DateTimeObject) => {
+      updateDateTime(range, router, {save: true});
+    },
+    [router]
+  );
+
   const focusAreaBrush = useFocusAreaBrush(
     chartRef,
     focusArea,
-    addFocusArea,
-    removeFocusArea,
+    handleAddFocusArea,
+    handleRemoveFocusArea,
+    handleZoom,
     {
       widgetIndex,
       isDisabled: !isHovered,
     }
   );
+
+  useEffect(() => {
+    if (focusArea) {
+      return;
+    }
+    const urlFocusArea = router.location.query.focusArea;
+    if (urlFocusArea) {
+      addFocusArea(JSON.parse(urlFocusArea));
+    }
+  }, [router, addFocusArea, focusArea]);
 
   // TODO(ddm): Try to do this in a more elegant way
   useEffect(() => {

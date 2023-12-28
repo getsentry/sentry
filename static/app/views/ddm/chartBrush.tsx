@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {Button} from 'sentry/components/button';
 import {IconDelete, IconStack, IconZoom} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,7 +10,8 @@ import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import theme from 'sentry/utils/theme';
-import useRouter from 'sentry/utils/useRouter';
+
+import {DateTimeObject} from '../../components/charts/utils';
 
 interface AbsolutePosition {
   height: string;
@@ -41,10 +41,9 @@ export function useFocusAreaBrush(
   focusArea: FocusArea | null,
   onAdd: (area: FocusArea) => void,
   onRemove: () => void,
+  onZoom: (range: DateTimeObject) => void,
   {widgetIndex, isDisabled = false}: UseFocusAreaBrushOptions
 ) {
-  const router = useRouter();
-
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
       if (isDisabled) {
@@ -85,18 +84,14 @@ export function useFocusAreaBrush(
   const handleZoomIn = useCallback(() => {
     const startFormatted = getDate(focusArea?.datapoints.x[0]);
     const endFormatted = getDate(focusArea?.datapoints.x[1]);
+    onZoom({
+      period: null,
+      start: startFormatted ? getUtcToLocalDateObject(startFormatted) : startFormatted,
+      end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
+    });
 
-    updateDateTime(
-      {
-        period: null,
-        start: startFormatted ? getUtcToLocalDateObject(startFormatted) : startFormatted,
-        end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
-      },
-      router,
-      {save: true}
-    );
     onRemove();
-  }, [focusArea, onRemove, router]);
+  }, [focusArea, onRemove, onZoom]);
 
   const renderOverlay = focusArea && focusArea.widgetIndex === widgetIndex;
 
@@ -185,9 +180,9 @@ const getPosition = (params: BrushEndResult, chartWidth: number): AbsolutePositi
   const heightPx = Math.max(...rect.range[1]) - topPx;
 
   return {
-    left: `${leftPercentage}%`,
+    left: `${leftPercentage.toPrecision(3)}%`,
     top: `${topPx}px`,
-    width: `${widthPercentage}%`,
+    width: `${widthPercentage.toPrecision(3)}%`,
     height: `${heightPx}px`,
   };
 };
