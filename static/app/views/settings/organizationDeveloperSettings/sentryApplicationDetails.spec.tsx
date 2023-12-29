@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 import {SentryAppToken} from 'sentry-fixture/sentryAppToken';
 
