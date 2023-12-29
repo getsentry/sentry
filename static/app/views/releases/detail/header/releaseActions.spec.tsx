@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import {HealthFixture} from 'sentry-fixture/health';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMeta as ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';

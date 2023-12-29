@@ -2,7 +2,7 @@ import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Group as GroupFixture} from 'sentry-fixture/group';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
