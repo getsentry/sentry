@@ -324,7 +324,8 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
-    staleTime: Infinity,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const filterList = filterListData ?? [];
