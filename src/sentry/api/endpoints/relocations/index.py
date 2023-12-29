@@ -222,6 +222,11 @@ class RelocationIndexEndpoint(Endpoint):
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         file.putfile(fileobj, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
 
+        try:
+            autopause = Relocation.Step[options.get("relocation.autopause")].value
+        except KeyError:
+            autopause = None
+
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
@@ -230,6 +235,7 @@ class RelocationIndexEndpoint(Endpoint):
                 owner_id=owner.id,
                 want_org_slugs=org_slugs,
                 step=Relocation.Step.UPLOADING.value,
+                scheduled_pause_at_step=autopause,
             )
             RelocationFile.objects.create(
                 relocation=relocation,
