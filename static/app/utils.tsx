@@ -372,6 +372,7 @@ export function sortProjects(projects: Array<Project>): Array<Project> {
 
 // build actorIds
 export const buildUserId = (id: string) => `user:${id}`;
+export const buildTeamId = (id: string) => `team:${id}`;
 /**
  * Removes the organization / project scope prefix on feature names.
  */
