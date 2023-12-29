@@ -6,7 +6,7 @@ import {Organization} from 'sentry-fixture/organization';
 import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMeta as ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {
