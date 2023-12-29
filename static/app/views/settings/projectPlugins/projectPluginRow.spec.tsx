@@ -1,7 +1,7 @@
 import {Organization} from 'sentry-fixture/organization';
 import {Plugin as PluginFixture} from 'sentry-fixture/plugin';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
