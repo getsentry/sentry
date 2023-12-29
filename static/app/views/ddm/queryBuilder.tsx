@@ -81,7 +81,9 @@ export function QueryBuilder({
     }
 
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
-    return meta.filter(metric => isShownByDefault(metric) || isSelected(metric));
+    return meta
+      .filter(metric => isShownByDefault(metric) || isSelected(metric))
+      .sort(metric => (isSelected(metric) ? -1 : 1));
   }, [meta, metricsQuery.mri, mriMode]);
 
   const selectedMeta = useMemo(() => {
