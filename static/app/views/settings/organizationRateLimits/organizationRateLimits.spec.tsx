@@ -1,5 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

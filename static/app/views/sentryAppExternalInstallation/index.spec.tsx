@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
 import {Organization} from 'sentry-fixture/organization';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

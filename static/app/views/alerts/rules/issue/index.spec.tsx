@@ -5,7 +5,7 @@ import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
