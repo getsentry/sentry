@@ -48,14 +48,12 @@ function ProjectMetrics({project, location}: Props) {
     [location.pathname, location.query]
   );
 
-  const metrics = meta
-    .sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)))
-    .filter(
-      ({mri, type, unit}) =>
-        mri.includes(query) ||
-        getReadableMetricType(type).includes(query) ||
-        unit.includes(query)
-    );
+  const metrics = meta.filter(
+    ({mri, type, unit}) =>
+      mri.includes(query) ||
+      getReadableMetricType(type).includes(query) ||
+      unit.includes(query)
+  );
 
   return (
     <Fragment>
