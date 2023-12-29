@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -50,7 +50,7 @@ function stopPropagation(e: React.MouseEvent) {
   e.stopPropagation();
 }
 
-export function QueryBuilder({
+export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
   projects,
   displayType,
@@ -219,7 +219,7 @@ export function QueryBuilder({
       </QueryBuilderRow>
     </QueryBuilderWrapper>
   );
-}
+});
 
 interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
   onChange: (value: string) => void;

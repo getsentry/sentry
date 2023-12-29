@@ -17,8 +17,16 @@ import {useDDMContext} from 'sentry/views/ddm/context';
 import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
-  const {setSelectedWidgetIndex, selectedWidgetIndex, widgets, updateWidget, addWidget} =
-    useDDMContext();
+  const {
+    setSelectedWidgetIndex,
+    selectedWidgetIndex,
+    widgets,
+    updateWidget,
+    addWidget,
+    focusArea,
+    addFocusArea,
+    removeFocusArea,
+  } = useDDMContext();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -52,6 +60,9 @@ export function MetricScratchpad() {
           datetime={selection.datetime}
           projects={selection.projects}
           environments={selection.environments}
+          addFocusArea={addFocusArea}
+          removeFocusArea={removeFocusArea}
+          focusArea={focusArea}
         />
       ))}
       <AddWidgetPanel

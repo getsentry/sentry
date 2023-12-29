@@ -38,6 +38,9 @@ export default function MetricsExplorer() {
       projects={[]}
       environments={[]}
       numberOfSiblings={0}
+      addFocusArea={() => {}}
+      removeFocusArea={() => {}}
+      focusArea={null}
     />
   );
 }
