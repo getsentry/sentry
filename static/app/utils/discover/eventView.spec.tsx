@@ -541,6 +541,9 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
     const pageFilters = PageFilters({
       datetime: {
         period: '3d',
+        start: null,
+        end: null,
+        utc: null,
       },
       projects: [42],
       environments: ['prod'],
