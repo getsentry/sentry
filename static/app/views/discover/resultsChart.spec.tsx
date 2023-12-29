@@ -1,7 +1,7 @@
 import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +17,7 @@ describe('Discover > ResultsChart', function () {
     pathname: '/',
   });
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: [ProjectFixture()],
   });

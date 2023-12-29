@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
   render,

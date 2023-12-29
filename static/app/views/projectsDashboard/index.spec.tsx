@@ -1,7 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
-import {Team} from 'sentry-fixture/team';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {
   act,
@@ -41,8 +41,8 @@ jest.mock('lodash/debounce', () => {
 
 describe('ProjectsDashboard', function () {
   const api = new MockApiClient();
-  const org = Organization();
-  const team = Team();
+  const org = OrganizationFixture();
+  const team = TeamFixture();
   const teams = [team];
 
   beforeEach(function () {
@@ -60,7 +60,7 @@ describe('ProjectsDashboard', function () {
 
   describe('empty state', function () {
     it('renders with no projects', function () {
-      const noProjectTeams = [Team({isMember: false, projects: []})];
+      const noProjectTeams = [TeamFixture({isMember: false, projects: []})];
 
       render(
         <Dashboard
@@ -80,7 +80,7 @@ describe('ProjectsDashboard', function () {
       const projects = [ProjectFixture({teams, firstEvent: null})];
       ProjectsStore.loadInitialData(projects);
 
-      const teamsWithOneProject = [Team({projects})];
+      const teamsWithOneProject = [TeamFixture({projects})];
 
       render(
         <Dashboard
@@ -106,7 +106,7 @@ describe('ProjectsDashboard', function () {
 
   describe('with projects', function () {
     it('renders with two projects', function () {
-      const teamA = Team({slug: 'team1', isMember: true});
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
       const projects = [
         ProjectFixture({
           id: '1',
@@ -124,7 +124,7 @@ describe('ProjectsDashboard', function () {
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithTwoProjects = [Team({projects})];
+      const teamsWithTwoProjects = [TeamFixture({projects})];
 
       render(
         <Dashboard
@@ -141,7 +141,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders correct project with selected team', function () {
-      const teamC = Team({
+      const teamC = TeamFixture({
         id: '1',
         slug: 'teamC',
         isMember: true,
@@ -156,7 +156,7 @@ describe('ProjectsDashboard', function () {
           }),
         ],
       });
-      const teamD = Team({
+      const teamD = TeamFixture({
         id: '2',
         slug: 'teamD',
         isMember: true,
@@ -232,7 +232,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders projects by search', async function () {
-      const teamA = Team({slug: 'team1', isMember: true});
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
         body: [],
@@ -254,7 +254,7 @@ describe('ProjectsDashboard', function () {
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithTwoProjects = [Team({projects})];
+      const teamsWithTwoProjects = [TeamFixture({projects})];
 
       render(
         <Dashboard
@@ -277,7 +277,7 @@ describe('ProjectsDashboard', function () {
     });
 
     it('renders bookmarked projects first in team list', function () {
-      const teamA = Team({slug: 'team1', isMember: true});
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
       const projects = [
         ProjectFixture({
           id: '11',
@@ -324,7 +324,7 @@ describe('ProjectsDashboard', function () {
       ];
 
       ProjectsStore.loadInitialData(projects);
-      const teamsWithFavProjects = [Team({projects})];
+      const teamsWithFavProjects = [TeamFixture({projects})];
 
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
@@ -368,7 +368,7 @@ describe('ProjectsDashboard', function () {
   });
 
   describe('ProjectsStatsStore', function () {
-    const teamA = Team({slug: 'team1', isMember: true});
+    const teamA = TeamFixture({slug: 'team1', isMember: true});
     const projects = [
       ProjectFixture({
         id: '1',
@@ -408,7 +408,7 @@ describe('ProjectsDashboard', function () {
       }),
     ];
 
-    const teamsWithStatTestProjects = [Team({projects})];
+    const teamsWithStatTestProjects = [TeamFixture({projects})];
 
     it('uses ProjectsStatsStore to load stats', async function () {
       ProjectsStore.loadInitialData(projects);

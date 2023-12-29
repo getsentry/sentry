@@ -1,5 +1,5 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

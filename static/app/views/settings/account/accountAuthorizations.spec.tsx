@@ -1,6 +1,6 @@
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 

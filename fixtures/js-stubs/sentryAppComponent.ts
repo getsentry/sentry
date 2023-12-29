@@ -3,7 +3,7 @@ import {
   SentryAppSchemaIssueLink,
 } from 'sentry/types';
 
-export function SentryAppComponent(
+export function SentryAppComponentFixture(
   params = {}
 ): TSentryAppComponent<SentryAppSchemaIssueLink> {
   return {
@@ -57,7 +57,7 @@ export function SentryAppComponent(
     ...params,
   };
 }
-export function SentryAppComponentAsync(
+export function SentryAppComponentAsyncFixture(
   params = {}
 ): TSentryAppComponent<SentryAppSchemaIssueLink> {
   return {
@@ -99,7 +99,7 @@ export function SentryAppComponentAsync(
   };
 }
 
-export function SentryAppComponentDependent(
+export function SentryAppComponentDependentFixture(
   params = {}
 ): TSentryAppComponent<SentryAppSchemaIssueLink> {
   return {

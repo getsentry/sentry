@@ -1,9 +1,9 @@
-import {Members} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
-import {Team} from 'sentry-fixture/team';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -30,7 +30,7 @@ describe('SettingsSearch', function () {
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -38,11 +38,11 @@ describe('SettingsSearch', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [Team({slug: 'foo-team'})],
+      body: [TeamFixture({slug: 'foo-team'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: Members(),
+      body: MembersFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',

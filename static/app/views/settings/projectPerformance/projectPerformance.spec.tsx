@@ -1,7 +1,7 @@
 import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -20,7 +20,7 @@ import ProjectPerformance, {
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = Organization({
+  const org = OrganizationFixture({
     features: ['performance-view', 'performance-issues-dev'],
   });
   const project = ProjectFixture();

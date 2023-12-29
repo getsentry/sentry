@@ -1,4 +1,4 @@
-import {Image as ImageFixture} from 'sentry-fixture/image';
+import {ImageFixture} from 'sentry-fixture/image';
 
 import {
   type Entry as TEntry,
@@ -7,7 +7,7 @@ import {
   EntryType,
 } from 'sentry/types';
 
-export function EventEntry(params = {}): TEntry {
+export function EventEntryFixture(params = {}): TEntry {
   return {
     type: EntryType.MESSAGE,
     data: {
@@ -17,7 +17,7 @@ export function EventEntry(params = {}): TEntry {
   };
 }
 
-export function EntryRequest(params: Partial<TEntryRequest> = {}): TEntryRequest {
+export function EntryRequestFixture(params: Partial<TEntryRequest> = {}): TEntryRequest {
   return {
     type: EntryType.REQUEST,
     data: {
@@ -29,7 +29,9 @@ export function EntryRequest(params: Partial<TEntryRequest> = {}): TEntryRequest
   };
 }
 
-export function EntryDebugMeta(params: Partial<TEntryDebugMeta> = {}): TEntryDebugMeta {
+export function EntryDebugMetaFixture(
+  params: Partial<TEntryDebugMeta> = {}
+): TEntryDebugMeta {
   return {
     type: EntryType.DEBUGMETA,
     data: {

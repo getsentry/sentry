@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -17,11 +17,11 @@ const FEATURES = [
 ];
 
 describe('Dashboards > Detail', function () {
-  const mockUnauthorizedOrg = Organization({
+  const mockUnauthorizedOrg = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'discover-query'],
   });
 
-  const mockAuthorizedOrg = Organization({
+  const mockAuthorizedOrg = OrganizationFixture({
     features: FEATURES,
   });
   beforeEach(function () {
@@ -71,7 +71,7 @@ describe('Dashboards > Detail', function () {
   });
 
   it('creates new dashboard', async function () {
-    const org = Organization({features: FEATURES});
+    const org = OrganizationFixture({features: FEATURES});
 
     render(<ManageDashboards {...RouteComponentPropsFixture()} organization={org} />);
 
@@ -84,7 +84,7 @@ describe('Dashboards > Detail', function () {
   });
 
   it('can sort', async function () {
-    const org = Organization({features: FEATURES});
+    const org = OrganizationFixture({features: FEATURES});
 
     render(<ManageDashboards {...RouteComponentPropsFixture()} organization={org} />);
 

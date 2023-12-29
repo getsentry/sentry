@@ -1,10 +1,10 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
-import {Repository} from 'sentry-fixture/repository';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -32,7 +32,7 @@ describe('GroupActivity', function () {
     project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
     ConfigStore.init();
-    ConfigStore.set('user', User({id: '123'}));
+    ConfigStore.set('user', UserFixture({id: '123'}));
     GroupStore.init();
   });
 
@@ -56,7 +56,7 @@ describe('GroupActivity', function () {
           id: 'note-1',
           data: {text: 'Test Note'},
           dateCreated: '2020-01-01T00:00:00',
-          user: User(),
+          user: UserFixture(),
           project,
         },
       ],
@@ -66,7 +66,7 @@ describe('GroupActivity', function () {
       organization: additionalOrg,
     });
     GroupStore.add([group]);
-    TeamStore.loadInitialData([Team({id: '999', slug: 'no-team'})]);
+    TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
       <GroupActivity
@@ -86,7 +86,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a marked reviewed activity', function () {
-    const user = User({name: 'Samwise'});
+    const user = UserFixture({name: 'Samwise'});
     createWrapper({
       activity: [
         {
@@ -104,8 +104,8 @@ describe('GroupActivity', function () {
   });
 
   it('renders a pr activity', function () {
-    const user = User({name: 'Test User'});
-    const repository = Repository();
+    const user = UserFixture({name: 'Test User'});
+    const repository = RepositoryFixture();
     createWrapper({
       activity: [
         {
@@ -131,7 +131,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a assigned to self activity', function () {
-    const user = User({id: '123', name: 'Mark'});
+    const user = UserFixture({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -164,7 +164,7 @@ describe('GroupActivity', function () {
             assigneeType: 'user',
             integration: 'codeowners',
             rule: 'path:something/*.py #workflow',
-            user: User(),
+            user: UserFixture(),
           },
           project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
@@ -180,7 +180,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders an assigned via slack activity', function () {
-    const user = User({id: '301', name: 'Mark'});
+    const user = UserFixture({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -189,7 +189,7 @@ describe('GroupActivity', function () {
             assigneeEmail: 'anotheruser@sentry.io',
             assigneeType: 'user',
             integration: 'slack',
-            user: User(),
+            user: UserFixture(),
           },
           project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
@@ -217,11 +217,11 @@ describe('GroupActivity', function () {
               dateCreated: '',
               message: '',
               id: 'komal-commit',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [],
             },
           },
-          user: User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -243,7 +243,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [
                 ReleaseFixture({
                   dateCreated: '2022-05-01',
@@ -253,7 +253,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -275,7 +275,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [
                 ReleaseFixture({
                   dateCreated: '2022-05-01',
@@ -300,7 +300,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -310,7 +310,7 @@ describe('GroupActivity', function () {
   });
 
   it('requests assignees that are not in the team store', async function () {
-    const team = Team({id: '123', name: 'workflow'});
+    const team = TeamFixture({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/teams/`,
       body: [team],
@@ -325,7 +325,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: team.id,
             assigneeType: 'team',
-            user: User(),
+            user: UserFixture(),
           },
           dateCreated: '2021-10-28T13:40:10.634821Z',
         },
@@ -349,7 +349,7 @@ describe('GroupActivity', function () {
         url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      ConfigStore.set('user', User({id: '123', isSuperuser: true}));
+      ConfigStore.set('user', UserFixture({id: '123', isSuperuser: true}));
     });
 
     it('should do nothing if not present in GroupStore', async function () {
@@ -395,7 +395,7 @@ describe('GroupActivity', function () {
           data: {
             ignoreUntilEscalating: true,
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
@@ -415,11 +415,11 @@ describe('GroupActivity', function () {
           data: {
             ignoreUntilEscalating: true,
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
@@ -450,7 +450,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -474,7 +474,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
@@ -492,7 +492,7 @@ describe('GroupActivity', function () {
             ignoreCount: 400,
             ignoreWindow: 1,
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
@@ -586,11 +586,11 @@ describe('GroupActivity', function () {
           type: GroupActivityType.SET_IGNORED,
           project: ProjectFixture(),
           data: {},
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({features: ['escalating-issues']}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'
@@ -607,7 +607,7 @@ describe('GroupActivity', function () {
           data: {
             version: 'frontend@1.0.0',
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
@@ -627,7 +627,7 @@ describe('GroupActivity', function () {
           data: {
             current_release_version: 'frontend@1.0.0',
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],

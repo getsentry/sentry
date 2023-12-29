@@ -1,11 +1,11 @@
 import {browserHistory} from 'react-router';
-import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
-import {Widget as WidgetFixture} from 'sentry-fixture/widget';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -25,7 +25,7 @@ import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > Detail', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
@@ -141,7 +141,7 @@ describe('Dashboards > Detail', function () {
         ),
       });
       initialData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
           projects: [ProjectFixture()],
         }),
@@ -480,7 +480,7 @@ describe('Dashboards > Detail', function () {
       });
 
       initialData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1005,7 +1005,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1069,7 +1069,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1116,7 +1116,7 @@ describe('Dashboards > Detail', function () {
 
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1173,7 +1173,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1234,7 +1234,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1293,7 +1293,7 @@ describe('Dashboards > Detail', function () {
       });
 
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1341,7 +1341,7 @@ describe('Dashboards > Detail', function () {
 
     it('uses releases from the URL query params', async function () {
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1388,7 +1388,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1447,7 +1447,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1509,7 +1509,7 @@ describe('Dashboards > Detail', function () {
         match: [MockApiClient.matchData({query: 's'})],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',

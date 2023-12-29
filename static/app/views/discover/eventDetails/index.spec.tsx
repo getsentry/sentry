@@ -1,7 +1,7 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -111,7 +111,7 @@ describe('Discover > EventDetails', function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -126,7 +126,7 @@ describe('Discover > EventDetails', function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{
           ...LocationFixture(),
@@ -142,7 +142,7 @@ describe('Discover > EventDetails', function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -163,7 +163,7 @@ describe('Discover > EventDetails', function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -180,7 +180,7 @@ describe('Discover > EventDetails', function () {
 
   it('navigates when tag values are clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -223,7 +223,7 @@ describe('Discover > EventDetails', function () {
 
   it('navigates to homepage when tag values are clicked', async function () {
     const {organization, routerContext, router} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -263,7 +263,7 @@ describe('Discover > EventDetails', function () {
 
   it('appends tag value to existing query when clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -305,7 +305,7 @@ describe('Discover > EventDetails', function () {
 
   it('links back to the homepage if the query param contains homepage flag', async () => {
     const {organization, router, routerContext} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
