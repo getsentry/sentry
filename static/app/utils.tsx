@@ -31,25 +31,25 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
  * meaning none of the references will be preserved. If you require faster shallow cloning,
  * use {prop, ...rest} = obj spread syntax instead.
  */
-// export function omit<T extends object, K extends Extract<keyof T, string>>(
-//   obj: T | null | undefined,
-//   key: K | (string & {})
-// ): Omit<T, K>;
-// export function omit<T extends object, K extends Extract<keyof T, string>>(
-//   obj: T | null | undefined,
-//   key: (K | (string & {}))[] | readonly (K | (string & {}))[]
-// ): Pick<T, Exclude<keyof T, K[]>>;
-export function omit<T>(
+export function omit<T extends object, K extends Extract<keyof T, string>>(
+  obj: T | null | undefined,
+  key: K | (string & {})
+): Omit<T, K>;
+export function omit<T extends object, K extends Extract<keyof T, string>>(
+  obj: T | null | undefined,
+  key: (K | (string & {}))[] | readonly (K | (string & {}))[]
+): Pick<T, Exclude<keyof T, K[]>>;
+export function omit<T extends object, K extends Extract<keyof T, string>>(
   obj: T | null | undefined,
   // @TODO: If keys can be statically known, we should provide a ts helper to
   // enforce it. I am fairly certain this will not work with generics as we'll
   // just end up blowing through the stack recursion, but it could be done on-demand.
-  _keys: any[]
+  _keys: (K | (string & {}))[] | readonly (K | (string & {}))[]
   // T return type is wrong, but we cannot statically infer nested keys without
   // narrowing the type, which seems impossible for a generic implementation? Because
   // of this, allow users to type the return value and not
 ) {
-  return cloneDeep(obj);
+  return cloneDeep(obj) as any;
 }
 
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
