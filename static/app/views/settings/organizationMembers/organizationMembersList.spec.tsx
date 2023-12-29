@@ -4,7 +4,7 @@ import {AuthProvider} from 'sentry-fixture/authProvider';
 import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Members as MembersFixture} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import RouterFixture from 'sentry-fixture/routerFixture';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
