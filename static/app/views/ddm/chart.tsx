@@ -118,6 +118,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         grid: {top: 20, bottom: 20, left: 15, right: 25},
         tooltip: {
           formatter: (params, asyncTicket) => {
+            if (focusAreaBrush.isDrawingRef.current) {
+              return '';
+            }
             const hoveredEchartElement = Array.from(
               document.querySelectorAll(':hover')
             ).find(element => {
@@ -146,6 +149,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     }, [
       bucketSize,
       focusAreaBrush.options,
+      focusAreaBrush.isDrawingRef,
       forwardedRef,
       isSubMinuteBucket,
       operation,

@@ -1,4 +1,4 @@
-import {RefObject, useCallback, useMemo} from 'react';
+import {RefObject, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
@@ -40,6 +40,13 @@ export function useFocusAreaBrush(
   onZoom: (range: DateTimeObject) => void,
   {widgetIndex, isDisabled = false}: UseFocusAreaBrushOptions
 ) {
+  const hasFocusArea = useMemo(
+    () => focusArea && focusArea.widgetIndex === widgetIndex,
+    [focusArea, widgetIndex]
+  );
+
+  const isDrawingRef = useRef(false);
+
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
       if (isDisabled) {
@@ -58,11 +65,25 @@ export function useFocusAreaBrush(
         position: getPosition(brushEnd, chartWidth),
         range: getMetricRange(brushEnd),
       });
+
+      // Remove brush from echarts immediately after adding the focus area
+      // since brushes get added to all charts in the group by default and then randomly
+      // render in the wrong place
+      chartRef.current?.getEchartsInstance().dispatchAction({
+        type: 'brush',
+        brushType: 'clear',
+        areas: [],
+      });
+      isDrawingRef.current = false;
     },
     [chartRef, isDisabled, onAdd, widgetIndex]
   );
 
   const startBrush = useCallback(() => {
+    if (hasFocusArea) {
+      return;
+    }
+
     chartRef.current?.getEchartsInstance().dispatchAction({
       type: 'takeGlobalCursor',
       key: 'brush',
@@ -70,15 +91,20 @@ export function useFocusAreaBrush(
         brushType: 'rect',
       },
     });
-  }, [chartRef]);
+    isDrawingRef.current = true;
+  }, [chartRef, hasFocusArea]);
+
+  const handleRemove = useCallback(() => {
+    onRemove();
+  }, [onRemove]);
 
   const handleZoomIn = useCallback(() => {
     onZoom({
       period: null,
       ...focusArea?.range,
     });
-    onRemove();
-  }, [focusArea, onRemove, onZoom]);
+    handleRemove();
+  }, [focusArea, handleRemove, onZoom]);
 
   const brushOptions = useMemo(() => {
     return {
@@ -94,18 +120,27 @@ export function useFocusAreaBrush(
           borderColor: theme.purple300,
           color: 'transparent',
         },
+        inBrush: {
+          opacity: 1,
+        },
+        outOfBrush: {
+          opacity: 1,
+        },
         z: 10,
       } as EChartsOption['brush'],
     };
   }, [onBrushEnd]);
 
-  const shouldRenderOverlay = focusArea && focusArea.widgetIndex === widgetIndex;
-
-  if (shouldRenderOverlay) {
+  if (hasFocusArea) {
     return {
       overlay: (
-        <BrushRectOverlay rect={focusArea} onRemove={onRemove} onZoom={handleZoomIn} />
+        <BrushRectOverlay
+          rect={focusArea}
+          onRemove={handleRemove}
+          onZoom={handleZoomIn}
+        />
       ),
+      isDrawingRef,
       startBrush,
       options: {},
     };
@@ -113,6 +148,8 @@ export function useFocusAreaBrush(
 
   return {
     overlay: null,
+    isDrawingRef,
+
     startBrush,
     options: brushOptions,
   };
@@ -211,4 +248,5 @@ const FocusAreaRect = styled('div')<{
   outline-offset: -1px;
   padding: ${space(1)};
   pointer-events: none;
+  z-index: 1;
 `;
