@@ -27,7 +27,7 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
 
         with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
             with self.handle_query_errors():
-                results = tagstore.get_tag_keys_for_projects(
+                results = tagstore.backend.get_tag_keys_for_projects(
                     filter_params["project_id"],
                     filter_params.get("environment"),
                     filter_params["start"],
