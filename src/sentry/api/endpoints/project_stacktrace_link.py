@@ -16,13 +16,16 @@ from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.api.utils import Timer
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
+from sentry.integrations.utils.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
+    get_sorted_code_mapping_configs,
+)
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.event_frames import munged_filename_and_frames
+from sentry.utils.event_frames import EventFrame
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
@@ -30,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 def get_link(
     config: RepositoryProjectPathConfig,
-    filepath: str,
+    src_path: str,
     version: Optional[str] = None,
     group_id: Optional[str] = None,
     frame_abs_path: Optional[str] = None,
@@ -42,14 +45,12 @@ def get_link(
     )
     install = integration.get_installation(organization_id=config.project.organization_id)
 
-    formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
-
     link = None
     try:
         if isinstance(install, RepositoryMixin):
             with Timer() as t:
                 link = install.get_stacktrace_link(
-                    config.repository, formatted_path, config.default_branch, version
+                    config.repository, src_path, config.default_branch, version
                 )
                 analytics.record(
                     "function_timer.timed",
@@ -73,9 +74,9 @@ def get_link(
         result["error"] = result.get("error") or "file_not_found"
         assert isinstance(install, RepositoryMixin)
         result["attemptedUrl"] = install.format_source_url(
-            config.repository, formatted_path, config.default_branch
+            config.repository, src_path, config.default_branch
         )
-    result["sourcePath"] = formatted_path
+    result["sourcePath"] = src_path
 
     return result
 
@@ -121,38 +122,6 @@ def set_top_tags(
     except Exception:
         # If errors arises we can still proceed
         logger.exception("We failed to set a tag.")
-
-
-def try_path_munging(
-    config: RepositoryProjectPathConfig,
-    filepath: str,
-    ctx: Mapping[str, Optional[str]],
-    current_iteration_count: int,
-) -> tuple[Dict[str, str], int]:
-    result: Dict[str, str] = {}
-    munged_frames = munged_filename_and_frames(
-        str(ctx["platform"]), [ctx], "munged_filename", sdk_name=str(ctx["sdk_name"])
-    )
-    if munged_frames:
-        munged_frame: Mapping[str, Mapping[str, str]] = munged_frames[1][0]
-        munged_filename = str(munged_frame.get("munged_filename"))
-        if munged_filename:
-            if not filepath.startswith(config.stack_root) and not munged_filename.startswith(
-                config.stack_root
-            ):
-                result = {"error": "stack_root_mismatch"}
-            else:
-                result = get_link(
-                    config,
-                    munged_filename,
-                    ctx.get("commit_id"),
-                    ctx.get("group_id"),
-                    ctx.get("abs_path"),
-                )
-
-                current_iteration_count += 1
-
-    return result, current_iteration_count
 
 
 def set_tags(scope: Scope, result: JSONData) -> None:
@@ -216,49 +185,21 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
             for config in configs:
-                outcome = {}
-                munging_outcome = {}
+                src_path = convert_stacktrace_frame_path_to_source_path(
+                    frame=EventFrame.from_dict(ctx),
+                    platform=ctx["platform"],
+                    sdk_name=ctx["sdk_name"],
+                    code_mapping=config,
+                )
 
-                # Munging is required for get_link to work with mobile platforms
-                if ctx["platform"] in ["java", "cocoa", "other"]:
-                    munging_outcome, next_iteration_count = try_path_munging(
-                        config, filepath, ctx, iteration_count
-                    )
-                    iteration_count = next_iteration_count
-                    if munging_outcome.get("error") == "stack_root_mismatch":
-                        result["error"] = "stack_root_mismatch"
-                        continue
+                if not src_path:
+                    result["error"] = "stack_root_mismatch"
+                    continue
 
-                if not munging_outcome:
-                    if not filepath.startswith(config.stack_root):
-                        # This may be overwritten if a valid code mapping is found
-                        result["error"] = "stack_root_mismatch"
-                        continue
-
-                    outcome = get_link(
-                        config,
-                        filepath,
-                        ctx.get("commit_id"),
-                        ctx.get("group_id"),
-                        ctx.get("abs_path"),
-                    )
-                    iteration_count += 1
-                    # XXX: I want to remove this whole block logic as I believe it is wrong
-                    # In some cases the stack root matches and it can either be that we have
-                    # an invalid code mapping or that munging is expect it to work
-                    if not outcome.get("sourceUrl"):
-                        munging_outcome, next_iteration_count = try_path_munging(
-                            config, filepath, ctx, iteration_count
-                        )
-                        iteration_count = next_iteration_count
-                        if munging_outcome:
-                            # Report errors to Sentry for investigation
-                            logger.error("We should never be able to reach this code.")
-
-                # Keep the original outcome if munging failed
-                if munging_outcome:
-                    outcome = munging_outcome
-                    scope.set_tag("stacktrace_link.munged", True)
+                outcome = get_link(
+                    config, src_path, ctx["commit_id"], ctx["group_id"], ctx["abs_path"]
+                )
+                iteration_count += 1
 
                 current_config = {
                     "config": serialize(config, request.user),
