@@ -504,7 +504,6 @@ module = [
     "sentry.snuba.sessions_v2",
     "sentry.snuba.spans_indexed",
     "sentry.snuba.spans_metrics",
-    "sentry.snuba.tasks",
     "sentry.stacktraces.functions",
     "sentry.tagstore.snuba.backend",
     "sentry.tagstore.types",
