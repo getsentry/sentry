@@ -1,4 +1,4 @@
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {SentryApp as SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequest} from 'sentry-fixture/sentryAppWebhookRequest';
 
