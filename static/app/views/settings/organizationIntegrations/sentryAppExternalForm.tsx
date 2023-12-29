@@ -27,8 +27,8 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
 };
 
 export type SchemaFormConfig = {
-  description: string | null;
   uri: string;
+  description?: string;
   optional_fields?: FieldFromSchema[];
   required_fields?: FieldFromSchema[];
 };
