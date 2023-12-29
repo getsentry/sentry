@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {Button} from 'sentry/components/button';
@@ -61,7 +62,18 @@ function ProjectMetrics({project, location}: Props) {
       <SettingsPageHeader
         title={t('Metrics')}
         action={
-          <Button priority="primary" onClick={activateSidebar} size="sm">
+          <Button
+            priority="primary"
+            onClick={() => {
+              Sentry.metrics.increment('ddm.add_custom_metric', 1, {
+                tags: {
+                  referrer: 'settings',
+                },
+              });
+              activateSidebar();
+            }}
+            size="sm"
+          >
             {t('Add Metric')}
           </Button>
         }
