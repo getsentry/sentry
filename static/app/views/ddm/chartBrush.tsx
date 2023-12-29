@@ -40,6 +40,11 @@ export function useFocusAreaBrush(
   onZoom: (range: DateTimeObject) => void,
   {widgetIndex, isDisabled = false}: UseFocusAreaBrushOptions
 ) {
+  const hasFocusArea = useMemo(
+    () => focusArea && focusArea.widgetIndex === widgetIndex,
+    [focusArea, widgetIndex]
+  );
+
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
       if (isDisabled) {
@@ -63,6 +68,10 @@ export function useFocusAreaBrush(
   );
 
   const startBrush = useCallback(() => {
+    if (hasFocusArea) {
+      return;
+    }
+
     chartRef.current?.getEchartsInstance().dispatchAction({
       type: 'takeGlobalCursor',
       key: 'brush',
@@ -70,7 +79,7 @@ export function useFocusAreaBrush(
         brushType: 'rect',
       },
     });
-  }, [chartRef]);
+  }, [chartRef, hasFocusArea]);
 
   const handleZoomIn = useCallback(() => {
     onZoom({
@@ -94,14 +103,18 @@ export function useFocusAreaBrush(
           borderColor: theme.purple300,
           color: 'transparent',
         },
+        inBrush: {
+          opacity: 1,
+        },
+        outOfBrush: {
+          opacity: 1,
+        },
         z: 10,
       } as EChartsOption['brush'],
     };
   }, [onBrushEnd]);
 
-  const shouldRenderOverlay = focusArea && focusArea.widgetIndex === widgetIndex;
-
-  if (shouldRenderOverlay) {
+  if (hasFocusArea) {
     return {
       overlay: (
         <BrushRectOverlay rect={focusArea} onRemove={onRemove} onZoom={handleZoomIn} />
@@ -211,4 +224,5 @@ const FocusAreaRect = styled('div')<{
   outline-offset: -1px;
   padding: ${space(1)};
   pointer-events: none;
+  z-index: 1;
 `;
