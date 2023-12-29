@@ -2,7 +2,7 @@ import {object as propTypesObject} from 'prop-types';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project} from 'sentry-fixture/project';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 export function RouterContextFixture([context, childContextTypes] = []) {
   return {

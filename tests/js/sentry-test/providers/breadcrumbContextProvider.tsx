@@ -1,5 +1,5 @@
 import {InjectedRouter, PlainRoute} from 'react-router';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {RouteContext} from 'sentry/views/routeContext';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
