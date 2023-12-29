@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
@@ -10,6 +10,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {useNow} from 'sentry/utils/useNow';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 function useReplaysForRegressionIssue({
@@ -23,7 +24,7 @@ function useReplaysForRegressionIssue({
   location: Location;
   organization: Organization;
 }) {
-  const now = useRef(new Date().toISOString());
+  const now = useNow();
   const api = useApi();
 
   const [replayIds, setReplayIds] = useState<string[]>();
@@ -35,9 +36,9 @@ function useReplaysForRegressionIssue({
   const datetime = useMemo(
     () => ({
       start: new Date(breakpoint * 1000).toISOString(),
-      end: now.current,
+      end: now.toISOString(),
     }),
-    [breakpoint]
+    [now, breakpoint]
   );
 
   const fetchReplayIds = useCallback(async () => {

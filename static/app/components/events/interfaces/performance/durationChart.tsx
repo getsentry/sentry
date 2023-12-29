@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {YAXisComponentOption} from 'echarts';
 import {Location} from 'history';
@@ -10,7 +9,7 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, EventError, Group, Organization} from 'sentry/types';
+import {EventError, Group, Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {
   findRangeOfMultiSeries,
@@ -19,6 +18,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
+import {useNow} from 'sentry/utils/useNow';
 import {ErrorPanel} from 'sentry/views/performance/styles';
 
 interface Props {
@@ -42,16 +42,16 @@ export function DurationChart({issue, event, organization}: Props) {
   const allEventsApi = useApi();
   const affectedEventsApi = useApi();
 
-  const nowRef = useRef<DateString>(new Date());
+  const now = useNow();
 
   // TODO (udameli): Project ID is hardcoded to sentry for the experiment
   // because performance issues from sentry project are sent to a different project
   const PROJECT_ID = 1;
 
   const issueStart = issue.firstSeen;
-  const timeFromFirstSeen = moment(nowRef.current).diff(issueStart);
+  const timeFromFirstSeen = moment(now).diff(issueStart);
   const start = moment(issueStart).subtract(timeFromFirstSeen).format();
-  const interval = getInterval({start, end: nowRef.current, utc: true}, 'low');
+  const interval = getInterval({start, end: now, utc: true}, 'low');
 
   return (
     <EventsRequest
@@ -59,7 +59,7 @@ export function DurationChart({issue, event, organization}: Props) {
       project={[PROJECT_ID]}
       environment={[]}
       start={start}
-      end={nowRef.current}
+      end={now}
       query={allEventsQuery}
       organization={organization}
       yAxis={['p75(transaction.duration)']}
@@ -78,7 +78,7 @@ export function DurationChart({issue, event, organization}: Props) {
           project={[PROJECT_ID]}
           environment={[]}
           start={issueStart}
-          end={nowRef.current}
+          end={now}
           query={affectedEventsQuery}
           organization={organization}
           yAxis={['p75(transaction.duration)']}

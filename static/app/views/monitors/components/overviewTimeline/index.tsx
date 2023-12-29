@@ -12,6 +12,7 @@ import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useNow} from 'sentry/utils/useNow';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {
@@ -39,12 +40,13 @@ export function OverviewTimeline({monitorList}: Props) {
   const router = useRouter();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
-  const nowRef = useRef<Date>(new Date());
-  const start = getStartFromTimeWindow(nowRef.current, timeWindow);
+  const now = useNow();
+
+  const start = getStartFromTimeWindow(now, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
-  const timeWindowConfig = getConfigFromTimeRange(start, nowRef.current, timelineWidth);
+  const timeWindowConfig = getConfigFromTimeRange(start, now, timelineWidth);
   const rollup = Math.floor((timeWindowConfig.elapsedMinutes * 60) / timelineWidth);
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -52,7 +54,7 @@ export function OverviewTimeline({monitorList}: Props) {
       monitorStatsQueryKey,
       {
         query: {
-          until: Math.floor(nowRef.current.getTime() / 1000),
+          until: Math.floor(now.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
           monitor: monitorList.map(m => m.slug),
           resolution: `${rollup}s`,
@@ -152,7 +154,7 @@ export function OverviewTimeline({monitorList}: Props) {
         <BorderlessGridLineTimeLabels
           timeWindowConfig={timeWindowConfig}
           start={start}
-          end={nowRef.current}
+          end={now}
           width={timelineWidth}
         />
       </StickyGridLineTimeLabels>
@@ -161,7 +163,7 @@ export function OverviewTimeline({monitorList}: Props) {
         showCursor={!isLoading}
         timeWindowConfig={timeWindowConfig}
         start={start}
-        end={nowRef.current}
+        end={now}
         width={timelineWidth}
       />
 
@@ -172,7 +174,7 @@ export function OverviewTimeline({monitorList}: Props) {
           timeWindowConfig={timeWindowConfig}
           start={start}
           bucketedData={monitorStats?.[monitor.slug]}
-          end={nowRef.current}
+          end={now}
           width={timelineWidth}
           onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
           onToggleMuteEnvironment={(env, isMuted) =>

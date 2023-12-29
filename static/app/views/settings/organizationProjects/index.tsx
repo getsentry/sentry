@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -23,6 +23,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNow} from 'sentry/utils/useNow';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
@@ -40,7 +41,8 @@ function OrganizationProjects() {
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
-  const time = useRef(new Date().getTime());
+  const now = useNow();
+
   const {
     data: projectList,
     getResponseHeader,
@@ -65,7 +67,7 @@ function OrganizationProjects() {
       `/organizations/${organization.slug}/stats/`,
       {
         query: {
-          since: time.current / 1000 - 3600 * 24,
+          since: now.getTime() / 1000 - 3600 * 24,
           stat: 'generated',
           group: 'project',
           per_page: ITEMS_PER_PAGE,

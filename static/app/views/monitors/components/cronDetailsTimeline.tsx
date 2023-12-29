@@ -10,6 +10,7 @@ import {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useNow} from 'sentry/utils/useNow';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {
@@ -28,13 +29,14 @@ interface Props {
 
 export function CronDetailsTimeline({monitor, organization}: Props) {
   const {location} = useRouter();
-  const nowRef = useRef<Date>(new Date());
   const {selection} = usePageFilters();
   const {period} = selection.datetime;
   let {end, start} = selection.datetime;
 
+  const now = useNow();
+
   if (!start || !end) {
-    end = nowRef.current;
+    end = now;
     start = moment(end)
       .subtract(parsePeriodToHours(period ?? '24h'), 'hour')
       .toDate();

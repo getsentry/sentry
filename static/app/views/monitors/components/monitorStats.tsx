@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -16,6 +16,7 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import theme from 'sentry/utils/theme';
+import {useNow} from 'sentry/utils/useNow';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {Monitor, MonitorEnvironment, MonitorStat} from '../types';
@@ -30,14 +31,14 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
-  const nowRef = useRef<Date>(new Date());
+  const now = useNow();
 
   let since: number, until: number;
   if (start && end) {
     until = new Date(end).getTime() / 1000;
     since = new Date(start).getTime() / 1000;
   } else {
-    until = Math.floor(nowRef.current.getTime() / 1000);
+    until = Math.floor(now.getTime() / 1000);
     const intervalSeconds = intervalToMilliseconds(period ?? '30d') / 1000;
     since = until - intervalSeconds;
   }

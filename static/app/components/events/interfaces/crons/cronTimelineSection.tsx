@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {Event, Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useNow} from 'sentry/utils/useNow';
 import useRouter from 'sentry/utils/useRouter';
 import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
 import {
@@ -41,8 +42,8 @@ export function CronTimelineSection({event, organization}: Props) {
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
 
-  const nowRef = useRef<Date>(new Date());
-  const {start, end} = getTimeRangeFromEvent(event, nowRef.current, timeWindow);
+  const now = useNow();
+  const {start, end} = getTimeRangeFromEvent(event, now, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
