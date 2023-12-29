@@ -1,5 +1,6 @@
 import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import * as echarts from 'echarts/core';
 
 import {Button} from 'sentry/components/button';
@@ -73,6 +74,7 @@ export function MetricScratchpad() {
                 trackAnalytics('ddm.widget.add', {
                   organization,
                 });
+                Sentry.metrics.increment('ddm.widget.add');
 
                 addWidget();
               }

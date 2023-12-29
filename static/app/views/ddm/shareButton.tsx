@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import TextCopyInput from 'sentry/components/textCopyInput';
@@ -26,7 +28,10 @@ function ShareButton() {
     <Button
       size="sm"
       icon={<IconUpload size="sm" />}
-      onClick={() => openModal(deps => <ShareModal {...deps} />)}
+      onClick={() => {
+        Sentry.metrics.increment('ddm.share');
+        openModal(deps => <ShareModal {...deps} />);
+      }}
     >
       {t('Share')}
     </Button>

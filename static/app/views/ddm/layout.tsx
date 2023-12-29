@@ -1,5 +1,6 @@
-import {Fragment, memo} from 'react';
+import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
@@ -37,6 +38,17 @@ export const DDMLayout = memo(() => {
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
   const importDashboard = useDashboardImport();
+  const addCustomMetric = useCallback(
+    (referrer: string) => {
+      Sentry.metrics.increment('ddm.add_custom_metric', 1, {
+        tags: {
+          referrer,
+        },
+      });
+      activateSidebar();
+    },
+    [activateSidebar]
+  );
 
   return (
     <Fragment>
@@ -54,7 +66,11 @@ export const DDMLayout = memo(() => {
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
             {hasMetrics && !hasCustomMetrics && (
-              <Button priority="primary" onClick={activateSidebar} size="sm">
+              <Button
+                priority="primary"
+                onClick={() => addCustomMetric('header')}
+                size="sm"
+              >
                 {t('Add Custom Metric')}
               </Button>
             )}
@@ -102,7 +118,10 @@ export const DDMLayout = memo(() => {
                   "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
                 )}
               </p>
-              <Button priority="primary" onClick={activateSidebar}>
+              <Button
+                priority="primary"
+                onClick={() => addCustomMetric('onboarding_panel')}
+              >
                 {t('Add Custom Metric')}
               </Button>
             </OnboardingPanel>
