@@ -4,7 +4,7 @@ import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import type {Organization as TOrganization, Project} from 'sentry/types';
 
