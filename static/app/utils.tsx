@@ -158,9 +158,9 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
   // We need to feature detect structured cloning instead of just
   // wrapping it inside a try/catch as somehow ends up crashing
   // our selenium webdriver tests...
-  if (window && 'structuredClone' in window) {
+  if (typeof window !== 'undefined' && 'structuredClone' in window) {
     try {
-      window.structuredClone(obj);
+      returnValue = window.structuredClone(obj);
     } catch {
       returnValue = cloneDeep(obj);
     }
@@ -169,7 +169,7 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
   }
 
   if (!returnValue) {
-    throw new TypeError('Could not clone object');
+    throw new TypeError(`Could not clone object ${JSON.stringify(obj)}`);
   }
 
   if (typeof keys === 'string') {
