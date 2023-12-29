@@ -11,6 +11,7 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.models.group import Group
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
@@ -20,6 +21,8 @@ from sentry.utils.dates import ensure_aware
 
 
 class DummyNotification(BaseNotification):
+    group: Group
+
     template_path = ""
     metrics_key = "dummy"
     reference = None
@@ -58,6 +61,8 @@ class AnotherDummyNotification(DummyNotification):
 
 
 class DummyNotificationWithMoreFields(DummyNotification):
+    group: Group
+
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:

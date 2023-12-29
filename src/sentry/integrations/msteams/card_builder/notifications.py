@@ -7,13 +7,9 @@ from sentry.integrations.message_builder import (
     build_attachment_title,
     get_title_link,
 )
-from sentry.integrations.msteams.card_builder import (
-    MSTEAMS_URL_FORMAT,
-    Action,
-    ColumnSetBlock,
-    TextBlock,
-)
+from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
+from sentry.integrations.msteams.card_builder.block import OpenUrlAction
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
@@ -21,10 +17,13 @@ from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 from .block import (
+    Action,
     ActionType,
+    ColumnSetBlock,
+    TextBlock,
     TextSize,
     TextWeight,
-    create_action_block,
+    create_column_block,
     create_column_set_block,
     create_footer_column_block,
     create_footer_logo_block,
@@ -50,7 +49,7 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
             footer = create_footer_text_block(footer_text)
 
             return create_column_set_block(
-                create_footer_logo_block(),
+                create_column_block(create_footer_logo_block()),
                 create_footer_column_block(footer),
             )
 
@@ -92,16 +91,15 @@ class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
         )
 
     @staticmethod
-    def create_action_blocks(actions: Sequence[MessageAction]) -> Sequence[Action]:
-        action_blocks = []
+    def create_action_blocks(actions: Sequence[MessageAction]) -> list[Action]:
+        action_blocks: list[Action] = []
         for action in actions:
-            name, url = getattr(action, "name", None), getattr(action, "url", None)
-            if not (name and url):
+            if not action.name or not action.url:
                 raise NotImplementedError(
                     "Only actions with 'name' and 'url' attributes are supported now."
                 )
             action_blocks.append(
-                create_action_block(ActionType.OPEN_URL, title=action.name, url=action.url)
+                OpenUrlAction(type=ActionType.OPEN_URL, title=action.name, url=action.url)
             )
 
         return action_blocks
@@ -128,7 +126,7 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         recipient: RpcActor,
     ):
         super().__init__(notification, context, recipient)
-        self.group = getattr(notification, "group", None)
+        self.group = notification.group
 
     def create_attachment_title_block(self) -> TextBlock | None:
         title = build_attachment_title(self.group)
