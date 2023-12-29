@@ -21,10 +21,10 @@ type TestableFrameEvent<
  * `BreadcrumbFrameData` has factories to help construct the correct payloads.
  *
  * ```
- * BreadcrumbFrameEvent({
+ * ReplayBreadcrumbFrameEventFixture({
  *   timestamp,
  *   data: {
- *      payload: TestStubs.BreadcrumbFrameData.FOO({}),
+ *      payload: {...},
  *   },
  * });
  * ```
@@ -51,8 +51,8 @@ export function ReplayBreadcrumbFrameEventFixture(
  * SpanFrameEvent({
  *   timestamp,
  *   data: {
- *     payload: ReplaySpanFrame({
- *      data: TestStubs.ReplaySpanFrameData.FOO({...})
+ *     payload: ReplaySpanFrameEventFixture({
+ *      data: {...}
  *     }),
  *   },
  * });

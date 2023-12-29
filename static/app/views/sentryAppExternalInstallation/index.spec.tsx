@@ -11,7 +11,7 @@ import type {Organization as TOrganization} from 'sentry/types';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
-  let sentryApp: ReturnType<typeof TestStubs.SentryApp>,
+  let sentryApp: ReturnType<typeof SentryApp>,
     getOrgsMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getOrgMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,

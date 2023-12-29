@@ -1,3 +1,5 @@
+import {EntryRequest as EntryRequestFixture} from 'sentry-fixture/eventEntry';
+
 import {
   MockSpan,
   ProblemSpan,
@@ -5,7 +7,7 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType, IssueType} from 'sentry/types';
+import {IssueType} from 'sentry/types';
 
 import {
   extractQueryParameters,
@@ -403,9 +405,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     builder.addEntry(
-      TestStubs.EventEntry({
-        type: EntryType.REQUEST,
+      EntryRequestFixture({
         data: {
+          ...EntryRequestFixture().data,
           url: 'http://some.service.io',
         },
       })

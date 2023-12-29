@@ -1,6 +1,8 @@
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -13,10 +15,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
-
-jest.mock('sentry/stores/configStore', () => ({
-  get: jest.fn(),
-}));
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
@@ -75,6 +73,8 @@ describe('OrganizationContextContainer', function () {
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');
+
+    ConfigStore.init();
   });
 
   afterEach(function () {
@@ -156,9 +156,9 @@ describe('OrganizationContextContainer', function () {
 
   it('opens sudo modal for superusers on 403s', async function () {
     const openSudoSpy = jest.spyOn(openSudo, 'openSudo');
-    jest
-      .mocked(ConfigStore.get)
-      .mockImplementation(() => TestStubs.Config({isSuperuser: true}));
+
+    ConfigStore.set('user', User({isSuperuser: true}));
+
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       statusCode: 403,
@@ -183,8 +183,8 @@ describe('OrganizationContextContainer', function () {
       body: teams,
     });
 
-    // mocking `.get('lastOrganization')`
-    jest.mocked(ConfigStore.get).mockImplementation(() => 'last-org');
+    ConfigStore.set('lastOrganization', 'last-org');
+
     renderComponent({useLastOrganization: true, params: {orgId: ''}});
 
     expect(getOrgMock).toHaveBeenLastCalledWith(
@@ -196,7 +196,7 @@ describe('OrganizationContextContainer', function () {
   it('uses last organization from `organizations` prop', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/foo/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/foo/',
@@ -211,7 +211,7 @@ describe('OrganizationContextContainer', function () {
       body: teams,
     });
 
-    jest.mocked(ConfigStore.get).mockImplementation(() => '');
+    ConfigStore.set('lastOrganization', '');
 
     const {rerender} = renderComponent({
       params: {orgId: ''},
@@ -239,7 +239,6 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('uses last organization when no orgId in URL - and fetches org details once', async function () {
-    jest.mocked(ConfigStore.get).mockImplementation(() => 'my-last-org');
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
       body: Organization({slug: 'my-last-org'}),
@@ -252,6 +251,8 @@ describe('OrganizationContextContainer', function () {
       url: '/organizations/my-last-org/teams/',
       body: teams,
     });
+
+    ConfigStore.set('lastOrganization', 'my-last-org');
 
     const {rerender} = renderComponent({
       params: {orgId: ''},
