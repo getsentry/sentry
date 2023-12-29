@@ -121,6 +121,8 @@ export function QueryBuilder({
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
             options={displayedMetrics.map(metric => ({
               label: mriMode ? metric.mri : formatMRI(metric.mri),
+              // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+              textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
               value: metric.mri,
               trailingItems: mriMode
                 ? undefined
