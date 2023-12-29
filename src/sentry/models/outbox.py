@@ -407,6 +407,7 @@ class WebhookProviderIdentifier(IntEnum):
     LEGACY_PLUGIN = 10
     GETSENTRY = 11
     DISCORD = 12
+    VERCEL = 13
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:

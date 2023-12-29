@@ -1,4 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -21,7 +22,7 @@ describe('Organization Rate Limits', function () {
   const renderComponent = (props?: Partial<OrganizationRateLimitProps>) =>
     render(
       <OrganizationRateLimits
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         {...props}
       />

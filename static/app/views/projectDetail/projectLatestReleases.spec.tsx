@@ -1,4 +1,4 @@
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Release as ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

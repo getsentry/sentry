@@ -376,8 +376,8 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'php',
   'php-laravel',
-  'php-monolog',
-  'php-symfony',
+  // TODO: Enable once metrics are available for Symfony
+  // 'php-symfony',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -442,8 +442,6 @@ export const customMetricOnboardingPlatforms = new Set(
         'javascript-electron',
         'python-pylons',
         'python-tryton',
-      ].includes(p) &&
-      // TODO: Remove this once we have onboarding instructions for these platforms
-      !p.includes('php')
+      ].includes(p)
   )
 );

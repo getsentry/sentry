@@ -1,28 +1,8 @@
-from urllib.parse import urlsplit, urlunsplit
-
+from sentry.security import csp
 from sentry.utils.safe import get_path
 from sentry.utils.strings import strip
 
 from .base import BaseEvent
-
-LOCAL = "'self'"
-
-
-def _normalize_uri(value):
-    if value in ("", LOCAL, LOCAL.strip("'")):
-        return LOCAL
-
-    # A lot of these values get reported as literally
-    # just the scheme. So a value like 'data' or 'blob', which
-    # are valid schemes, just not a uri. So we want to
-    # normalize it into a uri.
-    if ":" not in value:
-        scheme, hostname = value, ""
-    else:
-        scheme, hostname = urlsplit(value)[:2]
-        if scheme in ("http", "https"):
-            return hostname
-    return urlunsplit((scheme, hostname, "", None, None))
 
 
 class SecurityEvent(BaseEvent):
@@ -52,7 +32,7 @@ class CspEvent(SecurityEvent):
 
     def extract_metadata(self, data):
         metadata = SecurityEvent.extract_metadata(self, data)
-        metadata["uri"] = _normalize_uri(data["csp"].get("blocked_uri") or "")
+        metadata["uri"] = csp.normalize_value(data["csp"].get("blocked_uri") or "")
         metadata["directive"] = data["csp"].get("effective_directive")
         return metadata
 

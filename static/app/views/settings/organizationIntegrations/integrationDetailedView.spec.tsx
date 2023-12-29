@@ -1,7 +1,8 @@
 import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -81,7 +82,7 @@ describe('IntegrationDetailedView', function () {
   it('shows integration name, status, and install button', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
         location={LocationFixture({query: {}})}
       />
@@ -94,7 +95,7 @@ describe('IntegrationDetailedView', function () {
   it('view configurations', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />
@@ -109,7 +110,7 @@ describe('IntegrationDetailedView', function () {
   it('disables configure for members without access', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />,
@@ -153,7 +154,7 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />,
@@ -197,7 +198,7 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
         location={LocationFixture({query: {}})}
@@ -221,7 +222,7 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
         location={LocationFixture({query: {}})}
@@ -256,7 +257,7 @@ describe('IntegrationDetailedView', function () {
     });
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
         location={LocationFixture({query: {}})}

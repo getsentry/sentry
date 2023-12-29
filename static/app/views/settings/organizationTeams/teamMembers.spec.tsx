@@ -1,6 +1,7 @@
 import {Member as MemberFixture} from 'sentry-fixture/member';
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -30,7 +31,7 @@ describe('TeamMembers', function () {
     name: 'Sentry 9 Name',
   });
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   const routerProps = {
     router,

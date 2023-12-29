@@ -1,5 +1,5 @@
 import {Group as GroupFixture} from 'sentry-fixture/group';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Release as ReleaseFixture} from 'sentry-fixture/release';
 

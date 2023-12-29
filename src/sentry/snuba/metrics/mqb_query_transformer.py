@@ -3,7 +3,7 @@ import inspect
 from snuba_sdk import AliasedExpression, BooleanCondition, Column, Function, Granularity, Op
 from snuba_sdk.query import Query
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS, OPERATIONS, DerivedMetricException
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory

@@ -1,6 +1,7 @@
 import {OpsgenieIntegration} from 'sentry-fixture/opsgenieIntegration';
 import {OpsgenieIntegrationProvider} from 'sentry-fixture/opsgenieIntegrationProvider';
 import {Organization} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,
@@ -58,7 +59,7 @@ describe('OpsgenieMigrationButton', function () {
 
     render(
       <ConfigureIntegration
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationId, providerKey: 'opsgenie'}}
       />,
       {organization: org}
