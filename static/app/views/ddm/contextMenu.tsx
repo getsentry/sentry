@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
@@ -10,12 +11,18 @@ import {
   IconDelete,
   IconEdit,
   IconEllipsis,
+  IconSettings,
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {isCustomMeasurement, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {
+  isCustomMeasurement,
+  isCustomMetric,
+  MetricDisplayType,
+  MetricsQuery,
+} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
@@ -45,6 +52,7 @@ export function MetricWidgetContextMenu({
   isEdit,
 }: ContextMenuProps) {
   const organization = useOrganization();
+  const router = useRouter();
   const {removeWidget, duplicateWidget, widgets} = useDDMContext();
   const createAlert = useCreateAlert(organization, metricsQuery);
   const createDashboardWidget = useCreateDashboardWidget(
@@ -78,6 +86,19 @@ export function MetricWidgetContextMenu({
         onAction: createDashboardWidget,
       },
       {
+        leadingItems: [<IconSettings key="icon" />],
+        key: 'settings',
+        label: t('Metric Settings'),
+        disabled: !isCustomMetric({mri: metricsQuery.mri}),
+        onAction: () =>
+          navigateTo(
+            `/settings/projects/:projectId/metrics/${encodeURIComponent(
+              metricsQuery.mri
+            )}`,
+            router
+          ),
+      },
+      {
         leadingItems: [<IconDelete key="icon" />],
         key: 'delete',
         label: t('Delete'),
@@ -92,6 +113,8 @@ export function MetricWidgetContextMenu({
       removeWidget,
       widgetIndex,
       canDelete,
+      metricsQuery.mri,
+      router,
     ]
   );
 
