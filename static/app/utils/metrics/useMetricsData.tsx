@@ -43,7 +43,7 @@ export function useMetricsData(
   const queryToSend = getMetricsApiRequestQuery(
     {
       field,
-      query: `${query}`,
+      query: `${query ?? ''}`,
       groupBy,
     },
     {datetime, projects, environments},

@@ -48,7 +48,12 @@ export function useMetricsMeta(
   });
 
   return {
-    data: [...sessionMeta, ...txnsMeta, ...customMeta, ...spansMeta],
+    data: [
+      ...(enabledUseCases.includes('sessions') ? sessionMeta : []),
+      ...(enabledUseCases.includes('transactions') ? txnsMeta : []),
+      ...(enabledUseCases.includes('custom') ? customMeta : []),
+      ...(enabledUseCases.includes('spans') ? spansMeta : []),
+    ],
     isLoading:
       (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
       (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||
