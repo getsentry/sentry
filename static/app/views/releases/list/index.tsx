@@ -54,7 +54,12 @@ import ReleaseFeedbackBanner from '../components/releaseFeedbackBanner';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
 import {fetchThresholdStatuses} from '../utils/fetchThresholdStatus';
-import {ThresholdStatus, ThresholdStatusesQuery} from '../utils/types';
+import {
+  Threshold,
+  ThresholdQuery,
+  ThresholdStatus,
+  ThresholdStatusesQuery,
+} from '../utils/types';
 
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';
@@ -77,6 +82,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
+  thresholds: Threshold[];
   thresholdStatuses?: {[key: string]: ThresholdStatus[]};
 } & DeprecatedAsyncView['state'];
 
@@ -92,7 +98,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, location} = this.props;
+    const {organization, location, selection} = this.props;
     const {statsPeriod} = location.query;
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
@@ -117,6 +123,24 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
         {disableEntireQuery: true}, // options
       ],
     ];
+
+    if (this.hasV2ReleaseUIEnabled) {
+      const thresholdQuery: ThresholdQuery = {};
+      if (selection.projects.length) {
+        thresholdQuery.project = selection.projects;
+      } else {
+        thresholdQuery.project = [ALL_ACCESS_PROJECTS];
+      }
+      if (selection.environments.length) {
+        thresholdQuery.environment = selection.environments;
+      }
+
+      endpoints.push([
+        'thresholds',
+        `/organizations/${organization.slug}/release-thresholds/`,
+        {query: thresholdQuery},
+      ]);
+    }
 
     return endpoints;
   }
@@ -250,6 +274,21 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
   get projectHasSessions() {
     return this.getSelectedProject()?.hasSessions ?? null;
+  }
+
+  getThresholdsForRelease(release: Release): Threshold[] {
+    if (!this.hasV2ReleaseUIEnabled) {
+      return [];
+    }
+    const {thresholds} = this.state;
+    const lastDeploy = release.lastDeploy;
+    const projectSlugs = release.projects.map(p => p.slug);
+
+    return thresholds.filter(
+      threshold =>
+        projectSlugs.includes(threshold.project.slug) &&
+        lastDeploy?.environment === threshold.environment?.name
+    );
   }
 
   handleSearch = (query: string) => {
@@ -561,6 +600,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
                   isTopRelease={index === 0}
                   getHealthData={getHealthData}
                   showReleaseAdoptionStages={showReleaseAdoptionStages}
+                  thresholds={this.getThresholdsForRelease(release)}
                   thresholdStatuses={thresholdStatuses || {}}
                 />
               ))}

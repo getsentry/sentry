@@ -93,13 +93,17 @@ def process_async_webhooks(
 
     try:
         client = RegionSiloClient(region=region)
-        with metrics.timer("integration_proxy.control.process_async_webhooks", sample_rate=1.0):
+        with metrics.timer(
+            "integration_proxy.control.process_async_webhooks",
+            tags={"destination_region": region.name},
+            sample_rate=1.0,
+        ):
             response = client.request(
                 method=webhook_payload.method,
                 path=webhook_payload.path,
                 headers=webhook_payload.headers,
                 # We need to send the body as raw bytes to avoid interfering with webhook signatures
-                data=webhook_payload.body,
+                data=webhook_payload.body.encode("utf-8"),
                 json=False,
                 prefix_hash=sha1(f"{shard_identifier}{object_identifier}".encode()).hexdigest(),
             )

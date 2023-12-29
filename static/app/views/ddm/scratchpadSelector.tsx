@@ -245,7 +245,7 @@ export function ScratchpadSelector() {
         icon={<IconDashboard />}
         onClick={() => createDashboard(selectedScratchpad)}
       >
-        {t('Save to Dashboard')}
+        {t('Add to Dashboard')}
       </Button>
       <SaveAsDropdown
         onSave={name => {
@@ -333,7 +333,7 @@ function SaveAsDropdown({
                       save();
                     }}
                   >
-                    {mode === 'fork' ? t('Fork') : t('Save')}
+                    {mode === 'fork' ? t('Duplicate') : t('Save')}
                   </SaveAsButton>
                 </GuideAnchor>
               </StyledOverlay>

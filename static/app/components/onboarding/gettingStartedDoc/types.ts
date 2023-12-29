@@ -48,6 +48,10 @@ export interface DocsParams<
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   cdn?: string;
   newOrg?: boolean;
+  replayOptions?: {
+    block?: boolean;
+    mask?: boolean;
+  };
 }
 
 export interface NextStep {

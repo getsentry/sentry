@@ -8,9 +8,10 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
+import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
 import {
   generateDocKeys,
   isPlatformSupported,
@@ -24,10 +25,11 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   backend,
+  replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
@@ -223,6 +225,18 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     backend.includes(currentProject.platform) &&
     setupMode() === 'npm';
 
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
+  const npmOnlyFramework =
+    currentProject &&
+    currentProject.platform &&
+    replayFrontendPlatforms
+      .filter(p => p !== 'javascript')
+      .includes(currentProject.platform);
+
   useEffect(() => {
     if (previousProject.id !== currentProject.id) {
       setReceived(false);
@@ -230,20 +244,36 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }, [previousProject.id, currentProject.id]);
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform)
-    : undefined;
+    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    : otherPlatform;
 
   const docKeys = useMemo(() => {
     return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
   }, [currentPlatform, newOnboarding]);
 
+  // Old onboarding docs
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
-  if (isLoading) {
+  // New onboarding docs
+  const {
+    docs: newDocs,
+    dsn,
+    cdn,
+    isProjKeysLoading,
+  } = useLoadOnboardingDoc({
+    platform: showJsFrameworkInstructions
+      ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
+        replayJsFrameworkOptions[0]
+      : currentPlatform,
+    organization,
+    projectSlug: currentProject.slug,
+  });
+
+  if (isLoading || isProjKeysLoading) {
     return <LoadingIndicator />;
   }
 
@@ -273,7 +303,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || (!hasOnboardingContents && !newOnboarding)) {
+  if (
+    !currentPlatform ||
+    (!newOnboarding && !hasOnboardingContents) ||
+    (newOnboarding && !newDocs)
+  ) {
     return (
       <Fragment>
         <div>
@@ -317,22 +351,21 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           </PlatformSelect>
         ) : null}
       </IntroText>
-      {newOnboarding ? (
-        <SdkDocumentation
-          platform={
-            showJsFrameworkInstructions
-              ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-                replayJsFrameworkOptions[0]
-              : currentPlatform
-          }
-          organization={organization}
-          projectSlug={currentProject.slug}
-          projectId={currentProject.id}
+      {newOnboarding && newDocs ? (
+        <ReplayOnboardingLayout
+          docsConfig={newDocs}
+          dsn={dsn}
+          cdn={cdn}
           activeProductSelection={[]}
+          platformKey={currentPlatform.id}
+          projectId={currentProject.id}
+          projectSlug={currentProject.slug}
           configType={
-            setupMode() === 'jsLoader'
-              ? 'replayOnboardingJsLoader'
-              : 'replayOnboardingNpm'
+            setupMode() === 'npm' || // switched to NPM tab
+            (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
+            npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
+              ? 'replayOnboardingNpm'
+              : 'replayOnboardingJsLoader'
           }
         />
       ) : (

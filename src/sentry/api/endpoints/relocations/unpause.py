@@ -1,5 +1,6 @@
 import logging
 from string import Template
+from typing import Optional
 
 from django.db import DatabaseError, router, transaction
 from rest_framework.request import Request
@@ -38,6 +39,82 @@ class RelocationUnpauseEndpoint(Endpoint):
     }
     permission_classes = (SuperuserPermission,)
 
+    def _unpause(self, request: Request, relocation: Relocation) -> Optional[Response]:
+        """
+        Helper function to do the actual unpausing in a transaction-safe manner. It will only return
+        a `Response` if the relocation failed - otherwise, it will return `None` and let the calling
+        function perform the serialization for the return payload.
+        """
+        existing_scheduled_pause_at_step = relocation.scheduled_pause_at_step
+        until_step = request.data.get("untilStep", None)
+        if until_step is None:
+            relocation.scheduled_pause_at_step = None
+        else:
+            try:
+                step = Relocation.Step[until_step.upper()]
+            except KeyError:
+                return Response(
+                    {"detail": ERR_UNKNOWN_RELOCATION_STEP.substitute(step=until_step)},
+                    status=400,
+                )
+
+            if step in {
+                Relocation.Step.UNKNOWN,
+                Relocation.Step.UPLOADING,
+                Relocation.Step.COMPLETED,
+            }:
+                return Response(
+                    {"detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(step=step.name)},
+                    status=400,
+                )
+
+            relocation.scheduled_pause_at_step = step.value
+
+        # If this task is still in progress, but has a future pause scheduled, go ahead and
+        # remove it and do nothing else.
+        if (
+            relocation.status == Relocation.Status.IN_PROGRESS.value
+            and existing_scheduled_pause_at_step is not None
+        ):
+            try:
+                relocation.save()
+                return None
+            except DatabaseError:
+                return Response(
+                    {"detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(step=step.name)},
+                    status=400,
+                )
+
+        # If we reach this point, we must be restarting a currently paused task.
+        if relocation.status != Relocation.Status.PAUSE.value:
+            return Response(
+                {
+                    "detail": ERR_NOT_UNPAUSABLE_STATUS.substitute(
+                        status=Relocation.Status(relocation.status).name
+                    )
+                },
+                status=400,
+            )
+
+        relocation.status = Relocation.Status.IN_PROGRESS.value
+        relocation.latest_task_attempts = 0
+
+        task = get_first_task_for_step(Relocation.Step(relocation.step))
+        if task is None:
+            raise RuntimeError("Unknown relocation task")
+
+        # Save the model first, since we can do so multiple times if the task scheduling fails.
+        try:
+            relocation.save()
+        except DatabaseError:
+            return Response(
+                {"detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(step=step.name)},
+                status=400,
+            )
+
+        task.delay(str(relocation.uuid))
+        return None
+
     def put(self, request: Request, relocation_uuid: str) -> Response:
         """
         Unpause an in-progress relocation.
@@ -67,58 +144,8 @@ class RelocationUnpauseEndpoint(Endpoint):
             except Relocation.DoesNotExist:
                 raise ResourceDoesNotExist
 
-            if relocation.status != Relocation.Status.PAUSE.value:
-                return Response(
-                    {
-                        "detail": ERR_NOT_UNPAUSABLE_STATUS.substitute(
-                            status=Relocation.Status(relocation.status).name
-                        )
-                    },
-                    status=400,
-                )
-
-            relocation.status = Relocation.Status.IN_PROGRESS.value
-            relocation.latest_task_attempts = 0
-
-            until_step = request.data.get("untilStep", None)
-            if until_step is not None:
-                try:
-                    step = Relocation.Step[until_step.upper()]
-                except KeyError:
-                    return Response(
-                        {"detail": ERR_UNKNOWN_RELOCATION_STEP.substitute(step=until_step)},
-                        status=400,
-                    )
-
-                if step in {
-                    Relocation.Step.UNKNOWN,
-                    Relocation.Step.UPLOADING,
-                    Relocation.Step.COMPLETED,
-                }:
-                    return Response(
-                        {
-                            "detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(
-                                step=step.name
-                            )
-                        },
-                        status=400,
-                    )
-
-                relocation.scheduled_pause_at_step = step.value
-
-            task = get_first_task_for_step(Relocation.Step(relocation.step))
-            if task is None:
-                raise RuntimeError("Unknown relocation task")
-
-            # Save the model first, since we can do so multiple times if the task scheduling fails.
-            try:
-                relocation.save()
-            except DatabaseError:
-                return Response(
-                    {"detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(step=step.name)},
-                    status=400,
-                )
-
-            task.delay(str(relocation.uuid))
+            failed = self._unpause(request, relocation)
+            if failed is not None:
+                return failed
 
         return self.respond(serialize(relocation))

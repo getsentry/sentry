@@ -3,7 +3,9 @@ import selectEvent from 'react-select-event';
 import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -30,7 +32,7 @@ function getField(role, name) {
 
 describe('projectGeneralSettings', function () {
   const org = Organization();
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
     allowedDomains: ['example.com', 'https://example.com'],
@@ -43,7 +45,7 @@ describe('projectGeneralSettings', function () {
   let routerContext;
   let putMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
     location: LocationFixture(),
     routes: router.routes,
@@ -56,7 +58,7 @@ describe('projectGeneralSettings', function () {
     jest.spyOn(window.location, 'assign');
     routerContext = RouterContextFixture([
       {
-        router: TestStubs.router({
+        router: RouterFixture({
           params: {
             projectId: project.slug,
           },

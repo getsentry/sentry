@@ -5,6 +5,7 @@ import {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
@@ -29,7 +30,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(),`
+        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${
@@ -194,7 +195,7 @@ const replayOnboarding: OnboardingConfig = {
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/session-replay/',
       }),
-      configurations: [getConfigureStep({...params, isReplaySelected: true})],
+      configurations: [getConfigureStep(params)],
       additionalInfo: tct(
         'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby] plugin, they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
         {

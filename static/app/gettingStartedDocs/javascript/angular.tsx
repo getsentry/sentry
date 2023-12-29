@@ -6,6 +6,7 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
@@ -212,7 +213,7 @@ function getSdkSetupSnippet(params: Params) {
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(),`
+          new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
     }
   ],${
@@ -270,17 +271,17 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
+      }),
       configurations: [
         {
-          description: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
-          }),
           code: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+              code: getSdkSetupSnippet(params),
             },
           ],
         },

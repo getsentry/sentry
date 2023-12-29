@@ -1,9 +1,11 @@
 import selectEvent from 'react-select-event';
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Groups} from 'sentry-fixture/groups';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -52,7 +54,7 @@ describe('ProjectAlertsCreate', function () {
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
@@ -85,13 +87,13 @@ describe('ProjectAlertsCreate', function () {
     const wrapper = render(
       <AlertsContainer>
         <AlertBuilderProjectProvider
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={params}
           organization={organization}
           hasMetricAlerts={false}
         >
           <ProjectAlertsCreate
-            {...TestStubs.routeComponentProps()}
+            {...RouteComponentPropsFixture()}
             hasMetricAlerts={false}
             members={[]}
             params={params}
