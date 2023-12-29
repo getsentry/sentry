@@ -28,17 +28,22 @@ from sentry.services.organization import (
 )
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
+from sentry.types.region import get_local_region
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
+    region = serializers.CharField(required=True)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]
+
+        if not options.get("hybrid_cloud.multi-region-selector"):
+            del self.fields["region"]
         self.fields["slug"].required = False
         self.fields["name"].required = True
 
@@ -216,6 +221,10 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if serializer.is_valid():
             result = serializer.validated_data
+
+            region_name = result.get("region", None)
+            if region_name and region_name != get_local_region().name:
+                return Response({"detail": "Invalid region name provided"}, status=400)
 
             try:
                 create_default_team = bool(result.get("defaultTeam"))

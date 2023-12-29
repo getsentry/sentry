@@ -11,44 +11,17 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
 import {
+  getRegionByName,
   getRegionChoices,
-  RegionDisplayName,
   shouldDisplayRegions,
 } from 'sentry/utils/regions';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-
-function getDefaultRegionChoice(
-  regionChoices: [string, string][]
-): [string, string] | undefined {
-  if (!shouldDisplayRegions()) {
-    return undefined;
-  }
-
-  const usRegion = regionChoices.find(
-    ([_, regionName]) => regionName === RegionDisplayName.US
-  );
-
-  if (usRegion) {
-    return usRegion;
-  }
-
-  return regionChoices[0];
-}
-
-function removeRegionFromRequestForm(formData: Record<string, any>) {
-  const shallowFormDataCopy = {...formData};
-
-  delete shallowFormDataCopy.region;
-  return shallowFormDataCopy;
-}
 
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
   const regionChoices = getRegionChoices();
-  const [regionUrl, setRegion] = useState<string | undefined>(
-    getDefaultRegionChoice(regionChoices)?.[0]
-  );
+  const [regionUrl, setRegion] = useState<string | undefined>(undefined);
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
@@ -66,7 +39,6 @@ function OrganizationCreate() {
           apiEndpoint="/organizations/"
           apiMethod="POST"
           hostOverride={regionUrl}
-          onSubmit={removeRegionFromRequestForm}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
             let nextUrl = normalizeUrl(
@@ -100,11 +72,10 @@ function OrganizationCreate() {
           {shouldDisplayRegions() && (
             <SelectField
               name="region"
-              label="Data Storage"
+              label="Data Storage Location"
               help="Where will this organization reside?"
-              defaultValue={getDefaultRegionChoice(regionChoices)?.[0]}
               choices={regionChoices}
-              onChange={setRegion}
+              onChange={regionName => setRegion(getRegionByName(regionName)?.url)}
               inline={false}
               stacked
               required

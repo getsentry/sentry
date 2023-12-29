@@ -60,9 +60,9 @@ export function getRegionChoices(): [string, string][] {
   const regions = ConfigStore.get('regions') ?? [];
 
   return regions.map(region => {
-    const {url} = region;
+    const {name} = region;
     return [
-      url,
+      name,
       `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
     ];
   });
@@ -73,5 +73,11 @@ export function shouldDisplayRegions(): boolean {
   return (
     ConfigStore.get('features').has('organizations:multi-region-selector') &&
     regionCount > 1
+  );
+}
+
+export function getRegionByName(regionName: string): Region | undefined {
+  return ConfigStore.get('regions').find(
+    ({name}) => name.toUpperCase() === regionName.toUpperCase()
   );
 }
