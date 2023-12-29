@@ -69,9 +69,15 @@ def send_beacon():
         return
 
     end = timezone.now()
-    events_24h = tsdb.backend.get_sums(
-        model=TSDBModel.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
-    )["events.total"]
+    organization_ids = list(Organization.objects.all().values_list("id", flat=True))
+    events_per_org_24h = tsdb.backend.get_sums(
+        model=TSDBModel.organization_total_received,
+        keys=organization_ids,
+        start=end - timedelta(hours=24),
+        end=end,
+    )
+
+    events_24h = sum(p for _, p in events_per_org_24h.items())
 
     # we need this to be explicitly configured and it defaults to None,
     # which is the same as False
