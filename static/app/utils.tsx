@@ -66,7 +66,7 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
   }
 
   if (typeof keys === 'string') {
-    // deepRemoveKey(returnValue, keys);
+    deepRemoveKey(returnValue, keys);
     return returnValue;
   }
   // @TODO: there is an optimization opportunity here. If we presort the keys,
@@ -74,41 +74,41 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
   // entire object for each key. This would be a good idea if we expect to
   // omit many deep keys from an object.
   for (let i = 0; i < keys.length; i++) {
-    // deepRemoveKey(returnValue, keys[i]);
+    deepRemoveKey(returnValue, keys[i]);
   }
 
   return returnValue;
 }
 
-// function deepRemoveKey(obj: Record<string, any>, key: string) {
-//   if (typeof key === 'string') {
-//     if (key in obj) {
-//       delete obj[key];
-//     }
-//     const components = key.split('.');
+function deepRemoveKey(obj: Record<string, any>, key: string) {
+  if (typeof key === 'string') {
+    if (key in obj) {
+      delete obj[key];
+    }
+    const components = key.split('.');
 
-//     const componentsSize = components.length;
-//     if (componentsSize === 1) {
-//       // We have already deleted the key from the object
-//       // on the first line of this function.
-//       return;
-//     }
-//     let componentIndex = 0;
+    const componentsSize = components.length;
+    if (componentsSize === 1) {
+      // We have already deleted the key from the object
+      // on the first line of this function.
+      return;
+    }
+    let componentIndex = 0;
 
-//     let v = obj;
-//     while (componentIndex < componentsSize - 1) {
-//       v = v[components[componentIndex]];
-//       if (v === undefined) {
-//         break;
-//       }
-//       componentIndex++;
-//     }
-//     // will only be defined if we traversed the entire path
-//     if (v !== undefined) {
-//       delete v[components[componentsSize - 1]];
-//     }
-//   }
-// }
+    let v = obj;
+    while (componentIndex < componentsSize - 1) {
+      v = v[components[componentIndex]];
+      if (v === undefined) {
+        break;
+      }
+      componentIndex++;
+    }
+    // will only be defined if we traversed the entire path
+    if (v !== undefined) {
+      delete v[components[componentsSize - 1]];
+    }
+  }
+}
 
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
   if (value === other) {
