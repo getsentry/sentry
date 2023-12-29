@@ -28,7 +28,7 @@ class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
 
         try:
             function = SentryFunction.objects.get(
-                slug=function_slug, organization=kwargs.get("organization").id
+                slug=function_slug, organization=kwargs["organization"].id
             )
         except SentryFunction.DoesNotExist:
             raise Http404

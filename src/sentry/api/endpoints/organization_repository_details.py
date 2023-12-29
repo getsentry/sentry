@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -60,7 +64,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
-        update_kwargs = {}
+        update_kwargs: dict[str, Any] = {}
         if result.get("status"):
             if result["status"] in ("visible", "active"):
                 update_kwargs["status"] = ObjectStatus.ACTIVE

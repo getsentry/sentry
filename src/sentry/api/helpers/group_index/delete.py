@@ -126,9 +126,7 @@ def delete_groups(
         return Response(status=204)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
-        raise rest_framework.exceptions.ValidationError(
-            detail="Only error issues can be deleted.", code=400
-        )
+        raise rest_framework.exceptions.ValidationError(detail="Only error issues can be deleted.")
 
     groups_by_project_id = defaultdict(list)
     for group in group_list:
