@@ -106,6 +106,11 @@ const splitTokenContentByLine = (
   }
 
   types.add(token.type);
+  if (typeof token.alias === 'string') {
+    types.add(token.alias);
+  } else if (Array.isArray(token.alias)) {
+    token.alias.forEach(alias => types.add(alias));
+  }
 
   if (Array.isArray(token.content)) {
     return splitMultipleTokensByLine(token.content, new Set(types));
