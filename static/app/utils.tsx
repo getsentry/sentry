@@ -1,4 +1,5 @@
 import {Query} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 import isObject from 'lodash/isObject';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -23,6 +24,86 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
   }
 
   return arr.every((val, idx) => valueIsEqual(val, other[idx], deep));
+}
+
+/**
+ * Omit keys from an object. The return value will be a deep clone of the input,
+ * meaning none of the references will be preserved. If you require faster shallow cloning,
+ * use {prop, ...rest} = obj spread syntax instead.
+ */
+export function omit<T extends object, K extends Extract<keyof T, string>>(
+  obj: T | null | undefined,
+  key: K | (string & {})
+): Omit<T, K>;
+export function omit<T extends object, K extends Extract<keyof T, string>>(
+  obj: T | null | undefined,
+  key: (K | (string & {}))[] | readonly (K | (string & {}))[]
+): Pick<T, Exclude<keyof T, K[]>>;
+export function omit<T extends object, K extends Extract<keyof T, string>>(
+  obj: T | null | undefined,
+  // @TODO: If keys can be statically known, we should provide a ts helper to
+  // enforce it. I am fairly certain this will not work with generics as we'll
+  // just end up blowing through the stack recursion, but it could be done on-demand.
+  keys: (K | (string & {})) | (K | (string & {}))[]
+  // T return type is wrong, but we cannot statically infer nested keys without
+  // narrowing the type, which seems impossible for a generic implementation? Because
+  // of this, allow users to type the return value and not
+) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    // It would have been more correct to throw and error, however
+    // the lodash implementation we were using before did not do that
+    // and we have a lot of code that relies on this behavior.
+    return {};
+  }
+
+  let returnValue: T;
+  try {
+    returnValue = window.structuredClone(obj);
+  } catch (e) {
+    // structuredClone cannot clone functions. If this happens,
+    // fallback to deep clone which will preseve the fn references
+    returnValue = cloneDeep(obj);
+  }
+
+  if (typeof keys === 'string') {
+    deepRemoveKey(returnValue, keys);
+    return returnValue;
+  }
+  const normalizedKeys = Array.isArray(keys) ? keys : [keys];
+  // @TODO: there is an optimization opportunity here. If we presort the keys,
+  // then we can treat the traversal as a tree and avoid having to traverse the
+  // entire object for each key. This would be a good idea if we expect to
+  // omit many deep keys from an object.
+  for (const key of normalizedKeys) {
+    deepRemoveKey(returnValue, key);
+  }
+
+  return returnValue;
+}
+
+function deepRemoveKey(obj: Record<string, any>, key: string) {
+  if (typeof key === 'string') {
+    if (key in obj) {
+      delete obj[key];
+    }
+    const components = key.split('.');
+
+    const componentsSize = components.length;
+    let componentIndex = 0;
+
+    let v = obj;
+    while (componentIndex < componentsSize - 1) {
+      v = v[components[componentIndex]];
+      if (v === undefined) {
+        break;
+      }
+      componentIndex++;
+    }
+    // will only be defined if we traversed the entire path
+    if (v !== undefined) {
+      delete v[components[componentsSize - 1]];
+    }
+  }
 }
 
 export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean {
