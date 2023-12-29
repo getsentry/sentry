@@ -1,6 +1,7 @@
 import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import * as Sentry from '@sentry/react';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 
@@ -57,6 +58,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
     const handleZoom = useCallback(
       (range: DateTimeObject) => {
+        Sentry.metrics.increment('ddm.enhance.zoom');
         updateDateTime(range, router, {save: true});
       },
       [router]

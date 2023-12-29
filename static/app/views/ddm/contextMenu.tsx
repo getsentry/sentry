@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -69,41 +70,55 @@ export function MetricWidgetContextMenu({
         leadingItems: [<IconCopy key="icon" />],
         key: 'duplicate',
         label: t('Duplicate'),
-        onAction: () => duplicateWidget(widgetIndex),
+        onAction: () => {
+          Sentry.metrics.increment('ddm.widget.duplicate');
+          duplicateWidget(widgetIndex);
+        },
       },
       {
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: t('Create Alert'),
         disabled: !createAlert,
-        onAction: createAlert,
+        onAction: () => {
+          Sentry.metrics.increment('ddm.widget.alert');
+          createAlert?.();
+        },
       },
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashoard',
         label: t('Add to Dashboard'),
         disabled: !createDashboardWidget,
-        onAction: createDashboardWidget,
+        onAction: () => {
+          Sentry.metrics.increment('ddm.widget.dashboard');
+          createDashboardWidget?.();
+        },
       },
       {
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
         label: t('Metric Settings'),
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
-        onAction: () =>
+        onAction: () => {
+          Sentry.metrics.increment('ddm.widget.settings');
           navigateTo(
             `/settings/projects/:projectId/metrics/${encodeURIComponent(
               metricsQuery.mri
             )}`,
             router
-          ),
+          );
+        },
       },
       {
         leadingItems: [<IconDelete key="icon" />],
         key: 'delete',
         label: t('Delete'),
         disabled: !canDelete,
-        onAction: () => removeWidget(widgetIndex),
+        onAction: () => {
+          Sentry.metrics.increment('ddm.widget.delete');
+          removeWidget(widgetIndex);
+        },
       },
     ],
     [
