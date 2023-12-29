@@ -63,6 +63,15 @@ export function useFocusAreaBrush(
         position: getPosition(brushEnd, chartWidth),
         range: getMetricRange(brushEnd),
       });
+
+      // Remove brush from echarts immediately after adding the focus area
+      // since brushes get added to all charts in the group by default and then randomly
+      // render in the wrong place
+      chartRef.current?.getEchartsInstance().dispatchAction({
+        type: 'brush',
+        brushType: 'clear',
+        areas: [],
+      });
     },
     [chartRef, isDisabled, onAdd, widgetIndex]
   );
@@ -81,13 +90,17 @@ export function useFocusAreaBrush(
     });
   }, [chartRef, hasFocusArea]);
 
+  const handleRemove = useCallback(() => {
+    onRemove();
+  }, [onRemove]);
+
   const handleZoomIn = useCallback(() => {
     onZoom({
       period: null,
       ...focusArea?.range,
     });
-    onRemove();
-  }, [focusArea, onRemove, onZoom]);
+    handleRemove();
+  }, [focusArea, handleRemove, onZoom]);
 
   const brushOptions = useMemo(() => {
     return {
@@ -117,7 +130,11 @@ export function useFocusAreaBrush(
   if (hasFocusArea) {
     return {
       overlay: (
-        <BrushRectOverlay rect={focusArea} onRemove={onRemove} onZoom={handleZoomIn} />
+        <BrushRectOverlay
+          rect={focusArea}
+          onRemove={handleRemove}
+          onZoom={handleZoomIn}
+        />
       ),
       startBrush,
       options: {},
