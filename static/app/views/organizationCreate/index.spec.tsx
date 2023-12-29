@@ -132,7 +132,7 @@ describe('OrganizationCreate', function () {
     ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
 
     render(<OrganizationCreate />);
-    expect(screen.queryByLabelText('Data Storage')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Data Storage Location')).not.toBeInTheDocument();
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(screen.getByText('Create Organization'));
 
@@ -155,18 +155,17 @@ describe('OrganizationCreate', function () {
   it('renders with region data and selects US region as default when the feature flag is enabled', async function () {
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
-    expect(screen.getByLabelText('Data Storage')).toBeInTheDocument();
+    expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = 'https://us.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        host: undefined,
+        data: {defaultTeam: true, name: 'Good Burger', region: undefined},
       });
     });
 
@@ -180,7 +179,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = multiRegionSetup();
     ConfigStore.set('features', new Set());
     render(<OrganizationCreate />);
-    expect(screen.queryByLabelText('Data Storage')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Data Storage Location')).not.toBeInTheDocument();
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(screen.getByText('Create Organization'));
 
@@ -203,10 +202,10 @@ describe('OrganizationCreate', function () {
   it('uses the host of the selected region when submitting', async function () {
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
-    expect(screen.getByLabelText('Data Storage')).toBeInTheDocument();
+    expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Data Storage'}),
+      screen.getByRole('textbox', {name: 'Data Storage Location'}),
       '🇪🇺 European Union (EU)'
     );
     await userEvent.click(screen.getByText('Create Organization'));
@@ -218,7 +217,7 @@ describe('OrganizationCreate', function () {
         error: expect.any(Function),
         method: 'POST',
         host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        data: {defaultTeam: true, name: 'Good Burger', region: 'de'},
       });
     });
 
