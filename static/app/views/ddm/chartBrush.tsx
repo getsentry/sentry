@@ -1,4 +1,4 @@
-import {RefObject, useCallback, useMemo} from 'react';
+import {RefObject, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
@@ -45,6 +45,8 @@ export function useFocusAreaBrush(
     [focusArea, widgetIndex]
   );
 
+  const isDrawingRef = useRef(false);
+
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
       if (isDisabled) {
@@ -72,6 +74,7 @@ export function useFocusAreaBrush(
         brushType: 'clear',
         areas: [],
       });
+      isDrawingRef.current = false;
     },
     [chartRef, isDisabled, onAdd, widgetIndex]
   );
@@ -88,6 +91,7 @@ export function useFocusAreaBrush(
         brushType: 'rect',
       },
     });
+    isDrawingRef.current = true;
   }, [chartRef, hasFocusArea]);
 
   const handleRemove = useCallback(() => {
@@ -136,6 +140,7 @@ export function useFocusAreaBrush(
           onZoom={handleZoomIn}
         />
       ),
+      isDrawingRef,
       startBrush,
       options: {},
     };
@@ -143,6 +148,8 @@ export function useFocusAreaBrush(
 
   return {
     overlay: null,
+    isDrawingRef,
+
     startBrush,
     options: brushOptions,
   };
