@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
