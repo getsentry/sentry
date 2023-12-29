@@ -7,9 +7,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DDMContextProvider} from 'sentry/views/ddm/context';
 import {DDMLayout} from 'sentry/views/ddm/layout';
+import {useScratchpads} from 'sentry/views/ddm/scratchpadSelector';
 
 function DDM() {
   const organization = useOrganization();
+
+  const {selected} = useScratchpads();
 
   useEffect(() => {
     trackAnalytics('ddm.page-view', {
@@ -20,7 +23,7 @@ function DDM() {
 
   return (
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
-      <PageFiltersContainer disablePersistence>
+      <PageFiltersContainer disablePersistence={!!selected}>
         <DDMContextProvider>
           <DDMLayout />
         </DDMContextProvider>

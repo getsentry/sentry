@@ -5,6 +5,7 @@ import {FocusScope} from '@react-aria/focus';
 import {uuid4} from '@sentry/utils';
 import {AnimatePresence} from 'framer-motion';
 import isEmpty from 'lodash/isEmpty';
+import isEqual from 'lodash/isEqual';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -22,6 +23,7 @@ import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
 import {useCreateDashboard} from './useCreateDashboard';
@@ -41,6 +43,8 @@ function makeLocalStorageKey(orgSlug: string) {
   return `ddm-scratchpads:${orgSlug}`;
 }
 
+const EMPTY_QUERY = {};
+
 export function useScratchpads() {
   const {slug} = useOrganization();
   const [state, setState] = useLocalStorageState<ScratchpadState>(
@@ -50,16 +54,18 @@ export function useScratchpads() {
       scratchpads: {},
     }
   );
-  const [selected, setSelected] = useState<string | null | undefined>(undefined); // scratchpad id
   const router = useRouter();
-  const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
-
-  useEffect(() => {
-    if (state.default && selected === undefined && !routerQuery.widgets) {
-      setSelected(state.default);
+  const routerQuery = router.location.query ?? EMPTY_QUERY;
+  const {projects} = usePageFilters().selection;
+  const [selected, setSelected] = useState<string | null | undefined>(() => {
+    if (
+      (state.default && !routerQuery.widgets) ||
+      (state.default && isEqual(state.scratchpads[state.default].query, routerQuery))
+    ) {
+      return state.default;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.default, selected]);
+    return undefined;
+  });
 
   // changes the query when a scratchpad is selected, clears it when none is selected
   useEffect(() => {
@@ -82,11 +88,18 @@ export function useScratchpads() {
 
   // saves all changes to the selected scratchpad to local storage
   useEffect(() => {
-    if (selected && !isEmpty(routerQuery)) {
+    if (
+      selected &&
+      !isEmpty(routerQuery) &&
+      isEqual(
+        projects,
+        (state.scratchpads[selected].query.project as string[]).map?.(Number)
+      )
+    ) {
       update(selected, routerQuery);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routerQuery]);
+  }, [routerQuery, projects]);
 
   const toggleSelected = useCallback(
     (id: string | null) => {
@@ -122,7 +135,7 @@ export function useScratchpads() {
   const update = useCallback(
     (id: string, query: Scratchpad['query']) => {
       const oldScratchpad = state.scratchpads[id];
-      const newQuery = {environment: null, statsPeriod: null, ...query};
+      const newQuery = {...query};
       const newScratchpads = {
         ...state.scratchpads,
         [id]: {...oldScratchpad, query: newQuery},
