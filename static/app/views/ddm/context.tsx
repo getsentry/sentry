@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import * as Sentry from '@sentry/react';
 
 import {MRI} from 'sentry/types';
 import {
@@ -197,6 +198,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
+      Sentry.metrics.increment('ddm.enhance.add');
       setFocusArea(area);
       setSelectedWidgetIndex(area.widgetIndex);
       updateQuery({focusArea: JSON.stringify(area)});
@@ -205,6 +207,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   );
 
   const handleRemoveFocusArea = useCallback(() => {
+    Sentry.metrics.increment('ddm.enhance.remove');
     setFocusArea(null);
     updateQuery({focusArea: null});
   }, [updateQuery]);
