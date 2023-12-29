@@ -1,7 +1,7 @@
 import {Config as ConfigFixture} from 'sentry-fixture/config';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
 
