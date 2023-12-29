@@ -2,6 +2,11 @@ import selectEvent from 'react-select-event';
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import {SentryApp} from 'sentry-fixture/sentryApp';
+import {
+  SentryAppComponent,
+  SentryAppComponentAsync,
+  SentryAppComponentDependent,
+} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -15,7 +20,7 @@ describe('SentryAppExternalIssueForm', () => {
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const component = TestStubs.SentryAppComponent();
+  const component = SentryAppComponent();
   const sentryApp = SentryApp();
   const sentryAppInstallation = SentryAppInstallation({});
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
@@ -149,7 +154,7 @@ describe('SentryAppExternalIssueForm', () => {
 });
 
 describe('SentryAppExternalIssueForm Async Field', () => {
-  const component = TestStubs.SentryAppComponentAsync();
+  const component = SentryAppComponentAsync();
   const group = GroupFixture({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
@@ -203,7 +208,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
   });
   const sentryApp = SentryApp();
   const sentryAppInstallation = SentryAppInstallation({});
-  const component = TestStubs.SentryAppComponentDependent();
+  const component = SentryAppComponentDependent();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
