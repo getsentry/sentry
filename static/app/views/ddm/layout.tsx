@@ -27,6 +27,7 @@ import {useDashboardImport} from 'sentry/views/ddm/dashboardImportModal';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
+import ShareButton from 'sentry/views/ddm/shareButton';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
@@ -57,6 +58,7 @@ export const DDMLayout = memo(() => {
                 {t('Add Custom Metric')}
               </Button>
             )}
+            <ShareButton />
             <GithubFeedbackButton
               href="https://github.com/getsentry/sentry/discussions/58584"
               label={t('Discussion')}

@@ -11,22 +11,20 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {
-  formatMetricsUsingUnitAndOp,
-  MetricDisplayType,
-  updateQuery,
-} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
-import {useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
+import {FocusArea, useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
-import {useDDMContext} from 'sentry/views/ddm/context';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
 import {Series} from './widget';
 
 type ChartProps = {
+  addFocusArea: (area: FocusArea) => void;
   displayType: MetricDisplayType;
+  focusArea: FocusArea | null;
+  removeFocusArea: () => void;
   series: Series[];
   widgetIndex: number;
   operation?: string;
@@ -38,28 +36,24 @@ type ChartProps = {
 echarts.use(CanvasRenderer);
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
-  ({series, displayType, operation, widgetIndex}, forwardedRef) => {
+  (
+    {
+      series,
+      displayType,
+      operation,
+      widgetIndex,
+      addFocusArea,
+      focusArea,
+      removeFocusArea,
+    },
+    forwardedRef
+  ) => {
     const router = useRouter();
     const chartRef = useRef<ReactEchartsRef>(null);
 
     const {hoverProps, isHovered} = useHover({
       isDisabled: false,
     });
-
-    const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
-
-    const handleAddFocusArea = useCallback(
-      newFocusArea => {
-        addFocusArea(newFocusArea);
-        updateQuery(router, {focusArea: JSON.stringify(newFocusArea)});
-      },
-      [addFocusArea, router]
-    );
-
-    const handleRemoveFocusArea = useCallback(() => {
-      removeFocusArea();
-      updateQuery(router, {focusArea: null});
-    }, [removeFocusArea, router]);
 
     const handleZoom = useCallback(
       (range: DateTimeObject) => {
@@ -71,24 +65,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const focusAreaBrush = useFocusAreaBrush(
       chartRef,
       focusArea,
-      handleAddFocusArea,
-      handleRemoveFocusArea,
+      addFocusArea,
+      removeFocusArea,
       handleZoom,
       {
         widgetIndex,
         isDisabled: !isHovered,
       }
     );
-
-    useEffect(() => {
-      if (focusArea) {
-        return;
-      }
-      const urlFocusArea = router.location.query.focusArea;
-      if (urlFocusArea) {
-        addFocusArea(JSON.parse(urlFocusArea));
-      }
-    }, [router, addFocusArea, focusArea]);
 
     // TODO(ddm): Try to do this in a more elegant way
     useEffect(() => {
@@ -134,6 +118,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         grid: {top: 20, bottom: 20, left: 15, right: 25},
         tooltip: {
           formatter: (params, asyncTicket) => {
+            if (focusAreaBrush.isDrawingRef.current) {
+              return '';
+            }
             const hoveredEchartElement = Array.from(
               document.querySelectorAll(':hover')
             ).find(element => {
@@ -162,6 +149,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     }, [
       bucketSize,
       focusAreaBrush.options,
+      focusAreaBrush.isDrawingRef,
       forwardedRef,
       isSubMinuteBucket,
       operation,
