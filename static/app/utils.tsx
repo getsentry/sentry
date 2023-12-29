@@ -31,14 +31,14 @@ function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
  * meaning none of the references will be preserved. If you require faster shallow cloning,
  * use {prop, ...rest} = obj spread syntax instead.
  */
-export function omit<T extends object, K extends Extract<keyof T, string>>(
-  obj: T | null | undefined,
-  key: K | (string & {})
-): Omit<T, K>;
-export function omit<T extends object, K extends Extract<keyof T, string>>(
-  obj: T | null | undefined,
-  key: (K | (string & {}))[] | readonly (K | (string & {}))[]
-): Pick<T, Exclude<keyof T, K[]>>;
+// export function omit<T extends object, K extends Extract<keyof T, string>>(
+//   obj: T | null | undefined,
+//   key: K | (string & {})
+// ): Omit<T, K>;
+// export function omit<T extends object, K extends Extract<keyof T, string>>(
+//   obj: T | null | undefined,
+//   key: (K | (string & {}))[] | readonly (K | (string & {}))[]
+// ): Pick<T, Exclude<keyof T, K[]>>;
 export function omit<T extends object, K extends Extract<keyof T, string>>(
   obj: T | null | undefined,
   // @TODO: If keys can be statically known, we should provide a ts helper to
