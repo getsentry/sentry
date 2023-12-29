@@ -284,7 +284,6 @@ module = [
     "sentry.db.models.utils",
     "sentry.db.postgres.base",
     "sentry.db.postgres.creation",
-    "sentry.db.postgres.decorators",
     "sentry.db.router",
     "sentry.digests.notifications",
     "sentry.discover.endpoints.discover_key_transactions",
