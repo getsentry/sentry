@@ -117,7 +117,7 @@ describe('useInitialTimeOffsetMs', () => {
             orgSlug: organization.slug,
             projectSlug: project.slug,
             replayId: replay.id,
-            replayStartTimestampMs: undefined,
+            replayStartTimestampMs: undefined as number | undefined,
           },
         }
       );
@@ -226,7 +226,7 @@ describe('useInitialTimeOffsetMs', () => {
             orgSlug: organization.slug,
             projectSlug: project.slug,
             replayId: replay.id,
-            replayStartTimestampMs: undefined,
+            replayStartTimestampMs: undefined as number | undefined,
           },
         }
       );

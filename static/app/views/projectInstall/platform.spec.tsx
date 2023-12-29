@@ -8,7 +8,11 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
-function mockProjectApiResponses(projects: Project[]) {
+type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
+  platform: string;
+};
+
+function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatform>) {
   MockApiClient.addMockResponse({
     method: 'GET',
     url: '/organizations/org-slug/projects/',
