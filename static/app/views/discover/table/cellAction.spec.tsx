@@ -1,5 +1,5 @@
 import {Location} from 'history';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

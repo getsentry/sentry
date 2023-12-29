@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';

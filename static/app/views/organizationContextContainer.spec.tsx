@@ -1,5 +1,5 @@
 import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';

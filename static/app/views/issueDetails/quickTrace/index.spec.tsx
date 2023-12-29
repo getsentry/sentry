@@ -1,6 +1,6 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Group as GroupFixture} from 'sentry-fixture/group';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';

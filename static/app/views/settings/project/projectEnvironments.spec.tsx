@@ -2,7 +2,7 @@ import {
   Environments as EnvironmentsFixture,
   HiddenEnvironments,
 } from 'sentry-fixture/environments';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
