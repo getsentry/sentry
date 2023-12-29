@@ -6,7 +6,7 @@ import {TextDecoder, TextEncoder} from 'util';
 import {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import RouterFixture from 'sentry-fixture/routerFixture';

@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Groups} from 'sentry-fixture/groups';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
