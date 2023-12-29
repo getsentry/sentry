@@ -57,6 +57,7 @@ export function useScratchpads() {
   const router = useRouter();
   const routerQuery = router.location.query ?? EMPTY_QUERY;
   const {projects} = usePageFilters().selection;
+  const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected] = useState<string | null | undefined>(() => {
     if (
       (state.default && !routerQuery.widgets) ||
@@ -76,7 +77,7 @@ export function useScratchpads() {
 
       // if the selected scratchpad has a start and end date, override the statsPeriod
       if (selectedQuery.start && selectedQuery.end) {
-        updateQuery(router, {...selectedQuery, statsPeriod: null});
+        updateQuery(router, {...selectedQuery, statsPeriod: undefined});
       } else {
         updateQuery(router, queryToUpdate);
       }
@@ -88,18 +89,27 @@ export function useScratchpads() {
 
   // saves all changes to the selected scratchpad to local storage
   useEffect(() => {
-    if (
-      selected &&
-      !isEmpty(routerQuery) &&
-      isEqual(
-        projects,
-        (state.scratchpads[selected].query.project as string[]).map?.(Number)
-      )
-    ) {
+    if (selected && !isEmpty(routerQuery) && !isLoading) {
       update(selected, routerQuery);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routerQuery, projects]);
+  }, [routerQuery, projects, isLoading]);
+
+  // Loading is finished once the project selector is synced with the selected scratchpad
+  useEffect(() => {
+    const savedProjects = selected && state.scratchpads[selected].query.project;
+    if (
+      !selected ||
+      isEqual(
+        Array.isArray(savedProjects)
+          ? savedProjects?.map?.(Number)
+          : [Number(savedProjects)],
+        projects
+      )
+    ) {
+      setIsLoading(false);
+    }
+  }, [projects, selected, state.scratchpads]);
 
   const toggleSelected = useCallback(
     (id: string | null) => {
@@ -165,6 +175,7 @@ export function useScratchpads() {
     all: state.scratchpads,
     default: state.default,
     selected,
+    isLoading,
     add,
     update,
     remove,

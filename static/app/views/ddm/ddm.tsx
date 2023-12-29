@@ -12,7 +12,7 @@ import {useScratchpads} from 'sentry/views/ddm/scratchpadSelector';
 function DDM() {
   const organization = useOrganization();
 
-  const {selected} = useScratchpads();
+  const {selected, isLoading} = useScratchpads();
 
   useEffect(() => {
     trackAnalytics('ddm.page-view', {
@@ -24,9 +24,11 @@ function DDM() {
   return (
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
       <PageFiltersContainer disablePersistence={!!selected}>
-        <DDMContextProvider>
-          <DDMLayout />
-        </DDMContextProvider>
+        {!isLoading && (
+          <DDMContextProvider>
+            <DDMLayout />
+          </DDMContextProvider>
+        )}
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
