@@ -4,7 +4,7 @@ import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentr
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 

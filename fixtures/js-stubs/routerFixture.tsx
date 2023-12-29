@@ -2,7 +2,7 @@ import type {InjectedRouter} from 'react-router';
 import {stringify} from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-export default function RouterFixture(params = {}): InjectedRouter {
+export function RouterFixture(params = {}): InjectedRouter {
   return {
     push: jest.fn(),
     replace: jest.fn(),
@@ -33,3 +33,6 @@ export default function RouterFixture(params = {}): InjectedRouter {
     ...params,
   };
 }
+
+// TODO(epurkhiser): Remove once removed from getsentry
+export default RouterFixture;

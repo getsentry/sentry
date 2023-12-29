@@ -1,5 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

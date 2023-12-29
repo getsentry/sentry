@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {DiscoverSavedQuery} from 'sentry-fixture/discover';
 import {Organization} from 'sentry-fixture/organization';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

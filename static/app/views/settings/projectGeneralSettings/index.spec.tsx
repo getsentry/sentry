@@ -5,7 +5,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,

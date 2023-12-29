@@ -2,7 +2,7 @@ import {AccountEmails} from 'sentry-fixture/accountEmails';
 import {Authenticators} from 'sentry-fixture/authenticators';
 import {Organizations} from 'sentry-fixture/organizations';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
