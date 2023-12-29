@@ -9,6 +9,7 @@ import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 import NoGroupsHandler from './noGroupsHandler';
@@ -49,6 +50,7 @@ function GroupListBody({
   selectedProjectIds,
 }: GroupListBodyProps) {
   const api = useApi();
+  const router = useRouter();
   const organization = useOrganization();
 
   if (loading) {
@@ -63,6 +65,7 @@ function GroupListBody({
     return (
       <NoGroupsHandler
         api={api}
+        router={router}
         organization={organization}
         query={query}
         selectedProjectIds={selectedProjectIds}
