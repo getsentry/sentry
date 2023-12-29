@@ -154,12 +154,20 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
     return {};
   }
 
-  let returnValue: T;
-  try {
-    returnValue = window.structuredClone(obj);
-  } catch (e) {
-    // structuredClone cannot clone functions. If this happens,
-    // fallback to deep clone which will preseve the fn references
+  let returnValue: T | undefined;
+
+  // We need to feature detect structured cloning instead of just
+  // wrapping it inside a try/catch as somehow ends up crashing
+  // our selenium webdriver tests...
+  if (window && 'structuredClone' in window) {
+    try {
+      window.structuredClone(obj);
+    } catch {
+      // If we cannot clone, we cannot omit
+    }
+  }
+
+  if (returnValue === undefined) {
     returnValue = cloneDeep(obj);
   }
 
@@ -167,24 +175,28 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
     deepRemoveKey(returnValue, keys);
     return returnValue;
   }
-  const normalizedKeys = Array.isArray(keys) ? keys : [keys];
   // @TODO: there is an optimization opportunity here. If we presort the keys,
   // then we can treat the traversal as a tree and avoid having to traverse the
   // entire object for each key. This would be a good idea if we expect to
   // omit many deep keys from an object.
-  for (const key of normalizedKeys) {
-    deepRemoveKey(returnValue, key);
+  for (let i = 0; i < keys.length; i++) {
+    deepRemoveKey(returnValue, keys[i]);
   }
 
   return returnValue;
 }
 
-function deepRemoveKey(obj: Record<string, any>, key: string) {
+function deepRemoveKey(obj: Record<string, any>, key: string): void {
   if (typeof key === 'string') {
     if (key in obj) {
       delete obj[key];
     }
     const components = key.split('.');
+    // < 3 length keys will always be first level keys
+    // as dot notation requires at least 3 characters
+    if (key.length < 3 || components.length === 1) {
+      return;
+    }
 
     const componentsSize = components.length;
     let componentIndex = 0;
@@ -359,8 +371,6 @@ export function sortProjects(projects: Array<Project>): Array<Project> {
 
 // build actorIds
 export const buildUserId = (id: string) => `user:${id}`;
-export const buildTeamId = (id: string) => `team:${id}`;
-
 /**
  * Removes the organization / project scope prefix on feature names.
  */
