@@ -58,7 +58,7 @@ export function omit<T extends object, K extends Extract<keyof T, string>>(
 
   let returnValue: T = {} as T;
   try {
-    returnValue = window.structuredClone(obj);
+    // returnValue = window.structuredClone(obj);
   } catch (e) {
     // structuredClone cannot clone functions. If this happens,
     // fallback to deep clone which will preseve the fn references
