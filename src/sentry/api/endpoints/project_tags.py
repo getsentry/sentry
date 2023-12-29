@@ -23,20 +23,19 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             tag_keys = []
         else:
-            kwargs = dict(
-                # We might be able to stop including these values, but this
-                # is a pretty old endpoint, so concerned about breaking
-                # existing api consumers.
-                include_values_seen=True,
-            )
+            kwargs = {}
             if request.GET.get("onlySamplingTags") == "1":
-                kwargs.update(denylist=DS_DENYLIST)
+                kwargs["denylist"] = DS_DENYLIST
 
             tag_keys = sorted(
                 tagstore.backend.get_tag_keys(
                     project.id,
                     environment_id,
                     tenant_ids={"organization_id": project.organization_id},
+                    # We might be able to stop including these values, but this
+                    # is a pretty old endpoint, so concerned about breaking
+                    # existing api consumers.
+                    include_values_seen=True,
                     **kwargs,
                 ),
                 key=lambda x: x.key,
