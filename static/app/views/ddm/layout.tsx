@@ -16,10 +16,14 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
+import {useDashboardImport} from 'sentry/views/ddm/dashboardImportModal';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
@@ -27,9 +31,12 @@ import ShareButton from 'sentry/views/ddm/shareButton';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
+  const organization = useOrganization();
   const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
+
+  const importDashboard = useDashboardImport();
 
   return (
     <Fragment>
@@ -57,6 +64,15 @@ export const DDMLayout = memo(() => {
               label={t('Discussion')}
               title={null}
             />
+            {hasDDMExperimentalFeature(organization) && (
+              <Button
+                size="sm"
+                icon={<IconDownload size="xs" />}
+                onClick={importDashboard}
+              >
+                {t('Import Dashboard')}
+              </Button>
+            )}
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
