@@ -78,7 +78,7 @@ describe('RawStacktraceContent', function () {
   });
 
   describe('render()', function () {
-    const exception = TestStubs.EventStacktraceException({
+    const exception = ExceptionValueFixture({
       module: 'example.application',
       type: 'Error',
       value: 'an error occurred',
