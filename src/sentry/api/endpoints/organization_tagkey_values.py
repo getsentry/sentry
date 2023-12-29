@@ -40,7 +40,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                 environment_ids = None
                 if "environment_objects" in filter_params:
                     environment_ids = [env.id for env in filter_params["environment_objects"]]
-                paginator = tagstore.get_tag_value_paginator_for_projects(
+                paginator = tagstore.backend.get_tag_value_paginator_for_projects(
                     filter_params["project_id"],
                     environment_ids,
                     key,

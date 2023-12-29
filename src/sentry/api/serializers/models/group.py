@@ -786,7 +786,9 @@ class GroupSerializer(GroupSerializerBase):
 
     def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(
-            item_list, tagstore.get_groups_user_counts, tagstore.get_group_list_tag_value
+            item_list,
+            tagstore.backend.get_groups_user_counts,
+            tagstore.backend.get_group_list_tag_value,
         )
 
     def _seen_stats_generic(
@@ -794,8 +796,8 @@ class GroupSerializer(GroupSerializerBase):
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(
             generic_issue_list,
-            tagstore.get_generic_groups_user_counts,
-            tagstore.get_generic_group_list_tag_value,
+            tagstore.backend.get_generic_groups_user_counts,
+            tagstore.backend.get_generic_group_list_tag_value,
         )
 
     def __seen_stats_impl(

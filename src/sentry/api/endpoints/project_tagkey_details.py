@@ -30,7 +30,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
     }
 
     def get(self, request: Request, project, key) -> Response:
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
@@ -39,7 +39,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tagkey = tagstore.get_tag_key(
+            tagkey = tagstore.backend.get_tag_key(
                 project.id,
                 environment_id,
                 lookup_key,
@@ -60,7 +60,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if key in PROTECTED_TAG_KEYS:
             return Response(status=403)
 
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         try:
             from sentry import eventstream
@@ -92,7 +92,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
     def get_tag_keys_for_deletion(self, project, key):
         try:
             return [
-                tagstore.get_tag_key(
+                tagstore.backend.get_tag_key(
                     project_id=project.id,
                     key=key,
                     environment_id=None,

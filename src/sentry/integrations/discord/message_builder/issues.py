@@ -92,11 +92,11 @@ def build_tag_fields(
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
-            std_key = tagstore.get_standardized_key(key)  # type: ignore
+            std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
 
-            labeled_value = tagstore.get_tag_value_label(key, value)  # type: ignore
+            labeled_value = tagstore.backend.get_tag_value_label(key, value)
             fields.append(
                 DiscordMessageEmbedField(
                     std_key,

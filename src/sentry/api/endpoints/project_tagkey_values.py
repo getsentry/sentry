@@ -34,7 +34,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         :pparam string key: the tag key to look up.
         :auth: required
         """
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids = {"organization_id": project.organization_id}
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
@@ -43,7 +43,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tagkey = tagstore.get_tag_key(
+            tagkey = tagstore.backend.get_tag_key(
                 project.id,
                 environment_id,
                 lookup_key,
@@ -54,7 +54,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         start, end = get_date_range_from_params(request.GET)
 
-        paginator = tagstore.get_tag_value_paginator(
+        paginator = tagstore.backend.get_tag_value_paginator(
             project.id,
             environment_id,
             tagkey.key,
