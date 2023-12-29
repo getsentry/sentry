@@ -136,7 +136,7 @@ export class Rect {
       w, 0, 0,
       0, h, 0,
       x, y, 1
-    )
+    );
   }
 
   hasIntersectionWith(other: Rect): boolean {
