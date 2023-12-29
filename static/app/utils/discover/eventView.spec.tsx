@@ -538,7 +538,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   });
 
   it('merges page filter values', function () {
-    const pageFilters = TestStubs.PageFilters({
+    const pageFilters = PageFilters({
       datetime: {
         period: '3d',
       },

@@ -1,6 +1,8 @@
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -13,10 +15,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
-
-jest.mock('sentry/stores/configStore', () => ({
-  get: jest.fn(),
-}));
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
@@ -196,7 +194,7 @@ describe('OrganizationContextContainer', function () {
   it('uses last organization from `organizations` prop', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/foo/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/foo/',
