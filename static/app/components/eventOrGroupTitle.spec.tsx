@@ -1,5 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {User} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

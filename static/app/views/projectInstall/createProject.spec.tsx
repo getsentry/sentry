@@ -1,5 +1,5 @@
 import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {Team} from 'sentry-fixture/team';
 

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import {AllAuthenticators, Authenticators} from 'sentry-fixture/authenticators';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

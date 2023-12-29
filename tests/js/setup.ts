@@ -8,7 +8,7 @@ import {configure as configureRtl} from '@testing-library/react'; // eslint-disa
 import MockDate from 'mockdate';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import RouterFixture from 'sentry-fixture/routerFixture';
 import RouterPropsFixture from 'sentry-fixture/routerPropsFixture';
 

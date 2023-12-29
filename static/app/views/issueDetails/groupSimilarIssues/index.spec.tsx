@@ -1,6 +1,6 @@
 import {Groups} from 'sentry-fixture/groups';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import RouterFixture from 'sentry-fixture/routerFixture';
 
 import {
