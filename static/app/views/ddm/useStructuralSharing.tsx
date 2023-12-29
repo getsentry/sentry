@@ -26,10 +26,7 @@ export function structuralSharing<T>(oldValue: T, newValue: T): T {
   }
 
   if (Array.isArray(oldValue) && Array.isArray(newValue)) {
-    if (oldValue.length !== newValue.length) {
-      return newValue;
-    }
-    let hasChanges = false;
+    let hasChanges = oldValue.length !== newValue.length;
     const newArray = newValue.map((item, index) => {
       const newItem = structuralSharing(oldValue[index], item);
       if (newItem !== oldValue[index]) {
@@ -45,10 +42,7 @@ export function structuralSharing<T>(oldValue: T, newValue: T): T {
   }
 
   if (typeof oldValue === 'object' && typeof newValue === 'object') {
-    if (!checkSameKeys(oldValue, newValue)) {
-      return newValue;
-    }
-    let hasChanges = false;
+    let hasChanges = !checkSameKeys(oldValue, newValue);
     const newObj = Object.keys(newValue).reduce((acc, key) => {
       acc[key] = structuralSharing(oldValue[key], newValue[key]);
       if (acc[key] !== oldValue[key]) {

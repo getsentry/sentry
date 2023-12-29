@@ -54,7 +54,7 @@ export function MetricScratchpad() {
           index={index}
           onSelect={setSelectedWidgetIndex}
           isSelected={selectedWidgetIndex === index}
-          numberOfSiblings={widgets.length - 1}
+          hasSiblings={widgets.length > 1}
           onChange={handleChange}
           widget={widget}
           datetime={selection.datetime}

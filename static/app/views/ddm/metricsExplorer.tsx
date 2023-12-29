@@ -37,7 +37,7 @@ export default function MetricsExplorer() {
       }}
       projects={[]}
       environments={[]}
-      numberOfSiblings={0}
+      hasSiblings={false}
       addFocusArea={() => {}}
       removeFocusArea={() => {}}
       focusArea={null}

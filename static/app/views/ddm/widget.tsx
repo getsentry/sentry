@@ -41,7 +41,7 @@ export const MetricWidget = memo(
     isSelected,
     onSelect,
     onChange,
-    numberOfSiblings,
+    hasSiblings,
     addFocusArea,
     removeFocusArea,
     focusArea,
@@ -50,9 +50,9 @@ export const MetricWidget = memo(
     datetime: PageFilters['datetime'];
     environments: PageFilters['environments'];
     focusArea: FocusArea | null;
+    hasSiblings: boolean;
     index: number;
     isSelected: boolean;
-    numberOfSiblings: number;
     onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
     onSelect: (index: number) => void;
     projects: PageFilters['projects'];
@@ -60,6 +60,7 @@ export const MetricWidget = memo(
     widget: MetricWidgetQueryParams;
   }) => {
     const [isEdit, setIsEdit] = useState(true);
+
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
         onChange(index, data);
@@ -103,8 +104,8 @@ export const MetricWidget = memo(
     return (
       <MetricWidgetPanel
         // show the selection border only if we have more widgets than one
-        isHighlighted={isSelected && !!numberOfSiblings}
-        isHighlightable={!!numberOfSiblings}
+        isHighlighted={isSelected && !!hasSiblings}
+        isHighlightable={!!hasSiblings}
         onClick={() => onSelect(index)}
       >
         <PanelBody>
