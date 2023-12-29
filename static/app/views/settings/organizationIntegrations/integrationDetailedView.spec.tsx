@@ -1,6 +1,6 @@
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 

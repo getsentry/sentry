@@ -1,6 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';

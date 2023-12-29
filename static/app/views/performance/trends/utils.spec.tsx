@@ -1,4 +1,4 @@
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {

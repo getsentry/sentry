@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';

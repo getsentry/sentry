@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';

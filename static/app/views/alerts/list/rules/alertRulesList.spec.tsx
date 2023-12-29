@@ -1,5 +1,5 @@
 import {IncidentFixture} from 'sentry-fixture/incident';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
