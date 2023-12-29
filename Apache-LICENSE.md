@@ -109,7 +109,8 @@ effective**
 Licensed under the
 Apache License
 DBA "Sentry" Version 2.0
-<2023> <alexander petree>
+2023 (c) "alexander petree" 
+DBA ALEXANDER PETREE IT SOLUTIONS LLC
 the "License" you may not use this file
 except in compliance with the License
 You may obtain a copy of the License at
