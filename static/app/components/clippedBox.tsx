@@ -6,6 +6,11 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+// Content may have margins which can't be measured by our refs, but will affect
+// the total content height. We add this to the max-height to ensure the animation
+// doesn't cut off early.
+const HEIGHT_ADJUSTMENT_FOR_CONTENT_MARGIN = 20;
+
 function isClipped(args: {clipFlex: number; clipHeight: number; height: number}) {
   return args.height > args.clipHeight + args.clipFlex;
 }
@@ -33,7 +38,10 @@ function calculateAddedHeight({
   try {
     const {paddingTop, paddingBottom} = getComputedStyle(wrapperRef.current);
 
-    const addedHeight = parseInt(paddingTop, 10) + parseInt(paddingBottom, 10);
+    const addedHeight =
+      parseInt(paddingTop, 10) +
+      parseInt(paddingBottom, 10) +
+      HEIGHT_ADJUSTMENT_FOR_CONTENT_MARGIN;
 
     return isNaN(addedHeight) ? 0 : addedHeight;
   } catch {
@@ -46,7 +54,9 @@ function revealAndDisconnectObserver({
   observerRef,
   revealRef,
   wrapperRef,
+  clipHeight,
 }: {
+  clipHeight: number;
   contentRef: React.MutableRefObject<HTMLElement | null>;
   observerRef: React.MutableRefObject<ResizeObserver | null>;
   revealRef: React.MutableRefObject<boolean>;
@@ -62,12 +72,18 @@ function revealAndDisconnectObserver({
     }
   };
 
-  wrapperRef.current.addEventListener('transitionend', clearMaxHeight, {once: true});
-
   const revealedWrapperHeight =
     (contentRef.current?.clientHeight || 9999) + calculateAddedHeight({wrapperRef});
 
-  wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
+  // Only animate if the revealed height is greater than the clip height
+  // This function is also called
+  if (revealedWrapperHeight > clipHeight) {
+    wrapperRef.current.addEventListener('transitionend', clearMaxHeight, {once: true});
+    wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
+  } else {
+    clearMaxHeight();
+  }
+
   revealRef.current = true;
 
   if (observerRef.current) {
@@ -128,14 +144,20 @@ function ClippedBox(props: ClippedBoxProps) {
 
       event.stopPropagation();
 
-      revealAndDisconnectObserver({contentRef, wrapperRef, revealRef, observerRef});
+      revealAndDisconnectObserver({
+        contentRef,
+        wrapperRef,
+        revealRef,
+        observerRef,
+        clipHeight,
+      });
       if (typeof onReveal === 'function') {
         onReveal();
       }
 
       setClipped(false);
     },
-    [onReveal]
+    [clipHeight, onReveal]
   );
 
   const onWrapperRef = useCallback(
@@ -197,7 +219,13 @@ function ClippedBox(props: ClippedBoxProps) {
         });
 
         if (!_clipped && contentRef.current) {
-          revealAndDisconnectObserver({contentRef, wrapperRef, revealRef, observerRef});
+          revealAndDisconnectObserver({
+            contentRef,
+            wrapperRef,
+            revealRef,
+            observerRef,
+            clipHeight,
+          });
         }
 
         setClipped(_clipped);
