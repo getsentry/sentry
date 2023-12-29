@@ -49,6 +49,22 @@ function calculateAddedHeight({
   }
 }
 
+function clearMaxHeight(element?: HTMLElement | null) {
+  if (element) {
+    element.style.maxHeight = 'none';
+  }
+}
+
+function onTransitionEnd(e: TransitionEvent) {
+  // This can fire for children transitions, so we need to make sure it's the
+  // reveal animation that has ended.
+  if (e.target === e.currentTarget && e.propertyName === 'max-height') {
+    const element = e.currentTarget as HTMLElement;
+    clearMaxHeight(element);
+    element.removeEventListener('transitionend', onTransitionEnd);
+  }
+}
+
 function revealAndDisconnectObserver({
   contentRef,
   observerRef,
@@ -66,19 +82,12 @@ function revealAndDisconnectObserver({
     return;
   }
 
-  const clearMaxHeight = () => {
-    if (wrapperRef.current) {
-      wrapperRef.current.style.maxHeight = 'none';
-    }
-  };
-
   const revealedWrapperHeight =
     (contentRef.current?.clientHeight || 9999) + calculateAddedHeight({wrapperRef});
 
   // Only animate if the revealed height is greater than the clip height
-  // This function is also called
   if (revealedWrapperHeight > clipHeight) {
-    wrapperRef.current.addEventListener('transitionend', clearMaxHeight, {once: true});
+    wrapperRef.current.addEventListener('transitionend', onTransitionEnd);
     wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
   } else {
     clearMaxHeight();
