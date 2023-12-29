@@ -177,7 +177,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             curl -X ###METHOD### -u username:password ###URL###
         """
         if not request.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
