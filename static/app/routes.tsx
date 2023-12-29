@@ -571,6 +571,13 @@ function buildRoutes() {
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectMetrics'))}
         />
+        <Route
+          name={t('Metrics Details')}
+          path=":mri/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
+          )}
+        />
       </Route>
 
       <Route path="source-maps/" name={t('Source Maps')}>
