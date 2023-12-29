@@ -13,7 +13,7 @@ from django.forms import ValidationError
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, quotas
+from sentry import analytics, audit_log, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.incidents import tasks
@@ -512,9 +512,7 @@ def create_alert_rule(
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
-    if dataset == Dataset.Sessions and features.has(
-        "organizations:alert-crash-free-metrics", organization, actor=user
-    ):
+    if dataset == Dataset.Sessions:
         dataset = Dataset.Metrics
 
     actor = None
@@ -692,9 +690,7 @@ def update_alert_rule(
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None:
-        if dataset == Dataset.Sessions and features.has(
-            "organizations:alert-crash-free-metrics", alert_rule.organization, actor=user
-        ):
+        if dataset == Dataset.Sessions:
             dataset = Dataset.Metrics
 
         if dataset.value != alert_rule.snuba_query.dataset:

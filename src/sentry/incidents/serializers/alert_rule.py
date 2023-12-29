@@ -248,11 +248,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
         # If metric based crash rate alerts are enabled, coerce sessions over
-        if dataset == Dataset.Sessions and features.has(
-            "organizations:alert-crash-free-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
+        if dataset == Dataset.Sessions:
             dataset = data["dataset"] = Dataset.Metrics
 
         if features.has(
