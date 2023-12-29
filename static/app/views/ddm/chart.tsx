@@ -13,16 +13,18 @@ import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
-import {useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
+import {FocusArea, useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
-import {useDDMContext} from 'sentry/views/ddm/context';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
 import {Series} from './widget';
 
 type ChartProps = {
+  addFocusArea: (area: FocusArea) => void;
   displayType: MetricDisplayType;
+  focusArea: FocusArea | null;
+  removeFocusArea: () => void;
   series: Series[];
   widgetIndex: number;
   operation?: string;
@@ -34,15 +36,24 @@ type ChartProps = {
 echarts.use(CanvasRenderer);
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
-  ({series, displayType, operation, widgetIndex}, forwardedRef) => {
+  (
+    {
+      series,
+      displayType,
+      operation,
+      widgetIndex,
+      addFocusArea,
+      focusArea,
+      removeFocusArea,
+    },
+    forwardedRef
+  ) => {
     const router = useRouter();
     const chartRef = useRef<ReactEchartsRef>(null);
 
     const {hoverProps, isHovered} = useHover({
       isDisabled: false,
     });
-
-    const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
 
     const handleZoom = useCallback(
       (range: DateTimeObject) => {

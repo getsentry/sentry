@@ -1,3 +1,4 @@
+import {useCallback, useRef} from 'react';
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
@@ -47,6 +48,7 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
+import useRouter from 'sentry/utils/useRouter';
 
 import {DateString, PageFilters} from '../../types/core';
 
@@ -461,12 +463,17 @@ export function isAllowedOp(op: string) {
   return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
 }
 
-export function updateQuery(router: InjectedRouter, partialQuery: Record<string, any>) {
+export function updateQuery(
+  router: InjectedRouter,
+  queryUpdater:
+    | Record<string, any>
+    | ((query: Record<string, any>) => Record<string, any>)
+) {
   router.push({
     ...router.location,
     query: {
       ...router.location.query,
-      ...partialQuery,
+      ...queryUpdater,
     },
   });
 }
@@ -476,6 +483,25 @@ export function clearQuery(router: InjectedRouter) {
     ...router.location,
     query: {},
   });
+}
+
+export function useInstantRef<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
+
+export function useUpdateQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(
+    (partialQuery: Record<string, any>) => {
+      updateQuery(routerRef.current, partialQuery);
+    },
+    [routerRef]
+  );
 }
 
 // TODO(ddm): there has to be a nicer way to do this
