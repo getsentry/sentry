@@ -23,7 +23,6 @@ import {
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
-  EmbeddedTransactionBadge,
   ErrorBadge,
   ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
@@ -62,13 +61,10 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
+import {StyledZoomIcon} from 'sentry/views/performance/traceDetails/newTraceDetailsTransactionBar';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
-import {
-  MINIMAP_CONTAINER_HEIGHT,
-  MINIMAP_SPAN_BAR_HEIGHT,
-  NUM_OF_SPANS_FIT_IN_MINI_MAP,
-} from './constants';
+import {MINIMAP_SPAN_BAR_HEIGHT} from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {SpanDetailProps} from './newTraceDetailsSpanDetails';
 import {withScrollbarManager} from './scrollbarManager';
@@ -88,48 +84,58 @@ import {
   isGapSpan,
   isOrphanSpan,
   isOrphanTreeDepth,
+  parseTraceDetailsURLHash,
   shouldLimitAffectedToTiming,
   SpanGeneratedBoundsType,
   spanTargetHash,
   SpanViewBoundsType,
+  transactionTargetHash,
   unwrapTreeDepth,
 } from './utils';
-
-// TODO: maybe use babel-plugin-preval
-// for (let i = 0; i <= 1.0; i += 0.01) {
-//   INTERSECTION_THRESHOLDS.push(i);
-// }
-const INTERSECTION_THRESHOLDS: Array<number> = [
-  0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14,
-  0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29,
-  0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44,
-  0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.55, 0.56, 0.57, 0.58, 0.59,
-  0.6, 0.61, 0.62, 0.63, 0.64, 0.65, 0.66, 0.67, 0.68, 0.69, 0.7, 0.71, 0.72, 0.73, 0.74,
-  0.75, 0.76, 0.77, 0.78, 0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89,
-  0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
-];
 
 export const MARGIN_LEFT = 0;
 
 export type NewTraceDetailsSpanBarProps = SpanBarProps & {
   location: Location;
+  onSpanScrolled: () => void;
   quickTrace: QuickTraceContextChildrenProps;
+  spanScrolled: boolean;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
-export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProps> {
+type State = {
+  isIntersecting: boolean;
+};
+
+export class NewTraceDetailsSpanBar extends Component<
+  NewTraceDetailsSpanBarProps,
+  State
+> {
+  constructor(props: NewTraceDetailsSpanBarProps) {
+    super(props);
+
+    this.state = {
+      isIntersecting: false,
+    };
+  }
+
   componentDidMount() {
     this._mounted = true;
     this.updateHighlightedState();
 
-    if (this.isHighlighted && this.props.onRowClick) {
+    if (this.isHighlighted && this.props.onRowClick && !this.props.spanScrolled) {
       this.props.onRowClick(this.getSpanDetailsProps());
+      setTimeout(() => {
+        this.scrollIntoView();
+      }, 100);
+      this.props.onSpanScrolled();
     }
 
     if (this.spanRowDOMRef.current) {
       this.props.storeSpanBar(this);
-      this.connectObservers();
     }
+
+    this.connectObservers();
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
@@ -153,8 +159,7 @@ export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProp
       return;
     }
 
-    if (spanTargetHash(span.span_id) === location.hash && !didAnchoredSpanMount()) {
-      this.scrollIntoView();
+    if (this.hash_span_id === span.span_id && !didAnchoredSpanMount()) {
       markAnchoredSpanIsMounted?.();
       addExpandedSpan(span);
       return;
@@ -190,15 +195,18 @@ export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProp
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
-  span_id: string | string[] | null | undefined = null;
+  hash_span_id: string | undefined = undefined;
+  hash_event_id: string | undefined = undefined;
   isHighlighted: boolean = false;
 
   updateHighlightedState = () => {
-    this.span_id = this.props.location.query.span;
+    const hashValues = parseTraceDetailsURLHash(this.props.location.hash);
+    this.hash_span_id = hashValues?.span_id;
+    this.hash_event_id = hashValues?.event_id;
     this.isHighlighted = !!(
       !isGapSpan(this.props.span) &&
-      this.span_id &&
-      this.span_id === this.props.span.span_id
+      this.hash_span_id &&
+      this.hash_span_id === this.props.span.span_id
     );
 
     // TODO Abdullah Khan: Converting the component to a functional component will help us get rid
@@ -231,8 +239,7 @@ export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProp
     }
 
     const boundingRect = element.getBoundingClientRect();
-    // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
+    const offset = boundingRect.top + window.scrollY - MINIMAP_SPAN_BAR_HEIGHT * 10;
     window.scrollTo(0, offset);
   };
 
@@ -556,172 +563,18 @@ export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProp
   }
 
   connectObservers() {
-    if (!this.spanRowDOMRef.current) {
-      return;
-    }
-
-    this.disconnectObservers();
-
-    // We track intersections events between the span bar's DOM element
-    // and the viewport's (root) intersection area. the intersection area is sized to
-    // exclude the minimap. See below.
-    //
-    // By default, the intersection observer's root intersection is the viewport.
-    // We adjust the margins of this root intersection area to exclude the minimap's
-    // height. The minimap's height is always fixed.
-    //
-    // VIEWPORT (ancestor element used for the intersection events)
-    // +--+-------------------------+--+
-    // |  |                         |  |
-    // |  |       MINIMAP           |  |
-    // |  |                         |  |
-    // |  +-------------------------+  |  ^
-    // |  |                         |  |  |
-    // |  |       SPANS             |  |  | ROOT
-    // |  |                         |  |  | INTERSECTION
-    // |  |                         |  |  | OBSERVER
-    // |  |                         |  |  | HEIGHT
-    // |  |                         |  |  |
-    // |  |                         |  |  |
-    // |  |                         |  |  |
-    // |  +-------------------------+  |  |
-    // |                               |  |
-    // +-------------------------------+  v
-
-    this.intersectionObserver = new IntersectionObserver(
-      entries =>
-        entries.forEach(entry => {
-          if (!this._mounted) {
-            return;
-          }
-
-          const shouldMoveMinimap = this.props.numOfSpans > NUM_OF_SPANS_FIT_IN_MINI_MAP;
-
-          if (!shouldMoveMinimap) {
-            return;
-          }
-          const spanNumber = this.props.spanNumber;
-
-          const minimapSlider = document.getElementById('minimap-background-slider');
-
-          if (!minimapSlider) {
-            return;
-          }
-
-          // NOTE: THIS IS HACKY.
-          //
-          // IntersectionObserver.rootMargin is un-affected by the browser's zoom level.
-          // The margins of the intersection area needs to be adjusted.
-          // Thus, IntersectionObserverEntry.rootBounds may not be what we expect.
-          //
-          // We address this below.
-          //
-          // Note that this function was called whenever an intersection event occurred wrt
-          // the thresholds.
-          //
-          if (entry.rootBounds) {
-            // After we create the IntersectionObserver instance with rootMargin set as:
-            // -${MINIMAP_CONTAINER_HEIGHT * this.zoomLevel}px 0px 0px 0px
-            //
-            // we can introspect the rootBounds to infer the zoomlevel.
-            //
-            // we always expect entry.rootBounds.top to equal MINIMAP_CONTAINER_HEIGHT
-
-            const actualRootTop = Math.ceil(entry.rootBounds.top);
-
-            if (actualRootTop !== MINIMAP_CONTAINER_HEIGHT && actualRootTop > 0) {
-              // we revert the actualRootTop value by the current zoomLevel factor
-              const normalizedActualTop = actualRootTop / this.zoomLevel;
-
-              const zoomLevel = MINIMAP_CONTAINER_HEIGHT / normalizedActualTop;
-              this.zoomLevel = zoomLevel;
-
-              // we reconnect the observers; the callback functions may be invoked
-              this.connectObservers();
-
-              // NOTE: since we cannot guarantee that the callback function is invoked on
-              //       the newly connected observers, we continue running this function.
-            }
-          }
-
-          // root refers to the root intersection rectangle used for the IntersectionObserver
-          const rectRelativeToRoot = entry.boundingClientRect as DOMRect;
-
-          const bottomYCoord = rectRelativeToRoot.y + rectRelativeToRoot.height;
-
-          // refers to if the rect is out of view from the viewport
-          const isOutOfViewAbove = rectRelativeToRoot.y < 0 && bottomYCoord < 0;
-
-          if (isOutOfViewAbove) {
-            return;
-          }
-
-          const relativeToMinimap = {
-            top: rectRelativeToRoot.y - MINIMAP_CONTAINER_HEIGHT,
-            bottom: bottomYCoord - MINIMAP_CONTAINER_HEIGHT,
-          };
-
-          const rectBelowMinimap =
-            relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
-
-          if (rectBelowMinimap) {
-            const {span} = this.props;
-            if ('type' in span) {
-              return;
-            }
-
-            // if the first span is below the minimap, we scroll the minimap
-            // to the top. this addresses spurious scrolling to the top of the page
-            if (spanNumber <= 1) {
-              minimapSlider.style.top = '0px';
-              return;
-            }
-            return;
-          }
-
-          const inAndAboveMinimap = relativeToMinimap.bottom <= 0;
-
-          if (inAndAboveMinimap) {
-            const {span} = this.props;
-            if ('type' in span) {
-              return;
-            }
-
-            return;
-          }
-
-          // invariant: spanNumber >= 1
-
-          const numberOfMovedSpans = spanNumber - 1;
-          const totalHeightOfHiddenSpans = numberOfMovedSpans * MINIMAP_SPAN_BAR_HEIGHT;
-          const currentSpanHiddenRatio = 1 - entry.intersectionRatio;
-
-          const panYPixels =
-            totalHeightOfHiddenSpans + currentSpanHiddenRatio * MINIMAP_SPAN_BAR_HEIGHT;
-
-          // invariant: this.props.numOfSpans - spanNumberToStopMoving + 1 = NUM_OF_SPANS_FIT_IN_MINI_MAP
-
-          const spanNumberToStopMoving =
-            this.props.numOfSpans + 1 - NUM_OF_SPANS_FIT_IN_MINI_MAP;
-
-          if (spanNumber > spanNumberToStopMoving) {
-            // if the last span bar appears on the minimap, we do not want the minimap
-            // to keep panning upwards
-            minimapSlider.style.top = `-${
-              spanNumberToStopMoving * MINIMAP_SPAN_BAR_HEIGHT
-            }px`;
-            return;
-          }
-
-          minimapSlider.style.top = `-${panYPixels}px`;
-        }),
-      {
-        threshold: INTERSECTION_THRESHOLDS,
-        rootMargin: `-${MINIMAP_CONTAINER_HEIGHT * this.zoomLevel}px 0px 0px 0px`,
-      }
+    const observer = new IntersectionObserver(([entry]) =>
+      this.setState({isIntersecting: entry.isIntersecting}, () => {
+        if (this.hash_span_id && !this.props.spanScrolled && !this.state.isIntersecting) {
+          window.scrollBy(0, 24);
+        }
+      })
     );
 
-    this.intersectionObserver.observe(this.spanRowDOMRef.current);
+    this.intersectionObserver = observer;
+    if (this.spanRowDOMRef.current) {
+      observer.observe(this.spanRowDOMRef.current);
+    }
   }
 
   disconnectObservers() {
@@ -841,9 +694,8 @@ export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProp
           position="top"
           containerDisplayMode="block"
         >
-          <EmbeddedTransactionBadge
-            inTraceView={!!this.props.fromTraceView}
-            expanded={showEmbeddedChildren}
+          <StyledZoomIcon
+            isZoomIn={!showEmbeddedChildren}
             onClick={() => {
               if (toggleEmbeddedChildren) {
                 const eventKey = showEmbeddedChildren
@@ -942,12 +794,10 @@ export class NewTraceDetailsSpanBar extends Component<NewTraceDetailsSpanBarProp
       const isTransactionEvent = event.type === EventOrGroupType.TRANSACTION;
       if (isTransactionEvent) {
         browserHistory.push({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            span: span.span_id,
-            detail: (event as EventTransaction).eventID,
-          },
+          ...location,
+          hash: `${transactionTargetHash(
+            (event as EventTransaction).eventID
+          )}${spanTargetHash(span.span_id)}`,
         });
       }
     }

@@ -554,6 +554,8 @@ const Title = styled(FlexBox)`
 const TransactionOp = styled('div')`
   font-size: 25px;
   font-weight: bold;
+  max-width: 600px;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TransactionIdTitle = styled('a')`
@@ -579,6 +581,7 @@ const StyledButton = styled(Button)`
 
 const StyledTable = styled('table')`
   margin-bottom: 0 !important;
+  width: fit-content;
 `;
 
 export default TraceViewDetailPanel;

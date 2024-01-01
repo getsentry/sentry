@@ -887,6 +887,26 @@ export function scrollToSpan(
   };
 }
 
+type TraceDetailsHashIds = {
+  event_id: string | undefined;
+  span_id: string | undefined;
+};
+
+export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | null {
+  if (!hash) {
+    return null;
+  }
+
+  const values = hash.split('#').slice(1);
+  const event_id = values.find(value => value.includes('txn'))?.split('-')[1];
+  const span_id = values.find(value => value.includes('span'))?.split('-')[1];
+
+  return {
+    event_id,
+    span_id,
+  };
+}
+
 export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
 }
