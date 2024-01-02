@@ -466,7 +466,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             )
 
         # Manually move over organization id's for Monitors
-        monitors = Monitor.objects.filter(organization_id=old_org_id)
+        monitors = Monitor.objects.filter(organization_id=old_org_id, project_id=self.id)
         new_monitors = set(
             Monitor.objects.filter(organization_id=organization.id).values_list("slug", flat=True)
         )
