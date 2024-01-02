@@ -2,7 +2,6 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -302,13 +301,6 @@ function MonitorForm({
           })}
         </ListItemSubText>
         <InputGroup>
-          {monitor !== undefined && (
-            <StyledAlert type="info">
-              {t(
-                'Any changes you make to the execution schedule will only be applied after the next expected check-in.'
-              )}
-            </StyledAlert>
-          )}
           <StyledSelectField
             name="config.schedule_type"
             aria-label={t('Schedule Type')}
@@ -513,10 +505,6 @@ export default MonitorForm;
 
 const StyledList = styled(List)`
   width: 800px;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
 `;
 
 const StyledNumberField = styled(NumberField)`
