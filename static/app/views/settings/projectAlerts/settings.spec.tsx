@@ -1,21 +1,26 @@
-import {Organization} from 'sentry-fixture/organization';
+import {WebhookPluginConfig} from 'sentry-fixture/integrationListDirectory';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Settings from 'sentry/views/settings/projectAlerts/settings';
 
 describe('ProjectAlertSettings', () => {
-  const router = RouterFixture();
-  const organization = Organization();
   // 12 minutes
   const digestsMinDelay = 12 * 60;
   // 55 minutes
   const digestsMaxDelay = 55 * 60;
+
   const project = ProjectFixture({
     digestsMinDelay,
     digestsMaxDelay,
+  });
+  const {organization, routerProps} = initializeOrg({
+    project,
+    router: {
+      params: {projectId: project.slug},
+    },
   });
 
   beforeEach(() => {
@@ -32,21 +37,12 @@ describe('ProjectAlertSettings', () => {
     });
   });
 
-  it('renders', () => {
-    render(
-      <Settings
-        canEditRule
-        params={{projectId: project.slug}}
-        organization={organization}
-        routes={[]}
-        router={router}
-        routeParams={router.params}
-        route={router.routes[0]}
-        location={router.location}
-      />
-    );
+  it('renders', async () => {
+    render(<Settings canEditRule {...routerProps} />);
 
-    expect(screen.getByPlaceholderText('e.g. $shortID - $title')).toBeInTheDocument();
+    expect(
+      await screen.findByPlaceholderText('e.g. $shortID - $title')
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('slider', {name: 'Minimum delivery interval'})
     ).toBeInTheDocument();
@@ -58,5 +54,36 @@ describe('ProjectAlertSettings', () => {
         "Oops! Looks like there aren't any available integrations installed."
       )
     ).toBeInTheDocument();
+  });
+
+  it('enables webhook integration', async () => {
+    const pluginConfig = WebhookPluginConfig({enabled: false});
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/plugins/`,
+      method: 'GET',
+      body: [pluginConfig],
+    });
+    const enabledPluginMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/plugins/${pluginConfig.id}/`,
+      method: 'POST',
+      body: '',
+    });
+    const getWebhookMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/plugins/${pluginConfig.id}/`,
+      method: 'GET',
+      body: [{...pluginConfig, enabled: true}],
+    });
+
+    render(<Settings canEditRule {...routerProps} />);
+
+    expect(
+      await screen.findByPlaceholderText('e.g. $shortID - $title')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'WebHooks'}));
+
+    expect(await screen.findByRole('button', {name: 'Test Plugin'})).toBeInTheDocument();
+    expect(enabledPluginMock).toHaveBeenCalled();
+    expect(getWebhookMock).toHaveBeenCalled();
   });
 });
