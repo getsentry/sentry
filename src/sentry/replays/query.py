@@ -105,35 +105,14 @@ def query_replays_count(
         app_id="replay-backend-web",
         query=Query(
             match=Entity("replays"),
-            select=[
-                _strip_uuid_dashes("replay_id", Column("replay_id")),
-                Function(
-                    "ifNull",
-                    parameters=[
-                        Function(
-                            "max",
-                            parameters=[Column("is_archived")],
-                        ),
-                        0,
-                    ],
-                    alias="is_archived",
-                ),
-            ],
+            select=[_strip_uuid_dashes("replay_id", Column("replay_id"))],
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("replay_id"), Op.IN, replay_ids),
+                Condition(Column("segment_id"), Op.EQ, 0),
             ],
-            having=[
-                # Must include the first sequence otherwise the replay is too old.
-                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Require non-archived replays.
-                Condition(Column("is_archived"), Op.EQ, 0),
-            ],
-            orderby=[],
-            groupby=[Column("replay_id")],
-            granularity=Granularity(3600),
         ),
         tenant_ids=tenant_ids,
     )
