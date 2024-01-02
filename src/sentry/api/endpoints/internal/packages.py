@@ -14,7 +14,7 @@ from sentry.plugins.base import plugins
 class InternalPackagesEndpoint(Endpoint):
     owner = ApiOwner.OPEN_SOURCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 
