@@ -10,7 +10,7 @@ from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory

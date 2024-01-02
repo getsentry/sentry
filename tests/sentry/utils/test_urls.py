@@ -2,7 +2,12 @@ from unittest import TestCase
 
 import pytest
 
-from sentry.utils.urls import add_params_to_url, non_standard_url_join, parse_link
+from sentry.utils.urls import (
+    add_params_to_url,
+    non_standard_url_join,
+    parse_link,
+    urlsplit_best_effort,
+)
 
 
 @pytest.mark.parametrize(
@@ -49,3 +54,27 @@ class ParseLinkTest(TestCase):
             )
             == "organizations/{organization}/issues/{issue_id}/events/{event_id}/events/"
         )
+
+
+@pytest.mark.parametrize(
+    ("s", "expected"),
+    (
+        pytest.param(
+            "https://example.com:123/path?query",
+            ("https", "example.com:123", "/path", "query"),
+            id="normal, valid url",
+        ),
+        pytest.param(
+            "https://[not-a-url/path?query",
+            ("https", "[not-a-url", "/path", "query"),
+            id="invalid url",
+        ),
+        pytest.param(
+            "https://[ip]:3456/path",
+            ("https", "[ip]:3456", "/path", ""),
+            id="invalid url in python 3.11+",
+        ),
+    ),
+)
+def test_urlsplit_best_effort(s: str, expected: tuple[str, str, str, str]) -> None:
+    assert urlsplit_best_effort(s) == expected

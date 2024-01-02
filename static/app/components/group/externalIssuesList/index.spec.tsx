@@ -1,4 +1,5 @@
 import {Event} from 'sentry-fixture/event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Group} from 'sentry-fixture/group';
 import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
 import {Organization} from 'sentry-fixture/organization';
@@ -77,7 +78,7 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [
         JiraIntegration({status: 'active', externalIssues: []}),
-        TestStubs.GitHubIntegration({
+        GitHubIntegrationFixture({
           status: 'active',
           externalIssues: [
             {

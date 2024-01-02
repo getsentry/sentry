@@ -6,11 +6,11 @@ from rest_framework import serializers
 from rest_framework.serializers import ListField
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.team import Team
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -26,7 +26,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
     statsPeriod = serializers.CharField(required=False, allow_null=True)
     statsPeriodStart = serializers.CharField(required=False, allow_null=True)
     statsPeriodEnd = serializers.CharField(required=False, allow_null=True)
-    fields = ListField(child=serializers.CharField(), required=False, default=[])
+    fields = ListField(child=serializers.CharField(), required=False, default=[])  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
     conditionFields = ListField(child=ListField(), required=False, allow_null=True)
     limit = EmptyIntegerField(min_value=0, max_value=10000, required=False, allow_null=True)
     rollup = EmptyIntegerField(required=False, allow_null=True)
@@ -145,7 +145,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
     range = serializers.CharField(required=False, allow_null=True)
-    fields = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    fields = ListField(child=serializers.CharField(), required=False, allow_null=True)  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
     orderby = serializers.CharField(required=False, allow_null=True)
 
     # This block of fields is only accepted by discover 1 which omits the version
@@ -215,6 +215,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if "query" in query:
             if "interval" in query:
                 interval = parse_stats_period(query["interval"])
+                if interval is None:
+                    raise serializers.ValidationError("Interval could not be parsed")
                 date_range = self.context["params"]["end"] - self.context["params"]["start"]
                 validate_interval(
                     interval,

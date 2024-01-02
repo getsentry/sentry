@@ -20,7 +20,7 @@ import GenericWidgetQueries, {
 
 type Props = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.ReactNode;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;

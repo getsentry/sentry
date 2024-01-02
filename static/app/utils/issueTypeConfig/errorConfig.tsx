@@ -51,9 +51,19 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorHelpType: ErrorHelpType.HANDLE_HARD_NAVIGATE_ERROR,
   },
   {
+    errorTitle: "Module not found: Can't resolve",
+    projectCheck: true,
+    errorHelpType: ErrorHelpType.MODULE_NOT_FOUND,
+  },
+  {
     errorTitle: 'Dynamic server usage',
     projectCheck: true,
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
+  },
+  {
+    errorTitle: 'TypeError: Load failed',
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.LOAD_FAILED,
   },
   {
     errorTitle: 'socket hang up',
@@ -116,6 +126,21 @@ const errorHelpTypeResourceMap: Record<
       linksByPlatform: {},
     },
   },
+  [ErrorHelpType.MODULE_NOT_FOUND]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in Next.js applications when an imported module cannot be accessed. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Module not found errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing "module not found" errors in Next.js'),
+          link: 'https://sentry.io/answers/module-not-found-nextjs/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
   [ErrorHelpType.DYNAMIC_SERVER_USAGE]: {
     resources: {
       description: tct(
@@ -126,6 +151,21 @@ const errorHelpTypeResourceMap: Record<
         {
           text: t('Resolving "app/ Static to Dynamic Error" in Next.js'),
           link: 'https://nextjs.org/docs/messages/app-static-to-dynamic-error',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.LOAD_FAILED]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur on Apple devices when there is an error with Fetch API.  To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Load Failed errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing Load Failed errors in JavaScript'),
+          link: 'https://sentry.io/answers/load-failed-javascript/',
         },
       ],
       linksByPlatform: {},

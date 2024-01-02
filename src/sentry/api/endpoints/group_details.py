@@ -165,7 +165,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
 
             if "tags" not in collapse:
-                tags = tagstore.get_group_tag_keys(
+                tags = tagstore.backend.get_group_tag_keys(
                     group,
                     environment_ids,
                     limit=100,

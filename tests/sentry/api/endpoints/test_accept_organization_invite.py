@@ -142,19 +142,14 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             self._assert_pending_invite_details_in_session(om)
 
     def test_multi_region_organizationmember_id(self):
-        with override_regions(
-            [
-                Region("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
-                Region(
-                    OrganizationMapping.objects.get(
-                        organization_id=self.organization.id
-                    ).region_name,
-                    2,
-                    "http://moo",
-                    RegionCategory.MULTI_TENANT,
-                ),
-            ]
-        ):
+        org_region_name = OrganizationMapping.objects.get(
+            organization_id=self.organization.id
+        ).region_name
+        regions = [
+            Region("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
+            Region(org_region_name, 2, "http://moo", RegionCategory.MULTI_TENANT),
+        ]
+        with override_regions(regions), override_settings(SENTRY_MONOLITH_REGION=org_region_name):
             with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(
                     organization_id=101010,
