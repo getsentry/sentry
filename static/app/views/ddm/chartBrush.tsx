@@ -273,14 +273,12 @@ const FocusAreaRectActions = styled('div')<{
 }>`
   position: absolute;
   top: ${p => p.top};
-  top: 350px;
   display: flex;
   left: 0;
   gap: ${space(0.5)};
   padding: ${space(0.5)};
   z-index: 2;
   pointer-events: auto;
-  width: 350px;
 `;
 
 const FocusAreaRect = styled('div')<{
