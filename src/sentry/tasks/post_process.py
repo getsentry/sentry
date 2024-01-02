@@ -1352,6 +1352,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
 
 
 MAX_NEW_ESCALATION_AGE_HOURS = 24
+MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
 
 def detect_new_escalation(job: PostProcessJob):
@@ -1374,24 +1375,37 @@ def detect_new_escalation(job: PostProcessJob):
         "projects:first-event-severity-new-escalation", job["event"].project
     ):
         return
-    group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
-    has_valid_status = group.substatus == GroupSubStatus.NEW or (
-        group.status == GroupStatus.IGNORED and group.substatus == GroupSubStatus.UNTIL_ESCALATING
-    )
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status:
-        return
-    # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
-    # this group at the same time. In that case, just exit early, no need to retry.
-    lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
     extra = {
         "org_id": group.organization.id,
         "project_id": job["event"].project.id,
         "group_id": group.id,
     }
+    group_age_seconds = (timezone.now() - group.first_seen).total_seconds()
+    group_age_hours = group_age_seconds / 3600 if group_age_seconds >= 3600 else 1
+    times_seen = group.times_seen_with_pending
+    has_valid_status = group.substatus == GroupSubStatus.NEW
+    if (
+        group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS
+        or not has_valid_status
+        or times_seen < MIN_EVENTS_FOR_NEW_ESCALATION
+    ):
+        logger.warning(
+            "tasks.post_process.detect_new_escalation.skipping_detection",
+            extra={
+                **extra,
+                "group_age_hours": group_age_hours,
+                "group_status": group.substatus,
+                "times_seen": times_seen,
+            },
+        )
+        return
+    # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
+    # this group at the same time. In that case, just exit early, no need to retry.
+    lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
     try:
         with lock.acquire():
             project_escalation_rate = get_latest_threshold(job["event"].project)
-            group_hourly_event_rate = group.times_seen_with_pending / group_age_hours
+            group_hourly_event_rate = times_seen / group_age_hours
             # a rate of 0 means there was no threshold that could be calculated
             if project_escalation_rate > 0 and group_hourly_event_rate > project_escalation_rate:
                 job["has_escalated"] = True
@@ -1404,6 +1418,15 @@ def detect_new_escalation(job: PostProcessJob):
                     type=ActivityType.SET_ESCALATING,
                     data={"event_id": job["event"].event_id},
                 )
+            logger.info(
+                "tasks.post_process.detect_new_escalation",
+                extra={
+                    **extra,
+                    "group_hourly_event_rate": group_hourly_event_rate,
+                    "project_escalation_rate": project_escalation_rate,
+                    "has_escalated": job["has_escalated"],
+                },
+            )
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning(

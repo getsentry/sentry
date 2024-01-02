@@ -90,6 +90,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -139,6 +140,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                         "click.alt": "Alt",
                         "click.classes": ["class1", "class2"],
                         "click.id": "myid",
+                        "click.component_name": "SignUpForm",
                         "click.role": "button",
                         "click.tag": "div",
                         "click.testid": "1",
@@ -603,11 +605,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Or expression.
                 f"id:{replay1_id} OR id:{uuid.uuid4().hex} OR id:{uuid.uuid4().hex}",
                 # Paren wrapped expression.
-                f"((id:{replay1_id} OR duration:0) AND (duration:>15 OR platform:nothing))",
+                f"((id:{replay1_id} OR id:b) AND (duration:>15 OR id:d))",
                 # Implicit paren wrapped expression.
-                f"(id:{replay1_id} OR duration:0) AND (duration:>15 OR platform:nothing)",
+                f"(id:{replay1_id} OR id:b) AND (duration:>15 OR id:d)",
                 # Implicit And.
-                f"(id:{replay1_id} OR duration:0) OR (duration:>15 platform:javascript)",
+                f"(id:{replay1_id} OR id:b) OR (duration:>15 platform:javascript)",
                 # Tag filters.
                 "tags[a]:m",
                 "a:m",
@@ -639,24 +641,22 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 1, "all queries"
 
-            missing_uuid = "f8a783a4261a4b559f108c3721fc05cc"
-
             # Assert returns empty result sets.
             null_queries = [
                 "!replay_type:session",
                 "!error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
-                f"error_ids:{missing_uuid}",
+                "error_ids:123",
                 "!error_id:a3a62ef6ac86415b83c2416fc2f76db1",
-                f"error_id:{missing_uuid}",
+                "error_id:123",
                 "!trace_ids:4491657243ba4dbebd2f6bd62b733080",
                 "!trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "!trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:0",
                 "count_dead_clicks:>0",
                 "count_rage_clicks:>0",
-                f"id:{replay1_id} AND id:{missing_uuid}",
+                f"id:{replay1_id} AND id:b",
                 f"id:{replay1_id} AND duration:>1000",
-                f"id:{missing_uuid} OR duration:>1000",
+                "id:b OR duration:>1000",
                 "a:o",
                 "a:[o,p]",
                 "releases:a",
@@ -1038,6 +1038,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2", "class:hover"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -1068,6 +1069,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.class:class3",
                 "click.id:myid",
                 "click.label:AriaLabel",
+                "click.component_name:SignUpForm",
                 "click.role:button",
                 "click.tag:div",
                 "click.tag:button",
@@ -1077,6 +1079,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div#myid",
                 "click.selector:div[alt=Alt]",
                 "click.selector:div[title=MyTitle]",
+                "click.selector:div[data-sentry-component=SignUpForm]",
                 "click.selector:div[data-testid='1']",
                 "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
@@ -1100,6 +1103,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.class:class4",
                 "click.id:other",
                 "click.label:NotAriaLabel",
+                "click.component_name:NotSignUpForm",
                 "click.role:form",
                 "click.tag:header",
                 "click.testid:2",
@@ -1140,6 +1144,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -1171,6 +1176,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                             "click.alt": "Alt",
                             "click.classes": ["class1", "class3"],
                             "click.id": "myid",
+                            "click.component_name": "SignUpForm",
                             "click.role": "button",
                             "click.tag": "button",
                             "click.testid": "1",
@@ -1182,6 +1188,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                             "click.alt": None,
                             "click.classes": ["class1", "class2"],
                             "click.id": "myid",
+                            "click.component_name": None,
                             "click.role": None,
                             "click.tag": "div",
                             "click.testid": None,
@@ -1254,7 +1261,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 400, query
                 assert response.content == (
                     b'{"detail":"Invalid attribute specified. Only alt, aria-label, role, '
-                    b'data-testid, data-test-id, and title are supported."}'
+                    b'data-testid, data-test-id, data-sentry-component, and title are supported."}'
                 ), query
 
     def test_get_replays_filter_clicks_unsupported_operators(self):

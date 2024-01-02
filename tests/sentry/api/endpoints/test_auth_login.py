@@ -34,7 +34,9 @@ class AuthLoginEndpointTest(APITestCase):
         assert response.data["nextUri"] == "/auth/reactivate/"
 
     @patch(
-        "sentry.api.endpoints.auth_login.ratelimiter.is_limited", autospec=True, return_value=True
+        "sentry.api.endpoints.auth_login.ratelimiter.backend.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_login_ratelimit(self, is_limited):
         response = self.get_error_response(

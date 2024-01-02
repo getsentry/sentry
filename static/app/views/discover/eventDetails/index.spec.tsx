@@ -1,6 +1,8 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import LocationFixture from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -73,7 +75,7 @@ describe('Discover > EventDetails', function () {
     MockApiClient.addMockResponse({
       url: '/issues/123/',
       method: 'GET',
-      body: TestStubs.Group({id: '123'}),
+      body: GroupFixture({id: '123'}),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -108,7 +110,7 @@ describe('Discover > EventDetails', function () {
   it('renders', async function () {
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -123,7 +125,7 @@ describe('Discover > EventDetails', function () {
   it('renders a 404', async function () {
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{
@@ -139,7 +141,7 @@ describe('Discover > EventDetails', function () {
   it('renders a chart in grouped view', async function () {
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -160,7 +162,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -188,7 +190,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -231,7 +233,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
@@ -271,7 +273,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -314,7 +316,7 @@ describe('Discover > EventDetails', function () {
 
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}

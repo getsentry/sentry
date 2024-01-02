@@ -30,7 +30,7 @@ const useLoadPrismLanguage = (
   const organization = useOrganization({allowNull: true});
 
   useEffect(() => {
-    if (!language || !code) {
+    if (!language || !code || language.includes('/')) {
       return;
     }
 

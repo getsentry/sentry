@@ -1,3 +1,4 @@
+import {useCallback, useRef} from 'react';
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
@@ -47,8 +48,12 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
+import useRouter from 'sentry/utils/useRouter';
 
 import {DateString, PageFilters} from '../../types/core';
+
+export const METRICS_DOCS_URL =
+  'https://develop.sentry.dev/delightful-developer-metrics/';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -83,8 +88,7 @@ export type SortState = {
   order: 'asc' | 'desc';
 };
 
-export interface MetricWidgetQueryParams
-  extends Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> {
+export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
   focusedSeries?: string;
   powerUserMode?: boolean;
@@ -110,7 +114,13 @@ export type MetricsQuery = {
   groupBy?: string[];
   op?: string;
   query?: string;
+  title?: string;
 };
+
+export type MetricsQuerySubject = Pick<
+  MetricsQuery,
+  'mri' | 'op' | 'query' | 'groupBy' | 'title'
+>;
 
 export type MetricCodeLocationFrame = {
   absPath?: string;
@@ -129,7 +139,16 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
+  metricSpans?: any[];
 };
+
+export type MetricRange = {
+  end?: DateString;
+  max?: number;
+  min?: number;
+  start?: DateString;
+};
+
 export function getDdmUrl(
   orgSlug: string,
   {
@@ -215,7 +234,7 @@ export function getDDMInterval(
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= 60 && useCase === 'custom') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && fidelity === 'high') {
     return '10s';
   }
 
@@ -444,12 +463,17 @@ export function isAllowedOp(op: string) {
   return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
 }
 
-export function updateQuery(router: InjectedRouter, partialQuery: Record<string, any>) {
+export function updateQuery(
+  router: InjectedRouter,
+  queryUpdater:
+    | Record<string, any>
+    | ((query: Record<string, any>) => Record<string, any>)
+) {
   router.push({
     ...router.location,
     query: {
       ...router.location.query,
-      ...partialQuery,
+      ...queryUpdater,
     },
   });
 }
@@ -459,6 +483,25 @@ export function clearQuery(router: InjectedRouter) {
     ...router.location,
     query: {},
   });
+}
+
+export function useInstantRef<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
+
+export function useUpdateQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(
+    (partialQuery: Record<string, any>) => {
+      updateQuery(routerRef.current, partialQuery);
+    },
+    [routerRef]
+  );
 }
 
 // TODO(ddm): there has to be a nicer way to do this
@@ -549,4 +592,24 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
     acc[newKeys[index]] = obj[key];
     return acc;
   }, {});
+}
+
+export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
+  const {mri, op, query, groupBy} = metricWidget;
+
+  if (!op) {
+    return '';
+  }
+
+  let result = `${op}(${formatMRI(mri)})`;
+
+  if (query) {
+    result += `{${query.trim()}}`;
+  }
+
+  if (groupBy && groupBy.length) {
+    result += ` by ${groupBy.join(', ')}`;
+  }
+
+  return result;
 }
