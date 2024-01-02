@@ -18,7 +18,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
     message_dict = msgpack.unpackb(msg_payload, use_list=False)
 
     if message_dict.get("sampled", True) or random.random() < options.get(
-        "profiling.unsampled-profiles.la-rollout"
+        "profiling.profile_metrics.unsampled_profiles.sample_rate"
     ):
         process_profile_task.s(payload=msg_payload).apply_async()
 
