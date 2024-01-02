@@ -31,7 +31,7 @@ class SendBeaconTest(OutcomesSnubaTest):
                 "category": DataCategory.ERROR,
                 "quantity": 1,
             },
-            5,
+            5,  # Num of outcomes to be stored
         )
         self.org2 = self.create_organization()
         self.project2 = self.create_project(
@@ -47,7 +47,7 @@ class SendBeaconTest(OutcomesSnubaTest):
                 "category": DataCategory.ERROR,
                 "quantity": 1,
             },
-            5,
+            3,  # Num of outcomes to be stored
         )
 
     @patch("sentry.tasks.beacon.get_all_package_versions")
@@ -80,7 +80,7 @@ class SendBeaconTest(OutcomesSnubaTest):
                     "users": 1,
                     "projects": 2,
                     "teams": 2,
-                    "events.24h": 10,
+                    "events.24h": 8,  # We expect the number of events to be the sum of events from two orgs. First org has 5 events while the second org has 3 events.
                 },
                 "anonymous": False,
                 "admin_email": "foo@example.com",
@@ -122,7 +122,7 @@ class SendBeaconTest(OutcomesSnubaTest):
                     "users": 1,
                     "projects": 2,
                     "teams": 2,
-                    "events.24h": 10,
+                    "events.24h": 8,  # We expect the number of events to be the sum of events from two orgs. First org has 5 events while the second org has 3 events.
                 },
                 "anonymous": True,
                 "packages": mock_get_all_package_versions.return_value,
