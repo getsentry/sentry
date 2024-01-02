@@ -30,7 +30,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef(new Date());
 
   let since: number, until: number;
   if (start && end) {

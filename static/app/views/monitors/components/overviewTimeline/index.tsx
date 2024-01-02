@@ -39,7 +39,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const router = useRouter();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});

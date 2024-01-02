@@ -28,7 +28,7 @@ interface Props {
 
 export function CronDetailsTimeline({monitor, organization}: Props) {
   const {location} = useRouter();
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef(new Date());
   const {selection} = usePageFilters();
   const {period} = selection.datetime;
   let {end, start} = selection.datetime;

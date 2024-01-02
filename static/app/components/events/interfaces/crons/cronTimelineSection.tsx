@@ -41,7 +41,7 @@ export function CronTimelineSection({event, organization}: Props) {
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
 
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef(new Date());
   const {start, end} = getTimeRangeFromEvent(event, nowRef.current, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});

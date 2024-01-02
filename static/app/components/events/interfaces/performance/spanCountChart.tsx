@@ -6,7 +6,7 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DateString, EventError, EventTag, Group, Organization} from 'sentry/types';
+import {EventError, EventTag, Group, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -32,7 +32,7 @@ export function SpanCountChart({issue, event, location, organization}: Props) {
   const allEventsQuery = `event.type:transaction transaction:${transactionName}`;
   const affectedEventsQuery = `${allEventsQuery} ${spanHashTag.key}:${spanHashTag.value}`;
 
-  const nowRef = useRef<DateString>(new Date());
+  const nowRef = useRef(new Date());
 
   const start = issue.firstSeen;
   const end = nowRef.current?.toString();
