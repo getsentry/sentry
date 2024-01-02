@@ -23,7 +23,7 @@ from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -104,7 +104,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
     # 1. cannot contain underscores
     # 2. must start with a number or letter
     # 3. cannot end with a dash
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         org_slug=True,
         max_length=50,
         error_messages={

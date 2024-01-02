@@ -9,7 +9,7 @@ from sentry.slug.patterns import MIXED_SLUG_PATTERN, ORG_SLUG_PATTERN
 
 
 @extend_schema_field(field=OpenApiTypes.STR)
-class SentrySlugField(serializers.RegexField):
+class SentrySerializerSlugField(serializers.RegexField):
     """
     A regex field which validates that the input is a valid slug. Default
     allowed characters are lowercase letters, numbers, underscores, and hyphens.
