@@ -31,7 +31,7 @@ function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
-  const {eventView, fetchError, pageLinks} = useReplaysFromIssue({
+  const {eventView, fetchError, isFetching, pageLinks} = useReplaysFromIssue({
     group,
     location,
     organization,
@@ -52,7 +52,7 @@ function GroupReplays({group}: Props) {
       <StyledLayoutPage withPadding>
         <ReplayTable
           fetchError={fetchError}
-          isFetching
+          isFetching={isFetching}
           replays={[]}
           sort={undefined}
           visibleColumns={VISIBLE_COLUMNS}
