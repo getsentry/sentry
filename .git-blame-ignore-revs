@@ -74,3 +74,6 @@ a0f7dbbe7ccb3ca0b286d4ab4d83a5f2594d0b7d
 
 # ref: upgrade to black stable (#34177)
 cf018ef83b999b5287d1fde7ea523d56d09a228d
+
+# ref(ui) Move forms out of views/settings/components (#31785)
+8be17116a26dcc3b2b5d70565f9f9cfbe4c54aca
