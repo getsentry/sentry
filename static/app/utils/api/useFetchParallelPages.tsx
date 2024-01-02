@@ -46,6 +46,46 @@ interface State<Data> {
   pages: Data[];
 }
 
+/**
+ * A query hook to fetch a fixed number of list pages all at once.
+ *
+ * See also: `useFetchSequentialPages()`
+ *
+ * <WARNING>
+ *   Using this hook might not be a good idea!
+ *   Pagination is a good stratergy to limit the amount of data that a server
+ *   needs to fetch at a given time, it also limits the amount of data that the
+ *   browser needs to hold in memory. Loading all data with this hook could
+ *   cause rate-limiting, memory exhaustion, slow rendering, and other problems.
+ *
+ *   Before implementing a sequential-fetch you should first think about
+ *   building new api endpoints that return just the data you need (in a
+ *   paginated way), or look at the feature design itself and make adjustments.
+ * </WARNING>
+ *
+ * EXAMPLE: You want to fetch 100 items to show in a list, but the max-page-size
+ * is set to only 50.
+ *   In the well-behaved case this might seem fine, but in the pathological
+ *   case (in the extreme) there could be too many users to do this safely!
+ * Knowing that you have to make
+ *
+ * | Request        | Waterfall     |
+ * | -------------- | ------------- |
+ * | ?cursor=0:0:0  | ==========    |
+ * | ?cursor=0:50:0 | =======       |
+ * |                | ^      ^  ^   |
+ * |                | t=0    t=1    |
+ * |                |           t=2 |
+ *
+ * At t=0 the hook will return `data=Array(0)` because no records are fetched yet.
+ * - Both requests will start at the same time, but are not guaranteed to end at
+ *   the same time, or in order.
+ * - If the network saturated with many requests (which can happen during
+ *   pageload) then some requests might still need to wait before starting.
+ * - Each response (in this case 2) will cause a re-render.
+ * - Responses will return out of order (in this case items 50 to 100 return
+ *   before items 0 to 50) which could cause layout shift.
+ */
 export default function useFetchParallelPages<Data>({
   enabled,
   hits,

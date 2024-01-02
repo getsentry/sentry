@@ -13,8 +13,12 @@ interface Props {
 
   /**
    * Generate the queryKey to use, given the pagination params
+   * If `undefined` is returned iteration will not continue
    */
-  getQueryKey: (pagination: {cursor: string; per_page: number}) => ApiQueryKey;
+  getQueryKey: (pagination: {
+    cursor: string;
+    per_page: number;
+  }) => undefined | ApiQueryKey;
 
   /**
    * You must set the page size to be used.
@@ -47,6 +51,43 @@ interface State<Data> {
   pages: Data[];
 }
 
+/**
+ * A query hook that fetches multiple pages of data from the same endpoint, one-by-one.
+ *
+ * See also: `useFetchParallelPages()`
+ *
+ * `useFetchSequentialPages` is an iterator for fetch calls. It makes it possible
+ * to fetch ALL data from an api endpoint.
+ *
+ * <WARNING>
+ *   Using this hook might not be a good idea!
+ *   Pagination is a good stratergy to limit the amount of data that a server
+ *   needs to fetch at a given time, it also limits the amount of data that the
+ *   browser needs to hold in memory. Loading all data with this hook could
+ *   cause rate-limiting, memory exhaustion, slow rendering, and other problems.
+ *
+ *   Before implementing a sequential-fetch you should first think about
+ *   building new api endpoints that return just the data you need (in a
+ *   paginated way), or look at the feature design itself and make adjustments.
+ * </WARNING>
+ *
+ * EXAMPLE: you want to make a request for all user's within a project...
+ *   In the well-behaved case this might seem fine, but in the pathological
+ *   case (in the extreme) there could be too many users to do this safely!
+ * If there are 64 users in the project, but the max page-size is only 50, then
+ * you can expect two calls to be made. The network waterfall would look like:
+ *
+ * | Request        | Waterfall           |
+ * | -------------- | ------------------- |
+ * | ?cursor=0:0:0  | ========            |
+ * | ?cursor=0:50:0 |         ========    |
+ * |                | ^       ^       ^   |
+ * |                | t=0     t=1     t=2 |
+ *
+ * At t=0 the hook will return `data=Array(0)` because no records are fetched yet.
+ * At t=1 the hook will return `data=Array(50)` and will has `isFetching=true`
+ * Finally at t=2 all data will be fetched and combined: `data=Array(64)`
+ */
 export default function useFetchSequentialPages<Data>({
   enabled,
   getQueryKey,
@@ -73,10 +114,14 @@ export default function useFetchSequentialPages<Data>({
         results: true,
       };
       try {
-        while (parsedHeader?.results) {
+        while (parsedHeader.results) {
           const cursor = parsedHeader.cursor;
+          const queryKey = getQueryKey({cursor, per_page: perPage});
+          if (!queryKey) {
+            break;
+          }
           const [data, , resp] = await queryClient.fetchQuery({
-            queryKey: getQueryKey({cursor, per_page: perPage}),
+            queryKey,
             queryFn: fetchDataQuery(api),
             staleTime: Infinity,
           });

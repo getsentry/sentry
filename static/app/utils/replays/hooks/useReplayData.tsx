@@ -45,6 +45,30 @@ interface Result {
   replayRecord: ReplayRecord | undefined;
 }
 
+/**
+ * A react hook to load core replay data over the network.
+ *
+ * Core replay data includes:
+ * 1. The root replay EventTransaction object
+ *    - This includes `startTimestamp`, and `tags`
+ * 2. RRWeb, Breadcrumb, and Span attachment data
+ *    - We make an API call to get a list of segments, each segment contains a
+ *      list of attachments
+ *    - There may be a few large segments, or many small segments. It depends!
+ *      ie: If the replay has many events/errors then there will be many small segments,
+ *      or if the page changes rapidly across each pageload, then there will be
+ *      larger segments, but potentially fewer of them.
+ * 3. Related Event data
+ *    - Event details are not part of the attachments payload, so we have to
+ *      request them separately
+ *
+ * This function should stay focused on loading data over the network.
+ * Front-end processing, filtering and re-mixing of the different data streams
+ * must be delegated to the `ReplayReader` class.
+ *
+ * @param {orgSlug, replayId} Where to find the root replay event
+ * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
+ */
 export default function useReplayData({
   replayId,
   orgSlug,
@@ -91,6 +115,10 @@ export default function useReplayData({
 
   const getErrorsQueryKey = useCallback(
     ({cursor, per_page}): ApiQueryKey => {
+      // Clone the `finished_at` time and bump it up one second because finishedAt
+      // has the `ms` portion truncated, while replays-events-meta operates on
+      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
+      // while the event is saved with `12:00:00.450Z`.
       const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
