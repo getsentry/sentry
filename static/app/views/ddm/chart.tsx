@@ -136,6 +136,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         yAxis: {
+          id: 'yAxis',
           axisLabel: {
             formatter: (value: number) => {
               return formatMetricsUsingUnitAndOp(value, unit, operation);
@@ -143,6 +144,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         xAxis: {
+          id: 'xAxis',
           axisPointer: {
             snap: true,
           },
