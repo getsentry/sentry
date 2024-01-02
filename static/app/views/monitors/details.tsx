@@ -115,7 +115,7 @@ function MonitorDetails({params, location}: Props) {
                   <StatusToggleButton
                     monitor={monitor}
                     size="xs"
-                    onClick={() => handleUpdate({status: 'active'})}
+                    onToggleStatus={status => handleUpdate({status})}
                   >
                     {t('Reactivate')}
                   </StatusToggleButton>

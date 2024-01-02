@@ -10,6 +10,7 @@ import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItem
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
@@ -165,6 +166,7 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
