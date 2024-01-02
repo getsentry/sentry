@@ -53,7 +53,7 @@
     "@sentry-internal/react-inspector": "6.0.1-4",
     "@sentry-internal/rrweb": "2.6.0",
     "@sentry-internal/rrweb-player": "2.6.0",
-    "@sentry-internal/rrweb-snapshot": "2.6.0",
+    "@sentry-internal/rrweb-snapshot": "2.7.0",
     "@sentry/core": "^7.88.0",
     "@sentry/integrations": "^7.88.0",
     "@sentry/node": "^7.88.0",
