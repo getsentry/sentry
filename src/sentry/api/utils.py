@@ -21,6 +21,7 @@ from sentry_sdk import Scope
 
 from sentry import options
 from sentry.auth.superuser import is_active_superuser
+from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
