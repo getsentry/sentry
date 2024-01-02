@@ -44,7 +44,10 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
 
   const handleUpdate = async (data: Partial<Monitor>) => {
     const resp = await updateMonitor(api, orgId, monitor.slug, data);
-    onUpdate?.(resp);
+
+    if (resp !== null) {
+      onUpdate?.(resp);
+    }
   };
 
   const toggleMute = () => handleUpdate({isMuted: !monitor.isMuted});
