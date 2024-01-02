@@ -42,7 +42,7 @@ class MetricsSerializer(serializers.Serializer):
 class InternalBeaconEndpoint(Endpoint):
     owner = ApiOwner.OPEN_SOURCE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
 

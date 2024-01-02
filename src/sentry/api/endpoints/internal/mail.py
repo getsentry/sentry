@@ -13,8 +13,8 @@ from sentry.utils.email import send_mail
 class InternalMailEndpoint(Endpoint):
     owner = ApiOwner.OPEN_SOURCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 

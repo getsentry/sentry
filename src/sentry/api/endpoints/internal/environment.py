@@ -15,7 +15,7 @@ from sentry.app import env
 class InternalEnvironmentEndpoint(Endpoint):
     owner = ApiOwner.OPEN_SOURCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 
