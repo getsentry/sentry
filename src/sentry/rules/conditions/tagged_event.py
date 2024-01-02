@@ -56,7 +56,7 @@ class TaggedEventCondition(EventCondition):
             k
             for gen in (
                 (k.lower() for k, v in raw_tags),
-                (tagstore.get_standardized_key(k) for k, v in raw_tags),
+                (tagstore.backend.get_standardized_key(k) for k, v in raw_tags),
             )
             for k in gen
         )
@@ -75,7 +75,7 @@ class TaggedEventCondition(EventCondition):
         values = (
             v.lower()
             for k, v in raw_tags
-            if k.lower() == key or tagstore.get_standardized_key(k) == key
+            if k.lower() == key or tagstore.backend.get_standardized_key(k) == key
         )
 
         if match == MatchType.EQUAL:

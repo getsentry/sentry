@@ -27,6 +27,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
 from sentry.utils.snuba import SnubaError
 
+# Snuba can return at most 10.000 rows.
+SNUBA_QUERY_LIMIT = 10000
+
 
 class InvalidMetricsQueryError(Exception):
     pass
@@ -532,7 +535,11 @@ def run_metrics_query(
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
     for timeseries in parser.generate_queries(environments=environments):
-        query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
+        query = (
+            base_query.set_query(timeseries)
+            .set_rollup(Rollup(interval=interval))
+            .set_limit(SNUBA_QUERY_LIMIT)
+        )
         executor.schedule(query)
 
     # Iterating over each result.

@@ -1,31 +1,26 @@
-import {useContext, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {SplitPanelContext} from 'sentry/components/splitPanel';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconSearch} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
-import {formatMRI} from 'sentry/utils/metrics/mri';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {TraceTable} from 'sentry/views/ddm/traceTable';
+import {TraceTable} from 'sentry/views/ddm/samplesTable';
 
 enum Tab {
   SAMPLES = 'samples',
   CODE_LOCATIONS = 'codeLocations',
 }
 
-export function TrayContent() {
-  const {selectedWidgetIndex, widgets} = useDDMContext();
+export function WidgetDetails() {
+  const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.CODE_LOCATIONS);
-  const {isMaximized, maximiseSize, resetSize} = useContext(SplitPanelContext);
   // the tray is minimized when the main content is maximized
-  const trayIsMinimized = isMaximized;
   const selectedWidget = widgets[selectedWidgetIndex] as
     | MetricWidgetQueryParams
     | undefined;
@@ -38,22 +33,8 @@ export function TrayContent() {
 
   return (
     <TrayWrapper>
-      <Header>
-        <Title>
-          {selectedWidget?.mri
-            ? formatMRI(selectedWidget.mri)
-            : t('Choose a metric to display data')}
-        </Title>
-        <ToggleButton
-          size="xs"
-          isMinimized={trayIsMinimized}
-          icon={<IconChevron />}
-          onClick={trayIsMinimized ? resetSize : maximiseSize}
-          aria-label={trayIsMinimized ? t('show') : t('hide')}
-        />
-      </Header>
       <Tabs value={selectedTab} onChange={setSelectedTab}>
-        <StyledTabList>
+        <TabList>
           <TabList.Item
             textValue={t('Code Location')}
             key={Tab.CODE_LOCATIONS}
@@ -69,7 +50,7 @@ export function TrayContent() {
             </Tooltip>
           </TabList.Item>
           <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
-        </StyledTabList>
+        </TabList>
       </Tabs>
       <ContentWrapper>
         {!selectedWidget?.mri ? (
@@ -82,13 +63,9 @@ export function TrayContent() {
             />
           </CenterContent>
         ) : selectedTab === Tab.SAMPLES ? (
-          <TraceTable
-            // Force re-render when selectedWidget changes so the mocked data updates
-            // TODO: remove this when we have real data
-            key={selectedWidget.mri}
-          />
+          <TraceTable mri={selectedWidget.mri} {...focusArea?.range} />
         ) : (
-          <CodeLocations mri={selectedWidget.mri} />
+          <CodeLocations mri={selectedWidget.mri} {...focusArea?.range} />
         )}
       </ContentWrapper>
     </TrayWrapper>
@@ -96,42 +73,14 @@ export function TrayContent() {
 }
 
 const TrayWrapper = styled('div')`
-  height: 100%;
-  background-color: ${p => p.theme.background};
-  z-index: ${p => p.theme.zIndex.sidebar};
+  padding-top: ${space(4)};
   display: grid;
   grid-template-rows: auto auto 1fr;
 `;
 
-const Header = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 ${space(4)};
-  height: 32px;
-  background-color: ${p => p.theme.backgroundSecondary};
-`;
-
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: bold;
-`;
-
-const ToggleButton = styled(Button)<{isMinimized}>`
-  & svg {
-    transform: rotate(${p => (p.isMinimized ? '0deg' : '180deg')});
-  }
-`;
-
-const StyledTabList = styled(TabList)`
-  padding: 0 ${space(4)};
-  background-color: ${p => p.theme.backgroundSecondary};
-`;
-
 const ContentWrapper = styled('div')`
   position: relative;
-  padding: ${space(2)} ${space(4)};
+  padding: ${space(2)} 0;
   overflow: auto;
 `;
 

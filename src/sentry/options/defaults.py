@@ -5,14 +5,15 @@ from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_BOOL,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
-    FLAG_MODIFIABLE_SCALAR,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
+    FLAG_SCALAR,
 )
 from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
@@ -510,6 +511,7 @@ register("snuba.search.max-chunk-size", default=2000, flags=FLAG_AUTOMATOR_MODIF
 register("snuba.search.max-total-chunk-time-seconds", default=30.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("snuba.use-mql-endpoint", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -1815,16 +1817,22 @@ register(
 register(
     "relocation.enabled",
     default=False,
-    # TODO(getsentry/team-ospo#214): Eventually change this to `FLAG_BOOL |
-    # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new relocations should be autopaused, requiring admin approval
+# before continuing.
+register(
+    "relocation.autopause",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: globally limits the number of small (<=10MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.small",
     default=0,
-    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: globally limits the number of medium (>10MB && <=100MB) relocations allowed per silo
@@ -1832,12 +1840,12 @@ register(
 register(
     "relocation.daily-limit.medium",
     default=0,
-    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.large",
     default=0,
-    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )

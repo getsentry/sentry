@@ -1,7 +1,6 @@
 import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import isString from 'lodash/isString';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
@@ -188,7 +187,7 @@ export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => 
     return [];
   }
 
-  sorts = isString(sorts) ? [sorts] : sorts;
+  sorts = typeof sorts === 'string' ? [sorts] : sorts;
 
   // NOTE: sets are iterated in insertion order
   const uniqueSorts = [...new Set(sorts)];
