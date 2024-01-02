@@ -89,7 +89,11 @@ function AccordionItem({
     <StyledLineItem>
       <ButtonLeftListItemContainer>
         {button}
-        <StyledPanel onClick={() => setExpandedIndex(index)}>{children}</StyledPanel>
+        <StyledPanel
+          onClick={() => (isExpanded ? setExpandedIndex(-1) : setExpandedIndex(index))}
+        >
+          {children}
+        </StyledPanel>
       </ButtonLeftListItemContainer>
       <LeftContentContainer>{isExpanded && content}</LeftContentContainer>
     </StyledLineItem>

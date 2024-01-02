@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
+import Accordion from 'sentry/components/accordion/accordion';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -16,10 +17,12 @@ import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 
 type Breakpoints = {
   large: string;
@@ -141,6 +144,81 @@ export function SetupReplaysCTA({
   orgSlug,
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
+  const [expanded, setExpanded] = useState(0);
+  const FAQ = [
+    {
+      header: () => (
+        <QuestionContent>{t('Can I use Session Replay with my app?')}</QuestionContent>
+      ),
+      content: () => (
+        <AnswerContent>
+          <div>
+            {t(
+              'Session Replay supports all browser-based applications. This includes static websites, single-page-aplications, and also server-side-rendered. The only prerequisite is that your application uses our Sentry JavaScript SDK (7.2.0 or greater) either with NPM/Yarn or our JS Loader script.'
+            )}
+          </div>
+          <div>
+            {tct(
+              'To learn about which SDKs we support, please visit [link:this page] from our docs.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/" />
+                ),
+              }
+            )}
+          </div>
+        </AnswerContent>
+      ),
+    },
+    {
+      header: () => (
+        <QuestionContent>{t('What’s the performance overhead?')}</QuestionContent>
+      ),
+      content: () => (
+        <AnswerContent>
+          <div>
+            {t(
+              'Session Replay adds a small amount of performance overhead to your web application. The performance overhead basically scales linearly with the amount of DOM complexity your application has. The more DOM state changes that occur in the application lifecycle, the more events that are captured, transmitted, etc.'
+            )}
+          </div>
+          <div>
+            {tct(
+              'To learn about how we’ve optimized our SDK, please visit [link:this page] from our docs.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/session-replay/performance-overhead/" />
+                ),
+              }
+            )}
+          </div>
+        </AnswerContent>
+      ),
+    },
+    {
+      header: () => (
+        <QuestionContent>{t('How do you protect user data?')}</QuestionContent>
+      ),
+      content: () => (
+        <AnswerContent>
+          <div>
+            {t(
+              'We offer a range of privacy controls to let developers ensure that no sensitive user information leaves the browser. By default, our privacy configuration is very aggressive and masks all text and images, but you can choose to just mask user input text, for example. '
+            )}
+          </div>
+          <div>
+            {tct(
+              'To learn about how we protect user privacy, please visit [link:this page] from our docs.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/session-replay/protecting-user-privacy/" />
+                ),
+              }
+            )}
+          </div>
+        </AnswerContent>
+      ),
+    },
+  ];
 
   function renderCTA() {
     if (primaryAction === 'setup') {
@@ -187,7 +265,7 @@ export function SetupReplaysCTA({
   }
 
   return (
-    <Fragment>
+    <CenteredContent>
       <h3>{t('Get to the root cause faster')}</h3>
       <p>
         {t(
@@ -204,7 +282,19 @@ export function SetupReplaysCTA({
           {t('Read Docs')}
         </Button>
       </ButtonList>
-    </Fragment>
+      <StyledWidgetContainer>
+        <HeaderContainer>
+          <FAQHeader>{t('FAQ')}</FAQHeader>
+        </HeaderContainer>
+        <Accordion
+          items={FAQ}
+          expandedIndex={expanded}
+          setExpandedIndex={setExpanded}
+          buttonOnLeft
+          collapsible={false}
+        />
+      </StyledWidgetContainer>
+    </CenteredContent>
   );
 }
 
@@ -242,4 +332,29 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+`;
+
+const StyledWidgetContainer = styled(WidgetContainer)`
+  margin: ${space(4)} 0 ${space(1)} 0;
+`;
+
+const CenteredContent = styled('div')`
+  padding: ${space(3)};
+`;
+
+const AnswerContent = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  padding: ${space(2)};
+`;
+
+const QuestionContent = styled('div')`
+  font-weight: bold;
+  cursor: pointer;
+`;
+
+const FAQHeader = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.gray300};
 `;
