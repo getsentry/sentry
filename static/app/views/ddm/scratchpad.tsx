@@ -1,5 +1,6 @@
 import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import * as echarts from 'echarts/core';
 
 import {Button} from 'sentry/components/button';
@@ -17,8 +18,16 @@ import {useDDMContext} from 'sentry/views/ddm/context';
 import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
-  const {setSelectedWidgetIndex, selectedWidgetIndex, widgets, updateWidget, addWidget} =
-    useDDMContext();
+  const {
+    setSelectedWidgetIndex,
+    selectedWidgetIndex,
+    widgets,
+    updateWidget,
+    addWidget,
+    focusArea,
+    addFocusArea,
+    removeFocusArea,
+  } = useDDMContext();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -46,12 +55,15 @@ export function MetricScratchpad() {
           index={index}
           onSelect={setSelectedWidgetIndex}
           isSelected={selectedWidgetIndex === index}
-          numberOfSiblings={widgets.length - 1}
+          hasSiblings={widgets.length > 1}
           onChange={handleChange}
           widget={widget}
           datetime={selection.datetime}
           projects={selection.projects}
           environments={selection.environments}
+          addFocusArea={addFocusArea}
+          removeFocusArea={removeFocusArea}
+          focusArea={focusArea}
         />
       ))}
       <AddWidgetPanel
@@ -62,6 +74,7 @@ export function MetricScratchpad() {
                 trackAnalytics('ddm.widget.add', {
                   organization,
                 });
+                Sentry.metrics.increment('ddm.widget.add');
 
                 addWidget();
               }

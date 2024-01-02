@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntryDebugMeta as EventEntryDebugMetaFixture} from 'sentry-fixture/eventEntryDebugMeta';
+import {EntryDebugMeta as EventEntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

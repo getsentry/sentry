@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -8,13 +8,13 @@ import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
+import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getSeriesName,
   MetricDisplayType,
@@ -24,6 +24,7 @@ import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
+import {FocusArea} from 'sentry/views/ddm/chartBrush';
 import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
 import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
@@ -40,19 +41,26 @@ export const MetricWidget = memo(
     isSelected,
     onSelect,
     onChange,
-    numberOfSiblings,
+    hasSiblings,
+    addFocusArea,
+    removeFocusArea,
+    focusArea,
   }: {
+    addFocusArea: (area: FocusArea) => void;
     datetime: PageFilters['datetime'];
     environments: PageFilters['environments'];
+    focusArea: FocusArea | null;
+    hasSiblings: boolean;
     index: number;
     isSelected: boolean;
-    numberOfSiblings: number;
     onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
     onSelect: (index: number) => void;
     projects: PageFilters['projects'];
+    removeFocusArea: () => void;
     widget: MetricWidgetQueryParams;
   }) => {
     const [isEdit, setIsEdit] = useState(true);
+
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
         onChange(index, data);
@@ -79,7 +87,16 @@ export const MetricWidget = memo(
         environments,
         title: widget.title,
       }),
-      [widget, projects, datetime, environments]
+      [
+        widget.mri,
+        widget.query,
+        widget.op,
+        widget.groupBy,
+        widget.title,
+        projects,
+        datetime,
+        environments,
+      ]
     );
 
     const shouldDisplayEditControls = (isEdit && isSelected) || !metricsQuery.mri;
@@ -87,8 +104,8 @@ export const MetricWidget = memo(
     return (
       <MetricWidgetPanel
         // show the selection border only if we have more widgets than one
-        isHighlighted={isSelected && !!numberOfSiblings}
-        isHighlightable={!!numberOfSiblings}
+        isHighlighted={isSelected && !!hasSiblings}
+        isHighlightable={!!hasSiblings}
         onClick={() => onSelect(index)}
       >
         <PanelBody>
@@ -111,10 +128,14 @@ export const MetricWidget = memo(
           </MetricWidgetHeader>
           {widget.mri ? (
             <MetricWidgetBody
+              widgetIndex={index}
               datetime={datetime}
               projects={projects}
               environments={environments}
               onChange={handleChange}
+              addFocusArea={addFocusArea}
+              focusArea={focusArea}
+              removeFocusArea={removeFocusArea}
               {...widget}
             />
           ) : (
@@ -134,12 +155,15 @@ export const MetricWidget = memo(
 
 const MetricWidgetHeader = styled('div')`
   display: flex;
-
   justify-content: space-between;
 `;
 
 interface MetricWidgetProps extends MetricWidgetQueryParams {
+  addFocusArea: (area: FocusArea) => void;
+  focusArea: FocusArea | null;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
+  removeFocusArea: () => void;
+  widgetIndex: number;
 }
 
 const MetricWidgetBody = memo(
@@ -148,11 +172,15 @@ const MetricWidgetBody = memo(
     displayType,
     focusedSeries,
     sort,
+    widgetIndex,
+    addFocusArea,
+    focusArea,
+    removeFocusArea,
     ...metricsQuery
   }: MetricWidgetProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-    const {data, isLoading, isError, error, onZoom} = useMetricsDataZoom(
+    const {data, isLoading, isError, error} = useMetricsDataZoom(
       {
         mri,
         op,
@@ -165,29 +193,49 @@ const MetricWidgetBody = memo(
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
 
-    const [dataToBeRendered, setDataToBeRendered] = useState<
-      MetricsApiResponse | undefined
-    >(undefined);
+    const chartRef = useRef<ReactEchartsRef>(null);
 
-    const [hoveredLegend, setHoveredLegend] = useState('');
-
-    useEffect(() => {
-      if (data) {
-        setDataToBeRendered(data);
+    const setHoveredSeries = useCallback((legend: string) => {
+      if (!chartRef.current) {
+        return;
       }
-    }, [data]);
+      const echartsInstance = chartRef.current.getEchartsInstance();
+      echartsInstance.dispatchAction({
+        type: 'highlight',
+        seriesName: legend,
+      });
+    }, []);
 
     const toggleSeriesVisibility = useCallback(
       (seriesName: string) => {
-        setHoveredLegend('');
+        setHoveredSeries('');
         onChange({
           focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
         });
       },
-      [focusedSeries, onChange]
+      [focusedSeries, onChange, setHoveredSeries]
     );
 
-    if (!dataToBeRendered || isError) {
+    const chartSeries = useMemo(() => {
+      return (
+        data &&
+        getChartSeries(data, {
+          mri,
+          focusedSeries,
+          groupBy: metricsQuery.groupBy,
+          displayType,
+        })
+      );
+    }, [data, displayType, focusedSeries, metricsQuery.groupBy, mri]);
+
+    const handleSortChange = useCallback(
+      newSort => {
+        onChange({sort: newSort});
+      },
+      [onChange]
+    );
+
+    if (!chartSeries || !data || isError) {
       return (
         <StyledMetricWidgetBody>
           {isLoading && <LoadingIndicator />}
@@ -200,7 +248,7 @@ const MetricWidgetBody = memo(
       );
     }
 
-    if (dataToBeRendered.groups.length === 0) {
+    if (data.groups.length === 0) {
       return (
         <StyledMetricWidgetBody>
           <EmptyMessage
@@ -212,36 +260,27 @@ const MetricWidgetBody = memo(
       );
     }
 
-    const chartSeries = getChartSeries(dataToBeRendered, {
-      mri,
-      focusedSeries,
-      hoveredLegend,
-      groupBy: metricsQuery.groupBy,
-      displayType,
-    });
-
     return (
       <StyledMetricWidgetBody>
         <TransparentLoadingMask visible={isLoading} />
         <MetricChart
+          ref={chartRef}
           series={chartSeries}
           displayType={displayType}
           operation={metricsQuery.op}
-          projects={metricsQuery.projects}
-          environments={metricsQuery.environments}
-          {...normalizeChartTimeParams(dataToBeRendered)}
-          onZoom={onZoom}
+          widgetIndex={widgetIndex}
+          addFocusArea={addFocusArea}
+          focusArea={focusArea}
+          removeFocusArea={removeFocusArea}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
             series={chartSeries}
-            onSortChange={newSort => {
-              onChange({sort: newSort});
-            }}
+            onSortChange={handleSortChange}
             sort={sort}
             operation={metricsQuery.op}
             onRowClick={toggleSeriesVisibility}
-            setHoveredLegend={focusedSeries ? undefined : setHoveredLegend}
+            setHoveredSeries={focusedSeries ? undefined : setHoveredSeries}
           />
         )}
       </StyledMetricWidgetBody>
@@ -283,7 +322,7 @@ export function getChartSeries(
   return sortSeries(series, displayType).map((item, i) => ({
     seriesName: item.name,
     unit,
-    color: colorFn(colors[i])
+    color: colorFn(colors[i % colors.length])
       .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
       .string(),
     hidden: focusedSeries && focusedSeries !== item.name,
@@ -332,39 +371,6 @@ function getChartColorPalette(displayType: MetricDisplayType, length: number) {
   }
 
   return palette.toReversed();
-}
-
-function normalizeChartTimeParams(data: MetricsApiResponse) {
-  const {
-    start,
-    end,
-    utc: utcString,
-    statsPeriod,
-  } = normalizeDateTimeParams(data, {
-    allowEmptyPeriod: true,
-    allowAbsoluteDatetime: true,
-    allowAbsolutePageDatetime: true,
-  });
-
-  const utc = utcString === 'true';
-
-  if (start && end) {
-    return utc
-      ? {
-          start: moment.utc(start).format(),
-          end: moment.utc(end).format(),
-          utc,
-        }
-      : {
-          start: moment(start).utc().format(),
-          end: moment(end).utc().format(),
-          utc,
-        };
-  }
-
-  return {
-    period: statsPeriod ?? '90d',
-  };
 }
 
 export type Series = {

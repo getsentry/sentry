@@ -1,4 +1,4 @@
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
