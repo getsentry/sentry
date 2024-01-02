@@ -21,11 +21,10 @@ class SpanOp(TypedDict):
 @region_silo_endpoint
 class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:

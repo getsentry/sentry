@@ -298,7 +298,7 @@ function ActionSet({
         items={menuItems}
         triggerProps={{
           'aria-label': t('More issue actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'xs',
         }}

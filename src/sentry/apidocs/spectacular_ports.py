@@ -45,14 +45,9 @@ from drf_spectacular.plumbing import (
     is_basic_type,
 )
 from drf_spectacular.types import OpenApiTypes
-from typing_extensions import _TypedDictMeta  # type: ignore[attr-defined]
+from typing_extensions import is_typeddict
 
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
-
-# Until we're on 3.9 we have to use the typing extention TypedDict as
-# we are unable to tell optional fields at run time via the regular 3.8
-# implementation
-
 
 # This function is ported from the drf-spectacular library method here:
 # https://github.com/tfranzel/drf-spectacular/blob/03d315ced245db71cef1e45fd05a082b7dedc7aa/drf_spectacular/plumbing.py#L1100
@@ -60,7 +55,6 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   grabbing description from a TypedDict __doc__
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
-#   warning about using typing_extension TypedDict
 
 # TODO:
 #   figure out solution for field descriptions
@@ -134,7 +128,7 @@ def resolve_type_hint(hint) -> Any:
         if mixin_base_types:
             schema.update(build_basic_type(mixin_base_types[0]))
         return schema
-    elif isinstance(hint, _TypedDictMeta):
+    elif is_typeddict(hint):
         return build_object_type(
             properties={
                 k: resolve_type_hint(v)
@@ -155,7 +149,5 @@ def resolve_type_hint(hint) -> Any:
         return schema
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
-    elif isinstance(hint, typing._TypedDictMeta):  # type: ignore[attr-defined]
-        raise UnableToProceedError("Wrong TypedDict class, please use typing_extensions.TypedDict")
     else:
         raise UnableToProceedError(hint)

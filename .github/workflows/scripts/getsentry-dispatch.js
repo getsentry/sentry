@@ -11,11 +11,11 @@
 const DISPATCHES = [
   {
     workflow: 'js-build-and-lint.yml',
-    pathFilterName: 'frontend',
+    pathFilterName: 'frontend_all',
   },
   {
     workflow: 'backend.yml',
-    pathFilterName: 'backend_src',
+    pathFilterName: 'backend_all',
   },
 ];
 
@@ -23,16 +23,11 @@ module.exports = {
   dispatch: async ({github, context, core, fileChanges, mergeCommitSha}) => {
     core.startGroup('Dispatching request to getsentry.');
 
-    const shouldSkip = {
-      frontend: fileChanges.frontend_all !== 'true',
-      backend_dependencies: fileChanges.backend_dependencies !== 'true',
-    };
-
     await Promise.all(
       DISPATCHES.map(({workflow, pathFilterName}) => {
         const inputs = {
           pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
-          skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
+          skip: `${fileChanges[pathFilterName] !== 'true'}`, // even though this is a boolean, it must be cast to a string
 
           // sentrySHA is the sha getsentry should run against.
           'sentry-sha': mergeCommitSha,

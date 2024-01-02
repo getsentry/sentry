@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
@@ -17,8 +19,8 @@ import IntegrationCodeMappings from 'sentry/views/settings/organizationIntegrati
 
 describe('IntegrationCodeMappings', function () {
   const projects = [
-    TestStubs.Project(),
-    TestStubs.Project({
+    ProjectFixture(),
+    ProjectFixture({
       id: '3',
       slug: 'some-project',
       name: 'Some Project',
@@ -26,7 +28,7 @@ describe('IntegrationCodeMappings', function () {
   ];
 
   const org = Organization();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const repos = [
     Repository({
       integrationId: integration.id,

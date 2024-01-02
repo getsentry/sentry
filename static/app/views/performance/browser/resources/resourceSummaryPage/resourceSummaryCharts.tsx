@@ -67,7 +67,6 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             height={160}
             data={[spanMetricsSeriesData?.[`spm()`]]}
             loading={areSpanMetricsSeriesLoading}
-            utc={false}
             isLineChart
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
@@ -87,7 +86,6 @@ function ResourceSummaryCharts(props: {groupId: string}) {
             height={160}
             data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
             loading={areSpanMetricsSeriesLoading}
-            utc={false}
             chartColors={[AVG_COLOR]}
             isLineChart
             definedAxisTicks={4}
@@ -105,7 +103,6 @@ function ResourceSummaryCharts(props: {groupId: string}) {
               spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
             ]}
             loading={areSpanMetricsSeriesLoading}
-            utc={false}
             chartColors={[AVG_COLOR]}
             isLineChart
             definedAxisTicks={4}

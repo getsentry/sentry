@@ -119,7 +119,6 @@ export function ExceptionV2({
             projectSlug={projectSlug}
             newestFirst={recentFirst}
             event={event}
-            platform={platform}
             values={data.values}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}

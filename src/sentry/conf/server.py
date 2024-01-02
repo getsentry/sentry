@@ -798,6 +798,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.statistical_detectors",
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
+    "sentry.middleware.integrations.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1432,6 +1433,8 @@ SENTRY_EARLY_FEATURES = {
 
 # NOTE: Please maintain alphabetical order when adding new feature flags
 SENTRY_FEATURES: dict[str, bool | None] = {
+    # Enables the staff cookie on requests
+    "auth:enterprise-staff-cookie": False,
     # Enables user registration.
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
@@ -1597,10 +1600,14 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enables a toggle for entering the new issue details UI
+    "organizations:issue-details-new-experience-toggle": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enables syntax highlighting in the stack trace
     "organizations:issue-details-stacktrace-syntax-highlighting": False,
+    # Enables the new Stacktrace Link UI in frame header
+    "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
@@ -1623,6 +1630,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-performance": False,
     # Enable issue stream performance improvements (cache)
     "organizations:issue-stream-performance-cache": False,
+    # Enable issue similarity embeddings
+    "organizations:issues-similarity-embeddings": False,
+    # Enabled latest adopted release filter for issue alerts
+    "organizations:latest-adopted-release-filter": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
@@ -1829,6 +1840,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
     "organizations:session-replay-enable-canvas": False,
+    # Enable canvas replaying
+    "organizations:session-replay-enable-canvas-replayer": False,
     # Enable replay event linking in event processing
     "organizations:session-replay-event-linking": False,
     # Enable linking from 'new issue' email notifs to the issue replay list
@@ -1869,6 +1882,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:sourcemaps-upload-release-as-artifact-bundle": False,
     # Updated spike protection heuristic
     "organizations:spike-protection-decay-heuristic": False,
+    # Enable Slack messages using Block Kit
+    "organizations:slack-block-kit": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -3021,6 +3036,9 @@ STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
 SENTRY_SELF_HOSTED = True
+# only referenced in getsentry to provide the stable beacon version
+# updated with scripts/bump-version.sh
+SELF_HOSTED_STABLE_VERSION = "23.12.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3859,10 +3877,6 @@ SHOW_LOGIN_BANNER = False
 # }
 SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
 
-# Used by silo tests -- when requests pass through decorated endpoints, switch the server silo mode to match that
-# decorator.
-SINGLE_SERVER_SILO_MODE = False
-
 # Used by silo tests -- activate all silo mode test decorators even if not marked stable
 FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)
 
@@ -3981,6 +3995,16 @@ REGION_PINNED_URL_NAMES = {
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
 
+# Devserver configuration overrides.
+ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
+if ngrok_host and SILO_MODE != "REGION":
+    SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
+    CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
+    ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
+
+    SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"
+    CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+    SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.

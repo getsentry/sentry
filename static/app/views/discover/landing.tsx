@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';

@@ -119,7 +119,7 @@ from rest_framework.response import Response
 @region_silo_endpoint
 class DiscoverSavedQueryVisitEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (DiscoverSavedQueryPermission,)

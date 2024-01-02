@@ -1,6 +1,8 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Tags} from 'sentry-fixture/tags';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,11 +14,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
+import {TeamParticipant, UserParticipant} from 'sentry/types';
 
 import GroupSidebar from './groupSidebar';
 
 describe('GroupSidebar', function () {
-  let group = TestStubs.Group({tags: Tags()});
+  let group = GroupFixture();
   const {organization, project} = initializeOrg();
   const environment = 'production';
   let tagsMock: jest.Mock;
@@ -161,7 +164,7 @@ describe('GroupSidebar', function () {
 
   describe('renders without tags', function () {
     beforeEach(function () {
-      group = TestStubs.Group();
+      group = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: '/organization/org-slug/issues/1/',
@@ -193,20 +196,24 @@ describe('GroupSidebar', function () {
     const org = {
       ...organization,
     };
-    const teams = [{...Team(), type: 'team'}];
-    const users = [
-      TestStubs.User({
-        id: '2',
-        name: 'John Smith',
-        email: 'johnsmith@example.com',
+    const teams: TeamParticipant[] = [{...Team(), type: 'team'}];
+    const users: UserParticipant[] = [
+      {
+        ...User({
+          id: '2',
+          name: 'John Smith',
+          email: 'johnsmith@example.com',
+        }),
         type: 'user',
-      }),
-      TestStubs.User({
-        id: '3',
-        name: 'Sohn Jmith',
-        email: 'sohnjmith@example.com',
+      },
+      {
+        ...User({
+          id: '3',
+          name: 'Sohn Jmith',
+          email: 'sohnjmith@example.com',
+        }),
         type: 'user',
-      }),
+      },
     ];
     render(
       <GroupSidebar
@@ -239,7 +246,7 @@ describe('GroupSidebar', function () {
 
   describe('displays mobile tags when issue platform is mobile', function () {
     beforeEach(function () {
-      group = TestStubs.Group();
+      group = GroupFixture();
 
       MockApiClient.addMockResponse({
         url: '/issues/1/',

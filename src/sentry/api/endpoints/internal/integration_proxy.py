@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from urllib.parse import urljoin
 
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
 
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -12,10 +12,10 @@ from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
-    PROXY_BASE_PATH,
     PROXY_BASE_URL_HEADER,
     PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
+    PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
     clean_outbound_headers,
     trim_leading_slashes,
@@ -151,7 +151,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         ).prepare()
         # Third-party authentication headers will be added in client.authorize_request which runs
         # in IntegrationProxyClient.finalize_request.
-        raw_response: Response = self.client._request(
+        raw_response: Response = self.client.request(
             request.method,
             self.proxy_path,
             allow_text=True,
@@ -170,13 +170,14 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
-        self.proxy_path = trim_leading_slashes(request.get_full_path()[len(PROXY_BASE_PATH) :])
+        # Removes leading slashes as it can result in incorrect urls being generated
+        self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
         self.log_extra["method"] = request.method
         self.log_extra["path"] = self.proxy_path
         self.log_extra["host"] = request.headers.get("Host")
 
         if not self._should_operate(request):
-            raise Http404
+            return HttpResponseBadRequest()
 
         metrics.incr("hybrid_cloud.integration_proxy.initialize", sample_rate=1.0)
 
@@ -187,16 +188,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.log_extra["full_url"] = full_url
         headers = clean_outbound_headers(request.headers)
 
-        if self.client.should_delegate():
-            response: HttpResponse = self.client.delegate(
-                request=request,
-                proxy_path=self.proxy_path,
-                headers=headers,
-            )
-        else:
-            response = self._call_third_party_api(
-                request=request, full_url=full_url, headers=headers
-            )
+        response = self._call_third_party_api(request=request, full_url=full_url, headers=headers)
 
         metrics.incr(
             "hybrid_cloud.integration_proxy.complete.response_code",

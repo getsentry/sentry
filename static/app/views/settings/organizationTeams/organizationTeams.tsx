@@ -63,7 +63,7 @@ function OrganizationTeams({
           organization,
         })
       }
-      icon={<IconAdd size="xs" isCircled />}
+      icon={<IconAdd isCircled />}
     >
       {t('Create Team')}
     </Button>

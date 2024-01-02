@@ -34,9 +34,10 @@ __all__ = (
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, cast
+from typing import Optional, Sequence, cast
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (
     AVAILABLE_GENERIC_OPERATIONS,
@@ -306,7 +307,7 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     )
 
 
-def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
+def get_entity_key_from_entity_type(entity_type: str, generic_metrics: bool) -> EntityKey:
     entity_name_suffixes = {
         "c": "counters",
         "s": "sets",
@@ -314,11 +315,18 @@ def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
         "g": "gauges",
     }
 
+    if generic_metrics:
+        return EntityKey(f"generic_metrics_{entity_name_suffixes[entity_type]}")
+    else:
+        return EntityKey(f"metrics_{entity_name_suffixes[entity_type]}")
+
+
+def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
-        entity_key = f"metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, False).value
         return AVAILABLE_OPERATIONS[entity_key]
     else:
-        entity_key = f"generic_metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]

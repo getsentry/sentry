@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -102,11 +102,13 @@ export default function WebVitalsLandingPage() {
                   webVital={state.webVital}
                 />
               </PerformanceScoreChartContainer>
-              <WebVitalMeters
-                projectData={projectData}
-                projectScore={projectScore}
-                onClick={webVital => setState({...state, webVital})}
-              />
+              <WebVitalMetersContainer>
+                <WebVitalMeters
+                  projectData={projectData}
+                  projectScore={projectScore}
+                  onClick={webVital => setState({...state, webVital})}
+                />
+              </WebVitalMetersContainer>
               <PagePerformanceTable />
             </Fragment>
           )}
@@ -136,4 +138,8 @@ const PerformanceScoreChartContainer = styled('div')`
 
 const OnboardingContainer = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const WebVitalMetersContainer = styled('div')`
+  margin-bottom: ${space(4)};
 `;

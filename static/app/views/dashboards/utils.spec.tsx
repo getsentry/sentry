@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 
 import {
@@ -326,7 +327,7 @@ describe('Dashboards util', () => {
         projects: [1, 2],
       } as DashboardDetails;
       const location = {
-        ...TestStubs.location(),
+        ...LocationFixture(),
         query: {
           project: ['2', '1'],
         },
@@ -340,7 +341,7 @@ describe('Dashboards util', () => {
         environment: ['alpha', 'beta'],
       } as DashboardDetails;
       const location = {
-        ...TestStubs.location(),
+        ...LocationFixture(),
         query: {
           environment: ['beta', 'alpha'],
         },
@@ -358,7 +359,7 @@ describe('Dashboards util', () => {
 
       expect(
         hasUnsavedFilterChanges(initialDashboard, {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             release: ['v2', 'v1'],
           },

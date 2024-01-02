@@ -120,20 +120,15 @@ def get_access_by_project(
         )
 
         team_scopes = set()
-        with sentry_sdk.start_span(op="project.check-team-access", description=project.id) as span:
+        with sentry_sdk.start_span(
+            op="project.check-team-access", description=f"project={project.id}"
+        ) as span:
             span.set_tag("project.member_count", len(member_teams))
             if has_access:
                 # Project can be the child of several Teams, and the User can join
                 # several Teams and receive roles at each of them,
                 for member in member_teams:
-                    role_org = member.organizationmember.organization
-                    if role_org.id not in has_team_roles_cache:
-                        has_team_roles_cache[role_org.id] = features.has(
-                            "organizations:team-roles", role_org
-                        )
-                    team_scopes = team_scopes.union(
-                        *[member.get_scopes(has_team_roles_cache[role_org.id])]
-                    )
+                    team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
 
                 # User may have elevated team-roles from their org-role
                 top_org_role = org_roles[0] if org_roles else None
@@ -421,7 +416,7 @@ class ProjectSerializer(Serializer):
         current_interval_start = now - (segments * interval)
         previous_interval_start = now - (2 * segments * interval)
 
-        project_health_data_dict = release_health.get_current_and_previous_crash_free_rates(
+        project_health_data_dict = release_health.backend.get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,
@@ -449,7 +444,7 @@ class ProjectSerializer(Serializer):
         # call -> check_has_data with those ids and then update our `project_health_data_dict`
         # accordingly
         if check_has_health_data_ids:
-            projects_with_health_data = release_health.check_has_health_data(
+            projects_with_health_data = release_health.backend.check_has_health_data(
                 check_has_health_data_ids
             )
             for project_id in projects_with_health_data:

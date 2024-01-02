@@ -39,7 +39,7 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization, request):
@@ -116,10 +116,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     return {"data": []}
 
                 for row in results["data"]:
-                    row["tags_value"] = tagstore.get_tag_value_label(
+                    row["tags_value"] = tagstore.backend.get_tag_value_label(
                         row["tags_key"], row["tags_value"]
                     )
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return results
 
@@ -140,7 +140,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -209,7 +209,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     return {"tags": top_tags, "histogram": {"data": []}}
 
                 for row in histogram["data"]:
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return {"tags": top_tags, "histogram": histogram}
 
@@ -321,7 +321,6 @@ def query_top_tags(
     translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
-
         if not orderby:
             orderby = ["-count"]
 

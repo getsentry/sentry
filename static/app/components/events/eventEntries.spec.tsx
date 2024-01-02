@@ -1,5 +1,11 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {
+  EntryDebugMeta as EventEntryDebugMetaFixture,
+  EventEntry as EventEntryFixture,
+} from 'sentry-fixture/eventEntry';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,13 +14,13 @@ import {EventEntries} from 'sentry/components/events/eventEntries';
 describe('EventEntries', function () {
   const defaultProps = {
     organization: Organization(),
-    project: TestStubs.Project(),
+    project: ProjectFixture(),
     event: EventFixture(),
-    location: TestStubs.location(),
+    location: LocationFixture(),
   };
 
   beforeEach(function () {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/grouping-info/',
@@ -34,7 +40,7 @@ describe('EventEntries', function () {
       <EventEntries
         {...defaultProps}
         event={EventFixture({
-          entries: [TestStubs.EventEntry(), TestStubs.EventEntryDebugMeta()],
+          entries: [EventEntryFixture(), EventEntryDebugMetaFixture()],
           contexts: {
             replay_id: 1,
           },

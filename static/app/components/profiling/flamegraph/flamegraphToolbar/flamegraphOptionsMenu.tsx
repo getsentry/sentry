@@ -40,7 +40,7 @@ function FlamegraphOptionsMenu({
       </Button>
       <CompactSelect
         triggerLabel={t('Color Coding')}
-        triggerProps={{icon: <IconSliders size="xs" />, size: 'xs'}}
+        triggerProps={{icon: <IconSliders />, size: 'xs'}}
         options={colorCodingOptions}
         position="bottom-end"
         value={colorCoding}

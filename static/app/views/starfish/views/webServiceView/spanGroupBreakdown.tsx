@@ -141,7 +141,6 @@ export function SpanGroupBreakdown({
             }
             errored={errored}
             loading={isTimeseriesLoading}
-            utc={false}
             onClick={handleModuleAreaClick}
             grid={{
               left: '0',

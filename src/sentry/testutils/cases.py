@@ -47,6 +47,12 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.auth.staff import COOKIE_DOMAIN as STAFF_COOKIE_DOMAIN
+from sentry.auth.staff import COOKIE_NAME as STAFF_COOKIE_NAME
+from sentry.auth.staff import COOKIE_PATH as STAFF_COOKIE_PATH
+from sentry.auth.staff import COOKIE_SALT as STAFF_COOKIE_SALT
+from sentry.auth.staff import COOKIE_SECURE as STAFF_COOKIE_SECURE
+from sentry.auth.staff import Staff
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
 from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
@@ -280,6 +286,7 @@ class BaseTestCase(Fixtures):
         request.user = user or AnonymousUser()
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
+        request.staff = Staff(request)
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
@@ -291,7 +298,13 @@ class BaseTestCase(Fixtures):
     # a lot of tests changing
     @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
-        self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
+        self,
+        user,
+        organization_id=None,
+        organization_ids=None,
+        superuser=False,
+        superuser_sso=True,
+        staff=False,
     ):
         if isinstance(user, OrganizationMember):
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -339,6 +352,22 @@ class BaseTestCase(Fixtures):
                 path=SU_COOKIE_PATH,
                 domain=SU_COOKIE_DOMAIN,
                 secure=SU_COOKIE_SECURE or None,
+                expires=None,
+            )
+        # XXX(schew2381): Same as above, but for staff
+        if not staff:
+            request.staff._set_logged_out()
+        elif request.user.is_staff and staff:
+            request.staff.set_logged_in(request.user)
+            self.save_cookie(
+                name=STAFF_COOKIE_NAME,
+                value=signing.get_cookie_signer(salt=STAFF_COOKIE_NAME + STAFF_COOKIE_SALT).sign(
+                    request.staff.token
+                ),
+                max_age=None,
+                path=STAFF_COOKIE_PATH,
+                domain=STAFF_COOKIE_DOMAIN,
+                secure=STAFF_COOKIE_SECURE or None,
                 expires=None,
             )
         # Save the session values.
@@ -1275,6 +1304,22 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_span(self, span):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+            ).status_code
+            == 200
+        )
+
+    def store_spans(self, spans):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
+            ).status_code
+            == 200
+        )
+
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -1342,6 +1387,50 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+
+
+class BaseSpansTestCase(SnubaTestCase):
+    def store_span(
+        self,
+        project_id: int,
+        span_id: str = "98230207e6e4a6ad",
+        trace_id: str = "b2565c0d-f13c-4c00-a654-d2209e06e4bd",
+        transaction_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+        timestamp: datetime = None,
+        tags: Mapping[str, Any] = None,
+        store_only_summary: bool = False,
+    ):
+        payload = {
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "exclusive_time_ms": 5,
+            "duration_ms": 10,
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "event_id": transaction_id,
+            "profile_id": profile_id,
+            "tags": tags,
+            "is_segment": 0,
+        }
+
+        if metrics_summary:
+            payload["_metrics_summary"] = metrics_summary
+
+        # We want to give the caller the possibility to store only a summary since the database does not deduplicate
+        # on the span_id which makes the assumptions of a unique span_id in the database invalid.
+        if not store_only_summary:
+            self._snuba_insert(payload, "spans")
+
+        if "_metrics_summary" in payload:
+            self._snuba_insert(payload, "metrics_summaries")
+
+    def _snuba_insert(self, payload, entity):
+        response = requests.post(
+            settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert", data=json.dumps([payload])
+        )
+        assert response.status_code == 200
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2619,6 +2708,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
+    def assert_performance_issue_blocks(
+        self,
+        blocks,
+        org_slug,
+        project_slug,
+        group,
+        referrer,
+        alert_type="workflow",
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f"<{issue_link}|*N+1 Query*>  \ndb - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            blocks[2]["elements"][0]["text"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
+        )
+
     def assert_generic_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2628,6 +2740,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             attachment["footer"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
+        )
+
+    def assert_generic_issue_blocks(
+        self,
+        blocks,
+        org_slug,
+        project_slug,
+        group,
+        referrer,
+        alert_type="workflow",
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f"<{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \n{TEST_ISSUE_OCCURRENCE.evidence_display[0].value}"
+        )
+        assert (
+            blocks[2]["elements"][0]["text"]
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
 

@@ -379,7 +379,7 @@ function MonitorForm({
             }}
           </Observer>
         </InputGroup>
-        <StyledListItem>{t('Set thresholds')}</StyledListItem>
+        <StyledListItem>{t('Set margins')}</StyledListItem>
         <ListItemSubText>
           {t('Configure when we mark your monitor as failed or missed.')}
         </ListItemSubText>
@@ -413,8 +413,42 @@ function MonitorForm({
             </PanelBody>
           </Panel>
         </InputGroup>
+        {hasIssuePlatform && (
+          <Fragment>
+            <StyledListItem>{t('Set thresholds')}</StyledListItem>
+            <ListItemSubText>
+              {t('Configure when an issue is created or resolved.')}
+            </ListItemSubText>
+            <InputGroup>
+              <Panel>
+                <PanelBody>
+                  <NumberField
+                    name="config.failure_issue_threshold"
+                    min={1}
+                    placeholder="1"
+                    help={t(
+                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
+                    )}
+                    label={t('Failure Tolerance')}
+                  />
+                  <NumberField
+                    name="config.recovery_threshold"
+                    min={1}
+                    placeholder="1"
+                    help={t(
+                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                    )}
+                    label={t('Recovery Tolerance')}
+                  />
+                </PanelBody>
+              </Panel>
+            </InputGroup>
+          </Fragment>
+        )}
         <StyledListItem>{t('Notifications')}</StyledListItem>
-        <ListItemSubText>{t('Configure who to notify and when.')}</ListItemSubText>
+        <ListItemSubText>
+          {t('Configure who to notify upon issue creation and when.')}
+        </ListItemSubText>
         <InputGroup>
           <Panel>
             <PanelBody>
@@ -436,36 +470,28 @@ function MonitorForm({
                 multiple
                 menuPlacement="auto"
               />
-              {hasIssuePlatform && (
-                <Fragment>
-                  <NumberField
-                    name="config.failure_issue_threshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
-                    )}
-                    label={t('Failure Tolerance')}
-                  />
-                  <NumberField
-                    name="config.recovery_threshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
-                    )}
-                    label={t('Recovery Tolerance')}
-                  />
-                </Fragment>
-              )}
-              <SelectField
-                label={t('Environment')}
-                help={t('Only receive notifications from a specific environment.')}
-                name="alertRule.environment"
-                options={alertRuleEnvs}
-                menuPlacement="auto"
-                defaultValue=""
-              />
+              <Observer>
+                {() => {
+                  const selectedAssignee = form.current.getValue('alertRule.targets');
+                  // Check for falsey value or empty array value
+                  const disabled = !selectedAssignee || !selectedAssignee.toString();
+
+                  return (
+                    <SelectField
+                      label={t('Environment')}
+                      help={t('Only receive notifications from a specific environment.')}
+                      name="alertRule.environment"
+                      options={alertRuleEnvs}
+                      disabled={disabled}
+                      menuPlacement="auto"
+                      defaultValue=""
+                      disabledReason={t(
+                        'Please select which teams or members to notify first.'
+                      )}
+                    />
+                  );
+                }}
+              </Observer>
             </PanelBody>
           </Panel>
         </InputGroup>

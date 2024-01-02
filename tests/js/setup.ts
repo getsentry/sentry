@@ -6,10 +6,10 @@ import {TextDecoder, TextEncoder} from 'util';
 import {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import RouterPropsFixture from 'sentry-fixture/routerPropsFixture';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -123,6 +123,13 @@ jest.mock('@sentry/react', function sentryReact() {
     Scope: SentryReact.Scope,
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    metrics: {
+      MetricsAggregator: jest.fn().mockReturnValue({}),
+      increment: jest.fn(),
+      gauge: jest.fn(),
+      set: jest.fn(),
+      distribution: jest.fn(),
+    },
     BrowserTracing: jest.fn().mockReturnValue({}),
     BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
     addGlobalEventProcessor: jest.fn(),

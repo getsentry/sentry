@@ -3,9 +3,9 @@ import os
 from sentry.logging import LoggingFormat
 from sentry.options import register
 from sentry.options.manager import (
-    FLAG_ADMIN_MODIFIABLE,
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_BOOL,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
@@ -13,6 +13,7 @@ from sentry.options.manager import (
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
+    FLAG_SCALAR,
 )
 from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
@@ -277,6 +278,9 @@ register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+register(
+    "filestore.relocation", default={"location": "/tmp/sentry-relocation-files"}, flags=FLAG_NOSTORE
+)
 
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
@@ -507,6 +511,7 @@ register("snuba.search.max-chunk-size", default=2000, flags=FLAG_AUTOMATOR_MODIF
 register("snuba.search.max-total-chunk-time-seconds", default=30.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("snuba.use-mql-endpoint", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -749,6 +754,13 @@ register(
 
 register(
     "issues.severity.high-priority-alerts-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.new-escalation-projects-allowlist",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1794,32 +1806,46 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Use database backed stateful extraction state
+register(
+    "on_demand_metrics.widgets.use_stateful_extraction",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
-# Relocation
+# Relocation: whether or not the self-serve API for the feature is enabled.
 register(
     "relocation.enabled",
     default=False,
-    # TODO(getsentry/team-ospo#214): Eventually change this to `FLAG_BOOL |
-    # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: the step at which new relocations should be autopaused, requiring admin approval
+# before continuing.
 register(
-    "relocation.self-serve",
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+    "relocation.autopause",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: globally limits the number of small (<=10MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.small",
     default=0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: globally limits the number of medium (>10MB && <=100MB) relocations allowed per silo
+# per day.
 register(
     "relocation.daily-limit.medium",
     default=0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.large",
     default=0,
-    flags=FLAG_ADMIN_MODIFIABLE | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
