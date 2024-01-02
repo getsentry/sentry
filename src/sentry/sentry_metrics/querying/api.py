@@ -27,6 +27,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
 from sentry.utils.snuba import SnubaError
 
+# Snuba can return at most 10.000 rows.
+SNUBA_QUERY_LIMIT = 10000
+
 
 class InvalidMetricsQueryError(Exception):
     pass
