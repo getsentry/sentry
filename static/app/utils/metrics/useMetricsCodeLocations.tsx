@@ -1,4 +1,10 @@
-import {getDateTimeParams, MetricMetaCodeLocation} from 'sentry/utils/metrics';
+import * as Sentry from '@sentry/react';
+
+import {
+  getDateTimeParams,
+  MetricMetaCodeLocation,
+  MetricRange,
+} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -7,9 +13,24 @@ type ApiResponse = {
   metrics: MetricMetaCodeLocation[];
 };
 
-export function useMetricsCodeLocations(mri: string | undefined) {
+type MetricsDDMMetaOpts = MetricRange & {
+  codeLocations?: boolean;
+  metricSpans?: boolean;
+};
+
+function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const {start, end} = options;
+  const dateTimeParams =
+    start || end ? {start, end} : getDateTimeParams(selection.datetime);
+
+  const minMaxParams =
+    // remove non-numeric values
+    options.min && options.max && !isNaN(options.min) && !isNaN(options.max)
+      ? {min: options.min, max: options.max}
+      : {};
 
   const {data, isLoading, isError, refetch} = useApiQuery<ApiResponse>(
     [
@@ -18,7 +39,10 @@ export function useMetricsCodeLocations(mri: string | undefined) {
         query: {
           metric: mri,
           project: selection.projects,
-          ...getDateTimeParams(selection.datetime),
+          codeLocations: options.codeLocations,
+          metricSpans: options.metricSpans,
+          ...dateTimeParams,
+          ...minMaxParams,
         },
       },
     ],
@@ -37,6 +61,20 @@ export function useMetricsCodeLocations(mri: string | undefined) {
   sortCodeLocations(data);
 
   return {data, isLoading, isError, refetch};
+}
+
+export function useMetricsSpans(mri: string | undefined, options: MetricRange = {}) {
+  return useMetricsDDMMeta(mri, {
+    ...options,
+    metricSpans: true,
+  });
+}
+
+export function useMetricsCodeLocations(
+  mri: string | undefined,
+  options: MetricRange = {}
+) {
+  return useMetricsDDMMeta(mri, {...options, codeLocations: true});
 }
 
 const mapToNewResponseShape = (data: ApiResponse) => {
@@ -63,6 +101,11 @@ const mapToNewResponseShape = (data: ApiResponse) => {
       }),
     };
   });
+
+  // @ts-expect-error metricsSpans is defined in the old response shape
+  if (data.metricsSpans?.length) {
+    Sentry.captureMessage('Non-empty metric spans response');
+  }
 };
 
 const sortCodeLocations = (data: ApiResponse) => {

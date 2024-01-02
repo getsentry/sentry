@@ -1,15 +1,27 @@
 import merge from 'lodash/merge';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
 describe('Threads', function () {
+  const organization = Organization();
+  const project = ProjectFixture({});
+  const integration = GitHubIntegrationFixture();
+  const repo = Repository({integrationId: integration.id});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
+
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
@@ -18,8 +30,12 @@ describe('Threads', function () {
       url: '/prompts-activity/',
       body: promptResponse,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
   });
-  const {project, organization} = initializeOrg();
 
   describe('non native platform', function () {
     describe('other platform', function () {
@@ -27,7 +43,7 @@ describe('Threads', function () {
         id: '020eb33f6ce64ed6adc60f8993535816',
         groupID: '68',
         eventID: '020eb33f6ce64ed6adc60f8993535816',
-        projectID: '2',
+        projectID: project.id,
         size: 3481,
         entries: [
           {
@@ -321,7 +337,7 @@ describe('Threads', function () {
         id: 'bfe4379d82934b2b91d70b1167bcae8d',
         groupID: '24',
         eventID: 'bfe4379d82934b2b91d70b1167bcae8d',
-        projectID: '2',
+        projectID: project.id,
         size: 89101,
         entries: [
           {

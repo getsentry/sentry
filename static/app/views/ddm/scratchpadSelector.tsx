@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
+import * as Sentry from '@sentry/react';
 import {uuid4} from '@sentry/utils';
 import {AnimatePresence} from 'framer-motion';
 import isEmpty from 'lodash/isEmpty';
@@ -192,6 +193,7 @@ export function ScratchpadSelector() {
                   trackAnalytics('ddm.scratchpad.set-default', {
                     organization,
                   });
+                  Sentry.metrics.increment('ddm.scratchpad.set_default');
 
                   if (isDefault(s)) {
                     scratchpads.setDefault(null);
@@ -216,6 +218,7 @@ export function ScratchpadSelector() {
                       trackAnalytics('ddm.scratchpad.remove', {
                         organization,
                       });
+                      Sentry.metrics.increment('ddm.scratchpad.remove');
 
                       return scratchpads.remove(s.id);
                     },
@@ -243,9 +246,12 @@ export function ScratchpadSelector() {
     <ScratchpadGroup>
       <Button
         icon={<IconDashboard />}
-        onClick={() => createDashboard(selectedScratchpad)}
+        onClick={() => {
+          Sentry.metrics.increment('ddm.scratchpad.dashboard');
+          createDashboard(selectedScratchpad);
+        }}
       >
-        {t('Save to Dashboard')}
+        {t('Add to Dashboard')}
       </Button>
       <SaveAsDropdown
         onSave={name => {
@@ -291,6 +297,7 @@ function SaveAsDropdown({
     trackAnalytics('ddm.scratchpad.save', {
       organization,
     });
+    Sentry.metrics.increment('ddm.scratchpad.save');
 
     onSave(name);
     setOpen(false);
@@ -333,7 +340,7 @@ function SaveAsDropdown({
                       save();
                     }}
                   >
-                    {mode === 'fork' ? t('Fork') : t('Save')}
+                    {mode === 'fork' ? t('Duplicate') : t('Save')}
                   </SaveAsButton>
                 </GuideAnchor>
               </StyledOverlay>

@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
+from sentry.api.exceptions import SuperuserRequired
 from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
@@ -139,7 +140,7 @@ class RelocationIndexEndpoint(Endpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="date_added",
+            order_by="-date_added",
             on_results=lambda x: serialize(x, request.user, RelocationSerializer()),
             paginator_cls=OffsetPaginator,
         )
@@ -164,7 +165,10 @@ class RelocationIndexEndpoint(Endpoint):
 
         logger.info("relocations.index.post.start", extra={"caller": request.user.id})
 
-        is_superuser = SuperuserPermission().has_permission(request, None)
+        try:
+            is_superuser = SuperuserPermission().has_permission(request, None)
+        except SuperuserRequired:
+            is_superuser = False
         if not options.get("relocation.enabled") and not is_superuser:
             return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
 
@@ -218,6 +222,11 @@ class RelocationIndexEndpoint(Endpoint):
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         file.putfile(fileobj, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
 
+        try:
+            autopause = Relocation.Step[options.get("relocation.autopause")].value
+        except KeyError:
+            autopause = None
+
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
@@ -226,6 +235,7 @@ class RelocationIndexEndpoint(Endpoint):
                 owner_id=owner.id,
                 want_org_slugs=org_slugs,
                 step=Relocation.Step.UPLOADING.value,
+                scheduled_pause_at_step=autopause,
             )
             RelocationFile.objects.create(
                 relocation=relocation,
