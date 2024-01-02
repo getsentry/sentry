@@ -463,6 +463,10 @@ export function isAllowedOp(op: string) {
   return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
 }
 
+export function isCumulativeOp(op: string = '') {
+  return ['sum', 'count', 'count_unique'].includes(op);
+}
+
 export function updateQuery(
   router: InjectedRouter,
   queryUpdater:
