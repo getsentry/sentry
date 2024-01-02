@@ -78,7 +78,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
-const SHOULD_LAZY_LOAD = DEV_MODE && !!env.SENTRY_UI_LAZY_LOAD;
 const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
@@ -521,17 +520,6 @@ if (
     // TODO: figure out why defining output breaks hot reloading
     if (IS_UI_DEV_ONLY) {
       appConfig.output = {};
-    }
-
-    if (SHOULD_LAZY_LOAD) {
-      appConfig.experiments = {
-        lazyCompilation: {
-          // enable lazy compilation for dynamic imports
-          imports: true,
-          // disable lazy compilation for entries
-          entries: false,
-        },
-      };
     }
   }
 
