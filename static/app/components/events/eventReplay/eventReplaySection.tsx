@@ -4,7 +4,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 
 type EventReplaySectionProps = {
-  children: JSX.Element;
+  children: JSX.Element | null;
   actions?: ReactNode;
   className?: string;
 };
