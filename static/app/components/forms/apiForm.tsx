@@ -1,8 +1,9 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {RequestOptions} from 'sentry/api';
 import Form, {FormProps} from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 
@@ -15,6 +16,7 @@ type Props = FormProps & {
 
 function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}: Props) {
   const api = useApi();
+  const formModel = useMemo(() => otherProps.model ?? new FormModel(), [otherProps]);
 
   const handleSubmit = useCallback(
     (
@@ -22,6 +24,10 @@ function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}
       onSuccess: (response: Record<string, any>) => void,
       onError: (error: any) => void
     ) => {
+      if (!formModel.validateForm()) {
+        return;
+      }
+
       const transformed = onSubmit?.(data);
       addLoadingMessage(t('Saving changes\u2026'));
 
@@ -44,10 +50,10 @@ function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}
 
       api.request(apiEndpoint, requestOptions);
     },
-    [api, onSubmit, apiMethod, apiEndpoint, hostOverride]
+    [api, onSubmit, apiMethod, apiEndpoint, hostOverride, formModel]
   );
 
-  return <Form onSubmit={handleSubmit} {...otherProps} />;
+  return <Form onSubmit={handleSubmit} model={formModel} {...otherProps} />;
 }
 
 export default ApiForm;
