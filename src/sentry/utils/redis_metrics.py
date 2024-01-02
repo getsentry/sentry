@@ -31,14 +31,40 @@ class RedisToolsMetricsBackend(Metrics):
             return {**self.__tags, **tags}
 
     def increment(
-        self, name: str, value: Union[int, float] = 1, tags: Optional[Tags] = None
+        self,
+        name: str,
+        value: Union[int, float] = 1,
+        tags: Optional[Tags] = None,
     ) -> None:
-        self.__backend.incr(key=self.__merge_name(name), amount=value, tags=self.__merge_tags(tags))
+        self.__backend.incr(
+            key=self.__merge_name(name),
+            amount=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=1,
+        )
 
-    def gauge(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
-        self.__backend.gauge(key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags))
+    def gauge(
+        self,
+        name: str,
+        value: Union[int, float],
+        tags: Optional[Tags] = None,
+    ) -> None:
+        self.__backend.gauge(
+            key=self.__merge_name(name),
+            value=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=1,
+        )
 
-    def timing(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
+    def timing(
+        self,
+        name: str,
+        value: Union[int, float],
+        tags: Optional[Tags] = None,
+    ) -> None:
         self.__backend.timing(
-            key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags)
+            key=self.__merge_name(name),
+            value=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=1,
         )

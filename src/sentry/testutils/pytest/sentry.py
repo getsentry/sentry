@@ -4,18 +4,21 @@ import collections
 import os
 import random
 import shutil
+import string
 import sys
 from datetime import datetime
 from hashlib import md5
 from typing import TypeVar
 from unittest import mock
 
-import freezegun
 import pytest
 from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
+from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.types import region
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -28,7 +31,47 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
-def pytest_configure(config):
+def configure_split_db() -> None:
+    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
+    already_configured = "control" in settings.DATABASES
+    if already_configured or SENTRY_USE_MONOLITH_DBS:
+        return
+
+    # Add connections for the region & control silo databases.
+    settings.DATABASES["control"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["control"]["NAME"] = "control"
+
+    # Use the region database in the default connection as region
+    # silo database is the 'default' elsewhere in application logic.
+    settings.DATABASES["default"]["NAME"] = "region"
+
+    settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+
+def _configure_test_env_regions() -> None:
+
+    # Assign a random name on every test run, as a reminder that test setup and
+    # assertions should not depend on this value. If you need to test behavior that
+    # depends on region attributes, use `override_regions` in your test case.
+    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+
+    default_region = Region(
+        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+    )
+
+    settings.SENTRY_REGION = region_name
+    settings.SENTRY_MONOLITH_REGION = region_name
+
+    # This not only populates the environment with the default region, but also
+    # ensures that a TestEnvRegionDirectory instance is injected into global state.
+    # See sentry.testutils.region.get_test_env_directory, which relies on it.
+    region.set_global_directory(TestEnvRegionDirectory([default_region]))
+
+    settings.SENTRY_SUBNET_SECRET = "secret"
+    settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
+
+
+def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
     # This is just to filter out an obvious warning before the pytest session starts.
@@ -38,13 +81,17 @@ def pytest_configure(config):
         category=UnsupportedBackend,
     )
 
-    config.addinivalue_line("markers", "migrations: requires MIGRATIONS_TEST_MIGRATE=1")
+    config.addinivalue_line("markers", "migrations: requires --migrations")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
         # the temproot. We'd like to keep invocations to just "pytest".
         # See source code for pytest's TempPathFactory.
         os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", "/private/tmp/colima")
+        try:
+            os.mkdir("/private/tmp/colima")
+        except FileExistsError:
+            pass
 
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
@@ -78,11 +125,13 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
+    configure_split_db()
+
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
     # silence (noisy) loggers by default when testing
-    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"  # type: ignore[index]
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -158,7 +207,6 @@ def pytest_configure(config):
             "system.organization-base-hostname": "{slug}.testserver",
             "system.organization-url-template": "http://{hostname}",
             "system.region-api-url-template": "http://{region}.testserver",
-            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -185,11 +233,14 @@ def pytest_configure(config):
             "aws-lambda.python.layer-version": "34",
         }
     )
-
+    settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+
+    _configure_test_env_regions()
+
+    # ID controls
     settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
-
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
     # Plugin-related settings
@@ -219,15 +270,13 @@ def pytest_configure(config):
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
 
+    # Assume this is always configured (not the real secret)
+    settings.RPC_SHARED_SECRET = ("215b1f0d",)
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
     patcher.start()
-
-    if not settings.MIGRATIONS_TEST_MIGRATE:
-        # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
-        # This is a hack to force django to sync the database state from the models rather than use migrations.
-        settings.MIGRATION_MODULES["sentry"] = None  # type: ignore[assignment]
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"
@@ -247,10 +296,8 @@ def pytest_configure(config):
     # force celery registration
     from sentry.celery import app  # NOQA
 
-    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])  # type: ignore[attr-defined]
 
-
-def register_extensions():
+def register_extensions() -> None:
     from sentry.plugins.base import plugins
     from sentry.plugins.utils import TestIssuePlugin2
 
@@ -281,14 +328,14 @@ def register_extensions():
     )
 
 
-def pytest_runtest_setup(item):
-    if not settings.MIGRATIONS_TEST_MIGRATE and any(
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")
     ):
-        pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
+        pytest.skip("migrations are not enabled, run with `pytest --migrations ...`")
 
 
-def pytest_runtest_teardown(item):
+def pytest_runtest_teardown(item: pytest.Item) -> None:
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
 
@@ -300,21 +347,16 @@ def pytest_runtest_teardown(item):
     with clusters.get("default").all() as client:
         client.flushdb()
 
-    import celery
+    from celery.app.control import Control
 
-    if celery.version_info >= (5, 2):
-        from celery.app.control import Control
+    from sentry.celery import app
 
-        from sentry.celery import app
+    celery_app_control = Control(app)
+    celery_app_control.discard_all()
 
-        celery_app_control = Control(app)
-        celery_app_control.discard_all()
-    else:
-        from celery.task.control import discard_all
-
-        discard_all()
-
-    from sentry.models import OrganizationOption, ProjectOption, UserOption
+    from sentry.models.options.organization_option import OrganizationOption
+    from sentry.models.options.project_option import ProjectOption
+    from sentry.models.options.user_option import UserOption
 
     for model in (OrganizationOption, ProjectOption, UserOption):
         model.objects.clear_local_cache()
@@ -339,7 +381,7 @@ def _shuffle(items: list[pytest.Item]) -> None:
             raise AssertionError(f"unexpected nodeid: {item.nodeid}")
 
     def _shuffle_d(dct: dict[K, V]) -> dict[K, V]:
-        return dict(random.sample(dct.items(), len(dct)))
+        return dict(random.sample(tuple(dct.items()), len(dct)))
 
     new_items = []
     for first_v in _shuffle_d(nodes).values():
@@ -354,43 +396,22 @@ def _shuffle(items: list[pytest.Item]) -> None:
     items[:] = new_items
 
 
-def pytest_collection_modifyitems(config, items):
-    """
-    After collection, we need to:
-
-    - Filter tests that subclass SnubaTestCase as tests in `tests/acceptance` are not being marked as `snuba`
-    - Select tests based on group and group strategy
-
-    """
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """After collection, we need to select tests based on group and group strategy"""
 
     total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     current_group = int(os.environ.get("TEST_GROUP", 0))
-    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "file")
+    grouping_strategy = os.environ.get("TEST_GROUP_STRATEGY", "scope")
 
-    accepted, keep, discard = [], [], []
+    keep, discard = [], []
 
     for index, item in enumerate(items):
-        # XXX: For some reason tests in `tests/acceptance` are not being
-        # marked as snuba, so deselect test cases not a subclass of SnubaTestCase
-        if os.environ.get("RUN_SNUBA_TESTS_ONLY"):
-            import inspect
-
-            from sentry.testutils.cases import SnubaTestCase
-
-            if inspect.isclass(item.cls) and not issubclass(item.cls, SnubaTestCase):
-                # No need to group if we are deselecting this
-                discard.append(item)
-                continue
-            accepted.append(item)
-        else:
-            accepted.append(item)
-
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
         item_to_group = (
-            int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
-            if grouping_strategy == "file"
-            else len(accepted) - 1
+            int(md5(item.nodeid.rsplit("::", 1)[0].encode()).hexdigest(), 16)
+            if grouping_strategy == "scope"
+            else index
         )
 
         # Split tests in different groups
@@ -411,6 +432,6 @@ def pytest_collection_modifyitems(config, items):
         config.hook.pytest_deselected(items=discard)
 
 
-def pytest_xdist_setupnodes():
+def pytest_xdist_setupnodes() -> None:
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)

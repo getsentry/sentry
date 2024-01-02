@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from random import randint
 from typing import Any, Optional, Union
 
@@ -7,6 +8,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import HttpResponse, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
@@ -19,13 +21,17 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, OrganizationMapping, OrganizationStatus
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
+    construct_link_with_query,
     get_login_redirect,
     has_user_registration,
     initiate_login,
@@ -36,9 +42,11 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
+
+logger = logging.getLogger("sentry.auth")
 
 
 # Stores callbacks that are called to get additional template context data before the login page
@@ -69,19 +77,26 @@ class AdditionalContext:
 additional_context = AdditionalContext()
 
 
-# TODO(hybridcloud) Make this view control silo only.
+@control_silo_view
 class AuthLoginView(BaseView):
     auth_required = False
 
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(20, 1),  # 20 GET requests per second per IP
+        }
+    }
+
     @method_decorator(never_cache)
-    def handle(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def handle(self, request: Request, *args, **kwargs) -> HttpResponseBase:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.
         """
         return super().handle(request=request, *args, **kwargs)
 
-    def get(self, request: Request, **kwargs) -> HttpResponse:
+    def get(self, request: Request, **kwargs) -> HttpResponseBase:
         next_uri = self.get_next_uri(request=request)
         if request.user.is_authenticated:
             return self.redirect_authenticated_user(request=request, next_uri=next_uri)
@@ -122,7 +137,7 @@ class AuthLoginView(BaseView):
             next_uri_fallback = request.session.pop("_next")
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
-    def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseRedirect:
+    def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseBase:
         """
         If an authenticated user sends a GET request to AuthLoginView, we redirect them forwards in the auth process.
         """
@@ -216,6 +231,7 @@ class AuthLoginView(BaseView):
         If the post call comes from the SSO tab, redirect the user to SSO login next steps.
         """
         auth_provider = self.get_auth_provider_if_exists(org_slug=request.POST["organization"])
+        query_params = request.GET
         if auth_provider:
             next_uri = reverse("sentry-auth-organization", args=[request.POST["organization"]])
         else:
@@ -223,7 +239,9 @@ class AuthLoginView(BaseView):
             next_uri = request.get_full_path()
             messages.add_message(request=request, level=messages.ERROR, message=ERR_NO_SSO)
 
-        return HttpResponseRedirect(redirect_to=next_uri)
+        redirect_uri = construct_link_with_query(path=next_uri, query_params=query_params)
+
+        return HttpResponseRedirect(redirect_to=redirect_uri)
 
     def get_auth_provider_if_exists(self, org_slug: str) -> Union[AuthProvider, None]:
         """
@@ -259,7 +277,6 @@ class AuthLoginView(BaseView):
             )
             return self.add_to_org_and_redirect_to_next_register_step(request=request, user=user)
         else:
-
             context.update(
                 {
                     "op": "register",
@@ -303,16 +320,14 @@ class AuthLoginView(BaseView):
 
     def add_to_org_and_redirect_to_next_register_step(
         self, request: Request, user: User
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponseBase:
         """
         Given a valid register form, adds them to their org, accepts their invite, and
         redirects the user to their next step.
         """
 
         # Attempt to directly accept any pending invites
-        invite_helper = ApiInviteHelper.from_session(
-            request=request,
-        )
+        invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
         # In single org mode, associate the user to the only organization.
         #
@@ -342,7 +357,7 @@ class AuthLoginView(BaseView):
 
     def accept_invite_and_redirect_to_org(
         self, request: Request, invite_helper: ApiInviteHelper
-    ) -> HttpResponseRedirect:
+    ) -> HttpResponseBase:
         """
         Accepts an invite on behalf of a user and redirects them to their org login
         """
@@ -396,7 +411,7 @@ class AuthLoginView(BaseView):
 
         attempted_login = request.POST.get("username") and request.POST.get("password")
 
-        return attempted_login and ratelimiter.is_limited(
+        return attempted_login and ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(value=request.POST["username"])).hexdigest()
             ),
@@ -418,6 +433,7 @@ class AuthLoginView(BaseView):
         context = {
             "op": "login",
             "login_form": login_form,
+            "referrer": request.GET.get("referrer"),
         }
 
         context.update(additional_context.run_callbacks(request))
@@ -504,25 +520,30 @@ class AuthLoginView(BaseView):
     def get_default_context(self, request: Request, **kwargs) -> dict:
         """
         Sets up a default context that will be injected into our login template.
+        TODO: clean up unused context
         """
         organization = kwargs.pop("organization", None)
         default_context = {
             "server_hostname": get_server_hostname(),
             "login_form": None,
-            "organization": kwargs.pop("organization", None),
+            "organization": kwargs.pop(
+                "organization", None
+            ),  # NOTE: not utilized in basic login page (only org login)
             "register_form": None,
             "CAN_REGISTER": False,
-            "join_request_link": self.get_join_request_link(organization=organization),
+            "join_request_link": self.get_join_request_link(
+                organization=organization, request=request
+            ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "banner_choice": randint(0, 1),  # 2 possible banners
+            "referrer": request.GET.get("referrer"),
         }
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context
 
-    def get_join_request_link(self, organization: RpcOrganization) -> Union[str, None]:
-        """
-        Returns a join request link and does something else? TODO: FIGURE OUT WHAT THIS DOES IN REVIEW
-        """
+    def get_join_request_link(
+        self, organization: RpcOrganization, request: Request
+    ) -> Union[str, None]:
         if not organization:
             return None
 
@@ -530,12 +551,12 @@ class AuthLoginView(BaseView):
             return None
 
         join_request_link_viewed.send_robust(sender=self, organization=organization)
+        query_params = request.GET
+        path = reverse("sentry-join-request", args=[organization.slug])
+        redirect_uri = construct_link_with_query(path=path, query_params=query_params)
+        return redirect_uri
 
-        return reverse("sentry-join-request", args=[organization.slug])
-
-    def handle_basic_auth(
-        self, request: Request, **kwargs
-    ) -> Union[HttpResponse, HttpResponseRedirect]:
+    def handle_basic_auth(self, request: Request, **kwargs) -> HttpResponseBase:
         """
         Legacy handler that handles GET and POST requests for registration and login.
         This is still here because it's used by OAuthAuthorizeView and AuthOrganizationLoginView.
@@ -596,9 +617,7 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_session(
-                request=request,
-            )
+            invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
             # In single org mode, associate the user to the only organization.
             #
@@ -634,7 +653,7 @@ class AuthLoginView(BaseView):
                 op == "login" and request.POST.get("username") and request.POST.get("password")
             )
 
-            if login_attempt and ratelimiter.is_limited(
+            if login_attempt and ratelimiter.backend.is_limited(
                 "auth:login:username:{}".format(
                     md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),
@@ -701,9 +720,12 @@ class AuthLoginView(BaseView):
             "organization": organization,
             "register_form": register_form,
             "CAN_REGISTER": can_register,
-            "join_request_link": self.get_join_request_link(organization),
+            "join_request_link": self.get_join_request_link(
+                organization=organization, request=request
+            ),
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "banner_choice": randint(0, 1),  # 2 possible banners
+            "referrer": request.GET.get("referrer"),
         }
 
         context.update(additional_context.run_callbacks(request))

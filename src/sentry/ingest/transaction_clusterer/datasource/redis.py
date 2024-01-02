@@ -14,7 +14,7 @@ from sentry.ingest.transaction_clusterer.datasource import (
     TRANSACTION_SOURCE_SANITIZED,
     TRANSACTION_SOURCE_URL,
 )
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
 
@@ -189,35 +189,21 @@ def record_span_descriptions(
         description = _get_span_description_to_store(span)
         if not description:
             continue
-        url_path = _get_url_path_from_description(description)
-        if url_path:
-            safe_execute(_record_sample, ClustererNamespace.SPANS, project, url_path)
-
-        update_rule_rate = options.get("span_descs.bump-lifetime-sample-rate")
-        if update_rule_rate and random.random() < update_rule_rate:
-            safe_execute(
-                _update_span_description_rule_lifetime, project, event_data, _with_transaction=False
-            )
+        safe_execute(_record_sample, ClustererNamespace.SPANS, project, description)
 
 
 def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
-    if not span.get("op", "").startswith("http"):
+    if not span.get("op") in ("resource.css", "resource.script", "resource.img"):
         return None
-    data = span.get("data", {})
-    return data.get("description.scrubbed") or span.get("description")
 
+    if url := span.get("description"):
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            return None
+        return f"{parsed.netloc}{parsed.path}"
 
-def _get_url_path_from_description(description: str) -> Optional[str]:
-    """Return the URL from the span description.
-
-    It's assumed the description is an HTTP span's description, with the
-    following format: `<http verb> <url>`.
-    """
-    tokens = description.split(" ")
-    if len(tokens) != 2:
-        return None
-    url = tokens[1]
-    return urlparse(url).path
+    return None
 
 
 def _update_span_description_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
@@ -225,13 +211,13 @@ def _update_span_description_rule_lifetime(project: Project, event_data: Mapping
 
     spans = event_data.get("_meta", {}).get("spans", {})
     for span in spans.values():
-        data = span.get("data", {})
-        applied_rule = data.get("description.scrubbed", {}).get("", {}).get("rem", [[]])[0]
+        sentry_tags = span.get("sentry_tags") or {}
+        applied_rule = sentry_tags.get("description", {}).get("", {}).get("rem", [[]])[0]
         if not applied_rule:
             continue
         if len(applied_rule) == 2:
             uncleaned_pattern = applied_rule[0]
             # uncleaned_pattern has the following format: `description.scrubbed:<rule>`
-            tokens = uncleaned_pattern.split("description.scrubbed:")
+            tokens = uncleaned_pattern.split("description:")
             pattern = tokens[1]
             clusterer_rules.bump_last_used(ClustererNamespace.SPANS, project, pattern)

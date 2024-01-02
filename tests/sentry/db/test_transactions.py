@@ -5,13 +5,14 @@ import pytest
 from django.db import IntegrityError, router, transaction
 from django.test import override_settings
 
-from sentry.conf.server import env
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     in_test_assert_no_transaction,
     in_test_hide_transaction_boundary,
 )
-from sentry.models import Organization, User, outbox_context
+from sentry.models.organization import Organization
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -42,28 +43,25 @@ class CaseMixin:
                 User.objects.create(username="user2")
                 User.objects.create(username="user3")
 
-        if env("SENTRY_USE_SPLIT_DBS", 0):
-            assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
-        else:
-            assert [(s["transaction"]) for s in queries] == [None, "default", "default", "default"]
+        assert [(s["transaction"]) for s in queries] == [None, "default", "default", "control"]
 
     def test_bad_transaction_boundaries(self):
-        if not env("SENTRY_USE_SPLIT_DBS", 0):
-            return
 
-        Factories.create_organization()
+        org = Factories.create_organization()
+        Factories.create_project(organization=org)
         Factories.create_user()
 
         with pytest.raises(AssertionError):
             with transaction.atomic(using=router.db_for_write(User)):
-                Factories.create_organization()
+                Factories.create_project(organization=org)
 
     def test_safe_transaction_boundaries(self):
-        Factories.create_organization()
+        org = Factories.create_organization()
+        Factories.create_project(organization=org)
         Factories.create_user()
 
         with transaction.atomic(using=router.db_for_write(Organization)):
-            Factories.create_organization()
+            Factories.create_project(organization=org)
 
             with django_test_transaction_water_mark():
                 Factories.create_user()
@@ -74,15 +72,15 @@ class CaseMixin:
                 Factories.create_user()
 
                 with django_test_transaction_water_mark():
-                    Factories.create_organization()
+                    Factories.create_project(organization=org)
 
                 Factories.create_user()
 
                 with django_test_transaction_water_mark():
-                    Factories.create_organization()
+                    Factories.create_project(organization=org)
                     Factories.create_user()
 
-            Factories.create_organization()
+            Factories.create_project(organization=org)
             with django_test_transaction_water_mark():
                 Factories.create_user()
 
@@ -124,39 +122,39 @@ class CaseMixin:
             do_assertions()
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDjangoTestCaseTransactions(CaseMixin, TestCase):
     pass
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDjangoTransactionTestCaseTransactions(CaseMixin, TransactionTestCase):
     def test_collect_transaction_queries(self):
         return
 
 
 class TestPytestDjangoDbAll(CaseMixin):
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_in_test_assert_no_transaction(self):
         super().test_in_test_assert_no_transaction()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_transaction_on_commit(self):
         super().test_transaction_on_commit()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_safe_transaction_boundaries(self):
         super().test_safe_transaction_boundaries()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_bad_transaction_boundaries(self):
         super().test_bad_transaction_boundaries()
 
-    @no_silo_test(stable=True)
+    @no_silo_test
     @django_db_all
     def test_collect_transaction_queries(self):
         super().test_collect_transaction_queries()
@@ -172,7 +170,7 @@ class FakeRegionService:
         return 2
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDelegatedByOpenTransaction(TestCase):
     def test_selects_mode_in_transaction_or_default(self):
         service: Any = silo_mode_delegation(
@@ -199,7 +197,7 @@ class TestDelegatedByOpenTransaction(TestCase):
                 assert service.a() == FakeControlService().a()
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
     @patch("sentry.services.hybrid_cloud.in_test_environment", return_value=False)
     def test_selects_mode_in_transaction_or_default(self, patch):

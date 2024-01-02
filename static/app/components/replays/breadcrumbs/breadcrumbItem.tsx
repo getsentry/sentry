@@ -1,57 +1,47 @@
-import {
-  CSSProperties,
-  isValidElement,
-  memo,
-  MouseEvent,
-  useCallback,
-  useMemo,
-} from 'react';
+import {CSSProperties, isValidElement, memo, MouseEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
+import beautify from 'js-beautify';
 
-import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
+import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
+import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
-interface BaseProps {
+const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
+
+interface Props {
+  extraction: Extraction | undefined;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  startTimestampMs: number;
-  className?: string;
-  expandPaths?: string[];
-  onMouseEnter?: MouseCallback;
-  onMouseLeave?: MouseCallback;
-  style?: CSSProperties;
-}
-interface NoDimensionChangeProps extends BaseProps {
-  index?: undefined;
-  onDimensionChange?: undefined;
-}
-
-interface WithDimensionChangeProps extends BaseProps {
-  /**
-   * Only required if onDimensionChange is used
-   */
-  index: number;
-  onDimensionChange: (
-    index: number,
+  onDimensionChange: () => void;
+  onInspectorExpanded: (
     path: string,
     expandedState: Record<string, boolean>,
     event: MouseEvent<HTMLDivElement>
   ) => void;
+  onMouseEnter: MouseCallback;
+  onMouseLeave: MouseCallback;
+  startTimestampMs: number;
+  traces: ReplayTraceRow | undefined;
+  className?: string;
+  expandPaths?: string[];
+  style?: CSSProperties;
 }
-
-type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
 function getCrumbOrFrameData(frame: ReplayFrame) {
   return {
@@ -63,50 +53,35 @@ function getCrumbOrFrameData(frame: ReplayFrame) {
 
 function BreadcrumbItem({
   className,
+  extraction,
   frame,
   expandPaths,
-  index,
   onClick,
   onDimensionChange,
+  onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
   startTimestampMs,
   style,
+  traces,
 }: Props) {
-  const {color, description, projectSlug, title, type, timestampMs} =
+  const {color, description, projectSlug, title, icon, timestampMs} =
     getCrumbOrFrameData(frame);
+  const {replay} = useReplayContext();
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(frame, e),
-    [onMouseEnter, frame]
-  );
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onMouseLeave && onMouseLeave(frame, e),
-    [onMouseLeave, frame]
-  );
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      onClick?.(frame, e);
-    },
-    [frame, onClick]
-  );
-  const handleDimensionChange = useCallback(
-    (path, expandedState, e) =>
-      onDimensionChange && onDimensionChange(index, path, expandedState, e),
-    [index, onDimensionChange]
-  );
+  const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
   return (
     <CrumbItem
-      as={onClick ? 'button' : 'span'}
-      onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      as={onClick && !forceSpan ? 'button' : 'span'}
+      onClick={e => onClick?.(frame, e)}
+      onMouseEnter={e => onMouseEnter(frame, e)}
+      onMouseLeave={e => onMouseLeave(frame, e)}
       style={style}
       className={className}
     >
       <IconWrapper color={color} hasOccurred>
-        <BreadcrumbIcon type={type} />
+        {icon}
       </IconWrapper>
       <CrumbDetails>
         <TitleContainer>
@@ -120,7 +95,7 @@ function BreadcrumbItem({
         </TitleContainer>
 
         {typeof description === 'string' || isValidElement(description) ? (
-          <Description title={description} showOnlyOnOverflow>
+          <Description title={description} showOnlyOnOverflow isHoverable>
             {description}
           </Description>
         ) : (
@@ -128,7 +103,7 @@ function BreadcrumbItem({
             <ObjectInspector
               data={description}
               expandPaths={expandPaths}
-              onExpand={handleDimensionChange}
+              onExpand={onInspectorExpanded}
               theme={{
                 TREENODE_FONT_SIZE: '0.7rem',
                 ARROW_FONT_SIZE: '0.5rem',
@@ -136,6 +111,36 @@ function BreadcrumbItem({
             />
           </InspectorWrapper>
         )}
+
+        {'data' in frame && frame.data && 'mutations' in frame.data ? (
+          <div>
+            <OpenReplayComparisonButton
+              replay={replay}
+              leftTimestamp={frame.offsetMs}
+              rightTimestamp={
+                (frame.data.mutations.next.timestamp as number) -
+                (replay?.getReplay().started_at.getTime() ?? 0)
+              }
+            />
+          </div>
+        ) : null}
+
+        {extraction?.html ? (
+          <CodeContainer>
+            <CodeSnippet language="html" hideCopyButton>
+              {beautify.html(extraction?.html, {indent_size: 2})}
+            </CodeSnippet>
+          </CodeContainer>
+        ) : null}
+
+        {traces?.flattenedTraces.map((flatTrace, i) => (
+          <TraceGrid
+            key={i}
+            flattenedTrace={flatTrace}
+            onDimensionChange={onDimensionChange}
+          />
+        ))}
+
         {projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null}
       </CrumbDetails>
     </CrumbItem>
@@ -241,6 +246,13 @@ const CrumbItem = styled(PanelItem)`
   &:only-of-type::after {
     height: 0;
   }
+`;
+
+const CodeContainer = styled('div')`
+  margin-top: ${space(1)};
+  max-height: 400px;
+  max-width: 100%;
+  overflow: auto;
 `;
 
 export default memo(BreadcrumbItem);

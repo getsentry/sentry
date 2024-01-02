@@ -9,12 +9,12 @@ from sentry.integrations.vsts_extension import (
     VstsExtensionFinishedView,
     VstsExtensionIntegrationProvider,
 )
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
     provider = VstsExtensionIntegrationProvider()
 

@@ -2,19 +2,24 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
-from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
-from sentry.models import Group
+from sentry.api.utils import get_date_range_from_stats_period
+from sentry.exceptions import InvalidParams
+from sentry.models.group import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
 class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
@@ -84,7 +89,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
             )
             if not groups:
                 raise ParseError(detail="No matching groups found")
-            elif len(groups) > 25:
+            elif len(groups) > 100:
                 raise ParseError(detail="Too many groups requested.")
             elif not all(request.access.has_project_access(g.project) for g in groups):
                 raise PermissionDenied
@@ -117,6 +122,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 organization_id=organization.id,
                 project_ids=project_ids,
             ),
+            request=request,
         )
 
         response = Response(context)

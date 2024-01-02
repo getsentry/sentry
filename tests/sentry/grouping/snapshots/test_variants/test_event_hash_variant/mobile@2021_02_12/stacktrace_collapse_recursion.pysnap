@@ -1,241 +1,241 @@
 ---
-created: '2021-08-04T15:53:48.979617Z'
+created: '2023-11-28T16:31:44.412695Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "b7e1e5ef711f75f419c749ffb19efb39"
+  hash: "bd53ce6ba0864834150964b0f6089eff"
   tree_label: "throwError"
   component:
     app-depth-1*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "throwError"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "9840fdc749627fbfacae7e58f325326a"
+  hash: "937d42d999fd58698bbecfd38420277d"
   tree_label: "throwError | recurFunc"
   component:
     app-depth-2*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "throwError"
 --------------------------------------------------------------------------
 app-depth-3:
-  hash: "e40eae807d6005ad95f045fcccaeb0a4"
+  hash: "06954690264f9745166373289a01ea64"
   tree_label: "throwError | recurFunc | recurFunc"
   component:
     app-depth-3*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "throwError"
 --------------------------------------------------------------------------
 app-depth-4:
-  hash: "3fb69ce71efee7c559762478ce1981bc"
+  hash: "319f9ce02504182ef024834948b06556"
   tree_label: "throwError | recurFunc | recurFunc | normalFunc"
   component:
     app-depth-4*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "throwError"
 --------------------------------------------------------------------------
 app-depth-5:
-  hash: "894c3489e2ade384dc107bca6829d134"
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
   tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
   component:
     app-depth-5*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "throwError"
 --------------------------------------------------------------------------
 app-depth-max:
-  hash: "894c3489e2ade384dc107bca6829d134"
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
   tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
   component:
     app-depth-max*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "throwError"
 --------------------------------------------------------------------------
 system:
-  hash: "894c3489e2ade384dc107bca6829d134"
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
   tree_label: "throwError | recurFunc | recurFunc | normalFunc | main"
   component:
     system*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "main"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "normalFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*
             "recurFunc"
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "application.java"
           function*

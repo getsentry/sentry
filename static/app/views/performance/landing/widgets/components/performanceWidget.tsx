@@ -2,6 +2,7 @@ import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
@@ -122,7 +123,7 @@ export function DataDisplay<T extends WidgetDataConstraint>(
         hasData={hasData}
         errorComponent={<DefaultErrorComponent height={totalHeight} />}
         dataComponents={Visualizations.map((Visualization, index) => (
-          <ContentContainer
+          <ContentBodyContainer
             key={index}
             noPadding={Visualization.noPadding}
             bottomPadding={Visualization.bottomPadding}
@@ -142,9 +143,13 @@ export function DataDisplay<T extends WidgetDataConstraint>(
               ),
               fixed: <Placeholder height={`${chartHeight}px`} />,
             })}
-          </ContentContainer>
+          </ContentBodyContainer>
         ))}
-        loadingComponent={<PerformanceWidgetPlaceholder height={`${totalHeight}px`} />}
+        loadingComponent={
+          <LoadingWrapper height={totalHeight}>
+            <StyledLoadingIndicator size={40} />
+          </LoadingWrapper>
+        }
         emptyComponent={
           EmptyComponent ? (
             <EmptyComponent />
@@ -178,10 +183,25 @@ const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boo
   padding-bottom: ${p => (p.bottomPadding ? space(1) : space(0))};
 `;
 
+const ContentBodyContainer = styled(ContentContainer)`
+  height: 100%;
+`;
+
 const PerformanceWidgetPlaceholder = styled(Placeholder)`
   border-color: transparent;
   border-bottom-right-radius: inherit;
   border-bottom-left-radius: inherit;
+`;
+
+const LoadingWrapper = styled('div')<{height?: number}>`
+  height: ${p => p.height}px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;
 
 GenericPerformanceWidget.defaultProps = {

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Event as EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -115,7 +116,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
-  const event = TestStubs.Event({user});
+  const event = EventFixture({user});
 
   const {organization, project, router} = initializeOrg({
     organization: {
@@ -185,9 +186,9 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('not shared event - without attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -229,14 +230,12 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
 
     it('shared event - without attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -250,14 +249,12 @@ describe('EventTagsAndScreenshot', function () {
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('shared event - with attachments', function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -270,8 +267,6 @@ describe('EventTagsAndScreenshot', function () {
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
   });
 
@@ -284,11 +279,11 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('no context and no tags', async function () {
-      const {container} = render(
+      render(
         <Fragment>
           <GlobalModal />
           <EventTagsAndScreenshot
-            event={TestStubs.Event({user: {}, contexts: {}})}
+            event={EventFixture({user: {}, contexts: {}})}
             organization={organization}
             projectSlug={project.slug}
             location={router.location}
@@ -329,8 +324,6 @@ describe('EventTagsAndScreenshot', function () {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByLabelText('Close Modal'));
-
-      expect(container).toSnapshot();
     });
   });
 
@@ -343,9 +336,9 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('has context, async tags and attachments', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -378,8 +371,6 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
 
     it('renders multiple screenshots correctly', async function () {
@@ -404,7 +395,7 @@ describe('EventTagsAndScreenshot', function () {
       });
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -447,7 +438,7 @@ describe('EventTagsAndScreenshot', function () {
       });
       render(
         <EventTagsAndScreenshot
-          event={{...event, tags, contexts}}
+          event={EventFixture({...event, tags, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -479,9 +470,9 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('has context and attachments only', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
-          event={{...event, contexts}}
+          event={EventFixture({...event, contexts})}
           organization={organization}
           projectSlug={project.slug}
           location={router.location}
@@ -507,12 +498,10 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.queryByRole('listitem')).not.toBeInTheDocument();
-
-      expect(container).toSnapshot();
     });
 
     it('has tags and attachments only', async function () {
-      const {container} = render(
+      render(
         <EventTagsAndScreenshot
           event={{...event, tags}}
           organization={organization}
@@ -540,8 +529,6 @@ describe('EventTagsAndScreenshot', function () {
       // Tags
       const tagsContainer = within(screen.getByTestId('event-tags'));
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
-
-      expect(container).toSnapshot();
     });
   });
 });

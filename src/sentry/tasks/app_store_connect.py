@@ -14,13 +14,11 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry.lang.native import appconnect
-from sentry.models import (
-    AppConnectBuild,
-    LatestAppConnectBuildsCheck,
-    Project,
-    ProjectOption,
-    debugfile,
-)
+from sentry.models.appconnectbuilds import AppConnectBuild
+from sentry.models.debugfile import create_files_from_dif_zip
+from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics, sdk
 from sentry.utils.appleconnect import appstore_connect as appstoreconnect_api
@@ -110,7 +108,7 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
 def create_difs_from_dsyms_zip(dsyms_zip: str, project: Project) -> None:
     with sentry_sdk.start_span(op="dsym-difs", description="Extract difs dSYM zip"):
         with open(dsyms_zip, "rb") as fp:
-            created = debugfile.create_files_from_dif_zip(fp, project, accept_unknown=True)
+            created = create_files_from_dif_zip(fp, project, accept_unknown=True)
             for proj_debug_file in created:
                 logger.debug("Created %r for project %s", proj_debug_file, project.id)
 

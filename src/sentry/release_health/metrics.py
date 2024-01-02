@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
     List,
     Literal,
@@ -19,9 +20,10 @@ from typing import (
 from snuba_sdk import Column, Condition, Direction, Op
 from snuba_sdk.expressions import Granularity, Limit
 
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
+    AllowedResolution,
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
@@ -55,7 +57,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
-from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
+from sentry.snuba.sessions_v2 import QueryDefinition
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
@@ -79,8 +81,6 @@ USE_CASE_ID = UseCaseID.SESSIONS
 
 logger = logging.getLogger(__name__)
 
-_K1 = TypeVar("_K1")
-_K2 = TypeVar("_K2")
 _V = TypeVar("_V")
 
 
@@ -140,14 +140,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> Dict[int, Dict[str, float]]:
+    ) -> Dict[int, float]:
 
         project_ids = [p.id for p in projects]
 
         select = [
-            MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
-            # named it 'init' to keep the same name as the original tag
-            MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
+            MetricField(metric_mri=SessionMRI.CRASH_FREE_RATE.value, alias="rate", op=None),
         ]
 
         groupby = [
@@ -161,6 +159,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             end=end,
             granularity=Granularity(rollup),
             groupby=groupby,
+            include_series=False,
+            include_totals=True,
         )
         result = get_series(projects=projects, metrics_query=query, use_case_id=USE_CASE_ID)
 
@@ -169,33 +169,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for group in groups:
             project_id = get_path(group, "by", "project_id")
             assert project_id is not None
-            totals = get_path(group, "totals")
+            totals = get_path(group, "totals", "rate")
             assert totals is not None
-            ret_val[project_id] = totals
+            ret_val[project_id] = totals * 100
 
         return ret_val
-
-    @staticmethod
-    def _compute_crash_free_rate(data: Dict[str, float]) -> Optional[float]:
-        total_session_count = data.get("init")
-
-        if total_session_count is None:
-            total_session_count = 0
-
-        crash_count = data.get("crashed")
-
-        if crash_count is None:
-            crash_count = 0
-
-        if total_session_count == 0:
-            return None
-
-        crash_free_rate = 1.0 - (crash_count / total_session_count)
-
-        # If crash count is larger than total session count for some reason
-        crash_free_rate = 100 * max(0.0, crash_free_rate)
-
-        return crash_free_rate
 
     def is_metrics_based(self) -> bool:
         return True
@@ -232,11 +210,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
         )
 
-        for project_id, project_data in previous.items():
-            projects_crash_free_rate_dict[project_id][
-                "previousCrashFreeRate"
-            ] = self._compute_crash_free_rate(project_data)
-
         current = self._get_crash_free_rate_data(
             org_id,
             projects,
@@ -245,10 +218,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             rollup,
         )
 
-        for project_id, project_data in current.items():
-            projects_crash_free_rate_dict[project_id][
-                "currentCrashFreeRate"
-            ] = self._compute_crash_free_rate(project_data)
+        for project_id, project_data in projects_crash_free_rate_dict.items():
+            project_data["previousCrashFreeRate"] = previous.get(project_id)
+            project_data["currentCrashFreeRate"] = current.get(project_id)
 
         return projects_crash_free_rate_dict
 
@@ -352,7 +324,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
             select = [
-                MetricField(metric_mri=SessionMRI.USER.value, alias="value", op="count_unique")
+                MetricField(metric_mri=SessionMRI.RAW_USER.value, alias="value", op="count_unique")
             ]
             query = MetricsQuery(
                 org_id=org_id,
@@ -460,10 +432,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         select = [
             MetricField(
-                metric_mri=SessionMRI.SESSION.value, alias="min_counter_date", op="min_timestamp"
+                metric_mri=SessionMRI.RAW_SESSION.value,
+                alias="min_counter_date",
+                op="min_timestamp",
             ),
             MetricField(
-                metric_mri=SessionMRI.SESSION.value, alias="max_counter_date", op="max_timestamp"
+                metric_mri=SessionMRI.RAW_SESSION.value,
+                alias="max_counter_date",
+                op="max_timestamp",
             ),
             MetricField(
                 metric_mri=SessionMRI.RAW_DURATION.value, alias="min_dist_date", op="min_timestamp"
@@ -558,7 +534,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def check_has_health_data(
         self,
-        projects_list: Sequence[ProjectOrRelease],
+        projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
     ) -> Set[ProjectOrRelease]:
         if now is None:
@@ -580,7 +556,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        select = [MetricField(metric_mri=SessionMRI.SESSION.value, alias="value", op="sum")]
+        select = [MetricField(metric_mri=SessionMRI.RAW_SESSION.value, alias="value", op="sum")]
 
         where_clause = []
         groupby = [
@@ -636,7 +612,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
-        select = [MetricField(metric_mri=SessionMRI.SESSION.value, alias="value", op="sum")]
+        select = [MetricField(metric_mri=SessionMRI.RAW_SESSION.value, alias="value", op="sum")]
         groupby = [MetricGroupByField(field="release")]
         where_clause = [
             Condition(
@@ -808,7 +784,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricField(metric_mri=SessionMRI.CRASHED.value, alias="crashed", op=None),
             MetricField(metric_mri=SessionMRI.ALL.value, alias="init", op=None),
             MetricField(
-                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value, alias="errored_preaggr", op=None
+                metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
+                alias="errored_preaggr",
+                op=None,
             ),
         ]
 
@@ -1300,7 +1278,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
         select = [
-            MetricField(metric_mri=SessionMRI.SESSION.value, alias="oldest", op="min_timestamp"),
+            MetricField(
+                metric_mri=SessionMRI.RAW_SESSION.value, alias="oldest", op="min_timestamp"
+            ),
         ]
 
         query = MetricsQuery(

@@ -2,7 +2,9 @@ import responses
 from requests.exceptions import ReadTimeout
 
 from sentry.integrations.jira_server import JiraServerIntegrationProvider
-from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json, jwt
@@ -10,7 +12,7 @@ from sentry.utils import json, jwt
 from . import EXAMPLE_PRIVATE_KEY
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraServerInstallationTest(IntegrationTestCase):
     provider = JiraServerIntegrationProvider
 

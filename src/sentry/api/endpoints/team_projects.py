@@ -7,18 +7,21 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ProjectParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
@@ -26,10 +29,28 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 
 class ProjectPostSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=50, required=True)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
-    platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    default_rules = serializers.BooleanField(required=False, initial=True)
+    name = serializers.CharField(
+        help_text="The name for the project.", max_length=50, required=True
+    )
+    slug = SentrySlugField(
+        help_text="""Uniquely identifies a project and is used for the interface.
+        If not provided, it is automatically generated from the name.""",
+        max_length=50,
+        required=False,
+        allow_null=True,
+    )
+    platform = serializers.CharField(
+        help_text="The platform for the project.", required=False, allow_blank=True, allow_null=True
+    )
+    default_rules = serializers.BooleanField(
+        help_text="""
+Defaults to true where the behavior is to alert the user on every new
+issue. Setting this to false will turn this off and the user must create
+their own alerts to be notified of new issues.
+        """,
+        required=False,
+        initial=True,
+    )
 
     def validate_platform(self, value):
         if Project.is_valid_platform(value):
@@ -57,8 +78,12 @@ class TeamProjectPermission(TeamPermission):
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
-    public = {"GET", "POST"}
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+    }
     permission_classes = (TeamProjectPermission,)
+    owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
         operation_id="List a Team's Projects",
@@ -120,12 +145,6 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.TEAM_SLUG,
-            GlobalParams.name("The name for the project.", required=True),
-            GlobalParams.slug(
-                "Optional slug for the project. If not provided a slug is generated from the name."
-            ),
-            ProjectParams.platform("The platform for the project."),
-            ProjectParams.DEFAULT_RULES,
         ],
         request=ProjectPostSerializer,
         responses={

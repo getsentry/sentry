@@ -2,18 +2,42 @@ import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {colorComponentsToRGBA} from './colors/utils';
-import {makeFormatter} from './units/units';
+import {makeFormatter, makeTimelineFormatter} from './units/units';
 
 interface Series {
   fillColor: string;
   lineColor: string;
+  name: string;
   points: {x: number; y: number}[];
   type: 'line' | 'area';
+}
+
+export interface ProfileSeriesMeasurement extends Profiling.Measurement {
+  name: string;
+}
+
+function computeLabelPrecision(min: number, max: number): number {
+  const range = max - min;
+  if (range === 0) {
+    return 0;
+  }
+
+  const precision = Math.ceil(-Math.log10(range));
+  if (precision < 0) {
+    return 0;
+  }
+  return precision;
+}
+
+interface ChartOptions {
+  type?: 'line' | 'area';
 }
 
 export class FlamegraphChart {
   configSpace: Rect;
   formatter: ReturnType<typeof makeFormatter>;
+  tooltipFormatter: ReturnType<typeof makeFormatter>;
+  timelineFormatter: (value: number) => string;
   series: Series[];
   domains: {
     x: [number, number];
@@ -23,31 +47,43 @@ export class FlamegraphChart {
     y: [0, 0],
   };
 
+  static MIN_RENDERABLE_POINTS = 3;
   static Empty = new FlamegraphChart(Rect.Empty(), [], [[0, 0, 0, 0]]);
 
   constructor(
     configSpace: Rect,
-    measurements: Profiling.Measurement[],
-    colors: ColorChannels[]
+    measurements: ProfileSeriesMeasurement[],
+    colors: ColorChannels[],
+    options: ChartOptions = {}
   ) {
     this.series = new Array<Series>();
+    this.timelineFormatter = makeTimelineFormatter('nanoseconds');
 
     if (!measurements || !measurements.length) {
       this.formatter = makeFormatter('percent');
+      this.tooltipFormatter = makeFormatter('percent');
       this.configSpace = configSpace.clone();
       return;
     }
 
-    const type = measurements.length > 0 ? 'line' : 'area';
+    const type = options.type ? options.type : measurements.length > 1 ? 'line' : 'area';
 
     for (let j = 0; j < measurements.length; j++) {
       const measurement = measurements[j];
       this.series[j] = {
         type,
+        name: measurement.name,
         lineColor: colorComponentsToRGBA(colors[j]),
         fillColor: colorComponentsToRGBA(colors[j]),
-        points: new Array(measurement.values.length).fill(0),
+        points: new Array(measurement?.values?.length ?? 0).fill(0),
       };
+
+      if (
+        !measurement?.values?.length ||
+        measurement?.values.length < FlamegraphChart.MIN_RENDERABLE_POINTS
+      ) {
+        continue;
+      }
 
       for (let i = 0; i < measurement.values.length; i++) {
         const m = measurement.values[i];
@@ -78,8 +114,16 @@ export class FlamegraphChart {
       return bAvg - aAvg;
     });
 
-    this.domains.y[1] = 100;
+    this.domains.y[1] = this.domains.y[1] + this.domains.y[1] * 0.1;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
-    this.formatter = makeFormatter(measurements[0].unit, 0);
+
+    this.formatter = makeFormatter(
+      measurements[0].unit,
+      computeLabelPrecision(this.domains.y[0], this.domains.y[1])
+    );
+    this.tooltipFormatter = makeFormatter(
+      measurements[0].unit,
+      computeLabelPrecision(this.domains.y[0], this.domains.y[1])
+    );
   }
 }

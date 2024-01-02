@@ -17,7 +17,7 @@ type Props = {
   isLoading: boolean;
   location: Location;
   organization: Organization;
-  projSlug: Project['slug'];
+  project: Project;
   router: InjectedRouter;
 };
 
@@ -27,7 +27,7 @@ function Sources({
   customRepositories,
   builtinSymbolSources,
   builtinSymbolSourceOptions,
-  projSlug,
+  project,
   location,
   router,
   isLoading,
@@ -39,7 +39,7 @@ function Sources({
         organization={organization}
         builtinSymbolSources={builtinSymbolSources}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
-        projSlug={projSlug}
+        project={project}
         isLoading={isLoading}
       />
       <CustomRepositories
@@ -48,7 +48,7 @@ function Sources({
         router={router}
         organization={organization}
         customRepositories={customRepositories}
-        projSlug={projSlug}
+        project={project}
         isLoading={isLoading}
       />
     </Fragment>

@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import zipfile
 from enum import Enum
-from io import BytesIO
-from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
+from typing import IO, Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
-from django.db import models, router
-from django.db.models.signals import post_delete
+import sentry_sdk
+from django.conf import settings
+from django.db import models
+from django.db.models.signals import post_delete, pre_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -18,16 +20,15 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
-from sentry.utils import json
-from sentry.utils.db import atomic_transaction
+from sentry.nodestore.base import NodeStorage
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.services import LazyServiceWrapper
 
 # Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
 # always different from `NULL`.
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
-# Number of bundles that have to be associated to a release/dist pair before indexing takes place.
-INDEXING_THRESHOLD = 1
 
 
 class SourceFileType(Enum):
@@ -63,7 +64,7 @@ class ArtifactBundleIndexingState(Enum):
 
 @region_silo_only_model
 class ArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
@@ -91,9 +92,11 @@ class ArtifactBundle(Model):
     def get_release_associations(
         cls, organization_id: int, artifact_bundle: ArtifactBundle
     ) -> List[Mapping[str, str | None]]:
+        # We sort by id, since it's the best (already existing) field to define total order of
+        # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             organization_id=organization_id, artifact_bundle=artifact_bundle
-        )
+        ).order_by("-id")
 
         return [
             {
@@ -111,91 +114,110 @@ class ArtifactBundle(Model):
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):
-    instance.file.delete()
+    from sentry.models.files import File
+    from sentry.tasks.assemble import AssembleTask, delete_assemble_status
+
+    checksum = None
+    try:
+        checksum = instance.file.checksum
+    except File.DoesNotExist:
+        pass
+    else:
+        if instance.organization_id is not None and checksum is not None:
+            delete_assemble_status(
+                AssembleTask.ARTIFACT_BUNDLE,
+                instance.organization_id,
+                checksum,
+            )
+
+    finally:
+        instance.file.delete()
 
 
+def delete_bundle_from_index(instance, **kwargs):
+    from sentry.debug_files.artifact_bundle_indexing import remove_artifact_bundle_from_indexes
+
+    try:
+        remove_artifact_bundle_from_indexes(instance)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+pre_delete.connect(delete_bundle_from_index, sender=ArtifactBundle)
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
+
+indexstore = LazyServiceWrapper(
+    NodeStorage,
+    settings.SENTRY_INDEXSTORE,
+    settings.SENTRY_INDEXSTORE_OPTIONS,
+    metrics_path="indexstore",
+)
 
 
 @region_silo_only_model
 class ArtifactBundleFlatFileIndex(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
     dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    # This association is nullable since we need it for a correct durable implementation of the `FlatFileIndexState`.
-    flat_file_index = FlexibleForeignKey("sentry.File", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundleflatfileindex"
 
-        index_together = (("project_id", "release_name", "dist_name"),)
+        unique_together = (("project_id", "release_name", "dist_name"),)
 
-    def update_flat_file_index(self, file_contents: str):
-        from sentry.models import File
+    def _indexstore_id(self) -> str:
+        return f"bundle_index:{self.project_id}:{self.id}"
 
-        with atomic_transaction(
-            using=(router.db_for_write(File), router.db_for_write(ArtifactBundleFlatFileIndex))
-        ):
-            current_file = self.flat_file_index
+    def update_flat_file_index(self, data: str):
+        encoded_data = data.encode()
 
-            updated_file = self._create_flat_file_index_object(file_contents)
-
-            # We have to update the new index file and also the date added, which is required for expiration.
-            self.update(flat_file_index=updated_file, date_added=timezone.now())
-
-            if current_file is not None:
-                # It's important to also delete the old file, otherwise we will end up with orphan files in the
-                # database.
-                current_file.delete()
-
-    def load_flat_file_index(self) -> Optional[str]:
-        if self.flat_file_index is None:
-            return None
-
-        return self.flat_file_index.getfile().read().decode()
-
-    @classmethod
-    def _create_flat_file_index_object(cls, file_contents: str):
-        from sentry.models import File
-
-        file = File.objects.create(
-            name="artifact_bundle_flat_file_index",
-            type="flat_file_index",
+        metric_name = "debug_id_index" if self.release_name == NULL_STRING else "url_index"
+        metrics.distribution(
+            f"artifact_bundle_flat_file_indexing.{metric_name}.size_in_bytes",
+            value=len(encoded_data),
+            unit="byte",
         )
-        file.putfile(BytesIO(file_contents.encode()))
 
-        return file
+        indexstore.set_bytes(self._indexstore_id(), encoded_data)
+        self.update(date_added=timezone.now())
+
+    def load_flat_file_index(self) -> Optional[bytes]:
+        return indexstore.get_bytes(self._indexstore_id())
 
 
 @region_silo_only_model
 class FlatFileIndexState(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     flat_file_index = FlexibleForeignKey("sentry.ArtifactBundleFlatFileIndex")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    indexing_state = models.IntegerField(choices=ArtifactBundleIndexingState.choices())
+    indexing_state = models.IntegerField(
+        choices=ArtifactBundleIndexingState.choices(), db_index=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_flatfileindexstate"
 
+        unique_together = (("flat_file_index", "artifact_bundle"),)
+
     @staticmethod
-    def compare_state_and_set(
+    def mark_as_indexed(
         flat_file_index_id: int,
         artifact_bundle_id: int,
-        indexing_state: ArtifactBundleIndexingState,
-        new_indexing_state: ArtifactBundleIndexingState,
     ) -> bool:
         updated_rows = FlatFileIndexState.objects.filter(
             flat_file_index_id=flat_file_index_id,
             artifact_bundle_id=artifact_bundle_id,
-            indexing_state=indexing_state.value,
-        ).update(indexing_state=new_indexing_state.value, date_added=timezone.now())
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+        ).update(
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value, date_added=timezone.now()
+        )
 
         # If we had one row being updated, it means that the cas operation succeeded.
         return updated_rows == 1
@@ -203,7 +225,7 @@ class FlatFileIndexState(Model):
 
 @region_silo_only_model
 class ArtifactBundleIndex(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
@@ -226,7 +248,7 @@ class ArtifactBundleIndex(Model):
 
 @region_silo_only_model
 class ReleaseArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
@@ -247,7 +269,7 @@ class ReleaseArtifactBundle(Model):
 
 @region_silo_only_model
 class DebugIdArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
@@ -264,7 +286,7 @@ class DebugIdArtifactBundle(Model):
 
 @region_silo_only_model
 class ProjectArtifactBundle(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField()
@@ -284,8 +306,9 @@ class ArtifactBundleArchive:
     def __init__(self, fileobj: IO, build_memory_map: bool = True):
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
+        self._entries_by_debug_id: dict[tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]]
         self._entries_by_debug_id = {}
-        self._entries_by_url = {}
+        self._entries_by_url: dict[str, tuple[str, dict[str, Any]]] = {}
 
         self.manifest = self._read_manifest()
         self.artifact_count = len(self.manifest.get("files", {}))
@@ -330,6 +353,9 @@ class ArtifactBundleArchive:
     def _build_memory_maps(self):
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
+            url = info.get("url")
+            if not url:
+                continue
             # Building the map for debug_id lookup.
             headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
@@ -343,43 +369,21 @@ class ArtifactBundleArchive:
                 ):
                     self._entries_by_debug_id[(debug_id, source_file_type)] = (
                         file_path,
-                        info.get("url"),
+                        url,
                         info,
                     )
 
             # Building the map for url lookup.
-            self._entries_by_url[info.get("url")] = (file_path, info)
+            self._entries_by_url[url] = (file_path, info)
 
-    def get_all_urls(self):
-        return self._entries_by_url.keys()
+    def get_all_urls(self) -> List[str]:
+        return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self):
+    def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
         return self._entries_by_debug_id.keys()
 
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
-
-    def extract_debug_ids_from_manifest(
-        self,
-    ) -> Set[Tuple[SourceFileType, str]]:
-        # We use a set, since we might have the same debug_id and file_type.
-        debug_ids_with_types = set()
-
-        files = self.manifest.get("files", {})
-        for info in files.values():
-            headers = self.normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id")) is not None:
-                debug_id = self.normalize_debug_id(debug_id)
-                file_type = info.get("type")
-                if (
-                    debug_id is not None
-                    and file_type is not None
-                    and (source_file_type := SourceFileType.from_lowercase_key(file_type))
-                    is not None
-                ):
-                    debug_ids_with_types.add((source_file_type, debug_id))
-
-        return debug_ids_with_types
 
     def extract_bundle_id(self) -> Optional[str]:
         bundle_id = self.manifest.get("debug_id")
@@ -437,8 +441,8 @@ class ArtifactBundleArchive:
 
                 # We also want to try and normalize the query so that we can match for example:
                 # 2b69e5bd2e984c578ce1b58da19110ae with 2b69e5bd-2e98-4c57-8ce1-b58da19110ae.
-                normalized_query = self.normalize_debug_id(normalized_query)
-                if normalized_query is not None and normalized_query in debug_id:
+                maybe_normalized_query = self.normalize_debug_id(normalized_query)
+                if maybe_normalized_query is not None and maybe_normalized_query in debug_id:
                     return True
 
             return False
@@ -446,6 +450,8 @@ class ArtifactBundleArchive:
         return self.get_files_by(filter_function)
 
     def get_file_info(self, file_path: Optional[str]) -> Optional[zipfile.ZipInfo]:
+        if file_path is None:
+            return None
         try:
             return self._zip_file.getinfo(file_path)
         except KeyError:

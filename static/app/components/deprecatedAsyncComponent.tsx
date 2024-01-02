@@ -67,7 +67,7 @@ function wrapErrorHandling<T extends any[], U>(
  */
 class DeprecatedAsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
-  S extends AsyncComponentState = AsyncComponentState
+  S extends AsyncComponentState = AsyncComponentState,
 > extends Component<P, S> {
   static contextTypes = {
     router: PropTypes.object,

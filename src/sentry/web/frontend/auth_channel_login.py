@@ -5,11 +5,13 @@ from django.views.decorators.cache import never_cache
 from sentry.auth.helper import CHANNEL_PROVIDER_MAP
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.utils.auth import is_valid_redirect
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
+from sentry.web.frontend.base import control_silo_view
 
 
+@control_silo_view
 class AuthChannelLoginView(AuthOrganizationLoginView):
     @method_decorator(never_cache)
     def handle(self, request, channel, resource_id):
@@ -32,19 +34,26 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
             return self.redirect(reverse("sentry-login"))
 
         organization_id = auth_provider_model[0].organization_id
-        organization_context = organization_service.get_organization_by_id(
-            id=organization_id,
-        )
-
-        if organization_context is None:
+        try:
+            slug = OrganizationMapping.objects.get(organization_id=organization_id).slug
+        except OrganizationMapping.DoesNotExist:
             return self.redirect(reverse("sentry-login"))
 
+        next_uri = self.get_next_uri(request)
+        # If user has an active session within the same organization skip login
         if request.user.is_authenticated:
-            next_uri = self.get_next_uri(request)
-            if is_valid_redirect(next_uri, allowed_hosts=(request.get_host())):
-                return self.redirect(next_uri)
-            return self.redirect(Organization.get_url(slug=organization_context.organization.slug))
+            if self.active_organization is not None:
+                if self.active_organization.organization.id == organization_id:
+                    if is_valid_redirect(next_uri, allowed_hosts=(request.get_host())):
+                        return self.redirect(next_uri)
+                    return self.redirect(Organization.get_url(slug=slug))
 
-        return self.redirect(
-            reverse("sentry-auth-organization", args=[organization_context.organization.slug])
+        # If user doesn't have active session within the same organization redirect to login for the
+        # organization in the url
+        org_auth_url = reverse("sentry-auth-organization", args=[slug])
+        redirect_url = (
+            org_auth_url + "?next=" + next_uri
+            if is_valid_redirect(next_uri, allowed_hosts=(request.get_host()))
+            else org_auth_url
         )
+        return self.redirect(redirect_url)

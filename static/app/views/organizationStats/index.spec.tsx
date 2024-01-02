@@ -1,3 +1,5 @@
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +24,7 @@ describe('OrganizationStats', function () {
       utc: false,
     },
   };
-  const projects = ['1', '2', '3'].map(id => TestStubs.Project({id, slug: `proj-${id}`}));
+  const projects = ['1', '2', '3'].map(id => ProjectFixture({id, slug: `proj-${id}`}));
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views', 'team-insights']},
     projects,
@@ -234,6 +236,7 @@ describe('OrganizationStats', function () {
 
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
 
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
@@ -249,11 +252,13 @@ describe('OrganizationStats', function () {
       // TODO(Leander): Remove the following check once the project-stats flag is GA
       'project-stats',
     ];
+    OrganizationStore.onUpdate(newOrg.organization, {replace: true});
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
 
-    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    expect(screen.getByText('All Projects')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
@@ -288,7 +293,10 @@ describe('OrganizationStats', function () {
         organization={newOrg.organization}
         selection={newSelection}
       />,
-      {context: newOrg.routerContext}
+      {
+        context: newOrg.routerContext,
+        organization: newOrg.organization,
+      }
     );
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
@@ -330,7 +338,10 @@ describe('OrganizationStats', function () {
         organization={newOrg.organization}
         selection={newSelection}
       />,
-      {context: newOrg.routerContext}
+      {
+        context: newOrg.routerContext,
+        organization: newOrg.organization,
+      }
     );
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
@@ -363,6 +374,7 @@ describe('OrganizationStats', function () {
     ];
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
@@ -387,7 +399,10 @@ describe('OrganizationStats', function () {
           organization={newOrg.organization}
           selection={newSelection}
         />,
-        {context: newOrg.routerContext}
+        {
+          context: newOrg.routerContext,
+          organization: newOrg.organization,
+        }
       );
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();

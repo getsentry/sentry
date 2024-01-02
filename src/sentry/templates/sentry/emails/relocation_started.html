@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Relocation Accepted</h3>
+    <p>Your relocation request has been accepted. You requested that the following organizations be moved to sentry.io:</p>
+<ul>
+{% for org in orgs %}
+<li>
+    <a>{{ org }}</a>
+</li>
+{% endfor %}
+</ul>
+    <p>Relocations usually complete in 24 hours or less. If you do not hear from us in that time frame, please <a href="https://help.sentry.io">contact support</a>.</p>
+    <p><small><i>ID: {{ uuid }}</i></small></p>
+{% endblock %}

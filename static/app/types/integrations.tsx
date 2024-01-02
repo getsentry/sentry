@@ -1,6 +1,6 @@
 import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
+import {PlatformKey} from 'sentry/types/project';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -74,6 +74,7 @@ export enum RepositoryStatus {
 
 export type Repository = {
   dateCreated: string;
+  externalId: string;
   externalSlug: string;
   id: string;
   integrationId: string;
@@ -249,8 +250,12 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppComponent = {
-  schema: SentryAppSchemaStacktraceLink;
+export type SentryAppComponent<
+  Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =
+    | SentryAppSchemaStacktraceLink
+    | SentryAppSchemaElement,
+> = {
+  schema: Schema;
   sentryApp: {
     avatars: Avatar[];
     name: string;
@@ -351,16 +356,19 @@ export interface OrganizationIntegrationProvider extends BaseIntegrationProvider
   aspects: IntegrationAspects;
 }
 
-export interface Integration {
-  accountType: string;
-  domainName: string;
-  gracePeriodEnd: string;
-  icon: string;
+interface CommonIntegration {
+  accountType: string | null;
+  domainName: string | null;
+  gracePeriodEnd: string | null;
+  icon: string | null;
   id: string;
   name: string;
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+}
+
+export interface Integration extends CommonIntegration {
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -376,21 +384,12 @@ type ConfigData = {
   installationType?: string;
 };
 
-export type OrganizationIntegration = {
-  accountType: string | null;
+export interface OrganizationIntegration extends CommonIntegration {
   configData: ConfigData | null;
   configOrganization: Field[];
-  domainName: string | null;
   externalId: string;
-  gracePeriodEnd: string;
-  icon: string | null;
-  id: string;
-  name: string;
   organizationId: string;
-  organizationIntegrationStatus: ObjectStatus;
-  provider: OrganizationIntegrationProvider;
-  status: ObjectStatus;
-};
+}
 
 // we include the configOrganization when we need it
 export interface IntegrationWithConfig extends Integration {

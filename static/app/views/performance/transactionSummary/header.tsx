@@ -10,7 +10,6 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import useReplaysCount from 'sentry/components/replays/useReplaysCount';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -20,6 +19,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
+import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -77,6 +77,10 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
+  const hasAggregateWaterfall = organization.features.includes(
+    'starfish-aggregate-span-waterfall'
+  );
+
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
       switch (hasWebVitals) {
@@ -86,7 +90,7 @@ function TransactionHeader({
           // frontend projects should always show the web vitals tab
           if (
             getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
+            LandingDisplayField.FRONTEND_OTHER
           ) {
             return true;
           }
@@ -106,10 +110,8 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const replaysCount = useReplaysCount({
-    transactionNames: transactionName,
-    organization,
-  })[transactionName];
+  const {getReplayCountForTransaction} = useReplayCountForTransactions();
+  const replaysCount = getReplayCountForTransaction(transactionName);
 
   return (
     <Layout.Header>
@@ -139,7 +141,7 @@ function TransactionHeader({
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <Feature organization={organization} features={['incidents']}>
+          <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature && !metricsCardinality?.isLoading ? (
                 <CreateAlertFromViewButton
@@ -191,7 +193,7 @@ function TransactionHeader({
               }}
             >
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
-              <TabList.Item key={Tab.EVENTS}>{t('All Events')}</TabList.Item>
+              <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
               <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
@@ -223,6 +225,13 @@ function TransactionHeader({
                 hidden={!hasProfiling}
               >
                 {t('Profiles')}
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.AGGREGATE_WATERFALL}
+                textValue={t('Aggregate Spans')}
+                hidden={!hasAggregateWaterfall}
+              >
+                {t('Aggregate Spans')}
               </TabList.Item>
             </TabList>
           );

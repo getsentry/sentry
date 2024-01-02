@@ -2,7 +2,7 @@ import pytest
 from django.conf import settings
 
 from sentry import newsletter
-from sentry.models import UserEmail
+from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
     reason="Requires DummyNewsletter.",
 )
-@control_silo_test(stable=True)
+@control_silo_test
 class UserSubscriptionsNewsletterTest(APITestCase):
     endpoint = "sentry-api-0-user-subscriptions"
     method = "put"

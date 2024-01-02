@@ -16,6 +16,7 @@ from sentry.search.events.fields import (
     NullColumn,
     NumberRange,
     NumericColumn,
+    SnQLFieldColumn,
     SnQLFunction,
     with_default,
 )
@@ -35,6 +36,10 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         return {
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
+            constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
+                self.builder, search_filter
+            ),
+            constants.SPAN_IS_SEGMENT_ALIAS: filter_aliases.span_is_segment_converter,
         }
 
     @property
@@ -43,6 +48,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.PROJECT_ALIAS: self._resolve_project_slug_alias,
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
+            constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
+                self.builder, alias
+            ),
         }
 
     @property
@@ -177,6 +185,14 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "any",
+                    required_args=[SnQLFieldColumn("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    redundant_grouping=True,
                 ),
             ]
         }

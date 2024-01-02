@@ -62,7 +62,7 @@ export function CodeOwnerFileTable({
         `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
         {
           method: 'PUT',
-          data: {raw: codeownerFile.raw},
+          data: {raw: codeownerFile.raw, date_updated: new Date().toISOString()},
         }
       );
       onUpdate({...codeowner, ...data});
@@ -149,7 +149,7 @@ export function CodeOwnerFileTable({
               triggerProps={{
                 'aria-label': t('Actions'),
                 size: 'xs',
-                icon: <IconEllipsis size="xs" />,
+                icon: <IconEllipsis />,
                 showChevron: false,
                 disabled,
               }}

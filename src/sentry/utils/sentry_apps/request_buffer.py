@@ -122,7 +122,7 @@ class SentryAppWebhookRequestsBuffer:
         from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
         if event not in EXTENDED_VALID_EVENTS:
-            logger.warning(f"Event {event} is not a valid event that can be stored.")
+            logger.warning("Event %s is not a valid event that can be stored.", event)
             return
 
         request_key = self._get_redis_key(event)

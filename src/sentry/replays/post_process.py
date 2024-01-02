@@ -4,6 +4,7 @@ import collections
 from itertools import zip_longest
 from typing import Any, Dict, Generator, Iterable, Iterator, List, MutableMapping, Optional, Union
 
+from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
 
 from sentry.replays.validators import VALID_FIELD_SET
@@ -39,6 +40,7 @@ class UserResponseType(TypedDict, total=False):
     display_name: Optional[str]
 
 
+@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str
@@ -67,6 +69,10 @@ class ReplayDetailsResponse(TypedDict, total=False):
     platform: Optional[str]
     releases: List[str]
     dist: Optional[str]
+    warning_ids: Optional[List[str]]
+    info_ids: Optional[List[str]]
+    count_warnings: Optional[int]
+    count_infos: Optional[int]
 
 
 def process_raw_response(
@@ -80,7 +86,6 @@ def generate_restricted_fieldset(
     fields: List[str],
     response: Generator[ReplayDetailsResponse, None, None],
 ) -> Iterator[ReplayDetailsResponse]:
-
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
@@ -154,24 +159,28 @@ def generate_normalized_output(
 
         item.pop("clickClass", None)
         item.pop("click_selector", None)
+        ret_item["activity"] = item.pop("activity", None)
         # don't need clickClass or click_selector
         #  for the click field, as they are only used for searching.
         # (click.classes contains the full list of classes for a click)
         ret_item["clicks"] = extract_click_fields(item)
-        ret_item["activity"] = item.pop("activity", None)
-        ret_item["count_errors"] = item.pop("count_errors", None)
         ret_item["count_dead_clicks"] = item.pop("count_dead_clicks", None)
+        ret_item["count_errors"] = item.pop("count_errors", None)
         ret_item["count_rage_clicks"] = item.pop("count_rage_clicks", None)
-        ret_item["duration"] = item.pop("duration", None)
-        ret_item["started_at"] = item.pop("started_at", None)
-        ret_item["finished_at"] = item.pop("finished_at", None)
-        ret_item["count_urls"] = item.pop("count_urls", None)
-        ret_item["replay_type"] = item.pop("replay_type", "session")
         ret_item["count_segments"] = item.pop("count_segments", None)
-        ret_item["platform"] = item.pop("platform", None)
-        ret_item["releases"] = item.pop("releases", [])
+        ret_item["count_urls"] = item.pop("count_urls", None)
         ret_item["dist"] = item.pop("dist", None)
+        ret_item["duration"] = item.pop("duration", None)
+        ret_item["finished_at"] = item.pop("finished_at", None)
+        ret_item["platform"] = item.pop("platform", None)
+        ret_item["releases"] = list(filter(bool, item.pop("releases", [])))
+        ret_item["replay_type"] = item.pop("replay_type", "session")
+        ret_item["started_at"] = item.pop("started_at", None)
 
+        ret_item["warning_ids"] = item.pop("warning_ids", None)
+        ret_item["info_ids"] = item.pop("info_ids", None)
+        ret_item["count_infos"] = item.pop("count_infos", None)
+        ret_item["count_warnings"] = item.pop("count_warnings", None)
         yield ret_item
 
 
@@ -235,6 +244,7 @@ CLICK_FIELD_MAP = {
     "click_alt": "click.alt",
     "click_aria_label": "click.label",
     "click_classes": "click.classes",
+    "click_component_name": "click.component_name",
     "click_id": "click.id",
     "click_role": "click.role",
     "click_tag": "click.tag",

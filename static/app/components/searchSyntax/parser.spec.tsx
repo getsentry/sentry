@@ -1,6 +1,8 @@
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
 import {
+  BooleanOperator,
+  InvalidReason,
   ParseResult,
   parseSearch,
   Token,
@@ -44,6 +46,10 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
       // @ts-expect-error
       delete token.config;
 
+      // token warnings only exist in the FE atm
+      // @ts-expect-error
+      delete token.warning;
+
       if (token.type === Token.FILTER && token.invalid === null) {
         // @ts-expect-error
         delete token.invalid;
@@ -82,4 +88,102 @@ describe('searchSyntax/parser', function () {
       cases.map(registerTestCase);
     })
   );
+
+  it('returns token warnings', () => {
+    const result = parseSearch('foo:bar bar:baz tags[foo]:bar tags[bar]:baz', {
+      getFilterTokenWarning: key => (key === 'foo' ? 'foo warning' : null),
+    });
+
+    // check with error to satisfy type checker
+    if (result === null) {
+      throw new Error('Parsed result as null');
+    }
+    expect(result).toHaveLength(9);
+
+    const foo = result[1] as TokenResult<Token.FILTER>;
+    const bar = result[3] as TokenResult<Token.FILTER>;
+    const fooTag = result[5] as TokenResult<Token.FILTER>;
+    const barTag = result[7] as TokenResult<Token.FILTER>;
+
+    expect(foo.warning).toBe('foo warning');
+    expect(bar.warning).toBe(null);
+    expect(fooTag.warning).toBe('foo warning');
+    expect(barTag.warning).toBe(null);
+  });
+
+  it('applies disallowFreeText', () => {
+    const result = parseSearch('foo:bar test', {
+      disallowFreeText: true,
+      invalidMessages: {
+        [InvalidReason.FREE_TEXT_NOT_ALLOWED]: 'Custom message',
+      },
+    });
+
+    // check with error to satisfy type checker
+    if (result === null) {
+      throw new Error('Parsed result as null');
+    }
+    expect(result).toHaveLength(5);
+
+    const foo = result[1] as TokenResult<Token.FILTER>;
+    const test = result[3] as TokenResult<Token.FREE_TEXT>;
+
+    expect(foo.invalid).toBe(null);
+    expect(test.invalid).toEqual({
+      type: InvalidReason.FREE_TEXT_NOT_ALLOWED,
+      reason: 'Custom message',
+    });
+  });
+
+  it('applies disallowLogicalOperators (OR)', () => {
+    const result = parseSearch('foo:bar OR AND', {
+      disallowedLogicalOperators: new Set([BooleanOperator.OR]),
+      invalidMessages: {
+        [InvalidReason.LOGICAL_OR_NOT_ALLOWED]: 'Custom message',
+      },
+    });
+
+    // check with error to satisfy type checker
+    if (result === null) {
+      throw new Error('Parsed result as null');
+    }
+    expect(result).toHaveLength(7);
+
+    const foo = result[1] as TokenResult<Token.FILTER>;
+    const or = result[3] as TokenResult<Token.LOGIC_BOOLEAN>;
+    const and = result[5] as TokenResult<Token.LOGIC_BOOLEAN>;
+
+    expect(foo.invalid).toBe(null);
+    expect(or.invalid).toEqual({
+      type: InvalidReason.LOGICAL_OR_NOT_ALLOWED,
+      reason: 'Custom message',
+    });
+    expect(and.invalid).toBe(null);
+  });
+
+  it('applies disallowLogicalOperators (AND)', () => {
+    const result = parseSearch('foo:bar OR AND', {
+      disallowedLogicalOperators: new Set([BooleanOperator.AND]),
+      invalidMessages: {
+        [InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'Custom message',
+      },
+    });
+
+    // check with error to satisfy type checker
+    if (result === null) {
+      throw new Error('Parsed result as null');
+    }
+    expect(result).toHaveLength(7);
+
+    const foo = result[1] as TokenResult<Token.FILTER>;
+    const or = result[3] as TokenResult<Token.LOGIC_BOOLEAN>;
+    const and = result[5] as TokenResult<Token.LOGIC_BOOLEAN>;
+
+    expect(foo.invalid).toBe(null);
+    expect(or.invalid).toBe(null);
+    expect(and.invalid).toEqual({
+      type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
+      reason: 'Custom message',
+    });
+  });
 });

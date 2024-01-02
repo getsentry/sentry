@@ -57,14 +57,15 @@ class GroupUserFeedback extends Component<Props, State> {
   }
 
   fetchData = () => {
+    const {group, location, organization, params} = this.props;
     this.setState({
       loading: true,
       error: false,
     });
 
-    fetchGroupUserReports(this.props.group.id, {
-      ...this.props.params,
-      cursor: this.props.location.query.cursor || '',
+    fetchGroupUserReports(organization.slug, group.id, {
+      ...params,
+      cursor: location.query.cursor || '',
     })
       .then(([data, _, resp]) => {
         this.setState({
@@ -102,7 +103,7 @@ class GroupUserFeedback extends Component<Props, State> {
               <StyledEventUserFeedback
                 key={idx}
                 report={item}
-                orgId={organization.slug}
+                orgSlug={organization.slug}
                 issueId={group.id}
               />
             ))}

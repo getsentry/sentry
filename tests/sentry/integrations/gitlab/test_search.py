@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitlabSearchTest(GitLabTestCase):
     provider = "gitlab"
 
@@ -217,6 +217,7 @@ class GitlabSearchTest(GitLabTestCase):
         )
         assert resp.status_code == 400
 
+    @responses.activate
     def test_projects_request_fails(self):
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})

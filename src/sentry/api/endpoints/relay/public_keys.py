@@ -1,17 +1,23 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
-from sentry.models import Relay
+from sentry.models.relay import Relay
 
 
 @region_silo_endpoint
 class RelayPublicKeysEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
+    owner = ApiOwner.OWNERS_INGEST
 
     def post(self, request: Request) -> Response:
         calling_relay = request.relay

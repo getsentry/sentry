@@ -15,7 +15,6 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
 
     def generate_footer(self, rule_url: str) -> str:
         return "\nThis work item was automatically created by Sentry via [{}]({})".format(
-            # TODO(mgaeta): Bug: Rule is optional.
-            self.rule.label,  # type: ignore
+            self.rule.label,
             absolute_uri(rule_url),
         )

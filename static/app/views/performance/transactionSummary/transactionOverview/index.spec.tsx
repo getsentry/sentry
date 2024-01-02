@@ -1,6 +1,10 @@
 import {browserHistory, InjectedRouter} from 'react-router';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   renderGlobalModal,
@@ -19,13 +23,13 @@ import {
   MEPSetting,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
 import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
-  TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
-  TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+  Team({id: '1', slug: 'team1', name: 'Team 1'}),
+  Team({id: '2', slug: 'team2', name: 'Team 2'}),
 ];
 
 function initializeData({
@@ -40,8 +44,8 @@ function initializeData({
   query?: Record<string, any>;
 } = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = prj ?? TestStubs.Project({teams});
-  const organization = TestStubs.Organization({
+  const project = prj ?? ProjectFixture({teams});
+  const organization = Organization({
     features,
     projects: projects ? projects : [project],
   });
@@ -71,14 +75,12 @@ function TestComponent({
 }: React.ComponentProps<typeof TransactionSummary> & {
   router: InjectedRouter<Record<string, string>, any>;
 }) {
-  const client = new QueryClient();
-
   if (!props.organization) {
     throw new Error('Missing organization');
   }
 
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <RouteContext.Provider value={{router, ...router}}>
         <MetricsCardinalityProvider
           organization={props.organization}
@@ -540,7 +542,7 @@ describe('Performance > TransactionSummary', function () {
 
     it('renders Web Vitals widget', async function () {
       const {organization, router, routerContext} = initializeData({
-        project: TestStubs.Project({teams, platform: 'javascript'}),
+        project: ProjectFixture({teams, platform: 'javascript'}),
         query: {
           query:
             'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
@@ -631,18 +633,18 @@ describe('Performance > TransactionSummary', function () {
       });
 
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           slug: 'proj-slug-1',
           id: '1',
           name: 'Project Name 1',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           slug: 'proj-slug-2',
           id: '2',
           name: 'Project Name 2',
         }),
       ];
-      OrganizationStore.onUpdate(TestStubs.Organization({slug: 'org-slug'}), {
+      OrganizationStore.onUpdate(Organization({slug: 'org-slug'}), {
         replace: true,
       });
       const {organization, router, routerContext} = initializeData({projects});
@@ -660,7 +662,7 @@ describe('Performance > TransactionSummary', function () {
         {
           context: routerContext,
           organization,
-          projects,
+          projects: projects.map(project => project.id),
         }
       );
 
@@ -955,9 +957,7 @@ describe('Performance > TransactionSummary', function () {
         body: [],
       });
 
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-suspect-spans-view'],
-      });
+      const {organization, router, routerContext} = initializeData();
 
       render(
         <TestComponent

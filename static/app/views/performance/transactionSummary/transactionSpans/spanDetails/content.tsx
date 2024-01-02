@@ -179,7 +179,7 @@ function SpanDetailsContent(props: ContentProps) {
 
   return (
     <Fragment>
-      <Feature features={['performance-span-histogram-view']}>
+      <Feature features="performance-span-histogram-view">
         <SpanDetailsControls
           organization={organization}
           location={location}

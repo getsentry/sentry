@@ -1,0 +1,49 @@
+name: Publish Sentry image to DockerHub
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+jobs:
+  publish-sentry:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - name: Pull the test image
+        id: image_pull
+        env:
+          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
+        shell: bash
+        run: |
+          echo "We poll for the Docker image that the GCB/GHA build produces until it succeeds or this job times out."
+          echo "Polling for $IMAGE_URL"
+          timeout 20m bash -c 'until docker pull "$IMAGE_URL" 2>/dev/null; do sleep 10; done'
+      - name: Get short SHA for docker tag
+        id: short_sha
+        shell: bash
+        run: |
+          SHORT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          if [[ -z "$SHORT_SHA" ]]; then
+            echo "Short SHA empty? Re-running rev-parse."
+            git rev-parse --short "$GITHUB_SHA"
+          else
+            echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          fi
+      - name: Push built docker image
+        shell: bash
+        env:
+          SHORT_SHA: ${{ steps.short_sha.outputs.sha }}
+          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
+        run: |
+          # only login if the password is set
+          if [[ "${{ secrets.DOCKER_HUB_RW_TOKEN }}" ]]; then echo "${{ secrets.DOCKER_HUB_RW_TOKEN }}" | docker login --username=sentrybuilder --password-stdin; fi
+          # We push 3 tags to Dockerhub:
+          # first, the full sha of the commit
+          docker tag ${IMAGE_URL} getsentry/sentry:${GITHUB_SHA}
+          docker push getsentry/sentry:${GITHUB_SHA}
+          # second, the short sha of the commit
+          docker tag ${IMAGE_URL} getsentry/sentry:${SHORT_SHA}
+          docker push getsentry/sentry:${SHORT_SHA}
+          # finally, nightly
+          docker tag ${IMAGE_URL} getsentry/sentry:nightly
+          docker push getsentry/sentry:nightly

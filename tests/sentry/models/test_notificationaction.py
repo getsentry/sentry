@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.forms import ValidationError
 
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.notificationaction import logger as NotificationActionLogger
@@ -9,7 +8,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch.dict(NotificationAction._registry, {})
 class NotificationActionTest(TestCase):
     def setUp(self):
@@ -54,10 +53,7 @@ class NotificationActionTest(TestCase):
     def test_register_trigger_type(self):
         self.notif_action.trigger_type = self.illegal_trigger[0]
         self.notif_action.save()
-        try:
-            self.notif_action.full_clean()
-        except ValidationError as err:
-            assert dict(err)["trigger_type"]
+        self.notif_action.full_clean()
         NotificationAction.register_trigger_type(*self.illegal_trigger)
         self.notif_action.full_clean()
 

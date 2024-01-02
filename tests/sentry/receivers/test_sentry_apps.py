@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.grouplink import GroupLink
+from sentry.models.release import Release
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
@@ -15,9 +21,18 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
 from sentry.types.activity import ActivityType
+from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+def _as_serialized(a: Any) -> Any:
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return a
+    if "user" in a:
+        a["user"] = json.loads(json.dumps(a["user"]))
+    return a
+
+
+@region_silo_test
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
@@ -161,7 +176,7 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert not delay.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
     def setUp(self):
@@ -195,7 +210,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_commit(self, delay):
@@ -213,7 +228,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_specific_release(self, delay):
@@ -228,7 +243,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_latest_release(self, delay):
@@ -244,7 +259,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_in_next_release(self, delay):
@@ -261,7 +276,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_resolve_from_set_commits(self, delay):
@@ -298,7 +313,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_issue_ignored(self, delay):
@@ -312,7 +327,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.ignored",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
     def test_notify_after_issue_archived(self, delay):
@@ -330,17 +345,17 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "issue.ignored",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
             delay.assert_any_call(
                 self.sentryFunction.external_id,
                 "issue.archived",
                 self.issue.id,
-                sub_data,
+                _as_serialized(sub_data),
             )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
     def setUp(self):
@@ -412,7 +427,7 @@ class TestIssueAssigned(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestIssueAssignedSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -447,7 +462,7 @@ class TestIssueAssignedSentryFunctions(APITestCase):
             self.sentryFunction.external_id,
             "issue.assigned",
             self.issue.id,
-            sub_data,
+            _as_serialized(sub_data),
         )
 
     @with_feature("organizations:sentry-functions")
@@ -472,11 +487,11 @@ class TestIssueAssignedSentryFunctions(APITestCase):
             self.sentryFunction.external_id,
             "issue.assigned",
             self.issue.id,
-            sub_data,
+            _as_serialized(sub_data),
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
 class TestComments(APITestCase):
     def setUp(self):
@@ -497,7 +512,7 @@ class TestComments(APITestCase):
         note = Activity.objects.get(
             group=self.issue, project=self.project, type=ActivityType.NOTE.value
         )
-        data = {
+        comment_data = {
             "comment_id": note.id,
             "timestamp": note.datetime,
             "comment": "hello world",
@@ -508,7 +523,7 @@ class TestComments(APITestCase):
             issue_id=self.issue.id,
             type="comment.created",
             user_id=self.user.id,
-            data=data,
+            data=comment_data,
         )
 
     def test_comment_updated(self, delay):
@@ -549,7 +564,7 @@ class TestComments(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestCommentsSentryFunctions(APITestCase):
     def setUp(self):
@@ -574,19 +589,19 @@ class TestCommentsSentryFunctions(APITestCase):
             note = Activity.objects.get(
                 group=self.issue, project=self.project, type=ActivityType.NOTE.value
             )
-            data = {
+            comment_data = {
                 "comment_id": note.id,
                 "timestamp": note.datetime,
                 "comment": "hello world",
                 "project_slug": self.project.slug,
             }
             with assume_test_silo_mode(SiloMode.CONTROL):
-                data["user"] = serialize(self.user)
+                comment_data["user"] = serialize(self.user)
             delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "comment.created",
                 self.issue.id,
-                data,
+                _as_serialized(comment_data),
             )
 
     def test_comment_updated(self, delay):
@@ -608,7 +623,7 @@ class TestCommentsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "comment.updated",
                 self.issue.id,
-                data,
+                _as_serialized(data),
             )
 
     def test_comment_deleted(self, delay):
@@ -628,5 +643,5 @@ class TestCommentsSentryFunctions(APITestCase):
                 self.sentryFunction.external_id,
                 "comment.deleted",
                 self.issue.id,
-                data,
+                _as_serialized(data),
             )

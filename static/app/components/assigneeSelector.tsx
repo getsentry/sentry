@@ -31,7 +31,7 @@ function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
 }: {
-  assignedTo?: Actor;
+  assignedTo?: Actor | null;
   suggestedActors?: SuggestedAssignee[];
 }) {
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {

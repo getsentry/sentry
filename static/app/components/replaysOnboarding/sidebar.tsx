@@ -1,5 +1,6 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, ReactNode, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -8,24 +9,36 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
+import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
 import {
   generateDocKeys,
   isPlatformSupported,
+  replayJsFrameworkOptions,
 } from 'sentry/components/replaysOnboarding/utils';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {replayPlatforms} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
+import {
+  backend,
+  replayFrontendPlatforms,
+  replayJsLoaderInstructionsPlatformList,
+  replayPlatforms,
+} from 'sentry/data/platformCategories';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {Project, SelectValue} from 'sentry/types';
+import {PlatformKey, Project, SelectValue} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
@@ -33,6 +46,8 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
 
   const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
+
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
 
   const {
     projects,
@@ -89,6 +104,21 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
+  const showLoaderInstructions =
+    currentProject &&
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
+
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
+  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+    'mode',
+    defaultTab
+  );
+
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
   if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
@@ -103,35 +133,59 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
-        <div
-          onClick={e => {
-            // we need to stop bubbling the CompactSelect click event
-            // failing to do so will cause the sidebar panel to close
-            // the event.target will be unmounted by the time the panel listener
-            // receives the event and assume the click was outside the panel
-            e.stopPropagation();
-          }}
-        >
-          <CompactSelect
-            triggerLabel={
-              currentProject ? (
-                <StyledIdBadge
-                  project={currentProject}
-                  avatarSize={16}
-                  hideOverflow
-                  disableLink
-                />
-              ) : (
-                t('Select a project')
-              )
-            }
-            value={currentProject?.id}
-            onChange={opt => setCurrentProject(allProjects.find(p => p.id === opt.value))}
-            triggerProps={{'aria-label': currentProject?.slug}}
-            options={projectSelectOptions}
-            position="bottom-end"
-          />
-        </div>
+        <HeaderActions>
+          <div
+            onClick={e => {
+              // we need to stop bubbling the CompactSelect click event
+              // failing to do so will cause the sidebar panel to close
+              // the event.target will be unmounted by the time the panel listener
+              // receives the event and assume the click was outside the panel
+              e.stopPropagation();
+            }}
+          >
+            <CompactSelect
+              triggerLabel={
+                currentProject ? (
+                  <StyledIdBadge
+                    project={currentProject}
+                    avatarSize={16}
+                    hideOverflow
+                    disableLink
+                  />
+                ) : (
+                  t('Select a project')
+                )
+              }
+              value={currentProject?.id}
+              onChange={opt =>
+                setCurrentProject(allProjects.find(p => p.id === opt.value))
+              }
+              triggerProps={{'aria-label': currentProject?.slug}}
+              options={projectSelectOptions}
+              position="bottom-end"
+            />
+          </div>
+          {newOnboarding && showLoaderInstructions && (
+            <SegmentedControl
+              size="md"
+              aria-label={t('Change setup method')}
+              value={setupMode()}
+              onChange={setSetupMode}
+            >
+              <SegmentedControl.Item key="npm">
+                <StyledTooltip title={t('I have a JS Framework')} showOnlyOnOverflow>
+                  {t('I have a JS Framework')}
+                </StyledTooltip>
+              </SegmentedControl.Item>
+
+              <SegmentedControl.Item key="jsLoader">
+                <StyledTooltip title={t('I have an HTML Template')} showOnlyOnOverflow>
+                  {t('I have an HTML Template')}
+                </StyledTooltip>
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          )}
+        </HeaderActions>
         <OnboardingContent currentProject={selectedProject} />
       </TaskList>
     </TaskSidebarPanel>
@@ -139,10 +193,49 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
 }
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
+    return {
+      value: platform.id,
+      textValue: platform.name,
+      label: (
+        <PlatformLabel>
+          <PlatformIcon platform={platform.id} size={16} />
+          <TextOverflow>{platform.name}</TextOverflow>
+        </PlatformLabel>
+      ),
+    };
+  });
+
   const api = useApi();
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
   const [received, setReceived] = useState<boolean>(false);
+  const {getParamValue: setupMode} = useUrlParams('mode');
+  const [jsFramework, setJsFramework] = useState<{
+    value: PlatformKey;
+    label?: ReactNode;
+    textValue?: string;
+  }>(jsFrameworkSelectOptions[0]);
+
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+  const showJsFrameworkInstructions =
+    newOnboarding &&
+    currentProject &&
+    currentProject.platform &&
+    backend.includes(currentProject.platform) &&
+    setupMode() === 'npm';
+
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
+  const npmOnlyFramework =
+    currentProject &&
+    currentProject.platform &&
+    replayFrontendPlatforms
+      .filter(p => p !== 'javascript')
+      .includes(currentProject.platform);
 
   useEffect(() => {
     if (previousProject.id !== currentProject.id) {
@@ -151,18 +244,36 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }, [previousProject.id, currentProject.id]);
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform)
-    : undefined;
+    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    : otherPlatform;
 
-  const docKeys = currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+  const docKeys = useMemo(() => {
+    return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
+  }, [currentPlatform, newOnboarding]);
 
+  // Old onboarding docs
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
-  if (isLoading) {
+  // New onboarding docs
+  const {
+    docs: newDocs,
+    dsn,
+    cdn,
+    isProjKeysLoading,
+  } = useLoadOnboardingDoc({
+    platform: showJsFrameworkInstructions
+      ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
+        replayJsFrameworkOptions[0]
+      : currentPlatform,
+    organization,
+    projectSlug: currentProject.slug,
+  });
+
+  if (isLoading || isProjKeysLoading) {
     return <LoadingIndicator />;
   }
 
@@ -192,7 +303,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !hasOnboardingContents) {
+  if (
+    !currentPlatform ||
+    (!newOnboarding && !hasOnboardingContents) ||
+    (newOnboarding && !newDocs)
+  ) {
     return (
       <Fragment>
         <div>
@@ -216,37 +331,72 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   return (
     <Fragment>
-      <div>
+      <IntroText>
         {tct(
           `Adding Session Replay to your [platform] project is simple. Make sure you've got these basics down.`,
           {platform: currentPlatform?.name || currentProject.slug}
         )}
-      </div>
-      {docKeys.map((docKey, index) => {
-        let footer: React.ReactNode = null;
-
-        if (index === docKeys.length - 1) {
-          footer = (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={currentProject}
-              eventType="replay"
-              onIssueReceived={() => {
-                setReceived(true);
+        {showJsFrameworkInstructions ? (
+          <PlatformSelect>
+            {t('Select your JS Framework: ')}
+            <CompactSelect
+              triggerLabel={jsFramework.label}
+              value={jsFramework.value}
+              onChange={v => {
+                setJsFramework(v);
               }}
-            >
-              {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-            </EventWaiter>
+              options={jsFrameworkSelectOptions}
+              position="bottom-end"
+            />
+          </PlatformSelect>
+        ) : null}
+      </IntroText>
+      {newOnboarding && newDocs ? (
+        <ReplayOnboardingLayout
+          docsConfig={newDocs}
+          dsn={dsn}
+          cdn={cdn}
+          activeProductSelection={[]}
+          platformKey={currentPlatform.id}
+          projectId={currentProject.id}
+          projectSlug={currentProject.slug}
+          configType={
+            setupMode() === 'npm' || // switched to NPM tab
+            (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
+            npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
+              ? 'replayOnboardingNpm'
+              : 'replayOnboardingJsLoader'
+          }
+        />
+      ) : (
+        docKeys.map((docKey, index) => {
+          let footer: React.ReactNode = null;
+
+          if (index === docKeys.length - 1) {
+            footer = (
+              <EventWaiter
+                api={api}
+                organization={organization}
+                project={currentProject}
+                eventType="replay"
+                onIssueReceived={() => {
+                  setReceived(true);
+                }}
+              >
+                {() =>
+                  received ? <EventReceivedIndicator /> : <EventWaitingIndicator />
+                }
+              </EventWaiter>
+            );
+          }
+          return (
+            <div key={index}>
+              <OnboardingStepV2 step={index + 1} content={docContents[docKey]} />
+              {footer}
+            </div>
           );
-        }
-        return (
-          <div key={index}>
-            <OnboardingStepV2 step={index + 1} content={docContents[docKey]} />
-            {footer}
-          </div>
-        );
-      })}
+        })
+      )}
     </Fragment>
   );
 }
@@ -269,6 +419,12 @@ function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
     </OnboardingStepContainer>
   );
 }
+
+const IntroText = styled('div')`
+  padding-top: ${space(3)};
+  display: grid;
+  gap: ${space(1)};
+`;
 
 const OnboardingStepContainer = styled('div')`
   display: flex;
@@ -355,6 +511,30 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.successText};
+`;
+
+const HeaderActions = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(3)};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis};
+`;
+
+const PlatformLabel = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const PlatformSelect = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  padding-bottom: ${space(1)};
 `;
 
 export default ReplaysOnboardingSidebar;

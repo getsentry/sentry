@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
@@ -7,7 +10,7 @@ from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
-METADATA_SCHEMA = {
+METADATA_SCHEMA: dict[str, Any] = {
     "type": "object",
     "definitions": {
         "resource": {

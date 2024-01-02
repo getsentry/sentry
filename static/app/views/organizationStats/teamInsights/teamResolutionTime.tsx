@@ -13,7 +13,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {barAxisLabel, sortSeriesByDay} from './utils';
 
-type TimeToResolution = Record<string, {avg: number; count: number}>;
+export type TimeToResolution = Record<string, {avg: number; count: number}>;
 
 interface TeamResolutionTimeProps extends DateTimeObject {
   organization: Organization;

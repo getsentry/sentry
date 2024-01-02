@@ -122,6 +122,10 @@ GROUP_MODELS_TO_MIGRATE = tuple(x for x in GROUP_MODELS_TO_MIGRATE if x != model
 #    up those queries for them to not get too slow
 EVENT_MODELS_TO_MIGRATE = (models.EventAttachment, models.UserReport)
 
+# The amount of seconds after which we assume there was no progress during reprocessing,
+# and after which we just give up and mark the group as finished.
+REPROCESSING_TIMEOUT = 20 * 60
+
 
 # Note: This list of reasons is exposed in the EventReprocessableEndpoint to
 # the frontend.
@@ -218,8 +222,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
 
 def reprocess_event(project_id, event_id, start_time):
-
-    from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
+    from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
     reprocessable_event = pull_event_data(project_id, event_id)
@@ -241,7 +244,10 @@ def reprocess_event(project_id, event_id, start_time):
     # (we simply update group_id on the EventAttachment models in post_process)
     attachment_objects = []
 
-    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
+    files = {
+        f.id: f
+        for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments if ea.file_id])
+    }
 
     for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
@@ -250,7 +256,7 @@ def reprocess_event(project_id, event_id, start_time):
                 _copy_attachment_into_cache(
                     attachment_id=attachment_id,
                     attachment=attachment,
-                    file=files[attachment.file_id],
+                    file=files[attachment.file_id] if attachment.file_id else None,
                     cache_key=cache_key,
                     cache_timeout=CACHE_TIMEOUT,
                 )
@@ -308,7 +314,6 @@ def _send_delete_old_primary_hash_messages(
         # Racing might be happening between two different tasks. Give up on the
         # task that's lagging behind by prematurely terminating flushing.
         if len(event_ids) == 0:
-
             logger.error("reprocessing2.buffered_delete_old_primary_hash.empty_batch")
             return
 
@@ -331,15 +336,15 @@ def _send_delete_old_primary_hash_messages(
     # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
     # event per hash, a different solution may need to be considered.
     ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.event_count",
         value=event_count,
     )
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
         value=len(old_primary_hashes),
     )
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
         value=ratio,
     )
@@ -416,7 +421,6 @@ def buffered_delete_old_primary_hash(
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
     ):
-
         _send_delete_old_primary_hash_messages(
             client, project_id, group_id, old_primary_hashes, force_flush_batch
         )
@@ -442,7 +446,8 @@ def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cach
         )
         chunk_index += 1
 
-    assert size == file.size
+    expected_size = attachment.size or file.size
+    assert size == expected_size
 
     return CachedAttachment(
         key=cache_key,
@@ -451,7 +456,7 @@ def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cach
         # XXX: Not part of eventattachment model, but not strictly
         # necessary for processing
         content_type=None,
-        type=file.type,
+        type=attachment.type,
         chunks=chunk_index,
         size=size,
     )
@@ -693,15 +698,29 @@ def is_group_finished(group_id):
     return pending <= 0
 
 
-def get_progress(group_id):
-    pending = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
-    info = _get_sync_redis_client().get(_get_info_reprocessed_key(group_id))
+def get_progress(group_id, project_id=None):
+    client = _get_sync_redis_client()
+    pending_key = _get_sync_counter_key(group_id)
+    pending = client.get(pending_key)
+    ttl = client.ttl(pending_key)
+    info = client.get(_get_info_reprocessed_key(group_id))
     if pending is None:
         logger.error("reprocessing2.missing_counter")
         return 0, None
     if info is None:
         logger.error("reprocessing2.missing_info")
         return 0, None
+
+    # We expect reprocessing to make progress every now and then, by bumping the
+    # TTL of the "counter" key. If that TTL wasn't bumped in a while, we just
+    # assume that reprocessing is stuck, and will just call finish on it.
+    if project_id is not None and ttl is not None and ttl > 0:
+        default_ttl = settings.SENTRY_REPROCESSING_SYNC_TTL
+        age = default_ttl - ttl
+        if age > REPROCESSING_TIMEOUT:
+            from sentry.tasks.reprocessing2 import finish_reprocessing
+
+            finish_reprocessing.delay(project_id=project_id, group_id=group_id)
 
     info = json.loads(info)
     # Our internal sync counters are counting over *all* events, but the

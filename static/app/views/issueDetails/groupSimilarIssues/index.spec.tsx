@@ -1,3 +1,8 @@
+import {Groups} from 'sentry-fixture/groups';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {
   render,
   renderGlobalModal,
@@ -16,14 +21,14 @@ jest.mock('sentry/utils/useNavigate', () => ({
 describe('Issues Similar View', function () {
   let mock;
 
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     features: ['similarity-view'],
   });
 
-  const routerContext = TestStubs.routerContext([
+  const routerContext = RouterContextFixture([
     {
       router: {
-        ...TestStubs.router(),
+        ...RouterFixture(),
         params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
       },
     },
@@ -37,14 +42,14 @@ describe('Issues Similar View', function () {
   ];
 
   const mockData = {
-    similar: TestStubs.Groups().map((issue, i) => [issue, scores[i]]),
+    similar: Groups().map((issue, i) => [issue, scores[i]]),
   };
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/issues/group-id/similar/?limit=50',
+      url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
       body: mockData.similar,
     });
   });
@@ -55,7 +60,7 @@ describe('Issues Similar View', function () {
   });
 
   it('renders with mocked data', async function () {
-    const wrapper = render(
+    render(
       <GroupSimilarIssues
         project={project}
         params={{orgId: 'org-slug', groupId: 'group-id'}}
@@ -71,7 +76,6 @@ describe('Issues Similar View', function () {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
-    expect(wrapper.container).toSnapshot();
   });
 
   it('can merge and redirect to new parent', async function () {

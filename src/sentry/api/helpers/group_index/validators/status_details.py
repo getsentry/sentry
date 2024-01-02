@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models import Release
+from sentry.models.release import Release
 
 from . import InCommitValidator
 

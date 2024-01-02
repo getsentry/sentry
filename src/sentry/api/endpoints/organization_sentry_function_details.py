@@ -4,6 +4,8 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.endpoints.organization_sentry_function import SentryFunctionSerializer
@@ -14,12 +16,19 @@ from sentry.utils.cloudfunctions import delete_function, update_function
 
 @region_silo_endpoint
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
     def convert_args(self, request, organization_slug, function_slug, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         try:
             function = SentryFunction.objects.get(
-                slug=function_slug, organization=kwargs.get("organization").id
+                slug=function_slug, organization=kwargs["organization"].id
             )
         except SentryFunction.DoesNotExist:
             raise Http404

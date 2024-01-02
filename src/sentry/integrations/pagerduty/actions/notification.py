@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
+
+import sentry_sdk
 
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
-from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.rules.actions import IntegrationEventAction
-from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -39,33 +39,33 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return pds
         return None
 
-    def after(self, event, state):
+    def after(self, event, state, notification_uuid: Optional[str] = None):
         integration = self.get_integration()
+        log_context = {
+            "organization_id": self.project.organization_id,
+            "integration_id": self.get_option("account"),
+            "service": self.get_option("service"),
+        }
         if not integration:
-            logger.exception("Integration removed, however, the rule still refers to it.")
             # integration removed but rule still exists
+            logger.info("pagerduty.org_integration_missing", extra=log_context)
             return
 
         service = self._get_service()
         if not service:
-            logger.exception("The PagerDuty does not exist anymore while integration does.")
+            logger.info("pagerduty.service_missing", extra=log_context)
             return
 
         def send_notification(event, futures):
-            org_integration = self.get_organization_integration()
-            org_integration_id = None
-            if org_integration:
-                org_integration_id = org_integration.id
-            else:
-                org_integration_id = infer_org_integration(
-                    integration_id=service["integration_id"], ctx_logger=logger
-                )
-            client = PagerDutyProxyClient(
-                org_integration_id=org_integration_id,
-                integration_key=service["integration_key"],
-            )
+            installation = integration.get_installation(self.project.organization_id)
             try:
-                resp = client.send_trigger(event)
+                client = installation.get_keyring_client(self.get_option("service"))
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+                return
+
+            try:
+                resp = client.send_trigger(event, notification_uuid=notification_uuid)
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
@@ -78,6 +78,9 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     },
                 )
                 raise e
+            rules = [f.rule for f in futures]
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)
 
             # TODO(meredith): Maybe have a generic success log statements for
             # first-party integrations similar to plugin `notification.dispatched`

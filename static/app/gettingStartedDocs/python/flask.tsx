@@ -1,109 +1,139 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct(
-          'The Flask integration adds support for the [flaskWebFrameworkLink:Flask Web Framework].',
-          {
-            flaskWebFrameworkLink: (
-              <ExternalLink href="https://flask.palletsprojects.com/en/2.3.x/" />
-            ),
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        description: (
+type Params = DocsParams;
+
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk[flask]`;
+
+const getSdkSetupSnippet = (params: Params) => `
+import sentry_sdk
+from flask import Flask
+
+sentry_sdk.init(
+    dsn="${params.dsn}",${
+      params.isPerformanceSelected
+        ? `
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`
+        : ''
+    }
+)
+`;
+
+const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('The Flask integration adds support for the [link:Flask Framework].', {
+      link: <ExternalLink href="https://flask.palletsprojects.com" />,
+    }),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFlaskCode:flask] extra:',
+        {
+          sentrySdkCode: <code />,
+          sentryFlaskCode: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'If you have the [codeFlask:flask] package in your dependencies, the Flask integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+        {
+          codeFlask: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+${getSdkSetupSnippet(params)}
+app = Flask(__name__)
+      `,
+        },
+      ],
+      additionalInfo: tct(
+        'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
+        {code: <code />}
+      ),
+    },
+  ],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'You can easily verify your Sentry installation by creating a route that triggers an error:'
+      ),
+      configurations: [
+        {
+          language: 'python',
+
+          code: `
+${getSdkSetupSnippet(params)}
+app = Flask(__name__)
+
+@app.route("/")
+def hello_world():
+    1/0  # raises an error
+    return "<p>Hello, World!</p>"
+        `,
+        },
+      ],
+      additionalInfo: (
+        <span>
           <p>
             {tct(
-              'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFlaskCode:flask] extra:',
+              'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
               {
-                sentrySdkCode: <code />,
-                sentryFlaskCode: <code />,
+                link: <ExternalLink href="http://localhost:5000/" />,
               }
             )}
           </p>
-        ),
-        code: "pip install --upgrade 'sentry-sdk[flask]'",
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-    ),
-    configurations: [
-      {
-        language: 'python',
-        code: `
-import sentry_sdk
-from flask import Flask
-from sentry_sdk.integrations.flask import FlaskIntegration
+          <p>
+            {t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            )}
+          </p>
+          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+        </span>
+      ),
+    },
+  ],
+  nextSteps: () => [],
+};
 
-sentry_sdk.init(
-    dsn="${dsn}",
-    integrations=[
-        FlaskIntegration(),
-    ],
+const docs: Docs = {
+  onboarding,
+  replayOnboardingJsLoader,
+  customMetricsOnboarding: getPythonMetricsOnboarding({
+    installSnippet: getInstallSnippet(),
+  }),
+};
 
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0
-)
-
-app = Flask(__name__)
-        `,
-      },
-    ],
-    additionalInfo: (
-      <p>
-        {tct(
-          'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
-          {code: <code />}
-        )}
-      </p>
-    ),
-  },
-  {
-    type: StepType.VERIFY,
-    description: t(
-      'You can easily verify your Sentry installation by creating a route that triggers an error:'
-    ),
-    configurations: [
-      {
-        language: 'python',
-        code: `
-@app.route('/debug-sentry')
-def trigger_error():
-  division_by_zero = 1 / 0
-        `,
-      },
-    ],
-    additionalInfo: t(
-      'Visiting this route will trigger an error that will be captured by Sentry.'
-    ),
-  },
-];
-// Configuration End
-
-export function GettingStartedWithFlask({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
-}
-
-export default GettingStartedWithFlask;
+export default docs;

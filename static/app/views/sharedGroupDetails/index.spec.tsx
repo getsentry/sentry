@@ -1,33 +1,41 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventEntry as EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {RouteContext} from 'sentry/views/routeContext';
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
-  const eventEntry = TestStubs.EventEntry();
-  const exception = TestStubs.EventStacktraceException().entries[0];
+  const eventEntry = EventEntryFixture();
+  const exception = EventStacktraceExceptionFixture().entries[0];
   const params = {shareId: 'a'};
-  const router = TestStubs.router({params});
+  const router = RouterFixture({params});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shared/issues/a/',
-      body: TestStubs.Group({
+      body: GroupFixture({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
       }),
     });
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
-      body: TestStubs.Group({
+      body: GroupFixture({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
       }),
     });
   });
@@ -36,8 +44,8 @@ describe('SharedGroupDetails', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
-    const {container} = render(
+  it('renders', async function () {
+    render(
       <RouteContext.Provider value={{router, ...router}}>
         <SharedGroupDetails
           params={params}
@@ -50,14 +58,13 @@ describe('SharedGroupDetails', function () {
         />
       </RouteContext.Provider>
     );
-
-    expect(container).toSnapshot();
+    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
   });
 
-  it('renders with org slug in path', function () {
+  it('renders with org slug in path', async function () {
     const params_with_slug = {shareId: 'a', orgId: 'test-org'};
-    const router_with_slug = TestStubs.router({params_with_slug});
-    const {container} = render(
+    const router_with_slug = RouterFixture({params_with_slug});
+    render(
       <RouteContext.Provider value={{router, ...router}}>
         <SharedGroupDetails
           params={params}
@@ -70,7 +77,6 @@ describe('SharedGroupDetails', function () {
         />
       </RouteContext.Provider>
     );
-
-    expect(container).toSnapshot();
+    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
   });
 });

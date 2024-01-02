@@ -7,7 +7,6 @@ from typing import Any
 from django.conf import settings
 
 from sentry.services.hybrid_cloud import ArgumentDict
-from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.types.region import (
     Region,
     RegionMappingNotFound,
@@ -26,7 +25,7 @@ class RegionResolutionStrategy(ABC):
 
     @staticmethod
     def _get_from_mapping(**query: Any) -> Region:
-        from sentry.models import OrganizationMapping
+        from sentry.models.organizationmapping import OrganizationMapping
 
         try:
             mapping = OrganizationMapping.objects.get(**query)
@@ -102,7 +101,7 @@ class RequireSingleOrganization(RegionResolutionStrategy):
     """
 
     def resolve(self, arguments: ArgumentDict) -> Region:
-        from sentry.models import OrganizationMapping
+        from sentry.models.organizationmapping import OrganizationMapping
 
         if not settings.SENTRY_SINGLE_ORGANIZATION:
             raise RegionResolutionError("Method is available only in single-org environment")
@@ -117,15 +116,3 @@ class RequireSingleOrganization(RegionResolutionStrategy):
 
         (single_region_name,) = all_region_names
         return get_region_by_name(single_region_name)
-
-
-class UnimplementedRegionResolution(RegionResolutionStrategy):
-    """Indicate that a method's region resolution logic has not been implemented yet.
-
-    A remote call to the method will be interrupted and will default to the
-    monolithic fallback implementation. See the RpcServiceUnimplementedException
-    documentation for details.
-    """
-
-    def resolve(self, arguments: ArgumentDict) -> Region:
-        raise RpcServiceUnimplementedException("Need to resolve to remote region silo")

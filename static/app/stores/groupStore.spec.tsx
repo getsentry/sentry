@@ -1,7 +1,15 @@
-import GroupStore from 'sentry/stores/groupStore';
-import {Group, GroupStats, TimeseriesValue} from 'sentry/types';
+import {Actor} from 'sentry-fixture/actor';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
 
-const g = (id: string, params?: Partial<Group>) => TestStubs.Group({id, ...params});
+import GroupStore from 'sentry/stores/groupStore';
+import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
+
+const MOCK_PROJECT = ProjectFixture();
+
+const g = (id: string, params?: Partial<Group>): Group => {
+  return GroupFixture({id, project: MOCK_PROJECT, ...params});
+};
 
 describe('GroupStore', function () {
   beforeEach(function () {
@@ -19,10 +27,12 @@ describe('GroupStore', function () {
     it('should update matching existing entries', function () {
       GroupStore.items = [g('1'), g('2')];
 
-      GroupStore.add([{id: '1', foo: 'bar'}, g('3')]);
+      GroupStore.add([g('1', {count: '1337'}), g('3')]);
 
       expect(GroupStore.getAllItemIds()).toEqual(['1', '2', '3']);
-      expect(GroupStore.items[0]).toEqual(expect.objectContaining({id: '1', foo: 'bar'}));
+      expect(GroupStore.items[0]).toEqual(
+        expect.objectContaining({id: '1', count: '1337'})
+      );
     });
 
     it('should attempt to preserve order of ids', function () {
@@ -42,10 +52,10 @@ describe('GroupStore', function () {
     it('should update matching existing entries', function () {
       GroupStore.items = [g('1'), g('2')];
 
-      GroupStore.addToFront([{id: '1', foo: 'bar'}, g('3')]);
+      GroupStore.addToFront([g('1', {count: '1337'}), g('3')]);
 
       expect(GroupStore.getAllItems()).toEqual([
-        expect.objectContaining({id: '1', foo: 'bar'}),
+        expect.objectContaining({id: '1', count: '1337'}),
         g('3'),
         g('2'),
       ]);
@@ -213,12 +223,32 @@ describe('GroupStore', function () {
     describe('onAssignToSuccess()', function () {
       it("should treat undefined itemIds argument as 'all'", function () {
         GroupStore.items = [g('1')];
-        const assignedGroup = g('1', {assignedTo: TestStubs.User({type: 'user'})});
+        const assignedGroup = g('1', {assignedTo: Actor()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1']));
         expect(GroupStore.items[0]).toEqual(assignedGroup);
+      });
+    });
+
+    describe('updateActivity()', function () {
+      it("should update activity data text'", function () {
+        GroupStore.items = [
+          g('1', {
+            activity: [
+              {
+                id: '1',
+                type: GroupActivityType.NOTE,
+                dateCreated: '',
+                project: Project(),
+                data: {text: 'Orginal Text'},
+              },
+            ],
+          }),
+        ];
+        GroupStore.updateActivity('1', '1', {text: 'Updated Text'});
+        expect(GroupStore.items[0].activity[0].data).toEqual({text: 'Updated Text'});
       });
     });
   });

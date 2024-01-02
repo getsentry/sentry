@@ -1,8 +1,8 @@
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {tct} from 'sentry/locale';
+import type {PlatformKey} from 'sentry/types';
 import {OnboardingPlatformDoc} from 'sentry/types/onboarding';
 
 /**

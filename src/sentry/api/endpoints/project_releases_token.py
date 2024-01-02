@@ -6,15 +6,16 @@ from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
-from sentry.models import ProjectOption
-from sentry.utils.http import absolute_uri
+from sentry.models.options.project_option import ProjectOption
+from sentry.types.region import get_local_region
 
 
 def _get_webhook_url(project, plugin_id, token):
-
-    return absolute_uri(
+    region = get_local_region()
+    return region.to_url(
         reverse(
             "sentry-release-hook",
             kwargs={
@@ -36,6 +37,10 @@ def _get_signature(project_id, plugin_id, token):
 
 @region_silo_endpoint
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (StrictProjectPermission,)
 
     def _regenerate_token(self, project):

@@ -1,14 +1,15 @@
-import {Fragment, ReactNode} from 'react';
+import {Fragment, ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
 import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
-import {toRoundedPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {
   Entry,
@@ -16,22 +17,29 @@ import {
   EntryType,
   Event,
   EventTransaction,
-  getIssueTypeFromOccurenceType,
+  getIssueTypeFromOccurrenceType,
+  isOccurrenceBased,
   IssueType,
+  isTransactionBased,
   KeyValueListData,
   KeyValueListDataItem,
 } from 'sentry/types';
 import {formatBytesBase2} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import KeyValueList from '../keyValueList';
-import {RawSpanType} from '../spans/types';
+import {ProcessedSpanType, RawSpanType} from '../spans/types';
+import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
 
 import {TraceContextSpanProxy} from './spanEvidence';
+
+const formatter = new SQLishFormatter();
 
 type Span = (RawSpanType | TraceContextSpanProxy) & {
   data?: any;
@@ -45,60 +53,11 @@ type SpanEvidenceKeyValueListProps = {
   offendingSpans: Span[];
   orgSlug: string;
   parentSpan: Span | null;
+  issueType?: IssueType;
   projectSlug?: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
-
-export function SpanEvidenceKeyValueList({
-  event,
-  projectSlug,
-}: {
-  event: EventTransaction;
-  projectSlug?: string;
-}) {
-  const {slug: orgSlug} = useOrganization();
-  const spanInfo = getSpanInfoFromTransactionEvent(event);
-
-  const issueType =
-    event.perfProblem?.issueType ?? getIssueTypeFromOccurenceType(event.occurrence?.type);
-
-  if (!issueType || !spanInfo) {
-    return (
-      <DefaultSpanEvidence
-        event={event}
-        offendingSpans={[]}
-        causeSpans={[]}
-        parentSpan={null}
-        orgSlug={orgSlug}
-        projectSlug={projectSlug}
-      />
-    );
-  }
-
-  const Component =
-    {
-      [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
-      [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
-      [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
-      [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
-      [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
-      [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
-      [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
-      [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
-    }[issueType] ?? DefaultSpanEvidence;
-
-  return (
-    <ClippedBox clipHeight={300}>
-      <Component
-        event={event}
-        orgSlug={orgSlug}
-        projectSlug={projectSlug}
-        {...spanInfo}
-      />
-    </ClippedBox>
-  );
-}
 
 function ConsecutiveDBQueriesSpanEvidence({
   event,
@@ -167,6 +126,25 @@ function LargeHTTPPayloadSpanEvidence({
             getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
               getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
           ),
+        ].filter(Boolean) as KeyValueListData
+      }
+    />
+  );
+}
+
+function HTTPOverheadSpanEvidence({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) {
+  return (
+    <PresortedKeyValueList
+      data={
+        [
+          makeTransactionNameRow(event, orgSlug, projectSlug),
+
+          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans)),
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -245,6 +223,119 @@ function NPlusOneAPICallsSpanEvidence({
         ].filter(Boolean) as KeyValueListData
       }
     />
+  );
+}
+
+function MainThreadFunctionEvidence({event, orgSlug}: SpanEvidenceKeyValueListProps) {
+  const data = useMemo(() => {
+    const dataRows: KeyValueListDataItem[] = [];
+
+    const evidenceData = event.occurrence?.evidenceData ?? {};
+    const evidenceDisplay = event.occurrence?.evidenceDisplay ?? [];
+
+    if (evidenceData.transactionName) {
+      const transactionSummaryLocation = transactionSummaryRouteWithQuery({
+        orgSlug,
+        projectID: event.projectID,
+        transaction: evidenceData.transactionName,
+        query: {},
+      });
+      dataRows.push(
+        makeRow(
+          t('Transaction'),
+          <pre>
+            <Link to={transactionSummaryLocation}>{evidenceData.transactionName}</Link>
+          </pre>
+        )
+      );
+    }
+
+    dataRows.push(
+      ...evidenceDisplay.map(item => ({
+        subject: item.name,
+        key: item.name,
+        value: item.value,
+      }))
+    );
+
+    return dataRows;
+  }, [event, orgSlug]);
+
+  return <PresortedKeyValueList data={data} />;
+}
+
+function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
+  const organization = useOrganization();
+  const data = useMemo(
+    () =>
+      issueType ? getRegressionIssueKeyValueList(organization, issueType, event) : null,
+    [organization, event, issueType]
+  );
+  return data ? <PresortedKeyValueList data={data} /> : null;
+}
+
+const PREVIEW_COMPONENTS = {
+  [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
+  [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
+  [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
+  [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
+  [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
+  [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
+  [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
+  [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
+  [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
+  [IssueType.PERFORMANCE_DURATION_REGRESSION]: RegressionEvidence,
+  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
+  [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: MainThreadFunctionEvidence,
+  [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
+  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: RegressionEvidence,
+};
+
+export function SpanEvidenceKeyValueList({
+  event,
+  projectSlug,
+}: {
+  event: EventTransaction;
+  projectSlug?: string;
+}) {
+  const {slug: orgSlug} = useOrganization();
+  const spanInfo = getSpanInfoFromTransactionEvent(event);
+
+  const typeId = event.occurrence?.type;
+  const issueType =
+    event.perfProblem?.issueType ?? getIssueTypeFromOccurrenceType(typeId);
+  const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
+
+  if (!issueType || (requiresSpanInfo && !spanInfo)) {
+    return (
+      <DefaultSpanEvidence
+        event={event}
+        offendingSpans={[]}
+        causeSpans={[]}
+        parentSpan={null}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+      />
+    );
+  }
+
+  const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
+
+  return (
+    <ClippedBox clipHeight={300}>
+      <Component
+        event={event}
+        issueType={issueType}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        {...spanInfo}
+      />
+    </ClippedBox>
   );
 }
 
@@ -395,7 +486,7 @@ const makeRow = (
   };
 };
 
-function getSpanEvidenceValue(span: Span | null): string {
+function getSpanEvidenceValue(span: Span | null) {
   if (!span || (!span.op && !span.description)) {
     return t('(no value)');
   }
@@ -408,8 +499,25 @@ function getSpanEvidenceValue(span: Span | null): string {
     return span.op;
   }
 
+  if (span.op === 'db' && span.description) {
+    return (
+      <StyledCodeSnippet language="sql">
+        {formatter.toString(span.description)}
+      </StyledCodeSnippet>
+    );
+  }
+
   return `${span.op} - ${span.description}`;
 }
+
+const StyledCodeSnippet = styled(CodeSnippet)`
+  pre {
+    /* overflow is set to visible in global styles so need to enforce auto here */
+    overflow: auto !important;
+  }
+
+  z-index: 0;
+`;
 
 const getConsecutiveDbTimeSaved = (
   consecutiveSpans: Span[],
@@ -431,6 +539,22 @@ const getConsecutiveDbTimeSaved = (
   return (
     totalDuration - Math.max(maxIndependentSpanDuration, sumOfDependentSpansDuration)
   );
+};
+
+const getHTTPOverheadMaxTime = (offendingSpans: Span[]): string | null => {
+  const slowestSpanTimings = getSpanSubTimings(
+    offendingSpans[offendingSpans.length - 1] as ProcessedSpanType
+  );
+  if (!slowestSpanTimings) {
+    return null;
+  }
+  const waitTimeTiming = slowestSpanTimings.find(
+    timing => timing.name === SpanSubTimingName.WAIT_TIME
+  );
+  if (!waitTimeTiming) {
+    return null;
+  }
+  return getPerformanceDuration(waitTimeTiming.duration * 1000);
 };
 
 const sumSpanDurations = (spans: Span[]) => {

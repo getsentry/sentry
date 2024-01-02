@@ -1,9 +1,7 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import FileChange from 'sentry/components/fileChange';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -19,6 +17,7 @@ import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {getFilesByRepository, getQuery, getReposToRender} from '../utils';
 
 import EmptyState from './emptyState';
+import FileChange from './fileChange';
 import RepositorySwitcher from './repositorySwitcher';
 import withReleaseRepos from './withReleaseRepos';
 
@@ -120,7 +119,7 @@ class FilesChanged extends DeprecatedAsyncView<Props, State> {
                 {files.map(filename => {
                   const {authors} = repoData[filename];
                   return (
-                    <StyledFileChange
+                    <FileChange
                       key={filename}
                       filename={filename}
                       authors={Object.values(authors)}
@@ -163,14 +162,3 @@ class FilesChanged extends DeprecatedAsyncView<Props, State> {
 }
 
 export default withReleaseRepos(FilesChanged);
-
-const StyledFileChange = styled(FileChange)`
-  border-radius: 0;
-  border-left: none;
-  border-right: none;
-  border-top: none;
-  :last-child {
-    border: none;
-    border-radius: 0;
-  }
-`;

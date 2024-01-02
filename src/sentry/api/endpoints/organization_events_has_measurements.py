@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.snuba import discover
@@ -48,6 +49,10 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -89,11 +94,11 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
         # cache miss, need to make the query again
         if has_measurements is None:
             with self.handle_query_errors():
-                data = serializer.validated_data
+                validated_data = serializer.validated_data
 
                 # generate the appropriate query for the selected type
-                transaction_query = f'transaction:{data["transaction"]}'
-                measurements = MEASUREMENT_TYPES[data["type"]]
+                transaction_query = f'transaction:{validated_data["transaction"]}'
+                measurements = MEASUREMENT_TYPES[validated_data["type"]]
                 has_queries = [f"has:{measurement}" for measurement in measurements]
                 measurement_query = " OR ".join(has_queries)
                 query = f"{transaction_query} ({measurement_query})"

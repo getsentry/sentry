@@ -1,4 +1,4 @@
-import {Fragment, MouseEvent} from 'react';
+import {Fragment, MouseEvent, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -20,7 +20,7 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -30,15 +30,17 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import {
   Group,
+  GroupStatus,
   GroupStatusResolution,
   GroupSubstatus,
   IssueCategory,
+  MarkReviewed,
   Organization,
   Project,
-  ResolutionStatus,
   SavedQueryVersions,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -50,6 +52,7 @@ import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAct
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -60,7 +63,7 @@ import SubscribeAction from './subscribeAction';
 type UpdateData =
   | {isBookmarked: boolean}
   | {isSubscribed: boolean}
-  | {inbox: boolean}
+  | MarkReviewed
   | GroupStatusResolution;
 
 const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => {
@@ -92,19 +95,24 @@ export function Actions(props: Props) {
   const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
+  const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
+
   const {
-    delete: deleteCap,
-    deleteAndDiscard: deleteDiscardCap,
-    share: shareCap,
-  } = getConfigForIssueType(group).actions;
+    actions: {
+      archiveUntilOccurrence: archiveUntilOccurrenceCap,
+      delete: deleteCap,
+      deleteAndDiscard: deleteDiscardCap,
+      share: shareCap,
+      resolveInRelease: resolveInReleaseCap,
+    },
+    discover: discoverCap,
+  } = config;
 
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
 
     const groupIsOccurrenceBacked =
       group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
-
-    const config = getConfigForIssueType(group);
 
     const discoverQuery = {
       id: undefined,
@@ -134,14 +142,13 @@ export function Actions(props: Props) {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | ResolutionStatus,
+      | GroupStatus,
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
     const {alert_date, alert_rule_id, alert_type} = query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
-      project_id: parseInt(project.id, 10),
       action_type: action,
       action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
@@ -151,6 +158,7 @@ export function Actions(props: Props) {
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
       ...getAnalyticsDataForGroup(group),
+      ...getAnalyicsDataForProject(project),
     });
   };
 
@@ -179,6 +187,7 @@ export function Actions(props: Props) {
     );
 
     trackIssueAction('deleted');
+    IssueListCacheStore.reset();
   };
 
   const onUpdate = (data: UpdateData) => {
@@ -207,6 +216,7 @@ export function Actions(props: Props) {
     if ((data as {inbox: boolean}).inbox !== undefined) {
       trackIssueAction('mark_reviewed');
     }
+    IssueListCacheStore.reset();
   };
 
   const onReprocessEvent = () => {
@@ -257,6 +267,7 @@ export function Actions(props: Props) {
       complete: clearIndicators,
     });
     trackIssueAction('discarded');
+    IssueListCacheStore.reset();
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
@@ -275,7 +286,7 @@ export function Actions(props: Props) {
 
     return (
       <Feature
-        features={['projects:discard-groups']}
+        features="projects:discard-groups"
         hookName="feature-disabled:discard-groups"
         organization={organization}
         project={project}
@@ -360,7 +371,7 @@ export function Actions(props: Props) {
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'sm',
         }}
@@ -467,23 +478,25 @@ export function Actions(props: Props) {
         size="sm"
       />
       <div className="hidden-xs">
-        <EnvironmentPageFilter alignDropdown="right" size="sm" />
+        <EnvironmentPageFilter position="bottom-end" size="sm" />
       </div>
-      <Feature
-        hookName="feature-disabled:open-in-discover"
-        features={['discover-basic']}
-        organization={organization}
-      >
-        <ActionButton
-          className="hidden-xs"
-          disabled={disabled}
-          to={disabled ? '' : getDiscoverUrl()}
-          onClick={() => trackIssueAction('open_in_discover')}
-          size="sm"
+      {discoverCap.enabled && (
+        <Feature
+          hookName="feature-disabled:open-in-discover"
+          features="discover-basic"
+          organization={organization}
         >
-          <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
-        </ActionButton>
-      </Feature>
+          <ActionButton
+            className="hidden-xs"
+            disabled={disabled}
+            to={disabled ? '' : getDiscoverUrl()}
+            onClick={() => trackIssueAction('open_in_discover')}
+            size="sm"
+          >
+            <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
+          </ActionButton>
+        </Feature>
+      )}
       {isResolved || isIgnored ? (
         <ActionButton
           priority="primary"
@@ -501,7 +514,7 @@ export function Actions(props: Props) {
           disabled={disabled || isAutoResolved}
           onClick={() =>
             onUpdate({
-              status: ResolutionStatus.UNRESOLVED,
+              status: GroupStatus.UNRESOLVED,
               statusDetails: {},
               substatus: GroupSubstatus.ONGOING,
             })
@@ -523,6 +536,7 @@ export function Actions(props: Props) {
                 isArchived={isIgnored}
                 onUpdate={onUpdate}
                 disabled={disabled}
+                disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
               />
             </GuideAnchor>
           ) : (
@@ -536,6 +550,7 @@ export function Actions(props: Props) {
           )}
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
+              disableResolveInRelease={!resolveInReleaseCap.enabled}
               disabled={disabled}
               disableDropdown={disabled}
               hasRelease={hasRelease}

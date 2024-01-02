@@ -22,7 +22,6 @@ import {objectIsEmpty} from 'sentry/utils';
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
 import {EventAttachments} from './eventAttachments';
-import {EventCause} from './eventCause';
 import {EventDataSection} from './eventDataSection';
 import {EventEntry} from './eventEntry';
 import {EventErrors} from './eventErrors';
@@ -34,6 +33,7 @@ import {EventGroupingInfo} from './groupingInfo';
 import {EventPackageData} from './packageData';
 import {EventRRWebIntegration} from './rrwebIntegration';
 import {DataSection} from './styles';
+import {SuspectCommits} from './suspectCommits';
 import {EventUserFeedback} from './userFeedback';
 
 type Props = {
@@ -78,7 +78,7 @@ function EventEntries({
     <div className={className}>
       <EventErrors event={event} project={project} isShare={isShare} />
       {!isShare && isNotSharedOrganization(organization) && (
-        <EventCause
+        <SuspectCommits
           project={project}
           eventId={event.id}
           group={group}
@@ -89,7 +89,7 @@ function EventEntries({
         <EventDataSection title="User Feedback" type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
-            orgId={orgSlug}
+            orgSlug={orgSlug}
             issueId={group.id}
           />
         </EventDataSection>
@@ -103,7 +103,7 @@ function EventEntries({
           isShare={isShare}
         />
       )}
-      <EventEvidence event={event} projectSlug={project.slug} />
+      <EventEvidence event={event} project={project} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}

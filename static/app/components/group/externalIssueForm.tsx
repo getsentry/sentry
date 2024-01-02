@@ -117,8 +117,8 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   };
 
   getEndPointString() {
-    const {group, integration} = this.props;
-    return `/groups/${group.id}/integrations/${integration.id}/`;
+    const {group, integration, organization} = this.props;
+    return `/organizations/${organization.slug}/issues/${group.id}/integrations/${integration.id}/`;
   }
 
   getTitle = () => {
@@ -154,6 +154,6 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   };
 
   renderBody() {
-    return this.renderForm(this.getCleanedFields());
+    return this.renderForm(this.loadAsyncThenFetchAllFields());
   }
 }

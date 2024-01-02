@@ -16,7 +16,6 @@ def create_subscription_in_snuba(subscription):
     subscription.save()
 
 
-@property
 def event_types(self):
     return [type.event_type for type in self.snubaqueryeventtype_set.all()]
 
@@ -34,7 +33,7 @@ def update_performance_subscriptions(apps, schema_editor):
         if old_subscription_id is not None:
             try:
                 # The migration apps don't build this property, so patch it here:
-                subscription.snuba_query.event_types = event_types
+                subscription.snuba_query.event_types = property(event_types)
                 create_subscription_in_snuba(subscription)
                 entity_key: EntityKey = get_entity_key_from_snuba_query(
                     subscription.snuba_query,

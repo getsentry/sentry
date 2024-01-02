@@ -1,14 +1,14 @@
 import type {
-  BreadcrumbFrameEvent as TBreadcrumbFrameEvent,
-  OptionFrameEvent as TOptionFrameEvent,
-  SpanFrameEvent as TSpanFrameEvent,
+  BreadcrumbFrameEvent,
+  OptionFrameEvent,
+  SpanFrameEvent,
 } from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type TestableFrameEvent<
-  FrameEvent extends TBreadcrumbFrameEvent | TSpanFrameEvent | TOptionFrameEvent
+  FrameEvent extends BreadcrumbFrameEvent | SpanFrameEvent | OptionFrameEvent,
 > = Overwrite<
   Omit<FrameEvent, 'type'>,
   {
@@ -21,17 +21,17 @@ type TestableFrameEvent<
  * `BreadcrumbFrameData` has factories to help construct the correct payloads.
  *
  * ```
- * BreadcrumbFrameEvent({
+ * ReplayBreadcrumbFrameEventFixture({
  *   timestamp,
  *   data: {
- *      payload: TestStubs.BreadcrumbFrameData.FOO({}),
+ *      payload: {...},
  *   },
  * });
  * ```
  */
-export function BreadcrumbFrameEvent(
-  fields: TestableFrameEvent<TBreadcrumbFrameEvent>
-): TBreadcrumbFrameEvent {
+export function ReplayBreadcrumbFrameEventFixture(
+  fields: TestableFrameEvent<BreadcrumbFrameEvent>
+): BreadcrumbFrameEvent {
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
@@ -51,16 +51,16 @@ export function BreadcrumbFrameEvent(
  * SpanFrameEvent({
  *   timestamp,
  *   data: {
- *     payload: TestStubs.Replay.SpanFrame({
- *      data: TestStubs.ReplaySpanFrameData.FOO({...})
+ *     payload: ReplaySpanFrameEventFixture({
+ *      data: {...}
  *     }),
  *   },
  * });
  * ```
  */
-export function SpanFrameEvent(
-  fields: TestableFrameEvent<TSpanFrameEvent>
-): TSpanFrameEvent {
+export function ReplaySpanFrameEventFixture(
+  fields: TestableFrameEvent<SpanFrameEvent>
+): SpanFrameEvent {
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
@@ -71,9 +71,9 @@ export function SpanFrameEvent(
   };
 }
 
-export function OptionFrameEvent(
-  fields: TestableFrameEvent<TOptionFrameEvent>
-): TOptionFrameEvent {
+export function ReplayOptionFrameEventFixture(
+  fields: TestableFrameEvent<OptionFrameEvent>
+): OptionFrameEvent {
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
@@ -84,9 +84,9 @@ export function OptionFrameEvent(
   };
 }
 
-export function OptionFrame(
-  fields: Partial<TOptionFrameEvent['data']['payload']>
-): TOptionFrameEvent['data']['payload'] {
+export function ReplayOptionFrameFixture(
+  fields: Partial<OptionFrameEvent['data']['payload']>
+): OptionFrameEvent['data']['payload'] {
   return {
     blockAllMedia: false,
     errorSampleRate: 0,

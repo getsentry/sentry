@@ -1,21 +1,11 @@
 {
   "_fingerprinting_rules": [
     {
-      "matchers": [
-        [
-          "message",
-          "*love*"
-        ]
-      ],
-      "fingerprint": [
-        "what-is-love",
-        "{{ message }}"
-      ]
+      "matchers": [["message", "*love*"]],
+      "fingerprint": ["what-is-love", "{{ message }}"]
     }
   ],
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

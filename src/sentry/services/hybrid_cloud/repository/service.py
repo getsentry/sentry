@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional
 
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.repository import RpcRepository
@@ -81,5 +81,31 @@ class RepositoryService(RpcService):
         """
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def disable_repositories_for_integration(
+        self, *, organization_id: int, integration_id: int, provider: str
+    ) -> None:
+        """
+        Disables all repositories associated with the given integration by marking them as disabled.
+        Code owners and code mappings will not be changed.
+        """
+        pass
 
-repository_service = cast(RepositoryService, RepositoryService.create_delegation())
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def disassociate_organization_integration(
+        self,
+        *,
+        organization_id: int,
+        organization_integration_id: int,
+        integration_id: int,
+    ) -> None:
+        """
+        Disassociates all repositories for an organization integration.
+        This will also delete code owners, and code mapping associated with matching repositories.
+        """
+        pass
+
+
+repository_service = RepositoryService.create_delegation()

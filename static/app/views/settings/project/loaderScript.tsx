@@ -11,13 +11,12 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 export function ProjectLoaderScript({project}: {project: Project}) {
   const organization = useOrganization();
@@ -115,6 +114,7 @@ function LoaderItem({
         {tct('Client Key: [name]', {name: projectKey.name})}
 
         <LinkButton
+          size="xs"
           to={`/settings/${organization.slug}/projects/${project.slug}/keys/${projectKey.id}/`}
         >
           {t('View Key Details')}

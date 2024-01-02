@@ -1,3 +1,7 @@
+import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -10,13 +14,13 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboards/create';
 
 describe('Dashboards > Create', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 
   describe('new dashboards', function () {
     let initialData;
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
 
     beforeEach(function () {
       ProjectsStore.init();
@@ -35,11 +39,11 @@ describe('Dashboards > Create', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [ProjectFixture()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
-        body: [TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'})],
+        body: [DashboardFixture([], {id: 'default-overview', title: 'Default'})],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -70,7 +74,7 @@ describe('Dashboards > Create', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
-        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
       });
 
       render(

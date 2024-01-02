@@ -10,7 +10,7 @@ from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
 
 if TYPE_CHECKING:
-    from sentry.models import Group
+    from sentry.models.group import Group
 
 
 def get_digest_subject(group: Group, counts: Counter[Group], date: datetime) -> str:

@@ -1,11 +1,8 @@
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    Integration,
-    OrganizationIntegration,
-    Repository,
-    ScheduledDeletion,
-)
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.repository import Repository
+from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -40,14 +37,14 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
@@ -62,7 +59,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         assert org_integration.config == config
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 

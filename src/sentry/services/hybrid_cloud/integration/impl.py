@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set, Tuple
+
+from django.utils import timezone
 
 from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
@@ -10,26 +12,29 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
-from sentry.models import SentryApp, SentryAppInstallation
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.services.hybrid_cloud.integration import (
     IntegrationService,
     RpcIntegration,
     RpcOrganizationIntegration,
 )
-from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
+from sentry.services.hybrid_cloud.integration.model import (
+    RpcIntegrationExternalProject,
+    RpcIntegrationIdentityContext,
+)
 from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
     serialize_integration_external_project,
     serialize_organization_integration,
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
@@ -136,6 +141,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         external_id: str | None = None,
         organization_id: int | None = None,
         organization_integration_id: Optional[int] = None,
+        status: int | None = None,
     ) -> RpcIntegration | None:
         integration_kwargs: Dict[str, Any] = {}
         if integration_id is not None:
@@ -148,7 +154,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration_kwargs["organizationintegration__organization_id"] = organization_id
         if organization_integration_id is not None:
             integration_kwargs["organizationintegration__id"] = organization_integration_id
-
+        if status is not None:
+            integration_kwargs["status"] = status
         if not integration_kwargs:
             return None
 
@@ -170,6 +177,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
+        grace_period_expired: Optional[bool] = None,
         limit: int | None = None,
     ) -> List[RpcOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
@@ -187,6 +195,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
             oi_kwargs["integration__provider__in"] = providers
         if has_grace_period is not None:
             oi_kwargs["grace_period_end__isnull"] = not has_grace_period
+        if grace_period_expired:
+            # Used by getsentry
+            oi_kwargs["grace_period_end__lte"] = timezone.now()
 
         if not oi_kwargs:
             return []
@@ -259,6 +270,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         if not integration_kwargs:
             return []
+        integration_kwargs["date_updated"] = timezone.now()
 
         integrations.update(**integration_kwargs)
 
@@ -289,25 +301,23 @@ class DatabaseBackedIntegrationService(IntegrationService):
         grace_period_end: datetime | None = None,
         set_grace_period_end_null: bool | None = None,
     ) -> List[RpcOrganizationIntegration]:
-        ois = OrganizationIntegration.objects.filter(id__in=org_integration_ids)
-        if not ois.exists():
-            return []
+        ois: List[OrganizationIntegration] = []
+        fields: Set[str] = set()
+        for oi in OrganizationIntegration.objects.filter(id__in=org_integration_ids):
+            if config is not None:
+                oi.config = config
+                fields.add("config")
+            if status is not None:
+                oi.status = status
+                fields.add("status")
+            if grace_period_end is not None or set_grace_period_end_null:
+                gpe_value = grace_period_end if not set_grace_period_end_null else None
+                oi.grace_period_end = gpe_value
+                fields.add("grace_period_end")
+            ois.append(oi)
 
-        oi_kwargs: Dict[str, Any] = {}
-
-        if config is not None:
-            oi_kwargs["config"] = config
-        if status is not None:
-            oi_kwargs["status"] = status
-        if grace_period_end is not None or set_grace_period_end_null:
-            gpe_value = grace_period_end if not set_grace_period_end_null else None
-            oi_kwargs["grace_period_end"] = gpe_value
-
-        if not oi_kwargs:
-            return []
-
-        ois.update(**oi_kwargs)
-
+        if fields:
+            OrganizationIntegration.objects.bulk_update(ois, fields=list(fields))
         return [serialize_organization_integration(oi) for oi in ois]
 
     def update_organization_integration(
@@ -329,14 +339,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return ois[0] if len(ois) > 0 else None
 
     def add_organization(
-        self, *, integration_id: int, rpc_organizations: List[RpcOrganization]
+        self, *, integration_id: int, org_ids: List[int]
     ) -> Optional[RpcIntegration]:
         integration = Integration.objects.filter(id=integration_id).first()
         if not integration:
             return None
-        for org in rpc_organizations:
-            integration.add_organization(organization=org)
-        return integration
+        for org_id in org_ids:
+            integration.add_organization(organization_id=org_id)
+        return serialize_integration(integration)
 
     def send_incident_alert_notification(
         self,
@@ -346,9 +356,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: str | None = None,
+    ) -> bool:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
@@ -370,13 +381,13 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 },
                 exc_info=True,
             )
-            return None
+            return False
 
         app_platform_event = AppPlatformEvent(
             resource="metric_alert",
             action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
             install=install,
-            data=incident_attachment,
+            data=json.loads(incident_attachment_json),
         )
 
         # Can raise errors if client returns >= 400
@@ -395,16 +406,19 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 sentry_app_id=sentry_app.id,
                 event=f"{app_platform_event.resource}.{app_platform_event.action}",
             )
+        return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(
         self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
-    ) -> None:
+    ) -> bool:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)
         try:
             client.send_card(channel, attachment)
+            return True
         except ApiError:
             logger.info("rule.fail.msteams_post", exc_info=True)
+        return False
 
     def delete_integration(self, *, integration_id: int) -> None:
         integration = Integration.objects.filter(id=integration_id).first()
@@ -425,3 +439,40 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if external_project is None:
             return None
         return serialize_integration_external_project(external_project)
+
+    def get_integration_identity_context(
+        self,
+        *,
+        integration_provider: str | None = None,
+        integration_external_id: str | None = None,
+        identity_external_id: str | None = None,
+        identity_provider_external_id: str | None = None,
+    ) -> RpcIntegrationIdentityContext:
+        from sentry.services.hybrid_cloud.identity.service import identity_service
+        from sentry.services.hybrid_cloud.user.service import user_service
+
+        integration = self.get_integration(
+            provider=integration_provider,
+            external_id=integration_external_id,
+        )
+        identity_provider = identity_service.get_provider(
+            provider_type=integration_provider,
+            provider_ext_id=identity_provider_external_id,
+        )
+        identity = (
+            identity_service.get_identity(
+                filter={
+                    "provider_id": identity_provider.id,
+                    "identity_ext_id": identity_external_id,
+                }
+            )
+            if identity_provider
+            else None
+        )
+        user = user_service.get_user(identity.user_id) if identity else None
+        return RpcIntegrationIdentityContext(
+            integration=integration,
+            identity_provider=identity_provider,
+            identity=identity,
+            user=user,
+        )

@@ -277,7 +277,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       </ControlsWrapper>
 
       <GroupList
-        orgId={organization.slug}
+        orgSlug={organization.slug}
         endpointPath={endpointPath}
         queryParams={queryParams}
         query=""

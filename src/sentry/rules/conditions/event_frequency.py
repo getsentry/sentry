@@ -14,7 +14,7 @@ from django.utils import timezone
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.condition_activity import (
@@ -91,7 +91,6 @@ class EventFrequencyForm(forms.Form):
 class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     intervals = standard_intervals
     form_cls = EventFrequencyForm
-    label: str
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.tsdb = kwargs.pop("tsdb", tsdb)
@@ -125,9 +124,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         if not (interval and value is not None):
             return False
 
+        # Assumes that the first event in a group will always be below the threshold.
+        if state.is_new and value > 1:
+            return False
+
         # TODO(mgaeta): Bug: Rule is optional.
         current_value = self.get_rate(event, interval, self.rule.environment_id)  # type: ignore
-        logging.info(f"event_frequency_rule current: {current_value}, threshold: {value}")
+        logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
 
     def passes_activity_frequency(
@@ -216,7 +219,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         """
         # TODO(mgaeta): Bug: Rule is optional.
         delta = abs(self.rule.date_added - self.project.date_added)  # type: ignore
-        guess: bool = delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL  # type: ignore
+        guess: bool = delta.total_seconds() < 30 and self.rule.label == [DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]  # type: ignore
         return guess
 
 
@@ -344,7 +347,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         session_count_last_hour = cache.get(cache_key)
         if session_count_last_hour is None:
             with options_override({"consistent": False}):
-                session_count_last_hour = release_health.get_project_sessions_count(  # type: ignore
+                session_count_last_hour = release_health.backend.get_project_sessions_count(
                     project_id=project_id,
                     environment_id=environment_id,
                     rollup=60,

@@ -1,30 +1,31 @@
 import pytz
-from croniter import croniter
+import sentry_sdk
+from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
+from sentry import quotas
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.api.fields.sentry_slug import SentrySlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.models import (
-    MAX_SLUG_LENGTH,
-    CheckInStatus,
-    Monitor,
-    MonitorType,
-    ScheduleType,
-)
-from sentry.monitors.tasks import MAX_TIMEOUT
+from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
     "disabled": ObjectStatus.DISABLED,
+    # TODO(epurkhiser): Remove once we no longer accept muted as a status. We
+    # use ACTIVE here since we do not want to actually change the status during
+    # muting. The validator will set is_muted to true when this status is set.
+    "muted": ObjectStatus.ACTIVE,
 }
 
 SCHEDULE_TYPES = {
@@ -66,11 +67,33 @@ class MonitorAlertRuleValidator(serializers.Serializer):
     )
 
 
+class MissedMarginField(EmptyIntegerField):
+    def to_internal_value(self, value):
+        value = super().to_internal_value(value)
+
+        # XXX(epurkhiser): As part of GH-56526 we changed the minimum value
+        # allowed for the checkin_margin to 1 from 0. Some monitors may still
+        # be upserting monitors with a 0 for the checkin_margin.
+        #
+        # In order to not break those checkins we will still allow a value of
+        # 0, but we will transform it to 1.
+        if value == 0:
+            # Capture this as a sentry error so we can understand if we can
+            # remove this code once very few people send upserts like this.
+            sentry_sdk.capture_message("Cron Monitor recieved upsert with checkin_margin = 0")
+            return 1
+        return value
+
+
 class ConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys())),
-        required=False,
         help_text='Currently supports "crontab" or "interval"',
+        # The schedule_type IS required when the `type` is not part of the
+        # `schedule` object field (see self.validate). We cannot mark it as
+        # required here however since this field may be left out when using the
+        # alternative schedule format.
+        required=False,
     )
 
     schedule = ObjectField(
@@ -85,12 +108,12 @@ class ConfigValidator(serializers.Serializer):
     When using this format the `schedule_type` is not required
     """
 
-    checkin_margin = EmptyIntegerField(
+    checkin_margin = MissedMarginField(
         required=False,
         allow_null=True,
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
-        min_value=0,
+        min_value=1,
     )
 
     max_runtime = EmptyIntegerField(
@@ -105,7 +128,26 @@ class ConfigValidator(serializers.Serializer):
     timezone = serializers.ChoiceField(
         choices=pytz.all_timezones,
         required=False,
+        allow_blank=True,
         help_text="tz database style timezone string",
+    )
+
+    failure_issue_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many consecutive missed or failed check-ins in a row before creating a new issue.",
+        min_value=1,
+        max_value=MAX_THRESHOLD,
+    )
+
+    recovery_threshold = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="How many successful check-ins in a row before resolving an issue.",
+        min_value=1,
+        max_value=MAX_THRESHOLD,
     )
 
     def bind(self, *args, **kwargs):
@@ -127,6 +169,10 @@ class ConfigValidator(serializers.Serializer):
             schedule_type = self.instance.get("schedule_type")
         else:
             schedule_type = None
+
+        # Remove blank timezone values
+        if attrs.get("timezone") == "":
+            del attrs["timezone"]
 
         schedule = attrs.get("schedule")
         if not schedule:
@@ -169,6 +215,14 @@ class ConfigValidator(serializers.Serializer):
             # crontab schedule must be valid
             if not croniter.is_valid(schedule):
                 raise ValidationError({"schedule": "Schedule was not parseable"})
+
+            # check to make sure schedule actually has a next valid expected check-in
+            try:
+                itr = croniter(schedule, timezone.now())
+                next(itr)
+            except CroniterBadDateError:
+                raise ValidationError({"schedule": "Schedule is invalid"})
+
             # Do not support 6 or 7 field crontabs
             if len(schedule.split()) > 5:
                 raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
@@ -178,27 +232,69 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
+@extend_schema_serializer(exclude_fields=["project", "config", "alert_rule"])
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
-    name = serializers.CharField(max_length=128)
-    slug = serializers.RegexField(
-        r"^[a-zA-Z0-9_-]+$",
+    name = serializers.CharField(
+        max_length=128,
+        help_text="Name of the monitor. Used for notifications.",
+    )
+    slug = SentrySlugField(
         max_length=MAX_SLUG_LENGTH,
         required=False,
-        error_messages={
-            "invalid": _("Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+")
-        },
+        help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
     )
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
+        help_text="Status of the monitor. Disabled monitors will not accept events and will not count towards the monitor quota.\n\n`muted` is deprecated. Prefer the `is_muted` field.",
+    )
+    is_muted = serializers.BooleanField(
+        required=False,
+        help_text="Disable creation of monitor incidents",
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
     alert_rule = MonitorAlertRuleValidator(required=False)
 
+    def validate(self, attrs):
+        status = attrs.get("status")
+
+        # TODO(epurkhiser): This translation of muted / active status ->
+        # isMuted will be removed in the future.
+        #
+        # When the status is set to muted we will set is_muted true, the status
+        # will not change. When the status is set to 'active' we will set
+        # is_muted to false and the status will be set to active
+        if status == "active":
+            attrs["is_muted"] = False
+
+        if status == "muted":
+            del attrs["status"]
+            attrs["is_muted"] = True
+        elif status:
+            attrs["status"] = MONITOR_STATUSES.get(status)
+
+        return attrs
+
     def validate_status(self, value):
-        return MONITOR_STATUSES.get(value, value)
+        status = MONITOR_STATUSES.get(value, value)
+        monitor = self.context.get("monitor")
+
+        # Activating a monitor may only be done if the monitor may be assigned
+        # a seat, otherwise fail with the reason it cannot.
+        #
+        # XXX: This check will ONLY be performed when a monitor is provided via
+        #      context. It is the callers responsabiliy to ensure that a
+        #      monitor is provided in context for this to be validated.
+        if status == ObjectStatus.ACTIVE and monitor:
+            result = quotas.backend.check_assign_monitor_seat(monitor)
+            if not result.assignable:
+                raise ValidationError(result.reason)
+
+        # TODO(epurkhiser): This will need to translate back to the
+        # ObjectStatus value once we remove the is_muted compatability code
+        return value
 
     def validate_type(self, value):
         return MONITOR_TYPES.get(value, value)
@@ -212,7 +308,6 @@ class MonitorValidator(CamelSnakeSerializer):
             slug=value, organization_id=self.context["organization"].id
         ).exists():
             raise ValidationError(f'The slug "{value}" is already in use.')
-
         return value
 
     def update(self, instance, validated_data):
@@ -235,21 +330,28 @@ class ContextsValidator(serializers.Serializer):
     trace = TraceContextValidator(required=False)
 
 
+@extend_schema_serializer(exclude_fields=["monitor_config", "contexts"])
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
             ("ok", CheckInStatus.OK),
             ("error", CheckInStatus.ERROR),
             ("in_progress", CheckInStatus.IN_PROGRESS),
-        )
+        ),
+        help_text="The status of the job run.",
     )
     duration = EmptyIntegerField(
         required=False,
         allow_null=True,
         max_value=BoundedPositiveIntegerField.MAX_VALUE,
         min_value=0,
+        help_text="Duration of the job run, in milliseconds.",
     )
-    environment = serializers.CharField(required=False, allow_null=True)
+    environment = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="Name of the environment.",
+    )
     monitor_config = ConfigValidator(required=False)
     contexts = ContextsValidator(required=False, allow_null=True)
 

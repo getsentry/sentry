@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import re
+
 from sentry import features
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from ..base import (
     DetectorType,
@@ -16,7 +19,8 @@ from ..base import (
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
-FILE_EXTENSION_ALLOWLIST = ("css", "json", "js")
+EXTENSION_REGEX = re.compile(r"\.([a-zA-Z0-9]+)/?(?!/)(\?.*)?$")
+FILE_EXTENSION_ALLOWLIST = ("CSS", "JSON", "JS")
 
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
@@ -47,7 +51,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         # TODO(nar): The sentence-style keys can be removed once SDK adoption has increased and
         # we are receiving snake_case keys consistently, likely beyond October 2023
         transfer_size = data and (
-            data.get("http.transfer_size", None) or data.get("Transfer Size", None)
+            data.get("http.response_transfer_size", None) or data.get("Transfer Size", None)
         )
         encoded_body_size = data and (
             data.get("http.response_content_length", None) or data.get("Encoded Body Size", None)
@@ -76,7 +80,9 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        if not description.endswith(FILE_EXTENSION_ALLOWLIST):
+        normalized_description = description.strip().upper()
+        extension = EXTENSION_REGEX.search(normalized_description)
+        if extension and extension.group(1) not in FILE_EXTENSION_ALLOWLIST:
             return
 
         # Ignore assets under a certain duration threshold

@@ -1,10 +1,14 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Organization} from 'sentry-fixture/organization';
+import {Tags} from 'sentry-fixture/tags';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function () {
-  const organization = TestStubs.Organization();
-  const tags = TestStubs.Tags();
+  const organization = Organization();
+  const tags = Tags();
 
   it('should return "no recent data" if no total values present', function () {
     render(
@@ -13,7 +17,7 @@ describe('TagDistributionMeter', function () {
         name="Browser"
         topValues={[]}
         onTagClick={jest.fn()}
-        group={TestStubs.Group({id: '1337'})}
+        group={GroupFixture({id: '1337'})}
         organization={organization}
         projectId="456"
         totalValues={0}
@@ -28,7 +32,7 @@ describe('TagDistributionMeter', function () {
         tag="browser"
         name="Browser"
         onTagClick={jest.fn()}
-        group={TestStubs.Group({id: '1337'})}
+        group={GroupFixture({id: '1337'})}
         organization={organization}
         projectId="456"
         totalValues={tags[0].totalValues}

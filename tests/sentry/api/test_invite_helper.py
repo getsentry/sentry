@@ -3,7 +3,8 @@ from unittest.mock import patch
 from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import TestCase
@@ -35,11 +36,14 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite_context is not None
+
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite_by_id(
-                organization_member_id=om.id, organization_id=om.organization_id
-            ),
+            invite_context,
             None,
         )
         helper.accept_invite()
@@ -58,11 +62,14 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite_context is not None
+
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite_by_id(
-                organization_member_id=om.id, organization_id=om.organization_id
-            ),
+            invite_context,
             None,
         )
 
@@ -83,11 +90,14 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite_context is not None
+
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite_by_id(
-                organization_member_id=om.id, organization_id=om.organization_id
-            ),
+            invite_context,
             None,
         )
         helper.accept_invite()
@@ -111,11 +121,14 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
+        invite_context = organization_service.get_invite_by_id(
+            organization_member_id=om.id, organization_id=om.organization_id
+        )
+        assert invite_context is not None
+
         helper = ApiInviteHelper(
             self.request,
-            organization_service.get_invite_by_id(
-                organization_member_id=om.id, organization_id=om.organization_id
-            ),
+            invite_context,
             None,
         )
         helper.accept_invite()

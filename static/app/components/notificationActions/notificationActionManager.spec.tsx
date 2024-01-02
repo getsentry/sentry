@@ -1,3 +1,5 @@
+import {AvailableNotificationActions as AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -12,7 +14,7 @@ import type {NotificationAction} from 'sentry/types';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();
-  const availableActions = TestStubs.AvailableNotificationActions().actions;
+  const availableActions = AvailableNotificationActionsFixture().actions;
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/notifications/available-actions/`,
     body: availableActions,
@@ -21,10 +23,10 @@ describe('Adds, deletes, and updates notification actions', function () {
   const notificationActions: NotificationAction[] = [
     {
       id: 2,
-      organizationId: organization.id,
+      organizationId: parseInt(organization.id, 10),
       integrationId: null,
       sentryAppId: null,
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       serviceType: 'sentry_notification',
       triggerType: 'spike-protection',
       targetType: 'specific',
@@ -33,10 +35,10 @@ describe('Adds, deletes, and updates notification actions', function () {
     },
     {
       id: 3,
-      organizationId: organization.id,
+      organizationId: parseInt(organization.id, 10),
       integrationId: 5,
       sentryAppId: null,
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       serviceType: 'slack',
       triggerType: 'spike-protection',
       targetType: 'specific',
@@ -45,15 +47,27 @@ describe('Adds, deletes, and updates notification actions', function () {
     },
     {
       id: 4,
-      organizationId: organization.id,
+      organizationId: parseInt(organization.id, 10),
       integrationId: 2,
       sentryAppId: null,
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       serviceType: 'pagerduty',
       triggerType: 'spike-protection',
       targetType: 'specific',
       targetIdentifier: '1',
       targetDisplay: 'Test 1',
+    },
+    {
+      id: 5,
+      organizationId: parseInt(organization.id, 10),
+      integrationId: 3,
+      sentryAppId: null,
+      projects: [parseInt(project.id, 10)],
+      serviceType: 'opsgenie',
+      triggerType: 'spike-protection',
+      targetType: 'specific',
+      targetIdentifier: '1-opsgenie-test-team',
+      targetDisplay: 'opsgenie-test-team',
     },
   ];
 
@@ -72,7 +86,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       />
     );
     const projectNotificationActions = screen.queryAllByTestId('notification-action');
-    expect(projectNotificationActions.length).toBe(3);
+    expect(projectNotificationActions.length).toBe(4);
   });
 
   it('disables buttons and dropdowns when disabled is True', function () {
@@ -115,6 +129,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(screen.getByText('Send a Sentry notification')).toBeInTheDocument();
     expect(screen.getByText('Send a Slack notification')).toBeInTheDocument();
     expect(screen.getByText('Send a Pagerduty notification')).toBeInTheDocument();
+    expect(screen.getByText('Send an Opsgenie notification')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Send a Sentry notification'));
 
@@ -123,6 +138,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(screen.queryByText('Send a Sentry notification')).not.toBeInTheDocument();
     expect(screen.getByText('Send a Slack notification')).toBeInTheDocument();
     expect(screen.getByText('Send a Pagerduty notification')).toBeInTheDocument();
+    expect(screen.getByText('Send an Opsgenie notification')).toBeInTheDocument();
 
     expect(screen.queryByTestId('sentry_notification-form')).toBeInTheDocument();
 
@@ -254,7 +270,7 @@ describe('Adds, deletes, and updates notification actions', function () {
           organizationId: organization.id,
           integrationId: 1,
           sentryAppId: null,
-          projects: [project.id],
+          projects: [parseInt(project.id, 10)],
           serviceType: 'slack',
           triggerType: 'spike-protection',
           targetType: 'specific',
@@ -365,7 +381,7 @@ describe('Adds, deletes, and updates notification actions', function () {
           organizationId: organization.id,
           integrationId: 2,
           sentryAppId: null,
-          projects: [project.id],
+          projects: [parseInt(project.id, 10)],
           serviceType: 'pagerduty',
           triggerType: 'spike-protection',
           targetType: 'specific',
@@ -405,6 +421,111 @@ describe('Adds, deletes, and updates notification actions', function () {
           integrationId: 2,
           targetIdentifier: '3',
           targetDisplay: 'Default Service',
+        }),
+      })
+    );
+  });
+
+  it('Adds an Opsgenie action', async function () {
+    const mockPOST = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/notifications/actions/`,
+      method: 'POST',
+      body: notificationActions[3],
+    });
+    render(
+      <NotificationActionManager
+        updateAlertCount={jest.fn()}
+        actions={[]}
+        availableActions={availableActions}
+        recipientRoles={['owner', 'manager']}
+        project={project}
+      />
+    );
+
+    await userEvent.click(screen.getByText('Add Action'));
+    await userEvent.click(screen.getByText('Send an Opsgenie notification'));
+
+    expect(screen.queryByTestId('opsgenie-form')).toBeInTheDocument();
+
+    // Use default account
+    expect(screen.getByText('sentry-enterprise')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Select Team'})).toBeInTheDocument();
+
+    // Select team
+    await userEvent.click(screen.getByRole('button', {name: 'Select Team'}));
+    await userEvent.click(screen.getByText('opsgenie-test-team'));
+
+    await userEvent.click(screen.getByText('Save'));
+    expect(mockPOST).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/notifications/actions/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          integrationId: 3,
+          integrationName: 'sentry-enterprise',
+          projects: [project.slug],
+          serviceType: 'opsgenie',
+          triggerType: 'spike-protection',
+          targetType: 'specific',
+          targetIdentifier: '1-opsgenie-test-team',
+          targetDisplay: 'opsgenie-test-team',
+        }),
+      })
+    );
+    await waitFor(() => {
+      expect(screen.queryByTestId('opsgenie-action')).toBeInTheDocument();
+    });
+  });
+
+  it('Edits an Opsgenie Action', async function () {
+    const mockPUT = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[3].id}/`,
+      method: 'PUT',
+      body: [
+        {
+          id: 5,
+          organizationId: organization.id,
+          integrationId: 4,
+          sentryAppId: null,
+          projects: [parseInt(project.id, 10)],
+          serviceType: 'opsgenie',
+          triggerType: 'spike-protection',
+          targetType: 'specific',
+          targetIdentifier: '1-opsgenie-test-team-2',
+          targetDisplay: 'opsgenie-test-team-2',
+        },
+      ],
+    });
+    render(
+      <NotificationActionManager
+        updateAlertCount={jest.fn()}
+        actions={[notificationActions[3]]}
+        availableActions={availableActions}
+        recipientRoles={['owner', 'manager']}
+        project={project}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('edit-dropdown'));
+    await userEvent.click(screen.getByText('Edit'));
+
+    // Edit service
+    await userEvent.click(screen.getByTestId('target-display-dropdown'));
+    await userEvent.click(screen.getByText('opsgenie-test-team-2'));
+
+    await userEvent.click(screen.getByText('Save'));
+
+    expect(mockPUT).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/notifications/actions/${notificationActions[3].id}/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: 5,
+          projects: [project.slug],
+          serviceType: 'opsgenie',
+          triggerType: 'spike-protection',
+          targetType: 'specific',
+          integrationId: 3,
+          targetIdentifier: '1-opsgenie-test-team-2',
+          targetDisplay: 'opsgenie-test-team-2',
         }),
       })
     );

@@ -6,12 +6,14 @@ from django.utils.html import format_html
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
 from sentry.exceptions import PluginError  # NOQA
-from sentry.models import Activity, GroupMeta
+from sentry.models.activity import Activity
+from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
@@ -27,6 +29,10 @@ from sentry.utils.safe import safe_execute
 # TODO(dcramer): remove this in favor of GroupEndpoint
 @region_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     view_method_name = None
     plugin = None
 

@@ -91,7 +91,7 @@ export type EndpointDefinition<T extends Record<string, any>> = [
   key: keyof T,
   url: string,
   urlOptions?: {query?: Record<string, string>},
-  requestOptions?: EndpointRequestOptions
+  requestOptions?: EndpointRequestOptions,
 ];
 
 type Options<T extends Record<string, any>> = {

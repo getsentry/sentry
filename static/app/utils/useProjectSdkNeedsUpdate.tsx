@@ -1,5 +1,6 @@
 import {Organization} from 'sentry/types';
-import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
+import {useQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {semverCompare} from 'sentry/utils/versions';
 
 type Opts = {
@@ -8,29 +9,39 @@ type Opts = {
   projectId: string[];
 };
 
-function useProjectSdkNeedsUpdate({minVersion, organization, projectId}: Opts):
-  | {
-      isFetching: true;
-      needsUpdate: undefined;
-    }
-  | {
-      isFetching: false;
-      needsUpdate: boolean;
-    } {
-  const sdkUpdates = useProjectSdkUpdates({
-    organization,
-    projectId: null,
-  });
+function useProjectSdkNeedsUpdate({
+  minVersion,
+  organization,
+  projectId,
+}: Opts):
+  | {isError: false; isFetching: true; needsUpdate: undefined}
+  | {isError: true; isFetching: false; needsUpdate: undefined}
+  | {isError: false; isFetching: false; needsUpdate: boolean} {
+  const path = `/organizations/${organization.slug}/sdk-updates/`;
+  const api = useApi({persistInFlight: true});
+  const {data, isLoading, isError} = useQuery(
+    [path],
+    async () => {
+      try {
+        return await api.requestPromise(path, {
+          method: 'GET',
+        });
+      } catch {
+        return [];
+      }
+    },
+    {staleTime: 5000, refetchOnMount: false}
+  );
 
-  if (sdkUpdates.type !== 'resolved') {
-    return {isFetching: true, needsUpdate: undefined};
+  if (isLoading) {
+    return {isError: false, isFetching: true, needsUpdate: undefined};
   }
 
-  if (!sdkUpdates.data?.length) {
-    return {isFetching: true, needsUpdate: undefined};
+  if (isError) {
+    return {isError: true, isFetching: false, needsUpdate: undefined};
   }
 
-  const selectedProjects = sdkUpdates.data.filter(sdkUpdate =>
+  const selectedProjects = data.filter(sdkUpdate =>
     projectId.includes(sdkUpdate.projectId)
   );
 
@@ -40,7 +51,11 @@ function useProjectSdkNeedsUpdate({minVersion, organization, projectId}: Opts):
       sdkUpdate => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
     );
 
-  return {isFetching: false, needsUpdate};
+  return {
+    isError: false,
+    isFetching: false,
+    needsUpdate,
+  };
 }
 
 export default useProjectSdkNeedsUpdate;

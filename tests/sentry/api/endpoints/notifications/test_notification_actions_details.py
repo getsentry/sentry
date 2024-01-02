@@ -4,7 +4,7 @@ import responses
 from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
-from sentry.models.integrations.pagerduty_service import PagerDutyService
+from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.notificationaction import (
     ActionRegistration,
     ActionService,
@@ -18,9 +18,10 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
@@ -95,7 +96,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
 
     def test_put_missing_fields(self):
-        required_fields = ["serviceType", "triggerType", "targetType"]
+        required_fields = ["serviceType", "triggerType"]
         response = self.get_error_response(
             self.organization.slug,
             self.notif_action.id,
@@ -233,26 +234,23 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        # Can't find slack channel
         responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=500,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            self.notif_action.id,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            method="PUT",
-            **data,
-        )
-        # Successful search for channel
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
             status=200,
-            json={"ok": True, "channels": [{"name": channel_name, "id": channel_id}]},
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
+            ),
         )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": True}),
+        )
+
         response = self.get_success_response(
             self.organization.slug,
             self.notif_action.id,
@@ -296,14 +294,13 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            service = PagerDutyService.objects.create(
+            org_integration = second_integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
                 service_name=service_name,
                 integration_key="abc",
-                organization_integration_id=second_integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=second_integration.id,
             )
-        data["targetIdentifier"] = service.id
+        data["targetIdentifier"] = service["id"]
         response = self.get_error_response(
             self.organization.slug,
             self.notif_action.id,
@@ -313,14 +310,13 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            service = PagerDutyService.objects.create(
+            org_integration = integration.organizationintegration_set.first()
+            service = add_service(
+                org_integration,
                 service_name=service_name,
                 integration_key="def",
-                organization_integration_id=integration.organizationintegration_set.first().id,
-                organization_id=self.organization.id,
-                integration_id=integration.id,
             )
-        data["targetIdentifier"] = service.id
+        data["targetIdentifier"] = service["id"]
         response = self.get_success_response(
             self.organization.slug,
             self.notif_action.id,
@@ -328,8 +324,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             method="PUT",
             **data,
         )
-        assert response.data["targetIdentifier"] == service.id
-        assert response.data["targetDisplay"] == service.service_name
+        assert response.data["targetIdentifier"] == service["id"]
+        assert response.data["targetDisplay"] == service["service_name"]
 
     @patch.dict(NotificationAction._registry, {})
     def test_put_simple(self):

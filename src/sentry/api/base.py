@@ -3,15 +3,15 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
+from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
-from pytz import utc
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -22,13 +22,14 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
-from sentry.apidocs.hooks import HTTP_METHODS_SET
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
-from sentry.models import Environment
+from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.types.region import is_region_name
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -41,7 +42,11 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
+from .authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -51,10 +56,9 @@ __all__ = [
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
-    "pending_silo_endpoint",
 ]
 
-from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
+from ..services.hybrid_cloud import rpcmetrics
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -72,7 +76,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
-    TokenAuthentication,
+    UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     ApiKeyAuthentication,
     SessionAuthentication,
@@ -103,79 +107,68 @@ def allow_cors_options(func):
         else:
             response = func(self, request, *args, **kwargs)
 
-        allow = ", ".join(self._allowed_methods())
-        response["Allow"] = allow
-        response["Access-Control-Allow-Methods"] = allow
-        response["Access-Control-Allow-Headers"] = (
-            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage, X-CSRFToken"
+        return apply_cors_headers(
+            request=request, response=response, allowed_methods=self._allowed_methods()
         )
-        response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
-
-        if request.META.get("HTTP_ORIGIN") == "null":
-            origin = "null"  # if ORIGIN header is explicitly specified as 'null' leave it alone
-        else:
-            origin = origin_from_request(request)
-
-        if origin is None or origin == "null":
-            response["Access-Control-Allow-Origin"] = "*"
-        else:
-            response["Access-Control-Allow-Origin"] = origin
-
-        # If the requesting origin is a subdomain of
-        # the application's base-hostname we should allow cookies
-        # to be sent.
-        basehost = options.get("system.base-hostname")
-        if basehost and origin:
-            if origin.endswith(("://" + basehost, "." + basehost)):
-                response["Access-Control-Allow-Credentials"] = "true"
-
-        return response
 
     return allow_cors_options_wrapper
 
 
+def apply_cors_headers(
+    request: HttpRequest, response: HttpResponse, allowed_methods: list[str] | None = None
+) -> HttpResponse:
+    if allowed_methods is None:
+        allowed_methods = []
+    allow = ", ".join(allowed_methods)
+    response["Allow"] = allow
+    response["Access-Control-Allow-Methods"] = allow
+    response["Access-Control-Allow-Headers"] = (
+        "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+        "Content-Type, Authentication, Authorization, Content-Encoding, "
+        "sentry-trace, baggage, X-CSRFToken"
+    )
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
+    )
+
+    if request.META.get("HTTP_ORIGIN") == "null":
+        # if ORIGIN header is explicitly specified as 'null' leave it alone
+        origin: str | None = "null"
+    else:
+        origin = origin_from_request(request)
+
+    if origin is None or origin == "null":
+        response["Access-Control-Allow-Origin"] = "*"
+    else:
+        response["Access-Control-Allow-Origin"] = origin
+
+    # If the requesting origin is a subdomain of
+    # the application's base-hostname we should allow cookies
+    # to be sent.
+    basehost = options.get("system.base-hostname")
+    if basehost and origin:
+        if (
+            origin.endswith(("://" + basehost, "." + basehost))
+            or origin in settings.ALLOWED_CREDENTIAL_ORIGINS
+        ):
+            response["Access-Control-Allow-Credentials"] = "true"
+
+    return response
+
+
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
-    permission_classes: Tuple[Type[BasePermission], ...] = (NoPermission,)
+    authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: tuple[type[BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
-    public: Optional[HTTP_METHODS_SET] = None
-
+    owner: ApiOwner = ApiOwner.UNOWNED
+    publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     rate_limits: RateLimitConfig | dict[
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-
-    def get_authenticators(self) -> List[BaseAuthentication]:
-        """
-        Instantiates and returns the list of authenticators that this view can use.
-        Aggregates together authenticators that should be called cross silo, while
-        leaving methods that should be run locally.
-        """
-
-        # TODO: Increase test coverage and get this working for monolith mode.
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return super().get_authenticators()
-
-        last_api_authenticator = RpcAuthentication([])
-        result: List[BaseAuthentication] = []
-        for authenticator_cls in self.authentication_classes:
-            auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type is not None:
-                last_api_authenticator.types.append(auth_type)
-            else:
-                if last_api_authenticator.types:
-                    result.append(last_api_authenticator)
-                    last_api_authenticator = RpcAuthentication([])
-                result.append(authenticator_cls())
-
-        if last_api_authenticator.types:
-            result.append(last_api_authenticator)
-        return result
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
@@ -183,7 +176,6 @@ class Endpoint(APIView):
         return f'<{uri}>; rel="{rel}">'
 
     def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
-        querystring = None
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -198,10 +190,10 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
-        if querystring is not None:
+        if querystring:
             base_url = f"{base_url}?{querystring}"
         else:
-            base_url = base_url + "?"
+            base_url = f"{base_url}?"
 
         return CURSOR_LINK_HEADER.format(
             uri=base_url,
@@ -213,7 +205,7 @@ class Endpoint(APIView):
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(
+    def handle_exception(  # type: ignore[override]
         self,
         request: Request,
         exc: Exception,
@@ -280,7 +272,7 @@ class Endpoint(APIView):
         except json.JSONDecodeError:
             return
 
-    def initialize_request(self, request: Request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
         # `initialize_request` it's set as an internal variable on the returned
         # request. Then when we call `rv.auth` it attempts to authenticate,
@@ -358,8 +350,9 @@ class Endpoint(APIView):
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
                 description=f"{type(self).__name__}.{handler.__name__}",
-            ):
-                response = handler(request, *args, **kwargs)
+            ) as span:
+                with rpcmetrics.wrap_sdk_span(span):
+                    response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -398,7 +391,7 @@ class Endpoint(APIView):
             ]
         )
 
-    def respond(self, context: Mapping[str, Any] | None = None, **kwargs: Any) -> Response:
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
     def respond_with_text(self, text):
@@ -527,24 +520,24 @@ class StatsMixin:
             resolution = request.GET.get("resolution")
             if resolution:
                 resolution = self._parse_resolution(resolution)
-                if restrict_rollups and resolution not in tsdb.get_rollups():
+                if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
         try:
-            end = request.GET.get("until")
-            if end:
-                end = to_datetime(float(end))
+            end_s = request.GET.get("until")
+            if end_s:
+                end = to_datetime(float(end_s))
             else:
-                end = datetime.utcnow().replace(tzinfo=utc)
+                end = datetime.utcnow().replace(tzinfo=timezone.utc)
         except ValueError:
             raise ParseError(detail="until must be a numeric timestamp.")
 
         try:
-            start = request.GET.get("since")
-            if start:
-                start = to_datetime(float(start))
+            start_s = request.GET.get("since")
+            if start_s:
+                start = to_datetime(float(start_s))
                 assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
@@ -554,7 +547,7 @@ class StatsMixin:
             raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
-            resolution = tsdb.get_optimal_rollup(start, end)
+            resolution = tsdb.backend.get_optimal_rollup(start, end)
 
         return {
             "start": start,
@@ -587,17 +580,8 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request) -> Optional[str]:
-    subdomain = getattr(request, "subdomain", None)
-    if subdomain is None:
-        return None
-    if is_region_name(subdomain):
-        return subdomain
-    return None
-
-
 class EndpointSiloLimit(SiloLimit):
-    def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
+    def modify_endpoint_class(self, decorated_class: type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
             decorated_class.__name__,
@@ -609,26 +593,6 @@ class EndpointSiloLimit(SiloLimit):
         )
         new_class.__module__ = decorated_class.__module__
         return new_class
-
-    def create_override(
-        self,
-        original_method: Callable[..., Any],
-    ) -> Callable[..., Any]:
-        limiting_override = super().create_override(original_method)
-
-        def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
-            if SiloMode.single_process_silo_mode():
-                entering_mode: SiloMode = SiloMode.MONOLITH
-                for mode in self.modes:
-                    # Select a mode, if available, from the target modes.
-                    entering_mode = mode
-                with SiloMode.enter_single_process_silo_context(entering_mode):
-                    return limiting_override(*args, **kwargs)
-            else:
-                return limiting_override(*args, **kwargs)
-
-        functools.update_wrapper(single_process_silo_mode_wrapper, limiting_override)
-        return single_process_silo_mode_wrapper
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
@@ -678,14 +642,6 @@ Apply to endpoints that exist in REGION silo.
 If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
-
-# Use this decorator to mark endpoints that still need to be marked as either
-# control_silo_endpoint or region_silo_endpoint. Marking a class with
-# pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
-# that the test will fail if a new endpoint is added with no decorator at all.
-# Eventually we should replace all instances of this decorator and delete it.
-pending_silo_endpoint = EndpointSiloLimit()
-
 
 all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 """

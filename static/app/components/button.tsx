@@ -7,6 +7,8 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -118,7 +120,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    * When set the button acts as an anchor link. Use with `external` to have
    * the link open in a new tab.
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   href?: string;
   /**
@@ -193,6 +195,17 @@ type LinkButtonProps =
   | HrefLinkButtonPropsWithChildren
   | HrefLinkButtonPropsWithAriaLabel;
 
+/**
+ * Default sizes to use for SVGIcon
+ */
+const ICON_SIZES: Partial<
+  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
+> = {
+  xs: 'xs',
+  sm: 'xs',
+  md: 'sm',
+};
+
 function BaseButton({
   size = 'md',
   to,
@@ -219,8 +232,28 @@ function BaseButton({
   const accessibleLabel =
     ariaLabel ?? (typeof children === 'string' ? children : undefined);
 
-  const useButtonTracking = HookStore.get('react-hook:use-button-tracking')[0];
-  const buttonTracking = useButtonTracking?.({
+  const useButtonTrackingLogger = () => {
+    const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
+    const hasCustomAnalytics = analyticsEventName || analyticsEventKey || analyticsParams;
+    if (!hasCustomAnalytics || !hasAnalyticsDebug) {
+      return () => {};
+    }
+
+    return () => {
+      // eslint-disable-next-line no-console
+      console.log('buttonAnalyticsEvent', {
+        eventKey: analyticsEventKey,
+        eventName: analyticsEventName,
+        priority,
+        href,
+        ...analyticsParams,
+      });
+    };
+  };
+
+  const useButtonTracking =
+    HookStore.get('react-hook:use-button-tracking')[0] ?? useButtonTrackingLogger;
+  const buttonTracking = useButtonTracking({
     analyticsEventName,
     analyticsEventKey,
     analyticsParams: {
@@ -240,7 +273,7 @@ function BaseButton({
         return;
       }
 
-      buttonTracking?.();
+      buttonTracking();
       onClick?.(e);
     },
     [disabled, busy, onClick, buttonTracking]
@@ -277,7 +310,7 @@ function BaseButton({
       <ButtonLabel size={size} borderless={borderless}>
         {icon && (
           <Icon size={size} hasChildren={hasChildren}>
-            {icon}
+            <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
           </Icon>
         )}
         {children}
@@ -498,7 +531,10 @@ const StyledButton = styled(
   ${getBoxShadow};
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   opacity: ${p => (p.busy || p.disabled) && '0.65'};
-  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
+  transition:
+    background 0.1s,
+    border 0.1s,
+    box-shadow 0.1s;
 
   ${p =>
     p.priority === 'link' &&
@@ -557,6 +593,7 @@ const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 export {
   Button,
   ButtonProps,
+  BaseButtonProps,
   LinkButton,
   LinkButtonProps,
 

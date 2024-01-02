@@ -1,7 +1,12 @@
 import type {RouteComponent, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import type {Organization, Project} from 'sentry/types';
+import type {Organization as TOrganization, Project} from 'sentry/types';
 
 // Workaround react-router PlainRoute type not covering redirect routes.
 type RouteShape = {
@@ -14,7 +19,7 @@ type RouteShape = {
 };
 
 interface InitializeOrgOptions<RouterParams> {
-  organization?: Partial<Organization>;
+  organization?: Partial<TOrganization>;
   project?: Partial<Project>;
   projects?: Partial<Project>[];
   router?: {
@@ -41,15 +46,15 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   const projects = (
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
-  ).map(p => TestStubs.Project(p));
+  ).map(p => ProjectFixture(p));
   const [project] = projects;
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     projects,
     ...additionalOrg,
-    orgRoleList: TestStubs.OrgRoleList(),
-    teamRoleList: TestStubs.TeamRoleList(),
+    orgRoleList: OrgRoleList(),
+    teamRoleList: TeamRoleList(),
   });
-  const router = TestStubs.router({
+  const router = RouterFixture({
     ...additionalRouter,
     params: {
       orgId: organization.slug,
@@ -58,7 +63,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     },
   });
 
-  const routerContext: any = TestStubs.routerContext([
+  const routerContext: any = RouterContextFixture([
     {
       organization,
       project,

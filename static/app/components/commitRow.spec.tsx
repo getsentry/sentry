@@ -1,3 +1,5 @@
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -58,7 +60,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    render(<CommitRow commit={commit} />, {context: TestStubs.routerContext()});
+    render(<CommitRow commit={commit} />, {context: RouterContextFixture()});
     expect(
       screen.getByText(
         textWithMarkupMatcher(
@@ -108,6 +110,7 @@ describe('commitRow', () => {
           dateCreated: '2022-10-07T19:35:27.370422Z',
           integrationId: '14',
           externalSlug: 'org-slug',
+          externalId: '1',
         },
       },
     };

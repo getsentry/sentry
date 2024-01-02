@@ -3,7 +3,10 @@ from typing import Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import Author, get_users_for_authors
-from sentry.models import Commit, CommitAuthor, PullRequest, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 
 
 def get_users_for_commits(item_list, user=None) -> Mapping[str, Author]:
@@ -83,7 +86,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
         self.type = type or ""
 
     def get_attrs(self, item_list, user):
-        from sentry.models import ReleaseCommit
+        from sentry.models.releasecommit import ReleaseCommit
 
         attrs = super().get_attrs(item_list, user)
         releases_by_commit = defaultdict(list)

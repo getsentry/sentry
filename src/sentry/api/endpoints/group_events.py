@@ -9,6 +9,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -16,9 +18,9 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response, get_query_builder_for_group
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
 from sentry.eventstore.models import Event
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.search.utils import InvalidQuery, parse_query
 
 if TYPE_CHECKING:
@@ -36,6 +38,11 @@ class GroupEventsError(Exception):
 
 @region_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ISSUES
+
     def get(self, request: Request, group: Group) -> Response:
         """
         List an Issue's Events
@@ -121,7 +128,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 for evt in results["data"]
             ]
             if full:
-                eventstore.bind_nodes(results)
+                eventstore.backend.bind_nodes(results)
 
             return results
 

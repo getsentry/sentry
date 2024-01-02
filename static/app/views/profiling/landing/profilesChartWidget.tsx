@@ -14,7 +14,6 @@ import {
   ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
-  Subtitle,
   WidgetContainer,
 } from './styles';
 
@@ -41,6 +40,7 @@ export function ProfilesChartWidget({
   const theme = useTheme();
 
   const profileStats = useProfileEventsStats({
+    dataset: 'profiles',
     query: userQuery,
     referrer,
     yAxes: SERIES_ORDER,
@@ -53,9 +53,9 @@ export function ProfilesChartWidget({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data[0].timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
 
-    return profileStats.data[0].data
+    return profileStats.data.data
       .map(rawData => {
         if (timestamps.length !== rawData.values.length) {
           throw new Error('Invalid stats response');
@@ -105,7 +105,7 @@ export function ProfilesChartWidget({
       },
       legend: {
         right: 16,
-        top: 12,
+        top: 0,
         data: SERIES_ORDER.slice(),
       },
     };
@@ -115,7 +115,6 @@ export function ProfilesChartWidget({
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
         {header ?? <HeaderTitleLegend>{t('Profiles by Percentiles')}</HeaderTitleLegend>}
-        <Subtitle>{t('P50(), P75(), P95(), P99() over time')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
         <ChartZoom router={router} {...selection?.datetime}>

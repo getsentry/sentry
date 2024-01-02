@@ -38,7 +38,7 @@ type FormFieldState = {
 
 export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
-  State extends FormFieldState = FormFieldState
+  State extends FormFieldState = FormFieldState,
 > extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     hideErrorMessage: false,

@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, OrganizationMember, Team, User
+from sentry.models.actor import ActorTuple
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.models.user import User
 
-if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import RpcUser
 
-
+@extend_schema_field(field=OpenApiTypes.STR)
 class ActorField(serializers.Field):
     def __init__(self, *args, **kwds):
         self.as_actor = kwds.pop("as_actor", False)
@@ -29,7 +30,7 @@ class ActorField(serializers.Field):
                 "Could not parse actor. Format should be `type:id` where type is `team` or `user`."
             )
         try:
-            obj: RpcUser | Team = actor.resolve()
+            obj = actor.resolve()
         except (Team.DoesNotExist, User.DoesNotExist):
             raise serializers.ValidationError(f"{actor.type.__name__} does not exist")
 

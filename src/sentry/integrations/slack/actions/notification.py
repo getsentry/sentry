@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Sequence
+from typing import Any, Generator, Optional, Sequence
 
+from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
@@ -38,7 +39,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+    ) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -52,19 +55,48 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
-            # getsentry might add a billing related attachment
             additional_attachment = get_additional_attachment(
                 integration, self.project.organization
             )
-            if additional_attachment:
-                attachments.append(additional_attachment)
+            if features.has("organizations:slack-block-kit", event.group.project.organization):
+                blocks = build_group_attachment(
+                    event.group,
+                    event=event,
+                    tags=tags,
+                    rules=rules,
+                    notification_uuid=notification_uuid,
+                )
+                if additional_attachment:
+                    for block in additional_attachment:
+                        blocks["blocks"].append(block)
 
-            payload = {
-                "channel": channel,
-                "link_names": 1,
-                "attachments": json.dumps(attachments),
-            }
+                if blocks.get("blocks"):
+                    payload = {
+                        "text": blocks.get("text"),
+                        "blocks": json.dumps(blocks.get("blocks")),
+                        "channel": channel,
+                        "unfurl_links": False,
+                        "unfurl_media": False,
+                    }
+            else:
+                attachments = [
+                    build_group_attachment(
+                        event.group,
+                        event=event,
+                        tags=tags,
+                        rules=rules,
+                        notification_uuid=notification_uuid,
+                    )
+                ]
+                # getsentry might add a billing related attachment
+                if additional_attachment:
+                    attachments.append(additional_attachment)
+
+                payload = {
+                    "channel": channel,
+                    "link_names": 1,
+                    "attachments": json.dumps(attachments),
+                }
 
             client = SlackClient(integration_id=integration.id)
             try:
@@ -79,6 +111,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         "channel_name": self.get_option("channel"),
                     },
                 )
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, channel, rule, notification_uuid)
 
         key = f"slack:{integration.id}:{channel}"
 

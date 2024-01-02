@@ -5,20 +5,21 @@ from typing import Any, Iterable, Mapping
 
 import sentry_sdk
 
-from sentry.integrations.msteams.card_builder import AdaptiveCard
+from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
-from sentry.models import Team, User
-from sentry.notifications.notifications.activity import (
-    AssignedActivityNotification,
-    EscalatingActivityNotification,
-    NoteActivityNotification,
-    RegressionActivityNotification,
-    ReleaseActivityNotification,
-    ResolvedActivityNotification,
+from sentry.models.team import Team
+from sentry.models.user import User
+from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
+from sentry.notifications.notifications.activity.note import NoteActivityNotification
+from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
-    UnassignedActivityNotification,
 )
+from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
@@ -76,7 +77,7 @@ def send_notification_as_msteams(
 ):
     if not is_supported_notification_type(notification):
         logger.info(
-            f"Unsupported notification type for Microsoft Teams {notification.__class__.__name__}"
+            "Unsupported notification type for Microsoft Teams %s", notification.__class__.__name__
         )
         return
 
@@ -110,10 +111,8 @@ def send_notification_as_msteams(
                             client.send_card(conversation_id, card)
 
                         notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)
-                    except Exception as e:
-                        logger.error(
-                            "Exception occured while trying to send the notification", exc_info=e
-                        )
+                    except Exception:
+                        logger.exception("Exception occured while trying to send the notification")
 
     metrics.incr(
         f"{notification.metrics_key}.notifications.sent",

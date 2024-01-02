@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 from django.db import IntegrityError, router, transaction
@@ -6,13 +8,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.models import Dashboard
+from sentry.models.dashboard import Dashboard
 
 MAX_RETRIES = 10
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
@@ -29,6 +33,11 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.DISCOVER_N_DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -60,6 +69,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
+        order_by: list[Case | str]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
@@ -67,7 +77,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "dateCreated":
-            order_by = "-date_added" if desc else "date_added"
+            order_by = ["-date_added" if desc else "date_added"]
 
         elif sort_by == "mostPopular":
             order_by = [
@@ -76,7 +86,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = "last_visited" if desc else "-last_visited"
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             order_by = [
@@ -95,10 +105,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         else:
-            order_by = "title"
-
-        if not isinstance(order_by, list):
-            order_by = [order_by]
+            order_by = ["title"]
 
         dashboards = dashboards.order_by(*order_by)
 
@@ -147,6 +154,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "request": request,
                 "projects": self.get_projects(request, organization),
+                "environment": self.request.GET.getlist("environment"),
             },
         )
 

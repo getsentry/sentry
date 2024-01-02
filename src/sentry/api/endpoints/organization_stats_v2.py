@@ -9,14 +9,16 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.utils import InvalidParams as InvalidParamsApi
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.exceptions import InvalidParams
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     COLUMN_MAP,
@@ -26,7 +28,7 @@ from sentry.snuba.outcomes import (
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
 )
-from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
+from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.outcomes import Outcome
 
@@ -96,7 +98,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment", "replays", "profiles"),
+        ("error", "transaction", "attachment", "replay", "profile", "monitor"),
         required=False,
         help_text=(
             "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"
@@ -130,6 +132,10 @@ class StatsApiResponse(TypedDict):
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PUBLIC,
+    }
+    owner = ApiOwner.ENTERPRISE
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -138,7 +144,6 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
         }
     }
-    public = {"GET"}
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
@@ -212,5 +217,5 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
             with super().handle_query_errors():
                 yield
-        except (InvalidField, NoProjects, InvalidParams, InvalidQuery, InvalidParamsApi) as error:
+        except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
             raise ParseError(detail=str(error))

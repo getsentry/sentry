@@ -34,6 +34,7 @@ function stacksWithWeights(
     return {
       stack: frameFilter ? stack.filter(frameFilter) : stack,
       weight: profile.weights[index],
+      aggregate_sample_duration: profile.sample_durations_ns?.[index] ?? 0,
       profileIds: profileIds[index],
     };
   });
@@ -43,7 +44,7 @@ function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
   profileIds: Readonly<string[][]> = [],
   frameFilter?: (i: number) => boolean
-): {stack: number[]; weight: number}[] {
+): {aggregate_sample_duration: number; stack: number[]; weight: number}[] {
   return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
 }
 
@@ -122,6 +123,7 @@ export class SampledProfile extends Profile {
     for (let i = 0; i < samples.length; i++) {
       const stack = samples[i].stack;
       let weight = samples[i].weight;
+      let aggregate_duration_ns = samples[i].aggregate_sample_duration;
 
       const isGCStack =
         options.type === 'flamechart' &&
@@ -156,6 +158,7 @@ export class SampledProfile extends Profile {
               '(garbage collector) [native code]'
           ) {
             weight += samples[++i].weight;
+            aggregate_duration_ns += samples[i].aggregate_sample_duration;
           }
         }
       } else {
@@ -171,7 +174,13 @@ export class SampledProfile extends Profile {
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight, size, resolvedProfileIds[i]);
+      profile.appendSampleWithWeight(
+        resolvedStack,
+        weight,
+        size,
+        resolvedProfileIds[i],
+        aggregate_duration_ns
+      );
     }
 
     return profile.build();
@@ -209,7 +218,8 @@ export class SampledProfile extends Profile {
     stack: Frame[],
     weight: number,
     end: number,
-    resolvedProfileIds?: string[]
+    resolvedProfileIds?: string[],
+    aggregate_duration_ns?: number
   ): void {
     // Keep track of discarded samples and ones that may have negative weights
     this.trackSampleStats(weight);
@@ -221,7 +231,6 @@ export class SampledProfile extends Profile {
 
     let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
-
     for (let i = 0; i < end; i++) {
       const frame = stack[i];
       const last = node.children[node.children.length - 1];
@@ -238,6 +247,7 @@ export class SampledProfile extends Profile {
       }
 
       node.totalWeight += weight;
+      node.aggregate_duration_ns += aggregate_duration_ns ?? 0;
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
@@ -270,6 +280,7 @@ export class SampledProfile extends Profile {
 
     for (const stackNode of framesInStack) {
       stackNode.frame.totalWeight += weight;
+      stackNode.frame.aggregateDuration += aggregate_duration_ns ?? 0;
       stackNode.count++;
     }
 

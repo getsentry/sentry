@@ -12,9 +12,15 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
@@ -232,6 +238,10 @@ class GitlabWebhookMixin:
 
 @region_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     provider = "gitlab"
@@ -265,8 +275,8 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            logger.error(extra["reason"])
+            return HttpResponse(status=409, reason=extra["reason"])
 
         extra = {
             **extra,
@@ -295,7 +305,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
                 "reason"
             ] = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
             logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=409, reason=extra["reason"])
 
         try:
             event = json.loads(request.body.decode("utf-8"))
@@ -310,7 +320,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
         except KeyError:
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
-            logger.info(f"We only support these kinds of events: {supported_events}")
+            logger.info("We only support these kinds of events: %s", supported_events)
             extra[
                 "reason"
             ] = "The customer has edited the webhook in Gitlab to include other types of events."

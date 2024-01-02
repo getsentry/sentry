@@ -1,3 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+
 import {
   DashboardDetails,
   DisplayType,
@@ -169,7 +172,7 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the discover url of the widget query', () => {
-      const url = getWidgetDiscoverUrl(widget, selection, TestStubs.Organization());
+      const url = getWidgetDiscoverUrl(widget, selection, Organization());
       expect(url).toEqual(
         '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -191,7 +194,7 @@ describe('Dashboards util', () => {
           ],
         },
       };
-      const url = getWidgetDiscoverUrl(widget, selection, TestStubs.Organization());
+      const url = getWidgetDiscoverUrl(widget, selection, Organization());
       expect(url).toEqual(
         '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -216,7 +219,7 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the issue url of the widget query', () => {
-      const url = getWidgetIssueUrl(widget, selection, TestStubs.Organization());
+      const url = getWidgetIssueUrl(widget, selection, Organization());
       expect(url).toEqual(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
@@ -324,7 +327,7 @@ describe('Dashboards util', () => {
         projects: [1, 2],
       } as DashboardDetails;
       const location = {
-        ...TestStubs.location(),
+        ...LocationFixture(),
         query: {
           project: ['2', '1'],
         },
@@ -338,7 +341,7 @@ describe('Dashboards util', () => {
         environment: ['alpha', 'beta'],
       } as DashboardDetails;
       const location = {
-        ...TestStubs.location(),
+        ...LocationFixture(),
         query: {
           environment: ['beta', 'alpha'],
         },
@@ -356,7 +359,7 @@ describe('Dashboards util', () => {
 
       expect(
         hasUnsavedFilterChanges(initialDashboard, {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             release: ['v2', 'v1'],
           },

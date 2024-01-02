@@ -140,6 +140,12 @@ export interface ControlProps
     | React.ReactNode
     | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   /**
+   * Items to be displayed in the trailing (right) side of the menu's header.
+   */
+  menuHeaderTrailingItems?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
   menuTitle?: React.ReactNode;
@@ -208,6 +214,7 @@ export function Control({
   maxMenuHeight = '32rem',
   maxMenuWidth,
   menuWidth,
+  menuHeaderTrailingItems,
   menuBody,
   menuFooter,
 
@@ -468,6 +475,7 @@ export function Control({
         >
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
+            minWidth={overlayProps.style.minWidth}
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
@@ -476,11 +484,16 @@ export function Control({
             data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
-              {(menuTitle || (clearable && showClearButton)) && (
+              {(menuTitle ||
+                menuHeaderTrailingItems ||
+                (clearable && showClearButton)) && (
                 <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
+                    {typeof menuHeaderTrailingItems === 'function'
+                      ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                      : menuHeaderTrailingItems}
                     {clearable && showClearButton && (
                       <ClearButton onClick={clearSelection} size="zero" borderless>
                         {t('Clear')}
@@ -528,6 +541,7 @@ const ControlWrap = styled('div')`
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
+  line-height: normal;
 `;
 
 const StyledBadge = styled(Badge)`
@@ -631,6 +645,7 @@ const StyledOverlay = styled(Overlay, {
   maxHeightProp: string | number;
   maxHeight?: string | number;
   maxWidth?: string | number;
+  minWidth?: string | number;
   width?: string | number;
 }>`
   /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
@@ -640,6 +655,7 @@ const StyledOverlay = styled(Overlay, {
   overflow: hidden;
 
   ${p => p.width && `width: ${withUnits(p.width)};`}
+  ${p => p.minWidth && `min-width: ${withUnits(p.minWidth)};`}
   max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>
     p.maxHeight

@@ -3,6 +3,7 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
+import {ddmEventMap, DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 
 import {
   aiSuggestedSolutionEventMap,
@@ -25,6 +26,10 @@ import {
   ecosystemEventMap,
   EcosystemEventParameters,
 } from './analytics/ecosystemAnalyticsEvents';
+import {
+  feedbackEventMap,
+  FeedbackEventParameters,
+} from './analytics/feedbackAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './analytics/growthAnalyticsEvents';
 import {integrationEventMap, IntegrationEventParameters} from './analytics/integrations';
 import {issueEventMap, IssueEventParameters} from './analytics/issueAnalyticsEvents';
@@ -60,6 +65,10 @@ import {
   SettingsEventParameters,
 } from './analytics/settingsAnalyticsEvents';
 import {
+  SignupAnalyticsParameters,
+  SignupEventMap,
+} from './analytics/signupAnalyticsEvents';
+import {
   stackTraceEventMap,
   StackTraceEventParameters,
 } from './analytics/stackTraceAnalyticsEvents';
@@ -73,7 +82,9 @@ interface EventParameters
   extends GrowthEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
+    DDMEventParameters,
     DiscoverEventParameters,
+    FeedbackEventParameters,
     IssueEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
@@ -90,12 +101,15 @@ interface EventParameters
     EcosystemEventParameters,
     IntegrationEventParameters,
     ProjectCreationEventParameters,
+    SignupAnalyticsParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
   ...dashboardsEventMap,
+  ...ddmEventMap,
   ...discoverEventMap,
+  ...feedbackEventMap,
   ...growthEventMap,
   ...issueEventMap,
   ...monitorsEventMap,
@@ -114,6 +128,7 @@ const allEventMap: Record<string, string | null> = {
   ...integrationEventMap,
   ...projectCreationEventMap,
   ...starfishEventMap,
+  ...SignupEventMap,
 };
 
 /**

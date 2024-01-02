@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -14,6 +15,10 @@ from sentry.snuba import discover
 
 @region_silo_endpoint
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -41,10 +46,10 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:
                     values = resp[row.key]
-                    values["key"] = tagstore.get_standardized_key(row.key)
+                    values["key"] = tagstore.backend.get_standardized_key(row.key)
                     values["topValues"].append(
                         {
-                            "name": tagstore.get_tag_value_label(row.key, row.value),
+                            "name": tagstore.backend.get_tag_value_label(row.key, row.value),
                             "value": row.value,
                             "count": row.count,
                         }
@@ -76,6 +81,9 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                     resp["device.class"]["topValues"] = filtered_values
 
             return list(resp.values())
+
+        if request.GET.get("includeAll"):
+            return Response(data_fn(0, 10000))
 
         return self.paginate(
             request=request,

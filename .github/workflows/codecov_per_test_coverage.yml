@@ -1,0 +1,75 @@
+name: Codecov - per test coverage
+# This workflow generates pytest coverage with the flag --cov-context=test
+# This coverage is used as input for Codecov Automated Test Selection (see .github/workflows/codecov_ats.yml)
+# However there's a performance toll in running tests with this flag.
+# So we will not be running the test suite on every commit
+
+on: [workflow_dispatch, workflow_call]
+
+jobs:
+  # Same as 'backend' in .github/workflows/backed.yml
+  # Except for run_backend_tests step (which includes the extra --cov-context=test flag)
+  # And the coverage generation and handling
+  backend-test-with-cov-context:
+    if: github.ref == 'refs/heads/master'
+    name: backend test
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3, 4, 5, 6]
+        pg-version: ['14']
+
+    env:
+      # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
+      # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
+      MATRIX_INSTANCE_TOTAL: 7
+
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          kafka: true
+          snuba: true
+          symbolicator: true
+          # Right now, we run so few bigtable related tests that the
+          # overhead of running bigtable in all backend tests
+          # is way smaller than the time it would take to run in its own job.
+          bigtable: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }}) with --cov-context=test
+        id: run_backend_tests
+        run: |
+          make test-python-ci COV_ARGS=--cov-context=test
+
+      # Separate from the testing step above so that we always create the report
+      # Even if some tests fail
+      - name: Create coverage report in JSON format
+        if: ${{ always() }}
+        run: |
+          coverage json --show-contexts -o .artifacts/python.coverage.json
+
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Upload coverage - special case to test Codecov ATS
+        if: ${{ always() }}
+        uses: codecov/codecov-action@v4-beta
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          files: .artifacts/python.coverage.codecov.json
+          flags: smart-tests
+          plugins: compress-pycoverage
+        continue-on-error: true

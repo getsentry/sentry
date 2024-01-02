@@ -1,19 +1,19 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry import integrations
 from sentry.integrations.notify_disable import get_provider_type, get_url
-from sentry.models import Integration, Organization
+from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
 
 from .mail import MailPreview
 
 
 class DebugNotifyDisableView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
-        self.integration = Integration.objects.create(
+        self.integration, _ = Integration.objects.get_or_create(
             provider="slack",
+            external_id="TXXXXXXX",
             name="Awesome Team",
-            external_id="TXXXXXXXZ",
             metadata={
                 "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
                 "installation_type": "born_as_bot",
@@ -22,19 +22,18 @@ class DebugNotifyDisableView(View):
 
         self.organization = Organization(id=1, slug="organization", name="My Company")
 
-        provider = integrations.get(self.integration.provider)
-        integration_name = provider.name
+        integration_name = self.integration.provider
         integration_link = get_url(
             self.organization,
             get_provider_type(f"sentry-integration-error:{self.integration.external_id}"),
-            provider.name,
+            self.integration.provider,
         )
 
         return MailPreview(
             html_template="sentry/integrations/notify-disable.html",
             text_template="sentry/integrations/notify-disable.txt",
             context={
-                "integration_name": integration_name,
+                "integration_name": integration_name.title(),
                 "integration_link": integration_link,
             },
         ).render(request)

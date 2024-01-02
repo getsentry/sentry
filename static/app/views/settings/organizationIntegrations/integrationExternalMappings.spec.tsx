@@ -1,3 +1,5 @@
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -73,7 +75,7 @@ describe('IntegrationExternalMappings', function () {
     const {container} = render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -95,7 +97,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -114,7 +116,7 @@ describe('IntegrationExternalMappings', function () {
     for (const user of MOCK_USER_SUGGESTIONS) {
       expect(screen.getByText(user)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId('suggestion-option')).toHaveLength(3);
+    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
   });
 
   it('renders suggestions along with the provided mappings', async function () {
@@ -122,7 +124,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={MOCK_TEAM_MAPPINGS}
         type="team"
         onCreate={onCreateMock}
@@ -147,7 +149,7 @@ describe('IntegrationExternalMappings', function () {
       expect(screen.getByText(team.externalName)).toBeInTheDocument();
       expect(screen.getByText(team.sentryName)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId('suggestion-option')).toHaveLength(3);
+    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
   });
 
   it('uses the methods passed down from props appropriately', async function () {
@@ -155,7 +157,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={MOCK_USER_MAPPINGS}
         type="user"
         onCreate={onCreateMock}

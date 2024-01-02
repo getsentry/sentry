@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 
@@ -11,7 +11,7 @@ backend = LazyServiceWrapper(
 backend.expose(locals())
 
 if TYPE_CHECKING:
-    __onboarding_task_backend = OnboardingTaskBackend()
+    __onboarding_task_backend = OnboardingTaskBackend[Any]()
     get_task_lookup_by_key = __onboarding_task_backend.get_task_lookup_by_key
     get_status_lookup_by_key = __onboarding_task_backend.get_status_lookup_by_key
     get_skippable_tasks = __onboarding_task_backend.get_skippable_tasks

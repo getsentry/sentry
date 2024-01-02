@@ -1,20 +1,21 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './sanic';
 
-import {GettingStartedWithSanic, steps} from './sanic';
-
-describe('GettingStartedWithSanic', function () {
+describe('sanic onboarding docs', function () {
   it('renders doc correctly', function () {
-    const {container} = render(<GettingStartedWithSanic dsn="test-dsn" />);
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    expect(container).toSnapshot();
+    // Renders install instructions
+    expect(
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk\[sanic\]/))
+    ).toBeInTheDocument();
   });
 });

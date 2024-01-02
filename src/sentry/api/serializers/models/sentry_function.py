@@ -6,7 +6,12 @@ from sentry.models.sentryfunction import SentryFunction
 class SentryFunctionSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         events = [event for event in obj.events]
-        env_variables = map(lambda x: {"name": x[0], "value": x[1]}, obj.env_variables.items())
+        env_variables = list(
+            map(
+                lambda env_variable: {"name": env_variable[0], "value": env_variable[1]},
+                obj.env_variables.items(),
+            )
+        )
         data = {
             "name": obj.name,
             "slug": obj.slug,

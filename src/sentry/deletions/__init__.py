@@ -10,7 +10,7 @@ because of a new relation or database failure.
 Celery Tasks
 ------------
 
-Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletion()` runs. This task queries for jobs
+Every 15 minutes `sentry.tasks.deletion.run_scheduled_deletions()` runs. This task queries for jobs
 that were scheduled to be run in the past that are not already in progress. Tasks are spawned for
 each deletion that needs to be processed.
 
@@ -23,7 +23,7 @@ Scheduling Deletions
 The entrypoint into deletions for the majority of application code is via the ``ScheduledDeletion``
 model. This model lets you create deletion jobs that are run in the future.
 
->>> from sentry.models import ScheduledDeletion
+>>> from sentry.models.scheduledeltion import ScheduledDeletion
 >>> ScheduledDeletion.schedule(organization, days=1, hours=2)
 
 The above would schedule an organization to be deleted in 1 day and 2 hours.
@@ -108,7 +108,6 @@ def load_defaults():
     default_manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     default_manager.register(models.Distribution, BulkModelDeletionTask)
     default_manager.register(models.EnvironmentProject, BulkModelDeletionTask)
-    default_manager.register(models.EventUser, BulkModelDeletionTask)
     default_manager.register(models.Group, defaults.GroupDeletionTask)
     default_manager.register(models.GroupAssignee, BulkModelDeletionTask)
     default_manager.register(models.GroupBookmark, BulkModelDeletionTask)
@@ -142,7 +141,7 @@ def load_defaults():
     default_manager.register(models.Project, defaults.ProjectDeletionTask)
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     default_manager.register(models.ProjectKey, BulkModelDeletionTask)
-    default_manager.register(models.PullRequest, BulkModelDeletionTask)
+    default_manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
     default_manager.register(models.Release, defaults.ReleaseDeletionTask)
     default_manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     default_manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)

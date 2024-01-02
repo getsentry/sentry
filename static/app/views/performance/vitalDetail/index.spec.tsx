@@ -1,4 +1,8 @@
 import {browserHistory, InjectedRouter} from 'react-router';
+import {MetricsField} from 'sentry-fixture/metrics';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -13,9 +17,9 @@ import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
-const organization = TestStubs.Organization({
+const organization = Organization({
   features: ['discover-basic', 'performance-view'],
-  projects: [TestStubs.Project()],
+  projects: [ProjectFixture()],
 });
 
 const {
@@ -202,9 +206,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField({
-        field: 'p75(sentry.transactions.measurements.lcp)',
-      }),
+      body: MetricsField('p75(sentry.transactions.measurements.lcp)'),
       match: [
         MockApiClient.matchQuery({
           field: ['p75(sentry.transactions.measurements.lcp)'],
@@ -277,7 +279,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,
@@ -331,7 +333,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,
@@ -386,7 +388,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = RouterContextFixture([
       {
         organization,
         project,

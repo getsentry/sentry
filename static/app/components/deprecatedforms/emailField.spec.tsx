@@ -6,22 +6,19 @@ import Form from 'sentry/components/deprecatedforms/form';
 describe('EmailField', function () {
   describe('render()', function () {
     it('renders', function () {
-      const {container} = render(<EmailField name="fieldName" />);
-      expect(container).toSnapshot();
+      render(<EmailField name="fieldName" />);
     });
 
     it('renders with value', function () {
-      const {container} = render(<EmailField name="fieldName" value="foo@example.com" />);
-      expect(container).toSnapshot();
+      render(<EmailField name="fieldName" value="foo@example.com" />);
     });
 
     it('renders with form context', function () {
-      const {container} = render(
+      render(
         <Form initialData={{fieldName: 'foo@example.com'}}>
           <EmailField name="fieldName" />
         </Form>
       );
-      expect(container).toSnapshot();
     });
   });
 });

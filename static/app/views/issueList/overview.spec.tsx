@@ -1,5 +1,13 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GroupStats} from 'sentry-fixture/groupStats';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {Member as MemberFixture} from 'sentry-fixture/member';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Search} from 'sentry-fixture/search';
+import {Tags} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -28,11 +36,11 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-const project = TestStubs.ProjectDetails({
+const project = ProjectFixture({
   id: '3559',
   name: 'Foo Project',
   slug: 'project-slug',
-  firstEvent: true,
+  firstEvent: new Date().toISOString(),
 });
 
 const {organization, router, routerContext} = initializeOrg({
@@ -57,15 +65,14 @@ const routerProps = {
 describe('IssueList', function () {
   let props;
 
-  const tags = TestStubs.Tags();
-  const group = TestStubs.Group({project});
-  const groupStats = TestStubs.GroupStats();
-  const savedSearch = TestStubs.Search({
+  const tags = Tags();
+  const group = GroupFixture({project});
+  const groupStats = GroupStats();
+  const savedSearch = Search({
     id: '789',
     query: 'is:unresolved TypeError',
     sort: 'date',
     name: 'Unresolved TypeErrors',
-    projectId: project.id,
   });
 
   let fetchTagsRequest: jest.Mock;
@@ -128,7 +135,7 @@ describe('IssueList', function () {
     fetchMembersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
-      body: [TestStubs.Member({projects: [project.slug]})],
+      body: [MemberFixture({projects: [project.slug]})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sent-first-event/',
@@ -203,7 +210,7 @@ describe('IssueList', function () {
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(await screen.findByRole('textbox'));
+      await userEvent.click(await screen.findByDisplayValue('is:unresolved'));
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
@@ -219,7 +226,7 @@ describe('IssueList', function () {
         })
       );
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
+      expect(screen.getByDisplayValue('is:unresolved')).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: /custom search/i})).toBeInTheDocument();
     });
@@ -229,7 +236,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -238,7 +245,7 @@ describe('IssueList', function () {
         ],
       });
 
-      const location = TestStubs.location({query: {query: 'level:foo'}});
+      const location = LocationFixture({query: {query: 'level:foo'}});
 
       render(<IssueListWithStores {...merge({}, routerProps, {location})} />, {
         context: routerContext,
@@ -256,7 +263,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('level:foo ');
+      expect(screen.getByDisplayValue('level:foo')).toBeInTheDocument();
 
       // Tab shows "custom search"
       expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
@@ -267,7 +274,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -291,7 +298,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
+      expect(screen.getByDisplayValue('is:resolved')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
@@ -312,7 +319,7 @@ describe('IssueList', function () {
         expect(issuesRequest).toHaveBeenCalled();
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
+      expect(screen.getByDisplayValue('is:unresolved')).toBeInTheDocument();
 
       // TODO(workflow): remove this test when we remove the feature flag
       expect(screen.getByRole('tab', {name: 'Archived'})).toBeInTheDocument();
@@ -322,14 +329,13 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
             sort: 'priority',
-            projectId: null,
             type: 0,
           }),
         ],
@@ -354,7 +360,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('assigned:me ');
+      expect(screen.getByDisplayValue('assigned:me')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'Assigned to Me'})).toBeInTheDocument();
@@ -364,13 +370,12 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
-            projectId: null,
             type: 0,
           }),
         ],
@@ -392,7 +397,7 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('level:error ');
+      expect(screen.getByDisplayValue('level:error')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
@@ -402,7 +407,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -429,10 +434,58 @@ describe('IssueList', function () {
         );
       });
 
-      expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
+      expect(screen.getByDisplayValue('is:resolved')).toBeInTheDocument();
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
+    });
+
+    it('caches the search results', async function () {
+      issuesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [...new Array(25)].map((_, i) => ({id: i})),
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+          'X-Hits': '500',
+          'X-Max-Hits': '1000',
+        },
+      });
+
+      const defaultProps = {
+        ...props,
+        ...routerProps,
+        useOrgSavedSearches: true,
+        selection: {
+          projects: [],
+          environments: [],
+          datetime: {period: '14d'},
+        },
+        organization: Organization({
+          features: ['issue-stream-performance', 'issue-stream-performance-cache'],
+          projects: [],
+        }),
+      };
+      const {unmount} = render(<IssueListWithStores {...defaultProps} />, {
+        context: routerContext,
+        organization: defaultProps.organization,
+      });
+
+      expect(
+        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+      ).toBeInTheDocument();
+      expect(issuesRequest).toHaveBeenCalledTimes(1);
+      unmount();
+
+      // Mount component again, getting from cache
+      render(<IssueListWithStores {...defaultProps} />, {
+        context: routerContext,
+        organization: defaultProps.organization,
+      });
+
+      expect(
+        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+      ).toBeInTheDocument();
+      expect(issuesRequest).toHaveBeenCalledTimes(1);
     });
 
     it('1 search', async function () {
@@ -463,7 +516,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Pinned search',
             isPinned: true,
@@ -479,8 +532,9 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      await userEvent.clear(screen.getByRole('textbox'));
-      await userEvent.type(screen.getByRole('textbox'), 'dogs{enter}');
+      const queryInput = screen.getByDisplayValue('is:resolved');
+      await userEvent.clear(queryInput);
+      await userEvent.type(queryInput, 'dogs{enter}');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -489,6 +543,7 @@ describe('IssueList', function () {
             environment: [],
             project: [],
             referrer: 'issue-list',
+            sort: '',
             query: 'dogs',
             statsPeriod: '14d',
           },
@@ -516,8 +571,9 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      await userEvent.clear(screen.getByRole('textbox'));
-      await userEvent.type(screen.getByRole('textbox'), 'assigned:me level:fatal{enter}');
+      const queryInput = screen.getByDisplayValue('is:unresolved');
+      await userEvent.clear(queryInput);
+      await userEvent.type(queryInput, 'assigned:me level:fatal{enter}');
 
       expect((browserHistory.push as jest.Mock).mock.calls[0][0]).toEqual(
         expect.objectContaining({
@@ -562,7 +618,7 @@ describe('IssueList', function () {
     });
 
     it('unpins a custom query', async function () {
-      const pinnedSearch = TestStubs.Search({
+      const pinnedSearch = Search({
         id: '666',
         name: 'My Pinned Search',
         query: 'assigned:me level:fatal',
@@ -608,14 +664,13 @@ describe('IssueList', function () {
     });
 
     it('pins a saved query', async function () {
-      const assignedToMe = TestStubs.Search({
+      const assignedToMe = Search({
         id: '234',
         name: 'Assigned to Me',
         isPinned: false,
         isGlobal: true,
         query: 'assigned:me',
         sort: 'date',
-        projectId: null,
         type: 0,
       });
 
@@ -911,8 +966,9 @@ describe('IssueList', function () {
         context: routerContext,
       });
 
-      await userEvent.clear(screen.getByRole('textbox'));
-      await userEvent.type(screen.getByRole('textbox'), 'is:ignored{enter}');
+      const queryInput = screen.getByDisplayValue('is:unresolved');
+      await userEvent.clear(queryInput);
+      await userEvent.type(queryInput, 'is:ignored{enter}');
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/',
@@ -992,7 +1048,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data: 'collapse=stats&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+          data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });
@@ -1065,7 +1121,10 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
 
-      await userEvent.type(screen.getByRole('textbox'), ' level:error{enter}');
+      await userEvent.type(
+        screen.getByDisplayValue('is:unresolved'),
+        ' level:error{enter}'
+      );
 
       expect(
         await screen.findByText(/We couldn't find any issues that matched your filters/i)
@@ -1095,7 +1154,7 @@ describe('IssueList', function () {
           params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects: [],
         }),
         ...moreProps,
@@ -1109,23 +1168,23 @@ describe('IssueList', function () {
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1145,7 +1204,7 @@ describe('IssueList', function () {
       });
 
       await createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1155,23 +1214,23 @@ describe('IssueList', function () {
 
     it('does not display when no projects selected and any projects have a first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1186,7 +1245,7 @@ describe('IssueList', function () {
         body: projects,
       });
       await createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1196,23 +1255,23 @@ describe('IssueList', function () {
 
     it('displays when all selected projects do not have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1237,7 +1296,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1247,23 +1306,23 @@ describe('IssueList', function () {
 
     it('does not display when any selected projects have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           id: '1',
           slug: 'foo',
           isMember: true,
-          firstEvent: false,
+          firstEvent: null,
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '2',
           slug: 'bar',
           isMember: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
-        TestStubs.Project({
+        ProjectFixture({
           id: '3',
           slug: 'baz',
           isMember: true,
-          firstEvent: true,
+          firstEvent: new Date().toISOString(),
         }),
       ];
       MockApiClient.addMockResponse({
@@ -1284,7 +1343,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1385,7 +1444,7 @@ describe('IssueList', function () {
       });
 
       it('for multiple projects', function () {
-        const projectBar = TestStubs.ProjectDetails({
+        const projectBar = ProjectFixture({
           id: '3560',
           name: 'Bar Project',
           slug: 'project-slug-bar',

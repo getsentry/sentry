@@ -1,3 +1,9 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
@@ -14,11 +20,14 @@ jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
 
 const now = new Date();
-const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({started_at: now}),
-  errors: [],
-  attachments: TestStubs.Replay.RRWebInitFrameEvents({timestamp: now}),
-});
+const mockReplay = ReplayReader.factory(
+  {
+    replayRecord: ReplayRecordFixture({started_at: now}),
+    errors: [],
+    attachments: RRWebInitFrameEvents({timestamp: now}),
+  },
+  {}
+);
 
 jest.mocked(useReplayReader).mockImplementation(() => {
   return {
@@ -27,10 +36,10 @@ jest.mocked(useReplayReader).mockImplementation(() => {
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),
-    projectSlug: TestStubs.Project().slug,
+    projectSlug: ProjectFixture().slug,
     replay: mockReplay,
-    replayId: TestStubs.ReplayRecord({}).id,
-    replayRecord: TestStubs.ReplayRecord(),
+    replayId: ReplayRecordFixture({}).id,
+    replayRecord: ReplayRecordFixture(),
   };
 });
 
@@ -43,12 +52,12 @@ describe('EventReplay', function () {
     useHasOrganizationSentAnyReplayEvents
   );
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['session-replay'],
   });
 
   const defaultProps = {
-    event: TestStubs.Event({
+    event: EventFixture({
       entries: [],
       tags: [],
       platform: 'javascript',
@@ -57,7 +66,7 @@ describe('EventReplay', function () {
   };
 
   beforeEach(function () {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     jest.mocked(useProjects).mockReturnValue({
       fetchError: null,
@@ -101,7 +110,7 @@ describe('EventReplay', function () {
     render(
       <EventReplay
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [],
           tags: [],
         })}
@@ -121,10 +130,10 @@ describe('EventReplay', function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
-    const {container} = render(
+    render(
       <EventReplay
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [],
           tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
           platform: 'javascript',
@@ -134,7 +143,6 @@ describe('EventReplay', function () {
     );
 
     expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 
   it('should render a replay when there is a replay_id from contexts', async function () {
@@ -145,10 +153,10 @@ describe('EventReplay', function () {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
-    const {container} = render(
+    render(
       <EventReplay
         {...defaultProps}
-        event={TestStubs.Event({
+        event={EventFixture({
           entries: [],
           tags: [],
           contexts: {
@@ -163,6 +171,5 @@ describe('EventReplay', function () {
     );
 
     expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 });

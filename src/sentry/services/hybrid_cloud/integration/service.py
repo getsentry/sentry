@@ -5,13 +5,14 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple
 
-from sentry.models.integrations.pagerduty_service import PagerDutyService, PagerDutyServiceDict
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
-from sentry.services.hybrid_cloud.integration.model import RpcIntegrationExternalProject
+from sentry.services.hybrid_cloud.integration.model import (
+    RpcIntegrationExternalProject,
+    RpcIntegrationIdentityContext,
+)
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -90,6 +91,7 @@ class IntegrationService(RpcService):
         external_id: Optional[str] = None,
         organization_id: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
+        status: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
@@ -108,6 +110,7 @@ class IntegrationService(RpcService):
         status: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_grace_period: Optional[bool] = None,
+        grace_period_expired: Optional[bool] = None,
         limit: Optional[int] = None,
     ) -> List[RpcOrganizationIntegration]:
         """
@@ -128,19 +131,6 @@ class IntegrationService(RpcService):
             integration_id=integration_id, organization_id=organization_id, limit=1
         )
         return ois[0] if len(ois) > 0 else None
-
-    def find_pagerduty_service(
-        self, *, organization_id: int, integration_id: int, service_id: Union[str, int]
-    ) -> Optional[PagerDutyServiceDict]:
-        org_integration = self.get_organization_integration(
-            integration_id=integration_id, organization_id=organization_id
-        )
-        if not org_integration:
-            return None
-        try:
-            return PagerDutyService.find_service(org_integration.config, service_id)
-        except StopIteration:
-            return None
 
     @rpc_method
     @abstractmethod
@@ -193,7 +183,7 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def add_organization(
-        self, *, integration_id: int, rpc_organizations: List[RpcOrganization]
+        self, *, integration_id: int, org_ids: List[int]
     ) -> Optional[RpcIntegration]:
         """
         Adds organizations to an existing integration
@@ -259,16 +249,17 @@ class IntegrationService(RpcService):
         incident_id: int,
         organization: RpcOrganizationSummary,
         new_status: int,
-        incident_attachment: Mapping[str, str],
+        incident_attachment_json: str,
         metric_value: Optional[str] = None,
-    ) -> None:
+        notification_uuid: Optional[str] = None,
+    ) -> bool:
         pass
 
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
         self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
-    ) -> None:
+    ) -> bool:
         raise NotImplementedError
 
     @rpc_method
@@ -283,7 +274,17 @@ class IntegrationService(RpcService):
     ) -> Optional[RpcIntegrationExternalProject]:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_integration_identity_context(
+        self,
+        *,
+        integration_provider: Optional[str] = None,
+        integration_external_id: Optional[str] = None,
+        identity_external_id: Optional[str] = None,
+        identity_provider_external_id: Optional[str] = None,
+    ) -> RpcIntegrationIdentityContext:
+        pass
 
-integration_service: IntegrationService = cast(
-    IntegrationService, IntegrationService.create_delegation()
-)
+
+integration_service = IntegrationService.create_delegation()

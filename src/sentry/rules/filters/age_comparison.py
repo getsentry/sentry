@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import operator
 from datetime import datetime, timedelta
 from typing import Any, Dict, Sequence, Tuple
 
@@ -8,16 +7,11 @@ from django import forms
 from django.utils import timezone
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Group
+from sentry.models.group import Group
 from sentry.rules import EventState
+from sentry.rules.age import AgeComparisonType, age_comparison_choices, age_comparison_map
 from sentry.rules.filters.base import EventFilter
 from sentry.types.condition_activity import ConditionActivity
-
-
-class AgeComparisonType:
-    OLDER = "older"
-    NEWER = "newer"
-
 
 timeranges = {
     "minute": ("minute(s)", timedelta(minutes=1)),
@@ -25,10 +19,6 @@ timeranges = {
     "day": ("day(s)", timedelta(days=1)),
     "week": ("week(s)", timedelta(days=7)),
 }
-
-age_comparison_choices = [(AgeComparisonType.OLDER, "older"), (AgeComparisonType.NEWER, "newer")]
-
-age_comparison_map = {AgeComparisonType.OLDER: operator.lt, AgeComparisonType.NEWER: operator.gt}
 
 
 def get_timerange_choices() -> Sequence[Tuple[str, str]]:

@@ -1,4 +1,7 @@
 import styled from '@emotion/styled';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Organization} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -29,8 +32,8 @@ describe('ExternalIssueForm', () => {
   const onChange = jest.fn();
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    group = TestStubs.Group();
-    integration = TestStubs.GitHubIntegration({externalIssues: []});
+    group = GroupFixture();
+    integration = GitHubIntegrationFixture({externalIssues: []});
   });
 
   afterEach(() => {
@@ -40,7 +43,7 @@ describe('ExternalIssueForm', () => {
 
   const renderComponent = async (action = 'Create') => {
     MockApiClient.addMockResponse({
-      url: `/groups/${group.id}/integrations/${integration.id}/`,
+      url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
       body: formConfig,
       match: [MockApiClient.matchQuery({action: 'create'})],
     });
@@ -50,7 +53,7 @@ describe('ExternalIssueForm', () => {
       <ExternalIssueForm
         Body={styledWrapper()}
         Footer={styledWrapper()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         Header={c => <span>{c.children}</span>}
         group={group}
         integration={integration}
@@ -70,13 +73,30 @@ describe('ExternalIssueForm', () => {
         createIssueConfig: [],
       };
       MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
       });
     });
     it('renders', async () => {
-      const {container} = await renderComponent();
-      expect(container).toSnapshot();
+      await renderComponent();
+    });
+    it('if we have an error fields, we should disable the create button', async () => {
+      formConfig = {
+        createIssueConfig: [
+          {
+            name: 'error',
+            type: 'blank',
+          },
+        ],
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        body: formConfig,
+      });
+      await renderComponent();
+
+      const submitButton = screen.getByRole('button', {name: 'Create Issue'});
+      expect(submitButton).toBeDisabled();
     });
   });
   describe('link', () => {
@@ -140,22 +160,21 @@ describe('ExternalIssueForm', () => {
         id: '5',
       };
       getFormConfigRequest = MockApiClient.addMockResponse({
-        url: `/groups/${group.id}/integrations/${integration.id}/`,
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         body: formConfig,
         match: [MockApiClient.matchQuery({action: 'link'})],
       });
     });
 
     it('renders and loads options', async () => {
-      const {container} = await renderComponent('Link');
+      await renderComponent('Link');
       expect(getFormConfigRequest).toHaveBeenCalled();
-      expect(container).toSnapshot();
     });
 
     describe('options loaded', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({
-          url: `/groups/${group.id}/integrations/${integration.id}/?action=link`,
+          url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/?action=link`,
           body: formConfig,
         });
       });

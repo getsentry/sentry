@@ -1,3 +1,5 @@
+import {Organization} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NewQuery} from 'sentry/types';
@@ -70,7 +72,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   };
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features: ['discover-query', 'dashboards-edit'],
     });
   });
@@ -109,7 +111,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
 
     it('renders the correct set of buttons with the homepage query feature', async () => {
-      organization = TestStubs.Organization({
+      organization = Organization({
         features: ['discover-query', 'dashboards-edit'],
       });
       mount(location, organization, router, errorsView, undefined, yAxis);

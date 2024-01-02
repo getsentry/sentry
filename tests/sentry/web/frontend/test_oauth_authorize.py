@@ -1,12 +1,15 @@
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apigrant import ApiGrant
+from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
     @cached_property
     def path(self):
@@ -240,7 +243,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert authorization.get_scopes() == grant.get_scopes()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
     @cached_property
     def path(self):

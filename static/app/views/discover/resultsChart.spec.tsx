@@ -1,3 +1,8 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,14 +12,14 @@ import ResultsChart from 'sentry/views/discover/resultsChart';
 
 describe('Discover > ResultsChart', function () {
   const features = ['discover-basic'];
-  const location = TestStubs.location({
+  const location = LocationFixture({
     query: {query: 'tag:value'},
     pathname: '/',
   });
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
 
   const initialData = initializeOrg({
@@ -42,7 +47,7 @@ describe('Discover > ResultsChart', function () {
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
     render(
       <ResultsChart
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         eventView={eventView}
         location={location}
@@ -76,7 +81,7 @@ describe('Discover > ResultsChart', function () {
   it('does not display a chart if no y axis is selected', function () {
     render(
       <ResultsChart
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         eventView={eventView}
         location={location}

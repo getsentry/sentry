@@ -69,6 +69,24 @@ describe('AlertRuleDetails', () => {
       'Percent of sessions affected by an issue is 150% higher in 1h compared to 1d ago'
     );
   });
+
+  it('displays EventUniqueUserFrequencyCondition count', () => {
+    const wrapper = render(
+      <TextCondition
+        condition={{
+          id: 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+          comparisonType: 'count',
+          interval: '1d',
+          name: 'The issue is seen by more than 89 users in 1d',
+          value: 89,
+        }}
+      />
+    );
+    expect(wrapper.container).toHaveTextContent(
+      'Number of users affected by an issue is more than 89 in 1d'
+    );
+  });
+
   it('hides slack id and empty tags', () => {
     const wrapper = render(
       <TextAction

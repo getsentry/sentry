@@ -13,7 +13,10 @@ from sentry.tasks.recap_servers import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 crash_payload = {
     "_links": {

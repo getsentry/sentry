@@ -55,7 +55,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                             Condition(
                                 Column("metric_id"),
                                 Op.EQ,
-                                SESSION_METRIC_NAMES[SessionMRI.SESSION.value],
+                                SESSION_METRIC_NAMES[SessionMRI.RAW_SESSION.value],
                             ),
                         ],
                         granularity=Granularity(3600),
@@ -133,7 +133,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                                 Column("metric_id"),
                                 Op.EQ,
                                 indexer.resolve(
-                                    UseCaseID.SESSIONS, org_id, SessionMRI.SESSION.value
+                                    UseCaseID.SESSIONS, org_id, SessionMRI.RAW_SESSION.value
                                 ),
                             ),
                         ],

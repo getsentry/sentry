@@ -1,3 +1,9 @@
+import {
+  ReplayRequestFrameFixture,
+  ReplayResourceFrameFixture,
+} from 'sentry-fixture/replay/replaySpanFrameData';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
@@ -8,7 +14,9 @@ import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 
 function mockNeedsUpdate(needsUpdate: boolean) {
-  jest.mocked(useProjectSdkNeedsUpdate).mockReturnValue({isFetching: false, needsUpdate});
+  jest
+    .mocked(useProjectSdkNeedsUpdate)
+    .mockReturnValue({isError: false, isFetching: false, needsUpdate});
 }
 
 const [
@@ -18,20 +26,20 @@ const [
   fetchBodySkipped,
   fetchWithHeaders,
   fetchWithRespBody,
-] = hydrateSpans(TestStubs.ReplayRecord(), [
-  TestStubs.Replay.ResourceFrame({
+] = hydrateSpans(ReplayRecordFixture(), [
+  ReplayResourceFrameFixture({
     op: 'resource.img',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
     description: '/static/img/logo.png',
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
     description: '/api/0/issues/1234',
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
@@ -43,7 +51,7 @@ const [
       response: {_meta: {warnings: ['URL_SKIPPED']}, headers: {}},
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
@@ -63,7 +71,7 @@ const [
       },
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),
@@ -81,7 +89,7 @@ const [
       },
     },
   }),
-  TestStubs.Replay.RequestFrame({
+  ReplayRequestFrameFixture({
     op: 'resource.fetch',
     startTimestamp: new Date(),
     endTimestamp: new Date(),

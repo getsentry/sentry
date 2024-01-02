@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import Deploy, Environment
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
 
 
 @register(Deploy)

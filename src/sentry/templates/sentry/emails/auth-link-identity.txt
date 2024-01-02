@@ -4,4 +4,4 @@ Link your Sentry account to enable signing on with your {{ provider.name }} acco
 
 {{ url }}
 
-SSO link request invoked by {{ actor.email }}
+SSO link request invoked by {{ actor_email }}

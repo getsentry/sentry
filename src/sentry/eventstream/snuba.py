@@ -80,7 +80,6 @@ if TYPE_CHECKING:
 
 
 class SnubaProtocolEventStream(EventStream):
-
     # Beware! Changing this protocol (introducing a new version, or the message
     # format/fields themselves) requires consideration of all downstream
     # consumers. This includes the post-processing forwarder code!
@@ -121,14 +120,17 @@ class SnubaProtocolEventStream(EventStream):
     ) -> None:
         if event.get_tag("sample_event") == "true":
             logger.info(
-                "insert: attempting to insert event in Snuba",
-                extra={"event.id": event.event_id, "project_id": event.project_id},
+                "insert: attempting to insert event in SnubaProtocolEventStream",
+                extra={
+                    "event.id": event.event_id,
+                    "project_id": event.project_id,
+                    "sample_event": True,
+                },
             )
         if isinstance(event, GroupEvent) and not event.occurrence:
             logger.error(
                 "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
                 "associated with an `IssueOccurrence`",
-                exc_info=True,
             )
             return
         project = event.project
@@ -180,11 +182,6 @@ class SnubaProtocolEventStream(EventStream):
             # transactions processing has a configurable 'skipped contexts' to skip writing specific contexts maps
             # to the row. for now, we're ignoring that until we have a need for it
 
-        if event.get_tag("sample_event") == "true":
-            logger.info(
-                "insert: inserting event in Snuba",
-                extra={"event.id": event.event_id, "project_id": event.project_id},
-            )
         self._send(
             project.id,
             "insert",
@@ -216,6 +213,7 @@ class SnubaProtocolEventStream(EventStream):
                 },
             ),
             headers=headers,
+            asynchronous=kwargs.get("asynchronous", True),
             skip_semantic_partitioning=skip_semantic_partitioning,
             event_type=event_type,
         )
@@ -328,7 +326,6 @@ class SnubaProtocolEventStream(EventStream):
         from_timestamp: Optional[datetime] = None,
         to_timestamp: Optional[datetime] = None,
     ) -> None:
-
         """
         Tell Snuba to eventually delete these events.
 

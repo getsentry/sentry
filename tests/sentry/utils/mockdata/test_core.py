@@ -12,14 +12,14 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, regi
 from sentry.utils import mockdata
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @django_db_all
 def test_create_user() -> None:
     user = mockdata.create_user()
     assert user.id
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @django_db_all
 def test_create_broadcast() -> None:
     mockdata.create_broadcast()
@@ -28,7 +28,7 @@ def test_create_broadcast() -> None:
     assert "Source Maps" in cast.title
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @django_db_all
 def test_get_organization() -> None:
     org = mockdata.get_organization()
@@ -36,7 +36,7 @@ def test_get_organization() -> None:
     assert "default" == org.slug
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @django_db_all
 def test_create_member() -> None:
     with assume_test_silo_mode(SiloMode.CONTROL):

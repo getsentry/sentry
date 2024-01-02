@@ -27,6 +27,7 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -42,6 +43,9 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
+import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -60,8 +64,10 @@ import {
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
+  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
+  getWidgetDDMUrl,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
@@ -81,18 +87,24 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import MetricWidgetQueries from 'sentry/views/dashboards/widgetCard/metricWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import {CodeLocations} from 'sentry/views/ddm/codeLocations';
+import {TraceTable} from 'sentry/views/ddm/samplesTable';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
+
+import {Tooltip} from '../tooltip';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderMetricGridHeaderCell,
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
@@ -390,6 +402,12 @@ function WidgetViewerModal(props: Props) {
     width: parseInt(widths[index], 10) || -1,
   }));
 
+  const getOnDemandFilterWarning = createOnDemandFilterWarning(
+    t(
+      'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
+    )
+  );
+
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
@@ -397,7 +415,12 @@ function WidgetViewerModal(props: Props) {
       !name && !!conditions
         ? parseSearch(
             conditions +
-              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`)
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`),
+            {
+              getFilterTokenWarning: hasOnDemandMetricWidgetFeature(organization)
+                ? getOnDemandFilterWarning
+                : undefined,
+            }
           )
         : null;
     const getHighlightedQuery = (
@@ -673,6 +696,76 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
+  const renderMetricsTable: MetricWidgetQueries['props']['children'] = ({
+    tableResults,
+    loading,
+    pageLinks,
+  }) => {
+    const links = parseLinkHeader(pageLinks ?? null);
+    const isFirstPage = links.previous?.results === false;
+    const data = tableResults?.[0]?.data ?? [];
+
+    // For now we only support one aggregate in metric widgets, once we support multiple aggregates we will need to do the sorting on the backend
+    const mainField = props.widget.queries[0].aggregates[0];
+    const sortedData = [...data].sort(
+      (a, b) => Number(b[mainField]) - Number(a[mainField])
+    );
+
+    const parsedField = parseField(mainField);
+
+    if (!parsedField) {
+      return null;
+    }
+
+    const {useCase} = parseMRI(parsedField.mri)!;
+
+    return (
+      <Fragment>
+        <Tabs>
+          <TabList>
+            <TabList.Item key="summary">{t('Summary')}</TabList.Item>
+            <TabList.Item hidden={useCase !== 'custom'} key="codeLocation">
+              {t('Code Location')}
+            </TabList.Item>
+            <TabList.Item key="samples">{t('Samples')}</TabList.Item>
+          </TabList>
+          <MetricWidgetTabContent>
+            <TabPanels>
+              <TabPanels.Item key="summary">
+                <GridEditable
+                  isLoading={loading}
+                  data={sortedData}
+                  columnOrder={columnOrder}
+                  columnSortBy={columnSortBy}
+                  grid={{
+                    renderHeadCell: renderMetricGridHeaderCell() as (
+                      column: GridColumnOrder,
+                      columnIndex: number
+                    ) => React.ReactNode,
+                    renderBodyCell: renderGridBodyCell({
+                      ...props,
+                      location,
+                      tableData: tableResults?.[0],
+                      isFirstPage,
+                    }),
+                    onResizeColumn,
+                  }}
+                  location={location}
+                />
+              </TabPanels.Item>
+              <TabPanels.Item key="codeLocation">
+                <CodeLocations mri={parsedField.mri} />
+              </TabPanels.Item>
+              <TabPanels.Item key="samples">
+                <TraceTable mri={parsedField.mri} />
+              </TabPanels.Item>
+            </TabPanels>
+          </MetricWidgetTabContent>
+        </Tabs>
+      </Fragment>
+    );
+  };
+
   const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
     // @ts-expect-error getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
@@ -773,6 +866,31 @@ function WidgetViewerModal(props: Props) {
           >
             {renderReleaseTable}
           </ReleaseWidgetQueries>
+        );
+      case WidgetType.METRICS:
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+          return renderMetricsTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          });
+        }
+        return (
+          <MetricWidgetQueries
+            api={api}
+            organization={organization}
+            widget={tableWidget}
+            selection={modalTableSelection}
+            limit={
+              widget.displayType === DisplayType.TABLE
+                ? FULL_TABLE_ITEM_LIMIT
+                : HALF_TABLE_ITEM_LIMIT
+            }
+            cursor={cursor}
+            dashboardFilters={dashboardFilters}
+          >
+            {renderMetricsTable}
+          </MetricWidgetQueries>
         );
       case WidgetType.DISCOVER:
       default:
@@ -990,10 +1108,24 @@ function WidgetViewerModal(props: Props) {
                   forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
                   <Header closeButton>
-                    <WidgetTitle>
-                      <h3>{widget.title}</h3>
+                    <WidgetHeader>
+                      <WidgetTitleRow>
+                        <h3>{widget.title}</h3>
+                        {widget.thresholds &&
+                          tableData &&
+                          organization.features.includes('dashboard-widget-indicators') &&
+                          getColoredWidgetIndicator(widget.thresholds, tableData)}
+                      </WidgetTitleRow>
                       {widget.description && (
-                        <WidgetDescription>{widget.description}</WidgetDescription>
+                        <Tooltip
+                          title={widget.description}
+                          containerDisplayMode="grid"
+                          showOnlyOnOverflow
+                          isHoverable
+                          position="bottom"
+                        >
+                          <WidgetDescription>{widget.description}</WidgetDescription>
+                        </Tooltip>
                       )}
                       <DashboardsMEPConsumer>
                         {({}) => {
@@ -1018,7 +1150,7 @@ function WidgetViewerModal(props: Props) {
                           return null;
                         }}
                       </DashboardsMEPConsumer>
-                    </WidgetTitle>
+                    </WidgetHeader>
                   </Header>
                   <Body>{renderWidgetViewer()}</Body>
                   <Footer>
@@ -1087,6 +1219,10 @@ function OpenButton({
       openLabel = t('Open in Releases');
       path = getWidgetReleasesUrl(widget, selection, organization);
       break;
+    case WidgetType.METRICS:
+      openLabel = t('Open in DDM');
+      path = getWidgetDDMUrl(widget, selection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -1134,7 +1270,7 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
     case WidgetType.DISCOVER:
       return (
         <span>
-          {tct('[description:Total Events:] [total]', {
+          {tct('[description:Sampled Events:] [total]', {
             description: <strong />,
             total: totalResults,
           })}
@@ -1193,10 +1329,21 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.disabled};
 `;
 
-const WidgetTitle = styled('div')`
+const WidgetHeader = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const WidgetTitleRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+`;
+
+const MetricWidgetTabContent = styled('div')`
+  position: relative;
+  padding-top: ${space(2)};
 `;
 
 export default withPageFilters(WidgetViewerModal);

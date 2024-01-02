@@ -1,5 +1,11 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -25,16 +31,23 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
-  const groupingConfigs = TestStubs.GroupingConfigs();
-  const groupingEnhancements = TestStubs.GroupingEnhancements();
+  const org = Organization();
+  const project = ProjectFixture({
+    subjectPrefix: '[my-org]',
+    resolveAge: 48,
+    allowedDomains: ['example.com', 'https://example.com'],
+    scrapeJavaScript: true,
+    securityToken: 'security-token',
+    securityTokenHeader: 'x-security-header',
+    verifySSL: true,
+  });
+  const groupingConfigs = GroupingConfigs();
   let routerContext;
   let putMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
-    location: TestStubs.location(),
+    location: LocationFixture(),
     routes: router.routes,
     route: router.routes[0],
     router,
@@ -43,9 +56,9 @@ describe('projectGeneralSettings', function () {
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
-    routerContext = TestStubs.routerContext([
+    routerContext = RouterContextFixture([
       {
-        router: TestStubs.router({
+        router: RouterFixture({
           params: {
             projectId: project.slug,
           },
@@ -55,14 +68,9 @@ describe('projectGeneralSettings', function () {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/grouping-configs/',
+      url: `/organizations/${org.slug}/grouping-configs/`,
       method: 'GET',
       body: groupingConfigs,
-    });
-    MockApiClient.addMockResponse({
-      url: '/grouping-enhancements/',
-      method: 'GET',
-      body: groupingEnhancements,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -221,7 +229,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
+    const readOnlyOrg = Organization({access: ['org:read']});
     routerContext.context.organization = readOnlyOrg;
 
     render(
@@ -252,7 +260,7 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext orgId={org.slug} projectId={project.slug}>
+      <ProjectContext projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
@@ -269,7 +277,7 @@ describe('projectGeneralSettings', function () {
     expect(putMock).toHaveBeenCalled();
 
     // updates ProjectsStore
-    expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
+    expect(ProjectsStore.getById('2')!.platform).toBe('javascript');
   });
 
   it('changing name updates ProjectsStore', async function () {
@@ -286,7 +294,7 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext orgId={org.slug} projectId={project.slug}>
+      <ProjectContext projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
@@ -310,7 +318,7 @@ describe('projectGeneralSettings', function () {
 
     // Redirects the user
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
-    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
+    expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 
   describe('Non-"save on blur" Field', function () {
@@ -328,7 +336,7 @@ describe('projectGeneralSettings', function () {
       });
 
       render(
-        <ProjectContext orgId={org.slug} projectId={project.slug}>
+        <ProjectContext projectSlug={project.slug}>
           <ProjectGeneralSettings
             {...routerProps}
             routes={[]}

@@ -1,3 +1,9 @@
+import {Member as MemberFixture} from 'sentry-fixture/member';
+import {Members} from 'sentry-fixture/members';
+import {Organization} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {Team} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -15,17 +21,17 @@ jest.mock('sentry/actionCreators/modal', () => ({
 describe('TeamMembers', function () {
   let createMock;
 
-  const organization = TestStubs.Organization();
-  const team = TestStubs.Team();
-  const managerTeam = TestStubs.Team({orgRole: 'manager'});
-  const members = TestStubs.Members();
-  const member = TestStubs.Member({
+  const organization = Organization();
+  const team = Team();
+  const managerTeam = Team({orgRole: 'manager'});
+  const members = Members();
+  const member = MemberFixture({
     id: '9',
     email: 'sentry9@test.com',
     name: 'Sentry 9 Name',
   });
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   const routerProps = {
     router,
@@ -66,7 +72,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with open membership', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: true});
+    const org = Organization({access: [], openMembership: true});
     render(
       <TeamMembers
         {...routerProps}
@@ -77,9 +83,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
@@ -87,7 +91,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add multiple members with one click on dropdown', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: true});
+    const org = Organization({access: [], openMembership: true});
     render(
       <TeamMembers
         {...routerProps}
@@ -98,9 +102,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
 
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
@@ -109,7 +111,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with team:admin permission', async function () {
-    const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
+    const org = Organization({access: ['team:admin'], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -120,9 +122,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
@@ -130,7 +130,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with org:write permission', async function () {
-    const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
+    const org = Organization({access: ['org:write'], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -141,9 +141,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
@@ -151,7 +149,7 @@ describe('TeamMembers', function () {
   });
 
   it('can request access to add member to team without permission', async function () {
-    const org = TestStubs.Organization({access: [], openMembership: false});
+    const org = Organization({access: [], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -162,9 +160,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
@@ -173,7 +169,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({
+      organization: Organization({
         access: ['team:admin'],
         openMembership: false,
       }),
@@ -189,9 +185,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -200,7 +194,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({
+      organization: Organization({
         access: ['team:admin'],
         openMembership: true,
       }),
@@ -216,9 +210,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -227,7 +219,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` enabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({access: [], openMembership: true}),
+      organization: Organization({access: [], openMembership: true}),
     });
     render(
       <TeamMembers
@@ -240,9 +232,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -251,7 +241,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` disabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({access: [], openMembership: false}),
+      organization: Organization({access: [], openMembership: false}),
     });
     render(
       <TeamMembers
@@ -264,9 +254,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -296,7 +284,7 @@ describe('TeamMembers', function () {
   });
 
   it('can only remove self from team', async function () {
-    const me = TestStubs.Member({
+    const me = MemberFixture({
       id: '123',
       email: 'foo@example.com',
     });
@@ -310,7 +298,7 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${me.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    const organizationMember = TestStubs.Organization({access: []});
+    const organizationMember = Organization({access: []});
 
     render(
       <TeamMembers
@@ -336,7 +324,7 @@ describe('TeamMembers', function () {
   });
 
   it('renders team-level roles without flag', async function () {
-    const owner = TestStubs.Member({
+    const owner = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       orgRole: 'owner',
@@ -364,7 +352,7 @@ describe('TeamMembers', function () {
   });
 
   it('renders team-level roles with flag', async function () {
-    const manager = TestStubs.Member({
+    const manager = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       orgRole: 'manager',
@@ -376,7 +364,7 @@ describe('TeamMembers', function () {
       body: [...members, manager],
     });
 
-    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+    const orgWithTeamRoles = Organization({features: ['team-roles']});
 
     await render(
       <TeamMembers
@@ -399,7 +387,7 @@ describe('TeamMembers', function () {
       method: 'GET',
       body: [],
     });
-    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+    const orgWithTeamRoles = Organization({features: ['team-roles']});
     render(
       <TeamMembers
         {...routerProps}
@@ -410,9 +398,7 @@ describe('TeamMembers', function () {
     );
 
     await userEvent.click(
-      (
-        await screen.findAllByRole('button', {name: 'Add Member'})
-      )[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
     );
     await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
@@ -421,18 +407,23 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members if team is idp:provisioned', function () {
-    const team2 = TestStubs.Team({
+    const team2 = Team({
       flags: {
         'idp:provisioned': true,
       },
     });
 
-    const me = TestStubs.Member({
+    const me = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       role: 'owner',
       flags: {
         'idp:provisioned': true,
+        'idp:role-restricted': false,
+        'member-limit:restricted': false,
+        'partnership:restricted': false,
+        'sso:invalid': false,
+        'sso:linked': false,
       },
     });
 
@@ -469,9 +460,9 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members or leave if team has org role and no access', function () {
-    const team2 = TestStubs.Team({orgRole: 'manager'});
+    const team2 = Team({orgRole: 'manager'});
 
-    const me = TestStubs.Member({
+    const me = MemberFixture({
       id: '123',
       email: 'foo@example.com',
       role: 'member',

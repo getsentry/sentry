@@ -4,18 +4,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 from sentry_sdk import Scope
 from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
-    InvalidParams,
     customer_domain_path,
     get_date_range_from_params,
     print_and_capture_handler_exception,
 )
+from sentry.exceptions import InvalidParams
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -192,6 +192,11 @@ def test_customer_domain_path():
             "/settings/projects/getting-started/abc123/",
         ],
         ["/settings/teams/peeps/", "/settings/teams/peeps/"],
+        ["/settings/billing/checkout/?_q=all#hash", "/settings/billing/checkout/?_q=all#hash"],
+        [
+            "/settings/billing/bundle-checkout/?_q=all#hash",
+            "/settings/billing/bundle-checkout/?_q=all#hash",
+        ],
     ]
     for input_path, expected in scenarios:
         assert expected == customer_domain_path(input_path)

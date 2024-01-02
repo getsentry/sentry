@@ -1,5 +1,5 @@
-from sentry.models import Team, User
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -7,7 +7,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class TeamManagerTest(TestCase):
     def test_simple(self):
-        user = User.objects.create(username="foo")
+        user = self.create_user("foo@example.com")
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         self.create_member(organization=org, user=user, teams=[team])

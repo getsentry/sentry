@@ -1,4 +1,6 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -6,8 +8,8 @@ import ModalStore from 'sentry/stores/modalStore';
 import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
-  const project = TestStubs.Project();
-  const organization = TestStubs.Organization({projects: [project]});
+  const project = ProjectFixture();
+  const organization = Organization({projects: [project]});
   const index = 0;
   const onDelete = jest.fn();
   const onReset = jest.fn();

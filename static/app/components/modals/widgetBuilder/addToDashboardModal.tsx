@@ -142,7 +142,7 @@ function AddToDashboardModal({
     closeModal();
   }
 
-  async function handleAddAndStayInDiscover() {
+  async function handleAddAndStayOnCurrentPage() {
     if (selectedDashboard === null) {
       return;
     }
@@ -250,11 +250,11 @@ function AddToDashboardModal({
       <Footer>
         <StyledButtonBar gap={1.5}>
           <Button
-            onClick={handleAddAndStayInDiscover}
+            onClick={handleAddAndStayOnCurrentPage}
             disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
             title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
           >
-            {t('Add + Stay in Discover')}
+            {t('Add + Stay on this Page')}
           </Button>
           <Button
             priority="primary"

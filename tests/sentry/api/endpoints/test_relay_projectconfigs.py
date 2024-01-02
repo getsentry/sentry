@@ -10,7 +10,7 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.models.relay import Relay
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -180,9 +180,9 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
         result, status_code = call_endpoint(full_config=False)
         assert status_code < 400
         dynamic_sampling = safe.get_path(
-            result, "configs", str(default_project.id), "config", "dynamicSampling"
+            result, "configs", str(default_project.id), "config", "sampling"
         )
-        assert dynamic_sampling == {"rules": [], "rulesV2": []}
+        assert dynamic_sampling == {"version": 2, "rules": []}
 
 
 @django_db_all
@@ -264,7 +264,6 @@ def test_trusted_external_relays_should_receive_minimal_configs(
 def test_untrusted_external_relays_should_not_receive_configs(
     call_endpoint, default_project, no_internal_networks
 ):
-
     result, status_code = call_endpoint(full_config=False)
 
     assert status_code < 400

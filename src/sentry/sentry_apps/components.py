@@ -7,8 +7,9 @@ from urllib.parse import urlparse, urlunparse
 from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
-from sentry.mediators.external_requests import SelectRequester
-from sentry.models import SentryAppComponent, SentryAppInstallation
+from sentry.mediators.external_requests.select_requester import SelectRequester
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.utils import json
 

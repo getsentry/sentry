@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -19,7 +22,7 @@ export interface InitializeDataSettings {
 }
 
 export function initializeData(settings?: InitializeDataSettings) {
-  const _defaultProject = TestStubs.Project();
+  const _defaultProject = ProjectFixture();
   const _settings = {
     query: {},
     features: [],
@@ -29,7 +32,7 @@ export function initializeData(settings?: InitializeDataSettings) {
   };
   const {query, features, projects, selectedProject: project} = _settings;
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });
@@ -231,6 +234,7 @@ export function generateSampleSpan(
     throw new Error('Event entries data is not an array');
   }
 
-  event.entries[0].data.push(span);
+  const data = event.entries[0].data as RawSpanType[];
+  data.push(span);
   return span;
 }

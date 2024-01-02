@@ -1,11 +1,11 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
-import type {StacktraceFilenameQuery} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExceptionValue, Group, PlatformType} from 'sentry/types';
+import {ExceptionValue, Group, PlatformKey} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {StackView} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
@@ -18,10 +18,11 @@ type Props = {
   data: ExceptionValue['stacktrace'];
   event: Event;
   hasHierarchicalGrouping: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
+  stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
-  debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
+  frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   newestFirst?: boolean;
@@ -33,7 +34,6 @@ function StackTrace({
   stackView,
   stacktrace,
   chainedException,
-  debugFrames,
   platform,
   newestFirst,
   groupingCurrentLevel,
@@ -43,6 +43,8 @@ function StackTrace({
   event,
   meta,
   threadId,
+  frameSourceMapDebuggerData,
+  stackType,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
@@ -74,7 +76,6 @@ function StackTrace({
   const includeSystemFrames =
     stackView === StackView.FULL ||
     (chainedException && data.frames?.every(frame => !frame.inApp));
-
   /**
    * Armin, Markus:
    * If all frames are in app, then no frame is in app.
@@ -110,7 +111,6 @@ function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
-        debugFrames={debugFrames}
       />
     );
   }
@@ -124,8 +124,9 @@ function StackTrace({
       newestFirst={newestFirst}
       event={event}
       meta={meta}
-      debugFrames={debugFrames}
       threadId={threadId}
+      frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+      hideSourceMapDebugger={stackType === StackType.MINIFIED}
     />
   );
 }

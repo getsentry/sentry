@@ -4,6 +4,7 @@ import {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 const cronConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
+      archiveUntilOccurrence: {enabled: true},
       delete: {
         enabled: false,
         disabledReason: t('Not yet supported for cron issues'),
@@ -17,6 +18,7 @@ const cronConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for cron issues'),
       },
       ignore: {enabled: true},
+      resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
     attachments: {enabled: false},

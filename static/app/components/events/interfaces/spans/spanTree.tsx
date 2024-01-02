@@ -401,6 +401,13 @@ class SpanTree extends Component<PropType> {
       addContentSpanBarRef,
       removeContentSpanBarRef,
       storeSpanBar,
+      getCurrentLeftPos,
+      onDragStart,
+      onScroll,
+      scrollBarAreaRef,
+      updateHorizontalScrollState,
+      updateScrollState,
+      virtualScrollbarRef,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
@@ -582,6 +589,13 @@ class SpanTree extends Component<PropType> {
         acc.spanTree.push({
           type: SpanTreeNodeType.SPAN,
           props: {
+            getCurrentLeftPos,
+            onDragStart,
+            onScroll,
+            scrollBarAreaRef,
+            updateHorizontalScrollState,
+            updateScrollState,
+            virtualScrollbarRef,
             organization,
             event: waterfallModel.event,
             spanBarColor,
@@ -610,7 +624,7 @@ class SpanTree extends Component<PropType> {
             addContentSpanBarRef,
             removeContentSpanBarRef,
             storeSpanBar,
-            getCurrentLeftPos: this.props.getCurrentLeftPos,
+            isSpanInEmbeddedTree: waterfallModel.isEmbeddedSpanTree,
             resetCellMeasureCache: () => this.cache.clear(index, 0),
           },
         });

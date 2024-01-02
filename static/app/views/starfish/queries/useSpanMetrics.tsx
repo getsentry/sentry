@@ -1,74 +1,91 @@
 import {Location} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {
+  MetricsProperty,
+  MetricsResponse,
+  SpanMetricsQueryFilters,
+} from 'sentry/views/starfish/types';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
-const {SPAN_GROUP} = SpanMetricsFields;
-
-export type SpanMetrics = {
-  [metric: string]: number | string;
-  'http_error_count()': number;
-  'p95(span.self_time)': number;
-  'span.op': string;
-  'spm()': number;
-  'time_spent_percentage()': number;
-};
-
-export type SpanSummaryQueryFilters = {
-  'transaction.method'?: string;
-  transactionName?: string;
-};
-
-export const useSpanMetrics = (
-  group: string,
-  queryFilters: SpanSummaryQueryFilters,
-  fields: string[] = [],
-  referrer: string = 'span-metrics'
+export const useSpanMetrics = <T extends MetricsProperty[]>(
+  filters: SpanMetricsQueryFilters,
+  fields: T,
+  sorts?: Sort[],
+  limit?: number,
+  cursor?: string,
+  referrer: string = 'api.starfish.use-span-metrics'
 ) => {
   const location = useLocation();
-  const eventView = group
-    ? getEventView(group, location, queryFilters, fields)
-    : undefined;
 
-  const enabled =
-    Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
+  const eventView = getEventView(filters, fields, sorts, location);
 
-  // TODO: Add referrer
-  const result = useSpansQuery<SpanMetrics[]>({
+  const enabled = Object.values(filters).every(value => Boolean(value));
+
+  const result = useWrappedDiscoverQuery({
     eventView,
     initialData: [],
+    limit,
     enabled,
     referrer,
+    cursor,
   });
 
-  return {...result, data: result?.data?.[0] ?? {}, isEnabled: enabled};
+  // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  const data = (result?.data ?? []) as Pick<MetricsResponse, T[number]>[] | [];
+
+  return {
+    ...result,
+    data,
+    isEnabled: enabled,
+  };
 };
 
 function getEventView(
-  group: string,
-  location: Location,
-  queryFilters?: SpanSummaryQueryFilters,
-  fields: string[] = []
+  filters: SpanMetricsQueryFilters,
+  fields: string[] = [],
+  sorts: Sort[] = [],
+  location: Location
 ) {
-  return EventView.fromNewQueryWithLocation(
+  const query = new MutableSearch('');
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!value) {
+      return;
+    }
+
+    if (value === EMPTY_OPTION_VALUE) {
+      query.addFilterValue('!has', key);
+    }
+
+    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
+  });
+
+  // TODO: This condition should be enforced everywhere
+  // query.addFilterValue('has', 'span.description');
+
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `${SPAN_GROUP}:${group}${
-        queryFilters?.transactionName
-          ? ` transaction:"${queryFilters?.transactionName}"`
-          : ''
-      }${
-        queryFilters?.['transaction.method']
-          ? ` transaction.method:${queryFilters?.['transaction.method']}`
-          : ''
-      }`,
+      query: query.formatString(),
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
     location
   );
+
+  if (sorts.length > 0) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }
+
+const ALLOWED_WILDCARD_FIELDS = ['span.description'];

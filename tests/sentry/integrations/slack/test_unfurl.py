@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-import freezegun
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
@@ -18,7 +17,10 @@ from sentry.services.hybrid_cloud.integration.serial import serialize_integratio
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -178,7 +180,7 @@ class UnfurlTest(TestCase):
         self.integration = serialize_integration(self._integration)
 
         self.request = RequestFactory().get("slack/event")
-        self.frozen_time = freezegun.freeze_time(datetime.now() - timedelta(days=1))
+        self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
         self.frozen_time.start()
 
     def tearDown(self):
@@ -189,6 +191,7 @@ class UnfurlTest(TestCase):
         event = self.store_event(
             data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
         )
+        assert event.group is not None
         group2 = event.group
 
         links = [
@@ -207,7 +210,9 @@ class UnfurlTest(TestCase):
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
             unfurls[links[1].url]
-            == SlackIssuesMessageBuilder(group2, event, link_to_event=True).build()
+            == SlackIssuesMessageBuilder(
+                group2, next(iter(event.build_group_events())), link_to_event=True
+            ).build()
         )
 
     def test_escape_issue(self):

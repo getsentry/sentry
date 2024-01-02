@@ -4,7 +4,7 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
-import {getArbitraryRelativePeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,6 +17,7 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
+import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {Chart} from 'sentry/views/performance/trends/chart';
@@ -174,6 +175,14 @@ function ExplorerBody(props: ExplorerBodyProps) {
         organization={organization}
       />
       <SpansList
+        location={location}
+        organization={organization}
+        trendView={trendView}
+        transaction={transaction}
+        breakpoint={transaction.breakpoint!}
+        trendChangeType={trendChangeType}
+      />
+      <FunctionsList
         location={location}
         organization={organization}
         trendView={trendView}

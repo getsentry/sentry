@@ -1,7 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -15,7 +17,9 @@ import {
   getConfigSpaceTranslationBetweenVectors,
   getMinimapCanvasCursor,
   getPhysicalSpacePositionFromOffset,
+  initializeFlamegraphRenderer,
 } from 'sentry/utils/profiling/gl/utils';
+import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
@@ -76,12 +80,23 @@ function FlamegraphZoomViewMinimap({
       return null;
     }
 
-    return new FlamegraphRendererWebGL(
-      flamegraphMiniMapCanvasRef,
-      flamegraph,
-      flamegraphTheme,
-      {colorCoding, draw_border: false}
+    const renderer = initializeFlamegraphRenderer(
+      [FlamegraphRendererWebGL, FlamegraphRenderer2D],
+      [
+        flamegraphMiniMapCanvasRef,
+        flamegraph,
+        flamegraphTheme,
+        {colorCoding, draw_border: false},
+      ]
     );
+
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      addErrorMessage('Failed to initialize renderer');
+      return null;
+    }
+
+    return renderer;
   }, [flamegraph, flamegraphMiniMapCanvasRef, colorCoding, flamegraphTheme]);
 
   const positionIndicatorRenderer: PositionIndicatorRenderer | null = useMemo(() => {

@@ -2,7 +2,12 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {
+  prepareSourceMapDebuggerFrameInformation,
+  useSourceMapDebuggerData,
+} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
+import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
@@ -11,19 +16,15 @@ import {ExceptionType, Project} from 'sentry/types';
 import {Event, ExceptionValue} from 'sentry/types/event';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
-import {SourceMapDebug} from './sourceMapDebug';
 import StackTrace from './stackTrace';
-import {debugFramesEnabled, getUniqueFilesFromException} from './useSourceMapDebug';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
-  platform: StackTraceProps['platform'];
   projectSlug: Project['slug'];
   type: StackType;
   meta?: Record<any, any>;
@@ -124,7 +125,6 @@ export function Content({
   stackView,
   groupingCurrentLevel,
   hasHierarchicalGrouping,
-  platform,
   projectSlug,
   values,
   type,
@@ -134,39 +134,38 @@ export function Content({
   const {collapsedExceptions, toggleException, expandException} =
     useCollapsedExceptions(values);
 
+  const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
+
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
   // instead.
-  const organization = useOrganization({allowNull: true});
   if (!values) {
     return null;
   }
 
-  const shouldDebugFrames = debugFramesEnabled({
-    sdkName: event.sdk?.name,
-    organization,
-    eventId: event.id,
-    projectSlug,
-  });
-  const debugFrames = shouldDebugFrames
-    ? getUniqueFilesFromException(values, {
-        eventId: event.id,
-        projectSlug: projectSlug!,
-        orgSlug: organization!.slug,
-      })
-    : [];
-
   const children = values.map((exc, excIdx) => {
-    const hasSourcemapDebug = debugFrames.some(
-      ({query}) => query.exceptionIdx === excIdx
-    );
     const id = defined(exc.mechanism?.exception_id)
       ? `exception-${exc.mechanism?.exception_id}`
       : undefined;
 
+    const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
+      excIdx
+    ].frames.map(debuggerFrame =>
+      prepareSourceMapDebuggerFrameInformation(
+        sourceMapDebuggerData,
+        debuggerFrame,
+        event
+      )
+    );
+    const exceptionValue = exc.value
+      ? renderLinksInText({exceptionText: exc.value})
+      : null;
+
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
       return null;
     }
+
+    const platform = getStacktracePlatform(event, exc.stacktrace);
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
@@ -181,7 +180,7 @@ export function Content({
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
-            exc.value
+            exceptionValue
           )}
         </StyledPre>
         <ToggleExceptionButton
@@ -196,11 +195,6 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
-        <ErrorBoundary mini>
-          {hasSourcemapDebug && (
-            <SourceMapDebug debugFrames={debugFrames} event={event} />
-          )}
-        </ErrorBoundary>
         <StackTrace
           data={
             type === StackType.ORIGINAL
@@ -217,8 +211,9 @@ export function Content({
           hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
-          debugFrames={hasSourcemapDebug ? debugFrames : undefined}
           threadId={threadId}
+          frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+          stackType={type}
         />
       </div>
     );

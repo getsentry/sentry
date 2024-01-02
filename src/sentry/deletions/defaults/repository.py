@@ -5,7 +5,11 @@ from ..base import ModelDeletionTask, ModelRelation
 
 
 def _get_repository_child_relations(instance):
-    from sentry.models import Commit, PullRequest, RepositoryProjectPathConfig
+    from sentry.models.commit import Commit
+    from sentry.models.integrations.repository_project_path_config import (
+        RepositoryProjectPathConfig,
+    )
+    from sentry.models.pullrequest import PullRequest
 
     return [
         ModelRelation(Commit, {"repository_id": instance.id}),

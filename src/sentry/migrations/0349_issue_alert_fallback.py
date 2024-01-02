@@ -78,7 +78,7 @@ def migrate_to_issue_alert_fallback(apps, schema_editor):
             except Exception:
                 # If a project fails we'll just log and continue. We shouldn't see any
                 # failures, but if we do we can analyze them and run a new migration.
-                logging.exception(f"Error migrating project {project.id}")
+                logging.exception("Error migrating project %s", project.id)
 
 
 class Migration(CheckedMigration):

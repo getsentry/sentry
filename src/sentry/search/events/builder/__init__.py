@@ -1,16 +1,19 @@
 from .discover import (  # NOQA
+    BaseQueryBuilder,
     HistogramQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
     UnresolvedQuery,
 )
+from .errors import ErrorsQueryBuilder  # NOQA
 from .issue_platform import IssuePlatformTimeseriesQueryBuilder  # NOQA
 from .metrics import (  # NOQA
     AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopMetricsQueryBuilder,
 )
 from .profile_functions import (  # NOQA
     ProfileFunctionsQueryBuilder,
@@ -35,6 +38,7 @@ from .spans_metrics import (  # NOQA
 )
 
 __all__ = [
+    "BaseQueryBuilder",
     "HistogramQueryBuilder",
     "QueryBuilder",
     "TimeseriesQueryBuilder",
@@ -42,6 +46,7 @@ __all__ = [
     "TopEventsQueryBuilder",
     "UnresolvedQuery",
     "AlertMetricsQueryBuilder",
+    "ErrorsQueryBuilder",
     "HistogramMetricQueryBuilder",
     "MetricsQueryBuilder",
     "TimeseriesMetricQueryBuilder",
@@ -58,5 +63,6 @@ __all__ = [
     "TopEventsSpanIndexedQueryBuilder",
     "TimeseriesSessionsV2QueryBuilder",
     "TimeseriesSpansMetricsQueryBuilder",
+    "TopMetricsQueryBuilder",
     "TopSpansMetricsQueryBuilder",
 ]

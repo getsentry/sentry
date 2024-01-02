@@ -102,16 +102,16 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           ),
         },
         {
-          title: t('Transactions'),
+          title: t('Events'),
           target: 'trace_view_guide_row',
           description: t(
-            `You can quickly see all the transactions in a trace alongside the project, transaction duration, and any related errors.`
+            `You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.`
           ),
         },
         {
-          title: t('Transactions Details'),
+          title: t('Event Details'),
           target: 'trace_view_guide_row_details',
-          description: t('Click on any transaction to see more details.'),
+          description: t('Click on any transaction or error row to see more details.'),
         },
       ],
     },
@@ -188,30 +188,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'new_page_filters',
-      requiredTargets: ['new_page_filter_button'],
-      expectedTargets: ['new_page_filter_pin'],
-      dateThreshold: new Date('2022-04-05'),
-      steps: [
-        {
-          title: t('Selection filters here now'),
-          target: 'new_page_filter_button',
-          description: t(
-            "Selection filters were at the top of the page. Now they're here. Because this is what's getting filtered. Obvi."
-          ),
-          nextText: t('Sounds good'),
-        },
-        {
-          title: t('Pin your filters'),
-          target: 'new_page_filter_pin',
-          description: t(
-            "Want to keep the same filters between searches and sessions? Click this button. Don't want to? Don't click this button."
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
       guide: 'releases_widget',
       requiredTargets: ['releases_widget'],
       dateThreshold: new Date('2022-06-22'),
@@ -274,6 +250,39 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
+      guide: 'explain_archive_button_issue_stream',
+      requiredTargets: ['issue_stream_archive_button'],
+      dateThreshold: new Date('2023-10-02'),
+      steps: [
+        {
+          title: t('"Archive" is the new "Ignore"'),
+          target: 'issue_stream_archive_button',
+          description: t(
+            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
+          ),
+          dismissText: t('Got It'),
+        },
+      ],
+    },
+    {
+      guide: 'explain_new_default_event_issue_detail',
+      requiredTargets: ['issue_details_default_event'],
+      dateThreshold: new Date('2023-08-22'),
+      steps: [
+        {
+          title: t('New Default Event'),
+          target: 'issue_details_default_event',
+          description: tct(
+            'Rather than the latest event, we now default to a recent event with the most context (replays, traces, and profiles). You can easily switch between events or [link:configure your default event] in settings.',
+            {
+              link: <Link to="/settings/account/details/#defaultIssueEvent" />,
+            }
+          ),
+          dismissText: t('Got It'),
+        },
+      ],
+    },
+    {
       guide: 'explain_archive_tab_issue_stream',
       requiredTargets: ['issue_stream_archive_tab'],
       dateThreshold: new Date('2023-07-05'),
@@ -285,6 +294,19 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             "Archived issues will live here. We'll mark them as Escalating if we detect a large number of events."
           ),
           dismissText: t('Goodbye Forever'),
+        },
+      ],
+    },
+    {
+      guide: 'ddm_view',
+      requiredTargets: ['create_scratchpad'],
+      steps: [
+        {
+          title: t('Save your charts'),
+          target: 'create_scratchpad',
+          description: t(
+            `Scratchpads are stored locally on your device. If you want to share them, simply send the URL to your teammates.`
+          ),
         },
       ],
     },

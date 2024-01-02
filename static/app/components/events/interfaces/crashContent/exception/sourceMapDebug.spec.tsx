@@ -1,7 +1,11 @@
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Event, ExceptionValue} from 'sentry/types';
+import {ExceptionValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {SourceMapDebug} from './sourceMapDebug';
@@ -14,8 +18,8 @@ import {
 jest.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
-  const organization = TestStubs.Organization({});
-  const project = TestStubs.Project();
+  const organization = Organization({});
+  const project = ProjectFixture();
   const eventId = '1ec1bd65b0b1484b97162087a652421b';
   const exceptionValues: ExceptionValue[] = [
     {
@@ -45,7 +49,6 @@ describe('SourceMapDebug', () => {
             colNo: 25,
             inApp: true,
             trust: null,
-            errors: null,
             vars: null,
             minGroupingLevel: 0,
           },
@@ -64,13 +67,12 @@ describe('SourceMapDebug', () => {
     projectSlug: project.slug,
     eventId,
   });
-  const event: Event = {
-    ...TestStubs.Event(),
+  const event = EventFixture({
     id: eventId,
     sdk: {
       name: sdkName,
     },
-  } as Event;
+  });
 
   it('should use unqiue in app frames', () => {
     expect(debugFrames).toHaveLength(1);
@@ -107,7 +109,7 @@ describe('SourceMapDebug', () => {
     expect(screen.getByText('Event missing Release tag')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps-to-sentry'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/#uploading-source-maps'
     );
   });
 
@@ -141,7 +143,7 @@ describe('SourceMapDebug', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/#verify-artifact-names-match-stack-trace-frames'
     );
   });
 
@@ -177,7 +179,7 @@ describe('SourceMapDebug', () => {
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/#verify-artifact-names-match-stack-trace-frames'
+      'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/#verify-artifact-names-match-stack-trace-frames'
     );
   });
 
@@ -197,12 +199,12 @@ describe('SourceMapDebug', () => {
     });
 
     expect(
-      await screen.findByText("Sentry isn't Sentry without source maps")
+      await screen.findByText("You're not a computer, so why parse minified code?")
     ).toBeInTheDocument();
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'Automatically upload your source maps to enable readable stack traces and better error grouping using the Sentry Wizard. Learn more'
+          'Upload source maps with the Sentry Wizard to unlock readable stack traces and better error grouping. Learn more'
         )
       )
     ).toBeInTheDocument();

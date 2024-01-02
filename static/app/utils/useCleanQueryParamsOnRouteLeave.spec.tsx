@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -40,6 +41,30 @@ describe('useCleanQueryParamsOnRouteLeave', () => {
     unmount();
 
     expect(unsubscriber).toHaveBeenCalled();
+  });
+
+  it('should not update the history if shouldLeave returns false', () => {
+    MockBrowserHistoryListen.mockImplementation(onRouteLeave => {
+      onRouteLeave(
+        LocationFixture({
+          pathname: '/next',
+          query: {
+            cursor: '0:1:0',
+            limit: '5',
+          },
+        })
+      );
+      return () => {};
+    });
+
+    reactHooks.renderHook(useCleanQueryParamsOnRouteLeave, {
+      initialProps: {
+        fieldsToClean: ['cursor'],
+        shouldClean: () => false,
+      },
+    });
+
+    expect(MockBrowserHistoryReplace).not.toHaveBeenCalled();
   });
 
   it('should not update the history if the pathname is unchanged', () => {

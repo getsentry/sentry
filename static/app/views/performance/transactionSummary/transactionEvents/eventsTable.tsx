@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
@@ -13,7 +13,6 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {IssueAttachment, Organization} from 'sentry/types';
@@ -73,6 +72,7 @@ type Props = {
   customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   isEventLoading?: boolean;
+  isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
@@ -158,11 +158,11 @@ class EventsTable extends Component<Props, State> {
     }
 
     if (field === 'id' || field === 'trace') {
-      const {issueId} = this.props;
+      const {issueId, isRegressionIssue} = this.props;
       const isIssue: boolean = !!issueId;
       let target: LocationDescriptor = {};
       // TODO: set referrer properly
-      if (isIssue && field === 'id') {
+      if (isIssue && !isRegressionIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
       } else {
         const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
@@ -206,15 +206,27 @@ class EventsTable extends Component<Props, State> {
 
     if (field === 'profile.id') {
       const target = generateProfileLink()(organization, dataRow, undefined);
+      const transactionMeetsProfilingRequirements =
+        typeof dataRow['transaction.duration'] === 'number' &&
+        dataRow['transaction.duration'] > 20;
+
       return (
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
-          allowActions={allowActions}
+        <Tooltip
+          title={
+            !transactionMeetsProfilingRequirements && !dataRow['profile.id']
+              ? t('Profiles require a transaction duration of at least 20ms')
+              : null
+          }
         >
-          {target ? <Link to={target}>{rendered}</Link> : rendered}
-        </CellAction>
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={this.handleCellAction(column)}
+            allowActions={allowActions}
+          >
+            {target ? <Link to={target}>{rendered}</Link> : rendered}
+          </CellAction>
+        </Tooltip>
       );
     }
 
@@ -472,12 +484,8 @@ class EventsTable extends Component<Props, State> {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);
-                  const replayIds = tableData.data.map(row => row.replayId);
                   return (
-                    <ReplayIdCountProvider
-                      organization={organization}
-                      replayIds={replayIds}
-                    >
+                    <Fragment>
                       <VisuallyCompleteWithData
                         id="TransactionEvents-EventsTable"
                         hasData={!!tableData?.data?.length}
@@ -507,7 +515,7 @@ class EventsTable extends Component<Props, State> {
                         caption={paginationCaption}
                         pageLinks={pageLinks}
                       />
-                    </ReplayIdCountProvider>
+                    </Fragment>
                   );
                 }}
               </DiscoverQuery>

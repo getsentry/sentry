@@ -15,6 +15,7 @@ from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
+from sentry.backup.scopes import RelocationScope
 from sentry.celery import SentryTask
 from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
@@ -195,7 +196,7 @@ class ChunkedFileBlobIndexWrapper:
 
 
 class AbstractFile(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     name = models.TextField()
     type = models.CharField(max_length=64)
@@ -298,13 +299,13 @@ class AbstractFile(Model):
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
-        metrics.timing("filestore.file-size", offset)
+        metrics.distribution("filestore.file-size", offset, unit="byte")
         if commit:
             self.save()
         return results
 
     @sentry_sdk.tracing.trace
-    def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
+    def assemble_from_file_blob_ids(self, file_blob_ids, checksum):
         """
         This creates a file, from file blobs and returns a temp file with the
         contents.
@@ -325,7 +326,7 @@ class AbstractFile(Model):
             except Exception:
                 # Most likely a `KeyError` like `SENTRY-11QP` because an `id` in
                 # `file_blob_ids` does suddenly not exist anymore
-                logger.error("`FileBlob` disappeared during `assemble_file`", exc_info=True)
+                logger.exception("`FileBlob` disappeared during `assemble_file`")
                 raise
 
             new_checksum = sha1(b"")
@@ -336,9 +337,7 @@ class AbstractFile(Model):
                 except IntegrityError:
                     # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
                     # the blob we want to link does not exist anymore
-                    logger.error(
-                        "`FileBlob` disappeared trying to link `FileBlobIndex`", exc_info=True
-                    )
+                    logger.exception("`FileBlob` disappeared trying to link `FileBlobIndex`")
                     raise
 
                 with blob.getfile() as blobfile:
@@ -354,9 +353,9 @@ class AbstractFile(Model):
                 tf.close()
                 raise AssembleChecksumMismatch("Checksum mismatch")
 
-        metrics.timing("filestore.file-size", offset)
-        if commit:
-            self.save()
+        metrics.distribution("filestore.file-size", offset, unit="byte")
+        self.save()
+
         tf.flush()
         tf.seek(0)
         return tf

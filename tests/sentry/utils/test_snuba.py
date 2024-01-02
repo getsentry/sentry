@@ -1,15 +1,19 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
 import pytest
-import pytz
-from django.utils import timezone
+from django.utils import timezone as django_timezone
+from urllib3 import HTTPConnectionPool
+from urllib3.exceptions import HTTPError, ReadTimeoutError
 
-from sentry.models import GroupRelease, Project, Release
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import (
+    RetrySkipTimeout,
     SnubaQueryParams,
     UnqualifiedQueryError,
     _prepare_query_params,
@@ -24,7 +28,7 @@ from sentry.utils.snuba import (
 class SnubaUtilsTest(TestCase):
     def setUp(self):
         self.now = datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
@@ -298,7 +302,7 @@ class PrepareQueryParamsTest(TestCase):
 
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
-        self.now = timezone.now().replace(microsecond=0)
+        self.now = django_timezone.now().replace(microsecond=0)
 
     def test_cache_suffix_time(self):
         starting_key = quantize_time(self.now, 0)
@@ -374,3 +378,36 @@ class QuantizeTimeTest(unittest.TestCase):
                 break
 
         assert i != j
+
+
+class FakeConnectionPool(HTTPConnectionPool):
+    def __init__(self, connection, **kwargs):
+        self.connection = connection
+        super().__init__(**kwargs)
+
+    def _new_conn(self):
+        return self.connection
+
+
+def test_retries():
+    """
+    Tests that, even if I set up 5 retries, there is only one request
+    made since it times out.
+    """
+    connection_mock = mock.Mock()
+
+    snuba_pool = FakeConnectionPool(
+        connection=connection_mock,
+        host="www.test.com",
+        port=80,
+        retries=RetrySkipTimeout(total=5, allowed_methods={"GET", "POST"}),
+        timeout=30,
+        maxsize=10,
+    )
+
+    connection_mock.request.side_effect = ReadTimeoutError(snuba_pool, "test.com", "Timeout")
+
+    with pytest.raises(HTTPError):
+        snuba_pool.urlopen("POST", "/query", body="{}")
+
+    assert connection_mock.request.call_count == 1

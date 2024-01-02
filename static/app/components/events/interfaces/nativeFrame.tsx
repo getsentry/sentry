@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
   getLeadHint,
   hasAssembly,
@@ -26,7 +29,12 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
+import {
+  Frame,
+  PlatformKey,
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,11 +46,11 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  components: Array<SentryAppComponent>;
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   event: Event;
   frame: Frame;
   isUsedForGrouping: boolean;
-  platform: PlatformType;
+  platform: PlatformKey;
   registers: Record<string, string>;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
@@ -91,6 +99,8 @@ function NativeFrame({
    */
   isHoverPreviewed = false,
 }: Props) {
+  const organization = useOrganization();
+
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
   const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
@@ -135,6 +145,21 @@ function NativeFrame({
     frame.function !== frame.rawFunction;
 
   const [expanded, setExpanded] = useState(expandable ? isExpanded ?? false : false);
+  const [isHovering, setHovering] = useState(false);
+
+  const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
+  const hasStacktraceLink =
+    frame.inApp && !!frame.filename && frame.lineNo && (isHovering || expanded);
+  const hasStacktraceLinkInFrameFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+  const showStacktraceLinkInFrame =
+    hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
+  const showSentryAppStacktraceLinkInFrame =
+    showStacktraceLinkInFrame && components.length > 0;
+
+  const handleMouseEnter = () => setHovering(true);
+
+  const handleMouseLeave = () => setHovering(false);
 
   function getRelativeAddress() {
     if (!startingAddress) {
@@ -183,10 +208,21 @@ function NativeFrame({
     return undefined;
   }
 
+  // this is the status of image that belongs to this frame
   function getStatus() {
-    // this is the status of image that belongs to this frame
+    // If a matching debug image doesn't exist, fall back to symbolicator_status
     if (!image) {
-      return undefined;
+      switch (frame.symbolicatorStatus) {
+        case SymbolicatorStatus.SYMBOLICATED:
+          return 'success';
+        case SymbolicatorStatus.MISSING:
+        case SymbolicatorStatus.MALFORMED:
+          return 'error';
+        case SymbolicatorStatus.MISSING_SYMBOL:
+        case SymbolicatorStatus.UNKNOWN_IMAGE:
+        default:
+          return undefined;
+      }
     }
 
     const combinedStatus = combineStatus(image.debug_status, image.unwind_status);
@@ -228,10 +264,6 @@ function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
-  const organization = useOrganization();
-  const stacktraceChangesEnabled = !!organization?.features.includes(
-    'issue-details-stacktrace-improvements'
-  );
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
@@ -239,8 +271,10 @@ function NativeFrame({
         <RowHeader
           expandable={expandable}
           expanded={expanded}
-          stacktraceChangesEnabled={stacktraceChangesEnabled && !frame.inApp}
+          isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <SymbolicatorIcon>
             {status === 'error' ? (
@@ -249,7 +283,11 @@ function NativeFrame({
                   'This frame has missing debug files and could not be symbolicated'
                 )}
               >
-                <IconFileBroken size="sm" color="errorText" />
+                <IconFileBroken
+                  size="sm"
+                  color="errorText"
+                  data-test-id="symbolication-error-icon"
+                />
               </Tooltip>
             ) : status === undefined ? (
               <Tooltip
@@ -257,7 +295,11 @@ function NativeFrame({
                   'This frame has an unknown problem and could not be symbolicated'
                 )}
               >
-                <IconWarning size="sm" color="warningText" />
+                <IconWarning
+                  size="sm"
+                  color="warningText"
+                  data-test-id="symbolication-warning-icon"
+                />
               </Tooltip>
             ) : null}
           </SymbolicatorIcon>
@@ -280,7 +322,7 @@ function NativeFrame({
               </Package>
             </Tooltip>
           </div>
-          <AddressCellWrapper>
+          <GenericCellWrapper>
             <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
               <Tooltip
                 title={addressTooltip}
@@ -290,7 +332,7 @@ function NativeFrame({
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
             </AddressCell>
-          </AddressCellWrapper>
+          </GenericCellWrapper>
           <FunctionNameCell>
             {functionName ? (
               <AnnotatedText value={functionName.value} meta={functionName.meta} />
@@ -302,6 +344,7 @@ function NativeFrame({
                 title={frame.absPath}
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
+                isHoverable
               >
                 <FileName>
                   {'('}
@@ -319,7 +362,7 @@ function NativeFrame({
               </Tooltip>
             )}
           </GroupingCell>
-          {stacktraceChangesEnabled && hiddenFrameCount ? (
+          {hiddenFrameCount ? (
             <ShowHideButton
               analyticsEventName="Stacktrace Frames: toggled"
               analyticsEventKey="stacktrace_frames.toggled"
@@ -338,15 +381,29 @@ function NativeFrame({
                 : tn('Show %s more frame', 'Show %s more frames', hiddenFrameCount)}
             </ShowHideButton>
           ) : null}
-          <TypeCell>
-            {!frame.inApp ? (
-              stacktraceChangesEnabled ? null : (
-                <Tag>{t('System')}</Tag>
-              )
-            ) : (
-              <Tag type="info">{t('In App')}</Tag>
+          <GenericCellWrapper>
+            {showStacktraceLinkInFrame && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={frame}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={event}
+                />
+              </ErrorBoundary>
             )}
-          </TypeCell>
+            {showSentryAppStacktraceLinkInFrame && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={frame.lineNo}
+                  filename={frame.filename || ''}
+                  components={components}
+                />
+              </ErrorBoundary>
+            )}
+            <TypeCell>
+              {frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
+            </TypeCell>
+          </GenericCellWrapper>
           <ExpandCell>
             {expandable && (
               <ToggleButton
@@ -373,7 +430,6 @@ function NativeFrame({
           hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
-          expandable={expandable}
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}
@@ -385,7 +441,7 @@ function NativeFrame({
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
-const AddressCellWrapper = styled('div')`
+const GenericCellWrapper = styled('div')`
   display: flex;
 `;
 
@@ -455,8 +511,8 @@ const FileName = styled('span')`
 const RowHeader = styled('span')<{
   expandable: boolean;
   expanded: boolean;
+  isInAppFrame: boolean;
   isSubFrame: boolean;
-  stacktraceChangesEnabled: boolean;
 }>`
   display: grid;
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
@@ -465,13 +521,13 @@ const RowHeader = styled('span')<{
   align-content: center;
   column-gap: ${space(1)};
   background-color: ${p =>
-    p.stacktraceChangesEnabled && p.isSubFrame
+    !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.surface100}`
       : `${p.theme.bodyBackground}`};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
-  color: ${p => (p.stacktraceChangesEnabled ? p.theme.subText : '')};
-  font-style: ${p => (p.stacktraceChangesEnabled ? 'italic' : '')};
+  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
+  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -485,6 +541,19 @@ const StackTraceFrame = styled('li')`
   :not(:last-child) {
     ${RowHeader} {
       border-bottom: 1px solid ${p => p.theme.border};
+    }
+  }
+
+  &:last-child {
+    ${RowHeader} {
+      border-bottom-right-radius: 5px;
+      border-bottom-left-radius: 5px;
+    }
+  }
+
+  &:first-child {
+    ${RowHeader} {
+      border-top-right-radius: 5px;
     }
   }
 `;

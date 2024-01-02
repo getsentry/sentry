@@ -1,6 +1,6 @@
 import 'echarts/lib/component/tooltip';
 
-import {useTheme} from '@emotion/react';
+import {Theme, useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment';
 
@@ -112,6 +112,10 @@ export type FormatterOptions = Pick<
      */
     addSecondsToTimeFormat?: boolean;
     /**
+     * Limit the number of series rendered in the tooltip and display "+X more".
+     */
+    limit?: number;
+    /**
      * Array containing data that is used to display indented sublabels.
      */
     subLabels?: TooltipSubLabel[];
@@ -130,6 +134,7 @@ export function getFormatter({
   markerFormatter = defaultMarkerFormatter,
   subLabels = [],
   addSecondsToTimeFormat = false,
+  limit,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
   const getFilter = (seriesParam: any) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -191,7 +196,7 @@ export function getFormatter({
       ].join('');
     }
 
-    const seriesParams = toArray(seriesParamsOrParam);
+    let seriesParams = toArray(seriesParamsOrParam);
 
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
@@ -211,6 +216,18 @@ export function getFormatter({
         bucketSize,
         seriesParamsOrParam
       );
+
+    if (limit) {
+      const originalLength = seriesParams.length;
+      seriesParams = seriesParams.sort((a, b) => b.value[1] - a.value[1]).slice(0, limit);
+      if (originalLength > limit) {
+        seriesParams.push({
+          seriesName: `+${originalLength - limit} more`,
+          value: '',
+          color: 'transparent',
+        });
+      }
+    }
 
     const {series, total} = seriesParams.filter(getFilter).reduce(
       (acc, serie) => {
@@ -298,26 +315,27 @@ type Props = ChartProps['tooltip'] &
     chartId?: string;
   };
 
-export function ChartTooltip({
-  filter,
-  isGroupedByDate,
-  showTimeInTooltip,
-  addSecondsToTimeFormat,
-  formatter,
-  truncate,
-  utc,
-  bucketSize,
-  formatAxisLabel,
-  valueFormatter,
-  nameFormatter,
-  markerFormatter,
-  hideDelay,
-  subLabels,
-  chartId,
-  ...props
-}: Props = {}): TooltipComponentOption {
-  const theme = useTheme();
-
+export function computeChartTooltip(
+  {
+    filter,
+    isGroupedByDate,
+    showTimeInTooltip,
+    addSecondsToTimeFormat,
+    formatter,
+    truncate,
+    utc,
+    bucketSize,
+    formatAxisLabel,
+    valueFormatter,
+    nameFormatter,
+    markerFormatter,
+    hideDelay,
+    subLabels,
+    chartId,
+    ...props
+  }: Props,
+  theme: Theme
+): TooltipComponentOption {
   formatter =
     formatter ||
     getFormatter({
@@ -404,4 +422,9 @@ export function ChartTooltip({
     formatter,
     ...props,
   };
+}
+
+export function ChartTooltip(props: Props = {}): TooltipComponentOption {
+  const theme = useTheme();
+  return computeChartTooltip(props, theme);
 }

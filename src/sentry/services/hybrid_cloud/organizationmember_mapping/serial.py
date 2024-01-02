@@ -1,4 +1,4 @@
-from sentry.models import OrganizationMemberMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import RpcOrganizationMemberMapping
 
 

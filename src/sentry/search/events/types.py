@@ -9,9 +9,12 @@ from snuba_sdk.conditions import BooleanCondition, Condition
 from snuba_sdk.entity import Entity
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
-from sentry.models import Environment, Organization, Project, Team
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user import RpcUser
 
 WhereType = Union[Condition, BooleanCondition]
@@ -38,6 +41,7 @@ class QueryFramework:
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
     tips: Dict[str, str]
+    isMetricsData: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):
@@ -94,3 +98,27 @@ class SnubaParams:
         if self.start and self.end:
             return (self.end - self.start).total_seconds()
         return None
+
+
+@dataclass
+class QueryBuilderConfig:
+    auto_fields: bool = False
+    auto_aggregations: bool = False
+    use_aggregate_conditions: bool = False
+    functions_acl: Optional[List[str]] = None
+    equation_config: Optional[Dict[str, bool]] = None
+    # This allows queries to be resolved without adding time constraints. Currently this is just
+    # used to allow metric alerts to be built and validated before creation in snuba.
+    skip_time_conditions: bool = False
+    parser_config_overrides: Optional[Mapping[str, Any]] = None
+    has_metrics: bool = False
+    transform_alias_to_input_format: bool = False
+    use_metrics_layer: bool = False
+    # This skips converting tags back to their non-prefixed versions when processing the results
+    # Currently this is only used for avoiding conflicting values when doing the first query
+    # of a top events request
+    skip_tag_resolution: bool = False
+    on_demand_metrics_enabled: bool = False
+    on_demand_metrics_type: Optional[Any] = None
+    skip_field_validation_for_entity_subscription_deletion: bool = False
+    allow_metric_aggregates: Optional[bool] = False

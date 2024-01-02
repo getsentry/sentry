@@ -8,10 +8,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, options, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
@@ -25,7 +26,10 @@ class RelaxedProjectPermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectTransferEndpoint(ProjectEndpoint):
-    permission_classes = [RelaxedProjectPermission]
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    permission_classes = (RelaxedProjectPermission,)
 
     @sudo_required
     def post(self, request: Request, project) -> Response:

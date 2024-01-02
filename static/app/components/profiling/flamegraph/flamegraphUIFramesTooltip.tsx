@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {toRGBAString} from 'sentry/utils/profiling/colors/utils';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
@@ -56,6 +56,8 @@ export function FlamegraphUIFramesTooltip({
       canvasView={uiFramesView}
     >
       {uiFramesInConfigSpace.map((frame, i) => {
+        const rect = frame.rect.transformRect(uiFramesView.configSpaceTransform);
+
         return (
           <React.Fragment key={i}>
             <FlamegraphTooltipFrameMainInfo>
@@ -64,12 +66,12 @@ export function FlamegraphUIFramesTooltip({
                   ...uiFramesRenderer.getColorForFrame(frame.type)
                 )}
               />
-              {uiFrames.formatter(frame.rect.width)}{' '}
+              {uiFrames.formatter(rect.width)}{' '}
               {frame.type === 'frozen' ? t('frozen frame') : t('slow frame')}
             </FlamegraphTooltipFrameMainInfo>
             <FlamegraphTooltipTimelineInfo>
-              {uiFrames.timelineFormatter(frame.rect.left)} {' \u2014 '}
-              {uiFrames.timelineFormatter(frame.rect.right)}
+              {uiFrames.timelineFormatter(rect.left)} {' \u2014 '}
+              {uiFrames.timelineFormatter(rect.right)}
             </FlamegraphTooltipTimelineInfo>
           </React.Fragment>
         );

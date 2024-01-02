@@ -185,7 +185,6 @@ export function Threads({
           projectSlug={projectSlug}
           newestFirst={recentFirst}
           event={event}
-          platform={platform}
           values={exception.values}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
@@ -282,7 +281,6 @@ export function Threads({
       )}
       <TraceEventDataSection
         type={EntryType.THREADS}
-        stackType={StackType.ORIGINAL}
         projectSlug={projectSlug}
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}

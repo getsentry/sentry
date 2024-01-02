@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, ClassVar, List
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
 
@@ -11,7 +12,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class CommitAuthorManager(BaseManager):
+class CommitAuthorManager(BaseManager["CommitAuthor"]):
     def get_or_create(self, organization_id, email, defaults, **kwargs):
         # Force email address to lowercase because many providers do this. Note though that this isn't technically
         # to spec; only the domain part of the email address is actually case-insensitive.
@@ -23,14 +24,14 @@ class CommitAuthorManager(BaseManager):
 
 @region_silo_only_model
 class CommitAuthor(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128, null=True)
     email = models.CharField(max_length=200)
     external_id = models.CharField(max_length=164, null=True)
 
-    objects = CommitAuthorManager()
+    objects: ClassVar[CommitAuthorManager] = CommitAuthorManager()
 
     class Meta:
         app_label = "sentry"
@@ -47,7 +48,7 @@ class CommitAuthor(Model):
         return self.users
 
     def find_users(self) -> List[RpcUser]:
-        from sentry.models import OrganizationMember
+        from sentry.models.organizationmember import OrganizationMember
         from sentry.services.hybrid_cloud.user.service import user_service
 
         if self.users is not None:

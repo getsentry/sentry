@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {memo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
@@ -13,10 +13,10 @@ import * as DividerHandlerManager from 'sentry/components/events/interfaces/span
 import {OpsLine} from 'sentry/components/events/opsBreakdown';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
-import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 
@@ -130,7 +130,7 @@ function Chart({data, type, transactionDuration}: ChartProps) {
 }
 
 // Memoized to prevent re-rendering when the cursor guide is displayed
-const MemoizedChart = React.memo(
+const MemoizedChart = memo(
   Chart,
   (prevProps, nextProps) => prevProps.type === nextProps.type
 );

@@ -4,13 +4,18 @@ import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
 interface Props {
+  extraction: Extraction | undefined;
   frame: ReplayFrame;
   index: number;
-  onDimensionChange: (
+  onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
+  onDimensionChange: (index: number) => void;
+  onInspectorExpanded: (
     index: number,
     path: string,
     expandedState: Record<string, boolean>,
@@ -18,31 +23,34 @@ interface Props {
   ) => void;
   startTimestampMs: number;
   style: CSSProperties;
+  traces: ReplayTraceRow | undefined;
   breadcrumbIndex?: number[][];
   expandPaths?: string[];
 }
 
 function BreadcrumbRow({
-  frame,
   expandPaths,
+  frame,
+  extraction,
   index,
+  onClick,
   onDimensionChange,
+  onInspectorExpanded,
   startTimestampMs,
   style,
+  traces,
 }: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  const onClickTimestamp = useCallback(() => handleClick(frame), [handleClick, frame]);
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(frame),
-    [handleMouseEnter, frame]
+  const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
+  const handleDimensionChange = useCallback(
+    () => onDimensionChange(index),
+    [onDimensionChange, index]
   );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(frame),
-    [handleMouseLeave, frame]
+  const handleObjectInspectorExpanded = useCallback(
+    (path, expandedState, e) =>
+      onInspectorExpanded && onInspectorExpanded(index, path, expandedState, e),
+    [index, onInspectorExpanded]
   );
 
   const hasOccurred = currentTime >= frame.offsetMs;
@@ -60,14 +68,16 @@ function BreadcrumbRow({
       style={style}
     >
       <BreadcrumbItem
-        index={index}
         frame={frame}
-        onClick={onClickTimestamp}
+        traces={traces}
+        extraction={extraction}
+        onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         startTimestampMs={startTimestampMs}
         expandPaths={expandPaths}
-        onDimensionChange={onDimensionChange}
+        onDimensionChange={handleDimensionChange}
+        onInspectorExpanded={handleObjectInspectorExpanded}
       />
     </StyledTimeBorder>
   );

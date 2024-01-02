@@ -4,19 +4,17 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Commit,
-    Integration,
-    OrganizationOption,
-    RegionScheduledDeletion,
-    Repository,
-)
+from sentry.models.commit import Commit
+from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.repository import Repository
+from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationRepositoryDeleteTest(APITestCase):
     def assert_rename_pending_delete(self, response, repo, external_id=None):
         assert response.data["status"] == "pending_deletion"

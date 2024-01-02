@@ -129,8 +129,8 @@ class RoleLevel(Generic[R]):
 class RoleManager:
     def __init__(
         self,
-        org_config: Iterable[Mapping[str, str]],
-        team_config: Iterable[Mapping[str, str]],
+        org_config: Iterable[Mapping[str, Any]],
+        team_config: Iterable[Mapping[str, Any]],
         default_org_role: str | None = None,
     ) -> None:
         self.organization_roles: RoleLevel[OrganizationRole] = RoleLevel(

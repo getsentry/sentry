@@ -73,6 +73,11 @@ declare global {
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
+    /**
+     * Is populated with promises/strings of commonly used data.
+     */
+    __sentry_preload: Record<string, any>;
+
     // typing currently used for demo add on
     // TODO: improve typing
     SentryApp?: {
@@ -114,6 +119,10 @@ declare global {
   }
 }
 
+export interface Region {
+  name: string;
+  url: string;
+}
 interface CustomerDomain {
   organizationUrl: string | undefined;
   sentryUrl: string;
@@ -130,6 +139,10 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
+  initialTrace: {
+    baggage: string;
+    sentry_trace: string;
+  };
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
@@ -150,12 +163,14 @@ export interface Config {
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
   privacyUrl: string | null;
-
+  // The list of regions the current user has memberships in.
+  regions: Region[];
   sentryConfig: {
     allowUrls: string[];
     dsn: string;
     release: string;
     tracePropagationTargets: string[];
+    environment?: string;
     profilesSampleRate?: number;
   };
   singleOrganization: boolean;

@@ -11,6 +11,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.samples import load_data
 
 
@@ -19,6 +20,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:performance-view",
         "organizations:performance-file-io-main-thread-detector",
+        "organizations:trace-view-load-more",
     ]
 
     def get_start_end(self, duration):
@@ -71,8 +73,6 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                     "performance.issues.all.problem-detection": 1.0,
                     "performance-file-io-main-thread-creation": 1.0,
                 }
-            ), self.feature(
-                ["projects:performance-suspect-spans-ingestion"]
             ):
                 return self.store_event(data, project_id=project_id, **kwargs)
 
@@ -322,9 +322,9 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
+        assert len(response.data["transactions"]) == 1
 
-        event = response.data[0]
+        event = response.data["transactions"][0]
         # Basically know nothing about this event
         assert event["generation"] is None
         assert event["parent_event_id"] is None
@@ -348,9 +348,9 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
+        assert len(response.data["transactions"]) == 1
 
-        event = response.data[0]
+        event = response.data["transactions"][0]
         assert event["generation"] == 0
         assert event["parent_event_id"] is None
         assert event["parent_span_id"] is None
@@ -366,8 +366,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 4
-        events = {item["event_id"]: item for item in response.data}
+        assert len(response.data["transactions"]) == 4
+        events = {item["event_id"]: item for item in response.data["transactions"]}
 
         assert root_event_id in events
         event = events[root_event_id]
@@ -402,8 +402,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 4
-        events = {item["event_id"]: item for item in response.data}
+        assert len(response.data["transactions"]) == 4
+        events = {item["event_id"]: item for item in response.data["transactions"]}
 
         assert root_event_id in events
         event = events[root_event_id]
@@ -434,8 +434,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 3
-        events = {item["event_id"]: item for item in response.data}
+        assert len(response.data["transactions"]) == 3
+        events = {item["event_id"]: item for item in response.data["transactions"]}
 
         assert root_event_id in events
         event = events[root_event_id]
@@ -477,8 +477,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 3
-        events = {item["event_id"]: item for item in response.data}
+        assert len(response.data["transactions"]) == 3
+        events = {item["event_id"]: item for item in response.data["transactions"]}
 
         assert root_event_id in events
         event = events[root_event_id]
@@ -512,8 +512,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 2
-        events = {item["event_id"]: item for item in response.data}
+        assert len(response.data["transactions"]) == 2
+        events = {item["event_id"]: item for item in response.data["transactions"]}
 
         assert current_event in events
         event = events[current_event]
@@ -542,9 +542,9 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 1
+        assert len(response.data["transactions"]) == 1
 
-        event = response.data[0]
+        event = response.data["transactions"][0]
         assert event["generation"] is None
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
@@ -582,8 +582,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
                 format="json",
             )
 
-        assert len(response.data) == 3
-        events = {item["event_id"]: item for item in response.data}
+        assert len(response.data["transactions"]) == 3
+        events = {item["event_id"]: item for item in response.data["transactions"]}
 
         for child_event_id in gen3_event_siblings:
             assert child_event_id in events
@@ -612,8 +612,8 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
 
         def assertions(response):
             assert response.status_code == 200, response.content
-            assert len(response.data) == 3
-            events = {item["event_id"]: item for item in response.data}
+            assert len(response.data["transactions"]) == 3
+            events = {item["event_id"]: item for item in response.data["transactions"]}
 
             assert root_event_id in events
             event = events[root_event_id]
@@ -648,6 +648,103 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             )
 
         assertions(response)
+
+    def assert_orphan_error_response(self, response, error, span_id):
+        assert response.status_code == 200, response.content
+        assert response.data["transactions"] == []
+        assert len(response.data["orphan_errors"]) == 1
+        assert {
+            "event_id": error.event_id,
+            "issue_id": error.group_id,
+            "span": span_id,
+            "project_id": self.project.id,
+            "project_slug": self.project.slug,
+            "level": "fatal",
+            "title": error.title,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
+            "generation": 0,
+            "event_type": "error",
+        } == response.data["orphan_errors"][0]
+
+    def test_with_one_orphan_error(self):
+        self.load_trace()
+        span_id = uuid4().hex[:16]
+        start, _ = self.get_start_end(1000)
+
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"event_id": error.event_id, "project": -1},
+                format="json",
+            )
+
+        self.assert_orphan_error_response(response, error, span_id)
+
+    def test_with_multiple_orphan_errors(self):
+        self.load_trace()
+        span_id = uuid4().hex[:16]
+        start, end = self.get_start_end(1000)
+
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data["level"] = "fatal"
+        error = self.store_event(error_data, project_id=self.project.id)
+
+        error_data1 = load_data(
+            "javascript",
+            timestamp=end,
+        )
+        error_data1["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": span_id,
+        }
+        error_data1["level"] = "warning"
+        self.store_event(error_data1, project_id=self.project.id)
+
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"event_id": error.event_id, "project": -1},
+                format="json",
+            )
+
+        self.assert_orphan_error_response(response, error, span_id)
+
+    def test_with_unknown_event(self):
+        with self.feature(
+            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
+        ):
+            response = self.client.get(
+                self.url,
+                data={"event_id": "766758c00ff54d8ab865369ecab53ae6", "project": "-1"},
+                format="json",
+            )
+
+        assert response.status_code == 404
 
 
 @region_silo_test
@@ -725,11 +822,28 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data[0])
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
         # We shouldn't have detailed fields here
-        assert "transaction.status" not in response.data[0]
-        assert "tags" not in response.data[0]
-        assert "measurements" not in response.data[0]
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+        assert "measurements" not in trace_transaction
+
+    def test_simple_with_limit(self):
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1, "limit": 200},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        # We shouldn't have detailed fields here
+        assert "transaction.status" not in trace_transaction
+        assert "tags" not in trace_transaction
+        assert "measurements" not in trace_transaction
 
     def test_detailed_trace(self):
         self.load_trace()
@@ -740,8 +854,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data[0])
-        root = response.data[0]
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction)
+        root = trace_transaction
         assert root["transaction.status"] == "ok"
         root_tags = {tag["key"]: tag["value"] for tag in root["tags"]}
         for [key, value] in self.root_event.tags:
@@ -751,10 +866,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 assert root_tags[key[7:]] == value, f"tags - {key}"
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
-        assert "issue_short_id" in response.data[0]["performance_issues"][0]
-        assert response.data[0]["performance_issues"][0]["culprit"] == "root"
+        assert "issue_short_id" in trace_transaction["performance_issues"][0]
+        assert trace_transaction["performance_issues"][0]["culprit"] == "root"
         assert (
-            response.data[0]["performance_issues"][0]["type"]
+            trace_transaction["performance_issues"][0]["type"]
             == PerformanceFileIOMainThreadGroupType.type_id
         )
 
@@ -785,7 +900,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        root = response.data[0]
+        root = response.data["transactions"][0]
         assert root["transaction.status"] == "ok"
         assert {"key": None, "value": None} in root["tags"]
 
@@ -826,9 +941,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         assert response.status_code == 200, response.content
         # Should be the same as the simple testcase
-        self.assert_trace_data(response.data[0], gen2_no_children=False)
+        trace_transaction = response.data["transactions"][0]
+        self.assert_trace_data(trace_transaction, gen2_no_children=False)
         # The difference is that gen3-1 should exist with no children
-        gen2_1 = response.data[0]["children"][1]["children"][0]
+        gen2_1 = trace_transaction["children"][1]["children"][0]
         assert len(gen2_1["children"]) == 1
         gen3_1 = gen2_1["children"][0]
         assert gen3_1["event_id"] == gen3_loop_event.event_id
@@ -880,10 +996,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 1
+        assert len(response.data["transactions"]) == 1
         # There really isn't a right answer to which orphan is the "root" since this loops, but the current
         # implementation will make the older event the root
-        root = response.data[0]
+        root = response.data["transactions"][0]
         self.assert_event(root, root_event, "root")
         assert len(root["children"]) == 1
         child = root["children"][0]
@@ -919,9 +1035,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        self.assert_event(response.data[0], first_root, "first_root")
-        self.assert_event(response.data[1], second_root, "second_root")
+        assert len(response.data["transactions"]) == 2
+        self.assert_event(response.data["transactions"][0], first_root, "first_root")
+        self.assert_event(response.data["transactions"][1], second_root, "second_root")
 
     def test_sibling_transactions(self):
         """More than one transaction can share a parent_span_id"""
@@ -954,8 +1070,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         assert response.status_code == 200, response.content
         # Should be the same as the simple testcase, but skip checking gen2 children
-        self.assert_trace_data(response.data[0], gen2_no_children=False)
-        gen2_parent = response.data[0]["children"][1]["children"][0]
+        self.assert_trace_data(response.data["transactions"][0], gen2_no_children=False)
+        gen2_parent = response.data["transactions"][0]["children"][1]["children"][0]
         assert len(gen2_parent["children"]) == 2
         assert [child["event_id"] for child in gen2_parent["children"]] == gen3_event_siblings
 
@@ -990,9 +1106,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
 
         assert response.status_code == 200, response.content
 
-        assert len(response.data) == 3
+        assert len(response.data["transactions"]) == 3
         # The first item of the response should be the main trace
-        main, *orphans = response.data
+        main, *orphans = response.data["transactions"]
         self.assert_trace_data(main)
         assert [root_event.event_id, root_sibling_event.event_id] == [
             orphan["event_id"] for orphan in orphans
@@ -1068,9 +1184,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert len(response.data["transactions"]) == 2
         # The first item of the response should be the main trace
-        main, orphans = response.data
+        main, orphans = response.data["transactions"]
         self.assert_trace_data(main)
         self.assert_event(orphans, root_event, "orphan-root")
         assert len(orphans["children"]) == 1
@@ -1098,8 +1214,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data[0])
-        gen1_event = response.data[0]["children"][0]
+        self.assert_trace_data(response.data["transactions"][0])
+        gen1_event = response.data["transactions"][0]["children"][0]
         assert len(gen1_event["errors"]) == 2
         assert {
             "event_id": error.event_id,
@@ -1109,7 +1225,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
         } in gen1_event["errors"]
@@ -1121,7 +1237,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": error1.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
         } in gen1_event["errors"]
@@ -1175,10 +1291,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } == response.data[1]
+        } == response.data["orphan_errors"][1]
         assert {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
@@ -1187,10 +1303,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": error1.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } == response.data[0]
+        } == response.data["orphan_errors"][0]
 
     def test_with_only_orphan_errors_with_different_span_ids(self):
         start, _ = self.get_start_end(1000)
@@ -1224,7 +1340,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert len(response.data["orphan_errors"]) == 2
         assert {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1233,10 +1349,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data
+        } in response.data["orphan_errors"]
         assert {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
@@ -1245,10 +1361,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "warning",
             "title": error1.title,
-            "timestamp": error1.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data
+        } in response.data["orphan_errors"]
 
     def test_with_mixup_of_orphan_errors_with_simple_trace_data(self):
         self.load_trace()
@@ -1282,8 +1398,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        self.assert_trace_data(response.data[0])
+        assert len(response.data["transactions"]) == 1
+        assert len(response.data["orphan_errors"]) == 1
+        self.assert_trace_data(response.data["transactions"][0])
         assert {
             "event_id": error.event_id,
             "issue_id": error.group_id,
@@ -1292,10 +1409,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.project.slug,
             "level": "fatal",
             "title": error.title,
-            "timestamp": error.timestamp,
+            "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in response.data
+        } in response.data["orphan_errors"]
 
     def test_with_default(self):
         self.load_trace()
@@ -1309,8 +1426,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
 
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data[0])
-        root_event = response.data[0]
+        self.assert_trace_data(response.data["transactions"][0])
+        root_event = response.data["transactions"][0]
         assert len(root_event["errors"]) == 1
         assert {
             "event_id": default_event.event_id,
@@ -1320,7 +1437,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "project_slug": self.gen1_project.slug,
             "level": "debug",
             "title": "this is a log message",
-            "timestamp": default_event.timestamp,
+            "timestamp": to_timestamp_from_iso_format(default_event.timestamp),
             "generation": 0,
             "event_type": "error",
         } in root_event["errors"]
@@ -1335,7 +1452,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        self.assert_trace_data(response.data[0])
+        self.assert_trace_data(response.data["transactions"][0])
 
     def test_pruning_event(self):
         self.load_trace()
@@ -1346,7 +1463,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 format="json",
             )
         assert response.status_code == 200, response.content
-        root = response.data[0]
+        root = response.data["transactions"][0]
 
         self.assert_event(root, self.root_event, "root")
 

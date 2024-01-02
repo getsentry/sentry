@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from sentry.integrations.message_builder import AbstractMessageBuilder
-
 from .component import DiscordMessageComponent
 from .embed import DiscordMessageEmbed
 from .flags import DiscordMessageFlags
 
 
-class DiscordMessageBuilder(AbstractMessageBuilder):
+class DiscordMessageBuilder:
     """
     Base DiscordMessageBuilder class.
 
@@ -27,7 +25,7 @@ class DiscordMessageBuilder(AbstractMessageBuilder):
         self.components = components
         self.flags = flags
 
-    def build(self) -> dict[str, object]:
+    def build(self, notification_uuid: str | None = None) -> dict[str, object]:
         return self._build(
             self.content,
             self.embeds,

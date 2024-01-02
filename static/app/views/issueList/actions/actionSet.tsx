@@ -4,13 +4,14 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
 import IgnoreActions from 'sentry/components/actions/ignore';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {BaseGroup, Project, ResolutionStatus} from 'sentry/types';
+import {BaseGroup, GroupStatus, Project} from 'sentry/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import Projects from 'sentry/utils/projects';
@@ -166,7 +167,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-          onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
@@ -198,7 +199,7 @@ function ActionSet({
           onClick={() => {
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-              onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+              onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED}),
               message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
               confirmText: label('unarchive'),
             });
@@ -207,17 +208,6 @@ function ActionSet({
         >
           {t('Unarchive')}
         </Button>
-      ) : null}
-      {hasEscalatingIssuesUi ? (
-        <ArchiveActions
-          onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-          confirmMessage={() =>
-            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
-          }
-          confirmLabel={label('archive')}
-          disabled={ignoreDisabled}
-        />
       ) : null}
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
@@ -252,12 +242,30 @@ function ActionSet({
           anySelected={anySelected}
           params={{
             hasRelease: false,
+            multipleProjectsSelected: true,
+            disabled: true,
             confirm,
             label,
           }}
         />
       )}
-      {hasEscalatingIssuesUi ? null : (
+      {hasEscalatingIssuesUi ? (
+        <GuideAnchor
+          target="issue_stream_archive_button"
+          position="bottom"
+          disabled={ignoreDisabled}
+        >
+          <ArchiveActions
+            onUpdate={onUpdate}
+            shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+            confirmMessage={() =>
+              confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+            }
+            confirmLabel={label('archive')}
+            disabled={ignoreDisabled}
+          />
+        </GuideAnchor>
+      ) : (
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
@@ -290,7 +298,7 @@ function ActionSet({
         items={menuItems}
         triggerProps={{
           'aria-label': t('More issue actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'xs',
         }}
@@ -305,7 +313,7 @@ function isActionSupported(
   actionType: keyof IssueTypeConfig['actions']
 ) {
   for (const issue of selectedIssues) {
-    const info = getConfigForIssueType(issue).actions[actionType];
+    const info = getConfigForIssueType(issue, issue.project).actions[actionType];
 
     if (!info.enabled) {
       return info;

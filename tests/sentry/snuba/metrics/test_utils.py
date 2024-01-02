@@ -277,11 +277,7 @@ test_get_intervals_cases = [
     ids=[x[4] for x in test_get_intervals_cases],
 )
 def test_get_intervals(start, end, granularity, interval, test_message, expected):
-    if start is not None:
-        start_date = datetime.fromisoformat(start)
-    else:
-        start_date = None
-
+    start_date = datetime.fromisoformat(start)
     end_date = datetime.fromisoformat(end)
 
     intervals = get_intervals(

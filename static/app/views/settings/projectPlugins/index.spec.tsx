@@ -1,7 +1,13 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Plugin as PluginFixture} from 'sentry-fixture/plugin';
+import {Plugins as PluginsFixture} from 'sentry-fixture/plugins';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+
 import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
-import type {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization as TOrganization, Plugin, Project} from 'sentry/types';
 import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
 
 jest.mock('sentry/actionCreators/plugins', () => ({
@@ -11,19 +17,22 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectPluginsContainer', function () {
-  let org: Organization, project: Project, plugins: Plugin[], params: {projectId: string};
+  let org: TOrganization,
+    project: Project,
+    plugins: Plugin[],
+    params: {projectId: string};
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    plugins = TestStubs.Plugins([
-      {
+    org = Organization();
+    project = ProjectFixture();
+    plugins = PluginsFixture([
+      PluginFixture({
         enabled: true,
         id: 'disableable plugin',
         name: 'Disableable Plugin',
         slug: 'disableable plugin',
         canDisable: true,
-      },
+      }),
     ]);
     params = {
       projectId: project.slug,
@@ -54,7 +63,7 @@ describe('ProjectPluginsContainer', function () {
     });
     render(
       <ProjectPluginsContainer
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         plugins={{plugins, loading: false, error: undefined}}
         params={params}
         organization={org}

@@ -4,11 +4,15 @@ import enum
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Mapping, Sequence
+from typing import Any, ClassVar, Dict, List, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
-from sentry.models import ExternalIssue, GroupLink, UserOption
+from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
+from sentry.models.user import User
 from sentry.notifications.utils import get_notification_group_title
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -75,6 +79,14 @@ class IssueBasicMixin:
         params = {}
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
+
+        if group.issue_category == GroupCategory.FEEDBACK:
+            return [
+                "Sentry Feedback: [{}]({})\n".format(
+                    group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
+                )
+            ]
+
         return [
             "Sentry Issue: [{}]({})".format(
                 group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
@@ -88,7 +100,7 @@ class IssueBasicMixin:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
@@ -181,13 +193,18 @@ class IssueBasicMixin:
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project, user):
+    def get_defaults(self, project: Project, user: User):
         project_defaults = self.get_project_defaults(project.id)
 
-        user_option_key = dict(user=user, key="issue:defaults", project=project)
-        user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
-            self.model.provider, {}
+        user_option_value = get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [user.id], "keys": ["issue:defaults"], "project_id": project.id}
+            ),
+            key="issue:defaults",
+            default={},
         )
+
+        user_defaults = user_option_value.get(self.model.provider, {})
 
         defaults = {}
         defaults.update(project_defaults)
@@ -260,7 +277,7 @@ class IssueBasicMixin:
         """
         return ""
 
-    def get_repository_choices(self, group, **kwargs):
+    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any], **kwargs):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
@@ -271,11 +288,8 @@ class IssueBasicMixin:
         else:
             repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
 
-        repo = kwargs.get("repo")
-        if not repo:
-            params = kwargs.get("params", {})
-            defaults = self.get_project_defaults(group.project_id)
-            repo = params.get("repo", defaults.get("repo"))
+        defaults = self.get_project_defaults(group.project_id) if group else {}
+        repo = params.get("repo") or defaults.get("repo")
 
         try:
             default_repo = repo or repo_choices[0][0]
@@ -341,11 +355,11 @@ class IssueBasicMixin:
 
 
 class IssueSyncMixin(IssueBasicMixin):
-    comment_key = None
-    outbound_status_key = None
-    inbound_status_key = None
-    outbound_assignee_key = None
-    inbound_assignee_key = None
+    comment_key: ClassVar[str | None] = None
+    outbound_status_key: ClassVar[str | None] = None
+    inbound_status_key: ClassVar[str | None] = None
+    outbound_assignee_key: ClassVar[str | None] = None
+    inbound_assignee_key: ClassVar[str | None] = None
 
     def should_sync(self, attribute: str) -> bool:
         key = getattr(self, f"{attribute}_key", None)

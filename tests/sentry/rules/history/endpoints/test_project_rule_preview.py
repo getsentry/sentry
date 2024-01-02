@@ -2,16 +2,21 @@ from datetime import timedelta
 
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import Activity, Group, GroupInbox, GroupInboxReason
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
+pytestmark = [requires_snuba]
 
-@freeze_time()
+
 @region_silo_test
+@freeze_time()
 class ProjectRulePreviewEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-preview"
     method = "post"
@@ -70,7 +75,8 @@ class ProjectRulePreviewEndpointTest(APITestCase):
         assert resp.status_code == 400
 
     def test_endpoint(self):
-        with freeze_time(timezone.now()) as frozen_time:
+        time_to_freeze = timezone.now()
+        with freeze_time(time_to_freeze) as frozen_time:
             resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -85,9 +91,9 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             )
 
             result = parse_datetime(resp["endpoint"])
-            endpoint = frozen_time.time_to_freeze.replace(tzinfo=result.tzinfo)
+            endpoint = time_to_freeze.replace(tzinfo=result.tzinfo)
             assert result == endpoint
-            frozen_time.tick(1)
+            frozen_time.shift(1)
 
             resp = self.get_success_response(
                 self.organization.slug,

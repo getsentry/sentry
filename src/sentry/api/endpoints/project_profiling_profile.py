@@ -8,6 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
@@ -25,6 +27,11 @@ from sentry.utils import json
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):
+    owner = ApiOwner.PROFILING
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get_profiling_params(self, request: Request, project: Project) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))

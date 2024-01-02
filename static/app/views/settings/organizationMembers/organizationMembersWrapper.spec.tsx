@@ -1,3 +1,6 @@
+import {Member as MemberFixture} from 'sentry-fixture/member';
+import {Organization} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,12 +16,13 @@ jest.mock('sentry/actionCreators/modal', () => ({
 describe('OrganizationMembersWrapper', function () {
   const {routerProps} = initializeOrg();
 
-  const member = TestStubs.Member();
-  const organization = TestStubs.Organization({
+  const member = MemberFixture();
+  const organization = Organization({
     features: ['invite-members'],
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
+      name: 'active',
     },
   });
 
@@ -50,6 +54,11 @@ describe('OrganizationMembersWrapper', function () {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/missing-members/',
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('can invite member', async function () {
@@ -60,11 +69,12 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can not invite members without the invite-members feature', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: [],
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',
+        name: 'active',
       },
     });
     render(<OrganizationMembersWrapper organization={org} {...routerProps} />);
@@ -73,11 +83,12 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can invite without permissions', async function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['invite-members'],
       access: [],
       status: {
         id: 'active',
+        name: 'active',
       },
     });
 
@@ -87,11 +98,16 @@ describe('OrganizationMembersWrapper', function () {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('renders member list', function () {
+  it('renders member list', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [member],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      method: 'GET',
+      body: {},
     });
     render(
       <OrganizationMembersWrapper organization={organization} {...routerProps}>
@@ -99,7 +115,7 @@ describe('OrganizationMembersWrapper', function () {
       </OrganizationMembersWrapper>
     );
 
-    expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(await screen.findByText('Members')).toBeInTheDocument();
     expect(screen.getByText(member.name)).toBeInTheDocument();
   });
 });

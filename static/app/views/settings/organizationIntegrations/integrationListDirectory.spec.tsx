@@ -1,3 +1,13 @@
+import {DocIntegration as DocIntegrationFixture} from 'sentry-fixture/docIntegration';
+import {
+  BitbucketIntegrationConfig,
+  OrgOwnedApps,
+  PluginListConfig,
+  ProviderList,
+  PublishedApps,
+  SentryAppInstalls,
+} from 'sentry-fixture/integrationListDirectory';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,24 +22,18 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization: org, routerContext, router} = initializeOrg();
+  const {organization: org, routerContext, routerProps} = initializeOrg();
 
   describe('Renders view', function () {
     beforeEach(() => {
       mockResponse([
-        [`/organizations/${org.slug}/config/integrations/`, TestStubs.ProviderList()],
-        [
-          `/organizations/${org.slug}/integrations/`,
-          [TestStubs.BitbucketIntegrationConfig()],
-        ],
-        [`/organizations/${org.slug}/sentry-apps/`, TestStubs.OrgOwnedApps()],
-        ['/sentry-apps/', TestStubs.PublishedApps()],
-        ['/doc-integrations/', [TestStubs.DocIntegration()]],
-        [
-          `/organizations/${org.slug}/sentry-app-installations/`,
-          TestStubs.SentryAppInstalls(),
-        ],
-        [`/organizations/${org.slug}/plugins/configs/`, TestStubs.PluginListConfig()],
+        [`/organizations/${org.slug}/config/integrations/`, ProviderList()],
+        [`/organizations/${org.slug}/integrations/`, [BitbucketIntegrationConfig()]],
+        [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedApps()],
+        ['/sentry-apps/', PublishedApps()],
+        ['/doc-integrations/', [DocIntegrationFixture()]],
+        [`/organizations/${org.slug}/sentry-app-installations/`, SentryAppInstalls()],
+        [`/organizations/${org.slug}/plugins/configs/`, PluginListConfig()],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
       ]);
     });
@@ -37,11 +41,8 @@ describe('IntegrationListDirectory', function () {
     it('shows installed integrations at the top in order of weight', function () {
       render(
         <IntegrationListDirectory
+          {...routerProps}
           params={{orgId: org.slug}}
-          location={router.location}
-          router={router}
-          route={router.routes[0]}
-          routes={router.routes}
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
@@ -66,11 +67,8 @@ describe('IntegrationListDirectory', function () {
     it('does not show legacy plugin that has a First Party Integration if not installed', function () {
       render(
         <IntegrationListDirectory
+          {...routerProps}
           params={{orgId: org.slug}}
-          location={router.location}
-          router={router}
-          route={router.routes[0]}
-          routes={router.routes}
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
@@ -83,11 +81,8 @@ describe('IntegrationListDirectory', function () {
     it('shows legacy plugin that has a First Party Integration if installed', function () {
       render(
         <IntegrationListDirectory
+          {...routerProps}
           params={{orgId: org.slug}}
-          location={router.location}
-          router={router}
-          route={router.routes[0]}
-          routes={router.routes}
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,

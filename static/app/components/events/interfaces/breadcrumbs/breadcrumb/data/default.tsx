@@ -33,6 +33,7 @@ export function Default({
   transactionEvents,
 }: Props) {
   const {message, data} = breadcrumb;
+
   return (
     <Summary kvData={data} meta={meta}>
       {meta?.message?.[''] ? (
@@ -78,8 +79,8 @@ function FormatMessage({
   const isSentryTransaction =
     breadcrumb.category === 'sentry.transaction' && isEventId(message);
 
-  const {projects, fetching: loadingProjects} = useProjects();
-  const maybeProject = !loadingProjects
+  const {projects, fetching: fetchingProjects} = useProjects();
+  const maybeProject = !fetchingProjects
     ? projects.find(project => {
         return event && project.id === event.projectID;
       })

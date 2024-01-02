@@ -1,20 +1,25 @@
 import styled from '@emotion/styled';
 
+import DateTime from 'sentry/components/dateTime';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus} from 'sentry/views/monitors/utils';
 import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
 import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
 import {JobTickTooltip} from './jobTickTooltip';
-import {MonitorBucketData, TimeWindow} from './types';
+import {MonitorBucketData, TimeWindowOptions} from './types';
 
-export interface CheckInTimelineProps {
-  bucketedData: MonitorBucketData;
+interface TimelineProps {
   end: Date;
-  environment: string;
   start: Date;
-  timeWindow: TimeWindow;
+  timeWindowConfig: TimeWindowOptions;
   width: number;
+}
+
+export interface CheckInTimelineProps extends TimelineProps {
+  bucketedData: MonitorBucketData;
+  environment: string;
 }
 
 function getBucketedCheckInsPosition(
@@ -27,7 +32,7 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: CheckInTimelineProps) {
-  const {bucketedData, start, end, timeWindow, width, environment} = props;
+  const {bucketedData, start, end, timeWindowConfig, width, environment} = props;
 
   const elapsedMs = end.getTime() - start.getTime();
   const msPerPixel = elapsedMs / width;
@@ -50,7 +55,7 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
         return (
           <JobTickTooltip
             jobTick={jobTick}
-            timeWindow={timeWindow}
+            timeWindowConfig={timeWindowConfig}
             skipWrapper
             key={startTs}
           >
@@ -61,6 +66,47 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
               roundedRight={roundedRight}
             />
           </JobTickTooltip>
+        );
+      })}
+    </TimelineContainer>
+  );
+}
+
+export interface MockCheckInTimelineProps extends TimelineProps {
+  mockTimestamps: Date[];
+}
+
+export function MockCheckInTimeline({
+  mockTimestamps,
+  start,
+  end,
+  timeWindowConfig,
+  width,
+}: MockCheckInTimelineProps) {
+  const elapsedMs = end.getTime() - start.getTime();
+  const msPerPixel = elapsedMs / width;
+
+  return (
+    <TimelineContainer>
+      {mockTimestamps.map(ts => {
+        const timestampMs = ts.getTime();
+        const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+
+        return (
+          <Tooltip
+            key={left}
+            title={
+              <DateTime date={timestampMs} format={timeWindowConfig.dateLabelFormat} />
+            }
+            skipWrapper
+          >
+            <JobTick
+              style={{left}}
+              status={CheckInStatus.IN_PROGRESS}
+              roundedLeft
+              roundedRight
+            />
+          </Tooltip>
         );
       })}
     </TimelineContainer>

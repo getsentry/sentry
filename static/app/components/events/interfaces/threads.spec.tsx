@@ -1,13 +1,41 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import merge from 'lodash/merge';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
 describe('Threads', function () {
-  const {project, organization} = initializeOrg();
+  const organization = Organization();
+  const project = ProjectFixture({});
+  const integration = GitHubIntegrationFixture();
+  const repo = Repository({integrationId: integration.id});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: promptResponse,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
+  });
 
   describe('non native platform', function () {
     describe('other platform', function () {
@@ -15,7 +43,7 @@ describe('Threads', function () {
         id: '020eb33f6ce64ed6adc60f8993535816',
         groupID: '68',
         eventID: '020eb33f6ce64ed6adc60f8993535816',
-        projectID: '2',
+        projectID: project.id,
         size: 3481,
         entries: [
           {
@@ -45,7 +73,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -64,7 +91,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -91,7 +117,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 1,
                       },
@@ -119,7 +144,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 0,
                       },
@@ -204,7 +228,7 @@ describe('Threads', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<Threads {...props} />, {
+        render(<Threads {...props} />, {
           organization,
         });
 
@@ -224,8 +248,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('toggle full stack trace button', async function () {
@@ -315,7 +337,7 @@ describe('Threads', function () {
         id: 'bfe4379d82934b2b91d70b1167bcae8d',
         groupID: '24',
         eventID: 'bfe4379d82934b2b91d70b1167bcae8d',
-        projectID: '2',
+        projectID: project.id,
         size: 89101,
         entries: [
           {
@@ -342,7 +364,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -361,7 +382,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -380,7 +400,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -400,7 +419,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -420,7 +438,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -504,7 +521,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -523,7 +539,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -543,7 +558,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -563,7 +577,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -583,7 +596,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -663,7 +675,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -682,7 +693,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -869,7 +879,7 @@ describe('Threads', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<Threads {...props} />, {organization});
+        render(<Threads {...props} />, {organization});
         // Title
         const threadSelector = screen.getByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
@@ -894,8 +904,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('renders thread state and lock reason', function () {
@@ -904,7 +912,7 @@ describe('Threads', function () {
           features: ['anr-improvements'],
         };
         const newProps = {...props, organization: newOrg};
-        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization: newOrg});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -931,8 +939,6 @@ describe('Threads', function () {
 
         expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
-
-        expect(container).toSnapshot();
       });
 
       it('hides thread tag event entry if none', function () {
@@ -967,7 +973,6 @@ describe('Threads', function () {
                       colNo: null,
                       inApp: false,
                       trust: null,
-                      errors: null,
                       vars: null,
                     },
                   ],
@@ -985,10 +990,8 @@ describe('Threads', function () {
           },
           organization: newOrg,
         };
-        const {container} = render(<Threads {...newProps} />, {organization: newOrg});
+        render(<Threads {...newProps} />, {organization: newOrg});
         expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
-
-        expect(container).toSnapshot();
       });
 
       it('maps android vm states to java vm states', function () {
@@ -1019,7 +1022,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],
@@ -1226,7 +1228,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],
@@ -1251,6 +1252,50 @@ describe('Threads', function () {
         const threadSelector = screen.getByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
         within(threadSelector).getByText('ViewController.causeCrash');
+      });
+
+      it('renders raw stack trace', async function () {
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false`,
+          body: 'crash report content',
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true`,
+          body: 'crash report content (minified)',
+        });
+
+        // Need rawStacktrace: true to enable the "minified" option in the UI
+        const eventWithMinifiedOption = merge({}, event, {
+          entries: [{data: {values: [{rawStacktrace: true}]}}],
+        });
+        render(<Threads {...props} event={eventWithMinifiedOption} />, {organization});
+
+        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        expect(await screen.findByText('Display')).toBeInTheDocument();
+
+        // Click on raw stack trace option
+        await userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
+
+        // Raw crash report content should be displayed
+        await screen.findByText('crash report content');
+
+        // Download button should have correct URL
+        expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+          'href',
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&download=1`
+        );
+
+        // Click on minified option
+        await userEvent.click(screen.getByText(displayOptions.minified));
+
+        // Raw crash report content should be displayed (now with minified response)
+        await screen.findByText('crash report content (minified)');
+
+        // Download button should nonw have minified=true
+        expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+          'href',
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&download=1`
+        );
       });
     });
   });

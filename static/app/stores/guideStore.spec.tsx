@@ -1,5 +1,9 @@
+import {Config as ConfigFixture} from 'sentry-fixture/config';
+import {User} from 'sentry-fixture/user';
+
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
+import ModalStore from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -9,11 +13,11 @@ describe('GuideStore', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = TestStubs.Config({
-      user: TestStubs.User({
+    ConfigStore.config = ConfigFixture({
+      user: User({
         id: '5',
         isSuperuser: false,
-        dateJoined: new Date(2020, 0, 1),
+        dateJoined: '2020-01-01T00:00:00',
       }),
     });
     GuideStore.init();
@@ -48,20 +52,6 @@ describe('GuideStore', function () {
     expect(GuideStore.getState().currentStep).toEqual(2);
     GuideStore.closeGuide();
     expect(GuideStore.getState().currentGuide).toEqual(null);
-  });
-
-  it('should expect anchors to appear in expectedTargets', function () {
-    data = [{guide: 'new_page_filters', seen: false}];
-
-    GuideStore.registerAnchor('new_page_filter_button');
-    GuideStore.fetchSucceeded(data);
-    expect(GuideStore.getState().currentStep).toEqual(0);
-    expect(GuideStore.getState().currentGuide?.guide).toEqual('new_page_filters');
-
-    GuideStore.registerAnchor('new_page_filter_button');
-
-    // Will not prune steps that don't have anchors
-    expect(GuideStore.getState().currentGuide?.steps).toHaveLength(2);
   });
 
   it('should force show a guide with #assistant', function () {
@@ -125,5 +115,17 @@ describe('GuideStore', function () {
     GuideStore.fetchSucceeded(data);
     expect(GuideStore.state.guides.length).toBe(1);
     expect(GuideStore.state.guides[0].guide).toBe(data[0].guide);
+  });
+
+  it('hides when a modal is open', function () {
+    expect(GuideStore.getState().forceHide).toBe(false);
+
+    ModalStore.openModal(() => {}, {});
+
+    expect(GuideStore.getState().forceHide).toBe(true);
+
+    ModalStore.closeModal();
+
+    expect(GuideStore.getState().forceHide).toBe(false);
   });
 });

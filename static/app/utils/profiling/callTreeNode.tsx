@@ -14,6 +14,8 @@ export class CallTreeNode {
   totalWeight: number = 0;
   selfWeight: number = 0;
 
+  aggregate_duration_ns = 0;
+
   static readonly Root = new CallTreeNode(Frame.Root, null);
 
   constructor(frame: Frame, parent: CallTreeNode | null) {

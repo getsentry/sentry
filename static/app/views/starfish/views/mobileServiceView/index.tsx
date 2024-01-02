@@ -13,13 +13,11 @@ import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {useReleases} from 'sentry/views/starfish/queries/useReleases';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {ViewsList} from 'sentry/views/starfish/views/mobileServiceView/viewsList';
@@ -35,14 +33,11 @@ const READABLE_YAXIS_LABELS = {
 
 export function MobileStarfishView() {
   const pageFilter = usePageFilters();
-  const location = useLocation();
-  const {data: releases, isLoading: isReleasesLoading} = useReleases();
-
-  const release1 =
-    decodeScalar(location.query.release1) ?? releases?.[0]?.version ?? undefined;
-
-  const release2 =
-    decodeScalar(location.query.release2) ?? releases?.[0]?.version ?? undefined;
+  const {
+    primaryRelease,
+    secondaryRelease,
+    isLoading: isReleasesLoading,
+  } = useReleaseSelection();
 
   const query = new MutableSearch(['event.type:transaction', 'transaction.op:ui.load']);
 
@@ -65,8 +60,8 @@ export function MobileStarfishView() {
           'avg(measurements.frames_frozen_rate)',
         ],
         query:
-          defined(release1) && release1 !== ''
-            ? query.copy().addStringFilter(`release:${release1}`).formatString()
+          defined(primaryRelease) && primaryRelease !== ''
+            ? query.copy().addStringFilter(`release:${primaryRelease}`).formatString()
             : query.formatString(),
         dataset: DiscoverDatasets.METRICS,
         version: 2,
@@ -96,8 +91,8 @@ export function MobileStarfishView() {
           'avg(measurements.frames_frozen_rate)',
         ],
         query:
-          defined(release2) && release2 !== ''
-            ? query.copy().addStringFilter(`release:${release2}`).formatString()
+          defined(secondaryRelease) && secondaryRelease !== ''
+            ? query.copy().addStringFilter(`release:${secondaryRelease}`).formatString()
             : query.formatString(),
         dataset: DiscoverDatasets.METRICS,
         version: 2,
@@ -108,7 +103,7 @@ export function MobileStarfishView() {
       },
       pageFilter.selection
     ),
-    enabled: !isReleasesLoading && release1 !== release2,
+    enabled: !isReleasesLoading && primaryRelease !== secondaryRelease,
     referrer: 'api.starfish-web-service.span-category-breakdown-timeseries',
     initialData: {},
   });
@@ -129,7 +124,7 @@ export function MobileStarfishView() {
 
     if (defined(firstReleaseSeries)) {
       Object.keys(firstReleaseSeries).forEach(yAxis => {
-        const label = `${release1}`;
+        const label = `${primaryRelease}`;
         if (yAxis in transformedSeries) {
           transformedSeries[yAxis].push({
             seriesName: label,
@@ -148,7 +143,7 @@ export function MobileStarfishView() {
 
     if (defined(secondReleaseSeries)) {
       Object.keys(secondReleaseSeries).forEach(yAxis => {
-        const label = `${release2}`;
+        const label = `${secondaryRelease}`;
         if (yAxis in transformedSeries) {
           transformedSeries[yAxis].push({
             seriesName: label,
@@ -176,7 +171,6 @@ export function MobileStarfishView() {
               height={125}
               data={transformedSeries['avg(measurements.app_start_cold)']}
               loading={seriesIsLoading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -204,7 +198,6 @@ export function MobileStarfishView() {
               data={transformedSeries['avg(measurements.app_start_warm)']}
               loading={seriesIsLoading}
               showLegend
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -232,7 +225,6 @@ export function MobileStarfishView() {
               height={125}
               data={transformedSeries['avg(measurements.time_to_initial_display)']}
               loading={seriesIsLoading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -259,7 +251,6 @@ export function MobileStarfishView() {
               data={transformedSeries['avg(measurements.time_to_full_display)']}
               loading={seriesIsLoading}
               showLegend
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -287,7 +278,6 @@ export function MobileStarfishView() {
               height={125}
               data={transformedSeries['avg(measurements.frames_slow_rate)']}
               loading={seriesIsLoading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -314,7 +304,6 @@ export function MobileStarfishView() {
               data={transformedSeries['avg(measurements.frames_frozen_rate)']}
               loading={seriesIsLoading}
               showLegend
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',

@@ -41,9 +41,9 @@ from snuba_sdk import (
 )
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams as UtilsInvalidParams
-from sentry.models import Release
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.release_health.base import (
     GroupByFieldName,
     ProjectId,
@@ -64,7 +64,6 @@ from sentry.snuba.metrics.query import (
 )
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
-    InvalidParams,
     NonPreflightOrderByException,
     QueryDefinition,
     finite_or_none,
@@ -575,8 +574,6 @@ def run_sessions_query(
         )
     except OrderByNotSupportedOverCompositeEntityException:
         raise InvalidParams(f"Cannot order by {query.raw_orderby[0]} with the current filters")
-    except UtilsInvalidParams as e:
-        raise InvalidParams(e)
 
     input_groups = {
         GroupKey.from_input_dict(group["by"]): group for group in metrics_results["groups"]
@@ -698,9 +695,7 @@ def _order_by_preflight_query_results(
                     # will never have null group values except when the group exists in the
                     # preflight query but not in the metrics dataset
                     group_key_dict.update({key: None})  # type: ignore
-                result_groups += [
-                    {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
-                ]
+                result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
 
         # Pop extra groups returned to match request limit
         if len(result_groups) > limit.limit:

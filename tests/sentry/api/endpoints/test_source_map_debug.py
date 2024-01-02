@@ -2,12 +2,18 @@ from django.core.files.base import ContentFile
 from rest_framework import status
 
 from sentry.api.helpers.source_map_helper import _find_url_prefix
-from sentry.models import Distribution, File, Release, ReleaseFile
+from sentry.models.distribution import Distribution
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_kafka, requires_snuba
+
+pytestmark = [requires_snuba, requires_kafka]
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable=True blocked on actors
+@region_silo_test
 class SourceMapDebugEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-event-source-map-debug"
 
@@ -316,6 +322,143 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "url_not_valid"
         assert error["message"] == "The absolute path url is not valid"
         assert error["data"] == {"absPath": "app.example.com/static/js/main.fa8fe19f.js"}
+
+    def test_skips_node_internals(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "node:vm",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
+
+    def test_skip_node_context_line(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/app",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                        "context_line": "throw new Error('foo')",
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
+
+    def test_no_valid_url_skips_node(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "platform": "node",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/path/to/file/thats/not/url/main.fa8fe19f.js",
+                                        "filename": "/static/js/main.fa8fe19f.js",
+                                        "lineno": 5,
+                                        "colno": 45,
+                                    }
+                                ]
+                            },
+                        },
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        release = Release.objects.get(organization=self.organization, version=event.release)
+        release.update(user_agent="test_user_agent")
+
+        file = File.objects.create(
+            name="application.js",
+            type="release.file",
+            headers={"Sourcemap": "/path/to/file/thats/not/url/main.fa8fe19f.js.map"},
+        )
+        fileobj = ContentFile(b"wat")
+        file.putfile(fileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=file,
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js",
+        )
+
+        sourcemapfile = File.objects.create(
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js.map", type="release.file"
+        )
+        sourcemapfileobj = ContentFile(b"wat")
+        sourcemapfile.putfile(sourcemapfileobj)
+
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=release.id,
+            file=sourcemapfile,
+            name="/path/to/file/thats/not/url/main.fa8fe19f.js.map",
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+        assert len(resp.data["errors"]) == 0
 
     def test_partial_url_match(self):
         event = self.store_event(

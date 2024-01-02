@@ -5,12 +5,12 @@ import responses
 from django.urls import reverse
 
 from fixtures.integrations.stub_service import StubService
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraSearchEndpointTest(APITestCase):
     @cached_property
     def integration(self):

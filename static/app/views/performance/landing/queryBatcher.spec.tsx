@@ -34,6 +34,7 @@ function WrappedComponent({data, ...rest}) {
       <MEPSettingProvider>
         <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
           <WidgetContainer
+            chartHeight={100}
             allowedCharts={[
               PerformanceWidgetSetting.TPM_AREA,
               PerformanceWidgetSetting.FAILURE_RATE_AREA,

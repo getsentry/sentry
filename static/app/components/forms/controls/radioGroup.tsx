@@ -38,7 +38,7 @@ interface BaseRadioGroupProps<C extends string> {
 export type RadioOption<C extends string = string> = [
   id: C,
   label: React.ReactNode,
-  description?: React.ReactNode
+  description?: React.ReactNode,
 ];
 
 export interface RadioGroupProps<C extends string = string>

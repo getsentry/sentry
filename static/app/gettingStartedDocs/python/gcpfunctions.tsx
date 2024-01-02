@@ -1,137 +1,142 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-}: {
-  dsn?: string;
-} = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>{tct('Install our Python SDK using [code:pip]:', {code: <code />})}</p>
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: 'pip install --upgrade sentry-sdk',
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      'You can use the Google Cloud Functions integration for the Python SDK like this:'
-    ),
-    configurations: [
-      {
-        language: 'python',
-        code: `
+type Params = DocsParams;
+
+const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
+
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.gcp import GcpIntegration
 
 sentry_sdk.init(
-  dsn="${dsn}",
-  integrations=[
-      GcpIntegration(),
-  ],
-
-  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production,
-  traces_sample_rate=1.0,
+    dsn="${params.dsn}",
+    integrations=[GcpIntegration()],${
+      params.isPerformanceSelected
+        ? `
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,`
+        : ''
+    }
 )
 
 def http_function_entrypoint(request):
-  ...
-        `,
-      },
+    ...`;
+
+const getTimeoutWarningSnippet = (params: Params) => `
+sentry_sdk.init(
+    dsn="${params.dsn}",
+    integrations=[
+        GcpIntegration(timeout_warning=True),
     ],
-    additionalInfo: (
-      <p>
-        {tct("Check out Sentry's [link:GCP sample apps] for detailed examples.", {
+)`;
+
+const onboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: (
+        <p>{tct('Install our Python SDK using [code:pip]:', {code: <code />})}</p>
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: getInstallSnippet(),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'You can use the Google Cloud Functions integration for the Python SDK like this:'
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+      ],
+      additionalInfo: tct(
+        "Check out Sentry's [link:GCP sample apps] for detailed examples.",
+        {
           link: (
             <ExternalLink href="https://github.com/getsentry/examples/tree/master/gcp-cloud-functions" />
           ),
-        })}
-      </p>
-    ),
-  },
-  {
-    title: t('Timeout Warning'),
-    description: (
-      <p>
-        {tct(
-          'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
-          {
-            link: (
-              <ExternalLink href="https://cloud.google.com/functions/docs/concepts/execution-environment#timeout" />
-            ),
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        description: (
-          <p>
-            {tct(
-              'To enable the warning, update the SDK initialization to set [codeTimeout:timeout_warning] to [codeStatus:true]:',
-              {codeTimeout: <code />, codeStatus: <code />}
-            )}
-          </p>
-        ),
-        language: 'python',
-        code: `
-sentry_sdk.init(
-  dsn="${dsn}",
-  integrations=[
-      GcpIntegration(timeout_warning=True),
+        }
+      ),
+    },
+    {
+      title: t('Timeout Warning'),
+      description: tct(
+        'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
+        {
+          link: (
+            <ExternalLink href="https://cloud.google.com/functions/docs/concepts/execution-environment#timeout" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          description: tct(
+            'To enable the warning, update the SDK initialization to set [codeTimeout:timeout_warning] to [codeStatus:true]:',
+            {codeTimeout: <code />, codeStatus: <code />}
+          ),
+          language: 'python',
+          code: getTimeoutWarningSnippet(params),
+        },
+        {
+          description: t(
+            'The timeout warning is sent only if the timeout in the Cloud Function configuration is set to a value greater than one second.'
+          ),
+        },
+      ],
+      additionalInfo: (
+        <AlertWithMarginBottom type="info">
+          {tct(
+            'If you are using a web framework in your Cloud Function, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
+              ),
+            }
+          )}
+        </AlertWithMarginBottom>
+      ),
+    },
   ],
+  verify: () => [],
+};
 
-  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production,
-  traces_sample_rate=1.0,
-)
-        `,
-      },
-    ],
-    additionalInfo: t(
-      'The timeout warning is sent only if the timeout in the Cloud Function configuration is set to a value greater than one second.'
-    ),
-  },
-];
-// Configuration End
+const docs: Docs = {
+  onboarding,
+  customMetricsOnboarding: getPythonMetricsOnboarding({
+    installSnippet: getInstallSnippet(),
+  }),
+};
 
-export function GettingStartedWithGCPFunctions({dsn, ...props}: ModuleProps) {
-  return (
-    <Fragment>
-      <Layout steps={steps({dsn})} {...props} />
-      <AlertWithMarginBottom type="info">
-        {tct(
-          'If you are using a web framework in your Cloud Function, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
-            ),
-          }
-        )}
-      </AlertWithMarginBottom>
-    </Fragment>
-  );
-}
-
-export default GettingStartedWithGCPFunctions;
+export default docs;
 
 const AlertWithMarginBottom = styled(Alert)`
   margin-top: ${space(2)};

@@ -1,15 +1,23 @@
+import {RateUnits} from 'sentry/utils/discover/fields';
 import {
-  DAY,
+  DAY, // ms in day
   formatAbbreviatedNumber,
   formatFloat,
+  formatNumberWithDynamicDecimalPoints,
   formatPercentage,
+  formatRate,
   formatSecondsToClock,
   getDuration,
   getExactDuration,
-  MONTH,
+  MONTH, // ms in month
   parseClockToSeconds,
+  parseLargestSuffix,
+  SEC_IN_DAY,
+  SEC_IN_HR,
+  SEC_IN_MIN,
+  SEC_IN_WK,
   userDisplayName,
-  WEEK,
+  WEEK, // ms in week
 } from 'sentry/utils/formatters';
 
 describe('getDuration()', function () {
@@ -216,6 +224,41 @@ describe('formatAbbreviatedNumber()', function () {
   });
 });
 
+describe('formatRate()', function () {
+  it('Formats 0 as "0"', () => {
+    expect(formatRate(0)).toBe('0/s');
+  });
+
+  it('Accepts a unit', () => {
+    expect(formatRate(0.3142, RateUnits.PER_MINUTE)).toBe('0.314/min');
+    expect(formatRate(0.3142, RateUnits.PER_HOUR)).toBe('0.314/hr');
+  });
+
+  it('Formats to 3 significant digits for numbers > minimum', () => {
+    expect(formatRate(0.3142)).toBe('0.314/s');
+    expect(formatRate(17)).toBe('17.0/s');
+    expect(formatRate(1023.142)).toBe('1.02K/s');
+  });
+
+  it('Obeys a minimum value option', () => {
+    expect(formatRate(0.000003142, undefined, {minimumValue: 0.01})).toBe('<0.01/s');
+    expect(formatRate(0.0023, undefined, {minimumValue: 0.01})).toBe('<0.01/s');
+    expect(formatRate(0.02, undefined, {minimumValue: 0.01})).toBe('0.0200/s');
+    expect(formatRate(0.271, undefined, {minimumValue: 0.01})).toBe('0.271/s');
+  });
+
+  it('Obeys a significant digits option', () => {
+    expect(formatRate(7.1, undefined, {significantDigits: 4})).toBe('7.100/s');
+  });
+
+  it('Abbreviates large numbers using SI prefixes', () => {
+    expect(formatRate(1023.142)).toBe('1.02K/s');
+    expect(formatRate(1523142)).toBe('1.52M/s');
+    expect(formatRate(1020314200.132)).toBe('1.02B/s');
+    expect(formatRate(1023140200132.789)).toBe('1.02T/s');
+  });
+});
+
 describe('formatFloat()', function () {
   it('should format decimals', function () {
     expect(formatFloat(0, 0)).toBe(0);
@@ -292,7 +335,7 @@ describe('getExactDuration', () => {
     expect(getExactDuration(0)).toEqual('0 milliseconds');
   });
 
-  it('should format in the right way', () => {
+  it('should format durations without extra suffixes', () => {
     expect(getExactDuration(2.030043848568126)).toEqual('2 seconds 30 milliseconds');
     expect(getExactDuration(0.2)).toEqual('200 milliseconds');
     expect(getExactDuration(13)).toEqual('13 seconds');
@@ -316,5 +359,68 @@ describe('getExactDuration', () => {
 
   it('should abbreviate label', () => {
     expect(getExactDuration(234235435, true)).toEqual('387wk 2d 1hr 23min 55s');
+  });
+
+  it('should pin/truncate to the min suffix precision if provided', () => {
+    expect(getExactDuration(0, false, 'seconds')).toEqual('0 seconds');
+    expect(getExactDuration(0.2, false, 'seconds')).toEqual('0 seconds');
+    expect(getExactDuration(2.030043848568126, false, 'seconds')).toEqual('2 seconds');
+    expect(getExactDuration(13, false, 'seconds')).toEqual('13 seconds');
+    expect(getExactDuration(60, false, 'seconds')).toEqual('1 minute');
+    expect(getExactDuration(121, false, 'seconds')).toEqual('2 minutes 1 second');
+    expect(getExactDuration(234235435.2, false, 'seconds')).toEqual(
+      '387 weeks 2 days 1 hour 23 minutes 55 seconds'
+    );
+  });
+});
+
+describe('parseLargestSuffix', () => {
+  it('parses exact values', () => {
+    expect(parseLargestSuffix(0)).toEqual([0, 'seconds']);
+    expect(parseLargestSuffix(SEC_IN_MIN)).toEqual([1, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_MIN * 2)).toEqual([2, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_HR)).toEqual([1, 'hours']);
+    expect(parseLargestSuffix(SEC_IN_DAY)).toEqual([1, 'days']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'weeks')).toEqual([1, 'weeks']);
+  });
+
+  it('parses non-exact values', () => {
+    expect(parseLargestSuffix(SEC_IN_MIN + 1)).toEqual([61, 'seconds']);
+    expect(parseLargestSuffix(SEC_IN_HR + SEC_IN_MIN)).toEqual([61, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_DAY + SEC_IN_HR)).toEqual([25, 'hours']);
+    expect(parseLargestSuffix(SEC_IN_DAY + SEC_IN_MIN)).toEqual([1441, 'minutes']);
+  });
+
+  it('pins to max suffix', () => {
+    expect(parseLargestSuffix(10, 'minutes')).toEqual([10, 'seconds']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'minutes')).toEqual([10080, 'minutes']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'hours')).toEqual([168, 'hours']);
+    expect(parseLargestSuffix(SEC_IN_WK, 'days')).toEqual([7, 'days']);
+  });
+});
+
+describe('formatNumberWithDynamicDecimals', () => {
+  it('rounds to two decimal points without forcing them', () => {
+    expect(formatNumberWithDynamicDecimalPoints(1)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.0)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.5)).toEqual('1.5');
+    expect(formatNumberWithDynamicDecimalPoints(1.05)).toEqual('1.05');
+    expect(formatNumberWithDynamicDecimalPoints(1.004)).toEqual('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.005)).toEqual('1.01');
+    expect(formatNumberWithDynamicDecimalPoints(1.1009)).toEqual('1.1');
+    expect(formatNumberWithDynamicDecimalPoints(2.236)).toEqual('2.24');
+  });
+
+  it('preserves significant decimal places', () => {
+    expect(formatNumberWithDynamicDecimalPoints(0.001234)).toEqual('0.0012');
+    expect(formatNumberWithDynamicDecimalPoints(0.000125)).toEqual('0.00013');
+    expect(formatNumberWithDynamicDecimalPoints(0.0000123)).toEqual('0.000012');
+  });
+
+  it('handles zero, NaN and Infinity', () => {
+    expect(formatNumberWithDynamicDecimalPoints(0)).toEqual('0');
+    expect(formatNumberWithDynamicDecimalPoints(NaN)).toEqual('NaN');
+    expect(formatNumberWithDynamicDecimalPoints(Infinity)).toEqual('∞');
+    expect(formatNumberWithDynamicDecimalPoints(-Infinity)).toEqual('-∞');
   });
 });

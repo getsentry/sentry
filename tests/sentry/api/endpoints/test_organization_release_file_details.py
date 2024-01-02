@@ -2,13 +2,16 @@ from base64 import urlsafe_b64encode
 
 from django.urls import reverse
 
-from sentry.models import Distribution, File, Release, ReleaseFile
+from sentry.models.distribution import Distribution
+from sentry.models.files.file import File
+from sentry.models.release import Release
+from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFileDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -118,7 +121,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.data["id"] == id
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFileUpdateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -154,7 +157,7 @@ class ReleaseFileUpdateTest(APITestCase):
         assert releasefile.ident == ReleaseFile.get_ident("foobar")
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseFileDeleteTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

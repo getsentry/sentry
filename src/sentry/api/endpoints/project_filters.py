@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.ingest import inbound_filters
@@ -8,6 +9,10 @@ from sentry.ingest import inbound_filters
 
 @region_silo_endpoint
 class ProjectFiltersEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
+
     def get(self, request: Request, project) -> Response:
         """
         List a project's filters
@@ -25,10 +30,7 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
                     # 'active' will be either a boolean or list for the legacy browser filters
                     # all other filters will be boolean
                     "active": inbound_filters.get_filter_state(flt.id, project),
-                    "description": flt.description,
-                    "name": flt.name,
-                    "hello": flt.id + " - " + flt.name,
                 }
             )
-        results.sort(key=lambda x: x["name"])
+        results.sort(key=lambda x: x["id"])
         return Response(results)

@@ -53,7 +53,7 @@ class SlackIdentityProvider(OAuth2Provider):
         # TODO(epurkhiser): This flow isn't actually used right now in sentry.
         # In slack-bot world we would need to make an API call to the 'me'
         # endpoint to get their user ID here.
-        return super().get_oauth_data(self, payload)
+        return super().get_oauth_data(payload)
 
     def build_identity(self, data):
         data = data["data"]

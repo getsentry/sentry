@@ -150,13 +150,12 @@ class UserSocialAuth(models.Model):
     def create_social_auth(cls, user, uid, provider):
         if not isinstance(uid, str):
             uid = str(uid)
-        return cls.objects.create(user=user, uid=uid, provider=provider)
+        return cls.objects.create(user_id=user.id, uid=uid, provider=provider)
 
     @classmethod
     def get_social_auth(cls, provider, uid, user):
         try:
-            instance = cls.objects.get(provider=provider, uid=uid, user=user)
-            instance.user = user
+            instance = cls.objects.get(provider=provider, uid=uid, user_id=user.id)
             return instance
         except UserSocialAuth.DoesNotExist:
             return None

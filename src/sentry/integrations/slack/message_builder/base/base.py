@@ -4,9 +4,8 @@ from abc import ABC
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.message_builder import AbstractMessageBuilder
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
-from sentry.models import Group
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackAttachment, SlackBody
+from sentry.models.group import Group
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -30,7 +29,7 @@ def get_slack_button(action: MessageAction) -> Mapping[str, Any]:
     return kwargs
 
 
-class SlackMessageBuilder(AbstractMessageBuilder, ABC):
+class SlackMessageBuilder(ABC):
     def build(self) -> SlackBody:
         """Abstract `build` method that all inheritors must implement."""
         raise NotImplementedError
@@ -59,7 +58,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         color: str | None = None,
         actions: Sequence[MessageAction] | None = None,
         **kwargs: Any,
-    ) -> SlackBody:
+    ) -> SlackAttachment:
         """
         Helper to DRY up Slack specific fields.
 

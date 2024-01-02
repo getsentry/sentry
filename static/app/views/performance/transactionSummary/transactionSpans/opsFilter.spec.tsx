@@ -1,4 +1,6 @@
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -8,9 +10,9 @@ import OpsFilter from 'sentry/views/performance/transactionSummary/transactionSp
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view'];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,

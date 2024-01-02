@@ -26,7 +26,7 @@ export async function deleteMonitorEnvironment(
   orgId: string,
   monitorSlug: string,
   environment: string
-) {
+): Promise<boolean> {
   addLoadingMessage(t('Deleting Environment...'));
 
   try {
@@ -37,9 +37,11 @@ export async function deleteMonitorEnvironment(
       },
     });
     clearIndicators();
+    return true;
   } catch {
     addErrorMessage(t('Unable to remove environment from monitor.'));
   }
+  return false;
 }
 
 export async function updateMonitor(
@@ -60,6 +62,32 @@ export async function updateMonitor(
   } catch (err) {
     logException(err);
     addErrorMessage(t('Unable to update monitor.'));
+  }
+
+  return null;
+}
+
+export async function setEnvironmentIsMuted(
+  api: Client,
+  orgId: string,
+  monitorSlug: string,
+  environment: string,
+  isMuted: boolean
+) {
+  addLoadingMessage();
+
+  try {
+    const resp = await api.requestPromise(
+      `/organizations/${orgId}/monitors/${monitorSlug}/environments/${environment}`,
+      {method: 'PUT', data: {isMuted}}
+    );
+    clearIndicators();
+    return resp;
+  } catch (err) {
+    logException(err);
+    addErrorMessage(
+      isMuted ? t('Unable to mute environment.') : t('Unable to unmute environment.')
+    );
   }
 
   return null;

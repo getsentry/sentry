@@ -1,9 +1,7 @@
 {
   "event_id": "f79bf3f80cb444e0a2eda68ad7c95d93",
   "platform": "native",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

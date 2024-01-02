@@ -307,7 +307,7 @@ class RedisBuffer(Buffer):
             if not pending_buffer.empty():
                 process_incr.apply_async(kwargs={"batch_keys": pending_buffer.flush()})
 
-            metrics.timing("buffer.pending-size", keycount)
+            metrics.distribution("buffer.pending-size", keycount)
         finally:
             client.delete(lock_key)
 

@@ -9,14 +9,14 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import AtlassianConnectValidationError, get_query_hash
-from sentry.models import Integration
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class JiraInstalledTest(APITestCase):
     endpoint = "sentry-extensions-jira-installed"
     method = "post"
@@ -75,13 +75,13 @@ class JiraInstalledTest(APITestCase):
         )
 
     def test_missing_token(self):
-        self.get_error_response(**self.body(), status_code=status.HTTP_400_BAD_REQUEST)
+        self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
 
     def test_invalid_token(self):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
     @patch(
@@ -95,7 +95,7 @@ class JiraInstalledTest(APITestCase):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
     @patch("sentry_sdk.set_tag")

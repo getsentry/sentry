@@ -1,12 +1,12 @@
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiTokensListTest(APITestCase):
     def test_simple(self):
         ApiToken.objects.create(user=self.user)
@@ -39,7 +39,7 @@ class ApiTokensListTest(APITestCase):
         assert response.status_code == 403, response.content
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiTokensCreateTest(APITestCase):
     def test_no_scopes(self):
         self.login_as(self.user)
@@ -82,7 +82,7 @@ class ApiTokensCreateTest(APITestCase):
         assert not ApiToken.objects.filter(user=self.user).exists()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiTokensDeleteTest(APITestCase):
     def test_simple(self):
         token = ApiToken.objects.create(user=self.user)
@@ -104,7 +104,7 @@ class ApiTokensDeleteTest(APITestCase):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiTokensSuperUserTest(APITestCase):
     url = reverse("sentry-api-0-api-tokens")
 

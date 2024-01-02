@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -10,7 +13,7 @@ jest.mock('sentry/utils/analytics', () => ({
 jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function () {
-  const org = TestStubs.Organization({slug: 'test-org'});
+  const org = Organization({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(function () {
@@ -20,7 +23,7 @@ describe('OrganizationJoinRequest', function () {
   it('renders', function () {
     render(
       <OrganizationJoinRequest
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: org.slug}}
       />
     );
@@ -38,7 +41,7 @@ describe('OrganizationJoinRequest', function () {
 
     render(
       <OrganizationJoinRequest
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: org.slug}}
       />
     );
@@ -68,7 +71,7 @@ describe('OrganizationJoinRequest', function () {
 
     render(
       <OrganizationJoinRequest
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: org.slug}}
       />
     );
@@ -90,7 +93,7 @@ describe('OrganizationJoinRequest', function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
     render(
       <OrganizationJoinRequest
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: org.slug}}
       />
     );

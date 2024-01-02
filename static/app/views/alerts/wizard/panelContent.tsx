@@ -2,7 +2,8 @@ import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
-import diagramCustom from 'sentry-images/spot/alerts-wizard-custom.svg';
+import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
+import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
@@ -119,15 +120,27 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
     illustration: diagramCLS,
   },
-  custom: {
+  custom_transactions: {
     description: t(
-      'Alert on metrics which are not listed above, such as first paint (FP), first contentful paint (FCP), and time to first byte (TTFB).'
+      'Alert on performance metrics which are not listed above, such as first paint (FP), first contentful paint (FCP), and time to first byte (TTFB).'
     ),
     examples: [
       t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
       t('When the average TTFB of a page is longer than 600 millliseconds.'),
     ],
-    illustration: diagramCustom,
+    illustration: diagramCustomTransaction,
+  },
+  custom_metrics: {
+    description: t(
+      'Alert on custom metrics that you have configured and are not related to errors, transactions or sessions.'
+    ),
+    examples: [
+      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
+      t(
+        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
+      ),
+    ],
+    illustration: diagramCustomMetrics,
   },
   crash_free_sessions: {
     description: t(

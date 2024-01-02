@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
-from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, safe
@@ -159,9 +159,9 @@ def test_relays_dyamic_sampling(
             "configs",
             str(default_projectkey.public_key),
             "config",
-            "dynamicSampling",
+            "sampling",
         )
-        assert dynamic_sampling == {"rules": [], "rulesV2": []}
+        assert dynamic_sampling == {"version": 2, "rules": []}
 
 
 @django_db_all

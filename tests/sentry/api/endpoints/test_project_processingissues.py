@@ -2,12 +2,14 @@ from datetime import datetime, timezone
 
 from django.urls import reverse
 
-from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
+from sentry.models.eventerror import EventError
+from sentry.models.processingissue import EventProcessingIssue, ProcessingIssue
+from sentry.models.rawevent import RawEvent
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectProjectProcessingIssuesTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

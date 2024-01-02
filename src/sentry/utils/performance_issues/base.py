@@ -24,7 +24,8 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
 )
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from .types import PerformanceProblemsMap, Span
 
@@ -155,6 +156,10 @@ class PerformanceDetector(ABC):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
+
+    @classmethod
+    def is_detector_enabled(cls) -> bool:
+        return True
 
     @classmethod
     def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:

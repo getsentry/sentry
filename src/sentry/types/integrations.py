@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional, Sequence, Set
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -14,6 +15,7 @@ class ExternalProviders(ValueEqualityEnum):
     DISCORD = 140
     OPSGENIE = 150
     GITHUB = 200
+    GITHUB_ENTERPRISE = 201
     GITLAB = 210
 
     # TODO: do migration to delete this from database
@@ -24,17 +26,51 @@ class ExternalProviders(ValueEqualityEnum):
         return get_provider_name(self.value)
 
 
-EXTERNAL_PROVIDERS = {
-    ExternalProviders.EMAIL: "email",
-    ExternalProviders.SLACK: "slack",
-    ExternalProviders.MSTEAMS: "msteams",
-    ExternalProviders.PAGERDUTY: "pagerduty",
-    ExternalProviders.DISCORD: "discord",
-    ExternalProviders.OPSGENIE: "opsgenie",
-    ExternalProviders.GITHUB: "github",
-    ExternalProviders.GITLAB: "gitlab",
-    ExternalProviders.CUSTOM: "custom_scm",
+class ExternalProviderEnum(Enum):
+    EMAIL = "email"
+    SLACK = "slack"
+    MSTEAMS = "msteams"
+    PAGERDUTY = "pagerduty"
+    DISCORD = "discord"
+    OPSGENIE = "opsgenie"
+    GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
+    GITLAB = "gitlab"
+    CUSTOM = "custom_scm"
+
+
+EXTERNAL_PROVIDERS_REVERSE = {
+    ExternalProviderEnum.EMAIL: ExternalProviders.EMAIL,
+    ExternalProviderEnum.SLACK: ExternalProviders.SLACK,
+    ExternalProviderEnum.MSTEAMS: ExternalProviders.MSTEAMS,
+    ExternalProviderEnum.PAGERDUTY: ExternalProviders.PAGERDUTY,
+    ExternalProviderEnum.DISCORD: ExternalProviders.DISCORD,
+    ExternalProviderEnum.OPSGENIE: ExternalProviders.OPSGENIE,
+    ExternalProviderEnum.GITHUB: ExternalProviders.GITHUB,
+    ExternalProviderEnum.GITHUB_ENTERPRISE: ExternalProviders.GITHUB_ENTERPRISE,
+    ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
+    ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
 }
+
+EXTERNAL_PROVIDERS = {
+    ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
+    ExternalProviders.SLACK: ExternalProviderEnum.SLACK.value,
+    ExternalProviders.MSTEAMS: ExternalProviderEnum.MSTEAMS.value,
+    ExternalProviders.PAGERDUTY: ExternalProviderEnum.PAGERDUTY.value,
+    ExternalProviders.DISCORD: ExternalProviderEnum.DISCORD.value,
+    ExternalProviders.OPSGENIE: ExternalProviderEnum.OPSGENIE.value,
+    ExternalProviders.GITHUB: ExternalProviderEnum.GITHUB.value,
+    ExternalProviders.GITHUB_ENTERPRISE: ExternalProviderEnum.GITHUB_ENTERPRISE.value,
+    ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
+    ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
+}
+
+# the list of providers allowed for personal notifications
+PERSONAL_NOTIFICATION_PROVIDERS = [
+    ExternalProviderEnum.EMAIL.value,
+    ExternalProviderEnum.SLACK.value,
+    ExternalProviderEnum.MSTEAMS.value,
+]
 
 
 def get_provider_name(value: int) -> Optional[str]:
@@ -58,6 +94,12 @@ def get_provider_enum_from_string(provider: str) -> ExternalProviders:
         if v == provider:
             return k
     raise InvalidProviderException("Invalid provider ${provider}")
+
+
+PERSONAL_NOTIFICATION_PROVIDERS_AS_INT = [
+    get_provider_enum_from_string(provider_name).value
+    for provider_name in PERSONAL_NOTIFICATION_PROVIDERS
+]
 
 
 class InvalidProviderException(Exception):

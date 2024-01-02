@@ -1,7 +1,6 @@
 import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
-import isString from 'lodash/isString';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
@@ -64,6 +63,7 @@ import {getSortField} from './fieldRenderers';
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {
   isMetricsData?: boolean;
+  isMetricsExtractedData?: boolean;
   tips?: {columns: string; query: string};
   units?: Record<string, string>;
 };
@@ -71,6 +71,7 @@ export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   units: Record<string, string>;
 } & {
   isMetricsData?: boolean;
+  isMetricsExtractedData?: boolean;
 };
 
 // Data in discover results.
@@ -137,8 +138,12 @@ function getSortKeyFromField(
   return getSortField(fieldString, tableMeta);
 }
 
-export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
-  return !!getSortKeyFromField(field, tableMeta);
+export function isFieldSortable(
+  field: Field,
+  tableMeta?: MetaType,
+  useFunctionFormat?: boolean
+): boolean {
+  return !!getSortKeyFromField(field, tableMeta, useFunctionFormat);
 }
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -182,7 +187,7 @@ export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => 
     return [];
   }
 
-  sorts = isString(sorts) ? [sorts] : sorts;
+  sorts = typeof sorts === 'string' ? [sorts] : sorts;
 
   // NOTE: sets are iterated in insertion order
   const uniqueSorts = [...new Set(sorts)];
@@ -1077,7 +1082,7 @@ class EventView {
         ({
           key: sort.field,
           order: sort.kind,
-        } as TableColumnSort<string>)
+        }) as TableColumnSort<string>
     );
   }
 

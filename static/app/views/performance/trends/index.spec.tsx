@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -30,13 +32,6 @@ import {
 const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
-
-jest.mock(
-  'sentry/utils/getDynamicComponent',
-  () =>
-    ({fixed}) =>
-      fixed
-);
 
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment');
@@ -78,8 +73,8 @@ function _initializeData(
 ) {
   const newSettings = {...settings};
   newSettings.projects = settings.projects ?? [
-    TestStubs.Project({id: '1', firstTransactionEvent: false}),
-    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+    ProjectFixture({id: '1', firstTransactionEvent: false}),
+    ProjectFixture({id: '2', firstTransactionEvent: true}),
   ];
 
   if (options?.selectedProjectId) {
@@ -130,13 +125,13 @@ function initializeTrendsData(
   const _projects = Array.isArray(projects)
     ? projects
     : [
-        TestStubs.Project({id: '1', firstTransactionEvent: false}),
-        TestStubs.Project({id: '2', firstTransactionEvent: true}),
+        ProjectFixture({id: '1', firstTransactionEvent: false}),
+        ProjectFixture({id: '2', firstTransactionEvent: true}),
       ];
   const features = extraFeatures
     ? ['transaction-event', 'performance-view', ...extraFeatures]
     : ['transaction-event', 'performance-view'];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects: _projects,
   });
@@ -261,6 +256,9 @@ describe('Performance > Trends', function () {
             'p95()': 1010.9232499999998,
             'p50()': 47.34580982348902,
             'tps()': 3.7226926286168966,
+            'count()': 34872349,
+            'failure_rate()': 0.43428379,
+            'examples()': ['djk3w308er', '3298a9ui3h'],
           },
         ],
         meta: {
@@ -268,11 +266,17 @@ describe('Performance > Trends', function () {
             'p95()': 'duration',
             '950()': 'duration',
             'tps()': 'number',
+            'count()': 'number',
+            'failure_rate()': 'number',
+            'examples()': 'Array',
           },
           units: {
             'p95()': 'millisecond',
             'p50()': 'millisecond',
             'tps()': null,
+            'count()': null,
+            'failure_rate()': null,
+            'examples()': null,
           },
           isMetricsData: true,
           tips: {},
@@ -324,7 +328,7 @@ describe('Performance > Trends', function () {
   });
 
   it('view summary menu action links to the correct view', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -348,7 +352,7 @@ describe('Performance > Trends', function () {
   });
 
   it('view summary menu action opens performance change explorer with feature flag', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']}, true, [
       'performance-change-explorer',
     ]);
@@ -375,12 +379,12 @@ describe('Performance > Trends', function () {
       expect(screen.getByText('Throughput')).toBeInTheDocument();
       expect(screen.getByText('P95')).toBeInTheDocument();
       expect(screen.getByText('P50')).toBeInTheDocument();
-      expect(screen.getByText('Errors')).toBeInTheDocument();
+      expect(screen.getByText('Failure Rate')).toBeInTheDocument();
     });
   });
 
   it('hide from list menu action modifies query', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -410,7 +414,7 @@ describe('Performance > Trends', function () {
   });
 
   it('Changing search causes cursors to be reset', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -436,7 +440,7 @@ describe('Performance > Trends', function () {
   });
 
   it('exclude greater than list menu action modifies query', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -466,7 +470,7 @@ describe('Performance > Trends', function () {
   });
 
   it('exclude less than list menu action modifies query', async function () {
-    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const projects = [ProjectFixture({id: '1', slug: 'internal'}), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['1']});
 
     render(
@@ -496,7 +500,7 @@ describe('Performance > Trends', function () {
   });
 
   it('choosing a trend function changes location', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     render(
@@ -527,7 +531,7 @@ describe('Performance > Trends', function () {
   });
 
   it('sets LCP as a default trend parameter for frontend project if query does not specify trend parameter', async function () {
-    const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
+    const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
     render(
@@ -543,7 +547,7 @@ describe('Performance > Trends', function () {
   });
 
   it('sets duration as a default trend parameter for backend project if query does not specify trend parameter', async function () {
-    const projects = [TestStubs.Project({id: 1, platform: 'python'})];
+    const projects = [ProjectFixture({id: '1', platform: 'python'})];
     const data = initializeTrendsData(projects, {project: [1]});
 
     render(
@@ -559,7 +563,7 @@ describe('Performance > Trends', function () {
   });
 
   it('sets trend parameter from query and ignores default trend parameter', async function () {
-    const projects = [TestStubs.Project({id: 1, platform: 'javascript'})];
+    const projects = [ProjectFixture({id: '1', platform: 'javascript'})];
     const data = initializeTrendsData(projects, {project: [1], trendParameter: 'FCP'});
 
     render(
@@ -575,7 +579,7 @@ describe('Performance > Trends', function () {
   });
 
   it('choosing a parameter changes location', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     render(
@@ -604,7 +608,7 @@ describe('Performance > Trends', function () {
   });
 
   it('choosing a web vitals parameter adds it as an additional condition to the query', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     const {rerender} = render(
@@ -659,7 +663,7 @@ describe('Performance > Trends', function () {
   });
 
   it('trend functions in location make api calls', async function () {
-    const projects = [TestStubs.Project(), TestStubs.Project()];
+    const projects = [ProjectFixture(), ProjectFixture()];
     const data = initializeTrendsData(projects, {project: ['-1']});
 
     const {rerender} = render(

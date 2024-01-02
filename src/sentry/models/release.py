@@ -3,9 +3,10 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from collections import namedtuple
 from dataclasses import dataclass
 from time import time
-from typing import List, Mapping, Optional, Sequence, Union
+from typing import ClassVar, List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, router
@@ -14,10 +15,12 @@ from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from sentry_relay import RelayError, parse_release
+from sentry_relay.exceptions import RelayError
+from sentry_relay.processing import parse_release
 
 from sentry import features
-from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
+from sentry.backup.scopes import RelocationScope
+from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER, ObjectStatus
 from sentry.db.models import (
     ArrayField,
     BaseQuerySet,
@@ -34,15 +37,11 @@ from sentry.db.models.manager import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
-from sentry.models import (
-    Activity,
-    ArtifactBundle,
-    GroupInbox,
-    GroupInboxRemoveAction,
-    remove_group_from_inbox,
-)
+from sentry.models.activity import Activity
+from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -56,8 +55,6 @@ from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
-_sha1_re = re.compile(r"^[a-f0-9]{40}$")
-_dotted_path_prefix_re = re.compile(r"^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-")
 DB_VERSION_LENGTH = 250
 
 
@@ -73,7 +70,13 @@ class ReleaseCommitError(Exception):
     pass
 
 
-class ReleaseProjectModelManager(BaseManager):
+class SemverVersion(
+    namedtuple("SemverVersion", "major minor patch revision prerelease_case prerelease")
+):
+    pass
+
+
+class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     @staticmethod
     def _on_post(project, trigger):
         from sentry.dynamic_sampling import ProjectBoostedReleases
@@ -96,7 +99,7 @@ class ReleaseProjectModelManager(BaseManager):
 
 @region_silo_only_model
 class ReleaseProject(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
@@ -106,7 +109,7 @@ class ReleaseProject(Model):
     unadopted = models.DateTimeField(null=True, blank=True)
     first_seen_transaction = models.DateTimeField(null=True, blank=True)
 
-    objects = ReleaseProjectModelManager()
+    objects: ClassVar[ReleaseProjectModelManager] = ReleaseProjectModelManager()
 
     class Meta:
         app_label = "sentry"
@@ -264,7 +267,7 @@ class ReleaseQuerySet(BaseQuerySet):
         project_ids: Optional[Sequence[int]] = None,
         environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
-        from sentry.models import ReleaseProjectEnvironment, ReleaseStages
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
 
         if not environments or len(environments) != 1:
@@ -366,7 +369,7 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
     return f"g-r:{group_id}-{project_id}-{first}"
 
 
-class ReleaseModelManager(BaseManager):
+class ReleaseModelManager(BaseManager["Release"]):
     def get_queryset(self):
         return ReleaseQuerySet(self.model, using=self._db)
 
@@ -416,7 +419,7 @@ class ReleaseModelManager(BaseManager):
         return self.get_queryset().order_by_recent()
 
     def _get_group_release_version(self, group_id: int, orderby: str) -> str:
-        from sentry.models import GroupRelease
+        from sentry.models.grouprelease import GroupRelease
 
         # Using `id__in()` because there is no foreign key relationship.
         return self.get(
@@ -457,7 +460,7 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
@@ -484,7 +487,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
-    # Deprecated, we no longer write to this field
+    # Deprecated, in favor of ReleaseProject new_groups field
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
@@ -520,7 +523,7 @@ class Release(Model):
     user_agent = models.TextField(null=True)
 
     # Custom Model Manager required to override create method
-    objects = ReleaseModelManager()
+    objects: ClassVar[ReleaseModelManager] = ReleaseModelManager()
 
     class Meta:
         app_label = "sentry"
@@ -639,6 +642,17 @@ class Release(Model):
 
         return False
 
+    @property
+    def semver_tuple(self) -> SemverVersion:
+        return SemverVersion(
+            self.major,
+            self.minor,
+            self.patch,
+            self.revision,
+            1 if self.prerelease == "" else 0,
+            self.prerelease,
+        )
+
     @classmethod
     def get_cache_key(cls, organization_id, version):
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
@@ -673,7 +687,7 @@ class Release(Model):
 
     @classmethod
     def _get_or_create_impl(cls, project, version, date_added, metric_tags):
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         if date_added is None:
             date_added = timezone.now()
@@ -750,16 +764,14 @@ class Release(Model):
         # Group.first_release
         # ReleaseFile.release
 
-        from sentry.models import (
-            Group,
-            GroupRelease,
-            GroupResolution,
-            ReleaseCommit,
-            ReleaseEnvironment,
-            ReleaseFile,
-            ReleaseProject,
-            ReleaseProjectEnvironment,
-        )
+        from sentry.models.group import Group
+        from sentry.models.grouprelease import GroupRelease
+        from sentry.models.groupresolution import GroupResolution
+        from sentry.models.release import ReleaseProject
+        from sentry.models.releasecommit import ReleaseCommit
+        from sentry.models.releaseenvironment import ReleaseEnvironment
+        from sentry.models.releasefile import ReleaseFile
+        from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
         model_list = (
             ReleaseCommit,
@@ -792,7 +804,7 @@ class Release(Model):
             release.delete()
 
     def add_dist(self, name, date_added=None):
-        from sentry.models import Distribution
+        from sentry.models.distribution import Distribution
 
         if date_added is None:
             date_added = timezone.now()
@@ -808,7 +820,7 @@ class Release(Model):
 
         Returns True if the project was added and did not already exist.
         """
-        from sentry.models import Project
+        from sentry.models.project import Project
 
         try:
             with atomic_transaction(using=router.db_for_write(ReleaseProject)):
@@ -839,7 +851,9 @@ class Release(Model):
     def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
-            from sentry.models import Commit, ReleaseHeadCommit, Repository
+            from sentry.models.commit import Commit
+            from sentry.models.releaseheadcommit import ReleaseHeadCommit
+            from sentry.models.repository import Repository
             from sentry.tasks.commits import fetch_commits
 
             # TODO: this does the wrong thing unless you are on the most
@@ -901,18 +915,15 @@ class Release(Model):
         commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
         # TODO(dcramer): this function could use some cleanup/refactoring as it's a bit unwieldy
-        from sentry.models import (
-            Commit,
-            CommitAuthor,
-            Group,
-            GroupLink,
-            GroupResolution,
-            GroupStatus,
-            PullRequest,
-            ReleaseCommit,
-            ReleaseHeadCommit,
-            Repository,
-        )
+        from sentry.models.commit import Commit
+        from sentry.models.commitauthor import CommitAuthor
+        from sentry.models.group import Group, GroupStatus
+        from sentry.models.grouplink import GroupLink
+        from sentry.models.groupresolution import GroupResolution
+        from sentry.models.pullrequest import PullRequest
+        from sentry.models.releasecommit import ReleaseCommit
+        from sentry.models.releaseheadcommit import ReleaseHeadCommit
+        from sentry.models.repository import Repository
         from sentry.plugins.providers.repository import RepositoryProvider
         from sentry.tasks.integrations import kick_off_status_syncs
 
@@ -952,9 +963,23 @@ class Release(Model):
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get("repository") or f"organization-{self.organization_id}"
                     if repo_name not in repos:
-                        repos[repo_name] = repo = Repository.objects.get_or_create(
-                            organization_id=self.organization_id, name=repo_name
-                        )[0]
+                        repo = (
+                            Repository.objects.filter(
+                                organization_id=self.organization_id,
+                                name=repo_name,
+                                status=ObjectStatus.ACTIVE,
+                            )
+                            .order_by("-pk")
+                            .first()
+                        )
+
+                        if repo is None:
+                            repo = Repository.objects.create(
+                                organization_id=self.organization_id,
+                                name=repo_name,
+                            )
+
+                        repos[repo_name] = repo
                     else:
                         repo = repos[repo_name]
 
@@ -1176,7 +1201,8 @@ class Release(Model):
         exception.
         """
         from sentry import release_health
-        from sentry.models import Group, ReleaseFile
+        from sentry.models.group import Group
+        from sentry.models.releasefile import ReleaseFile
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
@@ -1236,7 +1262,8 @@ class Release(Model):
         Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
         """
         with sentry_sdk.start_span(op="clear_commits"):
-            from sentry.models import ReleaseCommit, ReleaseHeadCommit
+            from sentry.models.releasecommit import ReleaseCommit
+            from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
             ReleaseHeadCommit.objects.get(
                 organization_id=self.organization_id, release=self
@@ -1282,7 +1309,6 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     follows_semver = cache.get(cache_key)
 
     if follows_semver is None:
-
         # Check if the latest ten releases are semver compliant
         releases_list = list(
             Release.objects.filter(organization_id=org_id, projects__id__in=[project_id])

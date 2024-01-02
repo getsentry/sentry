@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, ClassVar, List
 
 from django.db import IntegrityError, models, router, transaction
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class IntegrationManager(BaseManager):
+class IntegrationManager(BaseManager["Integration"]):
     def get_active_integrations(self, organization_id: str):
         return self.filter(
             status=ObjectStatus.ACTIVE,
@@ -45,7 +46,7 @@ class Integration(DefaultFieldsModel):
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
     """
 
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Global
 
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=64)
@@ -58,7 +59,7 @@ class Integration(DefaultFieldsModel):
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
 
-    objects = IntegrationManager()
+    objects: ClassVar[IntegrationManager] = IntegrationManager()
 
     class Meta:
         app_label = "sentry"
@@ -84,10 +85,10 @@ class Integration(DefaultFieldsModel):
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationIntegration)), flush=False
         ):
-            for organization_integration in self.organizationintegration_set.all():
-                organization_integration.delete()
             for outbox in Integration.outboxes_for_update(self.id):
                 outbox.save()
+            for organization_integration in self.organizationintegration_set.all():
+                organization_integration.delete()
             return super().delete(*args, **kwds)
 
     @staticmethod
@@ -106,18 +107,23 @@ class Integration(DefaultFieldsModel):
             for region_name in find_regions_for_orgs(org_ids)
         ]
 
-    def add_organization(self, organization: RpcOrganization, user=None, default_auth_id=None):
+    def add_organization(
+        self, organization_id: int | RpcOrganization, user=None, default_auth_id=None
+    ):
         """
         Add an organization to this integration.
 
         Returns False if the OrganizationIntegration was not created
         """
-        from sentry.models import OrganizationIntegration
+        from sentry.models.integrations.organization_integration import OrganizationIntegration
+
+        if not isinstance(organization_id, int):
+            organization_id = organization_id.id
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
                 org_integration, created = OrganizationIntegration.objects.get_or_create(
-                    organization_id=organization.id,
+                    organization_id=organization_id,
                     integration_id=self.id,
                     defaults={"default_auth_id": default_auth_id, "config": {}},
                 )
@@ -128,7 +134,7 @@ class Integration(DefaultFieldsModel):
                 if created:
                     organization_service.schedule_signal(
                         integration_added,
-                        organization_id=organization.id,
+                        organization_id=organization_id,
                         args=dict(integration_id=self.id, user_id=user.id if user else None),
                     )
                 return org_integration
@@ -136,7 +142,7 @@ class Integration(DefaultFieldsModel):
             logger.info(
                 "add-organization-integrity-error",
                 extra={
-                    "organization_id": organization.id,
+                    "organization_id": organization_id,
                     "integration_id": self.id,
                     "default_auth_id": default_auth_id,
                 },

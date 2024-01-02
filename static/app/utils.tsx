@@ -1,11 +1,10 @@
 import {Query} from 'history';
-import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
-import isString from 'lodash/isString';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
@@ -30,7 +29,7 @@ export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean 
   if (value === other) {
     return true;
   }
-  if (isArray(value) || isArray(other)) {
+  if (Array.isArray(value) || Array.isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
@@ -134,8 +133,7 @@ export function nl2br(str: string): string {
  */
 export function isUrl(str: any): boolean {
   return (
-    !!str &&
-    isString(str) &&
+    typeof str === 'string' &&
     (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
   );
 }
@@ -180,7 +178,7 @@ export function formatBytesBase10(bytes: number, u: number = 0) {
     u += 1;
   }
 
-  return bytes.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' ' + units[u];
+  return formatNumberWithDynamicDecimalPoints(bytes) + ' ' + units[u];
 }
 
 /**
@@ -195,11 +193,15 @@ export function formatBytesBase10(bytes: number, u: number = 0) {
  * For billing-related code around attachments. please take a look at
  * formatBytesBase10
  */
-export function formatBytesBase2(bytes: number, fixPoints: number = 1): string {
+export function formatBytesBase2(bytes: number, fixPoints: number | false = 1): string {
   const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const thresh = 1024;
   if (bytes < thresh) {
-    return bytes + ' B';
+    return (
+      (fixPoints === false
+        ? formatNumberWithDynamicDecimalPoints(bytes)
+        : bytes.toFixed(fixPoints)) + ' B'
+    );
   }
 
   let u = -1;
@@ -207,7 +209,13 @@ export function formatBytesBase2(bytes: number, fixPoints: number = 1): string {
     bytes /= thresh;
     ++u;
   } while (bytes >= thresh);
-  return bytes.toFixed(fixPoints) + ' ' + units[u];
+  return (
+    (fixPoints === false
+      ? formatNumberWithDynamicDecimalPoints(bytes)
+      : bytes.toFixed(fixPoints)) +
+    ' ' +
+    units[u]
+  );
 }
 
 export function getShortCommitHash(hash: string): string {
@@ -338,4 +346,9 @@ export function escapeDoubleQuotes(str: string) {
 
 export function generateBaseControlSiloUrl() {
   return ConfigStore.get('links').sentryUrl || '';
+}
+
+export function generateOrgSlugUrl(orgSlug) {
+  const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
+  return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
 }

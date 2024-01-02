@@ -22,7 +22,7 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
 type Props = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategoryInfo;
   headers: React.ReactNode[];
   usageStats: TableStat[];
   errors?: Record<string, Error>;
@@ -84,24 +84,32 @@ class UsageTable extends Component<Props> {
         </Link>
       </CellProject>,
       <CellStat key={1}>
-        {formatUsageWithUnits(total, dataCategory, getFormatUsageOptions(dataCategory))}
+        {formatUsageWithUnits(
+          total,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
       </CellStat>,
       <CellStat key={2}>
         {formatUsageWithUnits(
           accepted,
-          dataCategory,
-          getFormatUsageOptions(dataCategory)
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
         )}
       </CellStat>,
       <CellStat key={3}>
         {formatUsageWithUnits(
           filtered,
-          dataCategory,
-          getFormatUsageOptions(dataCategory)
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
         )}
       </CellStat>,
       <CellStat key={4}>
-        {formatUsageWithUnits(dropped, dataCategory, getFormatUsageOptions(dataCategory))}
+        {formatUsageWithUnits(
+          dropped,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
       </CellStat>,
       <CellStat key={5}>
         <Button

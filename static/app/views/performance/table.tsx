@@ -214,8 +214,13 @@ class _Table extends Component<Props, State> {
     const tableMeta = tableData.meta;
 
     const field = String(column.key);
+
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {
+      organization,
+      location,
+      unit: tableMeta.units?.[column.key],
+    });
 
     const allowActions = [
       Actions.ADD,

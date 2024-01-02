@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import http
 import os
 import platform
 import shutil
@@ -8,11 +9,21 @@ import signal
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Generator, Literal, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ContextManager,
+    Generator,
+    Literal,
+    NamedTuple,
+    overload,
+)
 
 import click
-import requests
 
 if TYPE_CHECKING:
     import docker
@@ -38,10 +49,13 @@ else:
 def get_docker_client() -> Generator[docker.DockerClient, None, None]:
     import docker
 
-    with contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}")) as client:
+    def _client() -> ContextManager[docker.DockerClient]:
+        return contextlib.closing(docker.DockerClient(base_url=f"unix://{RAW_SOCKET_PATH}"))
+
+    with contextlib.ExitStack() as ctx:
         try:
-            client.ping()
-        except (requests.exceptions.ConnectionError, docker.errors.APIError):
+            client = ctx.enter_context(_client())
+        except docker.errors.DockerException:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
@@ -60,15 +74,15 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
             else:
                 raise click.ClickException("Make sure docker is running.")
 
-            max_wait = 60
+            max_wait = 90
             timeout = time.monotonic() + max_wait
 
             click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
             while time.monotonic() < timeout:
                 time.sleep(1)
                 try:
-                    client.ping()
-                except (requests.exceptions.ConnectionError, docker.errors.APIError):
+                    client = ctx.enter_context(_client())
+                except docker.errors.DockerException:
                     continue
                 else:
                     break
@@ -275,18 +289,31 @@ def up(
                     )
                 )
             for future in as_completed(futures):
-                # If there was an exception, reraising it here to the main thread
-                # will not terminate the whole python process. We'd like to report
-                # on this exception and stop as fast as possible, so terminate
-                # ourselves. I believe (without verification) that the OS is now
-                # free to cleanup these threads, but not sure if they'll remain running
-                # in the background. What matters most is that we regain control
-                # of the terminal.
-                e = future.exception()
-                if e:
-                    click.echo(e)
-                    me = os.getpid()
-                    os.kill(me, signal.SIGTERM)
+                try:
+                    future.result()
+                except Exception as e:
+                    click.secho(f"> Failed to start service: {e}", err=True, fg="red")
+                    raise
+
+    # Check health of services. Seperate from _start_services
+    # in case there are dependencies needed for the health
+    # check (for example: kafka's healthcheck requires zookeeper)
+    with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
+        futures = []
+        for name in selected_services:
+            futures.append(
+                executor.submit(
+                    check_health,
+                    name,
+                    containers[name],
+                )
+            )
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                click.secho(f"> Failed to check health: {e}", err=True, fg="red")
+                raise
 
 
 def _prepare_containers(
@@ -317,6 +344,7 @@ def _prepare_containers(
         # with each other
         options.setdefault("restart_policy", {"Name": "unless-stopped"})
         options["ports"] = ensure_interface(options["ports"])
+        options["extra_hosts"] = {"host.docker.internal": "host-gateway"}
         containers[name] = options
 
     # keys are service names
@@ -387,10 +415,8 @@ def _start_service(
         pass
 
     if container is not None:
-        if not recreate:
-            click.secho(
-                f"> Container '{options['name']}' is already running, doing nothing", fg="yellow"
-            )
+        if not recreate and container.status == "running":
+            click.secho(f"> Container '{options['name']}' is already running", fg="yellow")
             return container
 
         click.secho(f"> Stopping container '{container.name}'", fg="yellow")
@@ -449,23 +475,16 @@ def down(project: str, service: list[str]) -> None:
                 continue
             containers.append(container)
 
-        with ThreadPoolExecutor(max_workers=len(containers)) as executor:
+        with ThreadPoolExecutor(max_workers=len(containers) or 1) as executor:
             futures = []
             for container in containers:
                 futures.append(executor.submit(_down, container))
             for future in as_completed(futures):
-                # If there was an exception, reraising it here to the main thread
-                # will not terminate the whole python process. We'd like to report
-                # on this exception and stop as fast as possible, so terminate
-                # ourselves. I believe (without verification) that the OS is now
-                # free to cleanup these threads, but not sure if they'll remain running
-                # in the background. What matters most is that we regain control
-                # of the terminal.
-                e = future.exception()
-                if e:
-                    click.echo(e)
-                    me = os.getpid()
-                    os.kill(me, signal.SIGTERM)
+                try:
+                    future.result()
+                except Exception as e:
+                    click.secho(f"> Failed to stop service: {e}", err=True, fg="red")
+                    raise
 
 
 @devservices.command()
@@ -485,7 +504,7 @@ def rm(project: str, services: list[str]) -> None:
 
     configure()
 
-    containers = _prepare_containers(project, silent=True)
+    containers = _prepare_containers(project, skip_only_if=len(services) > 0, silent=True)
 
     if services:
         selected_containers = {}
@@ -552,3 +571,227 @@ Are you sure you want to continue?"""
             else:
                 click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
                 network.remove()
+
+
+def check_health(service_name: str, options: dict[str, Any]) -> None:
+    healthcheck = service_healthchecks.get(service_name, None)
+    if healthcheck is None:
+        return
+
+    click.secho(f"> Checking container health '{service_name}'", fg="yellow")
+
+    def hc() -> None:
+        healthcheck.check(options)
+
+    try:
+        run_with_retries(
+            hc,
+            healthcheck.retries,
+            healthcheck.timeout,
+            f"Health check for '{service_name}' failed",
+        )
+        click.secho(f"  > '{service_name}' is healthy", fg="green")
+    except subprocess.CalledProcessError:
+        click.secho(f"  > '{service_name}' is not healthy", fg="red")
+        raise
+
+
+def run_with_retries(
+    cmd: Callable[[], object], retries: int = 3, timeout: int = 5, message: str = "Command failed"
+) -> None:
+    for retry in range(1, retries + 1):
+        try:
+            cmd()
+        except (
+            subprocess.CalledProcessError,
+            urllib.error.HTTPError,
+            http.client.RemoteDisconnected,
+        ):
+            if retry == retries:
+                raise
+            else:
+                click.secho(
+                    f"  > {message}, retrying in {timeout}s (attempt {retry+1} of {retries})...",
+                    fg="yellow",
+                )
+                time.sleep(timeout)
+        else:
+            return
+
+
+def check_postgres(options: dict[str, Any]) -> None:
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "pg_isready",
+            "-U",
+            "postgres",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_rabbitmq(options: dict[str, Any]) -> None:
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "rabbitmq-diagnostics",
+            "-q",
+            "ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_redis(options: dict[str, Any]) -> None:
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "redis-cli",
+            "ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_vroom(options: dict[str, Any]) -> None:
+    (port,) = options["ports"].values()
+
+    # Vroom is a slim debian based image and does not have curl, wget or
+    # python3. Check health with a simple request on the host machine.
+    urllib.request.urlopen(f"http://{port[0]}:{port[1]}/health", timeout=1)
+
+
+def check_clickhouse(options: dict[str, Any]) -> None:
+    port = options["ports"]["8123/tcp"]
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            # Using wget instead of curl as that is what is available
+            # in the clickhouse image
+            "wget",
+            f"http://{port[0]}:{port[1]}/ping",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_kafka(options: dict[str, Any]) -> None:
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "kafka-topics",
+            "--bootstrap-server",
+            # Port is a tuple of (127.0.0.1, <port number>)
+            f"{port[0]}:{port[1]}",
+            "--list",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_symbolicator(options: dict[str, Any]) -> None:
+    (port,) = options["ports"].values()
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "curl",
+            f"http://{port[0]}:{port[1]}/healthcheck",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def python_call_url_prog(url: str) -> str:
+    return f"""
+import urllib.request
+try:
+    req = urllib.request.urlopen({url!r}, timeout=1)
+except Exception as e:
+    raise SystemExit(f'service is not ready: {{e}}')
+else:
+    print('service is ready!')
+"""
+
+
+def check_chartcuterie(options: dict[str, Any]) -> None:
+    # Chartcuterie binds the internal port to a different port
+    internal_port = 9090
+    port = options["ports"][f"{internal_port}/tcp"]
+    url = f"http://{port[0]}:{internal_port}/api/chartcuterie/healthcheck/live"
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "python3",
+            "-uc",
+            python_call_url_prog(url),
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def check_snuba(options: dict[str, Any]) -> None:
+    from django.conf import settings
+
+    url = f"{settings.SENTRY_SNUBA}/health_envoy"
+    subprocess.run(
+        (
+            "docker",
+            "exec",
+            options["name"],
+            "python3",
+            "-uc",
+            python_call_url_prog(url),
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+class ServiceHealthcheck(NamedTuple):
+    check: Callable[[dict[str, Any]], None]
+    retries: int = 3
+    timeout: int = 5
+
+
+service_healthchecks: dict[str, ServiceHealthcheck] = {
+    "postgres": ServiceHealthcheck(check=check_postgres),
+    "rabbitmq": ServiceHealthcheck(check=check_rabbitmq),
+    "redis": ServiceHealthcheck(check=check_redis),
+    "clickhouse": ServiceHealthcheck(check=check_clickhouse),
+    "kafka": ServiceHealthcheck(check=check_kafka),
+    "vroom": ServiceHealthcheck(check=check_vroom),
+    "symbolicator": ServiceHealthcheck(check=check_symbolicator),
+    "chartcuterie": ServiceHealthcheck(check=check_chartcuterie),
+    "snuba": ServiceHealthcheck(check=check_snuba, retries=12, timeout=10),
+}

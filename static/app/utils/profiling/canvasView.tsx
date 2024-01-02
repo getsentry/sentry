@@ -16,6 +16,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
 
   minWidth: number;
   maxHeight: number;
+  minHeight: number;
 
   depthOffset: number;
   barHeight: number;
@@ -38,6 +39,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
       depthOffset?: number;
       inverted?: boolean;
       maxHeight?: number;
+      minHeight?: number;
       minWidth?: number;
     };
     mode?: CanvasView<T>['mode'];
@@ -45,7 +47,10 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.mode = mode || this.mode;
     this.inverted = !!options.inverted;
     this.minWidth = options.minWidth ?? 0;
+
     this.maxHeight = options.maxHeight ?? 0;
+    this.minHeight = options.minHeight ?? 0;
+
     this.model = model;
     this.canvas = canvas;
     this.depthOffset = options.depthOffset ?? 0;
@@ -121,18 +126,20 @@ export class CanvasView<T extends {configSpace: Rect}> {
   private _initConfigView(canvas: FlamegraphCanvas, space: Rect): void {
     switch (this.mode) {
       case 'stretchToFit': {
-        this.configView = Rect.From(space);
+        this.setConfigView(Rect.From(space));
         return;
       }
       case 'anchorBottom': {
         const newHeight = this.maxHeight || canvas.physicalSpace.height / this.barHeight;
         const newY = Math.max(0, Math.ceil(space.y - (newHeight - space.height)));
-        this.configView = Rect.From(space).withHeight(newHeight).withY(newY);
+        this.setConfigView(Rect.From(space).withHeight(newHeight).withY(newY));
         return;
       }
       case 'anchorTop': {
-        this.configView = Rect.From(space).withHeight(
-          this.maxHeight || canvas.physicalSpace.height / this.barHeight
+        this.setConfigView(
+          Rect.From(space).withHeight(
+            this.maxHeight || canvas.physicalSpace.height / this.barHeight
+          )
         );
         return;
       }
@@ -169,7 +176,7 @@ export class CanvasView<T extends {configSpace: Rect}> {
         ...(overrides?.width ?? {}),
       },
       height: {
-        min: 0,
+        min: this.minHeight,
         max: this.configSpace.height,
         ...(overrides?.height ?? {}),
       },

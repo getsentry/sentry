@@ -1,3 +1,6 @@
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -6,9 +9,9 @@ const path = 'http://some.url/';
 
 describe('GlobalSelectionLink', function () {
   const getContext = (query?: {environment: string; project: string[]}) =>
-    TestStubs.routerContext([
+    RouterContextFixture([
       {
-        router: TestStubs.router({
+        router: RouterFixture({
           location: {query},
         }),
       },
@@ -21,11 +24,7 @@ describe('GlobalSelectionLink', function () {
     };
     const context = getContext(query);
 
-    const {container} = render(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {context}
-    );
-    expect(container).toSnapshot();
+    render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {context});
     expect(screen.getByText('Go somewhere!')).toHaveAttribute(
       'href',
       'http://some.url/?environment=staging&project=foo&project=bar'
@@ -36,14 +35,11 @@ describe('GlobalSelectionLink', function () {
   });
 
   it('does not have global selection values in query', function () {
-    const {container} = render(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {context: getContext()}
-    );
+    render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {
+      context: getContext(),
+    });
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
-
-    expect(container).toSnapshot();
   });
 
   it('combines query parameters with custom query', async function () {

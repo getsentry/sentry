@@ -1,11 +1,12 @@
 from django.urls import reverse
 
-from sentry.models import ApiKey, ApiToken
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiIndexTest(APITestCase):
     endpoint = "sentry-api-index"
 

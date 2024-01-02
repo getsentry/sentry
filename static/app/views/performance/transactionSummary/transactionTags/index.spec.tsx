@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -12,9 +14,9 @@ const TEST_RELEASE_NAME = 'test-project@1.0.0';
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [ProjectFixture()],
   });
 
   const initialData = initializeOrg({
@@ -130,6 +132,10 @@ describe('Performance > Transaction Tags', function () {
     });
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
       body: {},
     });
   });

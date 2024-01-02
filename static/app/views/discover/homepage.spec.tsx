@@ -1,4 +1,7 @@
 import {browserHistory} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,18 +21,20 @@ import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
   const features = ['global-views', 'discover-query'];
-  let initialData, organization, mockHomepage;
+  let initialData, organization, mockHomepage, measurementsMetaMock;
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features,
     });
     initialData = initializeOrg({
       organization,
       router: {
-        location: TestStubs.location(),
+        location: LocationFixture(),
       },
     });
+
+    ProjectsStore.loadInitialData(organization.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
@@ -75,6 +80,11 @@ describe('Discover > Homepage', () => {
         display: 'previous',
         query: 'event.type:error',
       },
+    });
+    measurementsMetaMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/measurements-meta/',
+      method: 'GET',
+      body: {},
     });
   });
 
@@ -122,7 +132,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['project'],
@@ -178,7 +188,7 @@ describe('Discover > Homepage', () => {
     );
   });
 
-  it('does not show an editable header or author information', () => {
+  it('does not show an editable header or author information', async () => {
     render(
       <Homepage
         organization={organization}
@@ -189,6 +199,9 @@ describe('Discover > Homepage', () => {
       />,
       {context: initialData.routerContext, organization: initialData.organization}
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     // 'Discover' is the header for the homepage
     expect(screen.getByText('Discover')).toBeInTheDocument();
@@ -238,12 +251,12 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 
-  it('Disables the Set as Default button when no saved homepage', () => {
+  it('Disables the Set as Default button when no saved homepage', async () => {
     initialData = initializeOrg({
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -269,6 +282,9 @@ describe('Discover > Homepage', () => {
 
     expect(mockHomepage).toHaveBeenCalled();
     expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
   });
 
   it('follows absolute date selection', async () => {
@@ -276,7 +292,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -307,12 +323,12 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when no homepage', () => {
+  it('renders changes to the discover query when no homepage', async () => {
     initialData = initializeOrg({
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -344,7 +360,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -362,16 +378,19 @@ describe('Discover > Homepage', () => {
         loading={false}
       />
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when loaded with valid event view in url params', () => {
+  it('renders changes to the discover query when loaded with valid event view in url params', async () => {
     initialData = initializeOrg({
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -397,7 +416,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -415,12 +434,15 @@ describe('Discover > Homepage', () => {
         loading={false}
       />
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
-  it('overrides homepage filters with pinned filters if they exist', () => {
-    ProjectsStore.loadInitialData([TestStubs.Project({id: 2})]);
+  it('overrides homepage filters with pinned filters if they exist', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'}), ProjectFixture({id: '2'})]);
     jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),
       state: {
@@ -443,6 +465,9 @@ describe('Discover > Homepage', () => {
       />,
       {context: initialData.routerContext, organization: initialData.organization}
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
   });
@@ -452,7 +477,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },

@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from os.path import join
 from tempfile import TemporaryFile
+from typing import Any
 
 import pytest
 
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
-from sentry.models import Project
+from sentry.models.project import Project
 from sentry.profiles.task import _deobfuscate, _normalize, _process_symbolicator_results_for_sample
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -267,7 +270,7 @@ def test_error_on_resolving(project, proguard_file_bug, android_profile):
 
 
 def test_process_symbolicator_results_for_sample():
-    profile = {
+    profile: dict[str, Any] = {
         "version": 1,
         "platform": "rust",
         "profile": {
@@ -348,14 +351,14 @@ def test_process_symbolicator_results_for_sample():
     ]
 
     _process_symbolicator_results_for_sample(
-        profile, stacktraces, set(range(len(profile["profile"]["frames"])))
+        profile, stacktraces, set(range(len(profile["profile"]["frames"]))), profile["platform"]
     )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
 
 
 def test_process_symbolicator_results_for_sample_js():
-    profile = {
+    profile: dict[str, Any] = {
         "version": 1,
         "platform": "javascript",
         "profile": {
@@ -418,7 +421,9 @@ def test_process_symbolicator_results_for_sample_js():
         if is_valid_javascript_frame(frame, profile)
     ]
 
-    _process_symbolicator_results_for_sample(profile, stacktraces, set(frames_sent))
+    _process_symbolicator_results_for_sample(
+        profile, stacktraces, set(frames_sent), profile["platform"]
+    )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3]]
 

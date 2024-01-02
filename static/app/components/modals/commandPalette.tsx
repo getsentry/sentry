@@ -43,7 +43,7 @@ function CommandPalette({Body}: ModalRenderProps) {
                   autoFocus
                   {...getInputProps({
                     type: 'text',
-                    placeholder: t('Search for projects, teams, settings, etc...'),
+                    placeholder: t('Search for projects, teams, settings, etc\u{2026}'),
                   })}
                 />
               </InputWrapper>

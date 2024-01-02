@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 
 import {
   render,
@@ -140,7 +141,7 @@ describe('ResolveActions', function () {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
     render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
     renderGlobalModal();
@@ -163,7 +164,7 @@ describe('ResolveActions', function () {
     });
   });
 
-  it('displays the current release version', async function () {
+  it('displays if the current release version uses semver', async function () {
     render(
       <ResolveActions
         onUpdate={spy}
@@ -174,35 +175,57 @@ describe('ResolveActions', function () {
     );
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
-    expect(screen.getByText('The current release (1.2.3)')).toBeInTheDocument();
-  });
-
-  it('displays if the current release version uses semver', async function () {
-    const organization = TestStubs.Organization({features: ['issue-release-semver']});
-    render(
-      <ResolveActions
-        onUpdate={spy}
-        hasRelease
-        projectSlug="proj-1"
-        latestRelease={{version: 'frontend@1.2.3'}}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('The current release')).toBeInTheDocument();
     expect(screen.getByText('1.2.3 (semver)')).toBeInTheDocument();
   });
 
   it('displays prompt to setup releases when there are no releases', async function () {
-    const organization = TestStubs.Organization({
-      features: ['issue-resolve-release-setup'],
-    });
-    render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />, {
-      organization,
-    });
+    render(<ResolveActions onUpdate={spy} hasRelease={false} projectSlug="proj-1" />);
 
     await userEvent.click(screen.getByLabelText('More resolve options'));
     expect(screen.getByText('Resolving is better with Releases')).toBeInTheDocument();
+  });
+
+  it('does not prompt to setup releases when multiple projects are selected', async function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        multipleProjectsSelected
+      />
+    );
+
+    await userEvent.click(screen.getByLabelText('More resolve options'));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'The current release'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Resolving is better with Releases')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease={false}
+      />
+    );
+    expect(screen.getByLabelText('More resolve options')).toBeInTheDocument();
+  });
+
+  it('does not render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease
+      />
+    );
+    expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
   });
 });

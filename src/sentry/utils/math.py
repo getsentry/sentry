@@ -1,4 +1,5 @@
 import math
+from abc import ABC, abstractmethod
 
 
 def mean(values):
@@ -43,3 +44,21 @@ def nice_int(x):
             break
 
     return sign * nice_frac * rounded
+
+
+class MovingAverage(ABC):
+    @abstractmethod
+    def update(self, n: int, avg: float, value: float) -> float:
+        raise NotImplementedError
+
+
+class ExponentialMovingAverage(MovingAverage):
+    def __init__(self, weight: float):
+        super().__init__()
+        assert 0 < weight and weight < 1
+        self.weight = weight
+
+    def update(self, n: int, avg: float, value: float) -> float:
+        if n == 0:
+            return value
+        return value * self.weight + avg * (1 - self.weight)

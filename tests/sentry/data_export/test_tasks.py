@@ -6,7 +6,7 @@ from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import File
+from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -29,7 +29,7 @@ from sentry.utils.snuba import (
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -611,7 +611,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

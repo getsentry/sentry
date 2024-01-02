@@ -1,12 +1,16 @@
 from io import BytesIO
 from urllib.parse import urlencode
 
-from sentry.models import EventAttachment, File
+from sentry.models.eventattachment import EventAttachment
+from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupEventAttachmentsTest(APITestCase):
     def create_attachment(self, type=None, event_id=None, file_name="hello.png"):
         if type is None:

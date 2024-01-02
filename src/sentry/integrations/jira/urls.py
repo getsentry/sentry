@@ -16,10 +16,12 @@ urlpatterns = [
     re_path(
         r"^ui-hook/$",
         JiraSentryInstallationView.as_view(),
+        name="sentry-extensions-jira-ui-hook",
     ),
     re_path(
         r"^descriptor/$",
         JiraDescriptorEndpoint.as_view(),
+        name="sentry-extensions-descriptor",
     ),
     re_path(
         r"^installed/$",
@@ -29,6 +31,7 @@ urlpatterns = [
     re_path(
         r"^uninstalled/$",
         JiraSentryUninstalledWebhook.as_view(),
+        name="sentry-extensions-jira-uninstalled",
     ),
     re_path(
         r"^issue-updated/$",
@@ -43,6 +46,7 @@ urlpatterns = [
     re_path(
         r"^configure/$",
         JiraExtensionConfigurationView.as_view(),
+        name="sentry-extensions-jira-configuration",
     ),
     re_path(
         r"^issue/(?P<issue_key>[^\/]+)/$",

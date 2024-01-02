@@ -1,11 +1,14 @@
 from datetime import timedelta
 from functools import cached_property
+from unittest import mock
 
 import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
+from sentry.models.environment import Environment
+from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -20,8 +23,10 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
+from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.eventuser import EventUser
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -173,6 +178,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             [("foo", "bar"), ("biz", "baz")],
             "releaseme",
         )
+        assert group_info is not None
         return group_info.group, env
 
     def test_get_group_tag_keys_and_top_values(self):
@@ -688,9 +694,19 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1group1.id: 3, self.proj1group2.id: 1}
 
-    def test_get_group_tag_values_for_users(self):
+    @mock.patch("sentry.analytics.record")
+    def test_get_group_tag_values_for_users(self, mock_record):
         result = self.ts.get_group_tag_values_for_users(
-            [EventUser(project_id=self.proj1.id, ident="user1")],
+            [
+                EventUser(
+                    project_id=self.proj1.id,
+                    email=None,
+                    username=None,
+                    name=None,
+                    ip_address=None,
+                    user_ident="user1",
+                )
+            ],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert len(result) == 2
@@ -706,12 +722,27 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             assert v.value == "user1"
 
         result = self.ts.get_group_tag_values_for_users(
-            [EventUser(project_id=self.proj1.id, ident="user2")],
+            [
+                EventUser(
+                    project_id=self.proj1.id,
+                    email=None,
+                    username=None,
+                    name=None,
+                    ip_address=None,
+                    user_ident="user2",
+                )
+            ],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
         assert len(result) == 1
         assert result[0].value == "user2"
         assert result[0].last_seen == self.now - timedelta(seconds=2)
+
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=self.proj1.id,
+            endpoint="sentry.tagstore.snuba.backend.SnubaTagStorage.get_group_tag_values_for_users",
+        )
 
     def test_get_release_tags(self):
         tags = list(
@@ -1271,7 +1302,8 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             None,
             first_group_timestamp_start + timedelta(minutes=4),
         )
-        first_group = group_info.group if group_info else None
+        assert group_info is not None
+        first_group = group_info.group
 
         second_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group2"
         second_group_timestamp_start = timezone.now() - timedelta(hours=5)
@@ -1283,7 +1315,8 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
                 self.environment.name if incr != 4 else None,
                 second_group_timestamp_start + timedelta(minutes=incr),
             )
-            second_group = group_info.group if group_info else None
+            assert group_info is not None
+            second_group = group_info.group
 
         assert self.ts.get_generic_groups_user_counts(
             [self.project.id],
@@ -1317,7 +1350,8 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             self.environment.name,
             last_event_ts,
         )
-        group = group_info.group if group_info else None
+        assert group_info is not None
+        group = group_info.group
 
         group_seen_stats = self.ts.get_generic_group_list_tag_value(
             [group.project_id],
@@ -1340,7 +1374,9 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         }
 
 
-class BaseSemverTest:
+class BaseSemverTest(TestCase, SnubaTestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
     KEY: str
 
     def setUp(self):
@@ -1369,7 +1405,7 @@ class BaseSemverTest:
         ]
 
 
-class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaTestCase):
+class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest):
     KEY = SEMVER_ALIAS
 
     def test_semver(self):
@@ -1467,7 +1503,7 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest, TestCase, SnubaT
         )
 
 
-class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest, TestCase, SnubaTestCase):
+class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest):
     KEY = SEMVER_PACKAGE_ALIAS
 
     def test_semver_package(self):
@@ -1547,7 +1583,7 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         self.run_test(ReleaseStages.ADOPTED, [], project=project_2, environment=self.environment)
 
 
-class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest, TestCase, SnubaTestCase):
+class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
     KEY = SEMVER_BUILD_ALIAS
 
     def test_semver_package(self):

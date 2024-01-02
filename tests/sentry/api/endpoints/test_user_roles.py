@@ -1,4 +1,4 @@
-from sentry.models import UserRole
+from sentry.models.userrole import UserRole
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -31,7 +31,7 @@ class UserUserRolesTest(APITestCase):
         assert resp.status_code == 403
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserUserRolesGetTest(UserUserRolesTest):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])

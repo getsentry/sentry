@@ -16,7 +16,6 @@ from typing import (
 )
 
 import sentry_sdk
-from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
 from sentry import features, killswitches, quotas, utils
@@ -38,7 +37,8 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.models import Project, ProjectKey
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -48,18 +48,25 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
-from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
+from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "projects:extract-standalone-spans",
     "projects:span-metrics-extraction",
+    "projects:span-metrics-extraction-ga-modules",
+    "projects:span-metrics-extraction-all-modules",
+    "projects:span-metrics-extraction-resource",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:profiling",
     "organizations:session-replay",
+    "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
+    "organizations:custom-metrics",
+    "organizations:metric-meta",
+    "organizations:standalone-span-ingestion",
+    "organizations:relay-cardinality-limiter",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -134,7 +141,10 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
-    enable_react = project.get_option("filters:react-hydration-errors")
+    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+    # why the value true is determined by either "1" or True.
+    enable_react = project.get_option("filters:react-hydration-errors") in ("1", True)
     if enable_react:
         # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
         # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
@@ -143,6 +153,14 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # 425 - Text content does not match server-rendered HTML.
         error_messages += [
             "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+        ]
+
+    if project.get_option("filters:chunk-load-error") == "1":
+        # ChunkLoadError: Loading chunk 3662 failed.\n(error:
+        # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += [
+            "ChunkLoadError: Loading chunk *",
+            "Uncaught *: ChunkLoadError: Loading chunk *",
         ]
 
     if error_messages:
@@ -201,7 +219,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
-        return {"rules": [], "rulesV2": generate_rules(project)}
+        return {"version": 2, "rules": generate_rules(project)}
 
     return None
 
@@ -262,28 +280,6 @@ class SpanDescriptionRule(TypedDict):
     redaction: SpanDescriptionRuleRedaction
 
 
-def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDescriptionRule]]:
-    if not features.has("projects:span-metrics-extraction", project):
-        return None
-
-    rules = get_sorted_rules(ClustererNamespace.SPANS, project)
-    if not rules:
-        return None
-
-    return [_get_span_desc_rule(pattern, seen) for pattern, seen in rules]
-
-
-def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
-    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
-    return SpanDescriptionRule(
-        pattern=pattern,
-        expiry=expiry_at,
-        scope={"op": "http"},
-        redaction={"method": "replace", "substitution": "*"},
-    )
-
-
 def add_experimental_config(
     config: MutableMapping[str, Any],
     key: str,
@@ -300,7 +296,7 @@ def add_experimental_config(
     try:
         subconfig = function(*args, **kwargs)
     except Exception:
-        logger.error("Exception while building Relay project config field", exc_info=True)
+        logger.exception("Exception while building Relay project config field")
     else:
         if subconfig is not None:
             config[key] = subconfig
@@ -321,7 +317,7 @@ def _get_project_config(
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
 
     with Hub.current.start_span(op="get_public_config"):
-        now = datetime.utcnow().replace(tzinfo=utc)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
         cfg = {
             "disabled": False,
             "slug": project.slug,
@@ -351,16 +347,10 @@ def _get_project_config(
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
-    add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
-
-    # Limit the number of custom measurements
-    add_experimental_config(config, "measurements", get_measurements_config)
+    add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
-
-    # Rules to replace high cardinality span descriptions
-    add_experimental_config(config, "spanDescriptionRules", get_span_descriptions_config, project)
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
@@ -401,6 +391,237 @@ def _get_project_config(
             ),
         }
 
+    if features.has("organizations:performance-calculate-score-relay", project.organization):
+        config["performanceScore"] = {
+            "profiles": [
+                {
+                    "name": "Chrome",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                },
+                {
+                    "name": "Firefox",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.0,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.0,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+                {
+                    "name": "Safari",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.0,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.0,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.0,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Safari",
+                    },
+                },
+                {
+                    "name": "Edge",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Edge",
+                    },
+                },
+                {
+                    "name": "Opera",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Opera",
+                    },
+                },
+            ]
+        }
+
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
@@ -438,7 +659,7 @@ class _ConfigBase:
     def __init__(self, **kwargs: Any) -> None:
         data: MutableMapping[str, Any] = {}
         object.__setattr__(self, "data", data)
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             if val is not None:
                 data[key] = val
 
@@ -583,8 +804,8 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: Version of the transaction metrics extraction.
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
-#: See https://github.com/getsentry/relay/blob/4f3e224d5eeea8922fe42163552e8f20db674e86/relay-server/src/metrics_extraction/transactions.rs#L71
-TRANSACTION_METRICS_EXTRACTION_VERSION = 1
+#: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
+TRANSACTION_METRICS_EXTRACTION_VERSION = 3
 
 
 class CustomMeasurementSettings(TypedDict):

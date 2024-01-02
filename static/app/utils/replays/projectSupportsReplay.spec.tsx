@@ -1,5 +1,4 @@
-import type {PlatformKey} from 'sentry/data/platformCategories';
-import type {MinimalProject} from 'sentry/types';
+import type {MinimalProject, PlatformKey} from 'sentry/types';
 import projectSupportsReplay, {
   projectCanLinkToReplay,
 } from 'sentry/utils/replays/projectSupportsReplay';
@@ -18,6 +17,7 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     'javascript-nextjs' as PlatformKey,
     'javascript-react' as PlatformKey,
     'javascript' as PlatformKey,
+    'electron' as PlatformKey,
   ])('should SUPPORT & LINK frontend platform %s', platform => {
     const project = mockProject(platform);
     expect(projectSupportsReplay(project)).toBeTruthy();
@@ -34,11 +34,21 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
   );
 
   it.each([
-    'dotnet' as PlatformKey,
-    'java' as PlatformKey,
     'node' as PlatformKey,
     'php' as PlatformKey,
+    'bun' as PlatformKey,
+    'elixir' as PlatformKey,
+  ])('should SUPPORT Backend framework %s', platform => {
+    const project = mockProject(platform);
+    expect(projectSupportsReplay(project)).toBeTruthy();
+    expect(projectCanLinkToReplay(project)).toBeTruthy();
+  });
+
+  it.each([
+    'java' as PlatformKey,
     'rust' as PlatformKey,
+    'python' as PlatformKey,
+    'go-http' as PlatformKey,
   ])('should NOT SUPPORT but CAN LINK for Backend framework %s', platform => {
     const project = mockProject(platform);
     expect(projectSupportsReplay(project)).toBeFalsy();
@@ -47,7 +57,6 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
 
   it.each([
     'apple-macos' as PlatformKey,
-    'electron' as PlatformKey,
     'flutter' as PlatformKey,
     'unity' as PlatformKey,
   ])('should FAIL for Desktop framework %s', platform => {

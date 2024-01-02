@@ -1,34 +1,39 @@
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SentryAppComponent} from 'sentry/types';
+import {
+  Organization,
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
-  components: SentryAppComponent[];
+  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
   filename: string;
-  lineNo: number;
+  lineNo: number | null;
 };
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
   const handleRecordInteraction =
-    (slug: SentryAppComponent['sentryApp']['slug']) => () => {
+    (slug: SentryAppComponent<SentryAppSchemaStacktraceLink>['sentryApp']['slug']) =>
+    () => {
       recordInteraction(slug, 'sentry_app_component_interacted', {
         componentType: 'stacktrace-link',
       });
     };
 
-  const getUrl = (url: SentryAppComponent['schema']['url']) => {
+  const getUrl = (url: SentryAppSchemaStacktraceLink['url']) => {
     return addQueryParamsToExistingUrl(url, {lineNo, filename});
   };
 
   return (
     <OpenInContainer columnQuantity={components.length + 1}>
-      <div>{t('Open this line in')}</div>
       {components.map(component => {
         const url = getUrl(component.schema.url);
         const {slug} = component.sentryApp;
@@ -53,31 +58,58 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
 
 export {OpenInContextLine};
 
-const OpenInContainer = styled('div')<{columnQuantity: number}>`
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const OpenInContainer = withOrganization(styled('div')<{
+  columnQuantity: number;
+  organization: Organization;
+}>`
+  display: flex;
   gap: ${space(1)};
-  color: ${p => p.theme.subText};
-  background-color: ${p => p.theme.background};
+  align-items: center;
+  z-index: 1;
   font-family: ${p => p.theme.text.family};
-  border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(0.25)} ${space(3)};
-  box-shadow: ${p => p.theme.dropShadowLight};
   text-indent: initial;
   overflow: auto;
   white-space: nowrap;
-`;
+  ${p =>
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
+      ? css`
+          color: ${p.theme.linkColor};
+          animation: ${fadeIn} 0.2s ease-in-out forwards;
+          padding: ${space(0)};
+        `
+      : css`
+          color: ${p.theme.subText};
+          background-color: ${p.theme.background};
+          border-bottom: 1px solid ${p.theme.border};
+          padding: ${space(0.25)} ${space(3)};
+          box-shadow: ${p.theme.dropShadowLight};
+        `}
+`);
 
-const OpenInLink = styled(ExternalLink)`
-  align-items: center;
-  grid-template-columns: max-content auto;
+const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organization}>`
+  display: flex;
   gap: ${space(0.75)};
-  color: ${p => p.theme.gray300};
-`;
+  align-items: center;
+  ${p =>
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
+      ? ``
+      : `color: ${p.theme.gray300};`}
+`);
 
-export const OpenInName = styled('strong')`
-  color: ${p => p.theme.subText};
-  font-weight: 700;
-`;
+export const OpenInName = withOrganization(styled('span')<{organization: Organization}>`
+  ${p =>
+    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
+      ? `
+    &:hover {
+      text-decoration: underline;
+      text-decoration-color: ${p.theme.linkUnderline};
+      text-underline-offset: ${space(0.5)};
+    }
+    `
+      : ``}
+`);

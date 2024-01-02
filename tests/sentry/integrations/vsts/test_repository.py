@@ -7,13 +7,15 @@ import responses
 
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
-from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
+from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VisualStudioRepositoryProviderTest(TestCase):
     def setUp(self):
         self.base_url = "https://visualstudio.com/"
@@ -123,7 +125,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         assert result == repo.external_id
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:vsts"
 

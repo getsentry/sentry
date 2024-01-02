@@ -1,3 +1,7 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -13,14 +17,14 @@ const onClickMock = jest.fn();
 jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   afterEach(() => {
     jest.resetAllMocks();
   });
 
   it('should trigger onClick callback', async () => {
-    const context = TestStubs.routerContext();
+    const context = RouterContextFixture();
 
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
@@ -31,7 +35,7 @@ describe('CreateAlertFromViewButton', () => {
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[TestStubs.Project()]}
+        projects={[ProjectFixture()]}
         onClick={onClickMock}
       />,
       {context}
@@ -49,7 +53,7 @@ describe('CreateAlertFromViewButton', () => {
       access: [],
     };
     const noAccessProj = {
-      ...TestStubs.Project(),
+      ...ProjectFixture(),
       access: [],
     };
 
@@ -61,7 +65,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization: noAccessOrg}]),
+        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -74,7 +78,7 @@ describe('CreateAlertFromViewButton', () => {
       ...DEFAULT_EVENT_VIEW,
     });
     const noAccessProj = {
-      ...TestStubs.Project(),
+      ...ProjectFixture(),
       access: [],
     };
 
@@ -86,7 +90,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization}]),
+        context: RouterContextFixture([{organization}]),
         organization,
       }
     );
@@ -104,16 +108,16 @@ describe('CreateAlertFromViewButton', () => {
     };
     const projects = [
       {
-        ...TestStubs.Project(),
-        id: 1,
+        ...ProjectFixture(),
+        id: '1',
         slug: 'admin-team',
-        access: ['alerts:write'],
+        access: ['alerts:write' as const],
       },
       {
-        ...TestStubs.Project(),
-        id: 2,
+        ...ProjectFixture(),
+        id: '2',
         slug: 'contributor-team',
-        access: ['alerts:read'],
+        access: ['alerts:read' as const],
       },
     ];
 
@@ -125,7 +129,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: TestStubs.routerContext([{organization: noAccessOrg}]),
+        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -147,10 +151,10 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('shows a guide for org-owner/manager', () => {
-    const adminAccessOrg = {
+    const adminAccessOrg = Organization({
       ...organization,
       access: ['org:write'],
-    };
+    });
 
     render(<CreateAlertButton organization={adminAccessOrg} showPermissionGuide />, {
       organization: adminAccessOrg,
@@ -186,7 +190,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('removes a duplicate project filter', async () => {
-    const context = TestStubs.routerContext();
+    const context = RouterContextFixture();
 
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
@@ -197,7 +201,7 @@ describe('CreateAlertFromViewButton', () => {
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[TestStubs.Project()]}
+        projects={[ProjectFixture()]}
         onClick={onClickMock}
       />,
       {context}

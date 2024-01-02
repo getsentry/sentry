@@ -6,7 +6,6 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -27,8 +26,9 @@ from sentry.auth.superuser import (
 from sentry.auth.system import SystemToken
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
-from sentry.models import User
+from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
@@ -44,7 +44,7 @@ INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
     def setUp(self):
@@ -153,7 +153,11 @@ class SuperuserTestCase(TestCase):
 
     @freeze_time(BASETIME + EXPIRE_TIME)
     def test_expired(self):
-        request = self.build_request(expires=self.current_datetime)
+        # Set idle time to the current time so we fail on checking expire time
+        # and not idle time.
+        request = self.build_request(
+            idle_expires=BASETIME + EXPIRE_TIME, expires=self.current_datetime
+        )
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
@@ -170,7 +174,7 @@ class SuperuserTestCase(TestCase):
         ):
             user = User(is_superuser=True, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
-            request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
+            request._body = json.dumps(
                 {
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "Edit organization settings",
@@ -243,7 +247,7 @@ class SuperuserTestCase(TestCase):
     def test_su_access_no_request_user_missing_info(self, logger):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
+        request._body = json.dumps(
             {
                 "superuserAccessCategory": "for_unit_test",
                 "superuserReason": "Edit organization settings",
@@ -256,14 +260,14 @@ class SuperuserTestCase(TestCase):
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
             superuser.set_logged_in(request.user)
-            logger.error.assert_any_call("superuser.superuser_access.missing_user_info")
+            logger.exception.assert_any_call("superuser.superuser_access.missing_user_info")
 
     def test_su_access_invalid_request_body(
         self,
     ):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = b'{"invalid" "json"}'  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
+        request._body = b'{"invalid" "json"}'
 
         superuser = Superuser(request, org_id=None)
         with self.settings(
@@ -396,7 +400,7 @@ class SuperuserTestCase(TestCase):
         assert is_active_superuser(request)
 
     @mock.patch("sentry.auth.superuser.logger")
-    def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
+    def test_superuser_session_doesnt_need_validation_superuser_prompts(self, logger):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
         superuser = Superuser(request, org_id=None)

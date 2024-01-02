@@ -13,14 +13,16 @@ from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
 from sentry import VERSION, audit_log, http, options
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.models import (
-    Integration,
-    OrganizationIntegration,
-    Project,
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
 )
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -127,6 +129,11 @@ def get_payload_and_token(
 
 @control_silo_endpoint
 class VercelWebhookEndpoint(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     authentication_classes = ()
     permission_classes = ()
     provider = "vercel"
@@ -323,7 +330,8 @@ class VercelWebhookEndpoint(Endpoint):
         # Only create releases for production deploys for now
         if payload["target"] != "production":
             logger.info(
-                f"Ignoring deployment for environment: {payload['target']}",
+                "Ignoring deployment for environment: %s",
+                payload["target"],
                 extra={"external_id": external_id, "vercel_project_id": vercel_project_id},
             )
             return self.respond(status=204)
@@ -409,10 +417,11 @@ class VercelWebhookEndpoint(Endpoint):
                         resp.raise_for_status()
                     except RequestException as e:
                         # errors here should be uncommon but we should be aware of them
-                        logger.error(
-                            f"Error creating release: {e} - {json_error}",
+                        logger.exception(
+                            "Error creating release: %s - %s",
+                            e,
+                            json_error,
                             extra=logging_params,
-                            exc_info=True,
                         )
                         # 400 probably isn't the right status code but oh well
                         return self.respond({"detail": f"Error creating release: {e}"}, status=400)
@@ -429,7 +438,9 @@ class VercelWebhookEndpoint(Endpoint):
                     except RequestException as e:
                         # errors will probably be common if the user doesn't have repos set up
                         logger.info(
-                            f"Error setting refs: {e} - {json_error}",
+                            "Error setting refs: %s - %s",
+                            e,
+                            json_error,
                             extra=logging_params,
                             exc_info=True,
                         )

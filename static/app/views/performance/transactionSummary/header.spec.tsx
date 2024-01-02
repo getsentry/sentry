@@ -1,19 +1,23 @@
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PlatformKey} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 type InitialOpts = {
   features?: string[];
-  platform?: string;
+  platform?: PlatformKey;
 };
 
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
-  const project = TestStubs.Project({platform});
-  const organization = TestStubs.Organization({
+  const project = ProjectFixture({platform});
+  const organization = Organization({
     projects: [project],
     features: features ?? [],
   });
@@ -27,7 +31,7 @@ function initializeData(opts?: InitialOpts) {
         },
       },
     },
-    project: project.id,
+    project,
     projects: [],
   });
   const router = initialData.router;
@@ -157,6 +161,10 @@ describe('Performance > Transaction Summary Header', function () {
     const eventHasMeasurementsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
     });
 
     render(

@@ -4,10 +4,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
-from sentry.models import Organization
+from sentry.models.organization import Organization
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
@@ -16,8 +18,12 @@ from sentry.web.frontend.base import OrganizationMixin
 
 @control_silo_endpoint
 class AuthLoginEndpoint(Endpoint, OrganizationMixin):
+    publish_status = {
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
+    owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes = ()
 
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         self.determine_active_organization(request)
@@ -33,7 +39,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         login_form = AuthenticationForm(request, request.data)
 
         # Rate limit logins
-        is_limited = ratelimiter.is_limited(
+        is_limited = ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
             ),

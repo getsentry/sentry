@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from django.test import override_settings
 from pytest import raises
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import Model, ModelSiloLimit, get_model_if_available
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
@@ -10,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 class AvailableOnTest(TestCase):
     class TestModel(Model):
-        __include_in_export__ = False
+        __relocation_scope__ = RelocationScope.Excluded
 
         class Meta:
             abstract = True

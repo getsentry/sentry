@@ -61,14 +61,14 @@ export interface DropdownMenuListProps
   /**
    * Minimum menu width
    */
-  minWidth?: number;
+  minMenuWidth?: number;
   size?: MenuItemProps['size'];
 }
 
 function DropdownMenuList({
   closeOnSelect = true,
   onClose,
-  minWidth,
+  minMenuWidth,
   size,
   menuTitle,
   overlayState,
@@ -180,7 +180,6 @@ function DropdownMenuList({
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         menuTitle={node.value.submenuTitle}
-        menuWiderThanTrigger={false}
         isDismissable={false}
         shouldCloseOnBlur={false}
         shouldCloseOnInteractOutside={() => false}
@@ -242,7 +241,7 @@ function DropdownMenuList({
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
-                minWidth,
+                minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
               }}
             >
               {renderCollection(stateCollection)}

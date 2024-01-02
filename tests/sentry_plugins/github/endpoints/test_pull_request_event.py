@@ -1,6 +1,8 @@
 from uuid import uuid4
 
-from sentry.models import OrganizationOption, PullRequest, Repository
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -12,7 +14,7 @@ from sentry_plugins.github.testutils import (
 from social_auth.models import UserSocialAuth
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation

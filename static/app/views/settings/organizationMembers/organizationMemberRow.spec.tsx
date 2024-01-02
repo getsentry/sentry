@@ -1,9 +1,15 @@
+import {Member as MemberFixture} from 'sentry-fixture/member';
+import {Organization} from 'sentry-fixture/organization';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {OrgRoleFixture} from 'sentry/types/role';
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', function () {
-  const member = TestStubs.Member({
+  const member = MemberFixture({
     id: '1',
     email: '',
     name: '',
@@ -12,38 +18,43 @@ describe('OrganizationMemberRow', function () {
     pending: false,
     flags: {
       'sso:linked': false,
+      'idp:provisioned': false,
+      'idp:role-restricted': false,
+      'member-limit:restricted': false,
+      'partnership:restricted': false,
+      'sso:invalid': false,
     },
-    user: {
+    user: User({
       id: '',
       has2fa: false,
       name: 'sentry@test.com',
-    },
+    }),
     groupOrgRoles: [],
   });
 
-  const managerTeam = TestStubs.Team({
+  const managerTeam = Team({
     orgRole: 'manager',
   });
 
-  const memberOnManagerTeam = TestStubs.Member({
+  const memberOnManagerTeam = MemberFixture({
     id: '2',
     orgRole: 'member',
     teams: [managerTeam.slug],
     groupOrgRoles: [
       {
         teamSlug: managerTeam.slug,
-        role: {name: 'Manager'},
+        role: OrgRoleFixture({name: 'Manager'}),
       },
     ],
   });
 
-  const currentUser = TestStubs.User({
+  const currentUser = User({
     id: '2',
     email: 'currentUser@email.com',
   });
 
   const defaultProps: React.ComponentProps<typeof OrganizationMemberRow> = {
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     status: '',
     requireLink: false,
     memberCanLeave: false,
@@ -77,9 +88,9 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={TestStubs.Member({
+          member={MemberFixture({
             ...member,
-            user: TestStubs.User({...member.user, has2fa: true}),
+            user: User({...member.user, has2fa: true}),
           })}
         />
       );
@@ -94,7 +105,7 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={{
             ...member,
-            user: {...member.user, has2fa: false},
+            user: User({...member.user, has2fa: false}),
           }}
         />
       );
@@ -206,8 +217,15 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={{
             ...member,
-            flags: {'sso:linked': true},
-            user: {...member.user, has2fa: false},
+            flags: {
+              'sso:linked': true,
+              'idp:provisioned': false,
+              'idp:role-restricted': false,
+              'member-limit:restricted': false,
+              'partnership:restricted': false,
+              'sso:invalid': false,
+            },
+            user: User({...member.user, has2fa: false}),
           }}
         />
       );
@@ -296,7 +314,7 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={{...member, user: {...member.user}}}
+          member={{...member, user: User({...member.user})}}
         />
       );
 
@@ -311,7 +329,7 @@ describe('OrganizationMemberRow', function () {
     render(
       <OrganizationMemberRow
         {...defaultProps}
-        member={{...memberOnManagerTeam, user: {...memberOnManagerTeam.user}}}
+        member={{...memberOnManagerTeam, user: User({...memberOnManagerTeam.user})}}
       />
     );
 

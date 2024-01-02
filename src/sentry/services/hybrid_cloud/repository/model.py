@@ -15,9 +15,9 @@ class RpcRepository(RpcModel):
     external_id: Optional[str]
     config: Dict[str, Any]
     integration_id: Optional[int]
-    provider: str
+    provider: Optional[str]
     status: int
-    url: str
+    url: Optional[str]
 
 
 class RpcCreateRepository(RpcModel):

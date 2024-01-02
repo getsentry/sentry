@@ -1,4 +1,14 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {Commit} from 'sentry-fixture/commit';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -8,19 +18,19 @@ import * as analytics from 'sentry/utils/analytics';
 import {StacktraceLink} from './stacktraceLink';
 
 describe('StacktraceLink', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const platform = 'python';
-  const project = TestStubs.Project({});
-  const event = TestStubs.Event({
+  const project = ProjectFixture({});
+  const event = EventFixture({
     projectID: project.id,
-    release: TestStubs.Release({lastCommit: TestStubs.Commit()}),
+    release: ReleaseFixture({lastCommit: Commit()}),
     platform,
   });
-  const integration = TestStubs.GitHubIntegration();
-  const repo = TestStubs.Repository({integrationId: integration.id});
+  const integration = GitHubIntegrationFixture();
+  const repo = Repository({integrationId: integration.id});
 
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
   let promptActivity: jest.Mock;
 
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
@@ -43,7 +53,7 @@ describe('StacktraceLink', function () {
       body: {config: null, sourceUrl: null, integrations: []},
     });
     render(<StacktraceLink frame={frame} event={event} line="" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByText(
@@ -86,7 +96,7 @@ describe('StacktraceLink', function () {
       body: {},
     });
     const {container} = render(<StacktraceLink frame={frame} event={event} line="" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByText(
@@ -119,7 +129,7 @@ describe('StacktraceLink', function () {
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByText('Tell us where your source code is')
@@ -132,7 +142,7 @@ describe('StacktraceLink', function () {
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(await screen.findByRole('link')).toHaveAttribute(
       'href',
@@ -151,7 +161,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
     });
     expect(
       await screen.findByRole('button', {
@@ -175,7 +185,7 @@ describe('StacktraceLink', function () {
         event={{...event, platform: 'javascript'}}
         line="{snip} somethingInsane=e.IsNotFound {snip}"
       />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -193,7 +203,7 @@ describe('StacktraceLink', function () {
     });
     const {container} = render(
       <StacktraceLink frame={frame} event={{...event, platform: 'unreal'}} line="" />,
-      {context: TestStubs.routerContext()}
+      {context: RouterContextFixture()}
     );
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -219,7 +229,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
       organization,
     });
 
@@ -250,7 +260,7 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
       organization,
     });
     expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
@@ -278,9 +288,118 @@ describe('StacktraceLink', function () {
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      context: TestStubs.routerContext(),
+      context: RouterContextFixture(),
       organization,
     });
     expect(await screen.findByTestId('codecov-link')).toBeInTheDocument();
+  });
+
+  it('renders the link using a valid sourceLink for a .NET project', async function () {
+    const dotnetFrame = {
+      sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
+      lineNo: '100',
+    } as unknown as Frame;
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        integrations: [integration],
+      },
+    });
+    render(
+      <StacktraceLink
+        frame={dotnetFrame}
+        event={{...event, platform: 'csharp'}}
+        line="foo()"
+      />,
+      {
+        context: RouterContextFixture(),
+      }
+    );
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      'https://www.github.com/username/path/to/file.py#L100'
+    );
+    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+  });
+
+  it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
+    const dotnetFrame = {
+      sourceLink: 'https://www.github.com/source/link/url#L1',
+      lineNo: '1',
+    } as unknown as Frame;
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://www.github.com/url/from/code/mapping',
+        integrations: [integration],
+      },
+    });
+    render(
+      <StacktraceLink
+        frame={dotnetFrame}
+        event={{...event, platform: 'csharp'}}
+        line="foo()"
+      />,
+      {
+        context: RouterContextFixture(),
+      }
+    );
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      'https://www.github.com/url/from/code/mapping#L1'
+    );
+    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+  });
+
+  it('hides stacktrace link if there is no source link for .NET projects', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        integrations: [integration],
+      },
+    });
+    const {container} = render(
+      <StacktraceLink frame={frame} event={{...event, platform: 'csharp'}} line="" />,
+      {context: RouterContextFixture()}
+    );
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
+    jest.useFakeTimers();
+    const organization = Organization({
+      features: ['issue-details-stacktrace-link-in-frame'],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: RouterContextFixture([{organization}]),
+      organization,
+    });
+
+    // Assert initial state (loading state)
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+
+    // Fast-forward time by 100ms
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      'https://something.io#L233'
+    );
+
+    expect(await screen.getByText('GitHub')).toBeInTheDocument();
+
+    jest.useRealTimers();
   });
 });

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 
 import pytest
@@ -6,9 +8,10 @@ from django.utils import timezone
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import ProjectTransactionThreshold, ReleaseStages
 from sentry.models.projectteam import ProjectTeam
+from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
+    ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
@@ -265,7 +268,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        tests = [
+        tests: list[tuple[str, str, list[str]]] = [
             ("key1", "", ["value1", "value2"]),
             ("key1", "has:key1", ["value1", "value2"]),
             ("key1", "!has:key1", []),
@@ -537,7 +540,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
 
-        tests = [
+        tests: list[tuple[str, list[str]]] = [
             ('message:"oh no"', ["oh no"]),
             ('message:"oh yeah"', ["oh yeah"]),
             ('message:""', []),
@@ -626,6 +629,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 for x in sorted(data, key=lambda k: k["transaction"])
             ] == expected_results
 
+    @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
     def test_snql_wip_project_threshold_config(self):
         ProjectTransactionThreshold.objects.create(
             project=self.project,
@@ -1985,7 +1989,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
 
-        queries = [
+        queries: list[tuple[str, list[int]]] = [
             ("", [0, 1, 1]),
             ("error.handled:true", [1, 1]),
             ("!error.handled:true", [0]),
@@ -2028,7 +2032,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
 
-        queries = [
+        queries: list[tuple[str, list[str], list[int]]] = [
             ("error.unhandled:true", ["a" * 32], [1]),
             ("!error.unhandled:true", ["b" * 32, "c" * 32], [0, 0]),
             ("has:error.unhandled", ["a" * 32], [1]),
@@ -2491,7 +2495,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             params=self.params,
             referrer="discover",
         )
@@ -2502,7 +2506,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             params=self.params,
             referrer="discover",
         )
@@ -2514,7 +2518,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         }
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
             params=self.params,
             referrer="discover",
         )

@@ -1,4 +1,12 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {GitHubIntegration} from 'sentry-fixture/githubIntegration';
+import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Coverage, Frame, LineCoverage} from 'sentry/types';
@@ -6,13 +14,13 @@ import {Coverage, Frame, LineCoverage} from 'sentry/types';
 import Context, {getLineCoverage} from './context';
 
 describe('Frame - Context', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project({});
-  const event = TestStubs.Event({projectID: project.id});
-  const integration = TestStubs.GitHubIntegration();
-  const repo = TestStubs.Repository({integrationId: integration.id});
+  const org = Organization();
+  const project = Project({});
+  const event = EventFixture({projectID: project.id});
+  const integration = GitHubIntegration();
+  const repo = Repository({integrationId: integration.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
 
   beforeEach(function () {
     jest.clearAllMocks();
@@ -59,12 +67,54 @@ describe('Frame - Context', function () {
         components={[]}
       />,
       {
-        context: TestStubs.routerContext([{organization: org}]),
+        context: RouterContextFixture([{organization: org}]),
         organization: org,
-        project,
       }
     );
 
     expect(mock).not.toHaveBeenCalled();
+  });
+
+  describe('syntax highlighting', function () {
+    it('renders code correctly when context lines end in newline characters', function () {
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+        body: {
+          config,
+          sourceUrl: null,
+          integrations: [integration],
+        },
+      });
+
+      const testFrame: Frame = {
+        ...frame,
+        lineNo: 2,
+        context: [
+          [1, 'this is line 1\n'],
+          [2, 'this is line 2\n'],
+          [3, 'this is line 3\n'],
+        ],
+      };
+
+      render(
+        <Context
+          isExpanded
+          hasContextSource
+          frame={testFrame}
+          event={event}
+          organization={Organization({
+            features: ['issue-details-stacktrace-syntax-highlighting'],
+          })}
+          registers={{}}
+          components={[]}
+        />
+      );
+
+      expect(screen.getAllByTestId('context-line')).toHaveLength(3);
+
+      expect(screen.getByText('this is line 1')).toBeInTheDocument();
+      expect(screen.getByText('this is line 2')).toBeInTheDocument();
+      expect(screen.getByText('this is line 3')).toBeInTheDocument();
+    });
   });
 });

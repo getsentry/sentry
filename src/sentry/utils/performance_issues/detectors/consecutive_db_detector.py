@@ -9,7 +9,8 @@ from django.utils.translation import gettext_lazy as _
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.performance_issues.detectors.utils import (
     get_max_span_duration,

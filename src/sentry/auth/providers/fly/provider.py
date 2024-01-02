@@ -2,7 +2,6 @@ from typing import Any, Dict, Optional, cast
 
 from sentry import options
 from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME, ChannelName
-from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider
 
 from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL
@@ -76,13 +75,8 @@ class FlyOAuth2Provider(OAuth2Provider):
         data = state["data"]
         user_data = state["user"]
 
-        # XXX(epurkhiser): We initially were using the email as the id key.
-        # This caused account dupes on domain changes. Migrate to the
-        # account-unique sub key.
-        user_id = MigratingIdentityId(id=user_data["user_id"], legacy_id=user_data["email"])
-
         return {
-            "id": user_id,
+            "id": user_data["user_id"],
             "email": user_data["email"],
             "name": user_data["email"],
             "data": self.get_oauth_data(data),

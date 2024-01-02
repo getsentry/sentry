@@ -53,7 +53,7 @@ type Props = {
 
 class AbstractIntegrationDetailedView<
   P extends Props = Props,
-  S extends State = State
+  S extends State = State,
 > extends DeprecatedAsyncComponent<P, S> {
   tabs: Tab[] = ['overview', 'configurations'];
 
@@ -433,7 +433,7 @@ const IconCloseCircle = styled(IconClose)`
   margin-right: ${space(1)};
 `;
 
-const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
+export const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div
     style={{
       display: 'flex',

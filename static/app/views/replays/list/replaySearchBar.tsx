@@ -1,7 +1,6 @@
 import {useCallback, useEffect} from 'react';
 
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import FeatureBadge from 'sentry/components/featureBadge';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -73,10 +72,11 @@ function getSupportedTags(supportedTags: TagCollection) {
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
   pageFilters: PageFilters;
+  placeholder?: string;
 };
 
 function ReplaySearchBar(props: Props) {
-  const {organization, pageFilters} = props;
+  const {organization, pageFilters, placeholder} = props;
   const api = useApi();
   const projectIdStrings = pageFilters.projects?.map(String);
   const tags = useTags();
@@ -114,9 +114,10 @@ function ReplaySearchBar(props: Props) {
       {...props}
       onGetTagValues={getTagValues}
       supportedTags={getSupportedTags(tags)}
-      placeholder={t(
-        'Search for users, duration, clicked elements, count_errors, and more'
-      )}
+      placeholder={
+        placeholder ??
+        t('Search for users, duration, clicked elements, count_errors, and more')
+      }
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}
       searchSource="replay_index"
@@ -127,7 +128,6 @@ function ReplaySearchBar(props: Props) {
       mergeSearchGroupWith={{
         click: {
           documentation: t('Search by click selector. (Requires SDK version >= 7.44.0)'),
-          titleBadge: <FeatureBadge type="new">{t('New')}</FeatureBadge>,
         },
       }}
       onSearch={(query: string) => {

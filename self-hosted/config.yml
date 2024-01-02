@@ -39,7 +39,6 @@ filestore.options:
   location: '/data/files'
 dsym.cache-path: '/data/dsym-cache'
 releasefile.cache-path: '/data/releasefile-cache'
-
 # filestore.backend: 's3'
 # filestore.options:
 #   access_key: 'AKIXXXXXX'

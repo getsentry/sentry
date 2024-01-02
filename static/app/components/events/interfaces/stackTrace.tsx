@@ -1,8 +1,8 @@
 import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
-import {Group, PlatformType, Project} from 'sentry/types';
+import {Group, PlatformKey, Project} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
-import {StackType, StackView} from 'sentry/types/stacktrace';
+import {StackView} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
@@ -36,7 +36,7 @@ export function StackTrace({
 
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
-  function getPlatform(): PlatformType {
+  function getPlatform(): PlatformKey {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
   }
@@ -47,7 +47,6 @@ export function StackTrace({
   return (
     <TraceEventDataSection
       type={EntryType.STACKTRACE}
-      stackType={StackType.ORIGINAL}
       projectSlug={projectSlug}
       eventId={event.id}
       platform={platform}

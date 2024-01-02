@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import features, tagstore
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -22,6 +23,10 @@ from sentry.utils.cursors import Cursor, CursorResult
 ALLOWED_AGGREGATE_COLUMNS = {
     "transaction.duration",
     "measurements.lcp",
+    "measurements.cls",
+    "measurements.fcp",
+    "measurements.fid",
+    "measurements.inp",
     "spans.browser",
     "spans.http",
     "spans.db",
@@ -33,6 +38,10 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
@@ -107,10 +116,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     return {"data": []}
 
                 for row in results["data"]:
-                    row["tags_value"] = tagstore.get_tag_value_label(
+                    row["tags_value"] = tagstore.backend.get_tag_value_label(
                         row["tags_key"], row["tags_value"]
                     )
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return results
 
@@ -130,6 +139,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)
@@ -196,7 +209,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     return {"tags": top_tags, "histogram": {"data": []}}
 
                 for row in histogram["data"]:
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return {"tags": top_tags, "histogram": histogram}
 
@@ -308,7 +321,6 @@ def query_top_tags(
     translated_aggregate_column = discover.resolve_discover_column(aggregate_column)
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.top_tags"):
-
         if not orderby:
             orderby = ["-count"]
 
@@ -395,6 +407,7 @@ def query_facet_performance(
             sample_rate=sample_rate,
             turbo=sample_rate is not None,
             limit=limit,
+            offset=offset,
             limitby=["tags_key", tag_key_limit] if not tag_key else None,
         )
     translated_aggregate_column = tag_query.resolve_column(aggregate_column)

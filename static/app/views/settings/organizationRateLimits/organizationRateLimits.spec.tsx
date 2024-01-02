@@ -1,3 +1,6 @@
+import {Organization} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRateLimits, {
@@ -7,18 +10,19 @@ import OrganizationRateLimits, {
 const ENDPOINT = '/organizations/org-slug/';
 
 describe('Organization Rate Limits', function () {
-  const organization = {
-    ...TestStubs.Organization(),
+  const organization = Organization({
     quota: {
       projectLimit: 75,
       accountLimit: 70000,
+      maxRate: null,
+      maxRateInterval: null,
     },
-  };
+  });
 
   const renderComponent = (props?: Partial<OrganizationRateLimitProps>) =>
     render(
       <OrganizationRateLimits
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         {...props}
       />
@@ -38,18 +42,19 @@ describe('Organization Rate Limits', function () {
   });
 
   it('renders with maxRate and maxRateInterval set', function () {
-    const org = {
+    const org = Organization({
       ...organization,
       quota: {
         maxRate: 100,
         maxRateInterval: 60,
+        projectLimit: null,
+        accountLimit: null,
       },
-    };
+    });
 
-    const {container} = renderComponent({organization: org});
+    renderComponent({organization: org});
 
     expect(screen.getByRole('slider')).toBeInTheDocument();
-    expect(container).toSnapshot();
   });
 
   it('can change Account Rate Limit', async function () {

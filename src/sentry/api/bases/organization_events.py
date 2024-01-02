@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
@@ -10,6 +12,7 @@ from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -18,12 +21,16 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Group, Organization, Project, Team
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     issue_platform,
     metrics_enhanced_performance,
@@ -32,6 +39,7 @@ from sentry.snuba import (
     spans_indexed,
     spans_metrics,
 )
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -42,6 +50,7 @@ from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 # ie. metricsEnhanced is not a real dataset
 DATASET_OPTIONS = {
     "discover": discover,
+    "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
     "profiles": profiles,
@@ -59,6 +68,8 @@ def resolve_axis_column(column: str, index: int = 0) -> str:
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
+    owner = ApiOwner.PERFORMANCE
+
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
             features.has("organizations:discover-basic", organization, actor=request.user)
@@ -259,6 +270,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
+    owner = ApiOwner.PERFORMANCE
+
     def build_cursor_link(self, request: Request, name: str, cursor: Optional[Cursor]) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
@@ -281,6 +294,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
+
+    def handle_on_demand(self, request: Request) -> tuple[bool, MetricSpecType]:
+        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        on_demand_metric_type = MetricSpecType.SIMPLE_QUERY
+        on_demand_metric_type_value = request.GET.get("onDemandType")
+        if use_on_demand_metrics and on_demand_metric_type_value:
+            on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
+
+        return use_on_demand_metrics, on_demand_metric_type
 
     def handle_unit_meta(
         self, meta: Dict[str, str]
@@ -322,20 +344,23 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
+                isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
                     "units": units,
                     "isMetricsData": isMetricsData,
+                    "isMetricsExtractedData": isMetricsExtractedData,
                     "tips": meta.get("tips", {}),
+                    "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }
                 if dataset is not None:
                     meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
             else:
                 meta = fields_meta
 
-            if "isMetricsData" not in meta:
-                meta["isMetricsData"] = False
+            meta["isMetricsData"] = meta.get("isMetricsData", False)
+            meta["isMetricsExtractedData"] = meta.get("isMetricsExtractedData", False)
 
             if not data:
                 return {"data": [], "meta": meta}
@@ -357,7 +382,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
-                if "transaction.status" in row:
+                if "transaction.status" in row and type(row["transaction.status"]) is int:
                     row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
                         row["transaction.status"]
                     )
@@ -502,6 +527,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             zerofill_results=zerofill_results,
                             dataset=dataset,
                         )
+                        if request.query_params.get("useOnDemandMetrics") == "true":
+                            results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
+                                results, key, query_columns
+                            )
                     else:
                         results[key] = serializer.serialize(
                             event_result,
@@ -555,6 +584,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 )["meta"]
 
             return serialized_result
+
+    def _query_if_extracted_data(
+        self, results: dict[str, Any], key: str, query_columns: list[str]
+    ) -> bool:
+        ret_value = False
+        try:
+            for c in query_columns:
+                # At least one of the columns has required extracted data
+                if results[key][c].get("meta", {}).get("isMetricsExtractedData"):
+                    ret_value = True
+                    break
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+
+        return ret_value
 
     def serialize_multiple_axis(
         self,

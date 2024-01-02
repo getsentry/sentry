@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 
 
 @pytest.mark.parametrize(

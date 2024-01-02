@@ -8,24 +8,25 @@ import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 
-type Props = {
+interface Props {
   durationMs: number;
   frames: ReplayFrame[];
   startTimestampMs: number;
   width: number;
   className?: string;
-};
+}
 
 function ReplayTimelineEvents({
   className,
-  frames,
   durationMs,
+  frames,
   startTimestampMs,
   width,
 }: Props) {
@@ -71,17 +72,24 @@ function Event({
   startTimestampMs: number;
 }) {
   const theme = useTheme();
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+  const {setActiveTab} = useActiveReplayTab();
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
       frame={frame}
+      extraction={undefined}
       key={i}
-      onClick={handleClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onClick={() => {
+        onClickTimestamp(frame);
+        setActiveTab(getFrameDetails(frame).tabKey);
+      }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
+      traces={undefined}
+      onDimensionChange={() => {}}
+      onInspectorExpanded={() => {}}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
@@ -188,7 +196,7 @@ const IconNode = styled('div')<{colors: Color[]; frameCount: number}>`
 `;
 
 const TooltipWrapper = styled('div')`
-  max-height: calc(100vh - ${space(4)});
+  max-height: 80vh;
   overflow: auto;
 `;
 

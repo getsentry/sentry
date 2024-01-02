@@ -8,7 +8,6 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

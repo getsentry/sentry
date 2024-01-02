@@ -18,9 +18,7 @@
                 "}",
                 ""
               ],
-              "post_context": [
-                ""
-              ],
+              "post_context": [""],
               "in_app": true,
               "lineno": 21,
               "filename": "/server.php",
@@ -975,11 +973,7 @@
                 "request": "Object Illuminate\\Http\\Request",
                 "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
               },
-              "post_context": [
-                "    }",
-                "}",
-                ""
-              ],
+              "post_context": ["    }", "}", ""],
               "filename": "/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php",
               "lineno": 49,
               "in_app": false,
@@ -1125,11 +1119,7 @@
                 "request": "Object Illuminate\\Http\\Request",
                 "next": "Lambda Illuminate\\Routing\\{closure} [mixed|null passable]"
               },
-              "post_context": [
-                "    }",
-                "}",
-                ""
-              ],
+              "post_context": ["    }", "}", ""],
               "filename": "/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php",
               "lineno": 41,
               "in_app": false,
@@ -1239,11 +1229,7 @@
                 "      ));",
                 ""
               ],
-              "post_context": [
-                "    return view('welcome');",
-                "});",
-                ""
-              ],
+              "post_context": ["    return view('welcome');", "});", ""],
               "filename": "/routes/web.php",
               "lineno": 22,
               "in_app": true,

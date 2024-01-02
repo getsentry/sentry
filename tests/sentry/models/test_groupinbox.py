@@ -1,5 +1,5 @@
-from sentry.models import (
-    Activity,
+from sentry.models.activity import Activity
+from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,
     GroupInboxRemoveAction,
@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupInboxTestCase(TestCase):
     def test_add_to_inbox(self):
         add_group_to_inbox(self.group, GroupInboxReason.NEW)

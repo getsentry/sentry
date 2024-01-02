@@ -7,8 +7,9 @@ from responses import matchers
 from sentry.integrations.slack.client import SlackClient
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 control_address = "http://controlserver"
 secret = "hush-hush-im-invisible"
@@ -35,14 +36,26 @@ class SlackClientTest(TestCase):
         self.mock_user_access_token_response = {"ok": True, "auth": "user"}
         self.mock_access_token_response = {"ok": True, "auth": "token"}
         self.mock_not_authed_response = {"ok": True, "auth": None}
-        base_response_kwargs = {
-            "method": responses.POST,
-            "url": re.compile(r"\S+chat.postMessage$"),
-            "status": 200,
-            "content_type": "application/json",
-        }
-        responses.add(
-            **base_response_kwargs,
+
+        def _add_response(*, json, match):
+            responses.add(
+                method=responses.POST,
+                url=re.compile(r"\S+chat.postMessage$"),
+                status=200,
+                content_type="application/json",
+                json=json,
+                match=match,
+            )
+
+            add_control_silo_proxy_response(
+                method=responses.POST,
+                path="chat.postMessage",
+                status=200,
+                json=json,
+                additional_matchers=match,
+            )
+
+        _add_response(
             json=self.mock_user_access_token_response,
             match=[
                 matchers.header_matcher(
@@ -50,13 +63,11 @@ class SlackClientTest(TestCase):
                 )
             ],
         )
-        responses.add(
-            **base_response_kwargs,
+        _add_response(
             json=self.mock_access_token_response,
             match=[matchers.header_matcher({"Authorization": f"Bearer {self.access_token}"})],
         )
-        responses.add(
-            **base_response_kwargs,
+        _add_response(
             json=self.mock_not_authed_response,
             match=[matchers.header_matcher({})],
         )
@@ -98,7 +109,7 @@ class SlackClientTest(TestCase):
             client.post("/chat.postMessage", data=self.payload)
             request = responses.calls[0].request
 
-            assert "/chat.postMessage" in request.url
+            assert request.headers[PROXY_PATH] == "chat.postMessage"
             assert client.base_url not in request.url
             self.assert_proxy_request(request, is_proxy=True)
 

@@ -1,4 +1,4 @@
-import React, {Component, Fragment, useContext, useEffect} from 'react';
+import {Component, Fragment, useContext, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -7,10 +7,12 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
+import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {parseCursor} from 'sentry/utils/cursor';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -118,6 +120,7 @@ type Props = {
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
+  supportsInvestigationRule?: boolean;
   /**
    * A list of preferred table headers to use over the field names.
    */
@@ -262,7 +265,15 @@ class _TransactionsList extends Component<Props> {
     return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
   }
 
-  renderHeader(): React.ReactNode {
+  renderHeader({
+    cursor,
+    numSamples,
+    supportsInvestigationRule,
+  }: {
+    numSamples: number | null | undefined;
+    cursor?: string | undefined;
+    supportsInvestigationRule?: boolean;
+  }): React.ReactNode {
     const {
       organization,
       selected,
@@ -272,8 +283,11 @@ class _TransactionsList extends Component<Props> {
       handleOpenInDiscoverClick,
       showTransactions,
       breakdown,
+      eventView,
     } = this.props;
-
+    const cursorOffset = parseCursor(cursor)?.offset ?? 0;
+    numSamples = numSamples ?? null;
+    const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
     return (
       <Fragment>
         <div>
@@ -284,6 +298,15 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
+        {supportsInvestigationRule && (
+          <InvestigationRuleWrapper>
+            <InvestigationRuleCreation
+              buttonProps={{size: 'xs'}}
+              eventView={eventView}
+              numSamples={totalNumSamples}
+            />
+          </InvestigationRuleWrapper>
+        )}
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
@@ -299,7 +322,7 @@ class _TransactionsList extends Component<Props> {
                 size="xs"
                 data-test-id="transaction-events-open"
               >
-                {t('View All Events')}
+                {t('View Sampled Events')}
               </Button>
             </GuideAnchor>
           ) : (
@@ -338,7 +361,7 @@ class _TransactionsList extends Component<Props> {
     const cursor = decodeScalar(location.query?.[cursorName]);
     const tableCommonProps: Omit<
       TableRenderProps,
-      'isLoading' | 'pageLinks' | 'tableData'
+      'isLoading' | 'pageLinks' | 'tableData' | 'header'
     > = {
       handleCellAction,
       referrer,
@@ -349,7 +372,6 @@ class _TransactionsList extends Component<Props> {
       titles,
       generateLink,
       useAggregateAlias: false,
-      header: this.renderHeader(),
       target: 'transactions_table',
       paginationCursorSize: 'xs',
       onCursor: this.handleCursor,
@@ -357,7 +379,13 @@ class _TransactionsList extends Component<Props> {
 
     if (forceLoading) {
       return (
-        <TableRender {...tableCommonProps} isLoading pageLinks={null} tableData={null} />
+        <TableRender
+          {...tableCommonProps}
+          isLoading
+          pageLinks={null}
+          tableData={null}
+          header={this.renderHeader({numSamples: null})}
+        />
       );
     }
 
@@ -376,6 +404,11 @@ class _TransactionsList extends Component<Props> {
             isLoading={isLoading}
             pageLinks={pageLinks}
             tableData={tableData}
+            header={this.renderHeader({
+              numSamples: tableData?.data?.length ?? null,
+              supportsInvestigationRule: this.props.supportsInvestigationRule,
+              cursor,
+            })}
           />
         )}
       </DiscoverQuery>
@@ -414,7 +447,10 @@ class _TransactionsList extends Component<Props> {
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
             paginationCursorSize="sm"
-            header={this.renderHeader()}
+            header={this.renderHeader({
+              numSamples: null,
+              supportsInvestigationRule: false,
+            })}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([
               {field: 'transaction'},
@@ -445,13 +481,17 @@ class _TransactionsList extends Component<Props> {
 
 const Header = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   margin-bottom: ${space(1)};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
+`;
+
+const InvestigationRuleWrapper = styled('div')`
+  margin-right: ${space(1)};
 `;
 
 function TransactionsList(

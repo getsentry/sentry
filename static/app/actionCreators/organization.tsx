@@ -49,7 +49,7 @@ async function fetchProjectsAndTeams(
 ): Promise<
   [
     [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
-    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined]
+    [Team[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
   ]
 > {
   // Create a new client so the request is not cancelled

@@ -1,3 +1,12 @@
+import {Commit} from 'sentry-fixture/commit';
+import {CommitAuthor} from 'sentry-fixture/commitAuthor';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AssignedTo from 'sentry/components/group/assignedTo';
@@ -5,49 +14,56 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Event, Group, Organization, Project, Team, User} from 'sentry/types';
+import type {
+  Event,
+  Group,
+  Organization as TOrganization,
+  Project,
+  Team as TeamType,
+  User as UserType,
+} from 'sentry/types';
 
 describe('Group > AssignedTo', () => {
-  let USER_1!: User;
-  let USER_2!: User;
-  let TEAM_1!: Team;
+  let USER_1!: UserType;
+  let USER_2!: UserType;
+  let TEAM_1!: TeamType;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;
-  let organization!: Organization;
-  const project = TestStubs.Project();
+  let organization!: TOrganization;
+  const project = ProjectFixture();
 
   beforeEach(() => {
-    organization = TestStubs.Organization();
-    USER_1 = TestStubs.User({
+    organization = Organization();
+    USER_1 = User({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = User({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: PROJECT_1.id,
         slug: PROJECT_1.slug,
-      },
+      }),
     });
-    event = TestStubs.Event();
+    event = EventFixture();
 
     TeamStore.loadInitialData([TEAM_1]);
     ProjectsStore.loadInitialData([PROJECT_1]);
@@ -107,7 +123,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
     const {rerender} = render(
@@ -124,7 +140,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -146,7 +162,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -163,7 +179,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'team:3', assignedBy: 'assignee_selector'},
         })
@@ -178,7 +194,7 @@ describe('Group > AssignedTo', () => {
     // api was called with empty string, clearing assignment
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: '', assignedBy: 'assignee_selector'},
         })
@@ -188,13 +204,13 @@ describe('Group > AssignedTo', () => {
 
   it('displays suggested assignees from committers and owners', async () => {
     const onAssign = jest.fn();
-    const author = TestStubs.CommitAuthor({id: USER_2.id});
+    const author = CommitAuthor({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
-            commits: [TestStubs.Commit({author})],
+            commits: [Commit({author})],
             author,
           },
         ],
@@ -213,7 +229,7 @@ describe('Group > AssignedTo', () => {
     };
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/issues/${GROUP_1.id}/`,
+      url: `/organizations/org-slug/issues/${GROUP_1.id}/`,
       body: assignedGroup,
     });
 
@@ -232,7 +248,7 @@ describe('Group > AssignedTo', () => {
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
-        '/issues/1337/',
+        '/organizations/org-slug/issues/1337/',
         expect.objectContaining({
           data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
         })

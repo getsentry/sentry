@@ -1,4 +1,4 @@
-import React, {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -455,7 +455,6 @@ function TrendsListItem(props: TrendsListItemProps) {
                   </span>
                 </TooltipContent>
               }
-              disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
             >
               <RadioLineItem index={index} role="radio">
                 <Radio
@@ -488,7 +487,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           title={
             <StyledButton
               size="xs"
-              icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+              icon={<IconEllipsis data-test-id="trends-item-action" />}
               aria-label={t('Actions')}
             />
           }
@@ -545,7 +544,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           <ValueDelta {...props} />
         </ItemTransactionStatus>
       </ListItemContainer>
-      <Feature features={['performance-change-explorer']}>
+      <Feature features="performance-change-explorer">
         <PerformanceChangeExplorer
           collapsed={openedTransaction === null}
           onClose={() => setOpenedTransaction(null)}

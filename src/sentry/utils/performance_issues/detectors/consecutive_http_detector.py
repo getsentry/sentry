@@ -3,7 +3,8 @@ from __future__ import annotations
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.models import Organization, Project
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.performance_issues.detectors.utils import (
     get_max_span_duration,

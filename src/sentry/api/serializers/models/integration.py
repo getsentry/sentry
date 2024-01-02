@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
+
+from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider
-from sentry.models import Integration, OrganizationIntegration, User
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,
@@ -15,6 +19,23 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
+
+
+class OrganizationIntegrationResponse(TypedDict):
+    id: str
+    name: str
+    icon: Optional[str]
+    domainName: Optional[str]
+    accountType: Optional[str]
+    scopes: Optional[List[str]]
+    status: str
+    provider: Any
+    configOrganization: Any
+    configData: Any
+    externalId: str
+    organizationId: int
+    organizationIntegrationStatus: str
+    gracePeriodEnd: Optional[str]
 
 
 # converts the provider to JSON
@@ -33,7 +54,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 @register(Integration)
 class IntegrationSerializer(Serializer):
     def serialize(
-        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: Integration | RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {

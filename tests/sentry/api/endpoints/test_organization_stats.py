@@ -2,16 +2,15 @@ import functools
 import sys
 
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable=True blocked on org members
+@region_silo_test
 @freeze_time(before_now(days=1).replace(hour=1, minute=10))
 class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
     def test_simple(self):

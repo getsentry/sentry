@@ -1,0 +1,186 @@
+name: IGNORE ME codecov-ats
+
+on:
+  pull_request:
+
+env:
+  CLI_VERSION: v0.1.5
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      api_docs: ${{ steps.changes.outputs.api_docs }}
+      backend: ${{ steps.changes.outputs.backend_all }}
+      backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+      backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+      migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+  coverage-ats:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # fetch-depth: 0 - Use if the BASE_COMMIT on codecov_automated_test_selection is at unknown depth
+          #                   (i.e. git merge-base ${{ github.sha }}^ origin/main)
+          # fetch-depth: 2 - Use if the BASE_COMMIT on codecov_automated_test_selection is at known depth
+          #                   (i.e. git rev-parse ${{ github.sha }}^)
+          fetch-depth: 0
+      - name: Set up Python 3.10.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.10'
+      # We need the setup to collect the list of tests properly
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          snuba: true
+          # Right now, we run so few bigtable related tests that the
+          # overhead of running bigtable in all backend tests
+          # is way smaller than the time it would take to run in its own job.
+          bigtable: true
+          pg-version: 14
+      - name: Download Codecov CLI
+        run: |
+          pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.1
+      # Creates the commit and report objects in codecov
+      - name: Codecov startup
+        run: |
+          codecovcli create-commit
+          codecovcli create-report
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      # Sends static analysis information to codecov
+      - name: Static Analysis
+        run: |
+          codecovcli static-analysis --token=${CODECOV_STATIC_TOKEN} \
+          --folders-to-exclude .artifacts \
+          --folders-to-exclude .github \
+          --folders-to-exclude .venv \
+          --folders-to-exclude static \
+          --folders-to-exclude bin
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
+      # Run Automated Test Selection in dry mode to get the list of tests to run
+      # The base commit will be the parent commit (apparently commits on master don't exist in codecov)
+      - name: Codecov Automated Test Selection
+        id: codecov_automated_test_selection
+        run: |
+          # Directory for the artifacts from this step
+          mkdir .artifacts/codecov_ats
+          # This is the base for the git diff BASE..HEAD
+          BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
+          # Get list of tests to run from Codecov
+          output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
+          # Post processing and validation
+          if [ -n "${output}" ];
+          then
+
+            jq <<< $output '.runner_options + .ats_tests_to_run | @json' --raw-output > .artifacts/codecov_ats/tests_to_run.json
+            jq <<< $output '.runner_options + .ats_tests_to_skip | @json' --raw-output > .artifacts/codecov_ats/tests_to_skip.json
+
+            testcount() { jq <<< $output ".$1 | length"; }
+            run_count=$(testcount ats_tests_to_run)
+            skip_count=$(testcount ats_tests_to_skip)
+            # Parse any potential errors that made ATS fallback to running all tests
+            # And surface them
+            ats_fallback_reason=$(jq <<< "$output" '.ats_fallback_reason')
+            if [ "$ats_fallback_reason" == "null" ]; then
+              ats_success=true
+            else
+              ats_success=false
+            fi
+            tee <<< \
+              "{\"ats_success\": $ats_success, \"error\": $ats_fallback_reason, \"tests_to_run\": $run_count, \"tests_analyzed\": $((run_count+skip_count))}" \
+              "$GITHUB_STEP_SUMMARY" \
+              ".artifacts/codecov_ats/result.json"
+          else
+            # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
+            # These search options match what's defined in codecov.yml:105
+            jq '@json' --raw-output <<< '[
+              "--cov-context=test",
+              "tests/sentry",
+              "tests/integration",
+              "--ignore=tests/sentry/eventstream/kafka",
+              "--ignore=tests/sentry/post_process_forwarder",
+              "--ignore=tests/sentry/snuba",
+              "--ignore=tests/sentry/search/events",
+              "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py",
+              "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
+            ]' > .artifacts/codecov_ats/tests_to_skip.json
+            echo '[]' > .artifacts/codecov_ats/tests_to_run.json
+            # If we reached this point it means that ATS failed with some error
+            tee <<< '{"ats_success": false, "error": "exception_raised"}' "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats/result.json"
+          fi
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: codecov_ats
+          path: .artifacts/codecov_ats
+          if-no-files-found: error
+  # The actual running of tests would come here, after the labels are available
+  # Something like pytest <options> $ATS_TESTS_TO_RUN
+  debug:
+    runs-on: ubuntu-latest
+    needs:
+      - coverage-ats
+      - files-changed
+    # Avoids running this job if it's a frontend change
+    # It would fail if the coverage-ats step didn't run
+    if: needs.files-changed.outputs.backend == 'true'
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: codecov_ats
+          path: .artifacts
+      - name: Debug ATS_TESTS_TO_RUN
+        run: |
+          length_of_tests=$(cat .artifacts/tests_to_run.json | jq 'length')
+          # The 1st value doesn't count, it's '--cov-context=test' (hence -gt 1)
+          if [ $length_of_tests -gt 1 ]; then
+            echo "Running $length_of_tests tests"
+            # --raw-output0 doesn't work.
+            cat .artifacts/tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
+          else
+            echo "No tests to run"
+          fi
+      - name: Debug ATS_TESTS_TO_SKIP
+        run: |
+          length_of_tests=$(cat .artifacts/tests_to_skip.json | jq 'length')
+          # The 1st value doesn't count, it's '--cov-context=test'
+          if [ $length_of_tests -gt 1 ]; then
+            echo "Running $length_of_tests tests"
+            # --raw-output0 doesn't work.
+            cat .artifacts/tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
+          else
+            echo "No tests to run"
+          fi

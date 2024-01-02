@@ -1,10 +1,10 @@
-from sentry.models import ExternalActor
+from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import get_provider_string
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ExternalTeamTest(APITestCase):
     endpoint = "sentry-api-0-external-team"
     method = "post"

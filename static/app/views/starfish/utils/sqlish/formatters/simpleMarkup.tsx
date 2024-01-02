@@ -3,19 +3,19 @@ import type {Token} from 'sentry/views/starfish/utils/sqlish/types';
 export function simpleMarkup(tokens: Token[]): React.ReactElement[] {
   const accumulator: React.ReactElement[] = [];
 
-  function contentize(content: Token): void {
-    if (Array.isArray(content.content)) {
-      content.content.forEach(contentize);
+  function contentize(token: Token): void {
+    if (Array.isArray(token.content)) {
+      token.content.forEach(contentize);
       return;
     }
 
-    if (typeof content.content === 'string') {
-      if (content.type === 'Keyword') {
-        accumulator.push(<b>{content.content.toUpperCase()}</b>);
-      } else if (content.type === 'Whitespace') {
+    if (typeof token.content === 'string') {
+      if (token.type === 'Keyword') {
+        accumulator.push(<b>{token.content.toUpperCase()}</b>);
+      } else if (token.type === 'Whitespace') {
         accumulator.push(<span> </span>);
       } else {
-        accumulator.push(<span>{content.content}</span>);
+        accumulator.push(<span>{token.content}</span>);
       }
     }
 

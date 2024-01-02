@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from sentry.lang.native.utils import image_name, is_minidump_event
-from sentry.models import EventError
+from sentry.models.eventerror import EventError
 from sentry.reprocessing import report_processing_issue
 
 FATAL_ERRORS = (
@@ -106,7 +106,7 @@ def write_error(e, data):
         errors = data.setdefault("errors", [])
         errors.append(e.get_data())
     else:
-        logger.debug("Failed to symbolicate with native backend", exc_info=True)
+        logger.debug("Failed to symbolicate with native backend")
 
     if not e.is_user_fixable:
         data.setdefault("_metrics", {})["flag.processing.error"] = True

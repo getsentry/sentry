@@ -1,4 +1,11 @@
 import selectEvent from 'react-select-event';
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
+import {Groups} from 'sentry-fixture/groups';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {Organization} from 'sentry-fixture/organization';
+import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
+import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -39,15 +46,15 @@ describe('ProjectAlertsCreate', function () {
     TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: TestStubs.ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
@@ -80,19 +87,19 @@ describe('ProjectAlertsCreate', function () {
     const wrapper = render(
       <AlertsContainer>
         <AlertBuilderProjectProvider
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={params}
           organization={organization}
           hasMetricAlerts={false}
         >
           <ProjectAlertsCreate
-            {...TestStubs.routeComponentProps()}
+            {...RouteComponentPropsFixture()}
             hasMetricAlerts={false}
             members={[]}
             params={params}
             organization={organization}
             project={project}
-            location={TestStubs.location({
+            location={LocationFixture({
               pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
               query: {createFromWizard: 'true'},
               ...location,
@@ -144,7 +151,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -169,7 +176,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -188,7 +194,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
       // delete node
       await userEvent.click(screen.getByLabelText('Delete Node'));
@@ -238,7 +244,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -263,7 +269,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -284,7 +289,7 @@ describe('ProjectAlertsCreate', function () {
         mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
-          body: TestStubs.ProjectAlertRule(),
+          body: ProjectAlertRule(),
         });
       });
 
@@ -321,7 +326,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               actions: [],
@@ -371,7 +375,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -474,7 +477,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -498,17 +500,17 @@ describe('ProjectAlertsCreate', function () {
 
   describe('test preview chart', () => {
     it('valid preview table', async () => {
-      const groups = TestStubs.Groups();
+      const groups = Groups();
       const date = new Date();
       for (let i = 0; i < groups.length; i++) {
-        groups[i].lastTriggered = date;
+        groups[i].lastTriggered = String(date);
       }
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview/',
         method: 'POST',
         body: groups,
         headers: {
-          'X-Hits': groups.length,
+          'X-Hits': String(groups.length),
           Endpoint: 'endpoint',
         },
       });
@@ -522,7 +524,6 @@ describe('ProjectAlertsCreate', function () {
               conditions: [
                 expect.objectContaining({
                   id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-                  name: 'A new issue is created',
                 }),
               ],
               filterMatch: 'all',
@@ -640,7 +641,7 @@ describe('ProjectAlertsCreate', function () {
 
   it('shows archived to escalating instead of ignored to unresolved', async () => {
     createWrapper({
-      organization: TestStubs.Organization({features: ['escalating-issues']}),
+      organization: Organization({features: ['escalating-issues']}),
     });
     await selectEvent.select(screen.getByText('Add optional trigger...'), [
       'The issue changes state from archived to escalating',
@@ -649,5 +650,91 @@ describe('ProjectAlertsCreate', function () {
     expect(
       screen.getByText('The issue changes state from archived to escalating')
     ).toBeInTheDocument();
+  });
+
+  it('displays noisy alert checkbox for no conditions + filters', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/',
+      method: 'POST',
+      body: ProjectAlertRule(),
+    });
+
+    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
+
+    expect(
+      screen.getByText(/Alerts without conditions can fire too frequently/)
+    ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'alert_builder.noisy_warning_viewed',
+      expect.anything()
+    );
+
+    await userEvent.click(screen.getByText('Save Rule'));
+
+    expect(mock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Yes, I don’t mind if this alert gets noisy'})
+    );
+    await userEvent.click(screen.getByText('Save Rule'));
+
+    expect(mock).toHaveBeenCalled();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'alert_builder.noisy_warning_agreed',
+      expect.anything()
+    );
+  });
+
+  it('does not display noisy alert banner for legacy integrations', async function () {
+    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Send a notification to all legacy integrations',
+    ]);
+
+    expect(
+      screen.queryByText(/Alerts without conditions can fire too frequently/)
+    ).not.toBeInTheDocument();
+
+    await selectEvent.select(screen.getByText('Add action...'), [
+      'Issue Owners, Team, or Member',
+    ]);
+
+    expect(
+      screen.getByText(/Alerts without conditions can fire too frequently/)
+    ).toBeInTheDocument();
+  });
+
+  it('displays duplicate error banner with link', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/rules/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        name: [
+          "This rule is an exact duplicate of 'test alert' in this project and may not be created.",
+        ],
+        ruleId: [1337],
+      },
+    });
+
+    createWrapper();
+
+    await userEvent.click(screen.getByText('Save Rule'));
+
+    const bannerLink = await screen.findByRole('link', {
+      name: /rule fully duplicates "test alert"/,
+    });
+    expect(bannerLink).toBeInTheDocument();
+    expect(bannerLink).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/alerts/rules/project-slug/1337/details/'
+    );
   });
 });

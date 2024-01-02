@@ -1,20 +1,29 @@
+from __future__ import annotations
+
 from django.http.response import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.constants import ObjectStatus
-from sentry.models import Project, ProjectOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.plugins.base import plugins
 
 
 @region_silo_endpoint
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
-    def get(self, request: Request, organization) -> Response:
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
 
+    def get(self, request: Request, organization) -> Response:
         """
         List one or more plugin configurations, including a `projectList` for each plugin which contains
         all the projects that have that specific plugin both configured and enabled.
@@ -59,7 +68,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
             },
         }
         """
-        info_by_plugin_project = {}
+        info_by_plugin_project: dict[str, dict[int, dict[str, bool]]] = {}
         for project_option in project_options:
             [slug, field] = project_option.key.split(":")
             project_id = project_option.project_id

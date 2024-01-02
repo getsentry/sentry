@@ -4,6 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 
+import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
@@ -11,6 +12,7 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
+import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
@@ -409,12 +411,15 @@ const appConfig: Configuration = {
           : []),
       ],
     }),
+
+    WebpackReactSourcemapsPlugin({
+      mode: IS_PRODUCTION ? 'strict' : undefined,
+      debug: false,
+    }),
   ],
 
   resolve: {
     alias: {
-      'react-dom$': 'react-dom/profiling',
-      'scheduler/tracing': 'scheduler/tracing-profiling',
       sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
@@ -446,6 +451,7 @@ const appConfig: Configuration = {
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
   },
   output: {
+    crossOriginLoading: 'anonymous',
     clean: true, // Clean the output directory before emit.
     path: distPath,
     publicPath: '',
@@ -476,6 +482,13 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
+if (IS_TEST) {
+  appConfig.resolve!.alias!['sentry-fixture'] = path.join(
+    __dirname,
+    'fixtures',
+    'js-stubs'
+  );
+}
 if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
@@ -523,8 +536,6 @@ if (
 
   appConfig.devServer = {
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     // Cover the various environments we use (vercel, getsentry-dev, localhost)
@@ -603,6 +614,15 @@ if (
   }
 }
 
+// We want Spotlight only in Dev mode - Local and UI only
+if (DEV_MODE) {
+  appConfig.plugins?.push(
+    new WebpackHookPlugin({
+      onBuildStart: ['yarn run spotlight-sidecar'],
+    })
+  );
+}
+
 // XXX(epurkhiser): Sentry (development) can be run in an experimental
 // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
 // backend (in this case, sentry.io), otherwise ALL requests are rewritten
@@ -650,6 +670,8 @@ if (IS_UI_DEV_ONLY) {
       options: httpsOptions,
     },
     headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
     },
     static: {
@@ -669,6 +691,34 @@ if (IS_UI_DEV_ONLY) {
         router: ({hostname}) => {
           const orgSlug = extractSlug(hostname);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
+        },
+      },
+      {
+        // Handle dev-ui region silo requests.
+        // Normally regions act as subdomains, but doing so in dev-ui
+        // would result in requests bypassing webpack proxy and being sent
+        // directly to region servers. These requests would fail because of CORS.
+        // Instead Client prefixes region requests with `/region/$name` which
+        // we rewrite in the proxy.
+        context: ['/region/'],
+        target: 'https://us.sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        pathRewrite: {
+          '^/region/[^/]*': '',
+        },
+        router: req => {
+          const regionPathPattern = /^\/region\/([^\/]+)/;
+          const regionname = req.path.match(regionPathPattern);
+          if (regionname) {
+            return `https://${regionname[1]}.sentry.io`;
+          }
+          return 'https://sentry.io';
         },
       },
     ],

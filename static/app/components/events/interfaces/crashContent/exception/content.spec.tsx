@@ -1,3 +1,13 @@
+import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {Organization} from 'sentry-fixture/organization';
+import {Project} from 'sentry-fixture/project';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -8,23 +18,46 @@ import {EntryType} from 'sentry/types';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
+  const organization = Organization();
+  const project = Project({});
+  const integration = GitHubIntegrationFixture();
+  const repo = Repository({integrationId: integration.id});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
+
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/prompts-activity/`,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
+  });
+
   it('display redacted values from exception entry', async function () {
-    const project = TestStubs.Project({
-      id: '0',
-      relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+    const projectDetails = Project({
+      ...project,
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: projectDetails,
     });
 
-    const {organization, router, routerContext} = initializeOrg({
+    const {
+      organization: org,
+      router,
+      routerContext,
+    } = initializeOrg({
       router: {
-        location: {query: {project: '0'}},
+        location: {query: {project: project.id}},
       },
       projects: [project],
     });
 
-    ProjectsStore.loadInitialData([project]);
-
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       _meta: {
         entries: {
           0: {
@@ -75,7 +108,6 @@ describe('Exception Content', function () {
                       symbol: null,
                       module: '<unknown module>',
                       lineNo: null,
-                      errors: null,
                       package: null,
                       absPath:
                         'https://sentry.io/hiventy/kraken-prod/issues/438681831/?referrer=slack#',
@@ -99,7 +131,7 @@ describe('Exception Content', function () {
           },
         },
       ],
-    };
+    });
 
     render(
       <Content
@@ -107,14 +139,13 @@ describe('Exception Content', function () {
         groupingCurrentLevel={0}
         hasHierarchicalGrouping
         newestFirst
-        platform="python"
         stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
-        meta={event._meta.entries[0].data.values}
+        meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
-      {organization, router, context: routerContext}
+      {organization: org, router, context: routerContext}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -144,9 +175,72 @@ describe('Exception Content', function () {
     );
   });
 
+  it('respects platform overrides in stacktrace frames', function () {
+    const event = EventFixture({
+      projectID: project.id,
+      platform: 'python',
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: {
+            values: [
+              {
+                stacktrace: {
+                  frames: [EventStacktraceFrame({platform: null})],
+                },
+              },
+              {
+                stacktrace: {
+                  frames: [EventStacktraceFrame({platform: 'cocoa'})],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(
+      <Content
+        type={StackType.ORIGINAL}
+        hasHierarchicalGrouping={false}
+        stackView={StackView.APP}
+        event={event}
+        values={event.entries[0].data.values}
+        projectSlug={project.slug}
+      />
+    );
+
+    // Cocoa override should render a native stack trace component
+    expect(screen.getByTestId('native-stack-trace-content')).toBeInTheDocument();
+
+    // Other stacktrace should render the normal stack trace (python)
+    expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
+  });
+
   describe('exception groups', function () {
-    const event = TestStubs.Event({entries: [TestStubs.EventEntryExceptionGroup()]});
-    const project = TestStubs.Project();
+    const event = EventFixture({
+      entries: [EventEntryExceptionGroupFixture()],
+      projectID: project.id,
+    });
+
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+
+      const promptResponse = {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      };
+      MockApiClient.addMockResponse({
+        url: '/prompts-activity/',
+        body: promptResponse,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+        body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+      });
+      ProjectsStore.loadInitialData([project]);
+    });
 
     const defaultProps = {
       type: StackType.ORIGINAL,

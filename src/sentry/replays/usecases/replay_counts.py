@@ -7,7 +7,7 @@ from typing import Any
 from sentry.api.event_search import parse_search_query
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 
 MAX_REPLAY_COUNT = 51
@@ -20,13 +20,11 @@ MAX_VALS_PROVIDED = {
 FILTER_HAS_A_REPLAY = " AND !replayId:''"
 
 
-def get_replay_counts(
-    snuba_params: SnubaParams, params: ParamsType, query, return_ids
-) -> dict[str, Any]:
+def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
     if snuba_params.start is None or snuba_params.end is None or snuba_params.organization is None:
         raise ValueError("Must provide start and end")
 
-    replay_ids_mapping = get_replay_id_mappings(query, params, snuba_params)
+    replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
     replay_results = query_replays_count(
         project_ids=[p.id for p in snuba_params.projects],
@@ -37,15 +35,17 @@ def get_replay_counts(
     )
 
     if return_ids:
-        return get_replay_ids(replay_results, replay_ids_mapping)
+        return _get_replay_ids(replay_results, replay_ids_mapping)
     else:
-        return get_counts(replay_results, replay_ids_mapping)
+        return _get_counts(replay_results, replay_ids_mapping)
 
 
-def get_replay_id_mappings(query, params, snuba_params) -> dict[str, list[str]]:
+def _get_replay_id_mappings(
+    query, snuba_params, data_source=Dataset.Discover
+) -> dict[str, list[str]]:
 
-    select_column, value = get_select_column(query)
-    query = query + FILTER_HAS_A_REPLAY
+    select_column, value = _get_select_column(query)
+    query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover
@@ -53,14 +53,16 @@ def get_replay_id_mappings(query, params, snuba_params) -> dict[str, list[str]]:
         return {v: [v] for v in value}
 
     builder = QueryBuilder(
-        dataset=Dataset.Discover,
-        params=params,
+        dataset=data_source,
+        params={},
         snuba_params=snuba_params,
         selected_columns=["group_uniq_array(100,replayId)", select_column],
         query=query,
         limit=25,
         offset=0,
-        functions_acl=["group_uniq_array"],
+        config=QueryBuilderConfig(
+            functions_acl=["group_uniq_array"],
+        ),
     )
 
     discover_results = builder.run_query(
@@ -76,7 +78,7 @@ def get_replay_id_mappings(query, params, snuba_params) -> dict[str, list[str]]:
     return replay_id_to_issue_map
 
 
-def get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
+def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
     ret: dict[str, int] = defaultdict(int)
     for row in replay_results["data"]:
         identifiers = replay_ids_mapping[row["replay_id"]]
@@ -85,7 +87,7 @@ def get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) ->
     return ret
 
 
-def get_replay_ids(
+def _get_replay_ids(
     replay_results: Any, replay_ids_mapping: dict[str, list[str]]
 ) -> dict[str, list[str]]:
     ret: dict[str, list[str]] = defaultdict(list)
@@ -97,7 +99,7 @@ def get_replay_ids(
     return ret
 
 
-def get_select_column(query: str) -> tuple[str, Sequence[Any]]:
+def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
     parsed_query = parse_search_query(query)
 
     select_column_conditions = [

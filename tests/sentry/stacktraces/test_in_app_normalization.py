@@ -35,8 +35,31 @@ def make_event(stacktraces: list[Any]) -> dict[str, Any]:
 
 
 class NormalizeInApptest(TestCase):
+    def test_changes_in_app_None_into_in_app_False(self):
+        event_data = make_event(
+            [
+                make_stacktrace(
+                    frame_0_in_app=True,
+                    frame_1_in_app=None,
+                )
+            ]
+        )
+
+        normalize_stacktraces_for_grouping(event_data)
+
+        frames = event_data["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is True
+        assert frames[1]["in_app"] is False
+
     def test_changes_in_app_not_set_into_in_app_False(self):
-        event_data = make_event([make_stacktrace(frame_0_in_app=True)])
+        event_data = make_event(
+            [
+                make_stacktrace(
+                    frame_0_in_app=True,
+                    # `frame_1_in_app` not set
+                )
+            ]
+        )
 
         normalize_stacktraces_for_grouping(event_data)
 
@@ -45,7 +68,7 @@ class NormalizeInApptest(TestCase):
         assert frames[1]["in_app"] is False
 
     def test_skips_None_frames(self):
-        # No arguments means neither example frame will have an `in_app` value
+        # No arguments passed to `make_stacktrace` means neither example frame will have an `in_app` value
         stacktrace = make_stacktrace()
         stacktrace["frames"].insert(0, None)
         event_data = make_event([stacktrace])
@@ -57,6 +80,56 @@ class NormalizeInApptest(TestCase):
         # so the fact that they now are shows that it didn't bail when it hit the `None` frame
         assert frames[1]["in_app"] is False
         assert frames[2]["in_app"] is False
+
+    def test_detects_frame_mix_correctly_with_single_stacktrace(self):
+        # Each case is `(frame1_in_app, frame2_in_app, expected_result)`
+        cases = [
+            (True, True, "in-app-only"),
+            (True, False, "mixed"),
+            (False, False, "system-only"),
+        ]
+
+        for frame_0_in_app, frame_1_in_app, expected_frame_mix in cases:
+            event_data = make_event([make_stacktrace(frame_0_in_app, frame_1_in_app)])
+
+            normalize_stacktraces_for_grouping(event_data)
+
+            computed_frame_mix = event_data["metadata"]["in_app_frame_mix"]
+            assert (
+                computed_frame_mix == expected_frame_mix
+            ), f"Expected {expected_frame_mix}, got {computed_frame_mix} with `in_app` values {frame_0_in_app}, {frame_1_in_app}"
+
+    def test_detects_frame_mix_correctly_with_multiple_stacktraces(self):
+        # Each case is `(stacktrace1_in_app_values, stacktrace2_in_app_values, expected_result)`
+        cases = [
+            # Two in-app-only stacktrces
+            ((True, True), (True, True), "in-app-only"),
+            # One in-app-only stacktrace and one system-only stacktrace
+            ((True, True), (False, False), "mixed"),
+            # One mixed stacktrace and one in-app-only stacktrace
+            ((True, False), (True, True), "mixed"),
+            # One mixed stacktrace and one system-only stacktrace
+            ((True, False), (False, False), "mixed"),
+            # Two mixed stacktraces
+            ((True, False), (True, False), "mixed"),
+            # Two system-only stacktraces
+            ((False, False), (False, False), "system-only"),
+        ]
+
+        for stacktrace_0_mix, stacktrace_1_mix, expected_frame_mix in cases:
+            event_data = make_event(
+                [
+                    make_stacktrace(*stacktrace_0_mix),
+                    make_stacktrace(*stacktrace_1_mix),
+                ]
+            )
+
+            normalize_stacktraces_for_grouping(event_data)
+
+            frame_mix = event_data["metadata"]["in_app_frame_mix"]
+            assert (
+                frame_mix == expected_frame_mix
+            ), f"Expected {expected_frame_mix}, got {frame_mix} with stacktrace `in-app` values {stacktrace_0_mix}, {stacktrace_1_mix}"
 
 
 class MacOSInAppDetectionTest(TestCase):
@@ -215,6 +288,20 @@ class iOSInAppDetectionTest(TestCase):
         )
         self.assert_correct_in_app_value(
             function="-[SentryHttpTransport sendEvent:attachments:]", is_in_app=False
+        )
+
+    def test_swizzling_in_app_detection(self):
+        self.assert_correct_in_app_value(
+            function="__42-[SentryCoreDataSwizzling swizzleCoreData]_block_invoke_2.24",
+            is_in_app=False,
+        )
+        self.assert_correct_in_app_value(
+            function="__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+            is_in_app=False,
+        )
+        self.assert_correct_in_app_value(
+            function="__49+[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+            is_in_app=False,
         )
 
     def test_ios_package_in_app_detection(self):

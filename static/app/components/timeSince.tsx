@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
-import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -11,7 +10,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
 function getDateObj(date: RelaxedDateType): Date {
-  return isString(date) || isNumber(date) ? new Date(date) : date;
+  return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
 }
 
 type RelaxedDateType = string | number | Date;
@@ -30,6 +29,10 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    * that
    */
   disabledAbsoluteTooltip?: boolean;
+  /**
+   * Tooltip text to be hoverable when isTooltipHoverable is true
+   */
+  isTooltipHoverable?: boolean;
   /**
    * How often should the component live update the timestamp.
    *
@@ -104,6 +107,7 @@ function TimeSince({
   tooltipBody,
   tooltipSuffix,
   tooltipUnderlineColor,
+  isTooltipHoverable = false,
   unitStyle,
   prefix = t('in'),
   suffix = t('ago'),
@@ -162,6 +166,7 @@ function TimeSince({
       disabled={disabledAbsoluteTooltip}
       underlineColor={tooltipUnderlineColor}
       showUnderline
+      isHoverable={isTooltipHoverable}
       title={
         <Fragment>
           {tooltipTitle && <div>{tooltipTitle}</div>}
