@@ -267,7 +267,9 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
 
       if (orgId === undefined) {
         // eslint-disable-next-line no-console
-        console.error('Cannot fetch teams without an organization in context');
+        console.error(
+          'Cannot fetch teams without an organization in context and in the Store'
+        );
         return;
       }
 
