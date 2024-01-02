@@ -12,7 +12,11 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  isCumulativeOp,
+  MetricDisplayType,
+} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
 import {FocusArea, useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
@@ -73,6 +77,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       {
         widgetIndex,
         isDisabled: !isHovered,
+        useFullYAxis: isCumulativeOp(operation),
       }
     );
 
@@ -97,7 +102,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
     const isSubMinuteBucket = bucketSize < 60_000;
     const seriesLength = seriesToShow[0]?.data.length;
-    const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
+    const displayFogOfWar = isCumulativeOp(operation);
 
     const chartProps = useMemo(() => {
       const formatters = {
