@@ -216,7 +216,6 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     @contextmanager
     def handle_query_errors(self):
         try:
-            # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
             with handle_query_errors():
                 yield
         except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:

@@ -56,7 +56,6 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
     """Gets the estimated volume of an organization's metric events."""
 
     def get(self, request: Request, organization: Organization) -> Response:
-
         measurement = request.GET.get("yAxis")
 
         if measurement is None:

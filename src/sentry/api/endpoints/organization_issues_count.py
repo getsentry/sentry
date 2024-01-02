@@ -6,7 +6,7 @@ from sentry_sdk import start_span
 from sentry import features, search
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import convert_query_values, parse_search_query
@@ -22,7 +22,7 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
 @region_silo_endpoint
-class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
+class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

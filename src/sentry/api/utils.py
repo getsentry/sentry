@@ -368,8 +368,6 @@ def get_auth_api_token_type(auth: object) -> str | None:
     return None
 
 
-# NOTE: This duplicates OrganizationEventsEndpointBase.handle_query_errors
-# TODO: move other references over to this implementation rather than the organization_events implementation
 @contextmanager
 def handle_query_errors(self) -> Generator[None, None, None]:
     try:
