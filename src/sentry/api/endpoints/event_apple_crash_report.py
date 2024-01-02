@@ -1,4 +1,5 @@
 from django.http import HttpResponse, StreamingHttpResponse
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry import eventstore
@@ -18,7 +19,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, project, event_id) -> HttpResponse:
+    def get(self, request: Request, project, event_id) -> HttpResponseBase:
         """
         Retrieve an Apple Crash Report from an event
         `````````````````````````````````````````````
@@ -47,12 +48,15 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
             )
         )
 
-        response = HttpResponse(apple_crash_report_string, content_type="text/plain")
-
         if request.GET.get("download") is not None:
             filename = "{}{}.crash".format(event.event_id, symbolicated and "-symbolicated" or "")
-            response = StreamingHttpResponse(apple_crash_report_string, content_type="text/plain")
-            response["Content-Length"] = len(apple_crash_report_string)
-            response["Content-Disposition"] = 'attachment; filename="%s"' % filename
-
-        return response
+            return StreamingHttpResponse(
+                apple_crash_report_string,
+                content_type="text/plain",
+                headers={
+                    "Content-Length": len(apple_crash_report_string),
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                },
+            )
+        else:
+            return HttpResponse(apple_crash_report_string, content_type="text/plain")

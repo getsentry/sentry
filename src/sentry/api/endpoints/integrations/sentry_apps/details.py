@@ -14,7 +14,7 @@ from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_erro
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
-from sentry.mediators import InstallationNotifier
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.apps import SentryAppUpdater

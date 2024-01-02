@@ -65,6 +65,7 @@ class AuditLogEventRegisterTest(TestCase):
             "sampling_priority.disabled",
             "monitor.add",
             "monitor.edit",
+            "monitor.environment.edit",
             "monitor.environment.remove",
             "monitor.remove",
             "internal-integration.create",

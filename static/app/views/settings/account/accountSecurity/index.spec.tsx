@@ -1,7 +1,8 @@
 import {AccountEmails} from 'sentry-fixture/accountEmails';
 import {Authenticators} from 'sentry-fixture/authenticators';
 import {Organizations} from 'sentry-fixture/organizations';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -21,7 +22,7 @@ const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 const AUTH_ENDPOINT = '/auth/';
 
 describe('AccountSecurity', function () {
-  const router = TestStubs.router();
+  const router = RouterFixture();
   beforeEach(function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 

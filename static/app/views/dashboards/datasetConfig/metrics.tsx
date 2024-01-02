@@ -259,7 +259,14 @@ function getMetricSeriesRequest(
   pageFilters: PageFilters
 ) {
   const query = widget.queries[queryIndex];
-  return getMetricRequest(api, query, organization, pageFilters, widget.limit);
+  return getMetricRequest(
+    api,
+    query,
+    organization,
+    pageFilters,
+    widget.limit,
+    widget.displayType
+  );
 }
 
 function handleMetricTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
@@ -358,7 +365,8 @@ function getMetricRequest(
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
-  limit?: number
+  limit?: number,
+  displayType?: DisplayType
 ): Promise<[MetricsApiResponse, string | undefined, ResponseMeta | undefined]> {
   if (!query.aggregates[0]) {
     // No aggregate selected, return empty response
@@ -376,6 +384,10 @@ function getMetricRequest(
   }
   const per_page = limit && Number(limit) >= 10 ? limit : 10;
 
+  const useNewMetricsLayer = organization.features.includes(
+    'metrics-api-new-metrics-layer'
+  );
+
   const requestData = getMetricsApiRequestQuery(
     {
       field: query.aggregates[0],
@@ -385,7 +397,8 @@ function getMetricRequest(
     pageFilters,
     {
       per_page,
-      useNewMetricsLayer: false,
+      useNewMetricsLayer,
+      fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }
   );
 

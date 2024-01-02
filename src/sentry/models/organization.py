@@ -181,6 +181,11 @@ class Organization(
     is_test = models.BooleanField(default=False)
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # Allow members to join and leave teams without requiring approval
         allow_joinleave: bool
 

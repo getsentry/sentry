@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Sequence, cast
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (

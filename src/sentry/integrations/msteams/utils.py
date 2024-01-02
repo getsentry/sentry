@@ -103,7 +103,7 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
-    from .card_builder import build_incident_attachment
+    from .card_builder.incident_attachment import build_incident_attachment
 
     if action.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
