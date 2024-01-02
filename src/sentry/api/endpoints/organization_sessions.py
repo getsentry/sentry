@@ -11,18 +11,18 @@ from sentry import release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-# NOTE: this currently extends `OrganizationEventsEndpointBase` for `handle_query_errors` only, which should ideally be decoupled from the base class.
 @region_silo_endpoint
-class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
+class OrganizationSessionsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -87,8 +87,8 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     @contextmanager
     def handle_query_errors(self):
         try:
-            # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
-            with super().handle_query_errors():
+            # TODO: this context manager should be merged into util handle_query_error?
+            with handle_query_errors():
                 yield
         except (InvalidField, InvalidParams, NoProjects) as error:
             raise ParseError(detail=str(error))
