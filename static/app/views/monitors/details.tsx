@@ -81,7 +81,10 @@ function MonitorDetails({params, location}: Props) {
       return;
     }
     const resp = await updateMonitor(api, organization.slug, monitor.slug, data);
-    onUpdate(resp);
+
+    if (resp !== null) {
+      onUpdate(resp);
+    }
   };
 
   if (!monitor) {
@@ -112,7 +115,7 @@ function MonitorDetails({params, location}: Props) {
                   <StatusToggleButton
                     monitor={monitor}
                     size="xs"
-                    onClick={() => handleUpdate({status: 'active'})}
+                    onToggleStatus={status => handleUpdate({status})}
                   >
                     {t('Reactivate')}
                   </StatusToggleButton>
