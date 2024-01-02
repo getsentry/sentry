@@ -205,7 +205,9 @@ function BrushRectOverlay({
     const heightPx = bottomRight[1] - topLeft[1];
 
     const resultTop = useFullYAxis ? '0' : `${topLeft[1].toPrecision(5)}px`;
-    const resultHeight = useFullYAxis ? '256px' : `${heightPx.toPrecision(5)}px`;
+    const resultHeight = useFullYAxis
+      ? `${CHART_HEIGHT}px`
+      : `${heightPx.toPrecision(5)}px`;
 
     setPosition({
       left: `${topLeft[0].toPrecision(5)}px`,
@@ -271,6 +273,8 @@ const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRa
     max,
   };
 };
+
+const CHART_HEIGHT = 256;
 
 const FocusAreaWrapper = styled('div')`
   position: absolute;
