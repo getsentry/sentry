@@ -10,7 +10,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
-import RouterPropsFixture from 'sentry-fixture/routerPropsFixture';
+import {RouterPropsFixture} from 'sentry-fixture/routerPropsFixture';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
