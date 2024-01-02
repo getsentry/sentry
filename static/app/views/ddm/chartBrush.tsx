@@ -1,5 +1,6 @@
-import {RefObject, useCallback, useMemo, useRef} from 'react';
+import {RefObject, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
@@ -20,7 +21,6 @@ interface AbsolutePosition {
 }
 
 export interface FocusArea {
-  position: AbsolutePosition;
   range: MetricRange;
   widgetIndex: number;
 }
@@ -58,11 +58,8 @@ export function useFocusAreaBrush(
         return;
       }
 
-      const chartWidth = chartRef.current?.getEchartsInstance().getWidth() ?? 100;
-
       onAdd({
         widgetIndex,
-        position: getPosition(brushEnd, chartWidth),
         range: getMetricRange(brushEnd),
       });
 
@@ -138,6 +135,7 @@ export function useFocusAreaBrush(
           rect={focusArea}
           onRemove={handleRemove}
           onZoom={handleZoomIn}
+          chartRef={chartRef}
         />
       ),
       isDrawingRef,
@@ -149,56 +147,98 @@ export function useFocusAreaBrush(
   return {
     overlay: null,
     isDrawingRef,
-
     startBrush,
     options: brushOptions,
   };
 }
 
-function BrushRectOverlay({rect, onZoom, onRemove}) {
-  if (!rect) {
+type BrushRectOverlayProps = {
+  chartRef: RefObject<ReactEchartsRef>;
+  onRemove: () => void;
+  onZoom: () => void;
+  rect: FocusArea | null;
+};
+
+function BrushRectOverlay({rect, onZoom, onRemove, chartRef}: BrushRectOverlayProps) {
+  const chartInstance = chartRef.current?.getEchartsInstance();
+  const [position, setPosition] = useState<AbsolutePosition | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useResizeObserver({
+    ref: wrapperRef,
+    onResize: () => {
+      chartInstance?.resize();
+      updatePosition();
+    },
+  });
+
+  const updatePosition = useCallback(() => {
+    if (!rect || !chartInstance) {
+      return;
+    }
+
+    const finder = {xAxisId: 'xAxis', yAxisId: 'yAxis'};
+
+    const topLeft = chartInstance.convertToPixel(finder, [
+      getTimestamp(rect.range.start),
+      rect.range.max,
+    ] as number[]);
+    const bottomRight = chartInstance.convertToPixel(finder, [
+      getTimestamp(rect.range.end),
+      rect.range.min,
+    ] as number[]);
+
+    if (!topLeft || !bottomRight) {
+      return;
+    }
+
+    const widthPx = bottomRight[0] - topLeft[0];
+    const heightPx = bottomRight[1] - topLeft[1];
+
+    setPosition({
+      left: `${topLeft[0].toPrecision(5)}px`,
+      top: `${topLeft[1].toPrecision(5)}px`,
+      width: `${widthPx.toPrecision(5)}px`,
+      height: `${heightPx.toPrecision(5)}px`,
+    });
+  }, [rect, chartInstance]);
+
+  useEffect(() => {
+    updatePosition();
+  }, [rect, updatePosition]);
+
+  if (!position) {
     return null;
   }
 
-  const {top, left, width, height} = rect.position;
+  const {left, top, width, height} = position;
 
   return (
-    <FocusAreaRect top={top} left={left} width={width} height={height}>
-      <FocusAreaRectActions top={height}>
-        <Button
-          size="xs"
-          onClick={onZoom}
-          icon={<IconZoom isZoomIn />}
-          aria-label="zoom"
-        />
-        <Button size="xs" onClick={onRemove} icon={<IconDelete />} aria-label="remove" />
-      </FocusAreaRectActions>
-    </FocusAreaRect>
+    <FocusAreaWrapper ref={wrapperRef}>
+      <FocusAreaRect top={top} left={left} width={width} height={height}>
+        <FocusAreaRectActions top={height}>
+          <Button
+            size="xs"
+            onClick={onZoom}
+            icon={<IconZoom isZoomIn />}
+            aria-label="zoom"
+          />
+          <Button
+            size="xs"
+            onClick={onRemove}
+            icon={<IconDelete />}
+            aria-label="remove"
+          />
+        </FocusAreaRectActions>
+      </FocusAreaRect>
+    </FocusAreaWrapper>
   );
 }
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
-const getPosition = (params: BrushEndResult, chartWidth: number): AbsolutePosition => {
-  const rect = params.areas[0];
-
-  const left = rect.range[0][0];
-  const width = rect.range[0][1] - left;
-
-  const leftPercentage = (left / chartWidth) * 100;
-  const widthPercentage = (width / chartWidth) * 100;
-
-  const topPx = Math.min(...rect.range[1]);
-  const heightPx = Math.max(...rect.range[1]) - topPx;
-
-  return {
-    left: `${leftPercentage.toPrecision(3)}%`,
-    top: `${topPx}px`,
-    width: `${widthPercentage.toPrecision(3)}%`,
-    height: `${heightPx}px`,
-  };
-};
+const getTimestamp = date => (date ? moment.utc(date).valueOf() : null);
 
 const getMetricRange = (params: BrushEndResult): MetricRange => {
   const rect = params.areas[0];
@@ -219,6 +259,14 @@ const getMetricRange = (params: BrushEndResult): MetricRange => {
     max,
   };
 };
+
+const FocusAreaWrapper = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+`;
 
 const FocusAreaRectActions = styled('div')<{
   top: string;
