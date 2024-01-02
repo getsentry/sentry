@@ -9,7 +9,7 @@ from rest_framework import serializers
 
 from sentry import quotas
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.fields.sentry_slug import SentrySlugFieldSerializer
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
@@ -235,7 +235,7 @@ class MonitorValidator(CamelSnakeSerializer):
         max_length=128,
         help_text="Name of the monitor. Used for notifications.",
     )
-    slug = SentrySlugFieldSerializer(
+    slug = SentrySerializerSlugField(
         max_length=MAX_SLUG_LENGTH,
         required=False,
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
