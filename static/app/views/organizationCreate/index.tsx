@@ -5,7 +5,6 @@ import ApiForm from 'sentry/components/forms/apiForm';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
-import FormModel from 'sentry/components/forms/model';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -39,7 +38,6 @@ function OrganizationCreate() {
       />
     );
   }
-  const formModel = new FormModel();
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
@@ -56,7 +54,6 @@ function OrganizationCreate() {
           submitLabel={t('Create Organization')}
           apiEndpoint="/organizations/"
           apiMethod="POST"
-          model={formModel}
           hostOverride={regionUrl}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
