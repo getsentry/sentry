@@ -107,34 +107,50 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
     if headers["segment_id"] == 0:
-        try:
-            project = Project.objects.get_from_cache(id=message.project_id)
-        except Project.DoesNotExist:
-            logger.warning(
-                "Recording segment was received for a project that does not exist.",
-                extra={
-                    "project_id": message.project_id,
-                    "replay_id": message.replay_id,
-                },
-            )
-            return None
-
-        if not project.flags.has_replays:
-            first_replay_received.send_robust(project=project, sender=Project)
-
-        track_outcome(
-            org_id=message.org_id,
-            project_id=message.project_id,
-            key_id=message.key_id,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=datetime.utcfromtimestamp(message.received).replace(tzinfo=timezone.utc),
-            event_id=message.replay_id,
-            category=DataCategory.REPLAY,
-            quantity=1,
+        track_initial_segment_event(
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            message.key_id,
+            message.received,
         )
 
     transaction.finish()
+
+
+def track_initial_segment_event(
+    org_id: int,
+    project_id: int,
+    replay_id,
+    key_id: int | None,
+    received: int,
+) -> None:
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        logger.warning(
+            "Recording segment was received for a project that does not exist.",
+            extra={
+                "project_id": project_id,
+                "replay_id": replay_id,
+            },
+        )
+        return None
+
+    if not project.flags.has_replays:
+        first_replay_received.send_robust(project=project, sender=Project)
+
+    track_outcome(
+        org_id=org_id,
+        project_id=project_id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc),
+        event_id=replay_id,
+        category=DataCategory.REPLAY,
+        quantity=1,
+    )
 
 
 @metrics.wraps("replays.usecases.ingest.process_headers")

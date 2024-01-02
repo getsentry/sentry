@@ -59,6 +59,28 @@ def ingest_replay_recordings_options() -> List[click.Option]:
     return options
 
 
+def ingest_replay_recordings_buffered_options() -> List[click.Option]:
+    """Return a list of ingest-replay-recordings-buffered options."""
+    options = [
+        click.Option(
+            ["--max-buffer-row-count", "max_buffer_row_count"],
+            type=int,
+            default=100,
+        ),
+        click.Option(
+            ["--max-buffer-size-in-bytes", "max_buffer_size_in_bytes"],
+            type=int,
+            default=2_500_000,
+        ),
+        click.Option(
+            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"],
+            type=int,
+            default=1,
+        ),
+    ]
+    return options
+
+
 _METRICS_INDEXER_OPTIONS = [
     click.Option(["--input-block-size"], type=int, default=None),
     click.Option(["--output-block-size"], type=int, default=None),
@@ -129,6 +151,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
+    },
+    "ingest-replay-recordings-buffered": {
+        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
+        "click_options": ingest_replay_recordings_buffered_options(),
     },
     "ingest-monitors": {
         "topic": settings.KAFKA_INGEST_MONITORS,
