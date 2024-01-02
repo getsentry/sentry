@@ -23,7 +23,7 @@ type Props = {
   sampleIssueId?: string;
 };
 
-function WaitingForError({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
+function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
   const api = useApi();
 
   const [loading, setLoading] = useState(false);
@@ -116,7 +116,7 @@ function WaitingForError({org, project, sampleIssueId: sampleIssueIdProp}: Props
   );
 }
 
-export default WaitingForError;
+export default WaitingForEvents;
 
 const Wrapper = styled('div')`
   display: flex;

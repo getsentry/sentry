@@ -4,9 +4,9 @@ import RouterContextFixture from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import WaitingForError from 'sentry/components/waitingForError';
+import WaitingForEvents from 'sentry/components/waitingForEvents';
 
-describe('WaitingForError', function () {
+describe('WaitingForEvents', function () {
   let getIssues: jest.Func;
   let routerContext;
 
@@ -26,9 +26,12 @@ describe('WaitingForError', function () {
 
   describe('with a project', function () {
     function createWrapper() {
-      return render(<WaitingForError org={Organization()} project={ProjectFixture()} />, {
-        context: routerContext,
-      });
+      return render(
+        <WaitingForEvents org={Organization()} project={ProjectFixture()} />,
+        {
+          context: routerContext,
+        }
+      );
     }
 
     it('Renders a button for creating an event', async function () {
@@ -49,7 +52,7 @@ describe('WaitingForError', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return render(<WaitingForError org={Organization()} />, {
+      return render(<WaitingForEvents org={Organization()} />, {
         context: routerContext,
       });
     }
