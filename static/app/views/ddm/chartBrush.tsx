@@ -28,6 +28,7 @@ export interface FocusArea {
 interface UseFocusAreaBrushOptions {
   widgetIndex: number;
   isDisabled?: boolean;
+  useFullYAxis?: boolean;
 }
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
@@ -38,7 +39,7 @@ export function useFocusAreaBrush(
   onAdd: (area: FocusArea) => void,
   onRemove: () => void,
   onZoom: (range: DateTimeObject) => void,
-  {widgetIndex, isDisabled = false}: UseFocusAreaBrushOptions
+  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaBrushOptions
 ) {
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
@@ -60,7 +61,7 @@ export function useFocusAreaBrush(
 
       onAdd({
         widgetIndex,
-        range: getMetricRange(brushEnd),
+        range: getMetricRange(brushEnd, useFullYAxis),
       });
 
       // Remove brush from echarts immediately after adding the focus area
@@ -73,7 +74,7 @@ export function useFocusAreaBrush(
       });
       isDrawingRef.current = false;
     },
-    [chartRef, isDisabled, onAdd, widgetIndex]
+    [chartRef, isDisabled, onAdd, widgetIndex, useFullYAxis]
   );
 
   const startBrush = useCallback(() => {
@@ -136,6 +137,7 @@ export function useFocusAreaBrush(
           onRemove={handleRemove}
           onZoom={handleZoomIn}
           chartRef={chartRef}
+          useFullYAxis={useFullYAxis}
         />
       ),
       isDrawingRef,
@@ -157,9 +159,16 @@ type BrushRectOverlayProps = {
   onRemove: () => void;
   onZoom: () => void;
   rect: FocusArea | null;
+  useFullYAxis: boolean;
 };
 
-function BrushRectOverlay({rect, onZoom, onRemove, chartRef}: BrushRectOverlayProps) {
+function BrushRectOverlay({
+  rect,
+  onZoom,
+  onRemove,
+  useFullYAxis,
+  chartRef,
+}: BrushRectOverlayProps) {
   const chartInstance = chartRef.current?.getEchartsInstance();
   const [position, setPosition] = useState<AbsolutePosition | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -195,13 +204,18 @@ function BrushRectOverlay({rect, onZoom, onRemove, chartRef}: BrushRectOverlayPr
     const widthPx = bottomRight[0] - topLeft[0];
     const heightPx = bottomRight[1] - topLeft[1];
 
+    const resultTop = useFullYAxis ? '0' : `${topLeft[1].toPrecision(5)}px`;
+    const resultHeight = useFullYAxis
+      ? `${CHART_HEIGHT}px`
+      : `${heightPx.toPrecision(5)}px`;
+
     setPosition({
       left: `${topLeft[0].toPrecision(5)}px`,
-      top: `${topLeft[1].toPrecision(5)}px`,
+      top: resultTop,
       width: `${widthPx.toPrecision(5)}px`,
-      height: `${heightPx.toPrecision(5)}px`,
+      height: resultHeight,
     });
-  }, [rect, chartInstance]);
+  }, [rect, chartInstance, useFullYAxis]);
 
   useEffect(() => {
     updatePosition();
@@ -240,7 +254,7 @@ const getDate = date =>
 
 const getTimestamp = date => (date ? moment.utc(date).valueOf() : null);
 
-const getMetricRange = (params: BrushEndResult): MetricRange => {
+const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRange => {
   const rect = params.areas[0];
 
   const startTimestamp = Math.min(...rect.coordRange[0]);
@@ -249,8 +263,8 @@ const getMetricRange = (params: BrushEndResult): MetricRange => {
   const startDate = getDate(startTimestamp);
   const endDate = getDate(endTimestamp);
 
-  const min = Math.min(...rect.coordRange[1]);
-  const max = Math.max(...rect.coordRange[1]);
+  const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]);
+  const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]);
 
   return {
     start: startDate,
@@ -259,6 +273,8 @@ const getMetricRange = (params: BrushEndResult): MetricRange => {
     max,
   };
 };
+
+const CHART_HEIGHT = 256;
 
 const FocusAreaWrapper = styled('div')`
   position: absolute;

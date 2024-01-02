@@ -26,6 +26,12 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
   const dateTimeParams =
     start || end ? {start, end} : getDateTimeParams(selection.datetime);
 
+  const minMaxParams =
+    // remove non-numeric values
+    options.min && options.max && !isNaN(options.min) && !isNaN(options.max)
+      ? {min: options.min, max: options.max}
+      : {};
+
   const {data, isLoading, isError, refetch} = useApiQuery<ApiResponse>(
     [
       `/organizations/${organization.slug}/ddm/meta/`,
@@ -33,8 +39,10 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
         query: {
           metric: mri,
           project: selection.projects,
-          ...options,
+          codeLocations: options.codeLocations,
+          metricSpans: options.metricSpans,
           ...dateTimeParams,
+          ...minMaxParams,
         },
       },
     ],
