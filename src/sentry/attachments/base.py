@@ -66,10 +66,6 @@ class CachedAttachment:
         assert self._data is not UNINITIALIZED_DATA
         return self._data
 
-    @property
-    def zstd_data(self):
-        return self._cache.get_zstd_data(self)
-
     def delete(self):
         for key in self.chunk_keys:
             self._cache.inner.delete(key)
@@ -176,22 +172,6 @@ class BaseAttachmentCache:
 
         return bytes(data)
 
-    def get_zstd_data(self, attachment) -> bytes:
-        data = bytearray()
-
-        for key in attachment.chunk_keys:
-            raw_data = self.inner.get(key, raw=True)
-            if raw_data is None:
-                raise MissingAttachmentChunks()
-            if raw_data.startswith(b"\x28\xb5\x2f\xfd"):
-                data.extend(raw_data)
-            else:
-                decompressed = zlib.decompress(raw_data)
-                compressed = zstandard.compress(decompressed)
-                data.extend(compressed)
-
-        return bytes(data)
-
     def delete(self, key):
         for attachment in self.get(key):
             attachment.delete()
@@ -201,5 +181,5 @@ class BaseAttachmentCache:
 
 def compress_chunk(chunk_data: bytes) -> bytes:
     if options.get("attachment-cache.use-zstd"):
-        zstandard.compress(chunk_data)
+        return zstandard.compress(chunk_data)
     return zlib.compress(chunk_data)
