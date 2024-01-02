@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from sentry.integrations.message_builder import AbstractMessageBuilder
-
 from .component import DiscordMessageComponent
 from .embed import DiscordMessageEmbed
 from .flags import DiscordMessageFlags
 
 
-class DiscordMessageBuilder(AbstractMessageBuilder):
+class DiscordMessageBuilder:
     """
     Base DiscordMessageBuilder class.
 

@@ -20,8 +20,8 @@ describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
     // prettier-ignore
     expect(makeProjectionMatrix(1024, 768)).toEqual(mat3.fromValues(
-      2/1024, 0, 0,
-      -0, -2/768, -0,
+      2 / 1024, 0, 0,
+      -0, -2 / 768, -0,
       -1,1,1
     ));
   });
@@ -325,7 +325,7 @@ describe('Rect', () => {
         10,0,0,
         0,20,0,
         3,4,0,
-  )
+  );
       expect(new Rect(1, 1, 1, 1).transformRect(matrix)).toEqual(
         new Rect(13, 24, 10, 20)
       );

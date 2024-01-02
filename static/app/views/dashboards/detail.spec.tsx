@@ -1,10 +1,10 @@
 import {browserHistory} from 'react-router';
 import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {Release as ReleaseFixture} from 'sentry-fixture/release';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {Widget as WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
 from sentry import features
@@ -18,10 +17,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-
-
-class AbstractMessageBuilder(ABC):
-    pass
 
 
 def format_actor_options(

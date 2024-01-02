@@ -67,7 +67,13 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
+        self,
+        *,
+        id: int,
+        user_id: Optional[int] = None,
+        slug: Optional[str] = None,
+        include_projects: Optional[bool] = True,
+        include_teams: Optional[bool] = True,
     ) -> Optional[RpcUserOrganizationContext]:
         """
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
