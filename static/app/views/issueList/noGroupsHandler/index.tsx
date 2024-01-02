@@ -130,9 +130,11 @@ class NoGroupsHandler extends Component<Props, State> {
   renderEmpty() {
     const {emptyMessage} = this.props;
     if (emptyMessage) {
-      return (<EmptyStateWarning>
-      <p>{emptyMessage}</p>
-    </EmptyStateWarning>);
+      return (
+      <EmptyStateWarning>
+        <p>{emptyMessage}</p>
+      </EmptyStateWarning>
+    );
     }
     return <NoIssuesMatched />;
   }
