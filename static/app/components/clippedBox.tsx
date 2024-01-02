@@ -6,6 +6,11 @@ import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+// Content may have margins which can't be measured by our refs, but will affect
+// the total content height. We add this to the max-height to ensure the animation
+// doesn't cut off early.
+const HEIGHT_ADJUSTMENT_FOR_CONTENT_MARGIN = 20;
+
 function isClipped(args: {clipFlex: number; clipHeight: number; height: number}) {
   return args.height > args.clipHeight + args.clipFlex;
 }
@@ -16,11 +21,59 @@ function supportsResizeObserver(
   return typeof observerOrUndefined !== 'undefined';
 }
 
+/**
+ * The Wrapper component contains padding by default, which may be modified by consumers.
+ * Without adding this padding to the max-height of the child content, the reveal
+ * animation will be cut short.
+ */
+function calculateAddedHeight({
+  wrapperRef,
+}: {
+  wrapperRef: React.MutableRefObject<HTMLElement | null>;
+}): number {
+  if (wrapperRef.current === null) {
+    return 0;
+  }
+
+  try {
+    const {paddingTop, paddingBottom} = getComputedStyle(wrapperRef.current);
+
+    const addedHeight =
+      parseInt(paddingTop, 10) +
+      parseInt(paddingBottom, 10) +
+      HEIGHT_ADJUSTMENT_FOR_CONTENT_MARGIN;
+
+    return isNaN(addedHeight) ? 0 : addedHeight;
+  } catch {
+    return 0;
+  }
+}
+
+function clearMaxHeight(element?: HTMLElement | null) {
+  if (element) {
+    element.style.maxHeight = 'none';
+  }
+}
+
+function onTransitionEnd(e: TransitionEvent) {
+  // This can fire for children transitions, so we need to make sure it's the
+  // reveal animation that has ended.
+  if (e.target === e.currentTarget && e.propertyName === 'max-height') {
+    const element = e.currentTarget as HTMLElement;
+    clearMaxHeight(element);
+    element.removeEventListener('transitionend', onTransitionEnd);
+  }
+}
+
 function revealAndDisconnectObserver({
+  contentRef,
   observerRef,
   revealRef,
   wrapperRef,
+  clipHeight,
 }: {
+  clipHeight: number;
+  contentRef: React.MutableRefObject<HTMLElement | null>;
   observerRef: React.MutableRefObject<ResizeObserver | null>;
   revealRef: React.MutableRefObject<boolean>;
   wrapperRef: React.MutableRefObject<HTMLElement | null>;
@@ -29,7 +82,17 @@ function revealAndDisconnectObserver({
     return;
   }
 
-  wrapperRef.current.style.maxHeight = '9999px';
+  const revealedWrapperHeight =
+    (contentRef.current?.clientHeight || 9999) + calculateAddedHeight({wrapperRef});
+
+  // Only animate if the revealed height is greater than the clip height
+  if (revealedWrapperHeight > clipHeight) {
+    wrapperRef.current.addEventListener('transitionend', onTransitionEnd);
+    wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
+  } else {
+    clearMaxHeight();
+  }
+
   revealRef.current = true;
 
   if (observerRef.current) {
@@ -90,14 +153,20 @@ function ClippedBox(props: ClippedBoxProps) {
 
       event.stopPropagation();
 
-      revealAndDisconnectObserver({wrapperRef, revealRef, observerRef});
+      revealAndDisconnectObserver({
+        contentRef,
+        wrapperRef,
+        revealRef,
+        observerRef,
+        clipHeight,
+      });
       if (typeof onReveal === 'function') {
         onReveal();
       }
 
       setClipped(false);
     },
-    [onReveal]
+    [clipHeight, onReveal]
   );
 
   const onWrapperRef = useCallback(
@@ -159,7 +228,13 @@ function ClippedBox(props: ClippedBoxProps) {
         });
 
         if (!_clipped && contentRef.current) {
-          revealAndDisconnectObserver({wrapperRef, revealRef, observerRef});
+          revealAndDisconnectObserver({
+            contentRef,
+            wrapperRef,
+            revealRef,
+            observerRef,
+            clipHeight,
+          });
         }
 
         setClipped(_clipped);
@@ -218,7 +293,7 @@ const Wrapper = styled('div')`
   padding: ${space(1.5)} 0;
   overflow: hidden;
   will-change: max-height;
-  transition: all 5s ease-in-out 0s;
+  transition: max-height 500ms ease-in-out;
 `;
 
 const Title = styled('h5')`

@@ -87,7 +87,7 @@ export function UploadBackup(__props: StepProps) {
     const formData = new FormData();
     formData.set('orgs', orgSlugs);
     formData.set('file', file);
-    formData.set('owner', user.email);
+    formData.set('owner', user.username);
     try {
       await api.requestPromise(`/relocations/`, {
         method: 'POST',
@@ -139,7 +139,6 @@ export function UploadBackup(__props: StepProps) {
               <a onClick={() => setFile(undefined)}>{t('Remove file')}</a>
             </div>
             <StartRelocationButton
-              size="md"
               priority="primary"
               onClick={handleStartRelocation}
               icon={<IconUpload className="upload-icon" size="xs" />}

@@ -22,12 +22,12 @@ from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
 
 from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -67,7 +67,9 @@ from sentry.snuba.metrics.utils import (
     MetricDoesNotExistInIndexer,
     MetricMeta,
     MetricMetaWithTagKeys,
+    MetricOperationType,
     MetricType,
+    MetricUnit,
     NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
@@ -103,6 +105,28 @@ def _get_metrics_for_entity(
         entity_key=entity_key,
         select=[Column("metric_id")],
         groupby=[Column("metric_id")],
+        where=[_build_use_case_id_filter(use_case_id)],
+        referrer="snuba.metrics.get_metrics_names_for_entity",
+        project_ids=project_ids,
+        org_id=org_id,
+        use_case_id=use_case_id,
+        start=start,
+        end=end,
+    )
+
+
+def _get_metrics_by_project_for_entity(
+    entity_key: EntityKey,
+    project_ids: Sequence[int],
+    org_id: int,
+    use_case_id: UseCaseID,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> List[SnubaDataType]:
+    return run_metrics_query(
+        entity_key=entity_key,
+        select=[Column("project_id"), Column("metric_id")],
+        groupby=[Column("project_id"), Column("metric_id")],
         where=[_build_use_case_id_filter(use_case_id)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
@@ -166,33 +190,32 @@ def get_available_derived_metrics(
 
 def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
     metas = []
-    stored_mris = get_stored_mris(projects, use_case_id) if projects else []
+    stored_mris = get_stored_mris(projects, use_case_id) if projects else {}
 
-    for mri in stored_mris:
-        parsed_mri = parse_mri(mri)
-
-        # TODO(ogi): check how is this possible
+    for metric_mri, project_ids in stored_mris.items():
+        parsed_mri = parse_mri(metric_mri)
         if parsed_mri is None:
             continue
 
-        ops = get_available_operations(parsed_mri)
-
         metas.append(
             MetricMeta(
-                mri=mri,
+                mri=metric_mri,
                 name=parsed_mri.name,
-                operations=ops,
-                # TODO: check unit casting
-                unit=parsed_mri.unit,
-                # TODO: add entity letter to entity key mapping i.e. c -> counter
+                operations=cast(
+                    Sequence[MetricOperationType], get_available_operations(parsed_mri)
+                ),
+                unit=cast(MetricUnit, parsed_mri.unit),
                 type=parsed_mri.entity,
+                project_ids=project_ids,
             )
         )
 
     return metas
 
 
-def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
+def get_stored_mris(
+    projects: Sequence[Project], use_case_id: UseCaseID
+) -> Mapping[str, Sequence[int]]:
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
@@ -220,22 +243,26 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
 
     stored_metrics = []
     for entity_key in entity_keys:
-        stored_metrics += _get_metrics_for_entity(
+        stored_metrics += _get_metrics_by_project_for_entity(
             entity_key=entity_key,
             project_ids=project_ids,
             org_id=org_id,
             use_case_id=use_case_id,
         )
 
-    logger.debug("stored_metrics: %s", stored_metrics)
+    grouped_stored_metrics = {}
+    for stored_metric in stored_metrics:
+        grouped_stored_metrics.setdefault(stored_metric["metric_id"], []).append(
+            stored_metric["project_id"]
+        )
 
-    mris = bulk_reverse_resolve(
-        use_case_id, org_id, [row["metric_id"] for row in stored_metrics]
-    ).values()
+    resolved_mris = bulk_reverse_resolve(
+        use_case_id, org_id, [metric_id for metric_id in grouped_stored_metrics.keys()]
+    )
 
-    logger.debug("mris: %s", mris)
-
-    return list(mris)
+    return {
+        resolved_mris[metric_id]: projects for metric_id, projects in grouped_stored_metrics.items()
+    }
 
 
 def get_custom_measurements(

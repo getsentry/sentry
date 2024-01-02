@@ -212,12 +212,12 @@ class Monitor(Model):
     is_muted = models.BooleanField(default=False)
     """
     Monitor is operating normally but will not produce incidents or produce
-    occurances into the issues platform.
+    occurrences into the issues platform.
     """
 
     name = models.CharField(max_length=128)
     """
-    Human readible name of the monitor. Used for display purposes.
+    Human readable name of the monitor. Used for display purposes.
     """
 
     type = BoundedPositiveIntegerField(
@@ -556,6 +556,12 @@ class MonitorEnvironment(Model):
     The MonitorStatus of the monitor. This is denormalized from the check-ins
     list, since it would be possible to determine this by looking at recent
     check-ins. It is denormalized for simplicity.
+    """
+
+    is_muted = models.BooleanField(default=False)
+    """
+    Monitor environment is operating normally but will not produce incidents or produce
+    occurrences into the issues platform.
     """
 
     next_checkin = models.DateTimeField(null=True)

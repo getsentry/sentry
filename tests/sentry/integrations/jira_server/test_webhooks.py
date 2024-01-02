@@ -6,6 +6,7 @@ from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import APITestCase
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
@@ -71,8 +72,9 @@ class JiraServerWebhookEndpointTest(APITestCase):
             "issue": {"fields": {"assignee": {"emailAddress": "bob@example.org"}}, "key": "APP-1"},
         }
         self.get_success_response(self.jwt_token, **payload)
+        rpc_integration = serialize_integration(self.integration)
 
-        mock_sync.assert_called_with(self.integration, "bob@example.org", "APP-1", assign=True)
+        mock_sync.assert_called_with(rpc_integration, "bob@example.org", "APP-1", assign=True)
 
     @patch.object(JiraServerIntegration, "sync_status_inbound")
     def test_post_update_status(self, mock_sync):

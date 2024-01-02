@@ -1,11 +1,11 @@
 import {
   SentryAppComponent as TSentryAppComponent,
-  SentryAppSchemaElement,
+  SentryAppSchemaIssueLink,
 } from 'sentry/types';
 
 export function SentryAppComponent(
   params = {}
-): TSentryAppComponent<SentryAppSchemaElement> {
+): TSentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
@@ -59,7 +59,7 @@ export function SentryAppComponent(
 }
 export function SentryAppComponentAsync(
   params = {}
-): TSentryAppComponent<SentryAppSchemaElement> {
+): TSentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
@@ -101,7 +101,7 @@ export function SentryAppComponentAsync(
 
 export function SentryAppComponentDependent(
   params = {}
-): TSentryAppComponent<SentryAppSchemaElement> {
+): TSentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     type: 'issue-link',
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',

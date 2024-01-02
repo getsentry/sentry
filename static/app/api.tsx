@@ -405,7 +405,7 @@ export class Client {
   }
 
   /**
-   * Initate a request to the backend API.
+   * Initiate a request to the backend API.
    *
    * Consider using `requestPromise` for the async Promise version of this method.
    */
@@ -421,7 +421,7 @@ export class Client {
     }
 
     // TODO(epurkhiser): Mimicking the old jQuery API, data could be a string /
-    // object for GET requets. jQuery just sticks it onto the URL as query
+    // object for GET requests. jQuery just sticks it onto the URL as query
     // parameters
     if (method === 'GET' && data) {
       const queryString = typeof data === 'string' ? data : qs.stringify(data);
@@ -693,8 +693,15 @@ export function resolveHostname(path: string, hostname?: string): string {
 
   hostname = hostname ?? '';
   if (!hostname && storeState.organization?.features.includes('frontend-domainsplit')) {
+    // /_admin/ is special: since it doesn't update OrganizationStore, it's
+    // commonly the case that requests will be made for data which does not
+    // exist in the same region as the one in configLinks.regionUrl. Because of
+    // this we want to explicitly default those requests to be proxied through
+    // the control silo which can handle region resolution in exchange for a
+    // bit of latency.
+    const isAdmin = window.location.pathname.startsWith('/_admin/');
     const isControlSilo = detectControlSiloPath(path);
-    if (!isControlSilo && configLinks.regionUrl) {
+    if (!isAdmin && !isControlSilo && configLinks.regionUrl) {
       hostname = configLinks.regionUrl;
     }
     if (isControlSilo && configLinks.sentryUrl) {

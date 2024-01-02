@@ -1,4 +1,7 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -20,14 +23,14 @@ describe('projectPerformance', function () {
   const org = Organization({
     features: ['performance-view', 'performance-issues-dev'],
   });
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
     router,
-    location: TestStubs.location(),
+    location: LocationFixture(),
     routes: router.routes,
     route: router.routes[0],
     routeParams: router.params,

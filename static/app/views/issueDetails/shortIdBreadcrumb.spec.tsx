@@ -1,3 +1,5 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -5,7 +7,7 @@ import {ShortIdBreadrcumb} from './shortIdBreadcrumb';
 
 describe('ShortIdBreadrcumb', function () {
   const {organization, project} = initializeOrg();
-  const group = TestStubs.Group({shortId: 'ABC-123'});
+  const group = GroupFixture({shortId: 'ABC-123'});
 
   beforeEach(() => {
     Object.assign(navigator, {

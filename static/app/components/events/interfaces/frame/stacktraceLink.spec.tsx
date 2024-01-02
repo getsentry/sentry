@@ -1,11 +1,14 @@
 import {Commit} from 'sentry-fixture/commit';
 import {Event as EventFixture} from 'sentry-fixture/event';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {Repository} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -17,13 +20,13 @@ import {StacktraceLink} from './stacktraceLink';
 describe('StacktraceLink', function () {
   const org = Organization();
   const platform = 'python';
-  const project = TestStubs.Project({});
+  const project = ProjectFixture({});
   const event = EventFixture({
     projectID: project.id,
-    release: TestStubs.Release({lastCommit: Commit()}),
+    release: ReleaseFixture({lastCommit: Commit()}),
     platform,
   });
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const repo = Repository({integrationId: integration.id});
 
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
@@ -365,5 +368,38 @@ describe('StacktraceLink', function () {
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
+    jest.useFakeTimers();
+    const organization = Organization({
+      features: ['issue-details-stacktrace-link-in-frame'],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: RouterContextFixture([{organization}]),
+      organization,
+    });
+
+    // Assert initial state (loading state)
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+
+    // Fast-forward time by 100ms
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      'https://something.io#L233'
+    );
+
+    expect(await screen.getByText('GitHub')).toBeInTheDocument();
+
+    jest.useRealTimers();
   });
 });

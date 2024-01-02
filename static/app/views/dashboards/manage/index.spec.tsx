@@ -1,6 +1,8 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +25,7 @@ describe('Dashboards > Detail', function () {
     features: FEATURES,
   });
   beforeEach(function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -45,7 +47,7 @@ describe('Dashboards > Detail', function () {
   it('denies access on missing feature', function () {
     render(
       <ManageDashboards
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={mockUnauthorizedOrg}
       />
     );
@@ -58,7 +60,7 @@ describe('Dashboards > Detail', function () {
 
     render(
       <ManageDashboards
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={mockAuthorizedOrg}
       />
     );
@@ -71,7 +73,7 @@ describe('Dashboards > Detail', function () {
   it('creates new dashboard', async function () {
     const org = Organization({features: FEATURES});
 
-    render(<ManageDashboards {...TestStubs.routeComponentProps()} organization={org} />);
+    render(<ManageDashboards {...RouteComponentPropsFixture()} organization={org} />);
 
     await userEvent.click(screen.getByTestId('dashboard-create'));
 
@@ -84,7 +86,7 @@ describe('Dashboards > Detail', function () {
   it('can sort', async function () {
     const org = Organization({features: FEATURES});
 
-    render(<ManageDashboards {...TestStubs.routeComponentProps()} organization={org} />);
+    render(<ManageDashboards {...RouteComponentPropsFixture()} organization={org} />);
 
     await selectEvent.select(
       screen.getByRole('button', {name: /sort by/i}),

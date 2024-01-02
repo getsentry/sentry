@@ -88,6 +88,13 @@ function Context({
     organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
     false;
 
+  const hasStacktraceLinkInFrameFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+
+  // This is the old design. Only show if the feature flag is not enabled for this organization.
+  const hasStacktraceLink =
+    frame.inApp && !!frame.filename && isExpanded && !hasStacktraceLinkInFrameFeatureFlag;
+
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -154,7 +161,6 @@ function Context({
   }
 
   const startLineNo = hasContextSource ? frame.context[0][0] : 0;
-  const hasStacktraceLink = frame.inApp && !!frame.filename && isExpanded;
 
   const prismClassName = fileExtension ? `language-${fileExtension}` : '';
 
@@ -299,6 +305,7 @@ const CodeWrapper = styled('div')`
   padding: 0;
 
   && pre {
+    font-size: ${p => p.theme.fontSizeSmall};
     white-space: pre-wrap;
     margin: 0;
     overflow: hidden;

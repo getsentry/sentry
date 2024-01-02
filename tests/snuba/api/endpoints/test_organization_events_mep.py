@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 from unittest import mock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
@@ -3060,16 +3061,44 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
 
+    def test_timestamp_groupby(self):
+        self.store_transaction_metric(
+            0.03,
+            tags={"transaction": "foo_transaction", "user": "foo"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "timestamp",
+                    "count()",
+                    "count_unique(user)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert meta["dataset"] == "metricsEnhanced"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
 ):
     viewname = "sentry-api-0-organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
-    def do_request(self, query):
+    def do_request(self, query: Any) -> Any:
         self.login_as(user=self.user)
         url = reverse(
             self.viewname,
@@ -3078,14 +3107,26 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         with self.feature({"organizations:on-demand-metrics-extraction-widgets": True}):
             return self.client.get(url, query, format="json")
 
-    def _test_is_metrics_extracted_data(
-        self, params: dict[str, Any], expected_on_demand_query: bool, dataset: str
-    ) -> None:
-        spec = OnDemandMetricSpec(
-            field="count()",
-            query="transaction.duration:>1s",
-            spec_type=MetricSpecType.DYNAMIC_QUERY,
-        )
+    def _on_demand_query_check(
+        self,
+        params: dict[str, Any],
+        groupbys: Optional[list[str]] = None,
+        expected_on_demand_query: Optional[bool] = True,
+        expected_dataset: Optional[str] = "metricsEnhanced",
+    ) -> Response:
+        """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
+        for field in params["field"]:
+            spec = OnDemandMetricSpec(
+                field=field,
+                query=params["query"],
+                environment=params.get("environment"),
+                groupbys=groupbys,
+                spec_type=MetricSpecType.DYNAMIC_QUERY,
+            )
+        # Expected parameters for this helper function
+        params["dataset"] = "metricsEnhanced"
+        params["useOnDemandMetrics"] = "true"
+        params["onDemandType"] = "dynamic_query"
 
         self.store_on_demand_metric(1, spec=spec)
         response = self.do_request(params)
@@ -3093,22 +3134,39 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         assert response.status_code == 200, response.content
         meta = response.data["meta"]
         assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
-        assert meta["dataset"] == dataset
+        assert meta["dataset"] == expected_dataset
 
-        return meta
+        return response
 
-    def test_is_metrics_extracted_data_is_included(self):
-        self._test_is_metrics_extracted_data(
-            {
-                "field": ["count()"],
-                "dataset": "metricsEnhanced",
-                "query": "transaction.duration:>=91",
-                "useOnDemandMetrics": "true",
-                "yAxis": "count()",
-            },
-            expected_on_demand_query=True,
-            dataset="metricsEnhanced",
+    def test_is_metrics_extracted_data_is_included(self) -> None:
+        self._on_demand_query_check(
+            {"field": ["count()"], "query": "transaction.duration:>=91", "yAxis": "count()"}
         )
+
+    def test_transaction_user_misery(self) -> None:
+        resp = self._on_demand_query_check(
+            {
+                "field": ["user_misery(300)", "apdex(300)"],
+                "project": self.project.id,
+                "query": "",
+                "sort": "-user_misery(300)",
+                "per_page": "20",
+                "referrer": "api.dashboards.tablewidget",
+            },
+            groupbys=["transaction"],
+        )
+        assert resp.data == {
+            "data": [{"user_misery(300)": 0.0, "apdex(300)": 0.0}],
+            "meta": {
+                "fields": {"user_misery(300)": "number", "apdex(300)": "number"},
+                "units": {"user_misery(300)": None, "apdex(300)": None},
+                "isMetricsData": True,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "datasetReason": "unchanged",
+                "dataset": "metricsEnhanced",
+            },
+        }
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -3186,3 +3244,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_count_starts(self):
         super().test_count_starts()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_timestamp_groupby(self):
+        super().test_timestamp_groupby()

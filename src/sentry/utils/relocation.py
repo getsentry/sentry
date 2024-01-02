@@ -14,7 +14,7 @@ from sentry.backup.dependencies import dependencies, get_model_name, sorted_depe
 from sentry.backup.helpers import Printer
 from sentry.backup.scopes import RelocationScope
 from sentry.http import get_server_hostname
-from sentry.models.files.utils import get_storage
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
@@ -29,17 +29,18 @@ class OrderedTask(Enum):
     NONE = 0
     UPLOADING_COMPLETE = 1
     PREPROCESSING_SCAN = 2
-    PREPROCESSING_BASELINE_CONFIG = 3
-    PREPROCESSING_COLLIDING_USERS = 4
-    PREPROCESSING_COMPLETE = 5
-    VALIDATING_START = 6
-    VALIDATING_POLL = 7
-    VALIDATING_COMPLETE = 8
-    IMPORTING = 9
-    POSTPROCESSING = 10
-    NOTIFYING_USERS = 11
-    NOTIFYING_OWNER = 12
-    COMPLETED = 13
+    PREPROCESSING_TRANSFER = 3
+    PREPROCESSING_BASELINE_CONFIG = 4
+    PREPROCESSING_COLLIDING_USERS = 5
+    PREPROCESSING_COMPLETE = 6
+    VALIDATING_START = 7
+    VALIDATING_POLL = 8
+    VALIDATING_COMPLETE = 9
+    IMPORTING = 10
+    POSTPROCESSING = 11
+    NOTIFYING_USERS = 12
+    NOTIFYING_OWNER = 13
+    COMPLETED = 14
 
 
 # Match each `OrderedTask` to the `Relocation.Step` it is part of.
@@ -47,6 +48,7 @@ TASK_TO_STEP: dict[OrderedTask, Relocation.Step] = {
     OrderedTask.NONE: Relocation.Step.UNKNOWN,
     OrderedTask.UPLOADING_COMPLETE: Relocation.Step.UPLOADING,
     OrderedTask.PREPROCESSING_SCAN: Relocation.Step.PREPROCESSING,
+    OrderedTask.PREPROCESSING_TRANSFER: Relocation.Step.PREPROCESSING,
     OrderedTask.PREPROCESSING_BASELINE_CONFIG: Relocation.Step.PREPROCESSING,
     OrderedTask.PREPROCESSING_COLLIDING_USERS: Relocation.Step.PREPROCESSING,
     OrderedTask.PREPROCESSING_COMPLETE: Relocation.Step.PREPROCESSING,
@@ -100,7 +102,7 @@ steps:
   - name: "gcr.io/cloud-builders/gsutil"
     id: copy-inputs-being-validated
     waitFor: ["-"]
-    args: ["cp", "-r", "$bucket_root/relocations/runs/$uuid/in", "."]
+    args: ["cp", "-r", "$bucket_root/runs/$uuid/in", "."]
     timeout: 600s
 
 
@@ -180,7 +182,7 @@ steps:
 
 artifacts:
   objects:
-    location: "$bucket_root/relocations/runs/$uuid/findings/"
+    location: "$bucket_root/runs/$uuid/findings/"
     paths: ["/workspace/findings/**"]
 timeout: 3600s
 options:
@@ -261,7 +263,7 @@ COPY_OUT_DIR_TEMPLATE = Template(
       - 'cp'
       - '-r'
       - '/workspace/out'
-      - '$bucket_root/relocations/runs/$uuid/out'
+      - '$bucket_root/runs/$uuid/out'
     timeout: 30s
     """
 )
@@ -546,14 +548,14 @@ def get_docker_compose_run():
 
 
 @lru_cache(maxsize=1)
-def get_bucket_name():
+def get_relocations_bucket_name():
     """
     When using the local FileSystemStorage (ie, in tests), we use a contrived bucket name, since
     this is really just an alias for a bespoke local directory in that case.
     """
 
-    storage = get_storage()
-    return "default" if getattr(storage, "bucket_name", None) is None else storage.bucket_name
+    storage = get_relocation_storage()
+    return "default" if getattr(storage, "bucket_name", None) is None else f"{storage.bucket_name}"
 
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
@@ -564,7 +566,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
         ",".join(existing_usernames) if existing_usernames else ",",
     ]
     filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
-    bucket_root = f"gs://{get_bucket_name()}"
+    bucket_root = f"gs://{get_relocations_bucket_name()}"
 
     validation_steps = [
         create_cloudbuild_validation_step(

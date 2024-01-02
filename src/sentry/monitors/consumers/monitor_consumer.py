@@ -149,7 +149,7 @@ def check_ratelimit(
     """
     ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
-    is_blocked = ratelimits.is_limited(
+    is_blocked = ratelimits.backend.is_limited(
         f"monitor-checkins:{ratelimit_key}",
         limit=CHECKIN_QUOTA_LIMIT,
         window=CHECKIN_QUOTA_WINDOW,
@@ -443,6 +443,24 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             key_id=None,
             outcome=Outcome.INVALID,
             reason="invalid_monitor",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
+        return
+
+    # Discard check-ins if the monitor is disabled
+    if monitor.status == ObjectStatus.DISABLED:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "monitor_disabled"},
+        )
+        txn.set_tag("result", "monitor_disabled")
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.FILTERED,
+            reason="monitor_disabled",
             timestamp=start_time,
             category=DataCategory.MONITOR,
         )

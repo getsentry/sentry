@@ -81,7 +81,11 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # XXX: Attachment topic has two multiprocessing strategies chained together so we use
         # two pools.
         if self.is_attachment_topic:
-            self._attachments_pool = MultiprocessingPool(num_processes)
+            self._attachments_pool: Optional[MultiprocessingPool] = MultiprocessingPool(
+                num_processes
+            )
+        else:
+            self._attachments_pool = None
         if num_processes > 1:
             self.multi_process = MultiProcessConfig(
                 num_processes, max_batch_size, max_batch_time, input_block_size, output_block_size
@@ -114,6 +118,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # are being handled in a step before the event depending on them is processed in a
         # later step.
 
+        assert self._attachments_pool is not None
         step_2 = maybe_multiprocess_step(
             mp, process_attachments_and_events, final_step, self._attachments_pool
         )
@@ -133,7 +138,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def shutdown(self) -> None:
         self._pool.close()
-        self._attachments_pool.close()
+        if self._attachments_pool:
+            self._attachments_pool.close()
 
 
 def get_ingest_consumer(

@@ -9,6 +9,10 @@ import {
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {DashboardWidgetSource, Widget, WidgetType} from 'sentry/views/dashboards/types';
 
+const getDDMWidgetName = (metricsQuery: MetricsQuery) => {
+  return `${metricsQuery.op}(${formatMRI(metricsQuery.mri)})`;
+};
+
 export function convertToDashboardWidget(
   metricsQuery: MetricsQuery,
   displayType?: MetricDisplayType
@@ -16,7 +20,7 @@ export function convertToDashboardWidget(
   const isCustomMetricQuery = isCustomMetric(metricsQuery);
 
   return {
-    title: `${metricsQuery.op}(${formatMRI(metricsQuery.mri)})`,
+    title: getDDMWidgetName(metricsQuery),
     // @ts-expect-error this is a valid widget type
     displayType,
     widgetType: isCustomMetricQuery ? WidgetType.METRICS : WidgetType.DISCOVER,
@@ -62,7 +66,7 @@ export function getWidgetAsQueryParams(
     statsPeriod: period,
     defaultWidgetQuery: urlWidgetQuery,
     defaultTableColumns: [],
-    defaultTitle: 'DDM Widget',
+    defaultTitle: getDDMWidgetName(metricsQuery),
     environment: metricsQuery.environments,
     displayType,
     project: projects,

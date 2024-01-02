@@ -1,3 +1,4 @@
+import {DocIntegration as DocIntegrationFixture} from 'sentry-fixture/docIntegration';
 import {
   BitbucketIntegrationConfig,
   OrgOwnedApps,
@@ -30,7 +31,7 @@ describe('IntegrationListDirectory', function () {
         [`/organizations/${org.slug}/integrations/`, [BitbucketIntegrationConfig()]],
         [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedApps()],
         ['/sentry-apps/', PublishedApps()],
-        ['/doc-integrations/', [TestStubs.DocIntegration()]],
+        ['/doc-integrations/', [DocIntegrationFixture()]],
         [`/organizations/${org.slug}/sentry-app-installations/`, SentryAppInstalls()],
         [`/organizations/${org.slug}/plugins/configs/`, PluginListConfig()],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],

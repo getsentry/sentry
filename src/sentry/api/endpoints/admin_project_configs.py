@@ -14,7 +14,7 @@ from sentry.relay import projectconfig_cache
 class AdminRelayProjectConfigsEndpoint(Endpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 

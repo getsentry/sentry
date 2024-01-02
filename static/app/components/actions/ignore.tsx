@@ -269,7 +269,7 @@ function IgnoreActions({
             {...triggerProps}
             aria-label={t('Ignore options')}
             size={size}
-            icon={<IconChevron direction="down" size="xs" />}
+            icon={<IconChevron direction="down" />}
             disabled={disabled}
           />
         )}

@@ -23,7 +23,6 @@ export function DurationChart({series, isLoading}: Props) {
         }}
         data={[series]}
         loading={isLoading}
-        utc={false}
         chartColors={[AVG_COLOR]}
         isLineChart
       />

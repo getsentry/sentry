@@ -21,12 +21,18 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         "next_checkin_latest": next_checkin_latest,
     }
 
-    if not monitor_env.monitor.is_muted and monitor_env.status != MonitorStatus.OK:
+    if (
+        not monitor_env.monitor.is_muted
+        and not monitor_env.is_muted
+        and monitor_env.status != MonitorStatus.OK
+    ):
         params["status"] = MonitorStatus.OK
-        recovery_threshold = monitor_env.monitor.config.get("recovery_threshold")
+        recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 1)
+        if not recovery_threshold:
+            recovery_threshold = 1
 
         # Run incident logic if recovery threshold is set
-        if recovery_threshold:
+        if recovery_threshold > 1:
             # Check if our incident is recovering
             previous_checkins = (
                 MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
