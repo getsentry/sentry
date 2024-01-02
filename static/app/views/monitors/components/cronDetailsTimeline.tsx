@@ -2,7 +2,10 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {deleteMonitorEnvironment} from 'sentry/actionCreators/monitors';
+import {
+  deleteMonitorEnvironment,
+  setEnvironmentIsMuted,
+} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
@@ -101,6 +104,35 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
     });
   };
 
+  const handleToggleMuteEnvironment = async (env: string, isMuted: boolean) => {
+    const resp = await setEnvironmentIsMuted(
+      api,
+      organization.slug,
+      monitor.slug,
+      env,
+      isMuted
+    );
+
+    if (resp === null) {
+      return;
+    }
+
+    setApiQueryData(queryClient, monitorDetailsQueryKey, (oldMonitorDetails: Monitor) => {
+      const oldMonitorEnvIdx = oldMonitorDetails.environments.findIndex(
+        monitorEnv => monitorEnv.name === env
+      );
+      if (oldMonitorEnvIdx < 0) {
+        return oldMonitorDetails;
+      }
+
+      oldMonitorDetails.environments[oldMonitorEnvIdx] = {
+        ...oldMonitorDetails.environments[oldMonitorEnvIdx],
+        isMuted,
+      };
+      return oldMonitorDetails;
+    });
+  };
+
   return (
     <TimelineContainer>
       <TimelineWidthTracker ref={elementRef} />
@@ -126,6 +158,7 @@ export function CronDetailsTimeline({monitor, organization}: Props) {
         start={start}
         width={timelineWidth}
         onDeleteEnvironment={handleDeleteEnvironment}
+        onToggleMuteEnvironment={handleToggleMuteEnvironment}
         singleMonitorView
       />
     </TimelineContainer>
