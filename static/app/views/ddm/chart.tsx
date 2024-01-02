@@ -136,6 +136,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         yAxis: {
+          // used to find and convert datapoint to pixel position
           id: 'yAxis',
           axisLabel: {
             formatter: (value: number) => {
@@ -144,6 +145,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         xAxis: {
+          // used to find and convert datapoint to pixel position
           id: 'xAxis',
           axisPointer: {
             snap: true,
