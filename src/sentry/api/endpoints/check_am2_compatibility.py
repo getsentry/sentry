@@ -19,7 +19,7 @@ from sentry.tasks.check_am2_compatibility import (
 class CheckAM2CompatibilityEndpoint(Endpoint):
     owner = ApiOwner.BILLING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 
