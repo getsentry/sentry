@@ -31,6 +31,22 @@ const MULTILINE_SYNTAX_BY_LANGUAGE: Record<string, MultilineSyntax[]> = {
   typescript: JS_MULTILINE_COMMENT_SYNTAX,
 };
 
+const isTokenStringOrComment = (token: Prism.Token) => {
+  if (token.type === 'comment' || token.type === 'string') {
+    return true;
+  }
+
+  if (typeof token.alias === 'string') {
+    return token.alias === 'comment' || token.alias === 'string';
+  }
+
+  if (Array.isArray(token.alias)) {
+    return token.alias.some(a => a === 'comment' || a === 'string');
+  }
+
+  return false;
+};
+
 const checkCodeForOpenMultilineSyntax = ({
   code,
   syntax,
@@ -61,7 +77,7 @@ const checkCodeForOpenMultilineSyntax = ({
         return true;
       }
     } else if (typeof token.content === 'string' && token.content.includes(syntax)) {
-      return !(token.type === 'comment' || token.type === 'string');
+      return !isTokenStringOrComment(token);
     }
   }
 
