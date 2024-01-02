@@ -154,18 +154,15 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications. This includes static websites, single-page-aplications, and also server-side-rendered. The only prerequisite is that your application uses our Sentry JavaScript SDK (7.2.0 or greater) either with NPM/Yarn or our JS Loader script.'
+              'Session Replay supports all browser-based applications. This includes static websites, single-page aplications, and also server-side rendered applications. The only prerequisite is that your application uses Sentry JavaScript SDK (7.2.0 or greater) either with NPM/Yarn or our JS Loader script.'
             )}
           </div>
           <div>
-            {tct(
-              'To learn about which SDKs we support, please visit [link:this page] from our docs.',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/" />
-                ),
-              }
-            )}
+            {tct('To learn about which SDKs we support, please visit [link:our docs].', {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/" />
+              ),
+            })}
           </div>
         </AnswerContent>
       ),
@@ -178,12 +175,12 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay adds a small amount of performance overhead to your web application. The performance overhead basically scales linearly with the amount of DOM complexity your application has. The more DOM state changes that occur in the application lifecycle, the more events that are captured, transmitted, etc.'
+              'Session Replay adds a small amount of performance overhead to your web application. The performance overhead generally scales linearly with the amount of DOM complexity your application has. The more DOM state changes that occur in the application lifecycle, the more events that are captured, transmitted, etc.'
             )}
           </div>
           <div>
             {tct(
-              'To learn about how we’ve optimized our SDK, please visit [link:this page] from our docs.',
+              'To learn about how we’ve optimized our SDK, please visit [link:our docs].',
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/session-replay/performance-overhead/" />
@@ -207,7 +204,7 @@ export function SetupReplaysCTA({
           </div>
           <div>
             {tct(
-              'To learn about how we protect user privacy, please visit [link:this page] from our docs.',
+              'To learn about how we protect user privacy, please visit [link:our docs].',
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/session-replay/protecting-user-privacy/" />
