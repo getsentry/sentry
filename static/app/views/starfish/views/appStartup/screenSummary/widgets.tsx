@@ -42,7 +42,7 @@ function SummaryWidgets({additionalFilters}) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
 
-  const queryString = `${appendReleaseFilters(query, primaryRelease, secondaryRelease)}`;
+  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   // Use single query for cold and warm starts by device classification and release
   const {
