@@ -16,7 +16,6 @@ from typing import (
     cast,
 )
 
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -107,12 +106,6 @@ class BaseOrganizationSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(
         org_slug=True,
         max_length=50,
-        error_messages={
-            "invalid": _(
-                "Enter a valid slug consisting of lowercase letters, numbers, or hyphens. "
-                "It cannot be entirely numeric or start/end with a hyphen."
-            )
-        },
     )
 
     def validate_slug(self, value: str) -> str:

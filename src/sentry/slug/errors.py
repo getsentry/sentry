@@ -7,5 +7,5 @@ DEFAULT_SLUG_ERROR_MESSAGE = _(
 
 ORG_SLUG_ERROR_MESSAGE = _(
     "Enter a valid slug consisting of letters, numbers, or hyphens. "
-    "It cannot be entirely numeric."
+    "It cannot be entirely numeric or start/end with a hyphen."
 )
