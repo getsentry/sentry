@@ -16,6 +16,17 @@ export function makeMonitorListQueryKey(organization: Organization, location: Lo
   ] as const;
 }
 
+export function makeMonitorDetailsQueryKey(
+  organization: Organization,
+  monitorSlug: string,
+  query?: Record<string, any>
+) {
+  return [
+    `/organizations/${organization.slug}/monitors/${monitorSlug}/`,
+    {query},
+  ] as const;
+}
+
 export function crontabAsText(crontabInput: string | null): string | null {
   if (!crontabInput) {
     return null;

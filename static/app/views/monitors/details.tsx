@@ -19,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
+import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorCheckIns from './components/monitorCheckIns';
 import MonitorHeader from './components/monitorHeader';
@@ -47,10 +48,10 @@ function MonitorDetails({params, location}: Props) {
   // if we have all environments selected
   const environment = selection.environments[0];
 
-  const queryKey = [
-    `/organizations/${organization.slug}/monitors/${params.monitorSlug}/`,
-    {query: {...location.query, environment}},
-  ] as const;
+  const queryKey = makeMonitorDetailsQueryKey(organization, params.monitorSlug, {
+    ...location.query,
+    environment,
+  });
 
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
