@@ -77,6 +77,7 @@ export interface MonitorEnvironment {
   lastCheckIn: string | null;
   name: string;
   nextCheckIn: string | null;
+  nextCheckInLatest: string | null;
   status: MonitorStatus;
 }
 
