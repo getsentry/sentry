@@ -1,6 +1,10 @@
 import copy
 
+import zstandard
+
 from sentry.attachments.base import BaseAttachmentCache, CachedAttachment
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class InMemoryCache:
@@ -94,6 +98,31 @@ def test_basic_unchunked():
 
     cache.delete("c:foo")
     assert not list(cache.get("c:foo"))
+
+
+@django_db_all
+def test_zstd_chunks():
+    data = InMemoryCache()
+    cache = BaseAttachmentCache(data)
+    dctx = zstandard.ZstdDecompressor()
+
+    cache.set_chunk("mixed_chunks", 123, 0, b"Hello World! ")
+    cache.set_chunk("mixed_chunks", 123, 1, b"Just visiting. ")
+    with override_options({"attachment-cache.use-zstd": True}):
+        cache.set_chunk("mixed_chunks", 123, 2, b"Bye.")
+
+    mixed_chunks = cache.get_from_chunks(key="mixed_chunks", id=123, chunks=3)
+    assert mixed_chunks.data == b"Hello World! Just visiting. Bye."
+    with dctx.stream_reader(mixed_chunks.zstd_data) as stream:
+        assert stream.read() == b"Hello World! Just visiting. Bye."
+
+    att = CachedAttachment(key="not_chunked", id=456, data=b"Hello World! Bye.")
+    with override_options({"attachment-cache.use-zstd": True}):
+        cache.set("not_chunked", [att])
+
+    (not_chunked,) = cache.get("not_chunked")
+    assert not_chunked.data == b"Hello World! Bye."
+    assert zstandard.decompress(not_chunked.zstd_data) == b"Hello World! Bye."
 
 
 def test_basic_rate_limited():
