@@ -149,7 +149,7 @@ const tokenizeSourceContext = ({
 // Some events have context lines with newline characters at the end,
 // so we need to remove them to be consistent.
 const normalizeLineEndings = (line?: string) => {
-  return line?.replaceAll(/\r?\n/g, '');
+  return line?.replaceAll(/\r?\n/g, '') ?? '';
 };
 
 const convertContextLines = (
