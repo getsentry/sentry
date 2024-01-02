@@ -91,7 +91,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
         <h3>{t('Waiting for events…')}</h3>
         <p>
           {tct(
-            'Our error robot is waiting to [strike:devour] receive your first event.',
+            'Our robot is waiting to [strike:devour] receive your first event.',
             {
               strike: <Strikethrough />,
             }
