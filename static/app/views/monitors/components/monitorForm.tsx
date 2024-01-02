@@ -358,6 +358,7 @@ function MonitorForm({
                       name="config.schedule.frequency"
                       placeholder="e.g. 1"
                       defaultValue="1"
+                      min={1}
                       required
                       stacked
                       inline={false}
