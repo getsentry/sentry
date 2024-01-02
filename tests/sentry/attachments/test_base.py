@@ -60,6 +60,7 @@ def test_meta_rate_limited():
     }
 
 
+@django_db_all
 def test_basic_chunked():
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
@@ -81,6 +82,7 @@ def test_basic_chunked():
     assert not list(cache.get("c:foo"))
 
 
+@django_db_all
 def test_basic_unchunked():
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
@@ -119,6 +121,7 @@ def test_zstd_chunks():
     assert not_chunked.data == b"Hello World! Bye."
 
 
+@django_db_all
 def test_basic_rate_limited():
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
