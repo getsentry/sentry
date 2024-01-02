@@ -4,6 +4,7 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -24,7 +25,7 @@ interface DeviceClassBreakdownBarChartProps {
   isLoading: boolean;
   title: string;
   yAxis: string;
-  data?: any;
+  data?: Series[];
 }
 
 function DeviceClassBreakdownBarChart({
