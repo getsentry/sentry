@@ -169,11 +169,11 @@ export function getMetricAlertChartOption({
   let warningTrigger: Trigger | undefined;
 
   for (const trigger of rule.triggers) {
-    if (!criticalTrigger && trigger.label === AlertRuleTriggerType.CRITICAL) {
-      criticalTrigger = trigger;
+    if (trigger.label === AlertRuleTriggerType.CRITICAL) {
+      criticalTrigger ??= trigger;
     }
-    if (!warningTrigger && trigger.label === AlertRuleTriggerType.WARNING) {
-      warningTrigger = trigger;
+    if (trigger.label === AlertRuleTriggerType.WARNING) {
+      warningTrigger ??= trigger;
     }
     if (criticalTrigger && warningTrigger) {
       break;
@@ -194,9 +194,7 @@ export function getMetricAlertChartOption({
   let maxSeriesValue = Number.NEGATIVE_INFINITY;
   let minSeriesValue = Number.POSITIVE_INFINITY;
 
-  const dataArrayLength = dataArr.length;
-  for (let i = 0; i < dataArrayLength; i++) {
-    const coord = dataArr[i];
+  for (const coord of dataArr) {
     if (coord.value > maxSeriesValue) {
       maxSeriesValue = coord.value;
     }
