@@ -217,10 +217,19 @@ class IssueListOverview extends Component<Props, State> {
       this.fetchTags();
     }
 
+    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
+
     // Wait for saved searches to load before we attempt to fetch stream data
+    // Selection changing could indicate that the projects query parameter has populated
+    // and we should refetch data.
+    if (this.props.savedSearchLoading && !selectionChanged) {
+      return;
+    }
+
     if (
-      this.props.savedSearchLoading &&
-      !this.props.organization.features.includes('issue-stream-performance')
+      prevProps.savedSearchLoading &&
+      !this.props.savedSearchLoading &&
+      this.props.organization.features.includes('issue-stream-performance')
     ) {
       return;
     }
@@ -251,8 +260,6 @@ class IssueListOverview extends Component<Props, State> {
     });
     const newSort = this.getSort();
 
-    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
-
     // If any important url parameter changed or saved search changed
     // reload data.
     if (
@@ -260,10 +267,8 @@ class IssueListOverview extends Component<Props, State> {
       prevUrlQuery.cursor !== newUrlQuery.cursor ||
       prevUrlQuery.statsPeriod !== newUrlQuery.statsPeriod ||
       prevUrlQuery.groupStatsPeriod !== newUrlQuery.groupStatsPeriod ||
-      prevSort !== newSort ||
-      // Ignore query changes when issue-stream-performance is live
-      (!this.props.organization.features.includes('issue-stream-performance') &&
-        prevQuery !== newQuery)
+      prevQuery !== newQuery ||
+      prevSort !== newSort
     ) {
       this.fetchData(selectionChanged);
     } else if (
