@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {t, tct} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import type {
-  ErrorInfo,
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
@@ -27,6 +26,12 @@ export const errorConfig: IssueCategoryConfigMapping = {
     userFeedback: {enabled: true},
     usesIssuePlatform: false,
   },
+};
+
+type ErrorInfo = {
+  errorHelpType: ErrorHelpType;
+  errorTitle: string | RegExp;
+  projectCheck: boolean;
 };
 
 const ErrorInfoChecks: Array<ErrorInfo> = [
@@ -59,6 +64,12 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorTitle: 'Dynamic server usage',
     projectCheck: true,
     errorHelpType: ErrorHelpType.DYNAMIC_SERVER_USAGE,
+  },
+  {
+    errorTitle:
+      /(does not match server-rendered HTML|Hydration failed because|error while hydrating)/i,
+    projectCheck: true,
+    errorHelpType: ErrorHelpType.HYDRATION_ERROR,
   },
   {
     errorTitle: 'TypeError: Load failed',
@@ -156,6 +167,21 @@ const errorHelpTypeResourceMap: Record<
       linksByPlatform: {},
     },
   },
+  [ErrorHelpType.HYDRATION_ERROR]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur in React based applications when the server-rendered HTML does not match what is expected on the client. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Hydration Errors</b>}
+      ),
+      links: [
+        {
+          text: t('Resolving Hydration Errors'),
+          link: 'https://sentry.io/answers/hydration-error-nextjs/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
   [ErrorHelpType.LOAD_FAILED]: {
     resources: {
       description: tct(
@@ -197,7 +223,12 @@ export function getErrorHelpResource({
 }): Pick<IssueTypeConfig, 'resources'> | null {
   for (const errorInfo of ErrorInfoChecks) {
     const {errorTitle, errorHelpType, projectCheck} = errorInfo;
-    if (title.includes(errorTitle)) {
+    const shouldShowCustomResource =
+      typeof errorTitle === 'string'
+        ? title.includes(errorTitle)
+        : title.match(errorTitle);
+
+    if (shouldShowCustomResource) {
       if (projectCheck && !(project.platform || '').includes('nextjs')) {
         continue;
       }
