@@ -79,7 +79,7 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_LAZY_LOAD = DEV_MODE && !!env.SENTRY_UI_LAZY_LOAD;
-const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar even in dev mode
+const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
