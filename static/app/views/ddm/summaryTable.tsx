@@ -1,5 +1,6 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import colorFn from 'color';
 
 import {LinkButton} from 'sentry/components/button';
@@ -13,12 +14,11 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {formatMetricsUsingUnitAndOp, SortState} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 import {Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export function SummaryTable({
+export const SummaryTable = memo(function SummaryTable({
   series,
   operation,
   onRowClick,
@@ -37,10 +37,6 @@ export function SummaryTable({
   const organization = useOrganization();
 
   const hasActions = series.some(s => s.release || s.transaction);
-
-  const router = useRouter();
-  const {start, end, statsPeriod, project, environment} = router.location.query;
-
   const hasMultipleSeries = series.length > 1;
 
   const changeSort = useCallback(
@@ -49,6 +45,12 @@ export function SummaryTable({
         organization,
         by: name ?? '(none)',
         order: sort.order,
+      });
+      Sentry.metrics.increment('ddm.widget.sort', 1, {
+        tags: {
+          by: name ?? '(none)',
+          order: sort.order,
+        },
       });
       if (sort.name === name) {
         if (sort.order === 'desc') {
@@ -80,11 +82,11 @@ export function SummaryTable({
         release
       )}/`,
       query: {
-        pageStart: start,
-        pageEnd: end,
-        pageStatsPeriod: statsPeriod,
-        project,
-        environment,
+        pageStart: selection.datetime.start,
+        pageEnd: selection.datetime.end,
+        pageStatsPeriod: selection.datetime.period,
+        project: selection.projects,
+        environment: selection.environments,
       },
     };
   };
@@ -191,7 +193,15 @@ export function SummaryTable({
                   }}
                 >
                   <Cell>
-                    <ColorDot color={color} isHidden={!!hidden} />
+                    <ColorDot
+                      color={color}
+                      isHidden={!!hidden}
+                      style={{
+                        backgroundColor: hidden
+                          ? 'transparent'
+                          : colorFn(color).alpha(1).string(),
+                      }}
+                    />
                   </Cell>
                   <TextOverflowCell>{name}</TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
@@ -232,7 +242,7 @@ export function SummaryTable({
       </TableBodyWrapper>
     </SummaryTableWrapper>
   );
-}
+});
 
 function SortableHeaderCell({
   sortState,
@@ -335,8 +345,6 @@ const TextOverflowCell = styled(Cell)`
 `;
 
 const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
-  background-color: ${p =>
-    p.isHidden ? 'transparent' : colorFn(p.color).alpha(1).string()};
   border: 1px solid ${p => p.color};
   border-radius: 50%;
   width: ${space(1)};

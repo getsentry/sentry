@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
@@ -131,7 +132,7 @@ describe('GroupActions', function () {
 
   describe('reprocessing', function () {
     it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
 
@@ -152,7 +153,7 @@ describe('GroupActions', function () {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
 

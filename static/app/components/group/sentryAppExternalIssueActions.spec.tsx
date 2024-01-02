@@ -1,7 +1,9 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
+import {PlatformExternalIssue as PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
 import {SentryApp} from 'sentry-fixture/sentryApp';
+import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
 
 import {
@@ -16,7 +18,7 @@ import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExte
 describe('SentryAppExternalIssueActions', () => {
   const group = GroupFixture();
   const sentryApp = SentryApp();
-  const component = TestStubs.SentryAppComponent({
+  const component = SentryAppComponent({
     sentryApp: {
       uuid: sentryApp.uuid,
       slug: sentryApp.slug,
@@ -27,8 +29,8 @@ describe('SentryAppExternalIssueActions', () => {
   component.schema.create.required_fields.pop();
   const install = SentryAppInstallation({});
   const submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
-  const externalIssue = TestStubs.PlatformExternalIssue({
-    groupId: group.id,
+  const externalIssue = PlatformExternalIssueFixture({
+    issueId: group.id,
     serviceType: component.sentryApp.slug,
   });
 

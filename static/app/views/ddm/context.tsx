@@ -6,13 +6,15 @@ import {
   useMemo,
   useState,
 } from 'react';
+import * as Sentry from '@sentry/react';
 
 import {MRI} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   MetricDisplayType,
   MetricWidgetQueryParams,
-  updateQuery,
+  useInstantRef,
+  useUpdateQuery,
 } from 'sentry/utils/metrics';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -21,10 +23,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {FocusArea} from 'sentry/views/ddm/chartBrush';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
+import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
 
 interface DDMContextValue {
   addFocusArea: (area: FocusArea) => void;
   addWidget: () => void;
+  addWidgets: (widgets: Partial<MetricWidgetQueryParams>[]) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusArea | null;
   hasCustomMetrics: boolean;
@@ -42,6 +46,7 @@ export const DDMContext = createContext<DDMContextValue>({
   selectedWidgetIndex: 0,
   setSelectedWidgetIndex: () => {},
   addWidget: () => {},
+  addWidgets: () => {},
   updateWidget: () => {},
   removeWidget: () => {},
   addFocusArea: () => {},
@@ -70,78 +75,99 @@ const emptyWidget: MetricWidgetQueryParams = {
 
 export function useMetricWidgets() {
   const router = useRouter();
+  const updateQuery = useUpdateQuery();
 
-  const widgets = useMemo<MetricWidgetQueryParams[]>(() => {
-    const currentWidgets = JSON.parse(
-      router.location.query.widgets ?? JSON.stringify([emptyWidget])
-    );
+  const widgets = useStructuralSharing(
+    useMemo<MetricWidgetQueryParams[]>(() => {
+      const currentWidgets = JSON.parse(
+        router.location.query.widgets ?? JSON.stringify([emptyWidget])
+      );
 
-    return currentWidgets.map((widget: MetricWidgetQueryParams) => {
-      return {
-        mri: widget.mri,
-        op: widget.op,
-        query: widget.query,
-        groupBy: decodeList(widget.groupBy),
-        displayType: widget.displayType ?? defaultMetricDisplayType,
-        focusedSeries: widget.focusedSeries,
-        showSummaryTable: widget.showSummaryTable ?? true, // temporary default
-        powerUserMode: widget.powerUserMode,
-        sort: widget.sort ?? DEFAULT_SORT_STATE,
-        title: widget.title,
-      };
-    });
-  }, [router.location.query.widgets]);
+      return currentWidgets.map((widget: MetricWidgetQueryParams) => {
+        return {
+          mri: widget.mri,
+          op: widget.op,
+          query: widget.query,
+          groupBy: decodeList(widget.groupBy),
+          displayType: widget.displayType ?? defaultMetricDisplayType,
+          focusedSeries: widget.focusedSeries,
+          showSummaryTable: widget.showSummaryTable ?? true, // temporary default
+          powerUserMode: widget.powerUserMode,
+          sort: widget.sort ?? DEFAULT_SORT_STATE,
+          title: widget.title,
+        };
+      });
+    }, [router.location.query.widgets])
+  );
+
+  // We want to have it as a ref, so that we can use it in the setWidget callback
+  // without needing to generate a new callback every time the location changes
+  const currentWidgetsRef = useInstantRef(widgets);
 
   const setWidgets = useCallback(
-    (newWidgets: MetricWidgetQueryParams[]) => {
-      updateQuery(router, {
-        widgets: JSON.stringify(newWidgets),
+    (newWidgets: React.SetStateAction<MetricWidgetQueryParams[]>) => {
+      const currentWidgets = currentWidgetsRef.current;
+      updateQuery({
+        widgets: JSON.stringify(
+          typeof newWidgets === 'function' ? newWidgets(currentWidgets) : newWidgets
+        ),
       });
     },
-    [router]
+    [updateQuery, currentWidgetsRef]
   );
 
   const updateWidget = useCallback(
     (index: number, data: Partial<MetricWidgetQueryParams>) => {
-      const widgetsCopy = [...widgets];
-      widgetsCopy[index] = {...widgets[index], ...data};
+      setWidgets(currentWidgets => {
+        const newWidgets = [...currentWidgets];
+        newWidgets[index] = {...currentWidgets[index], ...data};
+        return newWidgets;
+      });
+    },
+    [setWidgets]
+  );
+
+  const addWidget = useCallback(() => {
+    setWidgets(currentWidgets => [...currentWidgets, emptyWidget]);
+  }, [setWidgets]);
+
+  const addWidgets = useCallback(
+    (newWidgets: Partial<MetricWidgetQueryParams>[]) => {
+      const widgetsCopy = [...widgets].filter(widget => !!widget.mri);
+      widgetsCopy.push(...newWidgets.map(widget => ({...emptyWidget, ...widget})));
 
       setWidgets(widgetsCopy);
     },
     [widgets, setWidgets]
   );
 
-  const addWidget = useCallback(() => {
-    const widgetsCopy = [...widgets];
-    widgetsCopy.push(emptyWidget);
-
-    setWidgets(widgetsCopy);
-  }, [widgets, setWidgets]);
-
   const removeWidget = useCallback(
     (index: number) => {
-      const widgetsCopy = [...widgets];
-      widgetsCopy.splice(index, 1);
-
-      setWidgets(widgetsCopy);
+      setWidgets(currentWidgets => {
+        const newWidgets = [...currentWidgets];
+        newWidgets.splice(index, 1);
+        return newWidgets;
+      });
     },
-    [setWidgets, widgets]
+    [setWidgets]
   );
 
   const duplicateWidget = useCallback(
     (index: number) => {
-      const widgetsCopy = [...widgets];
-      widgetsCopy.splice(index, 0, widgets[index]);
-
-      setWidgets(widgetsCopy);
+      setWidgets(currentWidgets => {
+        const newWidgets = [...currentWidgets];
+        newWidgets.splice(index, 0, currentWidgets[index]);
+        return newWidgets;
+      });
     },
-    [setWidgets, widgets]
+    [setWidgets]
   );
 
   return {
     widgets,
     updateWidget,
     addWidget,
+    addWidgets,
     removeWidget,
     duplicateWidget,
   };
@@ -149,12 +175,12 @@ export function useMetricWidgets() {
 
 export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
+  const updateQuery = useUpdateQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
-
-  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
+  const {widgets, updateWidget, addWidget, addWidgets, removeWidget, duplicateWidget} =
     useMetricWidgets();
+  const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
   const pageFilters = usePageFilters().selection;
 
@@ -172,17 +198,19 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
+      Sentry.metrics.increment('ddm.enhance.add');
       setFocusArea(area);
       setSelectedWidgetIndex(area.widgetIndex);
-      updateQuery(router, {focusArea: JSON.stringify(area)});
+      updateQuery({focusArea: JSON.stringify(area)});
     },
-    [router]
+    [updateQuery]
   );
 
   const handleRemoveFocusArea = useCallback(() => {
+    Sentry.metrics.increment('ddm.enhance.remove');
     setFocusArea(null);
-    updateQuery(router, {focusArea: null});
-  }, [router]);
+    updateQuery({focusArea: null});
+  }, [updateQuery]);
 
   // Load focus area from URL
   useEffect(() => {
@@ -222,6 +250,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
+      addWidgets,
       selectedWidgetIndex:
         selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
       setSelectedWidgetIndex,
@@ -237,6 +266,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeFocusArea: handleRemoveFocusArea,
     }),
     [
+      addWidgets,
       handleAddWidget,
       handleDuplicate,
       handleUpdateWidget,

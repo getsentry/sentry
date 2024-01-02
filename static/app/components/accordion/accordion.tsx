@@ -69,9 +69,7 @@ function AccordionItem({
       aria-expanded={isExpanded}
       size="zero"
       borderless
-      onClick={() => {
-        isExpanded ? setExpandedIndex(-1) : setExpandedIndex(index);
-      }}
+      onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
     />
   ) : (
     <Button
@@ -89,7 +87,11 @@ function AccordionItem({
     <StyledLineItem>
       <ButtonLeftListItemContainer>
         {button}
-        <StyledPanel onClick={() => setExpandedIndex(index)}>{children}</StyledPanel>
+        <StyledPanel
+          onClick={() => setExpandedIndex(isExpanded && collapsible ? -1 : index)}
+        >
+          {children}
+        </StyledPanel>
       </ButtonLeftListItemContainer>
       <LeftContentContainer>{isExpanded && content}</LeftContentContainer>
     </StyledLineItem>

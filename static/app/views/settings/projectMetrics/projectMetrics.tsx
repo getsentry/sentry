@@ -1,9 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -18,6 +21,7 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -29,7 +33,8 @@ type Props = {
 
 function ProjectMetrics({project, location}: Props) {
   const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], ['custom']);
-  const query = decodeScalar(location.query.query, '');
+  const query = decodeScalar(location.query.query, '').trim();
+  const {activateSidebar} = useMetricsOnboardingSidebar();
 
   const debouncedSearch = useMemo(
     () =>
@@ -44,19 +49,35 @@ function ProjectMetrics({project, location}: Props) {
     [location.pathname, location.query]
   );
 
-  const metrics = meta
-    .sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)))
-    .filter(
-      ({mri, type, unit}) =>
-        mri.includes(query) ||
-        getReadableMetricType(type).includes(query) ||
-        unit.includes(query)
-    );
+  const metrics = meta.filter(
+    ({mri, type, unit}) =>
+      mri.includes(query) ||
+      getReadableMetricType(type).includes(query) ||
+      unit.includes(query)
+  );
 
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Metrics'), project.slug, false)} />
-      <SettingsPageHeader title={t('Metrics')} />
+      <SettingsPageHeader
+        title={t('Metrics')}
+        action={
+          <Button
+            priority="primary"
+            onClick={() => {
+              Sentry.metrics.increment('ddm.add_custom_metric', 1, {
+                tags: {
+                  referrer: 'settings',
+                },
+              });
+              activateSidebar();
+            }}
+            size="sm"
+          >
+            {t('Add Metric')}
+          </Button>
+        }
+      />
 
       <TextBlock>
         {tct(
@@ -93,7 +114,11 @@ function ProjectMetrics({project, location}: Props) {
       >
         {metrics.map(({mri, type, unit}) => (
           <Fragment key={mri}>
-            <div>{middleEllipsis(formatMRI(mri), 65, /\.|-|_/)}</div>
+            <Link
+              to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(mri)}`}
+            >
+              {middleEllipsis(formatMRI(mri), 65, /\.|-|_/)}
+            </Link>
             <RightAligned>
               <Tag>{getReadableMetricType(type)}</Tag>
             </RightAligned>
