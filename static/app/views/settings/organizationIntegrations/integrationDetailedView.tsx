@@ -203,6 +203,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   onDisable = (integration: Integration) => {
     let url: string;
 
+    if (!integration.domainName) {
+      return;
+    }
+
     const [domainName, orgName] = integration.domainName.split('/');
     if (integration.accountType === 'User') {
       url = `https://${domainName}/settings/installations/`;

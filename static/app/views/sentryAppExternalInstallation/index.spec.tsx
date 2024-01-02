@@ -1,6 +1,7 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
 import {Organization} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {SentryApp} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +11,7 @@ import type {Organization as TOrganization} from 'sentry/types';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
-  let sentryApp: ReturnType<typeof TestStubs.SentryApp>,
+  let sentryApp: ReturnType<typeof SentryApp>,
     getOrgsMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getOrgMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,
@@ -81,7 +82,7 @@ describe('SentryAppExternalInstallation', () => {
     it('sets the org automatically', () => {
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
@@ -114,7 +115,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
@@ -149,7 +150,7 @@ describe('SentryAppExternalInstallation', () => {
     it('renders org dropdown', () => {
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
@@ -172,7 +173,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );

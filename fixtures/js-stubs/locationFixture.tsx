@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-export default function LocationFixture(params: Partial<Location> = {}): Location {
+export function LocationFixture(params: Partial<Location> = {}): Location {
   return {
     key: '',
     search: '',
@@ -12,3 +12,6 @@ export default function LocationFixture(params: Partial<Location> = {}): Locatio
     ...params,
   };
 }
+
+// TODO(epurkhiser): Remove once removed from getsentry
+export default LocationFixture;

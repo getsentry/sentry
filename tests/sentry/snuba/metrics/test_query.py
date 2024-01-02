@@ -8,7 +8,7 @@ import pytest
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.receivers import create_default_projects
 from sentry.snuba.metrics import (
     OPERATIONS,

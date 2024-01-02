@@ -1,3 +1,4 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {User} from 'sentry-fixture/user';
 
@@ -84,11 +85,13 @@ describe('getIssueFieldRenderer', function () {
         }),
       ]);
 
-      const group = TestStubs.Group({project});
+      const group = GroupFixture({project});
       GroupStore.add([
         {
           ...group,
-          owners: [{owner: 'user:1', type: 'suspectCommit'}],
+          owners: [
+            {owner: 'user:1', type: 'suspectCommit', date_added: '2020-01-01T00:00:00'},
+          ],
           assignedTo: {
             email: 'test@sentry.io',
             type: 'user',

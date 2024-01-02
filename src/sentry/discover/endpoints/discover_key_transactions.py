@@ -15,9 +15,9 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
+from sentry.exceptions import InvalidParams
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 

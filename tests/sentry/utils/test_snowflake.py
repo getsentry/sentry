@@ -67,14 +67,14 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_id(self):
         regions = [
-            Region("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
-            Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
+            r1 := Region("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
+            r2 := Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
-        with override_regions(regions):
+        with override_settings(SILO_MODE=SiloMode.REGION):
 
-            with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="test-region-1"):
+            with override_regions(regions, r1):
                 snowflake1 = generate_snowflake_id("test_redis_key")
-            with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="test-region-2"):
+            with override_regions(regions, r2):
                 snowflake2 = generate_snowflake_id("test_redis_key")
 
             def recover_segment_value(segment: SnowflakeBitSegment, value: int) -> int:
@@ -84,5 +84,5 @@ class SnowflakeUtilsTest(TestCase):
                     value >>= s.length
                 raise AssertionError("unreachable")
 
-            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == regions[0].snowflake_id
-            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == regions[1].snowflake_id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake1) == r1.snowflake_id
+            assert recover_segment_value(snowflake.REGION_ID, snowflake2) == r2.snowflake_id
