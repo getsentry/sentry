@@ -1,6 +1,7 @@
 import {Groups} from 'sentry-fixture/groups';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -27,7 +28,7 @@ describe('Issues Similar View', function () {
   const routerContext = RouterContextFixture([
     {
       router: {
-        ...TestStubs.router(),
+        ...RouterFixture(),
         params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
       },
     },
@@ -44,7 +45,7 @@ describe('Issues Similar View', function () {
     similar: Groups().map((issue, i) => [issue, scores[i]]),
   };
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({

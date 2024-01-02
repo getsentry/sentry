@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -34,7 +35,7 @@ describe('CreateAlertFromViewButton', () => {
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[TestStubs.Project()]}
+        projects={[ProjectFixture()]}
         onClick={onClickMock}
       />,
       {context}
@@ -52,7 +53,7 @@ describe('CreateAlertFromViewButton', () => {
       access: [],
     };
     const noAccessProj = {
-      ...TestStubs.Project(),
+      ...ProjectFixture(),
       access: [],
     };
 
@@ -77,7 +78,7 @@ describe('CreateAlertFromViewButton', () => {
       ...DEFAULT_EVENT_VIEW,
     });
     const noAccessProj = {
-      ...TestStubs.Project(),
+      ...ProjectFixture(),
       access: [],
     };
 
@@ -107,16 +108,16 @@ describe('CreateAlertFromViewButton', () => {
     };
     const projects = [
       {
-        ...TestStubs.Project(),
-        id: 1,
+        ...ProjectFixture(),
+        id: '1',
         slug: 'admin-team',
-        access: ['alerts:write'],
+        access: ['alerts:write' as const],
       },
       {
-        ...TestStubs.Project(),
-        id: 2,
+        ...ProjectFixture(),
+        id: '2',
         slug: 'contributor-team',
-        access: ['alerts:read'],
+        access: ['alerts:read' as const],
       },
     ];
 
@@ -200,7 +201,7 @@ describe('CreateAlertFromViewButton', () => {
       <CreateAlertFromViewButton
         organization={organization}
         eventView={eventView}
-        projects={[TestStubs.Project()]}
+        projects={[ProjectFixture()]}
         onClick={onClickMock}
       />,
       {context}

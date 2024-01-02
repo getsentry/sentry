@@ -1,9 +1,9 @@
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Sequence, TypedDict, Union
-from urllib.parse import urlparse
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
+from sentry.utils import urls
 
 
 class Span(TypedDict):
@@ -247,8 +247,8 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
     if method not in HTTP_METHODS:
         return None
 
-    url = urlparse(url_str)
-    return [method, url.scheme, url.netloc, url.path]
+    scheme, netloc, path, _ = urls.urlsplit_best_effort(url_str)
+    return [method, scheme, netloc, path]
 
 
 @span_op(["redis", "db.redis"])

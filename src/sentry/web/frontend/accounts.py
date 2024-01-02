@@ -13,7 +13,7 @@ from django.views.decorators.http import require_http_methods
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.security import capture_security_activity
+from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.signals import email_verified
 from sentry.utils import auth
