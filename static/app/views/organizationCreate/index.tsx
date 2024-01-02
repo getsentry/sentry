@@ -71,7 +71,7 @@ function OrganizationCreate() {
           />
           {shouldDisplayRegions() && (
             <SelectField
-              name="region"
+              name="data_storage_location"
               label="Data Storage Location"
               help="Where will this organization reside?"
               choices={regionChoices}

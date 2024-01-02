@@ -34,7 +34,7 @@ from sentry.types.region import get_local_region
 class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
-    region = serializers.CharField(required=True)
+    data_storage_location = serializers.CharField(required=True)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def __init__(self, *args, **kwargs):
@@ -43,7 +43,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             del self.fields["agreeTerms"]
 
         if not options.get("hybrid_cloud.multi-region-selector"):
-            del self.fields["region"]
+            del self.fields["data_storage_location"]
         self.fields["slug"].required = False
         self.fields["name"].required = True
 
@@ -222,9 +222,9 @@ class OrganizationIndexEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            region_name = result.get("region", None)
-            if region_name and region_name != get_local_region().name:
-                return Response({"detail": "Invalid region name provided"}, status=400)
+            data_storage_location = result.get("region", None)
+            if data_storage_location and data_storage_location != get_local_region().name:
+                return Response({"detail": "Invalid data storage location provided"}, status=400)
 
             try:
                 create_default_team = bool(result.get("defaultTeam"))
