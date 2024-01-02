@@ -283,9 +283,7 @@ export function SetupReplaysCTA({
         </Button>
       </ButtonList>
       <StyledWidgetContainer>
-        <HeaderContainer>
-          <FAQHeader>{t('FAQ')}</FAQHeader>
-        </HeaderContainer>
+        <StyledHeaderContainer>{t('FAQ')}</StyledHeaderContainer>
         <Accordion
           items={FAQ}
           expandedIndex={expanded}
@@ -353,7 +351,7 @@ const QuestionContent = styled('div')`
   cursor: pointer;
 `;
 
-const FAQHeader = styled('div')`
+const StyledHeaderContainer = styled(HeaderContainer)`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
