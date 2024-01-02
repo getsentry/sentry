@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-export default function RouterPropsFixture(params = {}) {
+export function RouterPropsFixture(params = {}) {
   return {
     location: LocationFixture(),
     params: {},
@@ -9,3 +9,6 @@ export default function RouterPropsFixture(params = {}) {
     ...params,
   };
 }
+
+// TODO(epurkhiser): Remove once removed from getsentry
+export default RouterPropsFixture;
