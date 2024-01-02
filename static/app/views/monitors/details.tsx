@@ -81,7 +81,10 @@ function MonitorDetails({params, location}: Props) {
       return;
     }
     const resp = await updateMonitor(api, organization.slug, monitor.slug, data);
-    onUpdate(resp);
+
+    if (resp !== null) {
+      onUpdate(resp);
+    }
   };
 
   if (!monitor) {
