@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import Prism from 'prismjs';
 
@@ -239,6 +240,7 @@ export const usePrismTokensSourceContext = ({
         grammar,
       });
     } catch (e) {
+      Sentry.captureException(e);
       return [];
     }
   }, [grammar, postCode, preCode, executedCode, fullLanguage, code]);
