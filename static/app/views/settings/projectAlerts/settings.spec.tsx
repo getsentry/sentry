@@ -4,7 +4,7 @@ import {Project as ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Settings from 'sentry/views/settings/projectAlerts/settings';
+import ProjectAlertSettings from 'sentry/views/settings/projectAlerts/settings';
 
 describe('ProjectAlertSettings', () => {
   // 12 minutes
@@ -38,7 +38,7 @@ describe('ProjectAlertSettings', () => {
   });
 
   it('renders', async () => {
-    render(<Settings canEditRule {...routerProps} />);
+    render(<ProjectAlertSettings canEditRule {...routerProps} />);
 
     expect(
       await screen.findByPlaceholderText('e.g. $shortID - $title')
@@ -75,7 +75,7 @@ describe('ProjectAlertSettings', () => {
       body: [{...pluginConfig, enabled: true}],
     });
 
-    render(<Settings canEditRule {...routerProps} />);
+    render(<ProjectAlertSettings canEditRule {...routerProps} />);
 
     expect(
       await screen.findByPlaceholderText('e.g. $shortID - $title')
