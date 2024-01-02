@@ -72,7 +72,7 @@ function SummaryWidgets({additionalFilters}) {
       pageFilter.selection
     ),
     enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-startup-breakdown',
+    referrer: 'api.starfish.mobile-startup-bar-chart',
     initialData: {data: []},
   });
 
