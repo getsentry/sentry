@@ -205,7 +205,7 @@ def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> 
     try:
         headers, recording_data = process_headers(decoded_message["payload"])
     except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", decoded_message.replay_id)
+        logger.warning("missing header on %s", decoded_message["replay_id"])
         return None
 
     # Useful for computing the average cost of a replay.
