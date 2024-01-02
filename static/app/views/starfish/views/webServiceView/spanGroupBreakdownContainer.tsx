@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EventsStats, PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined, omit} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -63,12 +63,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     DataDisplayType.DURATION_AVG
   );
 
-  const {cursor: _, ...query} = location.query;
-  const locationWithoutCursor = {
-    ...location,
-    query,
-  };
-
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
       selection,
@@ -79,7 +73,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.span-category-breakdown',
-    location: locationWithoutCursor,
+    location: omit(location, 'query.cursor'),
     limit: 4,
   });
 
@@ -93,7 +87,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     ),
     orgSlug: organization.slug,
     referrer: 'api.starfish-web-service.total-time',
-    location: locationWithoutCursor,
+    location: omit(location, 'query.cursor'),
   });
 
   const {

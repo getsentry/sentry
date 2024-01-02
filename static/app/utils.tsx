@@ -129,13 +129,17 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
  * meaning none of the references will be preserved. If you require faster shallow cloning,
  * use {prop, ...rest} = obj spread syntax instead.
  */
-export function omit<T extends object, K extends Extract<keyof T, string>>(
-  obj: T | null | undefined,
-  key: K | (string & {})
-): Omit<T, K>;
+// omit<T extends object, K extends PropertyName[]>(
+//   object: T | null | undefined,
+//   ...paths: K
+// ): Pick<T, Exclude<keyof T, K[number]>>;
 export function omit<T extends object, K extends Extract<keyof T, string>>(
   obj: T | null | undefined,
   key: (K | (string & {}))[] | readonly (K | (string & {}))[]
+): Pick<T, Exclude<keyof T, K[][number]>>;
+export function omit<T extends object, K extends Extract<keyof T, string>>(
+  obj: T | null | undefined,
+  key: K | (string & {})
 ): Pick<T, Exclude<keyof T, K[]>>;
 export function omit<T extends object, K extends Extract<keyof T, string>>(
   obj: T | null | undefined,
