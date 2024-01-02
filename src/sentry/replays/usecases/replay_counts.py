@@ -80,7 +80,7 @@ def _get_replay_id_mappings(
             # When no replay exists these strings are provided in their empty
             # state rather than null. This can cause downstream problems so
             # we filter them out.
-            if len(replay_id) == 32:
+            if replay_id != "":
                 replay_id_to_issue_map[replay_id].append(row[select_column])
 
     return replay_id_to_issue_map
