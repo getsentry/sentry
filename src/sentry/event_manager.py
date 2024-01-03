@@ -103,7 +103,7 @@ from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
-from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.reprocessing2 import is_reprocessed_event
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
@@ -684,7 +684,6 @@ class EventManager:
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs=jobs, app_feature="errors")
-        save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
             if not project.first_event:
