@@ -16,6 +16,7 @@ from typing import (
     Dict,
     Iterator,
     Mapping,
+    MutableMapping,
     NoReturn,
     Sequence,
     Tuple,
@@ -563,9 +564,15 @@ class _RemoteSiloCall:
             }
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
-    def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
+    def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
+
+        # Add tracing continuation headers as the SDK doesn't monkeypatch requests.
+        if traceparent := sentry_sdk.get_traceparent():
+            headers["Sentry-Trace"] = traceparent
+        if baggage := sentry_sdk.get_baggage():
+            headers["Baggage"] = baggage
         try:
             return requests.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
         except requests.Timeout as e:

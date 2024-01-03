@@ -1,5 +1,5 @@
 import shuffle from 'lodash/shuffle';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
 import {PageFilters} from 'sentry-fixture/pageFilters';
 
@@ -538,9 +538,12 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   });
 
   it('merges page filter values', function () {
-    const pageFilters = TestStubs.PageFilters({
+    const pageFilters = PageFilters({
       datetime: {
         period: '3d',
+        start: null,
+        end: null,
+        utc: null,
       },
       projects: [42],
       environments: ['prod'],

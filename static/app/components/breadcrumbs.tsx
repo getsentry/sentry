@@ -80,7 +80,7 @@ function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
+export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   if (crumbs.length === 0) {
     return null;
   }
@@ -179,4 +179,7 @@ const BreadcrumbDividerIcon = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-export default Breadcrumbs;
+// TODO(epurkhiser): Remove once removed from getsentry
+const DO_NOT_USE = Breadcrumbs;
+
+export default DO_NOT_USE;

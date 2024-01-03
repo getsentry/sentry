@@ -29,8 +29,10 @@ export type Project = {
   groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
+  hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasMinifiedStackTrace: boolean;
+  hasNewFeedbacks: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
@@ -79,7 +81,7 @@ export type ProjectKey = {
   browserSdk: {
     choices: [key: string, value: string][];
   };
-  browserSdkVersion: string;
+  browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
   dsn: {
     cdn: string;
@@ -99,11 +101,11 @@ export type ProjectKey = {
   isActive: boolean;
   label: string;
   name: string;
-  projectId: string;
+  projectId: number;
   public: string;
   rateLimit: {
     count: number;
-    window: string;
+    window: number;
   } | null;
   secret: string;
 };

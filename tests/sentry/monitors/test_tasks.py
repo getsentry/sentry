@@ -443,7 +443,11 @@ class MonitorTaskCheckMissingTest(TestCase):
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def assert_state_does_not_change_for_status(
-        self, state, mark_environment_missing_mock, is_muted=False
+        self,
+        state,
+        mark_environment_missing_mock,
+        is_muted=False,
+        environment_is_muted=False,
     ):
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -471,6 +475,7 @@ class MonitorTaskCheckMissingTest(TestCase):
             next_checkin=ts - timedelta(minutes=1),
             next_checkin_latest=ts,
             status=MonitorStatus.ACTIVE,
+            is_muted=environment_is_muted,
         )
 
         check_missing(task_run_ts)
@@ -490,6 +495,10 @@ class MonitorTaskCheckMissingTest(TestCase):
     # Temporary test until we can move out of celery or reduce load
     def test_missing_checkin_but_muted(self):
         self.assert_state_does_not_change_for_status(ObjectStatus.ACTIVE, is_muted=True)
+
+    # Temporary test until we can move out of celery or reduce load
+    def test_missing_checkin_but_environment_muted(self):
+        self.assert_state_does_not_change_for_status(ObjectStatus.ACTIVE, environment_is_muted=True)
 
     @mock.patch("sentry.monitors.tasks.mark_environment_missing")
     def test_not_missing_checkin(self, mark_environment_missing_mock):

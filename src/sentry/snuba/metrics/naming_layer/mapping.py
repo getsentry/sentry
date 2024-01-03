@@ -9,7 +9,7 @@ __all__ = (
 from enum import Enum
 from typing import Dict, Optional, Tuple, Union, cast
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_EXPRESSION_REGEX,
     MRI_SCHEMA_REGEX,
@@ -39,7 +39,7 @@ def create_name_mapping_layers() -> None:
         }
     )
 
-    for (MetricKey, MRI) in (
+    for MetricKey, MRI in (
         (SessionMetricKey, SessionMRI),
         (TransactionMetricKey, TransactionMRI),
         (SpanMetricKey, SpanMRI),

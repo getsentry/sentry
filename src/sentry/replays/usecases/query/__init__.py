@@ -57,6 +57,8 @@ def handle_search_filters(
         if isinstance(search_filter, SearchFilter):
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
+                if condition is None:
+                    raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
@@ -107,26 +109,16 @@ def attempt_compressed_condition(
 def search_filter_to_condition(
     search_config: dict[str, FieldProtocol],
     search_filter: SearchFilter,
-) -> Condition:
-    # The field-name is whatever the API says it is.  We take it at face value.
-    field_name = search_filter.key.name
-
-    # If the field-name is in the search config then we can apply the search filter and return a
-    # result.  If its not then its a tag and the same operation is performed only with a few more
-    # steps.
-    field = search_config.get(field_name)
+) -> Condition | None:
+    field = search_config.get(search_filter.key.name)
     if isinstance(field, (ColumnField, ComputedField)):
         return field.apply(search_filter)
 
-    if field is None:
-        # Tags are represented with an "*" field by convention.  We could name it `tags` and
-        # update our search config to point to this field-name.
+    if "*" in search_config:
         field = cast(TagField, search_config["*"])
+        return field.apply(search_filter)
 
-    # The field_name in this case does not represent a column_name but instead it represents a
-    # dynamic value in the tags.key array.  For this reason we need to pass it into our "apply"
-    # function.
-    return field.apply(search_filter)
+    return None
 
 
 # Everything below here will move to replays/query.py once we deprecate the old query behavior.

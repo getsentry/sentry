@@ -31,10 +31,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(${getReplayConfigOptions({
-          mask: params.mask,
-          block: params.block,
-        })}),`
+        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${
@@ -176,7 +173,7 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+              code: getSdkSetupSnippet(params),
             },
           ],
         },

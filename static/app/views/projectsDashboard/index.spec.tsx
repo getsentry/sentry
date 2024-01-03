@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {
@@ -68,7 +69,7 @@ describe('ProjectsDashboard', function () {
           loadingTeams={false}
           teams={noProjectTeams}
           organization={org}
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
         />
       );
 
@@ -88,7 +89,7 @@ describe('ProjectsDashboard', function () {
           loadingTeams={false}
           teams={teamsWithOneProject}
           organization={org}
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
         />
       );
 
@@ -132,7 +133,7 @@ describe('ProjectsDashboard', function () {
           loadingTeams={false}
           organization={org}
           teams={teamsWithTwoProjects}
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
         />
       );
       expect(screen.getByText('My Teams')).toBeInTheDocument();
@@ -212,7 +213,7 @@ describe('ProjectsDashboard', function () {
           loadingTeams={false}
           teams={teamsWithSpecificProjects}
           organization={org}
-          {...TestStubs.routeComponentProps({
+          {...RouteComponentPropsFixture({
             location: {
               pathname: '',
               hash: '',
@@ -262,7 +263,7 @@ describe('ProjectsDashboard', function () {
           loadingTeams={false}
           teams={teamsWithTwoProjects}
           organization={org}
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
         />
       );
       await userEvent.type(
@@ -346,7 +347,7 @@ describe('ProjectsDashboard', function () {
           loadingTeams={false}
           organization={org}
           teams={teamsWithFavProjects}
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
         />
       );
 
@@ -433,7 +434,7 @@ describe('ProjectsDashboard', function () {
           loadingTeams={false}
           teams={teamsWithStatTestProjects}
           organization={org}
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
         />
       );
 
@@ -499,7 +500,7 @@ describe('ProjectsDashboard', function () {
           error={Error('uhoh')}
           organization={org}
           teams={[]}
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
         />
       );
 

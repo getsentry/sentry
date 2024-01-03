@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from typing_extensions import override
 
@@ -85,7 +86,7 @@ class UserEndpoint(Endpoint):
     currently logged in user's ID.
     """
 
-    permission_classes = (UserPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
 
     @override
     def convert_args(self, request: Request, user_id: str | None = None, *args, **kwargs):

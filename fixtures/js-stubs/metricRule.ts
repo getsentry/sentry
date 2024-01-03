@@ -1,15 +1,16 @@
 import {IncidentTrigger} from 'sentry-fixture/incidentTrigger';
 
-import type {MetricRule as TMetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {SavedMetricRule as SavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-export function MetricRule(params: Partial<TMetricRule> = {}): TMetricRule {
+export function MetricRule(params: Partial<SavedMetricRule> = {}): SavedMetricRule {
   return {
     status: 0,
     dateCreated: '2019-07-31T23:02:02.731Z',
     dataset: Dataset.ERRORS,
     query: '',
     id: '4',
+    snooze: false,
     name: 'My Incident Rule',
     timeWindow: 60,
     aggregate: 'count()',

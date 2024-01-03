@@ -2,7 +2,7 @@ from sentry import analytics
 
 
 class BaseIncidentEvent(analytics.Event):
-    attributes = (
+    attributes: tuple[analytics.Attribute, ...] = (
         analytics.Attribute("incident_id"),
         analytics.Attribute("organization_id"),
         analytics.Attribute("incident_type"),

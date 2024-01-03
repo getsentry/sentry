@@ -1,7 +1,8 @@
 import selectEvent from 'react-select-event';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -74,10 +75,7 @@ describe('Discover > Landing', function () {
 
   it('denies access on missing feature', function () {
     render(
-      <DiscoverLanding
-        organization={Organization()}
-        {...TestStubs.routeComponentProps()}
-      />
+      <DiscoverLanding organization={Organization()} {...RouteComponentPropsFixture()} />
     );
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
@@ -86,7 +84,7 @@ describe('Discover > Landing', function () {
   it('has the right sorts', function () {
     const org = Organization({features});
 
-    render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />);
+    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />);
 
     const expectedSorts = [
       'My Queries',
@@ -111,7 +109,7 @@ describe('Discover > Landing', function () {
   it('links back to the homepage', () => {
     const org = Organization({features});
 
-    render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />, {
+    render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />, {
       context: RouterContextFixture(),
     });
 

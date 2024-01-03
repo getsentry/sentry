@@ -1,4 +1,5 @@
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {Incident as IncidentFixture} from 'sentry-fixture/incident';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricRule} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -16,9 +17,9 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2}), // closed
+        IncidentFixture({id: '1', status: 20}), // critical
+        IncidentFixture({id: '2', status: 10}), // warning
+        IncidentFixture({id: '3', status: 2}), // closed
       ],
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
@@ -154,9 +155,9 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2, dateClosed: null}), // closed with null dateClosed
+        IncidentFixture({id: '1', status: 20}), // critical
+        IncidentFixture({id: '2', status: 10}), // warning
+        IncidentFixture({id: '3', status: 2, dateClosed: null}), // closed with null dateClosed
       ],
     });
 
