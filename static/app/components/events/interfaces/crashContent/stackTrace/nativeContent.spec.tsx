@@ -1,11 +1,11 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
-import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -16,15 +16,15 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
-const organization = Organization();
+const organization = OrganizationFixture();
 const project = ProjectFixture({});
 
 const integration = GitHubIntegrationFixture();
-const repo = Repository({integrationId: integration.id});
+const repo = RepositoryFixture({integrationId: integration.id});
 
-const config = RepositoryProjectPathConfig({project, repo, integration});
+const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
-const eventEntryStacktrace = EventEntryStacktrace();
+const eventEntryStacktrace = EventEntryStacktraceFixture();
 const event = EventFixture({
   projectID: project.id,
   entries: [eventEntryStacktrace],
@@ -144,15 +144,15 @@ describe('Native StackTrace', function () {
     const newData = {
       ...data,
       frames: [
-        EventStacktraceFrame({
+        EventStacktraceFrameFixture({
           symbolicatorStatus: SymbolicatorStatus.MISSING,
           function: 'missing()',
         }),
-        EventStacktraceFrame({
+        EventStacktraceFrameFixture({
           symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
           function: 'unknown_image()',
         }),
-        EventStacktraceFrame({
+        EventStacktraceFrameFixture({
           symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
           function: 'symbolicated()',
         }),

@@ -1,5 +1,5 @@
-import {WebhookPluginConfig} from 'sentry-fixture/integrationListDirectory';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {WebhookPluginConfigFixture} from 'sentry-fixture/integrationListDirectory';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -57,7 +57,7 @@ describe('ProjectAlertSettings', () => {
   });
 
   it('enables webhook integration', async () => {
-    const pluginConfig = WebhookPluginConfig({enabled: false});
+    const pluginConfig = WebhookPluginConfigFixture({enabled: false});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,

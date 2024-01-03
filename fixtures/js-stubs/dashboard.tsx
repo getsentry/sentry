@@ -5,7 +5,7 @@ import type {
   Widget as TWidget,
 } from 'sentry/views/dashboards/types';
 
-export function Dashboard(
+export function DashboardFixture(
   widgets: TWidget[],
   props: Partial<TDashboardDetails> = {}
 ): TDashboardDetails {
@@ -20,7 +20,7 @@ export function Dashboard(
   };
 }
 
-export function DashboardListItem(
+export function DashboardListItemFixture(
   params: Partial<TDashboardListItem> = {}
 ): TDashboardListItem {
   return {
