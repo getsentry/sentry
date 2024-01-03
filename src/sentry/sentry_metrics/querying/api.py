@@ -1,6 +1,6 @@
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -29,6 +29,17 @@ from sentry.utils.snuba import SnubaError
 
 # Snuba can return at most 10.000 rows.
 SNUBA_QUERY_LIMIT = 10000
+# Intervals in seconds which are used by the product to query data.
+DEFAULT_QUERY_INTERVALS = [
+    60 * 60 * 24,  # 1 day
+    60 * 60 * 12,  # 12 hours
+    60 * 60 * 4,  # 4 hours
+    60 * 60 * 2,  # 2 hours
+    60 * 60,  # 1 hour
+    60 * 30,  # 30 min
+    60 * 5,  # 5 min
+    60,  # 1 min
+]
 
 
 class InvalidMetricsQueryError(Exception):
@@ -59,6 +70,9 @@ class ExecutableQuery:
 
     def build_result(self, result: Mapping[str, Any]) -> "ExecutionResult":
         return ExecutionResult(query=self, result=result)
+
+    def set_interval(self, new_interval) -> "ExecutableQuery":
+        return replace(self, query=self.query.set_rollup(Rollup(new_interval)))
 
 
 @dataclass
@@ -161,7 +175,9 @@ class ExecutionResult:
     def groups(self) -> Sequence[Sequence[Tuple[str, str]]]:
         groups = []
 
-        for data in self.totals:
+        # We prefer to use totals to determine the groups that we received, since those are less likely to hit the limit
+        # , and thus they will be more comprehensive. In case the query doesn't have totals, we have to use series.
+        for data in self.totals or self.series:
             inner_group = []
 
             for key, value in data.items():
@@ -171,6 +187,18 @@ class ExecutionResult:
             groups.append(inner_group)
 
         return groups
+
+    @property
+    def length(self) -> int:
+        # We try to see how many series results we got, since that is the query which is likely to surpass the limit.
+        if "series" in self.result:
+            return len(self.series)
+
+        # If we have no series, totals will give us a hint of the size of the dataset.
+        if "totals" in self.result:
+            return len(self.totals)
+
+        return 0
 
 
 class MutableTimeseries:
@@ -306,6 +334,9 @@ class QueryExecutor:
     def __init__(self, organization: Organization, referrer: str):
         self._organization = organization
         self._referrer = referrer
+        # Ordered list of the intervals that can be chosen by the executor. They are removed when tried, in order
+        # to avoid an infinite recursion.
+        self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS, reverse=True)
         # List of queries scheduled for execution.
         self._scheduled_queries: List[ExecutableQuery] = []
 
@@ -369,35 +400,68 @@ class QueryExecutor:
             )
 
     def schedule(self, query: MetricsQuery, group_bys: Optional[Sequence[str]]):
-        with_series = True
-        with_totals = True
-
         executable_query = ExecutableQuery(
             query=query,
             group_bys=group_bys,
-            with_series=with_series,
-            with_totals=with_totals,
+            # For now, we execute both queries independently of the query.
+            with_series=True,
+            with_totals=True,
         )
         self._scheduled_queries.append(executable_query)
 
-    def _serial_execute(self) -> Generator[ExecutionResult, None, None]:
-        # 1. Run first query
-        # 2. If the results are < 10k, just run the other queries
-        # 3. If the results are >= 10k, we take the number of groups (aka number of possible timeseries) and we try to
-        #   find an interval
-        # 4. To compute the interval, we first have to find the number of elements in the interval (num_groups * interval_size = 10k)
-        # 5. interval_size will give us the number of elements in the interval, then assuming the lowest possible resolution
-        #   is seconds, we can find how many seconds our interval is interval_length = (end - start) / interval_size
-        # 6. Now given interval_length I will find the biggest interval in seconds that is <= to interval_length.
-        # 7. I will run a query with that interval, assuming no change in groups and this should give a complete result
-        #   set with a coarser granularity.
+    def _derive_optimal_interval(self, result: ExecutionResult) -> int:
+        # First we determine as best effort how many groups were returned, just to estimate the cardinality.
+        groups_number = len(result.groups)
+
+        # Second we compute the ideal number of intervals that can fit with a given number of groups. We round down
+        # since we want to work with integers.
+        intervals_number = math.floor(SNUBA_QUERY_LIMIT / groups_number)
+
+        # Third we compute the size of each interval in seconds, considering how many intervals we want in the time
+        # range of the query.
+        interval_size = math.floor(
+            (result.modified_end - result.modified_start).total_seconds() / intervals_number
+        )
+
+        for index, interval in enumerate(self._interval_choices):
+            if interval <= interval_size:
+                # We have to put the choice, otherwise we end up in an infinite recursion.
+                self._interval_choices.pop(index)
+                return interval
+
+        # If no suitable interval is found, we throw an error to unwind.
+        raise MetricsQueryExecutionError("Too many results returned by the query")
+
+    def _serial_execute(self) -> Sequence[ExecutionResult]:
         if not self._scheduled_queries:
-            return
+            return []
 
-        for query in self._scheduled_queries:
-            yield self._execute(query)
+        first_query = self._scheduled_queries.pop(0)
+        first_result = self._execute(first_query)
 
-    def execute(self) -> Generator[ExecutionResult, None, None]:
+        # Case 1: we have fewer results that the limit. In this case we are free to run the follow-up queries under the
+        # assumption that data doesn't change much between queries.
+        if first_result.length < SNUBA_QUERY_LIMIT:
+            results = [first_result]
+            for query in self._scheduled_queries:
+                results.append(self._execute(query))
+
+            return results
+
+        # Case 2: we have more results than the limit. In this case we want to determine a new optimal interval that
+        # will result in less than limit data points.
+        optimal_interval = self._derive_optimal_interval(first_result)
+
+        # We update the scheduled queries to use the new interval. It's important to note that we also add back the
+        # first query, since we need to execute it again.
+        self._scheduled_queries = [
+            query.set_interval(optimal_interval)
+            for query in [first_query] + self._scheduled_queries
+        ]
+
+        return self._serial_execute()
+
+    def execute(self) -> Sequence[ExecutionResult]:
         return self._serial_execute()
 
 
@@ -607,7 +671,11 @@ def run_metrics_query(
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
     for timeseries in parser.generate_queries(environments=environments):
-        query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
+        query = (
+            base_query.set_query(timeseries)
+            .set_rollup(Rollup(interval=interval))
+            .set_limit(SNUBA_QUERY_LIMIT)
+        )
         executor.schedule(query, group_bys)
 
     # Iterating over each result.
