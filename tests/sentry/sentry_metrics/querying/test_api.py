@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone as django_timezone
@@ -384,6 +385,59 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field: [0, 2, 0]}
         assert groups[0]["totals"] == {field: 2}
+
+    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
+    def test_query_with_too_many_results(self) -> None:
+        # Query with one aggregation and two group by.
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=["transaction", "platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=60,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        # We expect that the algorithm chooses an interval of 2 hours, since we are querying 3 timeseries and given
+        # a limit of 5, the best that we can do is to have one interval per timeseries 3 * 1 < 5. We can't have for
+        # example an interval of 1 hour, since this will result in 2 intervals for each group which is 3 * 2 < 5.
+        # Given the inner workings of query ranges, if we query from 09:30 to 11:30 with an interval of 2 hours, the
+        # system will approximate to the outer bounds that are a multiple of 2 hours, which in this case is:
+        # 08:00 - 10:00
+        # 10:00 - 12:00
+        assert results["intervals"] == [self.now() - timedelta(hours=2), self.now()]
+        groups = results["groups"]
+        assert len(groups) == 3
+        assert groups[0]["by"] == {"platform": "android", "transaction": "/hello"}
+        assert groups[0]["series"] == {field: [0.0, 3.0]}
+        assert groups[0]["totals"] == {field: 3.0}
+        assert groups[1]["by"] == {"platform": "ios", "transaction": "/hello"}
+        assert groups[1]["series"] == {field: [0.0, 6.0]}
+        assert groups[1]["totals"] == {field: 6.0}
+        assert groups[2]["by"] == {"platform": "windows", "transaction": "/world"}
+        assert groups[2]["series"] == {field: [0.0, 8.0]}
+        assert groups[2]["totals"] == {field: 8.0}
+
+    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.api.DEFAULT_QUERY_INTERVALS", [])
+    def test_query_with_too_many_results_and_no_interval_found(self) -> None:
+        with pytest.raises(MetricsQueryExecutionError):
+            run_metrics_query(
+                fields=[f"sum({TransactionMRI.DURATION.value})"],
+                query=None,
+                group_bys=["transaction", "platform"],
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=60,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
 
     @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
