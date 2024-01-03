@@ -8,7 +8,7 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 
-import {MRI} from 'sentry/types';
+import {MRI, Project} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   MetricDisplayType,
@@ -16,10 +16,10 @@ import {
   useInstantRef,
   useUpdateQuery,
 } from 'sentry/utils/metrics';
-import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {FocusArea} from 'sentry/views/ddm/chartBrush';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
@@ -72,6 +72,17 @@ const emptyWidget: MetricWidgetQueryParams = {
   displayType: MetricDisplayType.LINE,
   title: undefined,
 };
+
+function useCurrentProjects(): Project[] {
+  const {selection} = usePageFilters();
+  const {projects: projectIds} = selection;
+  const {projects} = useProjects();
+
+  return useMemo(() => {
+    const projectIdLookup = new Set(projectIds.map(id => id.toString()));
+    return projects.filter(project => projectIdLookup.has(project.id));
+  }, [projects, projectIds]);
+}
 
 export function useMetricWidgets() {
   const router = useRouter();
@@ -186,15 +197,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
 
-  // TODO(telemetry-experience): Switch to the logic below once we have the hasCustomMetrics flag on project
-  // const {projects} = useProjects();
-  // const selectedProjects = projects.filter(project =>
-  //   pageFilters.projects.includes(parseInt(project.id, 10))
-  // );
-  // const hasCustomMetrics = selectedProjects.some(project => project.hasCustomMetrics);
-  const hasCustomMetrics = !!metricsMeta.find(
-    meta => parseMRI(meta)?.useCase === 'custom'
-  );
+  const currentProjects = useCurrentProjects();
+  const hasCustomMetrics = currentProjects.some(project => project.hasCustomMetrics);
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {

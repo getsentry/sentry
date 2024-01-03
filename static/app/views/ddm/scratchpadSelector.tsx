@@ -30,19 +30,19 @@ export function ScratchpadSelector() {
 
   const isDefault = useCallback(
     scratchpad => scratchpads.default === scratchpad.id,
-    [scratchpads]
+    [scratchpads.default]
   );
 
   const scratchpadOptions = useMemo(
     () =>
-      Object.values(scratchpads.all).map((s: any) => ({
-        value: s.id,
-        label: s.name,
+      Object.values(scratchpads.all).map(scratchpad => ({
+        value: scratchpad.id,
+        label: scratchpad.name,
         trailingItems: (
           <Fragment>
             <Tooltip
               title={
-                isDefault(s)
+                isDefault(scratchpad)
                   ? t('Remove as default scratchpad')
                   : t('Set as default scratchpad')
               }
@@ -57,15 +57,15 @@ export function ScratchpadSelector() {
                   });
                   Sentry.metrics.increment('ddm.scratchpad.set_default');
 
-                  if (isDefault(s)) {
+                  if (isDefault(scratchpad)) {
                     scratchpads.setDefault(null);
                   } else {
-                    scratchpads.setDefault(s.id ?? null);
+                    scratchpads.setDefault(scratchpad.id ?? null);
                   }
                 }}
               >
                 <StyledDropdownIcon>
-                  <IconBookmark isSolid={isDefault(s)} />
+                  <IconBookmark isSolid={isDefault(scratchpad)} />
                 </StyledDropdownIcon>
               </Button>
             </Tooltip>
@@ -82,7 +82,7 @@ export function ScratchpadSelector() {
                       });
                       Sentry.metrics.increment('ddm.scratchpad.remove');
 
-                      return scratchpads.remove(s.id);
+                      scratchpads.remove(scratchpad.id);
                     },
                     message: t('Are you sure you want to delete this scratchpad?'),
                     confirmText: t('Delete'),
