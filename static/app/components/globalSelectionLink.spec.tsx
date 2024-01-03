@@ -1,4 +1,5 @@
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +11,7 @@ describe('GlobalSelectionLink', function () {
   const getContext = (query?: {environment: string; project: string[]}) =>
     RouterContextFixture([
       {
-        router: TestStubs.router({
+        router: RouterFixture({
           location: {query},
         }),
       },

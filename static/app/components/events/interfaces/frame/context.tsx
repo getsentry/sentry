@@ -6,6 +6,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
+import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,7 +23,6 @@ import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -88,6 +88,13 @@ function Context({
     organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
     false;
 
+  const hasStacktraceLinkInFrameFeatureFlag =
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+
+  // This is the old design. Only show if the feature flag is not enabled for this organization.
+  const hasStacktraceLink =
+    frame.inApp && !!frame.filename && isExpanded && !hasStacktraceLinkInFrameFeatureFlag;
+
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -135,13 +142,10 @@ function Context({
   );
 
   const fileExtension = getFileExtension(frame.filename || '') ?? '';
-  const lines = usePrismTokens({
-    // Some events have context lines with newline characters at the end,
-    // so we need to remove them to be consistent.
-    code:
-      contextLines?.map(([, code]) => code?.replaceAll(/\r?\n/g, '') ?? '').join('\n') ??
-      '',
-    language: fileExtension,
+  const lines = usePrismTokensSourceContext({
+    contextLines,
+    lineNo: frame.lineNo,
+    fileExtension,
   });
 
   if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
@@ -154,7 +158,6 @@ function Context({
   }
 
   const startLineNo = hasContextSource ? frame.context[0][0] : 0;
-  const hasStacktraceLink = frame.inApp && !!frame.filename && isExpanded;
 
   const prismClassName = fileExtension ? `language-${fileExtension}` : '';
 
@@ -299,6 +302,7 @@ const CodeWrapper = styled('div')`
   padding: 0;
 
   && pre {
+    font-size: ${p => p.theme.fontSizeSmall};
     white-space: pre-wrap;
     margin: 0;
     overflow: hidden;

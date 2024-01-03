@@ -237,6 +237,11 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     first_event = models.DateTimeField(null=True)
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # This Project has sent release data
         has_releases: bool
         # This Project has issue alerts targeting
@@ -279,6 +284,9 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # This Project has event with sourcemaps
         has_sourcemaps: bool
+
+        # This Project has custom metrics
+        has_custom_metrics: bool
 
         bitfield_default = 10
         bitfield_null = True

@@ -47,6 +47,7 @@ def get_size_and_checksum(fileobj, logger=nooplogger):
             break
         size += len(chunk)
         checksum.update(chunk)
+    fileobj.seek(0)
 
     logger.debug("get_size_and_checksum.end")
     return size, checksum.hexdigest()
@@ -118,7 +119,6 @@ class AssembleChecksumMismatch(Exception):
 
 
 def get_storage(config=None):
-
     if config is not None:
         backend = config["backend"]
         options = config["options"]
@@ -135,6 +135,25 @@ def get_storage(config=None):
 
     storage = get_storage_class(backend)
     return storage(**options)
+
+
+def get_relocation_storage(config=None):
+    if config is not None:
+        backend = config["backend"]
+        relocation = config["relocation"]
+    else:
+        from sentry import options as options_store
+
+        backend = options_store.get("filestore.backend")
+        relocation = options_store.get("filestore.relocation")
+
+    try:
+        backend = settings.SENTRY_FILESTORE_ALIASES[backend]
+    except KeyError:
+        pass
+
+    storage = get_storage_class(backend)
+    return storage(**relocation)
 
 
 def clear_cached_files(cache_path):

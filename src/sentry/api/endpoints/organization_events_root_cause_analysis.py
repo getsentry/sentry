@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
+from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import METRICS_MAX_LIMIT
 from sentry.search.events.types import QueryBuilderConfig
@@ -238,7 +239,7 @@ def fetch_geo_analysis_results(transaction_name, regression_breakpoint, params, 
 @region_silo_endpoint
 class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request, organization):
@@ -260,7 +261,7 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         params = self.get_snuba_params(request, organization)
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             transaction_count_query = metrics_query(
                 ["count()"],
                 f'event.type:transaction transaction:"{transaction_name}"',

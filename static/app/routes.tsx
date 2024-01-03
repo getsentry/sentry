@@ -285,21 +285,13 @@ function buildRoutes() {
           component={errorHandler(withDomainRequired(OrganizationContextContainer))}
           key="orgless-relocation"
         >
-          <IndexRedirect to="welcome/" />
+          <IndexRedirect to="get-started/" />
           <Route
             path=":step/"
             component={make(() => import('sentry/views/relocation'))}
           />
         </Route>
       )}
-      <Route
-        path="/relocation/:orgId/"
-        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
-        key="org-relocation"
-      >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
-      </Route>
       {usingCustomerDomain && (
         <Route
           path="/onboarding/"
@@ -575,6 +567,19 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
+      <Route path="metrics/" name={t('Metrics')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
+        />
+        <Route
+          name={t('Metrics Details')}
+          path=":mri/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
+          )}
+        />
+      </Route>
+
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -2228,14 +2233,13 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
+        path="profile/:projectId/differential-flamegraph/"
+        component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
+      />
+      <Route
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
-        {/* @TODO Remove flamechart route name */}
-        <Route
-          path="flamechart/"
-          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
         <Route
           path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}

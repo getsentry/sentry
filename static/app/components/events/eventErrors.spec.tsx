@@ -1,4 +1,5 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -12,7 +13,7 @@ import {EntryType} from 'sentry/types';
 
 describe('EventErrors', () => {
   const defaultProps = {
-    project: TestStubs.Project(),
+    project: ProjectFixture(),
     event: EventFixture(),
     isShare: false,
   };

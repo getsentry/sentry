@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -14,19 +15,19 @@ describe('Discover > ChartFooter', function () {
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
   ];
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: 'test query',
     version: 2,
     fields: ['transaction', 'count()'],
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
   });
 
   afterEach(function () {});
 
   it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       features: [...features],
     });
 
@@ -67,7 +68,7 @@ describe('Discover > ChartFooter', function () {
   });
 
   it('renders display limits with default limit when top 5 mode is selected', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       features,
     });
     // Start off with an invalid view (empty is invalid)

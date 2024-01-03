@@ -1,6 +1,9 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import {Team} from 'sentry-fixture/team';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +11,7 @@ import Access from 'sentry/components/acl/access';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Access', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     access: ['project:write', 'project:read'],
   });
   const routerContext = RouterContextFixture([{organization}]);
@@ -45,10 +48,10 @@ describe('Access', function () {
     });
 
     it('read access from team', function () {
-      const org = Organization({access: []});
+      const org = OrganizationFixture({access: []});
       const nextRouterContext = RouterContextFixture([{organization: org}]);
 
-      const team1 = Team({access: []});
+      const team1 = TeamFixture({access: []});
       render(
         <Access access={['team:admin']} team={team1}>
           {childrenMock}
@@ -63,7 +66,7 @@ describe('Access', function () {
         })
       );
 
-      const team2 = Team({
+      const team2 = TeamFixture({
         access: ['team:read', 'team:write', 'team:admin'],
       });
       render(
@@ -82,10 +85,10 @@ describe('Access', function () {
     });
 
     it('read access from project', function () {
-      const org = Organization({access: []});
+      const org = OrganizationFixture({access: []});
       const nextRouterContext = RouterContextFixture([{organization: org}]);
 
-      const proj1 = TestStubs.Project({access: []});
+      const proj1 = ProjectFixture({access: []});
       render(
         <Access access={['project:read']} project={proj1}>
           {childrenMock}
@@ -100,7 +103,7 @@ describe('Access', function () {
         })
       );
 
-      const proj2 = TestStubs.Project({access: ['project:read']});
+      const proj2 = ProjectFixture({access: ['project:read']});
       render(
         <Access access={['project:read']} project={proj2}>
           {childrenMock}
@@ -132,8 +135,8 @@ describe('Access', function () {
 
     it('handles no user', function () {
       // Regression test for the share sheet.
-      ConfigStore.config = TestStubs.Config({
-        user: null,
+      ConfigStore.config = ConfigFixture({
+        user: undefined,
       });
 
       render(<Access>{childrenMock}</Access>, {context: routerContext, organization});
@@ -145,8 +148,8 @@ describe('Access', function () {
     });
 
     it('is superuser', function () {
-      ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: true}),
+      ConfigStore.config = ConfigFixture({
+        user: UserFixture({isSuperuser: true}),
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -161,8 +164,8 @@ describe('Access', function () {
     });
 
     it('is not superuser', function () {
-      ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: false}),
+      ConfigStore.config = ConfigFixture({
+        user: UserFixture({isSuperuser: false}),
       });
 
       render(<Access isSuperuser>{childrenMock}</Access>, {
@@ -201,8 +204,8 @@ describe('Access', function () {
     });
 
     it('has superuser', function () {
-      ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: true}),
+      ConfigStore.config = ConfigFixture({
+        user: UserFixture({isSuperuser: true}),
       });
 
       render(
@@ -216,8 +219,8 @@ describe('Access', function () {
     });
 
     it('has no superuser', function () {
-      ConfigStore.config = TestStubs.Config({
-        user: TestStubs.User({isSuperuser: false}),
+      ConfigStore.config = ConfigFixture({
+        user: UserFixture({isSuperuser: false}),
       });
 
       render(

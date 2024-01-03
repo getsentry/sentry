@@ -21,11 +21,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
-    FileBlameInfo,
-    SourceLineInfo,
-)
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -170,7 +166,7 @@ class GitlabIntegration(
 
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
+    ) -> Mapping[str, Any] | None:
         """
         Returns the latest commit that altered the line from the event frame if it exists.
         """
@@ -210,11 +206,6 @@ class GitlabIntegration(
                 "commitAuthorName": commitInfo.get("committer_name"),
                 "commitAuthorEmail": commitInfo.get("committer_email"),
             }
-
-    def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
-    ) -> Sequence[FileBlameInfo]:
-        return self.get_blame_for_files(files, extra=extra)
 
 
 class InstallationForm(forms.Form):

@@ -51,7 +51,7 @@ class GithubRequestParser(BaseRequestParser):
         except json.JSONDecodeError:
             return HttpResponse(status=400)
 
-        if event.get("installation") and event.get("action") == "created":
+        if event.get("installation") and event.get("action") in {"created", "deleted"}:
             return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()

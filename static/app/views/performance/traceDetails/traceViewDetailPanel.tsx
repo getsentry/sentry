@@ -43,6 +43,7 @@ import {
   ErrorMessageTitle,
   ErrorTitle,
 } from 'sentry/components/performance/waterfall/rowDetails';
+import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -95,7 +96,7 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
       <Row
         title={
           <FlexBox style={{gap: '5px'}}>
-            Ops Breakdown
+            {t('Ops Breakdown')}
             <QuestionTooltip
               title={t('Applicable to the children of this event only')}
               size="xs"
@@ -104,16 +105,16 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
         }
       >
         <div style={{display: 'flex', flexDirection: 'column', gap: space(0.25)}}>
-          {breakdown.slice(0, showingAll ? breakdown.length : 5).map((currOp, index) => {
+          {breakdown.slice(0, showingAll ? breakdown.length : 5).map(currOp => {
             const {name, percentage, totalInterval} = currOp;
 
             const operationName = typeof name === 'string' ? name : t('Other');
-            const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
             const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
             return (
-              <div key={index}>
-                {operationName}: {durLabel}ms ({pctLabel}%)
+              <div key={operationName}>
+                {operationName}:{' '}
+                <PerformanceDuration seconds={totalInterval} abbreviation /> ({pctLabel}%)
               </div>
             );
           })}
@@ -148,19 +149,15 @@ function BreadCrumbsSection({
   }, [showBreadCrumbs, breadCrumbsContainerRef]);
 
   const matchingEntry: EntryBreadcrumbs | undefined = event?.entries.find(
-    entry => entry.type === EntryType.BREADCRUMBS
-  ) as EntryBreadcrumbs;
+    (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+  );
 
   if (!matchingEntry) {
     return null;
   }
 
   const renderText = showBreadCrumbs ? t('Hide Breadcrumbs') : t('Show Breadcrumbs');
-  const chevron = showBreadCrumbs ? (
-    <IconChevron size="xs" direction="up" />
-  ) : (
-    <IconChevron size="xs" direction="down" />
-  );
+  const chevron = <IconChevron size="xs" direction={showBreadCrumbs ? 'up' : 'down'} />;
   return (
     <Fragment>
       <a
@@ -402,7 +399,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
 
           {measurementNames.length > 0 && (
             <tr>
-              <td className="key">Custom Metrics</td>
+              <td className="key">{t('Custom Metrics')}</td>
               <td className="value">
                 <Measurements>
                   {measurementNames.map(name => {

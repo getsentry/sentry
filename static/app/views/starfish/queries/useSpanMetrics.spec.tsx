@@ -1,5 +1,6 @@
 import {ReactNode} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -22,7 +23,7 @@ function Wrapper({children}: {children?: ReactNode}) {
 }
 
 describe('useSpanMetrics', () => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -41,15 +42,11 @@ describe('useSpanMetrics', () => {
     },
   });
 
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
-    search: '',
-    query: {statsPeriod: '10d'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
+  jest.mocked(useLocation).mockReturnValue(
+    LocationFixture({
+      query: {statsPeriod: '10d'},
+    })
+  );
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
@@ -69,7 +66,8 @@ describe('useSpanMetrics', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(
-      ({filters, fields}) => useSpanMetrics(filters, fields),
+      ({filters, fields, sorts, limit, cursor, referrer}) =>
+        useSpanMetrics(filters, fields, sorts, limit, cursor, referrer),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -79,6 +77,10 @@ describe('useSpanMetrics', () => {
             release: '0.0.1',
           },
           fields: ['spm()'] as MetricsProperty[],
+          sorts: [{field: 'spm()', kind: 'desc' as const}],
+          limit: 10,
+          referrer: 'api-spec',
+          cursor: undefined,
         },
       }
     );
@@ -89,22 +91,29 @@ describe('useSpanMetrics', () => {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         method: 'GET',
-        query: expect.objectContaining({
-          query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
+        query: {
           dataset: 'spansMetrics',
-          statsPeriod: '10d',
+          environment: [],
           field: ['spm()'],
-        }),
+          per_page: 10,
+          project: [],
+          sort: '-spm()',
+          query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
+          referrer: 'api-spec',
+          statsPeriod: '10d',
+        },
       })
     );
 
     await waitForNextUpdate();
 
     expect(result.current.isLoading).toEqual(false);
-    expect(result.current.data).toEqual({
-      'span.op': 'db',
-      'spm()': 1486.3201388888888,
-      'count()': 2140301,
-    });
+    expect(result.current.data).toEqual([
+      {
+        'span.op': 'db',
+        'spm()': 1486.3201388888888,
+        'count()': 2140301,
+      },
+    ]);
   });
 });

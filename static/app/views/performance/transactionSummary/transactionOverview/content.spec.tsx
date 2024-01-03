@@ -1,6 +1,7 @@
 import {InjectedRouter} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -14,7 +15,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 function initialize(project, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: [project],
   });
@@ -140,7 +141,7 @@ describe('Transaction Summary Content', function () {
   });
 
   it('performs basic rendering', function () {
-    const project = TestStubs.Project();
+    const project = ProjectFixture();
     const {
       organization,
       location,

@@ -1,6 +1,6 @@
 import posixpath
 
-from django.http import StreamingHttpResponse
+from django.http import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,7 +14,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
 
 
@@ -57,22 +56,17 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):
-        file = File.objects.get(id=attachment.file_id)
-
-        content_type = attachment.content_type or file.headers.get(
-            "content-type", "application/octet-stream"
-        )
-        size = attachment.size or file.size
-
-        fp = file.getfile()
-        response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b""),
-            content_type=content_type,
-        )
-
-        response["Content-Length"] = size
+        fp = attachment.getfile()
         name = posixpath.basename(" ".join(attachment.name.split()))
-        response["Content-Disposition"] = f'attachment; filename="{name}"'
+
+        response = FileResponse(
+            fp,
+            as_attachment=True,
+            filename=name,
+            content_type=attachment.content_type,
+        )
+        response["Content-Length"] = attachment.size
+
         return response
 
     def get(self, request: Request, project, event_id, attachment_id) -> Response:

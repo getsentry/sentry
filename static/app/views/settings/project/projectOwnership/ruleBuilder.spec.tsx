@@ -1,5 +1,7 @@
 import selectEvent from 'react-select-event';
-import {Team} from 'sentry-fixture/team';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -21,34 +23,24 @@ describe('RuleBuilder', function () {
   let project: Project;
   let handleAdd: jest.Mock;
 
-  const USER_1 = TestStubs.User({
+  const USER_1 = UserFixture({
     id: '1',
     name: 'Jane Bloggs',
     email: 'janebloggs@example.com',
-    user: {
-      id: '1',
-      name: 'Jane Bloggs',
-      email: 'janebloggs@example.com',
-    },
   });
-  const USER_2 = TestStubs.User({
+  const USER_2 = UserFixture({
     id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',
-    user: {
-      id: '2',
-      name: 'John Smith',
-      email: 'johnsmith@example.com',
-    },
   });
 
-  const TEAM_1 = Team({
+  const TEAM_1 = TeamFixture({
     id: '3',
     slug: 'cool-team',
   });
 
   // This team is in project
-  const TEAM_2 = Team({
+  const TEAM_2 = TeamFixture({
     id: '4',
     slug: 'team-not-in-project',
   });
@@ -61,7 +53,7 @@ describe('RuleBuilder', function () {
 
     handleAdd = jest.fn();
 
-    project = TestStubs.Project({
+    project = ProjectFixture({
       // Teams in project
       teams: [TEAM_1],
     });
@@ -70,7 +62,10 @@ describe('RuleBuilder', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [USER_1, USER_2],
+      body: [
+        {...USER_1, user: USER_1},
+        {...USER_2, user: USER_2},
+      ],
     });
   });
 

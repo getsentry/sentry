@@ -1,8 +1,11 @@
 import {useCallback} from 'react';
+import ReactLazyLoad from 'react-lazyload';
+import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
+import {replayBackendPlatforms} from 'sentry/data/platformCategories';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -27,6 +30,10 @@ function EventReplayContent({
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
+  const onboardingPanelBackend = useCallback(
+    () => import('./replayInlineOnboardingPanelBackend'),
+    []
+  );
   const replayPreview = useCallback(() => import('./replayPreview'), []);
 
   if (fetching) {
@@ -41,6 +48,17 @@ function EventReplayContent({
     );
   }
 
+  const platform = group?.project.platform ?? 'other';
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+  if (newOnboarding && !replayId && replayBackendPlatforms.includes(platform)) {
+    // if backend project, show new onboarding panel
+    return (
+      <ErrorBoundary mini>
+        <LazyLoad component={onboardingPanelBackend} platform={platform} />
+      </ErrorBoundary>
+    );
+  }
+
   if (!replayId) {
     return null;
   }
@@ -51,25 +69,27 @@ function EventReplayContent({
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
   return (
-    <EventReplaySection>
+    <ReplaySectionMinHeight>
       <ErrorBoundary mini>
-        <LazyLoad
-          component={replayPreview}
-          replaySlug={replayId}
-          orgSlug={organization.slug}
-          eventTimestampMs={eventTimestampMs}
-          buttonProps={{
-            analyticsEventKey: 'issue_details.open_replay_details_clicked',
-            analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-            analyticsParams: {
-              ...getAnalyticsDataForEvent(event),
-              ...getAnalyticsDataForGroup(group),
-              organization,
-            },
-          }}
-        />
+        <ReactLazyLoad debounce={50} height={448} offset={0} once>
+          <LazyLoad
+            component={replayPreview}
+            replaySlug={replayId}
+            orgSlug={organization.slug}
+            eventTimestampMs={eventTimestampMs}
+            buttonProps={{
+              analyticsEventKey: 'issue_details.open_replay_details_clicked',
+              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+              analyticsParams: {
+                ...getAnalyticsDataForEvent(event),
+                ...getAnalyticsDataForGroup(group),
+                organization,
+              },
+            }}
+          />
+        </ReactLazyLoad>
       </ErrorBoundary>
-    </EventReplaySection>
+    </ReplaySectionMinHeight>
   );
 }
 
@@ -94,3 +114,8 @@ export default function EventReplay({event, group, projectSlug}: Props) {
 
   return null;
 }
+
+// The min-height here is due to max-height that is set in replayPreview.tsx
+const ReplaySectionMinHeight = styled(EventReplaySection)`
+  min-height: 508px;
+`;

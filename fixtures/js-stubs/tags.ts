@@ -1,6 +1,6 @@
 import type {TagWithTopValues} from 'sentry/types';
 
-export function Tags(params = []): TagWithTopValues[] {
+export function TagsFixture(params: TagWithTopValues[] = []): TagWithTopValues[] {
   return [
     {
       topValues: [

@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,10 +15,12 @@ ERR_NOT_ABORTABLE_STATUS = (
     "Relocations can only be cancelled if they are not yet complete; this relocation is `SUCCESS`."
 )
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class RelocationAbortEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -38,6 +42,8 @@ class RelocationAbortEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.abort.put.start", extra={"caller": request.user.id})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)

@@ -1,5 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -36,18 +37,21 @@ jest.mock('screenfull', () => ({
 }));
 
 // Get replay data with the mocked replay reader params
-const mockReplay = ReplayReader.factory({
-  replayRecord: ReplayRecordFixture({
-    browser: {
-      name: 'Chrome',
-      version: '110.0.0',
-    },
-  }),
-  errors: [],
-  attachments: RRWebInitFrameEvents({
-    timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
-  }),
-});
+const mockReplay = ReplayReader.factory(
+  {
+    replayRecord: ReplayRecordFixture({
+      browser: {
+        name: 'Chrome',
+        version: '110.0.0',
+      },
+    }),
+    errors: [],
+    attachments: RRWebInitFrameEventsFixture({
+      timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+    }),
+  },
+  {}
+);
 
 mockUseReplayReader.mockImplementation(() => {
   return {
@@ -56,7 +60,7 @@ mockUseReplayReader.mockImplementation(() => {
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),
-    projectSlug: TestStubs.Project().slug,
+    projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
     replayRecord: ReplayRecordFixture(),
@@ -87,7 +91,7 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={Organization()}>
+      <OrganizationContext.Provider value={OrganizationFixture()}>
         {children}
       </OrganizationContext.Provider>
     </RouteContext.Provider>,
@@ -105,7 +109,7 @@ describe('ReplayPreview', () => {
         fetchError: undefined,
         fetching: true,
         onRetry: jest.fn(),
-        projectSlug: TestStubs.Project().slug,
+        projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
@@ -132,7 +136,7 @@ describe('ReplayPreview', () => {
         fetchError: {status: 400} as RequestError,
         fetching: false,
         onRetry: jest.fn(),
-        projectSlug: TestStubs.Project().slug,
+        projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),

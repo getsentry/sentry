@@ -1,4 +1,6 @@
-import {SentryAppWebhookRequest} from 'sentry-fixture/sentryAppWebhookRequest';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -21,11 +23,11 @@ describe('Sentry Application Dashboard', function () {
 
   describe('Viewing the Sentry App Dashboard for a published integration', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'published',
         schema: {
           elements: [
-            {type: 'stacktrace-link', uri: '/test'},
+            {type: 'stacktrace-link', uri: '/test', url: '/test'},
             {
               type: 'issue-link',
               create: {uri: '/test', required_fields: []},
@@ -34,7 +36,7 @@ describe('Sentry Application Dashboard', function () {
           ],
         },
       });
-      webhookRequest = SentryAppWebhookRequest();
+      webhookRequest = SentryAppWebhookRequestFixture();
 
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -71,7 +73,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the total install/uninstall stats', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -82,7 +84,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the request log', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -104,7 +106,7 @@ describe('Sentry Application Dashboard', function () {
 
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -117,7 +119,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows integration and interactions chart', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -128,13 +130,13 @@ describe('Sentry Application Dashboard', function () {
 
   describe('Viewing the Sentry App Dashboard for an internal integration', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'internal',
         schema: {
-          elements: [{type: 'stacktrace-link', uri: '/test'}],
+          elements: [{type: 'stacktrace-link', uri: '/test', url: '/test'}],
         },
       });
-      webhookRequest = SentryAppWebhookRequest();
+      webhookRequest = SentryAppWebhookRequestFixture();
 
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -170,7 +172,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the request log', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -194,7 +196,7 @@ describe('Sentry Application Dashboard', function () {
 
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );
@@ -206,7 +208,7 @@ describe('Sentry Application Dashboard', function () {
     it('shows the component interactions in a line chart', () => {
       render(
         <SentryApplicationDashboard
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{appSlug: sentryApp.slug}}
         />
       );

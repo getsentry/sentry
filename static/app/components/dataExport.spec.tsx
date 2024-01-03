@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,11 +9,11 @@ import {Organization as TOrganization} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
-const mockUnauthorizedOrg = Organization({
+const mockUnauthorizedOrg = OrganizationFixture({
   features: [],
 });
 
-const mockAuthorizedOrg = Organization({
+const mockAuthorizedOrg = OrganizationFixture({
   features: ['discover-query'],
 });
 

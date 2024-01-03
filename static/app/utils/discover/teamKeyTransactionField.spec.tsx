@@ -1,5 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -9,12 +10,12 @@ import TeamStore from 'sentry/stores/teamStore';
 import TeamKeyTransactionField from 'sentry/utils/discover/teamKeyTransactionField';
 
 describe('TeamKeyTransactionField', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const teams = [
-    Team({id: '1', slug: 'team1', name: 'Team 1'}),
-    Team({id: '2', slug: 'team2', name: 'Team 2'}),
+    TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
+    TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
-  const project = TestStubs.Project({teams});
+  const project = ProjectFixture({teams});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   fireEvent,
@@ -16,7 +18,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
-const organization = Organization();
+const organization = OrganizationFixture();
 
 const defaultProps = {
   allResultsVisible: false,
@@ -60,7 +62,7 @@ describe('IssueListActions', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [TestStubs.Project({id: 1})],
+      body: [ProjectFixture({id: '1'})],
     });
   });
 
@@ -306,9 +308,9 @@ describe('IssueListActions', function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})});
+          return GroupFixture({project: ProjectFixture({slug: 'project-1'})});
         default:
-          return TestStubs.Group({project: TestStubs.Project({slug: 'project-2'})});
+          return GroupFixture({project: ProjectFixture({slug: 'project-2'})});
       }
     });
 
@@ -332,7 +334,7 @@ describe('IssueListActions', function () {
         .spyOn(SelectedGroupStore, 'getSelectedIds')
         .mockImplementation(() => new Set(['1', '2', '3']));
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
-        return TestStubs.Group({
+        return GroupFixture({
           id,
           inbox: {
             date_added: '2020-11-24T13:17:42.248751Z',
@@ -353,7 +355,7 @@ describe('IssueListActions', function () {
     it('mark reviewed disabled for group that is already reviewed', function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
-      GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
+      GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
       render(<WrappedComponent {...defaultProps} />);
 
@@ -382,11 +384,11 @@ describe('IssueListActions', function () {
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
-            return TestStubs.Group({
+            return GroupFixture({
               issueCategory: IssueCategory.ERROR,
             });
           default:
-            return TestStubs.Group({
+            return GroupFixture({
               issueCategory: IssueCategory.PERFORMANCE,
             });
         }
@@ -417,7 +419,7 @@ describe('IssueListActions', function () {
     });
 
     describe('bulk action performance issues', function () {
-      const orgWithPerformanceIssues = Organization({
+      const orgWithPerformanceIssues = OrganizationFixture({
         features: ['performance-issues'],
       });
 
@@ -471,9 +473,7 @@ describe('IssueListActions', function () {
         // Ensure that all issues have the same project so we can merge
         jest
           .spyOn(GroupStore, 'get')
-          .mockReturnValue(
-            TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
-          );
+          .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
 
         render(
           <Fragment>

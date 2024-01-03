@@ -1,5 +1,8 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {EntryDebugMetaFixture, EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -7,14 +10,14 @@ import {EventEntries} from 'sentry/components/events/eventEntries';
 
 describe('EventEntries', function () {
   const defaultProps = {
-    organization: Organization(),
-    project: TestStubs.Project(),
+    organization: OrganizationFixture(),
+    project: ProjectFixture(),
     event: EventFixture(),
-    location: TestStubs.location(),
+    location: LocationFixture(),
   };
 
   beforeEach(function () {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/grouping-info/',
@@ -34,13 +37,13 @@ describe('EventEntries', function () {
       <EventEntries
         {...defaultProps}
         event={EventFixture({
-          entries: [TestStubs.EventEntry(), TestStubs.EventEntryDebugMeta()],
+          entries: [EventEntryFixture(), EntryDebugMetaFixture()],
           contexts: {
             replay_id: 1,
           },
         })}
       />,
-      {organization: Organization({features: ['session-replay']})}
+      {organization: OrganizationFixture({features: ['session-replay']})}
     );
 
     await screen.findByText(/message/i);

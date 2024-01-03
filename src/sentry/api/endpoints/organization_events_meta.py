@@ -13,6 +13,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.utils import handle_query_errors
 from sentry.snuba import spans_indexed, spans_metrics
 from sentry.snuba.referrer import Referrer
 
@@ -20,7 +21,7 @@ from sentry.snuba.referrer import Referrer
 @region_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -31,7 +32,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         dataset = self.get_dataset(request)
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             result = dataset.query(
                 selected_columns=["count()"],
                 params=params,
@@ -48,7 +49,7 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 @region_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -70,7 +71,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                     status=400,
                 )
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", description="filter_creation"):
                 projects = self.get_projects(request, organization)
                 query_kwargs = build_query_params_from_request(

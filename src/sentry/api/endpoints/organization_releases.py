@@ -8,6 +8,7 @@ from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import ListField
 
 from sentry import analytics, release_health
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -19,7 +20,6 @@ from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
 from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
-    ListField,
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
@@ -167,7 +167,7 @@ def debounce_update_release_health_data(organization, project_ids):
     # health data over the last days. It will miss releases where the last
     # date is longer than what `get_changed_project_release_model_adoptions`
     # considers recent.
-    project_releases = release_health.get_changed_project_release_model_adoptions(
+    project_releases = release_health.backend.get_changed_project_release_model_adoptions(
         should_update.keys()
     )
 
@@ -184,7 +184,7 @@ def debounce_update_release_health_data(organization, project_ids):
             to_upsert.append(key)
 
     if to_upsert:
-        dates = release_health.get_oldest_health_data_for_releases(to_upsert)
+        dates = release_health.backend.get_oldest_health_data_for_releases(to_upsert)
 
         for project_id, version in to_upsert:
             project = projects.get(project_id)
@@ -345,7 +345,7 @@ class OrganizationReleasesEndpoint(
                         : total_offset + limit
                     ]
                 )
-                releases_with_session_data = release_health.check_releases_have_health_data(
+                releases_with_session_data = release_health.backend.check_releases_have_health_data(
                     organization.id,
                     filter_params["project_id"],
                     release_versions,
@@ -368,7 +368,7 @@ class OrganizationReleasesEndpoint(
 
             paginator_cls = MergingOffsetPaginator
             paginator_kwargs.update(
-                data_load_func=lambda offset, limit: release_health.get_project_releases_by_stability(
+                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,
@@ -376,7 +376,7 @@ class OrganizationReleasesEndpoint(
                     stats_period=summary_stats_period,
                     limit=limit,
                 ),
-                data_count_func=lambda: release_health.get_project_releases_count(
+                data_count_func=lambda: release_health.backend.get_project_releases_count(
                     organization_id=organization.id,
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),

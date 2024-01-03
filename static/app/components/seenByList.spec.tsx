@@ -1,3 +1,5 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SeenByList from 'sentry/components/seenByList';
@@ -14,13 +16,13 @@ describe('SeenByList', function () {
   });
 
   it('should return a list of each user that saw', function () {
-    ConfigStore.set('user', TestStubs.User());
+    ConfigStore.set('user', UserFixture());
 
     render(
       <SeenByList
         seenBy={[
-          TestStubs.User({id: '2', name: 'jane'}),
-          TestStubs.User({id: '3', name: 'john'}),
+          UserFixture({id: '2', name: 'jane'}),
+          UserFixture({id: '3', name: 'john'}),
         ]}
       />
     );
@@ -30,13 +32,13 @@ describe('SeenByList', function () {
   });
 
   it('filters out the current user from list of users', function () {
-    ConfigStore.set('user', TestStubs.User({id: '2', name: 'jane'}));
+    ConfigStore.set('user', UserFixture({id: '2', name: 'jane'}));
 
     render(
       <SeenByList
         seenBy={[
-          TestStubs.User({id: '2', name: 'jane'}),
-          TestStubs.User({id: '3', name: 'john'}),
+          UserFixture({id: '2', name: 'jane'}),
+          UserFixture({id: '3', name: 'john'}),
         ]}
       />
     );

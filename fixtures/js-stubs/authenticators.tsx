@@ -3,9 +3,10 @@ import type {
   SmsAuthenticator as SmsAuthenticatorType,
   TotpAuthenticator as TotpAuthenticatorType,
   U2fAuthenticator as U2fAuthenticatorType,
+  UserEnrolledAuthenticator as UserEnrolledAuthenticatorType,
 } from 'sentry/types';
 
-export function Authenticators(): {
+export function AuthenticatorsFixture(): {
   Recovery: (props?: Partial<RecoveryAuthenticatorType>) => RecoveryAuthenticatorType;
   Sms: (props?: Partial<SmsAuthenticatorType>) => SmsAuthenticatorType;
   Totp: (props?: Partial<TotpAuthenticatorType>) => TotpAuthenticatorType;
@@ -127,6 +128,19 @@ export function Authenticators(): {
   };
 }
 
-export function AllAuthenticators() {
-  return Object.values(Authenticators()).map(x => x());
+export function AllAuthenticatorsFixture() {
+  return Object.values(AuthenticatorsFixture()).map(x => x());
+}
+
+export function UserEnrolledAuthenticatorFixture(
+  params: Partial<UserEnrolledAuthenticatorType>
+): UserEnrolledAuthenticatorType {
+  return {
+    id: '1',
+    type: 'totp',
+    name: 'auth',
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    dateUsed: '2020-01-01T00:00:00.000Z',
+    ...params,
+  };
 }

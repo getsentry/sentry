@@ -1,10 +1,11 @@
 import type {
   DashboardDetails as TDashboardDetails,
   DashboardFilters as TDashboardFilters,
+  DashboardListItem as TDashboardListItem,
   Widget as TWidget,
 } from 'sentry/views/dashboards/types';
 
-export function Dashboard(
+export function DashboardFixture(
   widgets: TWidget[],
   props: Partial<TDashboardDetails> = {}
 ): TDashboardDetails {
@@ -16,5 +17,17 @@ export function Dashboard(
     title: 'Dashboard',
     widgets,
     ...props,
+  };
+}
+
+export function DashboardListItemFixture(
+  params: Partial<TDashboardListItem> = {}
+): TDashboardListItem {
+  return {
+    id: '1',
+    title: 'Dashboard',
+    widgetDisplay: [],
+    widgetPreview: [],
+    ...params,
   };
 }

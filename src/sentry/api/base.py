@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type
+from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -158,8 +158,8 @@ def apply_cors_headers(
 
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
-    permission_classes: Tuple[Type[BasePermission], ...] = (NoPermission,)
+    authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: tuple[type[BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
@@ -391,7 +391,7 @@ class Endpoint(APIView):
             ]
         )
 
-    def respond(self, context: Mapping[str, Any] | None = None, **kwargs: Any) -> Response:
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
     def respond_with_text(self, text):
@@ -581,7 +581,7 @@ class ReleaseAnalyticsMixin:
 
 
 class EndpointSiloLimit(SiloLimit):
-    def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
+    def modify_endpoint_class(self, decorated_class: type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
             decorated_class.__name__,

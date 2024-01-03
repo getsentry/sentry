@@ -1,6 +1,6 @@
 import type {ProjectSdkUpdates as TProjectSdkUpdates} from 'sentry/types';
 
-export function ProjectSdkUpdates(
+export function ProjectSdkUpdatesFixture(
   overrides?: Partial<TProjectSdkUpdates>
 ): TProjectSdkUpdates {
   return {

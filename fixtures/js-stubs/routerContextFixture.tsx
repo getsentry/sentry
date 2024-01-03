@@ -1,16 +1,16 @@
 import {object as propTypesObject} from 'prop-types';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-export default function RouterContextFixture([context, childContextTypes] = []) {
+export function RouterContextFixture([context, childContextTypes] = []) {
   return {
     context: {
       location: LocationFixture(),
       router: RouterFixture(),
-      organization: Organization(),
-      project: Project(),
+      organization: OrganizationFixture(),
+      project: ProjectFixture(),
       ...context,
     },
     childContextTypes: {
@@ -22,3 +22,6 @@ export default function RouterContextFixture([context, childContextTypes] = []) 
     },
   };
 }
+
+// TODO(epurkhiser): Remove once removed from getsentry
+export default RouterContextFixture;

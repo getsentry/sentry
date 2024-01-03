@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import uniqBy from 'lodash/uniqBy';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
@@ -41,6 +42,23 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
 
 const onOpenNoop = (e?: React.MouseEvent) => {
   e?.stopPropagation();
+
+  const txn = Sentry.startTransaction({
+    name: 'assignee_selector_dropdown.open',
+    op: 'ui.render',
+  });
+
+  if (typeof window.requestIdleCallback === 'function') {
+    txn.setTag('finish_strategy', 'idle_callback');
+    window.requestIdleCallback(() => {
+      txn.finish();
+    });
+  } else {
+    txn.setTag('finish_strategy', 'timeout');
+    setTimeout(() => {
+      txn.finish();
+    }, 1_000);
+  }
 };
 
 export type SuggestedAssignee = Actor & {

@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -67,7 +67,7 @@ function SpanSummaryPage({params}: Props) {
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data} = useSpanMetrics(
     filters,
     [
       SpanMetricsField.SPAN_OP,
@@ -81,8 +81,13 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
+    undefined,
+    undefined,
+    undefined,
     'api.starfish.span-summary-page-metrics'
   );
+
+  const spanMetrics = data[0] ?? {};
 
   const span = {
     ...spanMetrics,

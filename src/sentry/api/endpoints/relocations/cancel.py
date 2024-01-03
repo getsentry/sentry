@@ -1,3 +1,4 @@
+import logging
 from string import Template
 
 from django.db import DatabaseError
@@ -25,10 +26,12 @@ ERR_COULD_NOT_CANCEL_RELOCATION_AT_STEP = Template(
     started."""
 )
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class RelocationCancelEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -53,6 +56,8 @@ class RelocationCancelEndpoint(Endpoint):
 
         :auth: required
         """
+
+        logger.info("relocations.cancel.put.start", extra={"caller": request.user.id})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)

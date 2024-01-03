@@ -1,4 +1,5 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -52,7 +53,7 @@ describe('CrashContent', function () {
         event={EventFixture()}
         newestFirst
         exception={(proxiedExc as any).exception}
-        projectSlug={TestStubs.Project().slug}
+        projectSlug={ProjectFixture().slug}
         hasHierarchicalGrouping={false}
       />
     );

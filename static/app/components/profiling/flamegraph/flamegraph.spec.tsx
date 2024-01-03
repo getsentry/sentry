@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   findAllByTestId,
@@ -114,7 +116,7 @@ Object.defineProperty(window, 'matchMedia', {
 
 describe('Flamegraph', function () {
   beforeEach(() => {
-    const project = TestStubs.Project({slug: 'foo-project'});
+    const project = ProjectFixture({slug: 'foo-project'});
     reactHooks.act(() => void ProjectsStore.loadInitialData([project]));
   });
   it('renders a missing profile', async function () {

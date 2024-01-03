@@ -16,12 +16,10 @@ USER_OPTION_SETTINGS = {
     UserOptionsSettingsKey.SELF_ACTIVITY: {
         "key": "self_notifications",
         "default": "0",
-        "type": bool,
     },
     UserOptionsSettingsKey.SELF_ASSIGN: {
         "key": "self_assign_issue",
         "default": "0",
-        "type": bool,
     },
 }
 
@@ -44,10 +42,7 @@ class UserNotificationsSerializer(Serializer):
         data = {}
         for key, uo in USER_OPTION_SETTINGS.items():
             val = raw_data.get(uo["key"], uo["default"])
-            if uo["type"] == bool:
-                data[key.value] = bool(int(val))  # '1' is true, '0' is false
-            elif uo["type"] == int:
-                data[key.value] = int(val)
+            data[key.value] = bool(int(val))  # '1' is true, '0' is false
 
         return data
 

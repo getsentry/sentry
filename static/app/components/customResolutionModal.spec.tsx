@@ -1,6 +1,8 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,12 +12,12 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
   let releasesMock;
-  const organization = Organization();
+  const organization = OrganizationFixture();
   beforeEach(() => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release({authors: [TestStubs.User()]})],
+      body: [ReleaseFixture({authors: [UserFixture()]})],
     });
   });
 
@@ -52,7 +54,7 @@ describe('CustomResolutionModal', () => {
   });
 
   it('indicates which releases had commits from the user', async () => {
-    const user = TestStubs.User();
+    const user = UserFixture();
     ConfigStore.set('user', user);
     render(
       <CustomResolutionModal
@@ -77,14 +79,22 @@ describe('CustomResolutionModal', () => {
       url: '/projects/org-slug/project-slug/releases/',
       body: [
         // Timestamp release
-        TestStubs.Release({
+        ReleaseFixture({
           version: 'frontend@abcdef',
-          versionInfo: {version: {raw: 'abcdef'}},
+          versionInfo: {
+            buildHash: null,
+            description: '...',
+            package: '',
+            version: {raw: 'abcdef'},
+          },
         }),
         // Semver release
-        TestStubs.Release({
+        ReleaseFixture({
           version: 'frontend@1.2.3',
           versionInfo: {
+            buildHash: null,
+            description: '...',
+            package: '',
             version: {
               raw: '1.2.3',
               major: 1,

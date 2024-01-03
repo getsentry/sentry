@@ -16,6 +16,7 @@ from sentry import options
 from sentry.models.files.file import File
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumers.recording_buffered import RecordingBufferedStrategyFactory
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils.abstract import Abstract
@@ -42,6 +43,7 @@ def test_multiprocessing_strategy():
 
     # Clean up after ourselves by terminating the processing pool spawned by the above call.
     task.terminate()
+    factory.shutdown()
 
 
 class RecordingTestCaseMixin(TransactionTestCase):
@@ -233,3 +235,19 @@ class ThreadedFilestoreRecordingTestCase(FilestoreRecordingTestCase):
 
 class ThreadedStorageRecordingTestCase(StorageRecordingTestCase):
     force_synchronous = False
+
+
+# Experimental Buffered Recording Consumer
+
+
+class RecordingBufferedTestCase(StorageRecordingTestCase):
+    def setUp(self):
+        options.set("replay.storage.direct-storage-sample-rate", 100)
+
+    def processing_factory(self):
+        # The options don't matter because we're calling join which commits regardless.
+        return RecordingBufferedStrategyFactory(
+            max_buffer_row_count=1000,
+            max_buffer_size_in_bytes=1000,
+            max_buffer_time_in_seconds=1000,
+        )

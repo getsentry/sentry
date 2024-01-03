@@ -32,6 +32,7 @@ import {
 } from 'sentry/views/starfish/views/screens';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {transformDeviceClassEvents} from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
   WARM_START,
@@ -167,52 +168,12 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     );
   }
 
-  const transformedEvents: {
-    [yAxisName: string]: {
-      [releaseVersion: string]: Series;
-    };
-  } = {};
-
-  yAxes.forEach(val => {
-    transformedEvents[YAXIS_COLUMNS[val]] = {};
-    if (primaryRelease) {
-      transformedEvents[YAXIS_COLUMNS[val]][primaryRelease] = {
-        seriesName: primaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
-      };
-    }
-    if (secondaryRelease) {
-      transformedEvents[YAXIS_COLUMNS[val]][secondaryRelease] = {
-        seriesName: secondaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
-      };
-    }
+  const transformedEvents = transformDeviceClassEvents({
+    yAxes,
+    primaryRelease,
+    secondaryRelease,
+    data: deviceClassEvents,
   });
-
-  const deviceClassIndex = Object.fromEntries(
-    ['high', 'medium', 'low', 'Unknown'].map((e, i) => [e, i])
-  );
-
-  if (defined(deviceClassEvents)) {
-    deviceClassEvents.data?.forEach(row => {
-      const deviceClass = row['device.class'];
-      const index = deviceClassIndex[deviceClass];
-
-      const release = row.release;
-      const isPrimary = release === primaryRelease;
-      yAxes.forEach(val => {
-        if (transformedEvents[YAXIS_COLUMNS[val]][release]) {
-          transformedEvents[YAXIS_COLUMNS[val]][release].data[index] = {
-            name: deviceClass,
-            value: row[YAXIS_COLUMNS[val]],
-            itemStyle: {
-              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
-            },
-          } as SeriesDataUnit;
-        }
-      });
-    });
-  }
 
   function renderCharts() {
     return (
@@ -265,7 +226,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                       transformedReleaseSeries[YAXIS_COLUMNS[yAxes[0]]]
                     )}
                     loading={isSeriesLoading}
-                    utc={false}
                     grid={{
                       left: '0',
                       right: '0',
@@ -334,7 +294,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                       transformedReleaseSeries[YAXIS_COLUMNS[yAxes[1]]]
                     )}
                     loading={isSeriesLoading}
-                    utc={false}
                     grid={{
                       left: '0',
                       right: '0',
@@ -377,7 +336,6 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                 data={Object.values(transformedReleaseSeries[YAXIS_COLUMNS[yAxes[2]]])}
                 height={245}
                 loading={isSeriesLoading}
-                utc={false}
                 grid={{
                   left: '0',
                   right: '0',

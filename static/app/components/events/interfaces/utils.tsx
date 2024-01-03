@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/react';
-import compact from 'lodash/compact';
-import isString from 'lodash/isString';
-import uniq from 'lodash/uniq';
+import partition from 'lodash/partition';
 import * as qs from 'query-string';
 
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
@@ -158,7 +156,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
         break;
 
       default:
-        if (isString(data.data)) {
+        if (typeof data.data === 'string') {
           result += ' \\\n --data "' + escapeBashString(data.data) + '"';
         } else if (Object.keys(data.data).length === 0) {
           // Do nothing with empty object data.
@@ -176,7 +174,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 }
 
 export function stringifyQueryList(query: string | [key: string, value: string][]) {
-  if (isString(query)) {
+  if (typeof query === 'string') {
     return query;
   }
 
@@ -319,18 +317,48 @@ export function parseAssembly(assembly: string | null) {
   return {name, version, culture, publicKeyToken};
 }
 
-export function stackTracePlatformIcon(platform: PlatformKey, frames: Frame[]) {
-  const fileExtensions = uniq(
-    compact(frames.map(frame => getFileExtension(frame.filename ?? '')))
-  );
+function getFramePlatform(frame: Frame) {
+  const fileExtension = getFileExtension(frame.filename ?? '');
+  const fileExtensionPlatform = fileExtension
+    ? fileExtensionToPlatform(fileExtension)
+    : null;
 
-  if (fileExtensions.length === 1) {
-    const newPlatform = fileExtensionToPlatform(fileExtensions[0]);
-
-    return newPlatform ?? platform;
+  if (fileExtensionPlatform) {
+    return fileExtensionPlatform;
   }
 
-  return platform;
+  if (frame.platform) {
+    return frame.platform;
+  }
+
+  return null;
+}
+
+/**
+ * Returns the representative platform for the given stack trace frames.
+ * Prioritizes recent in-app frames, checking first for a matching file extension
+ * and then for a frame.platform attribute [1].
+ *
+ * If none of the frames have a platform, falls back to the event platform.
+ *
+ * [1] https://develop.sentry.dev/sdk/event-payloads/stacktrace/#frame-attributes
+ */
+export function stackTracePlatformIcon(eventPlatform: PlatformKey, frames: Frame[]) {
+  const [inAppFrames, systemFrames] = partition(
+    // Reverse frames to get newest-first ordering
+    [...frames].reverse(),
+    frame => frame.inApp
+  );
+
+  for (const frame of [...inAppFrames, ...systemFrames]) {
+    const framePlatform = getFramePlatform(frame);
+
+    if (framePlatform) {
+      return framePlatform;
+    }
+  }
+
+  return eventPlatform;
 }
 
 export function isStacktraceNewestFirst() {
@@ -364,6 +392,16 @@ export function getThreadById(event: Event, tid?: number) {
     | EntryThreads
     | undefined;
   return threads?.data.values?.find(thread => thread.id === tid);
+}
+
+export function getStacktracePlatform(
+  event: Event,
+  stacktrace?: StacktraceType | null
+): PlatformKey {
+  const overridePlatform = stacktrace?.frames?.find(frame => defined(frame.platform))
+    ?.platform;
+
+  return overridePlatform ?? event.platform ?? 'other';
 }
 
 export function inferPlatform(event: Event, thread?: Thread): PlatformKey {

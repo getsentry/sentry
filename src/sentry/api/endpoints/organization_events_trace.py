@@ -30,6 +30,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
+from sentry.api.utils import handle_query_errors
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -447,7 +448,7 @@ def query_trace_data(
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
@@ -551,7 +552,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             organization,
             actor=request.user,
         )
-        with self.handle_query_errors():
+        with handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params, limit)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
@@ -591,7 +592,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 @region_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @staticmethod
@@ -674,7 +675,6 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         root_id: Optional[str] = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
-
             # Check if the event is an orphan_error
             if not snuba_event and not nodestore_event and allow_orphan_errors:
                 orphan_error = find_event(
@@ -1011,7 +1011,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 @region_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
@@ -1024,7 +1024,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             result = discover.query(
                 selected_columns=[
                     "count_unique(project_id) as projects",

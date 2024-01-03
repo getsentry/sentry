@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,9 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseLandingPage', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
+
+  let spanListRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -76,7 +78,7 @@ describe('DatabaseLandingPage', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
+    spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       match: [MockApiClient.matchQuery({referrer: 'api.starfish.use-span-list'})],
@@ -119,6 +121,32 @@ describe('DatabaseLandingPage', function () {
     render(<DatabaseLandingPage />);
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(spanListRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'project.id',
+            'span.group',
+            'span.description',
+            'spm()',
+            'avg(span.self_time)',
+            'sum(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: 25,
+          project: [],
+          query: 'span.module:db has:span.description',
+          referrer: 'api.starfish.use-span-list',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '10d',
+        },
+      })
+    );
 
     expect(screen.getByRole('cell', {name: 'SELECT * FROM users'})).toBeInTheDocument();
     expect(

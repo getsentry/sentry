@@ -1,6 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -21,7 +22,7 @@ describe('normalizeUrl', function () {
   });
 
   it('replaces paths in strings', function () {
-    const location = TestStubs.location();
+    const location = LocationFixture();
     const cases = [
       // input, expected
       ['/settings/', '/settings/'],
@@ -129,7 +130,7 @@ describe('normalizeUrl', function () {
   });
 
   it('replaces pathname in objects', function () {
-    const location = TestStubs.location();
+    const location = LocationFixture();
     result = normalizeUrl({pathname: '/settings/acme/'}, location);
     expect(result.pathname).toEqual('/settings/organization/');
 
@@ -183,7 +184,7 @@ describe('normalizeUrl', function () {
   });
 
   it('replaces pathname in function callback', function () {
-    const location = TestStubs.location();
+    const location = LocationFixture();
     function objectCallback(_loc: Location): LocationDescriptorObject {
       return {pathname: '/settings/'};
     }
@@ -268,7 +269,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: [],
     });
@@ -317,7 +318,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: [],
     });
@@ -366,7 +367,7 @@ describe('withDomainRequired', function () {
       },
     } as any;
 
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: [],
     });

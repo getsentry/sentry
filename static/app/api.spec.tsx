@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
@@ -91,7 +91,7 @@ describe('api', function () {
 });
 
 describe('resolveHostname', function () {
-  let devUi, orgstate, configstate;
+  let devUi, location, orgstate, configstate;
 
   const controlPath = '/api/0/broadcasts/';
   const regionPath = '/api/0/organizations/slug/issues/';
@@ -99,9 +99,10 @@ describe('resolveHostname', function () {
   beforeEach(function () {
     orgstate = OrganizationStore.get();
     configstate = ConfigStore.getState();
+    location = window.location;
     devUi = window.__SENTRY_DEV_UI;
 
-    OrganizationStore.onUpdate(Organization({features: ['frontend-domainsplit']}));
+    OrganizationStore.onUpdate(OrganizationFixture({features: ['frontend-domainsplit']}));
     ConfigStore.loadInitialData({
       ...configstate,
       links: {
@@ -113,6 +114,7 @@ describe('resolveHostname', function () {
   });
 
   afterEach(() => {
+    window.location = location;
     window.__SENTRY_DEV_UI = devUi;
     OrganizationStore.onUpdate(orgstate.organization);
     ConfigStore.loadInitialData(configstate);
@@ -120,10 +122,33 @@ describe('resolveHostname', function () {
 
   it('does nothing without feature', function () {
     // Org does not have the required feature.
-    OrganizationStore.onUpdate(Organization());
+    OrganizationStore.onUpdate(OrganizationFixture());
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);
+
+    // Explicit domains still work.
+    result = resolveHostname(controlPath, 'https://sentry.io');
+    expect(result).toBe(`https://sentry.io${controlPath}`);
+
+    result = resolveHostname(regionPath, 'https://de.sentry.io');
+    expect(result).toBe(`https://de.sentry.io${regionPath}`);
+  });
+
+  it('does not override region in _admin', function () {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      enumerable: true,
+      value: new URL('https://sentry.io/_admin/'),
+    });
+
+    // Adds domain to control paths
+    let result = resolveHostname(controlPath);
+    expect(result).toBe('https://sentry.io/api/0/broadcasts/');
+
+    // Doesn't add domain to region paths
+    result = resolveHostname(regionPath);
+    expect(result).toBe(regionPath);
 
     // Explicit domains still work.
     result = resolveHostname(controlPath, 'https://sentry.io');
@@ -173,7 +198,7 @@ describe('resolveHostname', function () {
   it('removes sentryUrl from dev-ui mode requests when feature is off', function () {
     window.__SENTRY_DEV_UI = true;
     // Org does not have the required feature.
-    OrganizationStore.onUpdate(Organization());
+    OrganizationStore.onUpdate(OrganizationFixture());
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);

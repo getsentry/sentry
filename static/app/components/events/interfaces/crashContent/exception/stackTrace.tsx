@@ -76,7 +76,6 @@ function StackTrace({
   const includeSystemFrames =
     stackView === StackView.FULL ||
     (chainedException && data.frames?.every(frame => !frame.inApp));
-
   /**
    * Armin, Markus:
    * If all frames are in app, then no frame is in app.

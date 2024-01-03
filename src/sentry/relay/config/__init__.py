@@ -157,8 +157,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
     if project.get_option("filters:chunk-load-error") == "1":
         # ChunkLoadError: Loading chunk 3662 failed.\n(error:
-        # https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
-        error_messages += ["ChunkLoadError: Loading chunk *"]
+        # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += [
+            "ChunkLoadError: Loading chunk *",
+            "Uncaught *: ChunkLoadError: Loading chunk *",
+        ]
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
@@ -413,7 +416,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -458,7 +461,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -503,7 +506,7 @@ def _get_project_config(
                             "weight": 0.0,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -548,7 +551,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",
@@ -593,7 +596,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 100.0,
                             "p50": 300.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "cls",

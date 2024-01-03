@@ -1,6 +1,6 @@
 import {ProjectKey} from 'sentry/types/project';
 
-export function ProjectKeys(params: ProjectKey[] = []): ProjectKey[] {
+export function ProjectKeysFixture(params: ProjectKey[] = []): ProjectKey[] {
   return [
     {
       dsn: {
@@ -19,7 +19,7 @@ export function ProjectKeys(params: ProjectKey[] = []): ProjectKey[] {
       secret: 'a33bf9aba64c4bbdaf873bb9023b6d2d',
       name: 'Natural Halibut',
       rateLimit: null,
-      projectId: '1',
+      projectId: 1,
       dateCreated: '2018-02-28T07:13:51.087Z',
       id: '188ee45a58094d939428d8585aa6f661',
       isActive: true,

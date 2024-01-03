@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
+from functools import lru_cache
 from typing import Any, Mapping
 from urllib.parse import ParseResult, urljoin, urlparse
 
+import sentry_sdk
+import urllib3
 from django.conf import settings
-from django.http import HttpResponse
+from django.utils.encoding import force_str
 from requests import PreparedRequest
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.http import build_session
 from sentry.integrations.client import ApiClient
+from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
@@ -19,6 +26,7 @@ from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
     PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
+    PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
     encode_subnet_signature,
     trim_leading_slashes,
@@ -26,6 +34,36 @@ from sentry.silo.util import (
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def get_control_silo_ip_address() -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    address: str | None = settings.SENTRY_CONTROL_ADDRESS
+    if address is None:
+        return None
+
+    url = urllib3.util.parse_url(address)
+    if url.host:
+        # This is an IPv4 address.
+        # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
+        ip = socket.gethostbyname(url.host)
+        return ipaddress.ip_address(force_str(ip, strings_only=True))
+    else:
+        sentry_sdk.capture_exception(
+            Exception(f"Unable to parse hostname of control silo address: {address}")
+        )
+    return None
+
+
+def is_control_silo_ip_address(ip: str) -> bool:
+    ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
+
+    expected_address = get_control_silo_ip_address()
+    result = ip_address == expected_address
+
+    if not result:
+        sentry_sdk.capture_exception(Exception(f"Disallowed Control Silo IP address: {ip}"))
+    return result
 
 
 def infer_org_integration(
@@ -95,6 +133,17 @@ class IntegrationProxyClient(ApiClient):
             logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
 
+    def build_session(self) -> SafeSession:
+        """
+        Generates a safe Requests session for the API client to use.
+        This injects a custom is_ipaddress_permitted function to allow only connections to the IP address of the Control Silo.
+        We only validate the IP address from within the Region Silo.
+        For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
+        """
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            return build_session(is_ipaddress_permitted=is_control_silo_ip_address)
+        return build_session()
+
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:
         return (
@@ -141,12 +190,23 @@ class IntegrationProxyClient(ApiClient):
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
         proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
         proxy_url = self.proxy_url.rstrip("/")
-        url = f"{proxy_url}/{proxy_path}"
+
+        url = f"{proxy_url}/"
+
+        if (
+            not self._should_proxy_to_control
+            or (in_test_environment() and not self._use_proxy_url_for_tests)
+            and proxy_path
+        ):
+            # When proxying to control is disabled, or in the default test environment
+            # This proxy acts as a passthrough, so we need to append the path directly
+            url = f"{url}{proxy_path}".rstrip("/")
 
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):
             request_body = request_body.encode("utf-8") if request_body else DEFAULT_REQUEST_BODY
         prepared_request.headers[PROXY_OI_HEADER] = str(self.org_integration_id)
+        prepared_request.headers[PROXY_PATH] = proxy_path
         if self.keyid:
             prepared_request.headers[PROXY_KEYID_HEADER] = str(self.keyid)
         prepared_request.headers[PROXY_BASE_URL_HEADER] = base_url
@@ -166,15 +226,3 @@ class IntegrationProxyClient(ApiClient):
             },
         )
         return prepared_request
-
-    def should_delegate(self) -> bool:
-        return False
-
-    def delegate(self, request, proxy_path: str, headers) -> HttpResponse:
-        """
-        Rather than letting the internal integration proxy endpoint perform the 3rd-party API request, this method
-        performs the processing of that request whenever should_delegate() returns True.
-
-        This method should be implemented in cases when an integration uses a Python SDK API client (e.g. boto3).
-        """
-        raise NotImplementedError

@@ -153,14 +153,9 @@ export class NewTraceDetailsSpanBar extends Component<
       this.spanContentRef.style.transformOrigin = 'left';
     }
 
-    const {span, addExpandedSpan} = this.props;
+    const {span} = this.props;
 
     if (isGapSpan(span)) {
-      return;
-    }
-
-    if (this.hash_span_id === span.span_id) {
-      addExpandedSpan(span);
       return;
     }
   }

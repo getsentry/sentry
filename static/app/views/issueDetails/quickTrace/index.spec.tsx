@@ -1,5 +1,7 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -7,15 +9,15 @@ import QuickTrace from 'sentry/views/issueDetails/quickTrace';
 
 describe('IssueQuickTrace', () => {
   const defaultProps = {
-    organization: Organization({features: ['performance-view']}),
+    organization: OrganizationFixture({features: ['performance-view']}),
     event: EventFixture({contexts: {trace: {trace_id: 100}}}),
-    group: TestStubs.Group(),
-    location: TestStubs.location(),
+    group: GroupFixture(),
+    location: LocationFixture(),
   };
 
   it('renders nothing without performance-view flag', () => {
     const {container} = render(
-      <QuickTrace {...defaultProps} organization={Organization()} />
+      <QuickTrace {...defaultProps} organization={OrganizationFixture()} />
     );
 
     expect(container).toBeEmptyDOMElement();

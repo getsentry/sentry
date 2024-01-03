@@ -1,6 +1,7 @@
 import * as PropTypes from 'prop-types';
-import {Organization} from 'sentry-fixture/organization';
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -24,9 +25,9 @@ describe('ProjectKeyDetails', function () {
   let projectKeys: ProjectKey[];
 
   beforeEach(function () {
-    org = Organization();
-    project = TestStubs.Project();
-    projectKeys = ProjectKeys();
+    org = OrganizationFixture();
+    project = ProjectFixture();
+    projectKeys = ProjectKeysFixture();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -82,7 +83,7 @@ describe('ProjectKeyDetails', function () {
 
     const context = {
       context: {
-        project: TestStubs.Project(),
+        project: ProjectFixture(),
       },
       childContextTypes: {
         project: PropTypes.object,

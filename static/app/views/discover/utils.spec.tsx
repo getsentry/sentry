@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -244,7 +245,7 @@ describe('pushEventViewToLocation', function () {
     environment: ['staging'],
   };
 
-  const location = TestStubs.location({
+  const location = LocationFixture({
     query: {
       bestCountry: 'canada',
     },
@@ -512,7 +513,7 @@ describe('getExpandedResults()', function () {
   });
 
   it('generate eventview from an empty eventview', () => {
-    const view = EventView.fromLocation(TestStubs.location());
+    const view = EventView.fromLocation(LocationFixture());
     const result = getExpandedResults(view, {some_tag: 'value'}, EventFixture());
     expect(result.fields).toEqual([]);
     expect(result.query).toEqual('some_tag:value');
