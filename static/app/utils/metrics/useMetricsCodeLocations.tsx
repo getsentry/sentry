@@ -67,6 +67,8 @@ export function useMetricsSpans(mri: string | undefined, options: MetricRange = 
   return useMetricsDDMMeta(mri, {
     ...options,
     metricSpans: true,
+    // TODO: remove this once metric spans starts returning data
+    codeLocations: true,
   });
 }
 
@@ -87,6 +89,8 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     return {
       mri: codeLocation.mri,
       timestamp: codeLocation.timestamp,
+      // @ts-expect-error metricSpans is defined in the old response shape
+      metricSpans: data.metricSpans,
       codeLocations: (codeLocation.frames ?? []).map(frame => {
         return {
           function: frame.function,
@@ -102,8 +106,8 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     };
   });
 
-  // @ts-expect-error metricsSpans is defined in the old response shape
-  if (data.metricsSpans?.length) {
+  // @ts-expect-error metricSpans is defined in the old response shape
+  if (data.metricSpans?.length) {
     Sentry.captureMessage('Non-empty metric spans response');
   }
 };
