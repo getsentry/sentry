@@ -2,7 +2,7 @@ import {duration} from 'moment';
 
 import type {ReplayListRecord as TReplayListRecord} from 'sentry/views/replays/types';
 
-export function ReplayList(
+export function ReplayListFixture(
   replayListRecords: TReplayListRecord[] = []
 ): TReplayListRecord[] {
   if (replayListRecords.length) {

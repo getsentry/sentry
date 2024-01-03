@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
@@ -22,7 +22,7 @@ describe('SettingsIndex', function () {
   it('renders', function () {
     render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={Organization()} />
+        <SettingsIndex {...props} organization={OrganizationFixture()} />
       </BreadcrumbContextProvider>
     );
   });
@@ -42,7 +42,7 @@ describe('SettingsIndex', function () {
 
     render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={Organization()} />
+        <SettingsIndex {...props} organization={OrganizationFixture()} />
       </BreadcrumbContextProvider>
     );
 
@@ -102,7 +102,7 @@ describe('SettingsIndex', function () {
       // org already has details
       rerender(
         <BreadcrumbContextProvider>
-          <SettingsIndex {...props} organization={Organization()} />
+          <SettingsIndex {...props} organization={OrganizationFixture()} />
         </BreadcrumbContextProvider>
       );
 

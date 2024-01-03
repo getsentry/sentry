@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 

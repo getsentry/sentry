@@ -1,9 +1,9 @@
 import selectEvent from 'react-select-event';
-import {Member} from 'sentry-fixture/member';
+import {MemberFixture} from 'sentry-fixture/member';
 import {MonitorFixture} from 'sentry-fixture/monitor';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -19,9 +19,9 @@ jest.mock('sentry/utils/useTeams');
 jest.mock('sentry/utils/useMembers');
 
 describe('MonitorForm', function () {
-  const organization = Organization({features: ['issue-platform']});
-  const member = Member({user: User({name: 'John Smith'})});
-  const team = Team({slug: 'test-team'});
+  const organization = OrganizationFixture({features: ['issue-platform']});
+  const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
+  const team = TeamFixture({slug: 'test-team'});
   const {project, routerContext} = initializeOrg({organization});
 
   beforeEach(() => {

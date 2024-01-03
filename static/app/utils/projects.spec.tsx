@@ -1,5 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -208,7 +208,7 @@ describe('utils.projects', function () {
         )
       );
 
-      const newTeam = Team();
+      const newTeam = TeamFixture();
       act(() => ProjectsStore.onAddTeam(newTeam, 'foo'));
 
       await waitFor(() =>
@@ -653,7 +653,7 @@ describe('utils.projects', function () {
         )
       );
 
-      const newTeam = Team();
+      const newTeam = TeamFixture();
       act(() => ProjectsStore.onAddTeam(newTeam, 'a'));
 
       // Expect new team information to be available

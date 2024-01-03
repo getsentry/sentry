@@ -1,4 +1,4 @@
-import {DocIntegration as DocIntegrationFixture} from 'sentry-fixture/docIntegration';
+import {DocIntegrationFixture} from 'sentry-fixture/docIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

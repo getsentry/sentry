@@ -1,4 +1,4 @@
-import {Team} from 'sentry-fixture/team';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -26,7 +26,7 @@ const EXAMPLE_INTEGRATION = {
 
 describe('TeamNotificationSettings', () => {
   const {organization, routerContext, routerProps} = initializeOrg();
-  const team = Team();
+  const team = TeamFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

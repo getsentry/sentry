@@ -1,4 +1,4 @@
-import {Project as MockProject} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   EventOrGroupType,
@@ -9,7 +9,7 @@ import {
   IssueType,
 } from 'sentry/types';
 
-export function Group(params: Partial<GroupType> = {}): GroupType {
+export function GroupFixture(params: Partial<GroupType> = {}): GroupType {
   const unresolvedGroup: GroupUnresolved = {
     activity: [],
     annotations: [],
@@ -37,7 +37,7 @@ export function Group(params: Partial<GroupType> = {}): GroupType {
     pluginActions: [],
     pluginContexts: [],
     pluginIssues: [],
-    project: MockProject({
+    project: ProjectFixture({
       platform: 'javascript',
     }),
     seenBy: [],
@@ -64,3 +64,6 @@ export function Group(params: Partial<GroupType> = {}): GroupType {
 
   return {...unresolvedGroup, ...params} as GroupType;
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {GroupFixture as Group};

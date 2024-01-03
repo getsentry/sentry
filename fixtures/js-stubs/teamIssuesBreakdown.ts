@@ -1,6 +1,6 @@
 import type {IssuesBreakdown} from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
 
-export function TeamIssuesBreakdown(): IssuesBreakdown {
+export function TeamIssuesBreakdownFixture(): IssuesBreakdown {
   return {
     2: {
       '2021-11-19T00:00:00+00:00': {

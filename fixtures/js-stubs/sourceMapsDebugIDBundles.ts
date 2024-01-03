@@ -1,6 +1,6 @@
 import type {DebugIdBundle} from 'sentry/types';
 
-export function SourceMapsDebugIDBundles(
+export function SourceMapsDebugIDBundlesFixture(
   debugIdBundle: Partial<DebugIdBundle> = {}
 ): DebugIdBundle[] {
   return [

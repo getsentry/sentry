@@ -1,5 +1,5 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
 
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
@@ -14,7 +14,7 @@ describe('GuideStore', function () {
   beforeEach(function () {
     jest.clearAllMocks();
     ConfigStore.config = ConfigFixture({
-      user: User({
+      user: UserFixture({
         id: '5',
         isSuperuser: false,
         dateJoined: '2020-01-01T00:00:00',

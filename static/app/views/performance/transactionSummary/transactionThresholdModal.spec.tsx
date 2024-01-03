@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -40,7 +40,7 @@ function mountModal(
 }
 
 describe('TransactionThresholdModal', function () {
-  const organization = Organization({features: ['performance-view']});
+  const organization = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '1',

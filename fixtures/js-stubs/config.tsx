@@ -1,11 +1,11 @@
-import {User} from 'sentry-fixture/user';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {Config as ConfigType} from 'sentry/types';
 
-export function Config(params: Partial<ConfigType> = {}): ConfigType {
+export function ConfigFixture(params: Partial<ConfigType> = {}): ConfigType {
   return {
     theme: 'light',
-    user: User(),
+    user: UserFixture(),
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
@@ -68,3 +68,6 @@ export function Config(params: Partial<ConfigType> = {}): ConfigType {
     ...params,
   };
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {ConfigFixture as Config};

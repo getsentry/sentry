@@ -1,11 +1,11 @@
 import {ComponentProps} from 'react';
 import omit from 'lodash/omit';
-import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
-import {Members} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
-import {Team} from 'sentry-fixture/team';
+import {EventIdQueryResultFixture} from 'sentry-fixture/eventIdQueryResult';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ShortIdQueryResultFixture} from 'sentry-fixture/shortIdQueryResult';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -37,12 +37,12 @@ describe('ApiSource', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'test-org'})],
+      body: [OrganizationFixture({slug: 'test-org'})],
     });
 
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'foo-org'})],
+      body: [OrganizationFixture({slug: 'foo-org'})],
     });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -50,19 +50,19 @@ describe('ApiSource', function () {
     });
     teamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [Team({slug: 'foo-team'})],
+      body: [TeamFixture({slug: 'foo-team'})],
     });
     membersMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: Members(),
+      body: MembersFixture(),
     });
     shortIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/test-1/',
-      body: ShortIdQueryResult(),
+      body: ShortIdQueryResultFixture(),
     });
     eventIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',
-      body: EventIdQueryResult(),
+      body: EventIdQueryResultFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',

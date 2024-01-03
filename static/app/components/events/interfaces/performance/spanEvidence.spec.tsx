@@ -1,4 +1,4 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {
@@ -76,7 +76,7 @@ describe('spanEvidence', () => {
 
     render(
       <SpanEvidenceSection
-        event={builder.getEvent()}
+        event={builder.getEventFixture()}
         organization={organization}
         projectSlug={project.slug}
       />,

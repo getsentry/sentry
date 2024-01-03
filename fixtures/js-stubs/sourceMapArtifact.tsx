@@ -1,6 +1,6 @@
 import {Artifact} from 'sentry/types';
 
-export function SourceMapArtifact(params: Partial<Artifact> = {}): Artifact {
+export function SourceMapArtifactFixture(params: Partial<Artifact> = {}): Artifact {
   return {
     sha1: '111111111',
     dist: null,

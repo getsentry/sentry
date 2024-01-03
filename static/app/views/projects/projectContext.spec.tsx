@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 
 describe('projectContext component', function () {
   const project = ProjectFixture();
-  const org = Organization();
+  const org = OrganizationFixture();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

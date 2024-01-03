@@ -1,5 +1,5 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {User as UserFixture} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

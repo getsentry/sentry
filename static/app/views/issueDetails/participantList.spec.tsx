@@ -1,5 +1,5 @@
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -7,13 +7,13 @@ import {ParticipantList} from './participantList';
 
 describe('ParticipantList', () => {
   const users = [
-    User({id: '1', name: 'John Doe', email: 'john.doe@example.com'}),
-    User({id: '2', name: 'Jane Doe', email: 'jane.doe@example.com'}),
+    UserFixture({id: '1', name: 'John Doe', email: 'john.doe@example.com'}),
+    UserFixture({id: '2', name: 'Jane Doe', email: 'jane.doe@example.com'}),
   ];
 
   const teams = [
-    Team({id: '1', slug: 'team-1', memberCount: 3}),
-    Team({id: '2', slug: 'team-2', memberCount: 5}),
+    TeamFixture({id: '1', slug: 'team-1', memberCount: 3}),
+    TeamFixture({id: '2', slug: 'team-2', memberCount: 5}),
   ];
 
   it('expands and collapses the list when clicked', async () => {

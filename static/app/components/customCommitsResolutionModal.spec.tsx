@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
-import {Commit} from 'sentry-fixture/commit';
+import {CommitFixture} from 'sentry-fixture/commit';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,7 @@ describe('CustomCommitsResolutionModal', function () {
   beforeEach(function () {
     commitsMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/commits/',
-      body: [Commit()],
+      body: [CommitFixture()],
     });
   });
 

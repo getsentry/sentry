@@ -1,7 +1,7 @@
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -24,7 +24,7 @@ describe('OrganizationMemberRow', function () {
       'partnership:restricted': false,
       'sso:invalid': false,
     },
-    user: User({
+    user: UserFixture({
       id: '',
       has2fa: false,
       name: 'sentry@test.com',
@@ -32,7 +32,7 @@ describe('OrganizationMemberRow', function () {
     groupOrgRoles: [],
   });
 
-  const managerTeam = Team({
+  const managerTeam = TeamFixture({
     orgRole: 'manager',
   });
 
@@ -48,13 +48,13 @@ describe('OrganizationMemberRow', function () {
     ],
   });
 
-  const currentUser = User({
+  const currentUser = UserFixture({
     id: '2',
     email: 'currentUser@email.com',
   });
 
   const defaultProps: React.ComponentProps<typeof OrganizationMemberRow> = {
-    organization: Organization(),
+    organization: OrganizationFixture(),
     status: '',
     requireLink: false,
     memberCanLeave: false,
@@ -90,7 +90,7 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={MemberFixture({
             ...member,
-            user: User({...member.user, has2fa: true}),
+            user: UserFixture({...member.user, has2fa: true}),
           })}
         />
       );
@@ -105,7 +105,7 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={{
             ...member,
-            user: User({...member.user, has2fa: false}),
+            user: UserFixture({...member.user, has2fa: false}),
           }}
         />
       );
@@ -225,7 +225,7 @@ describe('OrganizationMemberRow', function () {
               'partnership:restricted': false,
               'sso:invalid': false,
             },
-            user: User({...member.user, has2fa: false}),
+            user: UserFixture({...member.user, has2fa: false}),
           }}
         />
       );
@@ -314,7 +314,7 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={{...member, user: User({...member.user})}}
+          member={{...member, user: UserFixture({...member.user})}}
         />
       );
 
@@ -329,7 +329,10 @@ describe('OrganizationMemberRow', function () {
     render(
       <OrganizationMemberRow
         {...defaultProps}
-        member={{...memberOnManagerTeam, user: User({...memberOnManagerTeam.user})}}
+        member={{
+          ...memberOnManagerTeam,
+          user: UserFixture({...memberOnManagerTeam.user}),
+        }}
       />
     );
 

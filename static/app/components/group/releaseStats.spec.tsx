@@ -1,14 +1,14 @@
-import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 
 describe('GroupReleaseStats', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const group = GroupFixture();
 

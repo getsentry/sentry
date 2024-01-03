@@ -1,5 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +13,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={ProjectFixture({teams: [Team()]})}
+        project={ProjectFixture({teams: [TeamFixture()]})}
       />,
       {context: routerContext}
     );
@@ -26,7 +26,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={ProjectFixture({teams: [Team()]})}
+        project={ProjectFixture({teams: [TeamFixture()]})}
       />,
       {context: routerContext}
     );
@@ -65,13 +65,13 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
         organization={organization}
         project={ProjectFixture({
           teams: [
-            Team({slug: 'team1'}),
-            Team({slug: 'team2'}),
-            Team({slug: 'team3'}),
-            Team({slug: 'team4'}),
-            Team({slug: 'team5'}),
-            Team({slug: 'team6'}),
-            Team({slug: 'team7'}),
+            TeamFixture({slug: 'team1'}),
+            TeamFixture({slug: 'team2'}),
+            TeamFixture({slug: 'team3'}),
+            TeamFixture({slug: 'team4'}),
+            TeamFixture({slug: 'team5'}),
+            TeamFixture({slug: 'team6'}),
+            TeamFixture({slug: 'team7'}),
           ],
         })}
       />,
@@ -92,7 +92,11 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
       <ProjectTeamAccess
         organization={organization}
         project={ProjectFixture({
-          teams: [Team({slug: 'c'}), Team({slug: 'z'}), Team({slug: 'a'})],
+          teams: [
+            TeamFixture({slug: 'c'}),
+            TeamFixture({slug: 'z'}),
+            TeamFixture({slug: 'a'}),
+          ],
         })}
       />,
       {context: routerContext}

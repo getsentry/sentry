@@ -96,7 +96,7 @@ describe('SpanEvidencePreview', () => {
           9
         )
       )
-      .getEvent();
+      .getEventFixture();
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/group-id/events/recommended/`,

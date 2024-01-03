@@ -1,6 +1,6 @@
 import type {ApiApplication as ApiApplicationType} from 'sentry/types';
 
-export function ApiApplication(
+export function ApiApplicationFixture(
   params: Partial<ApiApplicationType> = {}
 ): ApiApplicationType {
   return {

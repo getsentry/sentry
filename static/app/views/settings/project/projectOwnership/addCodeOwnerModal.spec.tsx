@@ -1,9 +1,9 @@
 import selectEvent from 'react-select-event';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -16,16 +16,16 @@ import {
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', function () {
-  const org = Organization({features: ['integrations-codeowners']});
+  const org = OrganizationFixture({features: ['integrations-codeowners']});
   const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
-  const repo = Repository({
+  const repo = RepositoryFixture({
     integrationId: integration.id,
     id: '5',
     name: 'example/hello-there',
   });
 
-  const codeMapping = RepositoryProjectPathConfig({
+  const codeMapping = RepositoryProjectPathConfigFixture({
     project,
     repo,
     integration,

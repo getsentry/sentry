@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -18,7 +18,7 @@ jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DomainSelector', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   jest.mocked(useOrganization).mockReturnValue(organization);
 
   jest.mocked(usePageFilters).mockReturnValue({

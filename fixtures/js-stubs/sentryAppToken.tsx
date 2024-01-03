@@ -1,6 +1,6 @@
 import {InternalAppApiToken} from 'sentry/types';
 
-export function SentryAppToken(
+export function SentryAppTokenFixture(
   params: Partial<InternalAppApiToken> = {}
 ): InternalAppApiToken {
   return {

@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import RepositoryStore from 'sentry/stores/repositoryStore';
 import withRepositories from 'sentry/utils/withRepositories';
 
 describe('withRepositories HoC', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const orgSlug = organization.slug;
   const repoUrl = `/organizations/${orgSlug}/repos/`;
 

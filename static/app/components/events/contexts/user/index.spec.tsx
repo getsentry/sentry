@@ -1,4 +1,4 @@
-import {Event} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -51,7 +51,7 @@ export const userMetaMockData = {
 };
 
 const event = {
-  ...Event(),
+  ...EventFixture(),
   _meta: {
     user: userMetaMockData,
   },

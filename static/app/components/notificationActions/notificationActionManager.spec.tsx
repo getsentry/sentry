@@ -1,4 +1,4 @@
-import {AvailableNotificationActions as AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
+import {AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

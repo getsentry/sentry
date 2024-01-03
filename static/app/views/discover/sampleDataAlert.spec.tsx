@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -46,7 +46,7 @@ describe('SampleDataAlert', function () {
       };
     });
     const {container} = render(<SampleDataAlert />, {
-      organization: {...Organization, isDynamicallySampled: false},
+      organization: {...OrganizationFixture(), isDynamicallySampled: false},
     });
 
     expect(container).toBeEmptyDOMElement();

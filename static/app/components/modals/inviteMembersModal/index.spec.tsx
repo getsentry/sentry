@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -13,8 +13,8 @@ import InviteMembersModal, {
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {
-  const team = Team();
-  const org = Organization({access: ['member:write'], teams: [team]});
+  const team = TeamFixture();
+  const org = OrganizationFixture({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
 
   const styledWrapper = styled(c => c.children);
@@ -24,10 +24,10 @@ describe('InviteMembersModal', function () {
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
-    organization: Organization(),
+    organization: OrganizationFixture(),
   };
 
-  const noWriteOrg = Organization({
+  const noWriteOrg = OrganizationFixture({
     access: [],
   });
 
@@ -69,7 +69,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders without organization.access', function () {
-    const organization = Organization({access: undefined});
+    const organization = OrganizationFixture({access: undefined});
     render(<InviteMembersModal {...modalProps} organization={organization} />);
 
     expect(screen.getByRole('listitem')).toBeInTheDocument();

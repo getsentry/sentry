@@ -1,6 +1,6 @@
 import {PageFilters} from 'sentry/types';
 
-export function GlobalSelection(params: Partial<PageFilters> = {}): PageFilters {
+export function GlobalSelectionFixture(params: Partial<PageFilters> = {}): PageFilters {
   return {
     projects: [1],
     environments: ['production', 'staging'],

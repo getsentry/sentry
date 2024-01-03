@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +17,7 @@ describe('OrganizationCrumb', function () {
   const {organization, project, routerContext, routerProps} = initializeOrg();
   const organizations = [
     organization,
-    Organization({
+    OrganizationFixture({
       id: '234',
       slug: 'org-slug2',
     }),
@@ -156,7 +156,7 @@ describe('OrganizationCrumb', function () {
     const route = routes[6];
     const orgs = [
       organization,
-      Organization({
+      OrganizationFixture({
         id: '234',
         slug: 'acme',
         features: ['customer-domains'],

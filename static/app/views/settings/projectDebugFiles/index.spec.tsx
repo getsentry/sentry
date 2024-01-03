@@ -1,4 +1,4 @@
-import {DebugFile} from 'sentry-fixture/debugFile';
+import {DebugFileFixture} from 'sentry-fixture/debugFile';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -34,7 +34,7 @@ describe('ProjectDebugFiles', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: endpoint,
-      body: [DebugFile()],
+      body: [DebugFileFixture()],
     });
   });
 
@@ -66,7 +66,7 @@ describe('ProjectDebugFiles', function () {
     const deleteMock = MockApiClient.addMockResponse({
       method: 'DELETE',
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${
-        DebugFile().id
+        DebugFileFixture().id
       }`,
     });
 

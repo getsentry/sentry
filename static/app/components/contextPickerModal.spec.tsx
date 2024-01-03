@@ -1,8 +1,8 @@
 import selectEvent from 'react-select-event';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -26,9 +26,9 @@ describe('ContextPickerModal', function () {
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
-    org = Organization({projects: [project]});
+    org = OrganizationFixture({projects: [project]});
     project2 = ProjectFixture({slug: 'project2'});
-    org2 = Organization({
+    org2 = OrganizationFixture({
       slug: 'org2',
       id: '21',
     });
@@ -194,7 +194,7 @@ describe('ContextPickerModal', function () {
   it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = User({isSuperuser: true});
+    ConfigStore.config.user = UserFixture({isSuperuser: true});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
@@ -238,7 +238,7 @@ describe('ContextPickerModal', function () {
   it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = User({isSuperuser: false});
+    ConfigStore.config.user = UserFixture({isSuperuser: false});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
@@ -270,7 +270,7 @@ describe('ContextPickerModal', function () {
   it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = User({isSuperuser: false});
+    ConfigStore.config.user = UserFixture({isSuperuser: false});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;

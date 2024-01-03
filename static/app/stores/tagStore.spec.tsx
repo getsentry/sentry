@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import TagStore from 'sentry/stores/tagStore';
 
@@ -50,7 +50,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      expect(TagStore.getIssueAttributes(Organization()).has).toEqual({
+      expect(TagStore.getIssueAttributes(OrganizationFixture()).has).toEqual({
         key: 'has',
         name: 'Has Tag',
         values: ['mytag', 'otherkey'],
@@ -66,7 +66,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(Organization());
+      const tags = TagStore.getIssueAttributes(OrganizationFixture());
       expect(tags.is).toBeTruthy();
       expect(tags.is.key).toBe('is');
       expect(tags.assigned).toBeTruthy();
@@ -81,7 +81,7 @@ describe('TagStore', function () {
       ]);
 
       const tags = TagStore.getIssueAttributes(
-        Organization({features: ['escalating-issues']})
+        OrganizationFixture({features: ['escalating-issues']})
       );
       expect(tags.is.values).toContain('archived');
       expect(tags.is.values).not.toContain('ignored');
@@ -97,7 +97,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueTags(Organization());
+      const tags = TagStore.getIssueTags(OrganizationFixture());
 
       // state
       expect(tags.mytag).toBeTruthy();

@@ -1,8 +1,8 @@
-import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +18,7 @@ import {OrganizationLegacyContext} from 'sentry/views/organizationContextContain
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
-  const teams = [Team()];
+  const teams = [TeamFixture()];
 
   const api = new MockApiClient();
   let getOrgMock: jest.Mock;
@@ -106,7 +106,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('fetches new org when router params change', async function () {
-    const newOrg = Organization({slug: 'new-slug'});
+    const newOrg = OrganizationFixture({slug: 'new-slug'});
 
     const {rerender} = renderComponent();
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('OrganizationContextContainer', function () {
   it('opens sudo modal for superusers on 403s', async function () {
     const openSudoSpy = jest.spyOn(openSudo, 'openSudo');
 
-    ConfigStore.set('user', User({isSuperuser: true}));
+    ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
@@ -227,7 +227,10 @@ describe('OrganizationContextContainer', function () {
         params: {orgId: ''},
         useLastOrganization: true,
         organizationsLoading: false,
-        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
+        organizations: [
+          OrganizationFixture({slug: 'foo'}),
+          OrganizationFixture({slug: 'bar'}),
+        ],
       })
     );
 
@@ -241,7 +244,7 @@ describe('OrganizationContextContainer', function () {
   it('uses last organization when no orgId in URL - and fetches org details once', async function () {
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
-      body: Organization({slug: 'my-last-org'}),
+      body: OrganizationFixture({slug: 'my-last-org'}),
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/projects/',
@@ -270,7 +273,10 @@ describe('OrganizationContextContainer', function () {
         params: {orgId: ''},
         useLastOrganization: true,
         organizationsLoading: false,
-        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
+        organizations: [
+          OrganizationFixture({slug: 'foo'}),
+          OrganizationFixture({slug: 'bar'}),
+        ],
       })
     );
 
@@ -295,7 +301,10 @@ describe('OrganizationContextContainer', function () {
       makeComponent({
         params: {orgId: 'org-slug'},
         organizationsLoading: false,
-        organizations: [Organization({slug: 'foo'}), Organization({slug: 'bar'})],
+        organizations: [
+          OrganizationFixture({slug: 'foo'}),
+          OrganizationFixture({slug: 'bar'}),
+        ],
       })
     );
 

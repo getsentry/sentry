@@ -1,6 +1,6 @@
 import {IncidentStats as IncidentStatsType} from 'sentry/views/alerts/types';
 
-export function IncidentStats(
+export function IncidentStatsFixture(
   params: Partial<IncidentStatsType> = {}
 ): IncidentStatsType {
   return {

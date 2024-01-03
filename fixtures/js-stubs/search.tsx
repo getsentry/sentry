@@ -1,6 +1,6 @@
 import {SavedSearch, SavedSearchVisibility} from 'sentry/types';
 
-export function Search(params: Partial<SavedSearch> = {}): SavedSearch {
+export function SearchFixture(params: Partial<SavedSearch> = {}): SavedSearch {
   return {
     dateCreated: '2017-11-14T02:22:58.026Z',
     isGlobal: false,

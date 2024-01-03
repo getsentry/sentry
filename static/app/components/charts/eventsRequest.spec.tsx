@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,7 +14,7 @@ jest.mock('sentry/actionCreators/events', () => ({
 }));
 
 describe('EventsRequest', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const mock = jest.fn(() => null);
 
   const DEFAULTS: EventsRequestProps = {

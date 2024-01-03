@@ -1,4 +1,4 @@
-import {ApiToken as ApiTokenFixture} from 'sentry-fixture/apiToken';
+import {ApiTokenFixture} from 'sentry-fixture/apiToken';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 

@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

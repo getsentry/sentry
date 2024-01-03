@@ -1,4 +1,4 @@
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 

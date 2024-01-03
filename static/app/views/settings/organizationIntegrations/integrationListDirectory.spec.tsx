@@ -1,11 +1,11 @@
-import {DocIntegration as DocIntegrationFixture} from 'sentry-fixture/docIntegration';
+import {DocIntegrationFixture} from 'sentry-fixture/docIntegration';
 import {
-  BitbucketIntegrationConfig,
-  OrgOwnedApps,
-  PluginListConfig,
-  ProviderList,
-  PublishedApps,
-  SentryAppInstalls,
+  BitbucketIntegrationConfigFixture,
+  OrgOwnedAppsFixture,
+  PluginListConfigFixture,
+  ProviderListFixture,
+  PublishedAppsFixture,
+  SentryAppInstallsFixture,
 } from 'sentry-fixture/integrationListDirectory';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -27,13 +27,19 @@ describe('IntegrationListDirectory', function () {
   describe('Renders view', function () {
     beforeEach(() => {
       mockResponse([
-        [`/organizations/${org.slug}/config/integrations/`, ProviderList()],
-        [`/organizations/${org.slug}/integrations/`, [BitbucketIntegrationConfig()]],
-        [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedApps()],
-        ['/sentry-apps/', PublishedApps()],
+        [`/organizations/${org.slug}/config/integrations/`, ProviderListFixture()],
+        [
+          `/organizations/${org.slug}/integrations/`,
+          [BitbucketIntegrationConfigFixture()],
+        ],
+        [`/organizations/${org.slug}/sentry-apps/`, OrgOwnedAppsFixture()],
+        ['/sentry-apps/', PublishedAppsFixture()],
         ['/doc-integrations/', [DocIntegrationFixture()]],
-        [`/organizations/${org.slug}/sentry-app-installations/`, SentryAppInstalls()],
-        [`/organizations/${org.slug}/plugins/configs/`, PluginListConfig()],
+        [
+          `/organizations/${org.slug}/sentry-app-installations/`,
+          SentryAppInstallsFixture(),
+        ],
+        [`/organizations/${org.slug}/plugins/configs/`, PluginListConfigFixture()],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
       ]);
     });

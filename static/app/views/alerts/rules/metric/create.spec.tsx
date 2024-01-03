@@ -1,4 +1,4 @@
-import {EventsStats} from 'sentry-fixture/events';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
@@ -27,7 +27,7 @@ describe('Incident Rules Create', function () {
     });
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: EventsStats(),
+      body: EventsStatsFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',

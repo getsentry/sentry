@@ -1,5 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +13,7 @@ describe('getCustomFieldRenderer', function () {
   const baseEventViewOptions: EventViewOptions = {
     start: undefined,
     end: undefined,
-    createdBy: User(),
+    createdBy: UserFixture(),
     display: undefined,
     fields: [],
     sorts: [],

@@ -1,17 +1,17 @@
-import {Search} from 'sentry-fixture/search';
+import {SearchFixture} from 'sentry-fixture/search';
 
 import {SavedSearch} from 'sentry/types';
 
-export function Searches(params: SavedSearch[] = []): SavedSearch[] {
+export function SearchesFixture(params: SavedSearch[] = []): SavedSearch[] {
   return [
-    Search({
+    SearchFixture({
       name: 'Needs Triage',
       query: 'is:unresolved is:unassigned',
       sort: 'date',
       id: '2',
       isGlobal: true,
     }),
-    Search({
+    SearchFixture({
       name: 'Unresolved Issues',
       query: 'is:unresolved',
       sort: 'date',

@@ -1,12 +1,12 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import SetupAlertIntegrationButton from 'sentry/views/alerts/rules/issue/setupAlertIntegrationButton';
 
 describe('SetupAlertIntegrationButton', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   it('renders button if no alert integrations', function () {
     MockApiClient.addMockResponse({

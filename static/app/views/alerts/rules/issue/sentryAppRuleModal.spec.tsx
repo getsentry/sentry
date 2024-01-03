@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppInstallation as SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -21,7 +21,7 @@ describe('SentryAppRuleModal', function () {
   let sentryAppInstallation;
 
   beforeEach(function () {
-    sentryApp = SentryApp();
+    sentryApp = SentryAppFixture();
     sentryAppInstallation = SentryAppInstallationFixture();
   });
 

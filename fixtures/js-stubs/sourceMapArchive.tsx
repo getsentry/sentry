@@ -1,6 +1,6 @@
 import {SourceMapsArchive} from 'sentry/types';
 
-export function SourceMapArchive(
+export function SourceMapArchiveFixture(
   params: Partial<SourceMapsArchive> = {}
 ): SourceMapsArchive {
   return {

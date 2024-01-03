@@ -1,6 +1,6 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -109,9 +109,9 @@ describe('getFieldRenderer', function () {
     beforeEach(function () {
       ConfigStore.loadInitialData(
         ConfigFixture({
-          user: User({
+          user: UserFixture({
             options: {
-              ...User().options,
+              ...UserFixture().options,
               timezone: 'America/Los_Angeles',
             },
           }),
@@ -150,9 +150,9 @@ describe('getFieldRenderer', function () {
     // Set timezone
     ConfigStore.loadInitialData(
       ConfigFixture({
-        user: User({
+        user: UserFixture({
           options: {
-            ...User().options,
+            ...UserFixture().options,
             timezone: 'America/Los_Angeles',
           },
         }),
@@ -339,7 +339,7 @@ describe('getFieldRenderer', function () {
           organization,
           eventView: new EventView({
             sorts: [{field: 'spans.db', kind: 'desc'}],
-            createdBy: User(),
+            createdBy: UserFixture(),
             display: undefined,
             end: undefined,
             start: undefined,

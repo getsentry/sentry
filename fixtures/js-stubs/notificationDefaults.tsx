@@ -1,4 +1,4 @@
-export const NotificationDefaults = () => ({
+export const NotificationDefaultsFixture = () => ({
   providerDefaults: ['email', 'slack'],
   typeDefaults: {
     alerts: 'always',

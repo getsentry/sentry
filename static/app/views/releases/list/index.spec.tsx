@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -144,7 +144,7 @@ describe('ReleasesList', () => {
       name: 'test-name-2',
       features: [],
     });
-    const org = Organization({projects: [project, projectWithouReleases]});
+    const org = OrganizationFixture({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',

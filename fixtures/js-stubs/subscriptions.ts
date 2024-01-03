@@ -1,6 +1,6 @@
 import type {Subscription} from 'sentry/views/settings/account/accountSubscriptions';
 
-export function Subscriptions(params = []): Subscription[] {
+export function SubscriptionsFixture(params = []): Subscription[] {
   return [
     {
       subscribedDate: '2018-01-08T05:14:59.102Z',

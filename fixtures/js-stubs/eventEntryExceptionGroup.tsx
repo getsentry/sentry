@@ -1,6 +1,6 @@
 import {EntryException, EntryType} from 'sentry/types';
 
-export function EventEntryExceptionGroup(): EntryException {
+export function EventEntryExceptionGroupFixture(): EntryException {
   return {
     type: EntryType.EXCEPTION,
     data: {

@@ -1,6 +1,8 @@
 import type {AuthProvider as AuthProviderType} from 'sentry/types';
 
-export function AuthProvider(params: Partial<AuthProviderType> = {}): AuthProviderType {
+export function AuthProviderFixture(
+  params: Partial<AuthProviderType> = {}
+): AuthProviderType {
   return {
     key: 'auth_provider_key',
     name: 'auth_provider_name',

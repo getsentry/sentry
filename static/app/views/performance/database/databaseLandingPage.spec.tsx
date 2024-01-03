@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,7 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseLandingPage', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   let spanListRequestMock;
 

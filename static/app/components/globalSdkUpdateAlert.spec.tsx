@@ -1,5 +1,5 @@
 import moment from 'moment';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -74,7 +74,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     const {rerender} = render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     expect(
@@ -105,7 +105,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     expect(
@@ -130,7 +130,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     await waitFor(() =>
@@ -157,7 +157,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     expect(
@@ -182,7 +182,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     await waitFor(() =>
@@ -209,7 +209,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     expect(
@@ -236,7 +236,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: Organization(),
+      organization: OrganizationFixture(),
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remind me later'}));

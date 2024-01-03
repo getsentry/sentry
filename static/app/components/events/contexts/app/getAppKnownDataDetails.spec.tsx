@@ -1,4 +1,4 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {appKnownDataValues} from 'sentry/components/events/contexts/app';
 import {getAppKnownDataDetails} from 'sentry/components/events/contexts/app/getAppKnownDataDetails';

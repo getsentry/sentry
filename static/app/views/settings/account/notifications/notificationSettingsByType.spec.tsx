@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
-import {NotificationDefaults} from 'sentry-fixture/notificationDefaults';
-import {Organization} from 'sentry-fixture/organization';
+import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -75,7 +75,7 @@ function renderComponent({
   organizationIntegrations?: OrganizationIntegration[];
   organizations?: TOrganization[];
 }) {
-  const org = Organization();
+  const org = OrganizationFixture();
   renderMockRequests({
     notificationOptions,
     notificationProviders,
@@ -101,7 +101,7 @@ describe('NotificationSettingsByType', function () {
     MockApiClient.addMockResponse({
       url: '/notification-defaults/',
       method: 'GET',
-      body: NotificationDefaults(),
+      body: NotificationDefaultsFixture(),
     });
   });
 
@@ -124,8 +124,8 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should default to the subdomain org', async function () {
-    const organization = Organization();
-    const otherOrganization = Organization({
+    const organization = OrganizationFixture();
+    const otherOrganization = OrganizationFixture({
       id: '2',
       slug: 'other-org',
       name: 'other org',

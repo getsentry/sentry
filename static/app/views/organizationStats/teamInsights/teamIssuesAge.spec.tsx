@@ -1,6 +1,6 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,8 +8,8 @@ import TeamIssuesAge from 'sentry/views/organizationStats/teamInsights/teamIssue
 
 describe('TeamIssuesAge', () => {
   it('should render graph with table of oldest issues', async () => {
-    const team = Team();
-    const organization = Organization();
+    const team = TeamFixture();
+    const organization = OrganizationFixture();
     const timeToResolutionApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/unresolved-issue-age/`,
       body: {

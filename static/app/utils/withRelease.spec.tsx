@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import ReleaseStore from 'sentry/stores/releaseStore';
 import withRelease from 'sentry/utils/withRelease';
 
 describe('withRelease HoC', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const orgSlug = organization.slug;
   const projectSlug = 'myProject';
   const releaseVersion = 'myRelease';

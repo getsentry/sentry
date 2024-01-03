@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -18,7 +18,7 @@ const queryClient = new QueryClient({
 });
 
 describe('useUserTeams', () => {
-  const org = Organization();
+  const org = OrganizationFixture();
   const wrapper = ({children}: {children?: any}) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
@@ -31,8 +31,8 @@ describe('useUserTeams', () => {
   });
 
   it('does not request user teams until the store has loaded', async function () {
-    const userTeams = [Team({id: '1', isMember: true})];
-    const nonUserTeams = [Team({id: '2', isMember: false})];
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     const mockapi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/user-teams/`,
       body: userTeams,
@@ -54,8 +54,8 @@ describe('useUserTeams', () => {
   });
 
   it('provides only the users teams', function () {
-    const userTeams = [Team({id: '1', isMember: true})];
-    const nonUserTeams = [Team({id: '2', isMember: false})];
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     // User teams marked loaded because hasMore is false
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);

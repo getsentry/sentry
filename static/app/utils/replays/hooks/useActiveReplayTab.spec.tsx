@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -26,15 +26,15 @@ function mockLocation(query: string = '') {
   } as Location);
 }
 
-function mockOrganization(props?: {features: string[]}) {
+function mockOrganizationFixture(props?: {features: string[]}) {
   const features = props?.features ?? [];
-  jest.mocked(useOrganization).mockReturnValue(Organization({features}));
+  jest.mocked(useOrganization).mockReturnValue(OrganizationFixture({features}));
 }
 
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
     mockLocation();
-    mockOrganization();
+    mockOrganizationFixture();
     mockPush.mockReset();
   });
 
@@ -75,7 +75,7 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should disallow PERF by default', () => {
-    mockOrganization({
+    mockOrganizationFixture({
       features: [],
     });
 
@@ -90,7 +90,7 @@ describe('useActiveReplayTab', () => {
   });
 
   it('should allow PERF when the feature is enabled', () => {
-    mockOrganization({
+    mockOrganizationFixture({
       features: ['session-replay-trace-table'],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);

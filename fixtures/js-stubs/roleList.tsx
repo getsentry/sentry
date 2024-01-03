@@ -1,6 +1,6 @@
 import {OrgRole, TeamRole} from 'sentry/types';
 
-export function OrgRoleList(
+export function OrgRoleListFixture(
   params: OrgRole[] = [],
   fullAccess: boolean = false
 ): OrgRole[] {
@@ -53,7 +53,7 @@ export function OrgRoleList(
   ];
 }
 
-export function TeamRoleList(params: TeamRole[] = []): TeamRole[] {
+export function TeamRoleListFixture(params: TeamRole[] = []): TeamRole[] {
   return [
     {
       id: 'contributor',

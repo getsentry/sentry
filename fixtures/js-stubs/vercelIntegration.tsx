@@ -1,6 +1,6 @@
 import {IntegrationProvider} from 'sentry/types';
 
-export function VercelProvider(): IntegrationProvider {
+export function VercelProviderFixture(): IntegrationProvider {
   return {
     setupDialog: {
       url: '/organizations/sentry/integrations/vercel/setup/',

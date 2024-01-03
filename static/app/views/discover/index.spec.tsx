@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
@@ -75,14 +75,17 @@ describe('Discover > Landing', function () {
 
   it('denies access on missing feature', function () {
     render(
-      <DiscoverLanding organization={Organization()} {...RouteComponentPropsFixture()} />
+      <DiscoverLanding
+        organization={OrganizationFixture()}
+        {...RouteComponentPropsFixture()}
+      />
     );
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
   it('has the right sorts', function () {
-    const org = Organization({features});
+    const org = OrganizationFixture({features});
 
     render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />);
 
@@ -107,7 +110,7 @@ describe('Discover > Landing', function () {
   });
 
   it('links back to the homepage', () => {
-    const org = Organization({features});
+    const org = OrganizationFixture({features});
 
     render(<DiscoverLanding organization={org} {...RouteComponentPropsFixture()} />, {
       context: RouterContextFixture(),

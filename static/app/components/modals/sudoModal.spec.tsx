@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -33,7 +33,7 @@ describe('Sudo Modal', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization()],
+      body: [OrganizationFixture()],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',

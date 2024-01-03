@@ -1,6 +1,8 @@
 import {IssueAlertRule} from 'sentry/types/alerts';
 
-export function ProjectAlertRule(params: Partial<IssueAlertRule> = {}): IssueAlertRule {
+export function ProjectAlertRuleFixture(
+  params: Partial<IssueAlertRule> = {}
+): IssueAlertRule {
   return {
     id: '1',
     name: 'My alert rule',

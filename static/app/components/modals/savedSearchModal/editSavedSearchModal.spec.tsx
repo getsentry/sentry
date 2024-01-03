@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -35,7 +35,7 @@ describe('EditSavedSearchModal', function () {
     Footer: ModalFooter,
     CloseButton: makeCloseButton(jest.fn()),
     closeModal: jest.fn(),
-    organization: Organization(),
+    organization: OrganizationFixture(),
     savedSearch: {
       id: 'saved-search-id',
       name: 'Saved search name',
@@ -106,7 +106,7 @@ describe('EditSavedSearchModal', function () {
     render(
       <EditSavedSearchModal
         {...defaultProps}
-        organization={Organization({
+        organization={OrganizationFixture({
           access: [],
         })}
       />

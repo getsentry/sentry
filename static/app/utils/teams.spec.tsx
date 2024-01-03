@@ -1,4 +1,4 @@
-import {Team} from 'sentry-fixture/team';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
@@ -10,8 +10,8 @@ describe('utils.teams', function () {
 
   beforeEach(function () {
     TeamStore.loadInitialData([
-      Team({id: '1', slug: 'bar'}),
-      Team({id: '2', slug: 'foo'}),
+      TeamFixture({id: '1', slug: 'bar'}),
+      TeamFixture({id: '2', slug: 'foo'}),
     ]);
     renderer.mockClear();
   });

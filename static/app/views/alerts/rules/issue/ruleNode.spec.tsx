@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +9,7 @@ import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
   const project = ProjectFixture();
-  const organization = Organization({projects: [project]});
+  const organization = OrganizationFixture({projects: [project]});
   const index = 0;
   const onDelete = jest.fn();
   const onReset = jest.fn();

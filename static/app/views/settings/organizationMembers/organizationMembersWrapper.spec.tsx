@@ -1,5 +1,5 @@
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +17,7 @@ describe('OrganizationMembersWrapper', function () {
   const {routerProps} = initializeOrg();
 
   const member = MemberFixture();
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['invite-members'],
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
@@ -69,7 +69,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can not invite members without the invite-members feature', function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: [],
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
@@ -83,7 +83,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can invite without permissions', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['invite-members'],
       access: [],
       status: {

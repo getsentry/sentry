@@ -1,9 +1,9 @@
 import {browserHistory} from 'react-router';
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -44,21 +44,21 @@ describe('GroupEventCarousel', () => {
   });
 
   describe('recommended event ui', () => {
-    const recommendedUser = User({
+    const recommendedUser = UserFixture({
       options: {
-        ...User().options,
+        ...UserFixture().options,
         defaultIssueEvent: 'recommended',
       },
     });
-    const latestUser = User({
+    const latestUser = UserFixture({
       options: {
-        ...User().options,
+        ...UserFixture().options,
         defaultIssueEvent: 'latest',
       },
     });
-    const oldestUser = User({
+    const oldestUser = UserFixture({
       options: {
-        ...User().options,
+        ...UserFixture().options,
         defaultIssueEvent: 'oldest',
       },
     });
@@ -179,7 +179,7 @@ describe('GroupEventCarousel', () => {
 
   it('links to full event details when org has discover', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      organization: Organization({features: ['discover-basic']}),
+      organization: OrganizationFixture({features: ['discover-basic']}),
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));

@@ -1,8 +1,8 @@
-import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
+import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 
 import type {DetailedOrganization} from 'sentry/types';
 
-export function Organization(
+export function OrganizationFixture(
   params: Partial<DetailedOrganization> = {}
 ): DetailedOrganization {
   const slug = params.slug ?? 'org-slug';
@@ -81,7 +81,11 @@ export function Organization(
     projects: [],
     ...params,
 
-    orgRoleList: OrgRoleList(),
-    teamRoleList: TeamRoleList(),
+    orgRoleList: OrgRoleListFixture(),
+    teamRoleList: TeamRoleListFixture(),
   };
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {OrganizationFixture as Organization};
+export default OrganizationFixture;

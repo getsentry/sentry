@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,7 @@ describe('ProjectCard', function () {
   const createWrapper = () =>
     render(
       <ProjectCard
-        organization={Organization()}
+        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 1],
@@ -55,7 +55,7 @@ describe('ProjectCard', function () {
 
     render(
       <ProjectCard
-        organization={Organization()}
+        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 1],
@@ -91,7 +91,7 @@ describe('ProjectCard', function () {
   it('renders header link for errors', function () {
     render(
       <ProjectCard
-        organization={Organization()}
+        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 3],
@@ -114,7 +114,7 @@ describe('ProjectCard', function () {
   it('renders header link for transactions', function () {
     render(
       <ProjectCard
-        organization={Organization({features: ['performance-view']})}
+        organization={OrganizationFixture({features: ['performance-view']})}
         project={ProjectFixture({
           stats: [
             [1525042800, 3],
@@ -139,7 +139,7 @@ describe('ProjectCard', function () {
   it('renders loading placeholder card if there are no stats', function () {
     render(
       <ProjectCard
-        organization={Organization()}
+        organization={OrganizationFixture()}
         project={ProjectFixture()}
         hasProjectAccess={false}
         api={new MockApiClient()}

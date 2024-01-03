@@ -1,6 +1,6 @@
 import {Plugin as PluginType} from 'sentry/types';
 
-export function Plugin(params: Partial<PluginType> = {}): PluginType {
+export function PluginFixture(params: Partial<PluginType> = {}): PluginType {
   return {
     author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
     enabled: false,

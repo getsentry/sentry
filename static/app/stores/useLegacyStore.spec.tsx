@@ -1,4 +1,4 @@
-import {Team} from 'sentry-fixture/team';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 describe('useLegacyStore', () => {
-  const team = Team();
+  const team = TeamFixture();
 
   beforeEach(() => void TeamStore.reset());
 

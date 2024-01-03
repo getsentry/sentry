@@ -1,10 +1,10 @@
 import selectEvent from 'react-select-event';
-import {UserEnrolledAuthenticator} from 'sentry-fixture/authenticators';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
-import {OrgRoleList} from 'sentry-fixture/roleList';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {UserEnrolledAuthenticatorFixture} from 'sentry-fixture/authenticators';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrgRoleListFixture} from 'sentry-fixture/roleList';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -25,8 +25,8 @@ jest.mock('sentry/actionCreators/members', () => ({
 }));
 
 describe('OrganizationMemberDetail', function () {
-  const team = Team();
-  const idpTeam = Team({
+  const team = TeamFixture();
+  const idpTeam = TeamFixture({
     id: '3',
     slug: 'idp-member-team',
     name: 'Idp Member Team',
@@ -35,8 +35,8 @@ describe('OrganizationMemberDetail', function () {
       'idp:provisioned': true,
     },
   });
-  const managerTeam = Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
-  const otherManagerTeam = Team({
+  const managerTeam = TeamFixture({id: '5', orgRole: 'manager', slug: 'manager-team'});
+  const otherManagerTeam = TeamFixture({
     id: '4',
     slug: 'org-role-team',
     name: 'Org Role Team',
@@ -45,7 +45,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const teams = [
     team,
-    Team({
+    TeamFixture({
       id: '2',
       slug: 'new-team',
       name: 'New Team',
@@ -67,13 +67,13 @@ describe('OrganizationMemberDetail', function () {
   };
 
   const member = MemberFixture({
-    roles: OrgRoleList(),
+    roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     ...teamAssignment,
   });
   const pendingMember = MemberFixture({
     id: '2',
-    roles: OrgRoleList(),
+    roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
@@ -81,7 +81,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const expiredMember = MemberFixture({
     id: '3',
-    roles: OrgRoleList(),
+    roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
@@ -90,7 +90,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const idpTeamMember = MemberFixture({
     id: '4',
-    roles: OrgRoleList(),
+    roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     teams: [idpTeam.slug],
     teamRoles: [
@@ -102,7 +102,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const managerTeamMember = MemberFixture({
     id: '5',
-    roles: OrgRoleList(),
+    roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     teams: [otherManagerTeam.slug],
     teamRoles: [
@@ -114,7 +114,7 @@ describe('OrganizationMemberDetail', function () {
   });
   const managerMember = MemberFixture({
     id: '6',
-    roles: OrgRoleList(),
+    roles: OrgRoleListFixture(),
     role: 'manager',
   });
 
@@ -124,7 +124,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    const organization = Organization({teams, features: ['team-roles']});
+    const organization = OrganizationFixture({teams, features: ['team-roles']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -238,7 +238,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot leave org role team if missing org:admin', function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           teams,
           features: ['team-roles'],
           access: [],
@@ -260,7 +260,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('cannot join org role team if missing org:admin', async function () {
       const {routerContext, routerProps} = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           teams,
           features: ['team-roles'],
           access: ['org:write'],
@@ -345,7 +345,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
-    const organization = Organization({teams, access: ['org:read']});
+    const organization = OrganizationFixture({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -391,7 +391,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Display status', function () {
-    const organization = Organization({teams, access: ['org:read']});
+    const organization = OrganizationFixture({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -451,7 +451,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Show resend button', function () {
-    const organization = Organization({teams, access: ['org:read']});
+    const organization = OrganizationFixture({teams, access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -514,7 +514,7 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Reset member 2FA', function () {
     const fields = {
-      roles: OrgRoleList(),
+      roles: OrgRoleListFixture(),
       dateCreated: new Date().toISOString(),
       ...teamAssignment,
     };
@@ -522,24 +522,24 @@ describe('OrganizationMemberDetail', function () {
     const noAccess = MemberFixture({
       ...fields,
       id: '4',
-      user: User({has2fa: false, authenticators: undefined}),
+      user: UserFixture({has2fa: false, authenticators: undefined}),
     });
 
     const no2fa = MemberFixture({
       ...fields,
       id: '5',
-      user: User({has2fa: false, authenticators: [], canReset2fa: true}),
+      user: UserFixture({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
     const has2fa = MemberFixture({
       ...fields,
       id: '6',
-      user: User({
+      user: UserFixture({
         has2fa: true,
         authenticators: [
-          UserEnrolledAuthenticator({type: 'totp', id: 'totp'}),
-          UserEnrolledAuthenticator({type: 'sms', id: 'sms'}),
-          UserEnrolledAuthenticator({type: 'u2f', id: 'u2f'}),
+          UserEnrolledAuthenticatorFixture({type: 'totp', id: 'totp'}),
+          UserEnrolledAuthenticatorFixture({type: 'sms', id: 'sms'}),
+          UserEnrolledAuthenticatorFixture({type: 'u2f', id: 'u2f'}),
         ],
         canReset2fa: true,
       }),
@@ -548,14 +548,14 @@ describe('OrganizationMemberDetail', function () {
     const multipleOrgs = MemberFixture({
       ...fields,
       id: '7',
-      user: User({
+      user: UserFixture({
         has2fa: true,
-        authenticators: [UserEnrolledAuthenticator({type: 'totp', id: 'totp'})],
+        authenticators: [UserEnrolledAuthenticatorFixture({type: 'totp', id: 'totp'})],
         canReset2fa: false,
       }),
     });
 
-    const organization = Organization({teams});
+    const organization = OrganizationFixture({teams});
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -732,7 +732,7 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     });
 
-    const organization = Organization({teams, features: ['team-roles']});
+    const organization = OrganizationFixture({teams, features: ['team-roles']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();

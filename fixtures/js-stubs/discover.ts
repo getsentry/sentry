@@ -1,6 +1,6 @@
 import type {SavedQuery} from 'sentry/types';
 
-export function DiscoverSavedQuery(params = {}): SavedQuery {
+export function DiscoverSavedQueryFixture(params = {}): SavedQuery {
   return {
     id: '1',
     name: 'Saved query #1',

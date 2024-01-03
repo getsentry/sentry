@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
@@ -13,7 +13,7 @@ describe('AccountSettingsLayout', function () {
 
   const {routerProps} = initializeOrg();
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     id: '44',
     name: 'Org Index',
     slug: 'org-index',
@@ -59,7 +59,7 @@ describe('AccountSettingsLayout', function () {
 
     rerender(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout {...routerProps} organization={Organization()}>
+        <AccountSettingsLayout {...routerProps} organization={OrganizationFixture()}>
           content
         </AccountSettingsLayout>
       </BreadcrumbContextProvider>

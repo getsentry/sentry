@@ -1,4 +1,4 @@
-import {AccountEmails as AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

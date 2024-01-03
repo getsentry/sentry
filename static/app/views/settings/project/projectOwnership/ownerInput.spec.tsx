@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
-import {Members} from 'sentry-fixture/members';
-import {User} from 'sentry-fixture/user';
+import {MembersFixture} from 'sentry-fixture/members';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +16,7 @@ describe('Project Ownership Input', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
-      body: Members(),
+      body: MembersFixture(),
     });
     put = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/ownership/`,
@@ -24,7 +24,7 @@ describe('Project Ownership Input', function () {
       body: {raw: 'url:src @dummy@example.com'},
     });
     MemberListStore.init();
-    MemberListStore.loadInitialData([User({id: '1', email: 'bob@example.com'})]);
+    MemberListStore.loadInitialData([UserFixture({id: '1', email: 'bob@example.com'})]);
   });
 
   it('renders', async function () {

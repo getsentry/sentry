@@ -1,6 +1,6 @@
 import {SentryServiceIncident} from 'sentry/types';
 
-export function ServiceIncident(
+export function ServiceIncidentFixture(
   params: Partial<SentryServiceIncident> = {}
 ): SentryServiceIncident {
   return {

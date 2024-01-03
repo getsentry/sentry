@@ -2,7 +2,7 @@ import {HealthFixture} from 'sentry-fixture/health';
 
 import {Health, ReleaseStatus, ReleaseWithHealth} from 'sentry/types';
 
-export function Release(
+export function ReleaseFixture(
   params?: Partial<ReleaseWithHealth>,
   healthParams?: Health
 ): ReleaseWithHealth {

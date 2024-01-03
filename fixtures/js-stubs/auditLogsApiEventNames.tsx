@@ -1,5 +1,5 @@
 // Could not find any strong types for this when converting to typescript
-export function AuditLogsApiEventNames(params: string[] = []): string[] {
+export function AuditLogsApiEventNamesFixture(params: string[] = []): string[] {
   return [
     ...params,
     'member.invite',

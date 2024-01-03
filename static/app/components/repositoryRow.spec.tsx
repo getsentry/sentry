@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Repository} from 'sentry-fixture/repository';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {
   render,
@@ -16,15 +16,15 @@ describe('RepositoryRow', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const repository = Repository();
-  const pendingRepo = Repository({
+  const repository = RepositoryFixture();
+  const pendingRepo = RepositoryFixture({
     status: RepositoryStatus.PENDING_DELETION,
   });
 
   const api = new MockApiClient();
 
   describe('rendering with access', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
@@ -59,7 +59,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('rendering without access', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       access: ['org:write'],
     });
 
@@ -85,7 +85,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('deletion', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 
@@ -112,7 +112,7 @@ describe('RepositoryRow', function () {
   });
 
   describe('cancel deletion', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       access: ['org:integrations'],
     });
 

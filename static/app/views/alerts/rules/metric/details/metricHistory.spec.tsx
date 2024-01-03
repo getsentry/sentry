@@ -1,5 +1,5 @@
 import range from 'lodash/range';
-import {Incident} from 'sentry-fixture/incident';
+import {IncidentFixture} from 'sentry-fixture/incident';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,14 +12,14 @@ describe('MetricHistory', () => {
   });
 
   it('renders a critical incident', () => {
-    render(<MetricHistory incidents={[Incident()]} />);
+    render(<MetricHistory incidents={[IncidentFixture()]} />);
     expect(screen.getByRole('link', {name: '#123'})).toBeInTheDocument();
     expect(screen.getByText('Number of errors above 70 in 1 hour')).toBeInTheDocument();
     expect(screen.getByText('12hr')).toBeInTheDocument();
   });
 
   it('renders a critical % change incident', () => {
-    const incident = Incident();
+    const incident = IncidentFixture();
     incident.alertRule.comparisonDelta = 60;
     render(<MetricHistory incidents={[incident]} />);
     expect(
@@ -31,7 +31,7 @@ describe('MetricHistory', () => {
 
   it('collapses the incidents panel if the number of incidents > 3', async () => {
     const incidents = range(0, 10).map(id =>
-      Incident({id: `${id}`, identifier: `${id}`})
+      IncidentFixture({id: `${id}`, identifier: `${id}`})
     );
     render(<MetricHistory incidents={incidents} />);
     expect(screen.getAllByRole('link').length).toBe(3);
@@ -40,7 +40,7 @@ describe('MetricHistory', () => {
   });
 
   it('filters incidents with no activities (unexpected behavior)', () => {
-    const incidents = [Incident({activities: []})];
+    const incidents = [IncidentFixture({activities: []})];
     render(<MetricHistory incidents={incidents} />);
     expect(screen.getByText('No alerts triggered during this time.')).toBeInTheDocument();
   });

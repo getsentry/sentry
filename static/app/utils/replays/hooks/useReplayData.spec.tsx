@@ -3,7 +3,7 @@ import {
   ReplayConsoleEventFixture,
   ReplayNavigateEventFixture,
 } from 'sentry-fixture/replay/helpers';
-import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -122,7 +122,7 @@ describe('useReplayData', () => {
       },
     });
 
-    const mockSegmentResponse1 = RRWebInitFrameEvents({
+    const mockSegmentResponse1 = RRWebInitFrameEventsFixture({
       timestamp: startedAt,
     });
     const mockSegmentResponse2 = [
@@ -272,7 +272,7 @@ describe('useReplayData', () => {
       count_segments: 1,
       error_ids: [ERROR_ID],
     });
-    const mockSegmentResponse = RRWebInitFrameEvents({
+    const mockSegmentResponse = RRWebInitFrameEventsFixture({
       timestamp: startedAt,
     });
     const mockErrorResponse = [

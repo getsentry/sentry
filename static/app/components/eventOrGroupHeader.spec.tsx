@@ -1,6 +1,6 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {User} from 'sentry-fixture/user';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -247,7 +247,7 @@ describe('EventOrGroupHeader', function () {
             function: 'useOverflowTabs',
             display_title_with_tree_label: false,
           },
-          actor: User(),
+          actor: UserFixture(),
           isTombstone: true,
         }}
         {...router}

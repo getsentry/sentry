@@ -1,9 +1,9 @@
-import {Event} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import type {EventIdResponse} from 'sentry/types';
 
-export function EventIdQueryResult(params = {}): EventIdResponse {
-  const event = Event({
+export function EventIdQueryResultFixture(params = {}): EventIdResponse {
+  const event = EventFixture({
     metadata: {
       type: 'event type',
       value: 'event description',

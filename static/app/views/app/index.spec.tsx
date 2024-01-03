@@ -1,5 +1,5 @@
-import {InstallWizard} from 'sentry-fixture/installWizard';
-import {Organization} from 'sentry-fixture/organization';
+import {InstallWizardFixture} from 'sentry-fixture/installWizard';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +13,7 @@ describe('App', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
     });
 
     MockApiClient.addMockResponse({
@@ -30,7 +30,7 @@ describe('App', function () {
 
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: InstallWizard(),
+      body: InstallWizardFixture(),
     });
   });
 

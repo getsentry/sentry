@@ -1,7 +1,7 @@
 import MockDate from 'mockdate';
 import moment from 'moment';
-import {Incident as IncidentFixture} from 'sentry-fixture/incident';
-import {MetricRule as MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/metric/details/utils';
 

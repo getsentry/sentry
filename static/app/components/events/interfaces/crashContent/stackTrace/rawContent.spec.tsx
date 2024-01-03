@@ -1,5 +1,5 @@
-import {ExceptionValue as ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
-import {Frame as FrameFixture} from 'sentry-fixture/frame';
+import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
+import {FrameFixture} from 'sentry-fixture/frame';
 
 import displayRawContent, {
   getJavaFrame,

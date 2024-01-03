@@ -1,6 +1,6 @@
 import {EventOrGroupType, GroupTombstone} from 'sentry/types';
 
-export function Tombstones(params = []): GroupTombstone[] {
+export function TombstonesFixture(params = []): GroupTombstone[] {
   return [
     {
       culprit: 'poll(../../sentry/scripts/views.js)',

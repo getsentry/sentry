@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -23,24 +23,24 @@ describe('RuleBuilder', function () {
   let project: Project;
   let handleAdd: jest.Mock;
 
-  const USER_1 = User({
+  const USER_1 = UserFixture({
     id: '1',
     name: 'Jane Bloggs',
     email: 'janebloggs@example.com',
   });
-  const USER_2 = User({
+  const USER_2 = UserFixture({
     id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',
   });
 
-  const TEAM_1 = Team({
+  const TEAM_1 = TeamFixture({
     id: '3',
     slug: 'cool-team',
   });
 
   // This team is in project
-  const TEAM_2 = Team({
+  const TEAM_2 = TeamFixture({
     id: '4',
     slug: 'team-not-in-project',
   });

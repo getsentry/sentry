@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -20,13 +20,13 @@ describe('AccountClose', function () {
       url: '/organizations/',
       body: [
         {
-          organization: Organization({
+          organization: OrganizationFixture({
             slug: soloOrgSlug,
           }),
           singleOwner: true,
         },
         {
-          organization: Organization({
+          organization: OrganizationFixture({
             id: '4',
             slug: nonSingleOwnerSlug,
           }),

@@ -1,5 +1,5 @@
-import {Project} from 'sentry-fixture/project';
-import {ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -58,7 +58,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project()}
+        project={ProjectFixture()}
       />
     );
 
@@ -74,7 +74,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'other'})}
+        project={ProjectFixture({platform: 'other'})}
       />
     );
 
@@ -107,7 +107,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'javascript'})}
+        project={ProjectFixture({platform: 'javascript'})}
       />
     );
 
@@ -145,7 +145,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'javascript-react'})}
+        project={ProjectFixture({platform: 'javascript-react'})}
       />
     );
 
@@ -222,7 +222,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'other'})}
+        project={ProjectFixture({platform: 'other'})}
       />
     );
 
@@ -236,7 +236,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project()}
+        project={ProjectFixture()}
       />
     );
 
@@ -253,7 +253,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project()}
+        project={ProjectFixture()}
       />
     );
 

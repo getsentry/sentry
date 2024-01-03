@@ -5,7 +5,7 @@ import {
   RuleType,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 
-export function DataScrubbingRelayPiiConfig(): {
+export function DataScrubbingRelayPiiConfigFixture(): {
   applications: Applications;
   rules: Record<string, PiiConfig>;
 } {

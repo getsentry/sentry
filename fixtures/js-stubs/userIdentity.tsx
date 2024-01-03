@@ -1,6 +1,6 @@
 import {Identity} from 'sentry/views/settings/account/notifications/types';
 
-export function UserIdentity(): Identity {
+export function UserIdentityFixture(): Identity {
   return {
     id: '52',
     identityProvider: {

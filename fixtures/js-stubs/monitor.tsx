@@ -5,14 +5,14 @@ import {
   ScheduleType,
 } from 'sentry/views/monitors/types';
 
-import {Project} from './project';
+import {ProjectFixture} from './project';
 
 export function MonitorFixture(params: Partial<Monitor> = {}): Monitor {
   return {
     id: '',
     isMuted: false,
     name: 'My Monitor',
-    project: Project(),
+    project: ProjectFixture(),
     slug: 'my-monitor',
     status: 'active',
     type: MonitorType.CRON_JOB,

@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -26,7 +26,7 @@ describe('ProcessingIssueList', function () {
         },
       ],
     });
-    organization = Organization();
+    organization = OrganizationFixture();
     projects = [1, 2];
   });
 

@@ -1,6 +1,6 @@
-import {Commit} from 'sentry-fixture/commit';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {CommitFixture} from 'sentry-fixture/commit';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -46,7 +46,7 @@ describe('ResolutionBox', function () {
       <ResolutionBox
         statusDetails={{
           inNextRelease: true,
-          actor: User(),
+          actor: UserFixture(),
         }}
         projectId="1"
         activities={[
@@ -103,7 +103,7 @@ describe('ResolutionBox', function () {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
-          inCommit: Commit(),
+          inCommit: CommitFixture(),
         }}
         projectId="1"
       />

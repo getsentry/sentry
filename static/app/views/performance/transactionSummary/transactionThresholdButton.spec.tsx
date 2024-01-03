@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -25,7 +25,7 @@ function renderComponent(eventView, organization, onChangeThreshold) {
 }
 
 describe('TransactionThresholdButton', function () {
-  const organization = Organization({features: ['performance-view']});
+  const organization = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const eventView = new EventView({
     id: '1',
