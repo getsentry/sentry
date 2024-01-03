@@ -2,7 +2,7 @@ import {Organization} from 'sentry-fixture/organization';
 import {Plugin} from 'sentry-fixture/plugin';
 import {Plugins} from 'sentry-fixture/plugins';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 

@@ -1,6 +1,6 @@
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -27,6 +27,20 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_layer.query import run_query
 from sentry.utils.snuba import SnubaError
 
+# Snuba can return at most 10.000 rows.
+SNUBA_QUERY_LIMIT = 10000
+# Intervals in seconds which are used by the product to query data.
+DEFAULT_QUERY_INTERVALS = [
+    60 * 60 * 24,  # 1 day
+    60 * 60 * 12,  # 12 hours
+    60 * 60 * 4,  # 4 hours
+    60 * 60 * 2,  # 2 hours
+    60 * 60,  # 1 hour
+    60 * 30,  # 30 min
+    60 * 5,  # 5 min
+    60,  # 1 min
+]
+
 
 class InvalidMetricsQueryError(Exception):
     pass
@@ -44,6 +58,21 @@ Series = List[Tuple[str, ResultValue]]
 Total = ResultValue
 # Type representing the group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
 GroupKey = Tuple[Tuple[str, str], ...]
+
+
+@dataclass(frozen=True)
+class ExecutableQuery:
+    metrics_query: MetricsQuery
+    # TODO: check if we really have to keep this.
+    group_bys: Optional[Sequence[str]]
+    with_series: bool
+    with_totals: bool
+
+    def build_result(self, result: Mapping[str, Any]) -> "QueryResult":
+        return QueryResult(executable_query=self, result=result)
+
+    def set_interval(self, new_interval) -> "ExecutableQuery":
+        return replace(self, metrics_query=self.metrics_query.set_rollup(Rollup(new_interval)))
 
 
 @dataclass
@@ -90,16 +119,15 @@ class QueryMeta:
 
 
 @dataclass(frozen=True)
-class ExecutionResult:
+class QueryResult:
     # This is the timeseries query that is being passed to the metrics layer, thus it doesn't contain any
     # mutations that the layer might do.
-    query: MetricsQuery
+    executable_query: ExecutableQuery
     result: Mapping[str, Any]
-    with_totals: bool
 
     @property
     def query_name(self) -> str:
-        timeseries = self.query.query
+        timeseries = self.executable_query.metrics_query.query
 
         aggregate = timeseries.aggregate
         metric = timeseries.metric.mri or timeseries.metric.public_name
@@ -116,12 +144,13 @@ class ExecutionResult:
 
     @property
     def interval(self) -> int:
-        return self.query.rollup.interval
+        return self.executable_query.metrics_query.rollup.interval
 
     @property
     def group_bys(self) -> Sequence[str]:
+        # TODO: we might need to rework this assuming we have formulas.
         group_bys = []
-        for group_by in self.query.query.groupby or ():
+        for group_by in self.executable_query.metrics_query.query.groupby or ():
             if isinstance(group_by, Column):
                 group_bys.append(group_by.name)
             elif isinstance(group_by, AliasedExpression):
@@ -130,16 +159,48 @@ class ExecutionResult:
         return group_bys
 
     @property
-    def data(self) -> Mapping[str, Any]:
-        return self.result["data"]
+    def series(self) -> Sequence[Mapping[str, Any]]:
+        return self.result["series"]["data"]
 
     @property
-    def totals(self) -> Mapping[str, Any]:
-        return self.result["totals"]
+    def totals(self) -> Sequence[Mapping[str, Any]]:
+        return self.result["totals"]["data"]
 
     @property
     def meta(self) -> Sequence[Mapping[str, str]]:
-        return self.result["meta"]
+        # By default, we extract the metadata from the totals query, if that is not there we extract from the series
+        # query.
+        meta_source = "totals" if "totals" in self.result else "series"
+        return self.result[meta_source]["meta"]
+
+    @property
+    def groups(self) -> Sequence[Sequence[Tuple[str, str]]]:
+        groups = []
+
+        # We prefer to use totals to determine the groups that we received, since those are less likely to hit the limit
+        # , and thus they will be more comprehensive. In case the query doesn't have totals, we have to use series.
+        for data in self.totals or self.series:
+            inner_group = []
+
+            for key, value in data.items():
+                if key != "aggregate_value":
+                    inner_group.append((key, value))
+
+            groups.append(inner_group)
+
+        return groups
+
+    @property
+    def length(self) -> int:
+        # We try to see how many series results we got, since that is the query which is likely to surpass the limit.
+        if "series" in self.result:
+            return len(self.series)
+
+        # If we have no series, totals will give us a hint of the size of the dataset.
+        if "totals" in self.result:
+            return len(self.totals)
+
+        return 0
 
 
 class MutableTimeseries:
@@ -275,8 +336,11 @@ class QueryExecutor:
     def __init__(self, organization: Organization, referrer: str):
         self._organization = organization
         self._referrer = referrer
+        # Ordered list of the intervals that can be chosen by the executor. They are removed when tried, in order
+        # to avoid an infinite recursion.
+        self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
-        self._scheduled_queries: List[Tuple[MetricsQuery, bool]] = []
+        self._scheduled_queries: List[ExecutableQuery] = []
 
     def _build_request(self, query: MetricsQuery) -> Request:
         return Request(
@@ -286,44 +350,121 @@ class QueryExecutor:
             tenant_ids={"referrer": self._referrer, "organization_id": self._organization.id},
         )
 
-    def _execute(self, query: MetricsQuery, with_totals: bool) -> Mapping[str, Any]:
+    def _execute(self, executable_query: ExecutableQuery) -> QueryResult:
         try:
-            series_result = run_query(request=self._build_request(query))
+            query = executable_query.metrics_query
 
-            if with_totals:
-                # TODO(layer): maybe totals will have to be handled by the layer, so that the time intervals will be
-                #  inferred automatically, instead of doing the manual work here.
-                modified_start = series_result["modified_start"]
-                modified_end = series_result["modified_end"]
-                query = (
-                    query.set_start(modified_start)
-                    .set_end(modified_end)
-                    .set_rollup(Rollup(totals=True))
-                )
+            series_result = None
+            if executable_query.with_series:
+                series_result = run_query(request=self._build_request(query))
+
+            totals_result = None
+            if executable_query.with_totals:
+                # In case we have a series query, we want to align the query intervals so that the totals align. This
+                # is not needed when running a single totals query.
+                if series_result:
+                    modified_start = series_result["modified_start"]
+                    modified_end = series_result["modified_end"]
+                    query = (
+                        executable_query.metrics_query.set_start(modified_start)
+                        .set_end(modified_end)
+                        .set_rollup(Rollup(totals=True))
+                    )
+
                 totals_result = run_query(request=self._build_request(query))
 
-                return {**series_result, "totals": totals_result["data"]}
+            result = {}
+            if series_result and totals_result:
+                result = {
+                    "series": series_result,
+                    "totals": totals_result,
+                    "modified_start": series_result["modified_start"],
+                    "modified_end": series_result["modified_end"],
+                }
+            elif series_result:
+                result = {
+                    "series": series_result,
+                    "modified_start": series_result["modified_start"],
+                    "modified_end": series_result["modified_end"],
+                }
+            elif totals_result:
+                result = {
+                    "totals": totals_result,
+                    "modified_start": totals_result["modified_start"],
+                    "modified_end": totals_result["modified_end"],
+                }
 
-            return series_result
+            return executable_query.build_result(result)
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
             raise MetricsQueryExecutionError(
                 f"An error occurred while executing the query: {type(e).__name__}"
             )
 
-    def schedule(self, query: MetricsQuery, with_totals: bool = True):
-        # By default we want to execute totals.
-        self._scheduled_queries.append((query, with_totals))
+    def schedule(self, query: MetricsQuery, group_bys: Optional[Sequence[str]]):
+        executable_query = ExecutableQuery(
+            metrics_query=query,
+            group_bys=group_bys,
+            # For now, we execute both queries independently of the query.
+            with_series=True,
+            with_totals=True,
+        )
+        self._scheduled_queries.append(executable_query)
 
-    def execute(self, batch: bool = False) -> Generator[ExecutionResult, None, None]:
-        if batch:
-            # TODO: implement batching.
-            # Run batch query and flatten results.
-            pass
-        else:
-            for query, with_totals in self._scheduled_queries:
-                result = self._execute(query, with_totals)
-                yield ExecutionResult(query=query, result=result, with_totals=with_totals)
+    def _derive_next_interval(self, result: QueryResult) -> int:
+        # We try to estimate the number of groups.
+        groups_number = len(result.groups)
+
+        # We compute the ideal number of intervals that can fit with a given number of groups.
+        intervals_number = math.floor(SNUBA_QUERY_LIMIT / groups_number)
+
+        # We compute the optimal size of each interval in seconds.
+        optimal_interval_size = math.floor(
+            (result.modified_end - result.modified_start).total_seconds() / intervals_number
+        )
+
+        # Get the smallest interval that is larger than optimal out of a set of defined intervals in the product.
+        for index, interval in enumerate(self._interval_choices):
+            if interval >= optimal_interval_size:
+                # We have to put the choice, otherwise we end up in an infinite recursion.
+                self._interval_choices.pop(index)
+                return interval
+
+        raise MetricsQueryExecutionError(
+            "Unable to find an interval to satisfy the query because too many results "
+            "are returned."
+        )
+
+    def _serial_execute(self) -> Sequence[QueryResult]:
+        if not self._scheduled_queries:
+            return []
+
+        first_query = self._scheduled_queries.pop(0)
+        first_result = self._execute(first_query)
+
+        # Case 1: we have fewer results that the limit. In this case we are free to run the follow-up queries under the
+        # assumption that data doesn't change much between queries.
+        if first_result.length < SNUBA_QUERY_LIMIT:
+            results = [first_result]
+            for query in self._scheduled_queries:
+                results.append(self._execute(query))
+
+            return results
+
+        # Case 2: we have more results than the limit. In this case we want to determine a new interval that
+        # will result in less than limit data points.
+        new_interval = self._derive_next_interval(first_result)
+
+        # We update the scheduled queries to use the new interval. It's important to note that we also add back the
+        # first query, since we need to execute it again.
+        self._scheduled_queries = [
+            query.set_interval(new_interval) for query in [first_query] + self._scheduled_queries
+        ]
+
+        return self._serial_execute()
+
+    def execute(self) -> Sequence[QueryResult]:
+        return self._serial_execute()
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
@@ -403,7 +544,7 @@ def _is_nan(value: ResultValue) -> bool:
     return math.isnan(value)
 
 
-def _translate_query_results(execution_results: List[ExecutionResult]) -> Mapping[str, Any]:
+def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[str, Any]:
     """
     Converts the default format from the metrics layer format into the old format which is understood by the frontend.
     """
@@ -439,18 +580,18 @@ def _translate_query_results(execution_results: List[ExecutionResult]) -> Mappin
                 )
                 block(value, group_value)
 
-        # We group the timeseries data.
-        _group(
-            execution_result.data,
-            lambda value, group: group.add_series_entry(
-                value.get("time"), value.get("aggregate_value")
-            ),
-        )
-
-        # We group the total data.
+        # We group the totals data first, since we want the order to be set by the totals.
         _group(
             execution_result.totals,
             lambda value, group: group.add_total(value.get("aggregate_value")),
+        )
+
+        # We group the series data second, which will use the already ordered dictionary entries added by the totals.
+        _group(
+            execution_result.series,
+            lambda value, group: group.add_series_entry(
+                value.get("time"), value.get("aggregate_value")
+            ),
         )
 
         meta = execution_result.meta
@@ -532,8 +673,12 @@ def run_metrics_query(
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
     for timeseries in parser.generate_queries(environments=environments):
-        query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
-        executor.schedule(query)
+        query = (
+            base_query.set_query(timeseries)
+            .set_rollup(Rollup(interval=interval))
+            .set_limit(SNUBA_QUERY_LIMIT)
+        )
+        executor.schedule(query, group_bys)
 
     # Iterating over each result.
     results = []

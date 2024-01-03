@@ -283,7 +283,7 @@ function List<Value extends React.Key>({
         e.key === 'ArrowDown' &&
         listState.selectionManager.focusedKey === lastFocusableKey
       ) {
-        focusManager.focusNext({
+        focusManager?.focusNext({
           wrap: true,
           accept: element =>
             (element.getAttribute('role') === 'option' ||
@@ -300,7 +300,7 @@ function List<Value extends React.Key>({
         e.key === 'ArrowUp' &&
         listState.selectionManager.focusedKey === firstFocusableKey
       ) {
-        focusManager.focusPrevious({
+        focusManager?.focusPrevious({
           wrap: true,
           accept: element =>
             (element.getAttribute('role') === 'option' ||

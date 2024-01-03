@@ -84,7 +84,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize(org, user=as_user)
 
     def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
+        self,
+        *,
+        id: int,
+        user_id: Optional[int] = None,
+        slug: Optional[str] = None,
+        include_projects: Optional[bool] = True,
+        include_teams: Optional[bool] = True,
     ) -> Optional[RpcUserOrganizationContext]:
         membership: Optional[RpcOrganizationMember] = None
         if user_id is not None:
@@ -99,7 +105,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return RpcUserOrganizationContext(
-            user_id=user_id, organization=serialize_rpc_organization(org), member=membership
+            user_id=user_id,
+            organization=serialize_rpc_organization(
+                org, include_projects=include_projects, include_teams=include_teams
+            ),
+            member=membership,
         )
 
     def get_org_by_slug(

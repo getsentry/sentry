@@ -1,8 +1,8 @@
 import {Members} from 'sentry-fixture/members';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
