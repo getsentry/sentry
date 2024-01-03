@@ -111,6 +111,6 @@ def test_recording_buffer_commit_next_state():
     # Deadlines incremented at exactly the rate of time travelled.
     assert first_deadline + 10 == second_deadline
     # Deadline advanced by 15 seconds compared to previous buffer's start time.
-    assert second_deadline == now + datetime.timedelta(seconds=15)
+    assert second_deadline == int((now + datetime.timedelta(seconds=15)).timestamp())
 
     traveller.stop()
