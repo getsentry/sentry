@@ -1,5 +1,5 @@
-import {Incident as IncidentFixture} from 'sentry-fixture/incident';
-import {MetricRule} from 'sentry-fixture/metricRule';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -38,7 +38,7 @@ describe('Alert utils', function () {
         title: 'Test error alert',
         discoverQuery: 'id:test',
         projects: projects.map(project => project.id),
-        alertRule: MetricRule({
+        alertRule: MetricRuleFixture({
           timeWindow: 1,
           dataset: Dataset.ERRORS,
           aggregate: 'count()',
@@ -72,7 +72,7 @@ describe('Alert utils', function () {
         title: 'Test transaction alert',
         discoverQuery: 'id:test',
         projects: projects.map(project => project.id),
-        alertRule: MetricRule({
+        alertRule: MetricRuleFixture({
           timeWindow: 1,
           dataset: Dataset.TRANSACTIONS,
           aggregate: 'p90()',

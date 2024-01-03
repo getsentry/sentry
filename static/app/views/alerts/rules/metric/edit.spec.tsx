@@ -1,5 +1,5 @@
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {MetricRule as MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {MemberFixture} from 'sentry-fixture/member';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

@@ -1,8 +1,8 @@
-import {DashboardListItem as DashboardListItemFixture} from 'sentry-fixture/dashboard';
+import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User as UserFixture} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -19,7 +19,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 
 describe('Dashboards - DashboardList', function () {
   let dashboards, deleteMock, dashboardUpdateMock, createMock;
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     projects: [ProjectFixture()],
   });

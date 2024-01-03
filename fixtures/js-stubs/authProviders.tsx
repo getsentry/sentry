@@ -1,15 +1,17 @@
-import {AuthProvider} from 'sentry-fixture/authProvider';
+import {AuthProviderFixture} from 'sentry-fixture/authProvider';
 
 import type {AuthProvider as AuthProviderType} from 'sentry/types';
 
-export function AuthProviders(params: AuthProviderType[] = []): AuthProviderType[] {
+export function AuthProvidersFixture(
+  params: AuthProviderType[] = []
+): AuthProviderType[] {
   return [
-    AuthProvider({
+    AuthProviderFixture({
       key: 'dummy',
       name: 'Dummy',
       requiredFeature: 'organizations:sso-basic',
     }),
-    AuthProvider({
+    AuthProviderFixture({
       key: 'dummy2',
       name: 'Dummy SAML',
       requiredFeature: 'organizations:sso-saml2',

@@ -1,6 +1,6 @@
 import type {PageFilters as PageFilterType} from 'sentry/types';
 
-export function PageFilters(params: Partial<PageFilterType> = {}): PageFilterType {
+export function PageFiltersFixture(params: Partial<PageFilterType> = {}): PageFilterType {
   return {
     datetime: {
       end: null,

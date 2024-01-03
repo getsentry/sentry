@@ -1,4 +1,4 @@
-import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
