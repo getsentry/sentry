@@ -43,7 +43,7 @@ import {
   SpanType,
   TreeDepthType,
 } from './types';
-import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
+import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash,VerticalMark} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -63,6 +63,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
+  measurements?: Map<number, VerticalMark>;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
@@ -677,6 +678,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     return (
       <SpanRow
         {...props}
+        measurements={this.props.measurements}
         quickTrace={this.props.quickTrace}
         location={this.props.location}
         onRowClick={this.props.onRowClick}
@@ -824,6 +826,7 @@ type SpanRowProps = ListRowProps & {
   removeSpanRowFromState: (spanId: string) => void;
   spanContextProps: SpanContext.SpanContextProps;
   spanTree: SpanTreeNode[];
+  measurements?: Map<number, VerticalMark>;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
@@ -841,6 +844,7 @@ function SpanRow(props: SpanRowProps) {
     onRowClick,
     quickTrace,
     location,
+    measurements,
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
@@ -874,6 +878,7 @@ function SpanRow(props: SpanRowProps) {
         return (
           <NewTraceDetailsProfiledSpanBar
             fromTraceView
+            measurements={measurements}
             onRowClick={onRowClick}
             key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
@@ -885,6 +890,7 @@ function SpanRow(props: SpanRowProps) {
       case SpanTreeNodeType.DESCENDANT_GROUP:
         return (
           <SpanDescendantGroupBar
+            measurements={measurements}
             key={`${node.props.spanNumber}-span-group`}
             {...node.props}
             didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
@@ -893,6 +899,7 @@ function SpanRow(props: SpanRowProps) {
       case SpanTreeNodeType.SIBLING_GROUP:
         return (
           <SpanSiblingGroupBar
+            measurements={measurements}
             key={`${node.props.spanNumber}-span-sibling`}
             {...node.props}
             didAnchoredSpanMount={extraProps.didAnchoredSpanMount}

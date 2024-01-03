@@ -91,6 +91,7 @@ import {
   SpanViewBoundsType,
   transactionTargetHash,
   unwrapTreeDepth,
+  VerticalMark,
 } from './utils';
 
 export const MARGIN_LEFT = 0;
@@ -98,6 +99,7 @@ export const MARGIN_LEFT = 0;
 export type NewTraceDetailsSpanBarProps = SpanBarProps & {
   location: Location;
   quickTrace: QuickTraceContextChildrenProps;
+  measurements?: Map<number, VerticalMark>;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
@@ -109,13 +111,9 @@ export class NewTraceDetailsSpanBar extends Component<
   NewTraceDetailsSpanBarProps,
   State
 > {
-  constructor(props: NewTraceDetailsSpanBarProps) {
-    super(props);
-
-    this.state = {
-      isIntersecting: false,
-    };
-  }
+  state = {
+    isIntersecting: false,
+  };
 
   componentDidMount() {
     const {didAnchoredSpanMount, markAnchoredSpanIsMounted} = this.props;
@@ -310,17 +308,17 @@ export class NewTraceDetailsSpanBar extends Component<
   }
 
   renderMeasurements() {
-    const {event, generateBounds} = this.props;
+    const {event, generateBounds, measurements} = this.props;
 
     if (this.isHighlighted) {
       return null;
     }
 
-    const measurements = getMeasurements(event, generateBounds);
+    const spanMeasurements = measurements ?? getMeasurements(event, generateBounds);
 
     return (
       <Fragment>
-        {Array.from(measurements.values()).map(verticalMark => {
+        {Array.from(spanMeasurements.values()).map(verticalMark => {
           const mark = Object.values(verticalMark.marks)[0];
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);

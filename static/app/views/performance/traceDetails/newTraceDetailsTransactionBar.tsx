@@ -419,6 +419,9 @@ function NewTraceDetailsTransactionBar(props: Props) {
         <StyledZoomIcon
           isZoomIn={!showEmbeddedChildren}
           onClick={() => {
+            if(showEmbeddedChildren)
+              {window.scrollBy(0, window.innerHeight);}
+
             setShowEmbeddedChildren(prev => !prev);
 
             if (
@@ -484,6 +487,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
                             <Observer>
                               {() => (
                                 <NewTraceDetailsSpanTree
+                                  measurements={props.measurements}
                                   quickTrace={results}
                                   location={props.location}
                                   onRowClick={props.onRowClick}
