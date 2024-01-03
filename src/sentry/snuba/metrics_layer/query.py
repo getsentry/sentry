@@ -474,6 +474,8 @@ def snql_query(request: Request, start: datetime, end: datetime) -> Mapping[str,
         # using it.
         if resolved_metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
             request.dataset = Dataset.Metrics.value
+        else:
+            request.dataset = Dataset.PerformanceMetrics.value
 
     except Exception as e:
         metrics.incr(
@@ -594,6 +596,8 @@ def _resolve_metrics_query(
     # using it.
     if metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
         dataset = Dataset.Metrics.value
+    else:
+        dataset = Dataset.PerformanceMetrics.value
 
     new_groupby, new_mappings = _resolve_groupby(
         metrics_query.query.groupby, use_case_id, org_id, dataset
