@@ -18,7 +18,7 @@ function NoIssuesMatched() {
       <MessageContainer>
         <h3>{t('No issues match your search')}</h3>
         <div>{t('If this is unexpected, check out these tips:')}</div>
-        <ul>
+        <Tips>
           <li>{t('Double check your project, environment, and date filters')}</li>
           <li>
             {tct('Make sure your search has the right syntax. [link]', {
@@ -48,7 +48,7 @@ function NoIssuesMatched() {
               }
             )}
           </li>
-        </ul>
+        </Tips>
       </MessageContainer>
     </Wrapper>
   );
@@ -80,4 +80,8 @@ const MessageContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
   }
+`;
+
+const Tips = styled('ul')`
+  text-align: left;
 `;
