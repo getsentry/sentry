@@ -29,6 +29,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     firstTransactionEvent: false,
     groupingAutoUpdate: false,
     groupingConfig: '',
+    hasCustomMetrics: false,
     hasFeedbacks: false,
     hasNewFeedbacks: false,
     hasMinifiedStackTrace: false,

@@ -14,6 +14,7 @@ import {useClearQuery, useInstantRef, useUpdateQuery} from 'sentry/utils/metrics
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import usePrevious from 'sentry/utils/usePrevious';
 import useRouter from 'sentry/utils/useRouter';
 
 type Scratchpad = {
@@ -33,16 +34,23 @@ function makeLocalStorageKey(orgSlug: string) {
 
 const EMPTY_QUERY = {};
 
-const useSelectedScratchpad = () => {
+function useScratchpadUrlSync() {
   const {slug} = useOrganization();
-  const [state] = useLocalStorageState<ScratchpadState>(makeLocalStorageKey(slug), {
-    default: null,
-    scratchpads: {},
-  });
-
   const router = useRouter();
-  const routerQuery = router.location.query ?? EMPTY_QUERY;
+  const updateQuery = useUpdateQuery();
+  const clearQuery = useClearQuery();
   const {projects} = usePageFilters().selection;
+
+  const [state, setState] = useLocalStorageState<ScratchpadState>(
+    makeLocalStorageKey(slug),
+    {
+      default: null,
+      scratchpads: {},
+    }
+  );
+  const stateRef = useInstantRef(state);
+  const routerQuery = router.location.query ?? EMPTY_QUERY;
+  const routerQueryRef = useInstantRef(routerQuery);
 
   const [selected, setSelected] = useState<string | null | undefined>(() => {
     if (
@@ -64,36 +72,6 @@ const useSelectedScratchpad = () => {
         : [Number(savedProjects)],
       projects
     );
-
-  return {
-    selected,
-    setSelected,
-    isLoading,
-    projects,
-    savedProjects,
-  };
-};
-
-function useScratchpadUrlSync() {
-  const {slug} = useOrganization();
-  const router = useRouter();
-  const updateQuery = useUpdateQuery();
-  const clearQuery = useClearQuery();
-  const {projects} = usePageFilters().selection;
-
-  const [state, setState] = useLocalStorageState<ScratchpadState>(
-    makeLocalStorageKey(slug),
-    {
-      default: null,
-      scratchpads: {},
-    }
-  );
-  const stateRef = useInstantRef(state);
-  const routerQuery = router.location.query ?? EMPTY_QUERY;
-  const routerQueryRef = useInstantRef(routerQuery);
-
-  const {selected, setSelected, isLoading} = useSelectedScratchpad();
-  const selectedQuery = selected && state.scratchpads[selected].query;
 
   const toggleSelected = useCallback(
     (id: string | null) => {
@@ -164,6 +142,7 @@ function useScratchpadUrlSync() {
 
   // Changes the query when a scratchpad is selected, clears it when none is selected
   useEffect(() => {
+    const selectedQuery = selected && stateRef.current.scratchpads[selected].query;
     if (selectedQuery && !isEqual(selectedQuery, routerQueryRef.current)) {
       // If the selected scratchpad has a start and end date, remove the statsPeriod
       if (selectedQuery.start && selectedQuery.end) {
@@ -176,14 +155,25 @@ function useScratchpadUrlSync() {
     } else if (selectedQuery === null) {
       clearQuery();
     }
-  }, [clearQuery, updateQuery, selectedQuery, routerQueryRef]);
+  }, [clearQuery, updateQuery, selected, routerQueryRef, stateRef]);
 
+  const previousSelected = usePrevious(selected);
   // Saves all URL changes to the selected scratchpad to local storage
   useEffect(() => {
+    const selectedQuery = selected && stateRef.current.scratchpads[selected].query;
+    // normal update path
     if (selected && !isEmpty(routerQuery) && !isLoading) {
       update(selected, routerQuery);
+      // project selection changes should ignore loading state
+    } else if (
+      selectedQuery &&
+      isLoading &&
+      selected === previousSelected &&
+      routerQuery.project !== selectedQuery.project
+    ) {
+      update(selected, routerQuery);
     }
-  }, [routerQuery, projects, isLoading, selected, update]);
+  }, [routerQuery, projects, selected, update, isLoading, stateRef, previousSelected]);
 
   return useMemo(
     () => ({
