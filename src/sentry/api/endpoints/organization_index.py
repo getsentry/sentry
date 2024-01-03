@@ -39,7 +39,6 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]
-
         self.fields["slug"].required = False
         self.fields["name"].required = True
 
