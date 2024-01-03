@@ -93,7 +93,6 @@ function useScratchpadUrlSync() {
   const routerQueryRef = useInstantRef(routerQuery);
 
   const {selected, setSelected, isLoading} = useSelectedScratchpad();
-  const selectedQuery = selected && state.scratchpads[selected].query;
 
   const toggleSelected = useCallback(
     (id: string | null) => {
@@ -164,6 +163,7 @@ function useScratchpadUrlSync() {
 
   // Changes the query when a scratchpad is selected, clears it when none is selected
   useEffect(() => {
+    const selectedQuery = selected && stateRef.current.scratchpads[selected].query;
     if (selectedQuery && !isEqual(selectedQuery, routerQueryRef.current)) {
       // If the selected scratchpad has a start and end date, remove the statsPeriod
       if (selectedQuery.start && selectedQuery.end) {
@@ -176,7 +176,7 @@ function useScratchpadUrlSync() {
     } else if (selectedQuery === null) {
       clearQuery();
     }
-  }, [clearQuery, updateQuery, selectedQuery, routerQueryRef]);
+  }, [clearQuery, updateQuery, selected, routerQueryRef, stateRef]);
 
   // Saves all URL changes to the selected scratchpad to local storage
   useEffect(() => {
