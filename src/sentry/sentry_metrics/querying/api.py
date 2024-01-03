@@ -436,7 +436,10 @@ class QueryExecutor:
                 return interval
 
         # If no suitable interval is found, we throw an error to unwind.
-        raise MetricsQueryExecutionError("Too many results returned by the query")
+        raise MetricsQueryExecutionError(
+            "Unable to find an interval to satisfy the query because too many results "
+            "are returned."
+        )
 
     def _serial_execute(self) -> Sequence[ExecutionResult]:
         if not self._scheduled_queries:
