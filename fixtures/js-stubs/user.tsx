@@ -38,7 +38,3 @@ export function UserFixture(params: Partial<UserType> = {}): UserType {
     ...params,
   };
 }
-
-// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
-export {UserFixture as User};
-export default UserFixture;

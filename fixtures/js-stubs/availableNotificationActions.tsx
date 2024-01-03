@@ -155,6 +155,3 @@ export function AvailableNotificationActionsFixture(
     ],
   };
 }
-
-// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
-export {AvailableNotificationActionsFixture as AvailableNotificationActions};

@@ -51,7 +51,3 @@ export function ProjectFixture(params: Partial<TProject> = {}): TProject {
     ...params,
   };
 }
-
-// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
-export default ProjectFixture;
-export {ProjectFixture as Project};
