@@ -64,7 +64,7 @@ export function SampleTable({mri, ...range}: SamplesTableProps) {
   function renderBodyCell(col: Column, row: MetricSpan) {
     const {key} = col;
     if (!row[key]) {
-      return <span>-</span>;
+      return <span>{'\u2014'}</span>;
     }
     if (key === 'spanId') {
       return (
