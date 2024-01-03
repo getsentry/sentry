@@ -18,7 +18,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.exceptions import SuperuserRequired
-from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
@@ -29,6 +28,7 @@ from sentry.models.user import MAX_USERNAME_LENGTH
 from sentry.options import get
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE

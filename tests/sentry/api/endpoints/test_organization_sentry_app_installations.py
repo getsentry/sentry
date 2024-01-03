@@ -1,5 +1,5 @@
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

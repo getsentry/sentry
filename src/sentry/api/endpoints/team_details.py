@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -19,7 +19,7 @@ from sentry.models.team import Team, TeamStatus
 
 
 class TeamSerializer(CamelSnakeModelSerializer):
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         max_length=50,
     )
     org_role = serializers.ChoiceField(

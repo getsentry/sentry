@@ -26,6 +26,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
@@ -119,7 +120,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     owner_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
 
     name = models.TextField()
-    slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
+    slug = SentrySlugField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True, db_index=False)
     author = models.TextField(null=True)
     status = BoundedPositiveIntegerField(
         default=SentryAppStatus.UNPUBLISHED, choices=SentryAppStatus.as_choices(), db_index=True

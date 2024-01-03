@@ -6,7 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import SentryAppInstallationsBaseEndpoint
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
@@ -15,7 +15,7 @@ from sentry.sentry_apps.installations import SentryAppInstallationCreator
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):
-    slug = SentrySlugField(required=True, max_length=SENTRY_APP_SLUG_MAX_LENGTH)
+    slug = SentrySerializerSlugField(required=True, max_length=SENTRY_APP_SLUG_MAX_LENGTH)
 
 
 @control_silo_endpoint

@@ -12,7 +12,7 @@ from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
@@ -43,7 +43,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 @extend_schema_serializer(exclude_fields=["idp_provisioned"], deprecate_fields=["name"])
 class TeamPostSerializer(serializers.Serializer):
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a team and is used for the interface. If not
         provided, it is automatically generated from the name.""",
         max_length=50,

@@ -1,34 +1,15 @@
 from __future__ import annotations
 
-from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-DEFAULT_SLUG_ERROR_MESSAGE = _(
-    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
-    "It cannot be entirely numeric."
-)
-
-r"""
-Standard slug pattern:
-    (?![0-9]+$) - Negative lookahead to ensure the slug is not entirely numeric
-    [a-z0-9_\-] - Matches lowercase letters, numbers, underscores, and hyphens
-"""
-MIXED_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
-
-"""
-Organization slug pattern:
-    (?![0-9]+$)   - Negative lookahead to ensure the slug is not entirely numeric
-    [a-zA-Z0-9]   - Must start with a lowercase letter or number
-    [a-zA-Z0-9-]* - Matches lowercase letters, numbers, and hyphens
-    (?<!-)        - Negative lookbehind to ensure the slug does not end with a hyphen
-"""
-ORG_SLUG_PATTERN = r"^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$"
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE, ORG_SLUG_ERROR_MESSAGE
+from sentry.slug.patterns import MIXED_SLUG_PATTERN, ORG_SLUG_PATTERN
 
 
 @extend_schema_field(field=OpenApiTypes.STR)
-class SentrySlugField(serializers.RegexField):
+class SentrySerializerSlugField(serializers.RegexField):
     """
     A regex field which validates that the input is a valid slug. Default
     allowed characters are lowercase letters, numbers, underscores, and hyphens.
@@ -54,5 +35,6 @@ class SentrySlugField(serializers.RegexField):
         pattern = MIXED_SLUG_PATTERN
         if org_slug:
             pattern = ORG_SLUG_PATTERN
+            error_messages["invalid"] = ORG_SLUG_ERROR_MESSAGE
 
         super().__init__(pattern, error_messages=error_messages, *args, **kwargs)

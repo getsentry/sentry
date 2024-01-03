@@ -10,6 +10,7 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, 
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.fields.slug import SentrySlugField
 
 
 @region_silo_only_model
@@ -81,7 +82,7 @@ class DashboardTombstone(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = models.CharField(max_length=255)
+    slug = SentrySlugField(max_length=255, db_index=False)
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
 
