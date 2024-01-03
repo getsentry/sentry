@@ -1,5 +1,5 @@
 import {GroupsFixture} from 'sentry-fixture/groups';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -145,7 +145,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext, organization: Organization({features})}
+      {context: routerContext, organization: OrganizationFixture({features})}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
