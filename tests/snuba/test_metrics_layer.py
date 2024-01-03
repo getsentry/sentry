@@ -661,6 +661,49 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
+    def test_dataset_correctness(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="quantiles",
+                aggregate_params=[0.5, 0.99],
+                groupby=[Column("transaction")],
+                filters=[
+                    Condition(Column("transaction"), Op.IN, ["transaction_0", "transaction_1"])
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = self.run_query(request)
+        assert len(result["data"]) == 10
+        rows = result["data"]
+        for i in range(10):
+            assert rows[i]["aggregate_value"] == [i, i]
+            assert rows[i]["transaction"] == f"transaction_{i % 2}"
+            assert (
+                rows[i]["time"]
+                == (
+                    self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
+                ).isoformat()
+            )
+
 
 class SnQLTest(MQLTest):
     @property

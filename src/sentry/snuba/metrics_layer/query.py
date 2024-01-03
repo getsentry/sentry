@@ -177,6 +177,8 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         # using it.
         if metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
             request.dataset = Dataset.Metrics.value
+        else:
+            request.dataset = Dataset.PerformanceMetrics.value
         indexer_mappings = _lookup_indexer_resolve(metrics_query, request.dataset)
         mappings.update(indexer_mappings)
         request.query = metrics_query.set_indexer_mappings(mappings)
