@@ -219,9 +219,9 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       if(!detail.event)
         {return null;}
 
-      const {measurements = {}} = detail.event;
+      const {measurements} = detail.event;
 
-      const measurementKeys = Object.keys(measurements)
+      const measurementKeys = Object.keys(measurements ?? {})
         .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
         .sort();
 
@@ -236,7 +236,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
               key={measurement}
               title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
             >
-              {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
+              {`${Number(measurements?.[measurement].value.toFixed(3)).toLocaleString()}ms`}
             </Row>
           ))}
         </Fragment>
