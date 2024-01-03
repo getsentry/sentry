@@ -6,6 +6,7 @@ import {TextDecoder, TextEncoder} from 'util';
 import {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
+import {ConfigFixture} from 'sentry-fixture/config';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
@@ -159,7 +160,7 @@ const routerFixtures = {
 const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
 const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
 
-ConfigStore.loadInitialData(fixtures.Config());
+ConfigStore.loadInitialData(ConfigFixture());
 
 /**
  * Test Globals
