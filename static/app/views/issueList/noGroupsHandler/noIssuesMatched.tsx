@@ -66,7 +66,7 @@ const Wrapper = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.fontSizeLarge};
   border-radius: 0 0 3px 3px;
-  padding: 40px ${space(3)} ${space(3)};
+  padding: 40px ${space(3)};
   min-height: 260px;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
