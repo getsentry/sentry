@@ -1,5 +1,5 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+import {GroupFixture} from 'sentry-fixture/group';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +10,7 @@ import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 describe('OpenInContextLine', function () {
   const filename = '/sentry/app.py';
   const group = GroupFixture();
-  const install = SentryAppInstallation();
+  const install = SentryAppInstallationFixture();
   const components: SentryAppComponent<SentryAppSchemaStacktraceLink>[] = [
     {
       uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',

@@ -19,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models.organization import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
@@ -190,7 +191,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 
             return [suspect.serialize() for suspect in suspects]
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -277,7 +278,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
                 }
             ]
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request,
                 paginator=SpanExamplesPaginator(data_fn=data_fn),

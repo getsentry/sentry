@@ -6,7 +6,7 @@ import {
   ReplayOptionFrameEventFixture,
   ReplayOptionFrameFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
-import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 
 import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 
@@ -17,7 +17,7 @@ describe('hydrateFrames', () => {
 
     const optionsFrame = ReplayOptionFrameFixture({});
     const attachments = [
-      ...RRWebInitFrameEvents(crumbProps),
+      ...RRWebInitFrameEventsFixture(crumbProps),
       ReplayOptionFrameEventFixture({
         timestamp: new Date(),
         data: {payload: optionsFrame},

@@ -20,6 +20,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
@@ -168,7 +169,7 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     category = OutboxCategory.TEAM_UPDATE
 
     organization = FlexibleForeignKey("sentry.Organization")
-    slug = models.SlugField()
+    slug = SentrySlugField()
 
     # Only currently used in SCIM, use slug elsewhere as this isn't updated in the app.
     # TODO: deprecate name in team API responses or keep it up to date with slug

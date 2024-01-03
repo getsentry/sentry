@@ -1,4 +1,4 @@
-import {UserDetails} from 'sentry-fixture/userDetails';
+import {UserDetailsFixture} from 'sentry-fixture/userDetails';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +12,7 @@ function mockUserDetails(params?: any) {
   MockApiClient.addMockResponse({
     url: '/users/me/',
     method: 'GET',
-    body: UserDetails(params),
+    body: UserDetailsFixture(params),
   });
 }
 

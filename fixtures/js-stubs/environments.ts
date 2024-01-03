@@ -1,6 +1,6 @@
 import {Environment} from 'sentry/types';
 
-export function Environments(): Environment[] {
+export function EnvironmentsFixture(): Environment[] {
   return [
     {id: '1', name: 'production', displayName: 'Production'},
     {id: '2', name: 'staging', displayName: 'Staging'},
@@ -8,6 +8,6 @@ export function Environments(): Environment[] {
   ];
 }
 
-export function HiddenEnvironments(): Environment[] {
+export function HiddenEnvironmentsFixture(): Environment[] {
   return [{id: '1', name: 'zzz', displayName: 'ZZZ'}];
 }
