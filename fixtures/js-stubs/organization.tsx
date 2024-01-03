@@ -85,3 +85,7 @@ export function OrganizationFixture(
     teamRoleList: TeamRoleListFixture(),
   };
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {OrganizationFixture as Organization};
+export default OrganizationFixture;

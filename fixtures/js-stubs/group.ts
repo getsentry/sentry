@@ -64,3 +64,6 @@ export function GroupFixture(params: Partial<GroupType> = {}): GroupType {
 
   return {...unresolvedGroup, ...params} as GroupType;
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {GroupFixture as Group};

@@ -36,3 +36,6 @@ export function MemberFixture(params: Partial<MemberType> = {}): MemberType {
     ...params,
   };
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {MemberFixture as Member};

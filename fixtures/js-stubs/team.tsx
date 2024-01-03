@@ -23,3 +23,6 @@ export function TeamFixture(params: Partial<TeamType> = {}): TeamType {
     ...params,
   };
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {TeamFixture as Team};
