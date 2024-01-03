@@ -288,7 +288,7 @@ export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_ap
 export type IntegrationFeature = {
   description: string;
   featureGate: string;
-  featureId?: number;
+  featureId: number;
 };
 
 export type IntegrationInstallationStatus =
@@ -467,11 +467,11 @@ export type PluginNoProject = {
   // TODO(ts)
   status: string;
   type: string;
-  altIsSentryApp?: boolean | null;
+  altIsSentryApp?: boolean;
   author?: {name: string; url: string};
-  deprecationDate?: string | null;
+  deprecationDate?: string;
   description?: string;
-  firstPartyAlternative?: string | null;
+  firstPartyAlternative?: string;
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
 };

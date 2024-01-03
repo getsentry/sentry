@@ -311,9 +311,6 @@ export function WebhookPluginConfig(plugin?: Partial<Plugin>): Plugin {
     status: 'unknown',
     assets: [],
     doc: '',
-    firstPartyAlternative: null,
-    deprecationDate: null,
-    altIsSentryApp: null,
     enabled: true,
     version: '24.1.0.dev0',
     author: {
@@ -329,6 +326,7 @@ export function WebhookPluginConfig(plugin?: Partial<Plugin>): Plugin {
       {
         description: 'Configure rule based outgoing HTTP POST requests from Sentry.',
         featureGate: 'alert-rule',
+        featureId: 1,
       },
     ],
     resourceLinks: [
