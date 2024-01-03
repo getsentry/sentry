@@ -255,7 +255,6 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
     @contextmanager
     def handle_query_errors(self):
         try:
-            # TODO: this context manager should be merged into util handle_query_error?
             with handle_query_errors():
                 yield
         except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
