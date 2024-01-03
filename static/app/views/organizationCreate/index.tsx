@@ -1,4 +1,4 @@
-import {ReactElement, useState} from 'react';
+import {useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
@@ -39,22 +39,6 @@ function OrganizationCreate() {
     },
     transformData: removeDataStorageLocationFromFormData,
   });
-
-  let dataStorageSelect: ReactElement | null = null;
-  if (shouldDisplayRegions()) {
-    dataStorageSelect = (
-      <SelectField
-        name="dataStorageLocation"
-        label="Data Storage Location"
-        help="Where will this organization reside?"
-        choices={regionChoices}
-        onChange={regionName => setRegion(getRegionByName(regionName))}
-        inline={false}
-        stacked
-        required
-      />
-    );
-  }
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
@@ -102,7 +86,18 @@ function OrganizationCreate() {
             stacked
             required
           />
-          {dataStorageSelect}
+          {shouldDisplayRegions() &&  (
+            <SelectField
+              name="dataStorageLocation"
+              label="Data Storage Location"
+              help="Where will this organization reside?"
+              choices={regionChoices}
+              onChange={regionName => setRegion(getRegionByName(regionName))}
+              inline={false}
+              stacked
+              required
+            />
+          )}
           {termsUrl && privacyUrl && (
             <CheckboxField
               name="agreeTerms"

@@ -1,31 +1,33 @@
+import {t} from "sentry/locale";
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Region} from 'sentry/types';
 
-export enum RegionDisplayName {
-  US = 'United States of America (US)',
-  DE = 'European Union (EU)',
-}
+const US_DISPLAY_NAME = t('United States of America (US)');
+const EU_DISPLAY_NAME = t('European Union (EU)');
 
-export enum RegionFlagIndicator {
+enum RegionFlagIndicator {
   US = '🇺🇸',
   DE = '🇪🇺',
 }
 
 export interface RegionData {
-  regionDisplayName: string;
-  regionName: string;
-  regionUrl: string;
-  regionFlag?: RegionFlagIndicator;
+  displayName: string;
+  name: string;
+  url: string;
+  flag?: RegionFlagIndicator;
 }
 
 export function getRegionDisplayName(region: Region): string {
   const regionName = region.name.toUpperCase();
+  switch(regionName) {
+    case 'US':
+      return US_DISPLAY_NAME;
+    case 'DE':
+      return EU_DISPLAY_NAME;
+    default:
+      return region.name;
 
-  if (RegionDisplayName[regionName]) {
-    return RegionDisplayName[regionName];
   }
-
-  return region.name;
 }
 
 export function getRegionFlagIndicator(region: Region): RegionFlagIndicator | undefined {
@@ -49,10 +51,10 @@ export function getRegionDataFromOrganization(
   }
 
   return {
-    regionFlag: getRegionFlagIndicator(region),
-    regionDisplayName: getRegionDisplayName(region),
-    regionName: region.name,
-    regionUrl: region.url,
+    flag: getRegionFlagIndicator(region),
+    displayName: getRegionDisplayName(region),
+    name: region.name,
+    url: region.url,
   };
 }
 

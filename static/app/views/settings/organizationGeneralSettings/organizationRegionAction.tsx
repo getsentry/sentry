@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {t} from 'sentry/locale';
+import {space} from "sentry/styles/space";
 import {Organization} from 'sentry/types';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 
@@ -10,12 +11,12 @@ type Props = {
 };
 
 const OrganizationRegionInformationWrapper = styled('div')`
-  margin-top: 15px;
+  margin-top: ${space(2)};
   text-align: end;
 `;
 
 const OrganizationFlag = styled('span')`
-  font-size: large;
+  font-size: ${p=> p.theme.fontSizeLarge};
 `;
 
 export function OrganizationRegionAction({organization, ...props}: Props) {
@@ -31,8 +32,8 @@ export function OrganizationRegionAction({organization, ...props}: Props) {
   return (
     <OrganizationRegionInformationWrapper {...props}>
       <div>
-        {`${regionData.regionDisplayName} `}
-        <OrganizationFlag>{regionData.regionFlag}</OrganizationFlag>
+        {`${regionData.displayName} `}
+        <OrganizationFlag>{regionData.flag}</OrganizationFlag>
       </div>
       <FieldHelp>{t("Your org's data storage location.")}</FieldHelp>
     </OrganizationRegionInformationWrapper>
