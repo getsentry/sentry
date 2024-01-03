@@ -9,6 +9,3 @@ export function RouterPropsFixture(params = {}) {
     ...params,
   };
 }
-
-// TODO(epurkhiser): Remove once removed from getsentry
-export default RouterPropsFixture;
