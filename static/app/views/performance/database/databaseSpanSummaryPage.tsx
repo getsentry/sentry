@@ -98,16 +98,18 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    filters,
-    ['spm()'],
-    'api.starfish.span-summary-page-metrics-chart'
+    {
+      filters,
+      yAxis: ['spm()'],
+      referrer: 'api.starfish.span-summary-page-metrics-chart',
+    }
   );
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
     filters,
-    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    'api.starfish.span-summary-page-metrics-chart'
-  );
+    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.span-summary-page-metrics-chart',
+  });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 

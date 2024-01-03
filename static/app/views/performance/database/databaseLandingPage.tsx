@@ -96,16 +96,18 @@ export function DatabaseLandingPage() {
   });
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    chartFilters,
-    ['spm()'],
-    'api.starfish.span-landing-page-metrics-chart'
+    {
+      filters: chartFilters,
+      yAxis: ['spm()'],
+      referrer: 'api.starfish.span-landing-page-metrics-chart',
+    }
   );
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    chartFilters,
-    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+    filters: chartFilters,
+    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.span-landing-page-metrics-chart',
+  });
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;

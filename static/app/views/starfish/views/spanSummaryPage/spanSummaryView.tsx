@@ -88,11 +88,11 @@ export function SpanSummaryView({groupId}: Props) {
   };
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
-    useSpanMetricsSeries(
-      {'span.group': groupId, ...seriesQueryFilter},
-      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
-      'api.starfish.span-summary-page-metrics-chart'
-    );
+    useSpanMetricsSeries({
+      filters: {'span.group': groupId, ...seriesQueryFilter},
+      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      referrer: 'api.starfish.span-summary-page-metrics-chart',
+    });
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 

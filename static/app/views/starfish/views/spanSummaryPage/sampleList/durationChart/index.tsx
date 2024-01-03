@@ -90,11 +90,11 @@ function DurationChart({
     isLoading,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
-  } = useSpanMetricsSeries(
+  } = useSpanMetricsSeries({
     filters,
-    [`avg(${SPAN_SELF_TIME})`],
-    'api.starfish.sidebar-span-metrics-chart'
-  );
+    yAxis: [`avg(${SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.sidebar-span-metrics-chart',
+  });
 
   const {data, error: spanMetricsError} = useSpanMetrics({
     filters,
