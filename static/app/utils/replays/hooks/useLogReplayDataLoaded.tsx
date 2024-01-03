@@ -46,17 +46,14 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
       replay_id: replayRecord.id,
     });
 
-    // TODO(session-replay-show-hydration-errors): remove this analytic on GA
-    if (!organization.features.includes('session-replay-show-hydration-errors')) {
-      const hydrationErrorFrames = replay.getHydrationFrames();
-      if (hydrationErrorFrames.length > 0) {
-        // Track when a hydration breadcrumb is present but unable to be viewed
-        trackAnalytics('replay.details-has-hydration-error', {
-          organization,
-          num_errors: hydrationErrorFrames.length,
-          replay_id: replayRecord.id,
-        });
-      }
+    const hydrationErrorFrames = replay.getHydrationFrames();
+    if (hydrationErrorFrames.length > 0) {
+      // Track when a hydration breadcrumb is present but unable to be viewed
+      trackAnalytics('replay.details-has-hydration-error', {
+        organization,
+        num_errors: hydrationErrorFrames.length,
+        replay_id: replayRecord.id,
+      });
     }
   }, [organization, project, fetchError, fetching, projectSlug, replay]);
 }
