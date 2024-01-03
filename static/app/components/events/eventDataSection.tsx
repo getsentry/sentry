@@ -93,8 +93,8 @@ export function EventDataSection({
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
-      {title && (
-        <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+      <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+        {title && (
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
@@ -110,9 +110,9 @@ export function EventDataSection({
               <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
             )}
           </Title>
-          {actions && <ActionContainer>{actions}</ActionContainer>}
-        </SectionHeader>
-      )}
+        )}
+        {actions && <ActionContainer>{actions}</ActionContainer>}
+      </SectionHeader>
       <SectionContents>{children}</SectionContents>
     </DataSection>
   );
