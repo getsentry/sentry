@@ -1,8 +1,9 @@
 import math
 import re
+from collections import OrderedDict
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 from snuba_sdk import (
@@ -56,15 +57,19 @@ ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
 Series = List[Tuple[str, ResultValue]]
 # Type representing a single aggregate value.
 Total = ResultValue
-# Type representing the group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
-GroupKey = Tuple[Tuple[str, str], ...]
+# Type representing a single group composed of a key and a value.
+Group = Tuple[str, str]
+# Type representing a hashable group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
+GroupKey = Tuple[Group, ...]
+# Type representing a sequence of groups [[(`key_1`, `value_1`), (`key_2`, `value_2`), ...], ...]
+GroupsCollection = Sequence[Sequence[Group]]
 
 
 @dataclass(frozen=True)
 class ExecutableQuery:
     metrics_query: MetricsQuery
-    # TODO: check if we really have to keep this.
     group_bys: Optional[Sequence[str]]
+    order_by: Optional[str]
     with_series: bool
     with_totals: bool
 
@@ -73,6 +78,38 @@ class ExecutableQuery:
 
     def set_interval(self, new_interval) -> "ExecutableQuery":
         return replace(self, metrics_query=self.metrics_query.set_rollup(Rollup(new_interval)))
+
+    def set_groups_filters(
+        self,
+        groups_collection: Optional[GroupsCollection],
+    ) -> "ExecutableQuery":
+        if not groups_collection:
+            return self
+
+        # We perform a transformation in the form [(key_1 = value_1 AND key_2 = value_2) OR (key_3 = value_3)].
+        snuba_filters = []
+        for groups in groups_collection:
+            inner_snuba_filters = []
+            for filter_key, filter_value in groups:
+                inner_snuba_filters.append(Condition(Column(filter_key), Op.EQ, filter_value))
+
+            # In case we have more than one filter, we have to group them into an `AND`.
+            if len(inner_snuba_filters) > 1:
+                snuba_filters.append(BooleanCondition(BooleanOp.AND, inner_snuba_filters))
+            else:
+                snuba_filters.append(inner_snuba_filters[0])
+
+        # In case we have more than one filter, we have to group them into an `OR`.
+        if len(snuba_filters) > 1:
+            snuba_filters = [BooleanCondition(BooleanOp.OR, snuba_filters)]
+
+        original_filters = self.metrics_query.query.filters or []
+        return replace(
+            self,
+            metrics_query=self.metrics_query.set_query(
+                self.metrics_query.query.set_filters(original_filters + snuba_filters)
+            ),
+        )
 
 
 @dataclass
@@ -174,7 +211,7 @@ class QueryResult:
         return self.result[meta_source]["meta"]
 
     @property
-    def groups(self) -> Sequence[Sequence[Tuple[str, str]]]:
+    def groups(self) -> GroupsCollection:
         groups = []
 
         # We prefer to use totals to determine the groups that we received, since those are less likely to hit the limit
@@ -183,10 +220,12 @@ class QueryResult:
             inner_group = []
 
             for key, value in data.items():
-                if key != "aggregate_value":
+                # TODO: check if time can be used as a tag key.
+                if key not in ["aggregate_value", "time"]:
                     inner_group.append((key, value))
 
-            groups.append(inner_group)
+            if inner_group:
+                groups.append(inner_group)
 
         return groups
 
@@ -201,6 +240,97 @@ class QueryResult:
             return len(self.totals)
 
         return 0
+
+    @property
+    def alignment_keys(self) -> Optional[Sequence[str]]:
+        return self.executable_query.group_bys
+
+    def _build_composite_key_from_dict(
+        self, data: Mapping[str, Any], alignment_keys: Sequence[str]
+    ) -> Tuple[Tuple[str, str], ...]:
+        composite_key = []
+
+        for key in alignment_keys:
+            if (value := data.get(key)) is not None:
+                composite_key.append((key, value))
+
+        return tuple(composite_key)
+
+    def _build_indexed_seq(
+        self, seq: Sequence[Mapping[str, Any]], alignment_keys: Sequence[str]
+    ) -> Mapping[GroupKey, int]:
+        indexed_seq = {}
+
+        for index, data in enumerate(seq):
+            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
+            indexed_seq[composite_key] = index
+
+        return indexed_seq
+
+    def _build_aligned_seq(
+        self,
+        seq: Sequence[Mapping[str, Any]],
+        reference_seq: Sequence[Mapping[str, Any]],
+        alignment_keys: Sequence[str],
+        indexed_seq: Mapping[GroupKey, int],
+    ) -> Sequence[Mapping[str, Any]]:
+        aligned_seq = []
+
+        for data in reference_seq:
+            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
+            index = indexed_seq.get(composite_key)
+            if index is not None:
+                aligned_seq.append(seq[index])
+
+        return aligned_seq
+
+    def align_with(self, reference_query_result: "QueryResult") -> "QueryResult":
+        # Alignment keys define the order in which fields are used for indexing purposes when aligning different
+        # sequences.
+        alignment_keys = reference_query_result.alignment_keys
+        if not alignment_keys:
+            return self
+
+        # For timeseries, we want to align based on the time also, since group bys + time are the common values
+        # across separate queries.
+        indexed_series = self._build_indexed_seq(self.series, alignment_keys + ["time"])
+        indexed_totals = self._build_indexed_seq(self.totals, alignment_keys)
+
+        aligned_series = self._build_aligned_seq(
+            self.series, reference_query_result.series, alignment_keys + ["time"], indexed_series
+        )
+        aligned_totals = self._build_aligned_seq(
+            self.totals, reference_query_result.totals, alignment_keys, indexed_totals
+        )
+
+        if aligned_series:
+            self.result["series"]["data"] = aligned_series
+        if aligned_totals:
+            self.result["totals"]["data"] = aligned_totals
+
+        return self
+
+    def align_series_to_totals(self) -> "QueryResult":
+        alignment_keys = self.alignment_keys
+        if not alignment_keys:
+            return self
+
+        indexed_series = {}
+        for index, data in enumerate(self.series):
+            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
+            indexed_series.setdefault(composite_key, []).append(index)
+
+        aligned_series = []
+        for data in self.totals:
+            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
+            indexes = indexed_series.get(composite_key)
+            for index in indexes or ():
+                aligned_series.append(self.series[index])
+
+        if aligned_series:
+            self.result["series"]["data"] = aligned_series
+
+        return self
 
 
 class MutableTimeseries:
@@ -401,16 +531,6 @@ class QueryExecutor:
                 f"An error occurred while executing the query: {type(e).__name__}"
             )
 
-    def schedule(self, query: MetricsQuery, group_bys: Optional[Sequence[str]]):
-        executable_query = ExecutableQuery(
-            metrics_query=query,
-            group_bys=group_bys,
-            # For now, we execute both queries independently of the query.
-            with_series=True,
-            with_totals=True,
-        )
-        self._scheduled_queries.append(executable_query)
-
     def _derive_next_interval(self, result: QueryResult) -> int:
         # We try to estimate the number of groups.
         groups_number = len(result.groups)
@@ -439,32 +559,59 @@ class QueryExecutor:
         if not self._scheduled_queries:
             return []
 
-        first_query = self._scheduled_queries.pop(0)
-        first_result = self._execute(first_query)
+        # We execute the first reference query.
+        reference_query = self._scheduled_queries.pop(0)
+        reference_query_result = self._execute(reference_query)
 
         # Case 1: we have fewer results that the limit. In this case we are free to run the follow-up queries under the
         # assumption that data doesn't change much between queries.
-        if first_result.length < SNUBA_QUERY_LIMIT:
-            results = [first_result]
+        if reference_query_result.length < SNUBA_QUERY_LIMIT:
+            # Snuba supports order by only for totals, thus we need to align the series to the totals ordering before
+            # we can run the other queries and align them on this reference query.
+            reference_query_result.align_series_to_totals()
+
+            results = [reference_query_result]
+
+            reference_groups = reference_query_result.groups
             for query in self._scheduled_queries:
-                results.append(self._execute(query))
+                query = query.set_groups_filters(reference_groups)
+                query_result = self._execute(query)
+
+                query_result.align_with(reference_query_result)
+                results.append(query_result)
 
             return results
 
         # Case 2: we have more results than the limit. In this case we want to determine a new interval that
         # will result in less than limit data points.
-        new_interval = self._derive_next_interval(first_result)
+        new_interval = self._derive_next_interval(reference_query_result)
 
         # We update the scheduled queries to use the new interval. It's important to note that we also add back the
-        # first query, since we need to execute it again.
+        # reference query, since we need to execute it again.
         self._scheduled_queries = [
-            query.set_interval(new_interval) for query in [first_query] + self._scheduled_queries
+            query.set_interval(new_interval)
+            for query in [reference_query] + self._scheduled_queries
         ]
 
         return self._serial_execute()
 
     def execute(self) -> Sequence[QueryResult]:
         return self._serial_execute()
+
+    def schedule(
+        self, query: MetricsQuery, group_bys: Optional[Sequence[str]], order_by: Optional[str]
+    ):
+        with_series = True
+        with_totals = True
+
+        executable_query = ExecutableQuery(
+            metrics_query=query,
+            group_bys=group_bys,
+            order_by=order_by,
+            with_series=with_series,
+            with_totals=with_totals,
+        )
+        self._scheduled_queries.append(executable_query)
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
@@ -553,7 +700,7 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
     interval: Optional[int] = None
 
     # For efficiency reasons, we translate the incoming data into our custom in-memory representations.
-    intermediate_groups: Dict[GroupKey, Dict[str, GroupValue]] = {}
+    intermediate_groups: OrderedDict[GroupKey, OrderedDict[str, GroupValue]] = OrderedDict()
     intermediate_meta: List[QueryMeta] = []
     for execution_result in execution_results:
         # All queries must have the same timerange, so under this assumption we take the first occurrence of each.
@@ -571,13 +718,11 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
                 for group_by in execution_result.group_bys or ():
                     grouped_values.append((group_by, value.get(group_by)))
 
-                # We order the group values in order to be consistent across executions.
-                group_key = tuple(sorted(grouped_values))
-                group_metrics = intermediate_groups.setdefault(group_key, {})
-                # The item at position 0 is the "series".
+                group_metrics = intermediate_groups.setdefault(tuple(grouped_values), OrderedDict())
                 group_value = group_metrics.setdefault(
                     execution_result.query_name, GroupValue.empty()
                 )
+
                 block(value, group_value)
 
         # We group the totals data first, since we want the order to be set by the totals.
@@ -611,15 +756,17 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
     intervals = _build_intervals(start, end, interval)
 
     translated_groups = []
-    for group_key, group_metrics in sorted(intermediate_groups.items(), key=lambda v: v[0]):
-        translated_serieses: Dict[str, Sequence[ResultValue]] = {}
-        translated_totals: Dict[str, ResultValue] = {}
-        for metric_name, metric_values in sorted(group_metrics.items(), key=lambda v: v[0]):
+    for group_key, group_metrics in intermediate_groups.items():
+        translated_serieses: OrderedDict[str, Sequence[ResultValue]] = OrderedDict()
+        translated_totals: OrderedDict[str, ResultValue] = OrderedDict()
+        for metric_name, metric_values in group_metrics.items():
             series = metric_values.series
             total = metric_values.total
 
             # We generate the full series by passing as default value the identity of the totals, which is the default
             # value applied in the timeseries.
+            # This function already aligns the series by sorting it in ascending order so there is no need to have
+            # the series elements sorted beforehand.
             translated_serieses[metric_name] = _generate_full_series(
                 int(start.timestamp()), len(intervals), interval, series, _get_identity(total)
             )
@@ -647,8 +794,6 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
 
 def run_metrics_query(
     fields: Sequence[str],
-    query: Optional[str],
-    group_bys: Optional[Sequence[str]],
     interval: int,
     start: datetime,
     end: datetime,
@@ -656,6 +801,9 @@ def run_metrics_query(
     projects: Sequence[Project],
     environments: Sequence[Environment],
     referrer: str,
+    query: Optional[str] = None,
+    group_bys: Optional[Sequence[str]] = None,
+    order_by: Optional[str] = None,
 ):
     # Build the basic query that contains the metadata.
     base_query = MetricsQuery(
@@ -678,7 +826,7 @@ def run_metrics_query(
             .set_rollup(Rollup(interval=interval))
             .set_limit(SNUBA_QUERY_LIMIT)
         )
-        executor.schedule(query, group_bys)
+        executor.schedule(query, group_bys, order_by)
 
     # Iterating over each result.
     results = []
