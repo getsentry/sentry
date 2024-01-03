@@ -70,7 +70,7 @@ def test_recording_buffer_commit_deadline():
     traveller = time_machine.travel(now + datetime.timedelta(seconds=5))
     traveller.start()
     assert buffer.has_exceeded_last_buffer_commit_time
-    assert buffer.ready_to_commit
+    assert buffer.ready_to_commit  # type: ignore
     traveller.stop()
 
     # 55 seconds after expiration.
