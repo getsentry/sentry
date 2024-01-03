@@ -1,11 +1,8 @@
-import {
-  SentryAppComponent as TSentryAppComponent,
-  SentryAppSchemaIssueLink,
-} from 'sentry/types';
+import {SentryAppComponent, SentryAppSchemaIssueLink} from 'sentry/types';
 
 export function SentryAppComponentFixture(
   params = {}
-): TSentryAppComponent<SentryAppSchemaIssueLink> {
+): SentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
@@ -59,7 +56,7 @@ export function SentryAppComponentFixture(
 }
 export function SentryAppComponentAsyncFixture(
   params = {}
-): TSentryAppComponent<SentryAppSchemaIssueLink> {
+): SentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
@@ -101,7 +98,7 @@ export function SentryAppComponentAsyncFixture(
 
 export function SentryAppComponentDependentFixture(
   params = {}
-): TSentryAppComponent<SentryAppSchemaIssueLink> {
+): SentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     type: 'issue-link',
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',

@@ -1,16 +1,16 @@
 import type {
-  RecoveryAuthenticator as RecoveryAuthenticatorType,
-  SmsAuthenticator as SmsAuthenticatorType,
-  TotpAuthenticator as TotpAuthenticatorType,
-  U2fAuthenticator as U2fAuthenticatorType,
-  UserEnrolledAuthenticator as UserEnrolledAuthenticatorType,
+  RecoveryAuthenticator,
+  SmsAuthenticator,
+  TotpAuthenticator,
+  U2fAuthenticator as U2fAuthenticator,
+  UserEnrolledAuthenticator,
 } from 'sentry/types';
 
 export function AuthenticatorsFixture(): {
-  Recovery: (props?: Partial<RecoveryAuthenticatorType>) => RecoveryAuthenticatorType;
-  Sms: (props?: Partial<SmsAuthenticatorType>) => SmsAuthenticatorType;
-  Totp: (props?: Partial<TotpAuthenticatorType>) => TotpAuthenticatorType;
-  U2f: (props?: Partial<U2fAuthenticatorType>) => U2fAuthenticatorType;
+  Recovery: (props?: Partial<RecoveryAuthenticator>) => RecoveryAuthenticator;
+  Sms: (props?: Partial<SmsAuthenticator>) => SmsAuthenticator;
+  Totp: (props?: Partial<TotpAuthenticator>) => TotpAuthenticator;
+  U2f: (props?: Partial<U2fAuthenticator>) => U2fAuthenticator;
 } {
   return {
     Totp: (p = {}) => ({
@@ -133,8 +133,8 @@ export function AllAuthenticatorsFixture() {
 }
 
 export function UserEnrolledAuthenticatorFixture(
-  params: Partial<UserEnrolledAuthenticatorType>
-): UserEnrolledAuthenticatorType {
+  params: Partial<UserEnrolledAuthenticator>
+): UserEnrolledAuthenticator {
   return {
     id: '1',
     type: 'totp',
