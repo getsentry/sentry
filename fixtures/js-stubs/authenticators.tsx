@@ -2,7 +2,7 @@ import type {
   RecoveryAuthenticator,
   SmsAuthenticator,
   TotpAuthenticator,
-  U2fAuthenticator as U2fAuthenticator,
+  U2fAuthenticator,
   UserEnrolledAuthenticator,
 } from 'sentry/types';
 
