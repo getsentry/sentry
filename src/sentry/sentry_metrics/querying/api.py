@@ -336,7 +336,7 @@ class QueryExecutor:
         self._referrer = referrer
         # Ordered list of the intervals that can be chosen by the executor. They are removed when tried, in order
         # to avoid an infinite recursion.
-        self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS, reverse=True)
+        self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
         self._scheduled_queries: List[ExecutableQuery] = []
 
@@ -410,7 +410,9 @@ class QueryExecutor:
         self._scheduled_queries.append(executable_query)
 
     def _derive_optimal_interval(self, result: ExecutionResult) -> int:
-        # First we determine as best effort how many groups were returned, just to estimate the cardinality.
+        # First we determine as best effort how many groups were returned, just to estimate the cardinality. Keep in
+        # mind that this is an estimation, since it could be that the user has more than 10k groups which is highly
+        # unlikely but can happen. If that happens though, we might need to rethink snuba limits.
         groups_number = len(result.groups)
 
         # Second we compute the ideal number of intervals that can fit with a given number of groups. We round down
@@ -419,12 +421,16 @@ class QueryExecutor:
 
         # Third we compute the size of each interval in seconds, considering how many intervals we want in the time
         # range of the query.
-        interval_size = math.floor(
+        optimal_interval_size = math.floor(
             (result.modified_end - result.modified_start).total_seconds() / intervals_number
         )
 
+        # We want to get the biggest interval that is >= the optimal one. The idea for this heuristic is that we want
+        # to find the smallest interval possible that will give us fewer results than the maximum but since we don't
+        # want to use the mathematically optimal one, we try to find the closest given a set of choices. This is more
+        # of a product decision, since we want our customers to see the graphs with easily readable intervals.
         for index, interval in enumerate(self._interval_choices):
-            if interval <= interval_size:
+            if interval >= optimal_interval_size:
                 # We have to put the choice, otherwise we end up in an infinite recursion.
                 self._interval_choices.pop(index)
                 return interval

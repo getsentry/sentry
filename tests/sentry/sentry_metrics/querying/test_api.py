@@ -422,6 +422,23 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[2]["series"] == {field: [0.0, 8.0]}
         assert groups[2]["totals"] == {field: 8.0}
 
+    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.api.DEFAULT_QUERY_INTERVALS", [])
+    def test_query_with_too_many_results_and_no_interval_found(self) -> None:
+        with pytest.raises(MetricsQueryExecutionError):
+            run_metrics_query(
+                fields=[f"sum({TransactionMRI.DURATION.value})"],
+                query=None,
+                group_bys=["transaction", "platform"],
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=60,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
     @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
         self.store_session(
