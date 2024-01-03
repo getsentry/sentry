@@ -32,6 +32,7 @@ export type Project = {
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasMinifiedStackTrace: boolean;
+  hasMonitors: boolean;
   hasNewFeedbacks: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
