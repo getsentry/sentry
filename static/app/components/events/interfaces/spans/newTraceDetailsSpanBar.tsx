@@ -97,9 +97,7 @@ export const MARGIN_LEFT = 0;
 
 export type NewTraceDetailsSpanBarProps = SpanBarProps & {
   location: Location;
-  onSpanScrolled: () => void;
   quickTrace: QuickTraceContextChildrenProps;
-  spanScrolled: boolean;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
@@ -120,22 +118,27 @@ export class NewTraceDetailsSpanBar extends Component<
   }
 
   componentDidMount() {
+    const {didAnchoredSpanMount, markAnchoredSpanIsMounted} = this.props;
+
     this._mounted = true;
     this.updateHighlightedState();
+    this.connectObservers();
 
-    if (this.isHighlighted && this.props.onRowClick && !this.props.spanScrolled) {
+    if (this.isHighlighted && this.props.onRowClick) {
       this.props.onRowClick(this.getSpanDetailsProps());
-      setTimeout(() => {
-        this.scrollIntoView();
-      }, 100);
-      this.props.onSpanScrolled();
+
+      if (!didAnchoredSpanMount()) {
+        setTimeout(() => {
+          this.scrollIntoView();
+        }, 100);
+      }
+
+      markAnchoredSpanIsMounted?.();
     }
 
     if (this.spanRowDOMRef.current) {
       this.props.storeSpanBar(this);
     }
-
-    this.connectObservers();
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
@@ -152,15 +155,13 @@ export class NewTraceDetailsSpanBar extends Component<
       this.spanContentRef.style.transformOrigin = 'left';
     }
 
-    const {span, markAnchoredSpanIsMounted, addExpandedSpan, didAnchoredSpanMount} =
-      this.props;
+    const {span, addExpandedSpan} = this.props;
 
     if (isGapSpan(span)) {
       return;
     }
 
-    if (this.hash_span_id === span.span_id && !didAnchoredSpanMount()) {
-      markAnchoredSpanIsMounted?.();
+    if (this.hash_span_id === span.span_id) {
       addExpandedSpan(span);
       return;
     }
@@ -565,7 +566,11 @@ export class NewTraceDetailsSpanBar extends Component<
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
       this.setState({isIntersecting: entry.isIntersecting}, () => {
-        if (this.hash_span_id && !this.props.spanScrolled && !this.state.isIntersecting) {
+        if (
+          this.hash_span_id &&
+          !this.props.didAnchoredSpanMount() &&
+          !this.state.isIntersecting
+        ) {
           window.scrollBy(0, 24);
         }
       })
@@ -787,10 +792,11 @@ export class NewTraceDetailsSpanBar extends Component<
   }
 
   handleRowClick() {
-    const {span, event, location} = this.props;
+    const {span, event, location, markAnchoredSpanIsMounted} = this.props;
     const spanDetailProps = this.getSpanDetailsProps();
     if (this.props.onRowClick && !isGapSpan(span)) {
       this.props.onRowClick(spanDetailProps);
+      markAnchoredSpanIsMounted?.();
       const isTransactionEvent = event.type === EventOrGroupType.TRANSACTION;
       if (isTransactionEvent) {
         browserHistory.push({

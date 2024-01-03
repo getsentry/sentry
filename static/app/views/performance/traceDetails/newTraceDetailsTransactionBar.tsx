@@ -231,8 +231,16 @@ function NewTraceDetailsTransactionBar(props: Props) {
   );
 
   const waterfallModel = useMemo(() => {
-    return embeddedChildren ? new WaterfallModel(embeddedChildren) : null;
-  }, [embeddedChildren]);
+    return embeddedChildren
+      ? new WaterfallModel(
+          embeddedChildren,
+          undefined,
+          undefined,
+          undefined,
+          props.traceInfo
+        )
+      : null;
+  }, [embeddedChildren, props.traceInfo]);
 
   useEffect(() => {
     if (isTraceTransaction(props.transaction) && !isTraceError(props.transaction)) {
@@ -497,7 +505,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
                                     .getWaterfall({
                                       viewStart: 0,
                                       viewEnd: 1,
-                                      traceInfo,
                                     })
                                     .slice(1)}
                                   focusedSpanIds={waterfallModel.focusedSpanIds}
@@ -935,10 +942,10 @@ const StyledRowRectangle = styled(RowRectangle)`
 
 export const StyledZoomIcon = styled(IconZoom)`
   position: absolute;
-  left: -6px;
+  left: -7px;
   top: 4px;
   height: 16px;
-  width: 17px;
+  width: 18px;
   z-index: 1000;
   background: white;
   padding: 1px;

@@ -69,7 +69,6 @@ type PropType = ScrollbarManagerChildrenProps & {
 type StateType = {
   headerPos: number;
   spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
-  spanScrolled: boolean;
 };
 
 const listRef = createRef<ReactVirtualizedList>();
@@ -80,7 +79,6 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     // Stores each visible span row ref along with its tree depth. This is used to calculate the
     // horizontal auto-scroll positioning
     spanRows: {},
-    spanScrolled: false,
   };
 
   componentDidMount() {
@@ -405,13 +403,11 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
       removeContentSpanBarRef,
       storeSpanBar,
       traceHasMultipleRoots,
-      traceInfo,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
       viewStart: 0,
       viewEnd: 1,
-      traceInfo,
     });
 
     type AccType = {
@@ -677,16 +673,10 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     return spanTree;
   };
 
-  onSpanScrolled() {
-    this.setState({...this.state, spanScrolled: true});
-  }
-
   renderRow(props: ListRowProps, spanTree: SpanTreeNode[]) {
     return (
       <SpanRow
         {...props}
-        onSpanScrolled={() => this.onSpanScrolled()}
-        spanScrolled={this.state.spanScrolled}
         quickTrace={this.props.quickTrace}
         location={this.props.location}
         onRowClick={this.props.onRowClick}
@@ -830,11 +820,9 @@ type SpanRowProps = ListRowProps & {
   ) => void;
   cache: CellMeasurerCache;
   location: Location;
-  onSpanScrolled: () => void;
   quickTrace: QuickTraceContextChildrenProps;
   removeSpanRowFromState: (spanId: string) => void;
   spanContextProps: SpanContext.SpanContextProps;
-  spanScrolled: boolean;
   spanTree: SpanTreeNode[];
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
@@ -853,8 +841,6 @@ function SpanRow(props: SpanRowProps) {
     onRowClick,
     quickTrace,
     location,
-    spanScrolled,
-    onSpanScrolled,
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
@@ -888,8 +874,6 @@ function SpanRow(props: SpanRowProps) {
         return (
           <NewTraceDetailsProfiledSpanBar
             fromTraceView
-            onSpanScrolled={onSpanScrolled}
-            spanScrolled={spanScrolled}
             onRowClick={onRowClick}
             key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
