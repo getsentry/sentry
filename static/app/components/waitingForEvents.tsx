@@ -5,7 +5,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
@@ -89,11 +89,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
       />
       <MessageContainer>
         <h3>{t('Waiting for events…')}</h3>
-        <p>
-          {tct('Our robot is waiting to [strike:devour] receive your first event.', {
-            strike: <Strikethrough />,
-          })}
-        </p>
+        <p>{t('Your code sleuth eagerly awaits its first mission.')}</p>
         <p>
           {project && (
             <Button
@@ -139,8 +135,4 @@ const MessageContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
   }
-`;
-
-const Strikethrough = styled('span')`
-  text-decoration: line-through;
 `;
