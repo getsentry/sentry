@@ -22,12 +22,14 @@ import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
+import {useScratchpads} from 'sentry/views/ddm/scratchpadContext';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import ShareButton from 'sentry/views/ddm/shareButton';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
   const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
+  const {isLoading: isLoadingScratchpads} = useScratchpads();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
@@ -71,7 +73,7 @@ export const DDMLayout = memo(() => {
             </PageFilterBar>
             <ScratchpadSelector />
           </PaddedContainer>
-          {isLoading ? (
+          {isLoading || isLoadingScratchpads ? (
             <LoadingIndicator />
           ) : hasMetrics ? (
             <Fragment>
