@@ -7,6 +7,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
+from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 
@@ -36,7 +37,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         # We return the requested event if we find a match regardless of whether
         # it occurred within the range specified
-        with self.handle_query_errors():
+        with handle_query_errors():
             event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if event is None:

@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
 
@@ -93,7 +94,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
 
         # cache miss, need to make the query again
         if has_measurements is None:
-            with self.handle_query_errors():
+            with handle_query_errors():
                 validated_data = serializer.validated_data
 
                 # generate the appropriate query for the selected type

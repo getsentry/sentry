@@ -21,6 +21,7 @@ from sentry_sdk import Scope
 
 from sentry import options
 from sentry.auth.superuser import is_active_superuser
+from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
@@ -368,10 +369,8 @@ def get_auth_api_token_type(auth: object) -> str | None:
     return None
 
 
-# NOTE: This duplicates OrganizationEventsEndpointBase.handle_query_errors
-# TODO: move other references over to this implementation rather than the organization_events implementation
 @contextmanager
-def handle_query_errors(self) -> Generator[None, None, None]:
+def handle_query_errors() -> Generator[None, None, None]:
     try:
         yield
     except InvalidSearchQuery as error:

@@ -249,7 +249,7 @@ class HandleQueryErrorsTest:
         mock_parse_error.return_value = FooBarError()
         for ex in exceptions:
             try:
-                with handle_query_errors(self):
+                with handle_query_errors():
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
