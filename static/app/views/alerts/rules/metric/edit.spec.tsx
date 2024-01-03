@@ -1,6 +1,6 @@
 import {MemberFixture} from 'sentry-fixture/member';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

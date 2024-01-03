@@ -1,7 +1,7 @@
 import {OpsgenieIntegrationFixture} from 'sentry-fixture/opsgenieIntegration';
 import {OpsgenieIntegrationProviderFixture} from 'sentry-fixture/opsgenieIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,

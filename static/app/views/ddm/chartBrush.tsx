@@ -1,5 +1,6 @@
-import {RefObject, useCallback, useMemo, useRef} from 'react';
+import {RefObject, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
@@ -20,7 +21,6 @@ interface AbsolutePosition {
 }
 
 export interface FocusArea {
-  position: AbsolutePosition;
   range: MetricRange;
   widgetIndex: number;
 }
@@ -28,6 +28,7 @@ export interface FocusArea {
 interface UseFocusAreaBrushOptions {
   widgetIndex: number;
   isDisabled?: boolean;
+  useFullYAxis?: boolean;
 }
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
@@ -38,7 +39,7 @@ export function useFocusAreaBrush(
   onAdd: (area: FocusArea) => void,
   onRemove: () => void,
   onZoom: (range: DateTimeObject) => void,
-  {widgetIndex, isDisabled = false}: UseFocusAreaBrushOptions
+  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaBrushOptions
 ) {
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
@@ -58,12 +59,9 @@ export function useFocusAreaBrush(
         return;
       }
 
-      const chartWidth = chartRef.current?.getEchartsInstance().getWidth() ?? 100;
-
       onAdd({
         widgetIndex,
-        position: getPosition(brushEnd, chartWidth),
-        range: getMetricRange(brushEnd),
+        range: getMetricRange(brushEnd, useFullYAxis),
       });
 
       // Remove brush from echarts immediately after adding the focus area
@@ -76,7 +74,7 @@ export function useFocusAreaBrush(
       });
       isDrawingRef.current = false;
     },
-    [chartRef, isDisabled, onAdd, widgetIndex]
+    [chartRef, isDisabled, onAdd, widgetIndex, useFullYAxis]
   );
 
   const startBrush = useCallback(() => {
@@ -138,6 +136,8 @@ export function useFocusAreaBrush(
           rect={focusArea}
           onRemove={handleRemove}
           onZoom={handleZoomIn}
+          chartRef={chartRef}
+          useFullYAxis={useFullYAxis}
         />
       ),
       isDrawingRef,
@@ -149,58 +149,112 @@ export function useFocusAreaBrush(
   return {
     overlay: null,
     isDrawingRef,
-
     startBrush,
     options: brushOptions,
   };
 }
 
-function BrushRectOverlay({rect, onZoom, onRemove}) {
-  if (!rect) {
+type BrushRectOverlayProps = {
+  chartRef: RefObject<ReactEchartsRef>;
+  onRemove: () => void;
+  onZoom: () => void;
+  rect: FocusArea | null;
+  useFullYAxis: boolean;
+};
+
+function BrushRectOverlay({
+  rect,
+  onZoom,
+  onRemove,
+  useFullYAxis,
+  chartRef,
+}: BrushRectOverlayProps) {
+  const chartInstance = chartRef.current?.getEchartsInstance();
+  const [position, setPosition] = useState<AbsolutePosition | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useResizeObserver({
+    ref: wrapperRef,
+    onResize: () => {
+      chartInstance?.resize();
+      updatePosition();
+    },
+  });
+
+  const updatePosition = useCallback(() => {
+    if (!rect || !chartInstance) {
+      return;
+    }
+
+    const finder = {xAxisId: 'xAxis', yAxisId: 'yAxis'};
+
+    const topLeft = chartInstance.convertToPixel(finder, [
+      getTimestamp(rect.range.start),
+      rect.range.max,
+    ] as number[]);
+    const bottomRight = chartInstance.convertToPixel(finder, [
+      getTimestamp(rect.range.end),
+      rect.range.min,
+    ] as number[]);
+
+    if (!topLeft || !bottomRight) {
+      return;
+    }
+
+    const widthPx = bottomRight[0] - topLeft[0];
+    const heightPx = bottomRight[1] - topLeft[1];
+
+    const resultTop = useFullYAxis ? '0' : `${topLeft[1].toPrecision(5)}px`;
+    const resultHeight = useFullYAxis
+      ? `${CHART_HEIGHT}px`
+      : `${heightPx.toPrecision(5)}px`;
+
+    setPosition({
+      left: `${topLeft[0].toPrecision(5)}px`,
+      top: resultTop,
+      width: `${widthPx.toPrecision(5)}px`,
+      height: resultHeight,
+    });
+  }, [rect, chartInstance, useFullYAxis]);
+
+  useEffect(() => {
+    updatePosition();
+  }, [rect, updatePosition]);
+
+  if (!position) {
     return null;
   }
 
-  const {top, left, width, height} = rect.position;
+  const {left, top, width, height} = position;
 
   return (
-    <FocusAreaRect top={top} left={left} width={width} height={height}>
-      <FocusAreaRectActions top={height}>
-        <Button
-          size="xs"
-          onClick={onZoom}
-          icon={<IconZoom isZoomIn />}
-          aria-label="zoom"
-        />
-        <Button size="xs" onClick={onRemove} icon={<IconDelete />} aria-label="remove" />
-      </FocusAreaRectActions>
-    </FocusAreaRect>
+    <FocusAreaWrapper ref={wrapperRef}>
+      <FocusAreaRect top={top} left={left} width={width} height={height}>
+        <FocusAreaRectActions top={height}>
+          <Button
+            size="xs"
+            onClick={onZoom}
+            icon={<IconZoom isZoomIn />}
+            aria-label="zoom"
+          />
+          <Button
+            size="xs"
+            onClick={onRemove}
+            icon={<IconDelete />}
+            aria-label="remove"
+          />
+        </FocusAreaRectActions>
+      </FocusAreaRect>
+    </FocusAreaWrapper>
   );
 }
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
-const getPosition = (params: BrushEndResult, chartWidth: number): AbsolutePosition => {
-  const rect = params.areas[0];
+const getTimestamp = date => (date ? moment.utc(date).valueOf() : null);
 
-  const left = rect.range[0][0];
-  const width = rect.range[0][1] - left;
-
-  const leftPercentage = (left / chartWidth) * 100;
-  const widthPercentage = (width / chartWidth) * 100;
-
-  const topPx = Math.min(...rect.range[1]);
-  const heightPx = Math.max(...rect.range[1]) - topPx;
-
-  return {
-    left: `${leftPercentage.toPrecision(3)}%`,
-    top: `${topPx}px`,
-    width: `${widthPercentage.toPrecision(3)}%`,
-    height: `${heightPx}px`,
-  };
-};
-
-const getMetricRange = (params: BrushEndResult): MetricRange => {
+const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRange => {
   const rect = params.areas[0];
 
   const startTimestamp = Math.min(...rect.coordRange[0]);
@@ -209,8 +263,8 @@ const getMetricRange = (params: BrushEndResult): MetricRange => {
   const startDate = getDate(startTimestamp);
   const endDate = getDate(endTimestamp);
 
-  const min = Math.min(...rect.coordRange[1]);
-  const max = Math.max(...rect.coordRange[1]);
+  const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]);
+  const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]);
 
   return {
     start: startDate,
@@ -219,6 +273,16 @@ const getMetricRange = (params: BrushEndResult): MetricRange => {
     max,
   };
 };
+
+const CHART_HEIGHT = 256;
+
+const FocusAreaWrapper = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+`;
 
 const FocusAreaRectActions = styled('div')<{
   top: string;

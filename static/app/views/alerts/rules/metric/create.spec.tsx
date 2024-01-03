@@ -1,6 +1,6 @@
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';

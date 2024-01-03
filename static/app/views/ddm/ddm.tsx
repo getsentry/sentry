@@ -8,6 +8,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DDMContextProvider} from 'sentry/views/ddm/context';
 import {DDMLayout} from 'sentry/views/ddm/layout';
+import {ScratchpadsProvider, useScratchpads} from 'sentry/views/ddm/scratchpadContext';
+
+function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
+  const {selected} = useScratchpads();
+  return (
+    <PageFiltersContainer disablePersistence={!!selected}>
+      {children}
+    </PageFiltersContainer>
+  );
+}
 
 function DDM() {
   const organization = useOrganization();
@@ -22,11 +32,13 @@ function DDM() {
 
   return (
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
-      <PageFiltersContainer disablePersistence>
-        <DDMContextProvider>
-          <DDMLayout />
-        </DDMContextProvider>
-      </PageFiltersContainer>
+      <ScratchpadsProvider>
+        <WrappedPageFiltersContainer>
+          <DDMContextProvider>
+            <DDMLayout />
+          </DDMContextProvider>
+        </WrappedPageFiltersContainer>
+      </ScratchpadsProvider>
     </SentryDocumentTitle>
   );
 }

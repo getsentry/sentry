@@ -463,6 +463,12 @@ export function isAllowedOp(op: string) {
   return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
 }
 
+// Applying these operations to a metric will result in a timeseries whose scale is different than
+// the original metric. Becuase of that min and max bounds can't be used and we display the fog of war
+export function isCumulativeOp(op: string = '') {
+  return ['sum', 'count', 'count_unique'].includes(op);
+}
+
 export function updateQuery(
   router: InjectedRouter,
   queryUpdater:
@@ -502,6 +508,16 @@ export function useUpdateQuery() {
     },
     [routerRef]
   );
+}
+
+export function useClearQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(() => {
+    clearQuery(routerRef.current);
+  }, [routerRef]);
 }
 
 // TODO(ddm): there has to be a nicer way to do this
