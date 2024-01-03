@@ -1,6 +1,7 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import memoize from 'lodash/memoize';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
@@ -336,24 +337,36 @@ export function MetricSearchBar({
     [tags]
   );
 
-  // TODO(ddm): try to use useApiQuery here
-  const getTagValues = useCallback(
-    async tag => {
-      const useCase = getUseCaseFromMRI(mri);
-      const tagsValues = await api.requestPromise(
-        `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
-        {
-          query: {
-            metric: mri,
-            useCase,
-            project: selection.projects,
-          },
-        }
-      );
+  const fetchTagValues = useMemo(() => {
+    const fn = memoize((tagKey: string) => {
+      // clear response from cache after 10 seconds
+      setTimeout(() => {
+        fn.cache.delete(tagKey);
+      }, 10000);
+      return api.requestPromise(`/organizations/${org.slug}/metrics/tags/${tagKey}/`, {
+        query: {
+          metric: mri,
+          useCase: getUseCaseFromMRI(mri),
+          project: selection.projects,
+        },
+      });
+    });
+    return fn;
+  }, [api, mri, org.slug, selection.projects]);
 
-      return tagsValues.filter(tv => tv.value !== '').map(tv => tv.value);
+  const getTagValues = useCallback(
+    async (tag: any, search: string) => {
+      const tagsValues = await fetchTagValues(tag.key);
+
+      return tagsValues
+        .filter(
+          tv =>
+            tv.value !== '' &&
+            tv.value.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+        )
+        .map(tv => tv.value);
     },
-    [api, mri, org.slug, selection.projects]
+    [fetchTagValues]
   );
 
   const handleChange = useCallback(
