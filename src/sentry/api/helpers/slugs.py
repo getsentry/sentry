@@ -5,7 +5,8 @@ from django.core.validators import RegexValidator
 from django.utils.regex_helper import _lazy_re_compile
 from django.utils.text import slugify
 
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE, MIXED_SLUG_PATTERN
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.slug.patterns import MIXED_SLUG_PATTERN
 
 
 def validate_sentry_slug(slug: str) -> None:

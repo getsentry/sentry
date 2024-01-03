@@ -51,7 +51,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             ),
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query, "generic_metrics")
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
@@ -82,7 +82,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             ),
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query, "generic_metrics")
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
@@ -121,7 +121,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "transaction",
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query, "generic_metrics")
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
         assert resolved_metrics_query.query.metric.mri == TransactionMRI.DURATION.value
         assert resolved_metrics_query.query.metric.id == expected_metric_id
@@ -177,7 +177,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "status_code",
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query, "generic_metrics")
         assert (
             resolved_metrics_query.query.parameters[0].metric.public_name == "transaction.duration"
         )
@@ -242,7 +242,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "device",
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query, "generic_metrics")
         assert resolved_metrics_query.query.metric.id == expected_metric_id
         assert resolved_metrics_query.query.filters == [
             Condition(Column(f"tags_raw[{expected_transaction_id}]"), Op.EQ, "/checkout"),
@@ -326,7 +326,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             "status_code",
         )
 
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query, "generic_metrics")
         assert resolved_metrics_query.query.parameters[0].metric.id == expected_metric_id
         assert resolved_metrics_query.query.parameters[0].filters == [
             Condition(Column(f"tags_raw[{expected_transaction_id}]"), Op.EQ, "/checkout"),

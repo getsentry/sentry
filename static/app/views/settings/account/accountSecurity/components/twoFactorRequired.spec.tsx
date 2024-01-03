@@ -1,8 +1,8 @@
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
-import {AccountEmails} from 'sentry-fixture/accountEmails';
-import {Authenticators} from 'sentry-fixture/authenticators';
-import {Organizations} from 'sentry-fixture/organizations';
+import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
+import {OrganizationsFixture} from 'sentry-fixture/organizations';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -21,15 +21,15 @@ describe('TwoFactorRequired', function () {
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [Authenticators().Totp({isEnrolled: false})],
+      body: [AuthenticatorsFixture().Totp({isEnrolled: false})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: Organizations(),
+      body: OrganizationsFixture(),
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: AccountEmails(),
+      body: AccountEmailsFixture(),
     });
   });
 
@@ -76,7 +76,7 @@ describe('TwoFactorRequired', function () {
   it('does not render when 2FA is enrolled and no pendingInvite cookie', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [Authenticators().Totp({isEnrolled: true})],
+      body: [AuthenticatorsFixture().Totp({isEnrolled: true})],
     });
 
     render(
@@ -98,11 +98,11 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [Authenticators().Totp({isEnrolled: true})],
+      body: [AuthenticatorsFixture().Totp({isEnrolled: true})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: Organizations({require2FA: true}),
+      body: OrganizationsFixture({require2FA: true}),
     });
 
     render(
@@ -120,7 +120,7 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: Organizations({require2FA: true}),
+      body: OrganizationsFixture({require2FA: true}),
     });
 
     render(

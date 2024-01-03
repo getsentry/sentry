@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +13,7 @@ jest.mock('sentry/utils/analytics', () => ({
 jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationJoinRequest', function () {
-  const org = Organization({slug: 'test-org'});
+  const org = OrganizationFixture({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(function () {

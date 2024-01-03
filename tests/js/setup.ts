@@ -5,7 +5,7 @@ import {TextDecoder, TextEncoder} from 'util';
 import {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
-import {Config as ConfigFixture} from 'sentry-fixture/config';
+import {ConfigFixture} from 'sentry-fixture/config';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
