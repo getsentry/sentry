@@ -22,6 +22,7 @@ from sentry import ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
+from sentry.monitors.constants import MAX_TIMEOUT
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
@@ -537,15 +538,33 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             # Retrieve existing check-in for update
             try:
                 if use_latest_checkin:
-                    check_in = (
-                        MonitorCheckIn.objects.select_for_update()
-                        .filter(
-                            monitor_environment=monitor_environment,
-                            status=CheckInStatus.IN_PROGRESS,
+                    checkin_window = 30
+                    check_in = None
+
+                    while checkin_window < MAX_TIMEOUT:
+                        window_start = datetime.now()
+                        window_end = window_start - timedelta(minutes=checkin_window)
+                        check_ins = (
+                            MonitorCheckIn.objects.select_for_update()
+                            .filter(
+                                monitor_environment=monitor_environment,
+                                date_added__lte=window_start,
+                                date_added__gt=window_end,
+                            )
+                            .order_by("-date_added")
                         )
-                        .order_by("-date_added")[:1]
-                        .get()
-                    )
+                        for check_in_test in check_ins:
+                            if check_in_test.status == CheckInStatus.IN_PROGRESS:
+                                check_in = check_in_test
+                                break
+
+                        if check_in:
+                            break
+
+                        checkin_window *= 30
+
+                    if not check_in:
+                        raise MonitorCheckIn.DoesNotExist
                 else:
                     check_in = MonitorCheckIn.objects.select_for_update().get(
                         guid=guid,
