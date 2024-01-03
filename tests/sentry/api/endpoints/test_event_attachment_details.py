@@ -1,7 +1,5 @@
-from io import BytesIO
-
+from sentry.attachments.base import CachedAttachment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.response import close_streaming_response
@@ -25,15 +23,25 @@ class CreateAttachmentMixin:
             project_id=self.project.id,
         )
 
-        self.file = File.objects.create(name="hello.png", type="image/png; foo=bar")
-        self.file.putfile(BytesIO(b"File contents here"))
+        attachment = CachedAttachment(
+            name="hello.png", content_type="image/png; foo=bar", data=b"File contents here"
+        )
+        file = EventAttachment.putfile(
+            self.project.id,
+            attachment,
+        )
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
-            file_id=self.file.id,
-            type=self.file.type,
-            name="hello.png",
+            type=attachment.type,
+            name=attachment.name,
+            content_type=file.content_type,
+            size=file.size,
+            sha1=file.sha1,
+            # storage:
+            file_id=file.file_id,
+            blob_path=file.blob_path,
         )
 
         return self.attachment
@@ -59,15 +67,34 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
+        path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
         with self.feature("organizations:event-attachments"):
-            response = self.client.get(path)
+            response = self.client.get(path1)
 
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
-        assert response.get("Content-Length") == str(self.file.size)
-        assert response.get("Content-Type") == "application/octet-stream"
+        assert response.get("Content-Length") == str(self.attachment.size)
+        assert response.get("Content-Type") == "image/png"
+        assert b"File contents here" == close_streaming_response(response)
+
+        with self.options(
+            {
+                "eventattachments.store-blobs.sample-rate": 1,
+            }
+        ):
+            self.create_attachment()
+
+        path2 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
+        assert path1 is not path2
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(path2)
+
+        assert response.status_code == 200, response.content
+        assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+        assert response.get("Content-Length") == str(self.attachment.size)
+        assert response.get("Content-Type") == "image/png"
         assert b"File contents here" == close_streaming_response(response)
 
     def test_delete(self):

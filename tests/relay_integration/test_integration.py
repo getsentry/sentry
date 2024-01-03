@@ -125,6 +125,34 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         attachment = EventAttachment.objects.get(project_id=self.project.id, event_id=event_id)
         assert attachment.group_id == event.group_id
 
+    def test_blob_only_attachment(self):
+        event_id1 = uuid4().hex
+        event_id2 = uuid4().hex
+
+        files = {"some_file": ("hello.txt", BytesIO(b"Hello World! default"))}
+        self.post_and_retrieve_attachment(event_id1, files)
+
+        # Again, but using direct blob storage
+        files = {"some_file": ("hello.txt", BytesIO(b"Hello World! direct"))}
+        with self.options(
+            {
+                "eventattachments.store-blobs.sample-rate": 1,
+            }
+        ):
+            self.post_and_retrieve_attachment(event_id2, files)
+
+        # Finally, fetch the updated attachment and compare the group id
+        attachments = EventAttachment.objects.filter(project_id=self.project.id)
+        assert len(attachments) == 2
+
+        with attachments[0].getfile() as blob:
+            assert blob.read() == b"Hello World! default"
+        assert attachments[0].file_id is not None
+
+        with attachments[1].getfile() as blob:
+            assert blob.read() == b"Hello World! direct"
+        assert attachments[1].blob_path is not None
+
     def test_transaction(self):
         event_data = {
             "event_id": "d2132d31b39445f1938d7e21b6bf0ec4",
