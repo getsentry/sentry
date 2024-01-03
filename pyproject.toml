@@ -390,7 +390,6 @@ module = [
     "sentry.issues.search",
     "sentry.issues.status_change",
     "sentry.mail.adapter",
-    "sentry.mail.notifications",
     "sentry.management.commands.makemigrations",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
