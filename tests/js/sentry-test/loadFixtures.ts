@@ -4,8 +4,6 @@
 import fs from 'fs';
 import path from 'path';
 
-import TestStubFixtures from '../../../fixtures/js-stubs/types';
-
 const FIXTURES_ROOT = path.join(__dirname, '../../../fixtures');
 
 type Options = {
@@ -16,28 +14,17 @@ type Options = {
 };
 
 /**
- * Loads a directory of fixtures. Supports js and json fixtures.
+ * Loads a directory of JSON fixtures.
  */
-export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures {
+export function loadFixtures(dir: string, opts: Options = {}) {
   const from = path.join(FIXTURES_ROOT, dir);
   const files = fs.readdirSync(from);
 
-  // @ts-expect-error, this is a partial definition
-  const fixtures: TestStubFixtures = {};
+  const fixtures = {};
 
   for (const file of files) {
     const filePath = path.join(from, file);
 
-    if (/[jt]sx?$/.test(file)) {
-      const module = require(filePath);
-
-      if (module.default) {
-        throw new Error('Javascript fixtures cannot use default export');
-      }
-
-      fixtures[file] = module;
-      continue;
-    }
     if (/json$/.test(file)) {
       fixtures[file] = JSON.parse(fs.readFileSync(filePath).toString());
       continue;
@@ -47,8 +34,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   }
 
   if (opts.flatten) {
-    // @ts-expect-error, this is a partial definition
-    const flattenedFixtures: TestStubFixtures = {};
+    const flattenedFixtures = {};
 
     for (const moduleKey in fixtures) {
       for (const moduleExport in fixtures[moduleKey]) {
@@ -56,7 +42,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
         // If it does, we want to throw and make sure that we dont silently override the fixtures.
         if (flattenedFixtures?.[moduleKey]?.[moduleExport]) {
           throw new Error(
-            `Flatten will override module ${flattenedFixtures[moduleKey]} with ${fixtures[moduleKey][moduleExport]}`
+            `Flatten will override ${flattenedFixtures[moduleKey]} with ${fixtures[moduleKey][moduleExport]}`
           );
         }
 
@@ -68,84 +54,4 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   }
 
   return fixtures;
-}
-
-const extensions = ['.js', '.ts', '.tsx', '.json'];
-
-// This is a mapping of special cases where fixture name does not map 1:1 to file name.
-// Some fixture files also contain more than one fixture so additional mappings are needed.
-// If you have added new fixtures and you are seeing an error being throw, please add the fixture
-const SPECIAL_MAPPING = {
-  GitHubIntegration: 'githubIntegration',
-  SentryAppComponentAsync: 'sentryAppComponent',
-};
-
-function tryRequire(dir: string, name: string): any {
-  if (SPECIAL_MAPPING[name]) {
-    return require(path.resolve(dir, SPECIAL_MAPPING[name]));
-  }
-  for (const ext of extensions) {
-    try {
-      return require(path.resolve(dir, lowercaseFirst(name) + ext));
-    } catch {
-      // ignore
-    }
-  }
-  throw new Error('Failed to resolve file');
-}
-
-function lowercaseFirst(value: string): string {
-  return value.charAt(0).toLowerCase() + value.slice(1);
-}
-export function makeLazyFixtures<UserProvidedFixtures extends Record<any, any>>(
-  fixturesDirectoryPath: string,
-  userProvidedFixtures: UserProvidedFixtures
-): TestStubFixtures & UserProvidedFixtures {
-  const lazyFixtures = new Proxy(
-    {},
-    {
-      get(target, prop: string) {
-        if (target[prop]) {
-          return target[prop];
-        }
-        if (userProvidedFixtures[prop]) {
-          return userProvidedFixtures[prop];
-        }
-
-        try {
-          const maybeModule = tryRequire(fixturesDirectoryPath, prop);
-          for (const exportKey in maybeModule) {
-            target[exportKey] = maybeModule[exportKey];
-          }
-        } catch (error) {
-          return () => {
-            throw new Error(
-              error +
-                '\n\n' +
-                `Failed to resolve ${prop} fixture.
-              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture.
-              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk.
-              - If you are seeing this only in CI and you have followed the step above, check the exact casing of the file as it is case sensitive.
-
-              `
-            );
-          };
-        }
-
-        if (target[prop] === undefined) {
-          return () => {
-            throw new Error(
-              `Failed to resolve ${prop} fixture.
-              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture.
-              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk.
-              - If you are seeing this only in CI and you have followed the step above, check the exact casing of the file as it is case sensitive.`
-            );
-          };
-        }
-        return target[prop];
-      },
-    }
-  );
-
-  return lazyFixtures as TestStubFixtures & UserProvidedFixtures;
 }
