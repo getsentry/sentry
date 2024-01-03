@@ -18,6 +18,7 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
   files-changed:
@@ -88,7 +89,6 @@ jobs:
 
       - name: webpack
         env:
-          SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |

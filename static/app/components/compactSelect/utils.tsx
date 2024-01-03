@@ -106,7 +106,7 @@ export function getHiddenOptions<Value extends React.Key>(
   // First, filter options using `search` value
   //
   const filterOption = (opt: SelectOption<Value>) =>
-    String(opt.label ?? '')
+    `${opt.label ?? ''}${opt.textValue ?? ''}`
       .toLowerCase()
       .includes(search.toLowerCase());
 

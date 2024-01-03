@@ -29,6 +29,7 @@ export type Project = {
   groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
+  hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
   hasMinifiedStackTrace: boolean;
   hasNewFeedbacks: boolean;

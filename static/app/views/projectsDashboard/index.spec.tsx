@@ -1,6 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {Team} from 'sentry-fixture/team';
 
 import {

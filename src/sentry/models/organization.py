@@ -212,6 +212,9 @@ class Organization(
         # Enable codecov integration.
         codecov_access: bool
 
+        # Disable org-members from creating new projects
+        disable_member_project_creation: bool
+
         bitfield_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))

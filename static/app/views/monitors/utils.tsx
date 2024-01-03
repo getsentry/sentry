@@ -16,6 +16,17 @@ export function makeMonitorListQueryKey(organization: Organization, location: Lo
   ] as const;
 }
 
+export function makeMonitorDetailsQueryKey(
+  organization: Organization,
+  monitorSlug: string,
+  query?: Record<string, any>
+) {
+  return [
+    `/organizations/${organization.slug}/monitors/${monitorSlug}/`,
+    {query},
+  ] as const;
+}
+
 export function crontabAsText(crontabInput: string | null): string | null {
   if (!crontabInput) {
     return null;
@@ -40,27 +51,33 @@ export function scheduleAsText(config: MonitorConfig) {
     return parsedSchedule ?? t('Unknown schedule');
   }
 
-  // Interval format is simpler
-  const [value, timeUnit] = config.schedule;
+  if (config.schedule_type === ScheduleType.INTERVAL) {
+    // Interval format is simpler
+    const [value, timeUnit] = config.schedule;
 
-  if (timeUnit === 'minute') {
-    return tn('Every minute', 'Every %s minutes', value);
-  }
+    if (timeUnit === 'minute') {
+      return tn('Every minute', 'Every %s minutes', value);
+    }
 
-  if (timeUnit === 'hour') {
-    return tn('Every hour', 'Every %s hours', value);
-  }
+    if (timeUnit === 'hour') {
+      return tn('Every hour', 'Every %s hours', value);
+    }
 
-  if (timeUnit === 'day') {
-    return tn('Every day', 'Every %s days', value);
-  }
+    if (timeUnit === 'day') {
+      return tn('Every day', 'Every %s days', value);
+    }
 
-  if (timeUnit === 'week') {
-    return tn('Every week', 'Every %s weeks', value);
-  }
+    if (timeUnit === 'week') {
+      return tn('Every week', 'Every %s weeks', value);
+    }
 
-  if (timeUnit === 'month') {
-    return tn('Every month', 'Every %s months', value);
+    if (timeUnit === 'month') {
+      return tn('Every month', 'Every %s months', value);
+    }
+
+    if (timeUnit === 'year') {
+      return tn('Every year', 'Every %s years', value);
+    }
   }
 
   return t('Unknown schedule');
