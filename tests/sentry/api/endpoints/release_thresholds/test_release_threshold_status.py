@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
-    EnrichedThreshold,
     is_error_count_healthy,
 )
 from sentry.api.serializers import serialize
@@ -12,6 +11,7 @@ from sentry.models.release_threshold.constants import ReleaseThresholdType, Trig
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.releases.servicer import EnrichedThreshold
 from sentry.testutils.cases import APITestCase, TestCase
 
 

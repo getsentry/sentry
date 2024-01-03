@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, Tuple, TypedDict
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from dateutil import parser
-from django.db.models import F, Q
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -19,42 +18,18 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
 )
-from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
+from sentry.releases.servicer import EnrichedThreshold, ReleaseThresholdServicer
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.release_threshold_status")
 
 if TYPE_CHECKING:
-    from sentry.models.deploy import Deploy
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.models.release_threshold.release_threshold import ReleaseThreshold
-    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-
-
-class SerializedThreshold(TypedDict):
-    date: datetime
-    environment: Dict[str, Any] | None
-    project: Dict[str, Any]
-    release: str
-    threshold_type: int
-    trigger_type: str
-    value: int
-    window_in_seconds: int
-
-
-class EnrichedThreshold(SerializedThreshold):
-    end: datetime
-    is_healthy: bool
-    key: str
-    project_slug: str
-    project_id: int
-    start: datetime
-    metric_value: int | None
 
 
 class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
@@ -101,6 +76,10 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.servicer = ReleaseThresholdServicer()
 
     def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
         """
@@ -166,147 +145,19 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         project_slug_list = serializer.validated_data.get("project")
         releases_list = serializer.validated_data.get("release")
 
-        # ========================================================================
-        # Step 2: Fetch releases, prefetch projects & release_thresholds
-        # ========================================================================
-        release_query = Q(organization=organization, date_added__gte=start, date_added__lte=end)
-        if environments_list:
-            release_query &= Q(
-                releaseprojectenvironment__environment__name__in=environments_list,
-            )
-        if project_slug_list:
-            release_query &= Q(
-                projects__slug__in=project_slug_list,
-            )
-        if releases_list:
-            release_query &= Q(
-                version__in=releases_list,
-            )
-
-        queryset = (
-            Release.objects.filter(release_query)
-            .annotate(
-                date=F("date_added"),  # transforms date_added into 'date'
-            )
-            .order_by("-date")
-            .distinct()
+        """
+        Get flattened data for release thresholds
+        """
+        flattened_thresholds = self.servicer.get_thresholds_by_type(
+            organization=organization,
+            start=start,
+            end=end,
+            environments=environments_list,
+            project_slugs=project_slug_list,
+            versions=releases_list,
         )
-        # prefetching the release_thresholds via the projects model
-        queryset.prefetch_related("projects__release_thresholds__environment")
-        queryset.prefetch_related("releaseprojectenvironment_set")
-        queryset.prefetch_related("deploy_set")
-
-        logger.info(
-            "Fetched releases",
-            extra={
-                "results": len(queryset),
-                "project_slugs": project_slug_list,
-                "releases": releases_list,
-                "environments": environments_list,
-            },
-        )
-
-        # ========================================================================
-        # Step 3: flatten thresholds and compile projects/release-thresholds by type
-        # ========================================================================
-        thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict()
-        query_windows_by_type: DefaultDict[int, dict[str, datetime]] = defaultdict()
-        for release in queryset:
-            # TODO:
-            # We should update release model to preserve threshold states.
-            # if release.failed_thresholds/passed_thresholds exists - then skip calculating and just return thresholds
-            project_list = [
-                p
-                for p in release.projects.all()
-                if (project_slug_list and p.slug in project_slug_list) or (not project_slug_list)
-            ]
-
-            for project in project_list:
-                thresholds_list: List[ReleaseThreshold] = [
-                    t
-                    for t in project.release_thresholds.all()
-                    if (
-                        environments_list
-                        and t.environment
-                        and t.environment.name in environments_list
-                    )
-                    or (not environments_list)
-                ]
-
-                for threshold in thresholds_list:
-                    if threshold.threshold_type not in thresholds_by_type:
-                        thresholds_by_type[threshold.threshold_type] = {
-                            "project_ids": [],
-                            "releases": [],
-                            "thresholds": [],
-                        }
-                    thresholds_by_type[threshold.threshold_type]["project_ids"].append(project.id)
-                    thresholds_by_type[threshold.threshold_type]["releases"].append(release.version)
-                    if threshold.threshold_type not in query_windows_by_type:
-                        query_windows_by_type[threshold.threshold_type] = {
-                            "start": datetime.now(tz=timezone.utc),
-                            "end": datetime.now(tz=timezone.utc),
-                        }
-
-                    latest_deploy: Deploy | None = None
-                    if threshold.environment:
-                        # NOTE: if a threshold has no environment set, we monitor from start of the release creation
-                        # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
-                        # ReleaseProjectEnvironment model
-                        rpe_entry: ReleaseProjectEnvironment | None = next(
-                            (
-                                rpe
-                                for rpe in release.releaseprojectenvironment_set.all()
-                                if rpe.environment == threshold.environment
-                                and rpe.project == project
-                            ),
-                            None,
-                        )
-                        if rpe_entry:
-                            last_deploy_id = rpe_entry.last_deploy_id
-                            latest_deploy = next(
-                                (
-                                    deploy
-                                    for deploy in release.deploy_set.all()
-                                    if deploy.id == last_deploy_id
-                                ),
-                                None,
-                            )
-
-                    # NOTE: query window starts at the earliest release up until the latest threshold window
-                    if latest_deploy:
-                        threshold_start = latest_deploy.date_finished
-                    else:
-                        threshold_start = release.date
-
-                    query_windows_by_type[threshold.threshold_type]["start"] = min(
-                        threshold_start, query_windows_by_type[threshold.threshold_type]["start"]
-                    )
-                    query_windows_by_type[threshold.threshold_type]["end"] = max(
-                        threshold_start + timedelta(seconds=threshold.window_in_seconds),
-                        query_windows_by_type[threshold.threshold_type]["end"],
-                    )
-                    # NOTE: enriched threshold is SERIALIZED
-                    # meaning project and environment models are dictionaries
-                    enriched_threshold: EnrichedThreshold = serialize(threshold)
-                    # NOTE: start/end for a threshold are different than start/end for querying data
-                    enriched_threshold.update(
-                        {
-                            "key": self.construct_threshold_key(release=release, project=project),
-                            "start": threshold_start,
-                            "end": threshold_start
-                            + timedelta(
-                                seconds=threshold.window_in_seconds
-                            ),  # start + threshold.window
-                            "release": release.version,
-                            "project_slug": project.slug,
-                            "project_id": project.id,
-                            "is_healthy": False,
-                        }
-                    )
-                    thresholds_by_type[threshold.threshold_type]["thresholds"].append(
-                        enriched_threshold
-                    )
+        thresholds_by_type = flattened_thresholds.thresholds_by_type
+        query_windows_by_type = flattened_thresholds.query_windows_by_type
 
         # ========================================================================
         # Step 4: Determine threshold status per threshold type and return results
