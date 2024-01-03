@@ -1,7 +1,7 @@
 import {Location} from 'history';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +23,7 @@ describe('useReplaysForRegressionIssue', () => {
   };
   jest.mocked(useLocation).mockReturnValue(location);
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['session-replay'],
   });
 

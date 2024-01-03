@@ -1,6 +1,6 @@
 import type {Integration, IntegrationProvider, Plugin, SentryApp} from 'sentry/types';
 
-export function ProviderList(): {providers: IntegrationProvider[]} {
+export function ProviderListFixture(): {providers: IntegrationProvider[]} {
   return {
     providers: [
       {
@@ -35,7 +35,7 @@ export function ProviderList(): {providers: IntegrationProvider[]} {
   };
 }
 
-export function BitbucketIntegrationConfig(): Integration {
+export function BitbucketIntegrationConfigFixture(): Integration {
   return {
     accountType: '',
     gracePeriodEnd: '',
@@ -57,7 +57,7 @@ export function BitbucketIntegrationConfig(): Integration {
   };
 }
 
-export function GitHubIntegrationConfig(): Integration {
+export function GitHubIntegrationConfigFixture(): Integration {
   return {
     accountType: '',
     gracePeriodEnd: '',
@@ -79,7 +79,7 @@ export function GitHubIntegrationConfig(): Integration {
   };
 }
 
-export function OrgOwnedApps(): SentryApp[] {
+export function OrgOwnedAppsFixture(): SentryApp[] {
   return [
     {
       author: 'Sentry',
@@ -160,7 +160,7 @@ export function OrgOwnedApps(): SentryApp[] {
   ];
 }
 
-export function PublishedApps(): SentryApp[] {
+export function PublishedAppsFixture(): SentryApp[] {
   return [
     {
       author: 'Nisanthan',
@@ -192,7 +192,7 @@ export function PublishedApps(): SentryApp[] {
   ];
 }
 
-export function SentryAppInstalls() {
+export function SentryAppInstallsFixture() {
   return [
     {
       app: {
@@ -207,7 +207,7 @@ export function SentryAppInstalls() {
   ];
 }
 
-export function PluginListConfig() {
+export function PluginListConfigFixture() {
   return [
     {
       assets: [],
@@ -296,7 +296,7 @@ export function PluginListConfig() {
   ];
 }
 
-export function WebhookPluginConfig(plugin?: Partial<Plugin>): Plugin {
+export function WebhookPluginConfigFixture(plugin?: Partial<Plugin>): Plugin {
   return {
     id: 'webhooks',
     name: 'WebHooks',

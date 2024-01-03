@@ -1,4 +1,4 @@
-import {User} from 'sentry-fixture/user';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +8,7 @@ import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
 import {JsonFormObject} from './types';
 
-const user = User();
+const user = UserFixture();
 
 describe('JsonForm', function () {
   describe('form prop', function () {

@@ -10,7 +10,6 @@ from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
@@ -29,6 +28,7 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo import SiloMode, unguarded_write
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner

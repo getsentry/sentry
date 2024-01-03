@@ -1,11 +1,11 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 
 describe('Events ActionCreator', function () {
   const api = new MockApiClient();
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const opts = {
     organization,

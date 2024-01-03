@@ -1,6 +1,6 @@
 import type {IssueAlertConfiguration} from 'sentry/types/alerts';
 
-export function ProjectAlertRuleConfiguration(
+export function ProjectAlertRuleConfigurationFixture(
   params: Partial<IssueAlertConfiguration> = {}
 ): IssueAlertConfiguration {
   return {
