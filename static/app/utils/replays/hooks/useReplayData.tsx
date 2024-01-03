@@ -38,7 +38,7 @@ type ReplayRecordProp = {replayRecord: undefined | ReplayRecord};
 interface Result {
   attachments: unknown[];
   errors: ReplayError[];
-  fetchError: null | RequestError;
+  fetchError: undefined | RequestError;
   fetching: boolean;
   onRetry: () => void;
   projectSlug: string | null;
@@ -183,7 +183,7 @@ export default function useReplayData({
     () => ({
       attachments: attachmentPages.flat(2),
       errors: errorPages.concat(extraErrorPages).flatMap(page => page.data),
-      fetchError: error,
+      fetchError: error ?? undefined,
       fetching: isFetchingReplay || isFetchingAttachments || isFetchingErrors,
       onRetry: clearQueryCache,
       projectSlug,
