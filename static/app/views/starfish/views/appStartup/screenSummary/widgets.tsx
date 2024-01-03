@@ -1,11 +1,8 @@
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -20,6 +17,7 @@ import CountWidget from 'sentry/views/starfish/views/appStartup/screenSummary/co
 import DeviceClassBreakdownBarChart from 'sentry/views/starfish/views/appStartup/screenSummary/deviceClassBreakdownBarChart';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {transformDeviceClassEvents} from 'sentry/views/starfish/views/screens/utils';
 
 import AppStartBreakdownWidget from './appStartBreakdownWidget';
 
@@ -60,7 +58,6 @@ function SummaryWidgets({additionalFilters}) {
           'release',
         ],
         yAxis: YAXES.map(val => YAXIS_COLUMNS[val]),
-        topEvents: '2',
         query: queryString,
         dataset: DiscoverDatasets.METRICS,
         version: 2,
@@ -76,52 +73,12 @@ function SummaryWidgets({additionalFilters}) {
     initialData: {data: []},
   });
 
-  const transformedData: {
-    [yAxisName: string]: {
-      [releaseVersion: string]: Series;
-    };
-  } = {};
-
-  YAXES.forEach(val => {
-    transformedData[YAXIS_COLUMNS[val]] = {};
-    if (primaryRelease) {
-      transformedData[YAXIS_COLUMNS[val]][primaryRelease] = {
-        seriesName: primaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
-      };
-    }
-    if (secondaryRelease) {
-      transformedData[YAXIS_COLUMNS[val]][secondaryRelease] = {
-        seriesName: secondaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
-      };
-    }
+  const transformedData: {} = transformDeviceClassEvents({
+    data: startupDataByDeviceClass,
+    yAxes: YAXES,
+    primaryRelease,
+    secondaryRelease,
   });
-
-  const deviceClassIndex = Object.fromEntries(
-    ['high', 'medium', 'low', 'Unknown'].map((e, i) => [e, i])
-  );
-
-  if (defined(startupDataByDeviceClass)) {
-    startupDataByDeviceClass.data?.forEach(row => {
-      const deviceClass = row['device.class'];
-      const index = deviceClassIndex[deviceClass];
-
-      const release = row.release;
-      const isPrimary = release === primaryRelease;
-      YAXES.forEach(val => {
-        if (transformedData[YAXIS_COLUMNS[val]][release]) {
-          transformedData[YAXIS_COLUMNS[val]][release].data[index] = {
-            name: deviceClass,
-            value: row[YAXIS_COLUMNS[val]],
-            itemStyle: {
-              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
-            },
-          } as SeriesDataUnit;
-        }
-      });
-    });
-  }
 
   return (
     <WidgetLayout>
