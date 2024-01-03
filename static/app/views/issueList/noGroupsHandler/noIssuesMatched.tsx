@@ -1,5 +1,3 @@
-
-
 import styled from '@emotion/styled';
 
 import campingImg from 'sentry-images/spot/onboarding-preview.svg';
@@ -57,9 +55,6 @@ function NoIssuesMatched() {
 }
 
 export default NoIssuesMatched;
-
-
-
 
 const Wrapper = styled('div')`
   display: flex;
