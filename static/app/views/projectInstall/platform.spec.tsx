@@ -1,5 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -40,11 +40,11 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
-    body: [ProjectKeys()[0]],
+    body: [ProjectKeysFixture()[0]],
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/keys/${ProjectKeys()[0].public}/`,
+    url: `/projects/org-slug/project-slug/keys/${ProjectKeysFixture()[0].public}/`,
     method: 'PUT',
     body: {},
   });

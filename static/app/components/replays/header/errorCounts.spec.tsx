@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -11,7 +11,7 @@ import useProjects from 'sentry/utils/useProjects';
 jest.mock('sentry/utils/useProjects');
 
 const replayRecord = ReplayRecordFixture();
-const organization = Organization({});
+const organization = OrganizationFixture({});
 
 const baseErrorProps = {id: '1', issue: '', timestamp: new Date().toISOString()};
 

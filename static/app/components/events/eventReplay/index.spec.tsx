@@ -1,7 +1,7 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +24,7 @@ const mockReplay = ReplayReader.factory(
   {
     replayRecord: ReplayRecordFixture({started_at: now}),
     errors: [],
-    attachments: RRWebInitFrameEvents({timestamp: now}),
+    attachments: RRWebInitFrameEventsFixture({timestamp: now}),
   },
   {}
 );
@@ -52,7 +52,7 @@ describe('EventReplay', function () {
     useHasOrganizationSentAnyReplayEvents
   );
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['session-replay'],
   });
 

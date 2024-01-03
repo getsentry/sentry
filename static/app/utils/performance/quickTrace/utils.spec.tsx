@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {Event} from 'sentry/types/event';
 import {TraceFull} from 'sentry/utils/performance/quickTrace/types';
@@ -173,7 +173,7 @@ describe('Quick Trace Utils', function () {
   });
 
   describe('parseQuickTrace', function () {
-    const organization = Organization();
+    const organization = OrganizationFixture();
     it('parses empty trace', function () {
       const current = generateEventSelector({generation: 0, offset: 0}, 'transaction');
       expect(() =>

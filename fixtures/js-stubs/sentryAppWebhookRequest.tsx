@@ -1,6 +1,6 @@
 import {SentryAppWebhookRequest as SentryAppWebhookRequestType} from 'sentry/types';
 
-export function SentryAppWebhookRequest(
+export function SentryAppWebhookRequestFixture(
   params: Partial<SentryAppWebhookRequestType> = {}
 ): SentryAppWebhookRequestType {
   return {

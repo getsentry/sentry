@@ -1,8 +1,8 @@
-import {User} from 'sentry-fixture/user';
+import {UserFixture} from 'sentry-fixture/user';
 
 import type {Member as MemberType} from 'sentry/types';
 
-export function Member(params: Partial<MemberType> = {}): MemberType {
+export function MemberFixture(params: Partial<MemberType> = {}): MemberType {
   return {
     id: '1',
     email: 'sentry1@test.com',
@@ -31,8 +31,11 @@ export function Member(params: Partial<MemberType> = {}): MemberType {
       'sso:invalid': false,
       'partnership:restricted': false,
     },
-    user: User(),
+    user: UserFixture(),
     inviteStatus: 'approved',
     ...params,
   };
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export {MemberFixture as Member};
