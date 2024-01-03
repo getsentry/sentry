@@ -63,7 +63,7 @@ function makeEmailsEndpointKey(): ApiQueryKey {
   return [ENDPOINT];
 }
 
-function EmailAddresses() {
+export function EmailAddresses() {
   const api = useApi();
   const [isUpdating, setIsUpdating] = useState(false);
   const {
