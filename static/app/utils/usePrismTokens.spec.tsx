@@ -98,7 +98,7 @@ describe('usePrismTokens', () => {
         {children: 'p', className: 'token tag'},
         {children: ' ', className: 'token tag'},
         {children: 'class', className: 'token tag attr-name'},
-        {children: '=', className: 'token tag attr-value punctuation'},
+        {children: '=', className: 'token tag attr-value punctuation attr-equals'},
         {children: '"', className: 'token tag attr-value punctuation'},
         {children: 'hey', className: 'token tag attr-value'},
         {children: '"', className: 'token tag attr-value punctuation'},

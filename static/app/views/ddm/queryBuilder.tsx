@@ -1,5 +1,6 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
@@ -27,7 +28,7 @@ import {
   MetricWidgetQueryParams,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
-import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
@@ -81,7 +82,9 @@ export const QueryBuilder = memo(function QueryBuilder({
     }
 
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
-    return meta.filter(metric => isShownByDefault(metric) || isSelected(metric));
+    return meta
+      .filter(metric => isShownByDefault(metric) || isSelected(metric))
+      .sort(metric => (isSelected(metric) ? -1 : 1));
   }, [meta, metricsQuery.mri, mriMode]);
 
   const selectedMeta = useMemo(() => {
@@ -100,6 +103,8 @@ export const QueryBuilder = memo(function QueryBuilder({
   }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
   const stringifiedMetricWidget = stringifyMetricWidget(metricsQuery);
+
+  const readableType = getReadableMetricType(parseMRI(metricsQuery.mri)?.type);
 
   if (!isEdit) {
     return (
@@ -121,6 +126,8 @@ export const QueryBuilder = memo(function QueryBuilder({
             triggerProps={{prefix: t('Metric'), size: 'sm'}}
             options={displayedMetrics.map(metric => ({
               label: mriMode ? metric.mri : formatMRI(metric.mri),
+              // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+              textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
               value: metric.mri,
               trailingItems: mriMode
                 ? undefined
@@ -162,6 +169,15 @@ export const QueryBuilder = memo(function QueryBuilder({
               const selectedOp = availableOps.includes(metricsQuery.op ?? '')
                 ? metricsQuery.op
                 : availableOps?.[0];
+              Sentry.metrics.increment('ddm.widget.metric', 1, {
+                tags: {
+                  display: displayType ?? defaultMetricDisplayType,
+                  type: readableType,
+                  operation: selectedOp,
+                  isGrouped: !!metricsQuery.groupBy?.length,
+                  isFiltered: !!metricsQuery.query,
+                },
+              });
               onChange({
                 mri: option.value,
                 op: selectedOp,
@@ -181,11 +197,20 @@ export const QueryBuilder = memo(function QueryBuilder({
             }
             disabled={!metricsQuery.mri}
             value={metricsQuery.op}
-            onChange={option =>
+            onChange={option => {
+              Sentry.metrics.increment('ddm.widget.operation', 1, {
+                tags: {
+                  display: displayType ?? defaultMetricDisplayType,
+                  type: readableType,
+                  operation: option.value,
+                  isGrouped: !!metricsQuery.groupBy?.length,
+                  isFiltered: !!metricsQuery.query,
+                },
+              });
               onChange({
                 op: option.value,
-              })
-            }
+              });
+            }}
           />
           <CompactSelect
             multiple
@@ -202,12 +227,21 @@ export const QueryBuilder = memo(function QueryBuilder({
             }))}
             disabled={!metricsQuery.mri}
             value={metricsQuery.groupBy}
-            onChange={options =>
+            onChange={options => {
+              Sentry.metrics.increment('ddm.widget.group', 1, {
+                tags: {
+                  display: displayType ?? defaultMetricDisplayType,
+                  type: readableType,
+                  operation: metricsQuery.op,
+                  isGrouped: !!metricsQuery.groupBy?.length,
+                  isFiltered: !!metricsQuery.query,
+                },
+              });
               onChange({
                 groupBy: options.map(o => o.value),
                 focusedSeries: undefined,
-              })
-            }
+              });
+            }}
           />
           <CompactSelect
             triggerProps={{prefix: t('Display'), size: 'sm'}}
@@ -227,6 +261,15 @@ export const QueryBuilder = memo(function QueryBuilder({
               },
             ]}
             onChange={({value}) => {
+              Sentry.metrics.increment('ddm.widget.display', 1, {
+                tags: {
+                  display: value,
+                  type: readableType,
+                  operation: metricsQuery.op,
+                  isGrouped: !!metricsQuery.groupBy?.length,
+                  isFiltered: !!metricsQuery.query,
+                },
+              });
               onChange({displayType: value});
             }}
           />
@@ -239,7 +282,18 @@ export const QueryBuilder = memo(function QueryBuilder({
           projectIds={projects.map(id => id.toString())}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
-          onChange={query => onChange({query})}
+          onChange={query => {
+            Sentry.metrics.increment('ddm.widget.filter', 1, {
+              tags: {
+                display: displayType ?? defaultMetricDisplayType,
+                type: readableType,
+                operation: metricsQuery.op,
+                isGrouped: !!metricsQuery.groupBy?.length,
+                isFiltered: !!query,
+              },
+            });
+            onChange({query});
+          }}
           query={metricsQuery.query}
         />
       </QueryBuilderRow>

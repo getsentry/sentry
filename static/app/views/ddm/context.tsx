@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import * as Sentry from '@sentry/react';
 
 import {MRI} from 'sentry/types';
 import {
@@ -27,6 +28,7 @@ import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
 interface DDMContextValue {
   addFocusArea: (area: FocusArea) => void;
   addWidget: () => void;
+  addWidgets: (widgets: Partial<MetricWidgetQueryParams>[]) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusArea | null;
   hasCustomMetrics: boolean;
@@ -44,6 +46,7 @@ export const DDMContext = createContext<DDMContextValue>({
   selectedWidgetIndex: 0,
   setSelectedWidgetIndex: () => {},
   addWidget: () => {},
+  addWidgets: () => {},
   updateWidget: () => {},
   removeWidget: () => {},
   addFocusArea: () => {},
@@ -128,6 +131,16 @@ export function useMetricWidgets() {
     setWidgets(currentWidgets => [...currentWidgets, emptyWidget]);
   }, [setWidgets]);
 
+  const addWidgets = useCallback(
+    (newWidgets: Partial<MetricWidgetQueryParams>[]) => {
+      const widgetsCopy = [...widgets].filter(widget => !!widget.mri);
+      widgetsCopy.push(...newWidgets.map(widget => ({...emptyWidget, ...widget})));
+
+      setWidgets(widgetsCopy);
+    },
+    [widgets, setWidgets]
+  );
+
   const removeWidget = useCallback(
     (index: number) => {
       setWidgets(currentWidgets => {
@@ -154,6 +167,7 @@ export function useMetricWidgets() {
     widgets,
     updateWidget,
     addWidget,
+    addWidgets,
     removeWidget,
     duplicateWidget,
   };
@@ -164,10 +178,9 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const updateQuery = useUpdateQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
-
-  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
+  const {widgets, updateWidget, addWidget, addWidgets, removeWidget, duplicateWidget} =
     useMetricWidgets();
+  const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
   const pageFilters = usePageFilters().selection;
 
@@ -185,6 +198,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
+      Sentry.metrics.increment('ddm.enhance.add');
       setFocusArea(area);
       setSelectedWidgetIndex(area.widgetIndex);
       updateQuery({focusArea: JSON.stringify(area)});
@@ -193,6 +207,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   );
 
   const handleRemoveFocusArea = useCallback(() => {
+    Sentry.metrics.increment('ddm.enhance.remove');
     setFocusArea(null);
     updateQuery({focusArea: null});
   }, [updateQuery]);
@@ -235,6 +250,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
+      addWidgets,
       selectedWidgetIndex:
         selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
       setSelectedWidgetIndex,
@@ -250,6 +266,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeFocusArea: handleRemoveFocusArea,
     }),
     [
+      addWidgets,
       handleAddWidget,
       handleDuplicate,
       handleUpdateWidget,

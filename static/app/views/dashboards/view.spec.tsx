@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';

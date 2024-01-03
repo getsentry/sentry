@@ -1,3 +1,4 @@
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
 import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
@@ -44,7 +45,9 @@ describe('GroupReleaseStats', function () {
   });
 
   it('renders specific environments', function () {
-    createWrapper({environments: TestStubs.Environments()});
+    createWrapper({
+      environments: EnvironmentsFixture().map(environment => environment.displayName),
+    });
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();

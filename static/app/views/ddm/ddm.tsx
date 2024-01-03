@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -25,6 +26,7 @@ function DDM() {
     trackAnalytics('ddm.page-view', {
       organization,
     });
+    Sentry.metrics.increment('ddm.visit');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
