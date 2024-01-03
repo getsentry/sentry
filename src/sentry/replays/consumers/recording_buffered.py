@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Mapping, TypedDict
+from typing import Mapping, Optional, TypedDict
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -70,36 +70,49 @@ class RecordingBufferStrategy(ProcessingStrategy[KafkaPayload]):
         self.__buffer = buffer
         self.__next_step = next_step
         self.__closed = False
-
-    def poll(self) -> None:
-        assert not self.__closed
-
-        if self.__buffer.ready_to_commit:
-            self.__buffer.commit()
-            self.__next_step.poll()
+        self.__last_message: Optional[Message[KafkaPayload]] = None
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
         process_message(self.__buffer, message)
+        self.__last_message = message
 
         if self.__buffer.ready_to_commit:
             self.__buffer.commit()
             self.__next_step.submit(message)
+
+    def poll(self) -> None:
+        assert not self.__closed
+
+        # There's never a reason to poll the next_step. We either commit when the batch
+        # is ready or we force a commit prior to shutdown.
+        self.__flush(force=False)
 
     def close(self) -> None:
         self.__closed = True
 
     def terminate(self) -> None:
         self.__closed = True
+        self.__buffer.reset()
         self.__next_step.terminate()
 
     def join(self, timeout: float | None = None) -> None:
         deadline = time.time() + timeout if timeout is not None else None
-        self.__buffer.commit()
+
+        # Flush doesn't guarantee a commit of the Kafka offsets.
+        self.__flush(force=True)
+
+        # This guarantees the Kafka offsets we are committed.
         self.__next_step.close()
         self.__next_step.join(
             timeout=max(deadline - time.time(), 0) if deadline is not None else None
         )
+
+    def __flush(self, force: bool) -> None:
+        if force or self.__buffer.ready_to_commit:
+            self.__buffer.commit()
+            if self.__last_message is not None:
+                self.__next_step.submit(self.__last_message)
 
 
 # Buffer definition.
@@ -135,7 +148,7 @@ class RecordingBuffer:
         self.max_buffer_row_count = max_buffer_row_count
         self.max_buffer_size_in_bytes = max_buffer_size_in_bytes
         self.max_buffer_time_in_seconds = max_buffer_time_in_seconds
-        self._initialize_new_buffer()
+        self.reset()
 
     @property
     def ready_to_commit(self) -> bool:
@@ -156,9 +169,9 @@ class RecordingBuffer:
             commit_replay_actions(self.replay_action_events)
 
         # Reset the buffer after each call to commit.
-        self._initialize_new_buffer()
+        self.reset()
 
-    def _initialize_new_buffer(self) -> None:
+    def reset(self) -> None:
         self.upload_events = []
         self.initial_segment_events = []
         self.replay_action_events = []
