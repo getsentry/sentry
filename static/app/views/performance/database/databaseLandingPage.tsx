@@ -66,6 +66,7 @@ export function DatabaseLandingPage() {
 
   const chartFilters = {
     'span.module': ModuleName.DB,
+    has: 'span.description',
   };
 
   const tableFilters = {
