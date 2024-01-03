@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Generator, List, Optional
 
 from django.db.models import F, Q, QuerySet
 
+from sentry.models.deploy import Deploy
 from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
@@ -29,6 +31,45 @@ class ReleaseThresholds:
     release: Release
     project: Project
     thresholds: List[ReleaseThreshold]
+
+    def get_latest_deploy_id_by_threshold(self, index: int) -> Optional[Deploy]:
+        if index >= len(self.thresholds):
+            return None
+
+        threshold = self.thresholds[index]
+        if not threshold.environment:
+            return None
+
+        # NOTE: if a threshold has no environment set, we monitor from start of the release creation
+        # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
+        # ReleaseProjectEnvironment model
+        rpe_entry: ReleaseProjectEnvironment | None = next(
+            (
+                rpe
+                for rpe in self.release.releaseprojectenvironment_set.all()
+                if rpe.environment == threshold.environment and rpe.project == self.project
+            ),
+            None,
+        )
+        if not rpe_entry:
+            return None
+
+        last_deploy_id = rpe_entry.last_deploy_id
+        latest_deploy = next(
+            (deploy for deploy in self.release.deploy_set.all() if deploy.id == last_deploy_id),
+            None,
+        )
+
+        return latest_deploy
+
+    def get_threshold_key(self) -> str:
+        """
+        Consistent key helps to determine which thresholds can be grouped together.
+        project_slug - release_version
+
+        NOTE: release versions can contain special characters... `-` delimiter may not be appropriate
+        """
+        return f"{self.project.slug}-{self.release.version}"
 
 
 class ReleaseThresholdsRepository:

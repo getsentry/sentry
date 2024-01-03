@@ -19,7 +19,6 @@ from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
 )
 from sentry.api.utils import get_date_range_from_params
-from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.releases.servicer import EnrichedThreshold, ReleaseThresholdServicer
 from sentry.services.hybrid_cloud.organization import RpcOrganization
@@ -29,7 +28,6 @@ logger = logging.getLogger("sentry.release_threshold_status")
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.project import Project
 
 
 class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
@@ -243,16 +241,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     )  # so we can fill all thresholds under the same key
 
         return Response(release_threshold_health, status=200)
-
-    def construct_threshold_key(self, project: Project, release: Release) -> str:
-        """
-        Consistent key helps to determine which thresholds can be grouped together.
-        project_slug - release_version
-
-        NOTE: release versions can contain special characters... `-` delimiter may not be appropriate
-        TODO: move this into a separate helper?
-        """
-        return f"{project.slug}-{release.version}"
 
 
 def is_error_count_healthy(

@@ -12,10 +12,6 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 if TYPE_CHECKING:
     from sentry.models.deploy import Deploy
     from sentry.models.organization import Organization
-    from sentry.models.project import Project
-    from sentry.models.release import Release
-    from sentry.models.release_threshold.release_threshold import ReleaseThreshold
-    from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
 class SerializedThreshold(TypedDict):
@@ -50,35 +46,6 @@ class ReleaseThresholdServicer:
     def __init__(self, repository: Optional[ReleaseThresholdsRepository] = None) -> None:
         self.repository = repository if repository else ReleaseThresholdsRepository()
 
-    @classmethod
-    def _get_latest_deploy_for_release_threshold(
-        cls, threshold: ReleaseThreshold, release: Release, project: Project
-    ) -> Optional[Deploy]:
-        if not threshold.environment:
-            return None
-
-        # NOTE: if a threshold has no environment set, we monitor from start of the release creation
-        # If a deploy does not exist for the thresholds environment, we monitor from start of release creation
-        # ReleaseProjectEnvironment model
-        rpe_entry: ReleaseProjectEnvironment | None = next(
-            (
-                rpe
-                for rpe in release.releaseprojectenvironment_set.all()
-                if rpe.environment == threshold.environment and rpe.project == project
-            ),
-            None,
-        )
-        if not rpe_entry:
-            return None
-
-        last_deploy_id = rpe_entry.last_deploy_id
-        latest_deploy = next(
-            (deploy for deploy in release.deploy_set.all() if deploy.id == last_deploy_id),
-            None,
-        )
-
-        return latest_deploy
-
     def get_thresholds_by_type(
         self,
         organization: Organization | RpcOrganization,
@@ -102,7 +69,7 @@ class ReleaseThresholdServicer:
         ):
             project = release_thresholds.project
             release = release_thresholds.release
-            for threshold in release_thresholds.thresholds:
+            for i, threshold in enumerate(release_thresholds.thresholds):
                 if threshold.threshold_type not in thresholds_by_type:
                     thresholds_by_type[threshold.threshold_type] = {
                         "project_ids": [],
@@ -117,8 +84,8 @@ class ReleaseThresholdServicer:
                         "end": datetime.now(tz=timezone.utc),
                     }
 
-                latest_deploy: Deploy | None = self._get_latest_deploy_for_release_threshold(
-                    threshold=threshold, project=project, release=release
+                latest_deploy: Deploy | None = release_thresholds.get_latest_deploy_id_by_threshold(
+                    index=i
                 )
                 # NOTE: query window starts at the earliest release up until the latest threshold window
                 if latest_deploy:
@@ -139,7 +106,7 @@ class ReleaseThresholdServicer:
                 # NOTE: start/end for a threshold are different from start/end for querying data
                 enriched_threshold.update(
                     {
-                        "key": self.construct_threshold_key(release=release, project=project),
+                        "key": release_thresholds.get_threshold_key(),
                         "start": threshold_start,
                         "end": threshold_start
                         + timedelta(
