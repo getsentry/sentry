@@ -181,6 +181,8 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         # using it.
         if metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
             request.dataset = Dataset.Metrics.value
+        else:
+            request.dataset = Dataset.PerformanceMetrics.value
     except Exception as e:
         metrics.incr(
             "metrics_layer.query",
