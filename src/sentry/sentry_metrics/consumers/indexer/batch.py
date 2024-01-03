@@ -137,6 +137,7 @@ class IndexerBatch:
             # of the invalid message. The message will just be dropped.
             except Exception as e:
                 if isinstance(e, ValidationError):
+                    self.filtered_msg_meta.add(broker_meta)
                     continue
                 self.invalid_msg_meta.add(broker_meta)
                 logger.exception(
