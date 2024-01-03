@@ -31,9 +31,7 @@ def handle_merge(
     Returns a dict with the primary group id and a list of the merged group ids.
     """
     if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
-        raise rest_framework.exceptions.ValidationError(
-            detail="Only error issues can be merged.", code=400
-        )
+        raise rest_framework.exceptions.ValidationError(detail="Only error issues can be merged.")
 
     group_list_by_times_seen = sorted(group_list, key=lambda g: (g.times_seen, g.id), reverse=True)
     primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
