@@ -62,17 +62,17 @@ GroupKey = Tuple[Tuple[str, str], ...]
 
 @dataclass(frozen=True)
 class ExecutableQuery:
-    query: MetricsQuery
+    metrics_query: MetricsQuery
     # TODO: check if we really have to keep this.
     group_bys: Optional[Sequence[str]]
     with_series: bool
     with_totals: bool
 
-    def build_result(self, result: Mapping[str, Any]) -> "ExecutionResult":
-        return ExecutionResult(query=self, result=result)
+    def build_result(self, result: Mapping[str, Any]) -> "QueryResult":
+        return QueryResult(executable_query=self, result=result)
 
     def set_interval(self, new_interval) -> "ExecutableQuery":
-        return replace(self, query=self.query.set_rollup(Rollup(new_interval)))
+        return replace(self, metrics_query=self.metrics_query.set_rollup(Rollup(new_interval)))
 
 
 @dataclass
@@ -119,15 +119,15 @@ class QueryMeta:
 
 
 @dataclass(frozen=True)
-class ExecutionResult:
+class QueryResult:
     # This is the timeseries query that is being passed to the metrics layer, thus it doesn't contain any
     # mutations that the layer might do.
-    query: "ExecutableQuery"
+    executable_query: ExecutableQuery
     result: Mapping[str, Any]
 
     @property
     def query_name(self) -> str:
-        timeseries = self.query.query.query
+        timeseries = self.executable_query.metrics_query.query
 
         aggregate = timeseries.aggregate
         metric = timeseries.metric.mri or timeseries.metric.public_name
@@ -144,13 +144,13 @@ class ExecutionResult:
 
     @property
     def interval(self) -> int:
-        return self.query.query.rollup.interval
+        return self.executable_query.metrics_query.rollup.interval
 
     @property
     def group_bys(self) -> Sequence[str]:
         # TODO: we might need to rework this assuming we have formulas.
         group_bys = []
-        for group_by in self.query.query.query.groupby or ():
+        for group_by in self.executable_query.metrics_query.query.groupby or ():
             if isinstance(group_by, Column):
                 group_bys.append(group_by.name)
             elif isinstance(group_by, AliasedExpression):
@@ -168,8 +168,10 @@ class ExecutionResult:
 
     @property
     def meta(self) -> Sequence[Mapping[str, str]]:
-        # We assume that we always have totals.
-        return self.result["totals"]["meta"]
+        # By default, we extract the metadata from the totals query, if that is not there we extract from the series
+        # query.
+        meta_source = "totals" if "totals" in self.result else "series"
+        return self.result[meta_source]["meta"]
 
     @property
     def groups(self) -> Sequence[Sequence[Tuple[str, str]]]:
@@ -348,9 +350,9 @@ class QueryExecutor:
             tenant_ids={"referrer": self._referrer, "organization_id": self._organization.id},
         )
 
-    def _execute(self, executable_query: ExecutableQuery) -> ExecutionResult:
+    def _execute(self, executable_query: ExecutableQuery) -> QueryResult:
         try:
-            query = executable_query.query
+            query = executable_query.metrics_query
 
             series_result = None
             if executable_query.with_series:
@@ -364,7 +366,7 @@ class QueryExecutor:
                     modified_start = series_result["modified_start"]
                     modified_end = series_result["modified_end"]
                     query = (
-                        executable_query.query.set_start(modified_start)
+                        executable_query.metrics_query.set_start(modified_start)
                         .set_end(modified_end)
                         .set_rollup(Rollup(totals=True))
                     )
@@ -401,7 +403,7 @@ class QueryExecutor:
 
     def schedule(self, query: MetricsQuery, group_bys: Optional[Sequence[str]]):
         executable_query = ExecutableQuery(
-            query=query,
+            metrics_query=query,
             group_bys=group_bys,
             # For now, we execute both queries independently of the query.
             with_series=True,
@@ -409,39 +411,31 @@ class QueryExecutor:
         )
         self._scheduled_queries.append(executable_query)
 
-    def _derive_optimal_interval(self, result: ExecutionResult) -> int:
-        # First we determine as best effort how many groups were returned, just to estimate the cardinality. Keep in
-        # mind that this is an estimation, since it could be that the user has more than 10k groups which is highly
-        # unlikely but can happen. If that happens though, we might need to rethink snuba limits.
+    def _derive_next_interval(self, result: QueryResult) -> int:
+        # We try to estimate the number of groups.
         groups_number = len(result.groups)
 
-        # Second we compute the ideal number of intervals that can fit with a given number of groups. We round down
-        # since we want to work with integers.
+        # We compute the ideal number of intervals that can fit with a given number of groups.
         intervals_number = math.floor(SNUBA_QUERY_LIMIT / groups_number)
 
-        # Third we compute the size of each interval in seconds, considering how many intervals we want in the time
-        # range of the query.
+        # We compute the optimal size of each interval in seconds.
         optimal_interval_size = math.floor(
             (result.modified_end - result.modified_start).total_seconds() / intervals_number
         )
 
-        # We want to get the biggest interval that is >= the optimal one. The idea for this heuristic is that we want
-        # to find the smallest interval possible that will give us fewer results than the maximum but since we don't
-        # want to use the mathematically optimal one, we try to find the closest given a set of choices. This is more
-        # of a product decision, since we want our customers to see the graphs with easily readable intervals.
+        # Get the smallest interval that is larger than optimal out of a set of defined intervals in the product.
         for index, interval in enumerate(self._interval_choices):
             if interval >= optimal_interval_size:
                 # We have to put the choice, otherwise we end up in an infinite recursion.
                 self._interval_choices.pop(index)
                 return interval
 
-        # If no suitable interval is found, we throw an error to unwind.
         raise MetricsQueryExecutionError(
             "Unable to find an interval to satisfy the query because too many results "
             "are returned."
         )
 
-    def _serial_execute(self) -> Sequence[ExecutionResult]:
+    def _serial_execute(self) -> Sequence[QueryResult]:
         if not self._scheduled_queries:
             return []
 
@@ -457,20 +451,19 @@ class QueryExecutor:
 
             return results
 
-        # Case 2: we have more results than the limit. In this case we want to determine a new optimal interval that
+        # Case 2: we have more results than the limit. In this case we want to determine a new interval that
         # will result in less than limit data points.
-        optimal_interval = self._derive_optimal_interval(first_result)
+        new_interval = self._derive_next_interval(first_result)
 
         # We update the scheduled queries to use the new interval. It's important to note that we also add back the
         # first query, since we need to execute it again.
         self._scheduled_queries = [
-            query.set_interval(optimal_interval)
-            for query in [first_query] + self._scheduled_queries
+            query.set_interval(new_interval) for query in [first_query] + self._scheduled_queries
         ]
 
         return self._serial_execute()
 
-    def execute(self) -> Sequence[ExecutionResult]:
+    def execute(self) -> Sequence[QueryResult]:
         return self._serial_execute()
 
 
@@ -551,7 +544,7 @@ def _is_nan(value: ResultValue) -> bool:
     return math.isnan(value)
 
 
-def _translate_query_results(execution_results: List[ExecutionResult]) -> Mapping[str, Any]:
+def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[str, Any]:
     """
     Converts the default format from the metrics layer format into the old format which is understood by the frontend.
     """
