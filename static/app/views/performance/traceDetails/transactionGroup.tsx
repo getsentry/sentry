@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
@@ -36,7 +37,7 @@ type Props = ScrollbarManagerChildrenProps & {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
-  onRowClick?: (detailKey: EventDetail | undefined) => void;
+  onRowClick?: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   onlyOrphanErrors?: boolean;
 };
 
