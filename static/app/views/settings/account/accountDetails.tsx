@@ -37,11 +37,8 @@ export type ChangeAvatarUser = Omit<
     >
   >;
 
-const ENDPOINT = '/users/me/';
-
-function makeUserEndpointQueryKey(): ApiQueryKey {
-  return [ENDPOINT];
-}
+const USER_ENDPOINT = '/users/me/';
+const USER_ENDPOINT_QUERY_KEY: ApiQueryKey = [USER_ENDPOINT];
 
 function AccountDetails() {
   const organization = useOrganization();
@@ -51,7 +48,7 @@ function AccountDetails() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<User>(makeUserEndpointQueryKey(), {staleTime: 0});
+  } = useApiQuery<User>(USER_ENDPOINT_QUERY_KEY, {staleTime: 0});
 
   if (isLoading) {
     return (
@@ -72,11 +69,11 @@ function AccountDetails() {
     updateUser(userData);
     // We need to update the state, because AvatarChooser is using it,
     // otherwise it will flick
-    setApiQueryData(queryClient, makeUserEndpointQueryKey(), userData);
+    setApiQueryData(queryClient, USER_ENDPOINT_QUERY_KEY, userData);
   };
 
   const formCommonProps: Partial<FormProps> = {
-    apiEndpoint: ENDPOINT,
+    apiEndpoint: USER_ENDPOINT,
     apiMethod: 'PUT',
     allowUndo: true,
     saveOnBlur: true,
