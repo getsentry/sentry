@@ -135,9 +135,9 @@ class IndexerBatch:
             # Temporary fix for influx of invalid messages with bad schema
             # Catch this scenario early and skip any further processing or DLQing
             # of the invalid message. The message will just be dropped.
-            except ValidationError:
-                continue
             except Exception as e:
+                if isinstance(e, ValidationError):
+                    continue
                 self.invalid_msg_meta.add(broker_meta)
                 logger.exception(
                     str(e),
