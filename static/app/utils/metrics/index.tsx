@@ -139,7 +139,18 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
-  metricSpans?: any[];
+  metricSpans?: MetricSpan[];
+};
+
+export type MetricSpan = {
+  duration: number;
+  profileId: string;
+  projectId: number;
+  spanId: string;
+  traceId: string;
+  transactionId: string;
+  // Not there yet but we will add it
+  replayId?: string;
 };
 
 export type MetricRange = {
