@@ -71,7 +71,7 @@ def serialize(data, projects):
 
 @region_silo_endpoint
 class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.WEB_BACKEND_SDKS
+    owner = ApiOwner.PERFORMANCE
 
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
