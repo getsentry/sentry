@@ -299,7 +299,7 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
-const replayBackendPlatforms: readonly PlatformKey[] = [
+export const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
