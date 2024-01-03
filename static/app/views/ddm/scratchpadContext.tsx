@@ -34,6 +34,16 @@ function makeLocalStorageKey(orgSlug: string) {
 
 const EMPTY_QUERY = {};
 
+const mapProjectQueryParam = (project: any) => {
+  if (typeof project === 'string') {
+    return [Number(project)];
+  }
+  if (Array.isArray(project)) {
+    return project.map(Number);
+  }
+  return [-1];
+};
+
 function useScratchpadUrlSync() {
   const {slug} = useOrganization();
   const router = useRouter();
@@ -66,12 +76,7 @@ function useScratchpadUrlSync() {
   // The scratchpad is "loading" while the project selection state is different from the saved state
   const isLoading =
     !!selected &&
-    !isEqual(
-      Array.isArray(savedProjects)
-        ? savedProjects?.map?.(Number)
-        : [Number(savedProjects)],
-      projects
-    );
+    !isEqual(mapProjectQueryParam(savedProjects), projects.length > 0 ? projects : [-1]);
 
   const toggleSelected = useCallback(
     (id: string | null) => {
@@ -113,7 +118,10 @@ function useScratchpadUrlSync() {
     (id: string, query: Scratchpad['query']) => {
       const currentState = stateRef.current;
       const oldScratchpad = currentState.scratchpads[id];
-      const newQuery = {...query};
+      const newQuery = {
+        ...query,
+        project: query.project || '-1',
+      };
       const newScratchpads = {
         ...currentState.scratchpads,
         [id]: {...oldScratchpad, query: newQuery},
