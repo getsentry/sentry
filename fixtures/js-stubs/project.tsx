@@ -1,10 +1,10 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import type {Project as TProject} from 'sentry/types';
 
-export function Project(params: Partial<TProject> = {}): TProject {
-  const team = Team();
+export function ProjectFixture(params: Partial<TProject> = {}): TProject {
+  const team = TeamFixture();
   return {
     id: '2',
     slug: 'project-slug',
@@ -37,7 +37,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     hasReplays: false,
     hasSessions: false,
     isInternal: false,
-    organization: Organization(),
+    organization: OrganizationFixture(),
     plugins: [],
     processingIssues: 0,
     relayPiiConfig: '',
@@ -51,3 +51,7 @@ export function Project(params: Partial<TProject> = {}): TProject {
     ...params,
   };
 }
+
+// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
+export default ProjectFixture;
+export {ProjectFixture as Project};

@@ -1,6 +1,6 @@
 import {type Event as TEvent, EventOrGroupType, EventTransaction} from 'sentry/types';
 
-export function Event(params = {}): TEvent {
+export function EventFixture(params = {}): TEvent {
   return {
     id: '1',
     message: 'ApiException',
@@ -29,7 +29,7 @@ export function Event(params = {}): TEvent {
   };
 }
 
-export function TransactionEvent(
+export function TransactionEventFixture(
   params: Partial<EventTransaction> = {}
 ): EventTransaction {
   return {

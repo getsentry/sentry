@@ -1,6 +1,6 @@
 import type {BuiltinSymbolSource as BuiltinSymbolSourceType} from 'sentry/types';
 
-export function BuiltInSymbolSources(
+export function BuiltInSymbolSourcesFixture(
   params: BuiltinSymbolSourceType[] = []
 ): BuiltinSymbolSourceType[] {
   return [

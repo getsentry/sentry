@@ -12,7 +12,7 @@ interface RepositoryProjectPathConfigArgs
   repo: Pick<Repository, 'id' | 'name'>;
 }
 
-export function RepositoryProjectPathConfig(
+export function RepositoryProjectPathConfigFixture(
   params: RepositoryProjectPathConfigArgs
 ): RepositoryProjectPathConfigType {
   const {project, repo, integration, ...rest} = params;
