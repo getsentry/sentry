@@ -8,13 +8,9 @@ from sentry.api.endpoints.internal.feature_flags import InternalFeatureFlagsEndp
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
-from sentry.api.endpoints.organization_events_facets_stats_performance import (
-    OrganizationEventsFacetsStatsPerformanceEndpoint,
-)
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
-from sentry.api.endpoints.organization_events_starfish import OrganizationEventsStarfishEndpoint
 from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
@@ -61,7 +57,6 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
-from sentry.feedback.endpoints.feedback_ingest import FeedbackIngestEndpoint
 from sentry.feedback.endpoints.organization_feedback_index import OrganizationFeedbackIndexEndpoint
 from sentry.feedback.endpoints.project_feedback_details import ProjectFeedbackDetailsEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
@@ -114,6 +109,9 @@ from sentry.monitors.endpoints.organization_monitor_checkin_index import (
 )
 from sentry.monitors.endpoints.organization_monitor_details import (
     OrganizationMonitorDetailsEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_environment_details import (
+    OrganizationMonitorEnvironmentDetailsEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_index import OrganizationMonitorIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_index_stats import (
@@ -1290,16 +1288,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-facets",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-facets-stats/$",
-        OrganizationEventsFacetsStatsPerformanceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-stats-performance",
-    ),
-    re_path(
-        r"^(?P<organization_slug>[^\/]+)/events-starfish/$",
-        OrganizationEventsStarfishEndpoint.as_view(),
-        name="sentry-api-0-organization-events-starfish",
-    ),
-    re_path(
         r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
         OrganizationEventsFacetsPerformanceEndpoint.as_view(),
         name="sentry-api-0-organization-events-facets-performance",
@@ -1532,6 +1520,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/$",
         OrganizationMonitorDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/environments/(?P<environment>[^\/]+)$",
+        OrganizationMonitorEnvironmentDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-environment-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/stats/$",
@@ -2821,7 +2814,7 @@ INTERNAL_URLS = [
     ),
     re_path(
         # If modifying, ensure PROXY_BASE_PATH is updated as well
-        r"^integration-proxy/\S*$",
+        r"^integration-proxy/$",
         InternalIntegrationProxyEndpoint.as_view(),
         name="sentry-api-0-internal-integration-proxy",
     ),
@@ -3043,12 +3036,6 @@ urlpatterns = [
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
-    ),
-    # Feedback
-    re_path(
-        r"^feedback/$",
-        FeedbackIngestEndpoint.as_view(),
-        name="sentry-api-0-feedback-ingest",
     ),
     # Internal
     re_path(

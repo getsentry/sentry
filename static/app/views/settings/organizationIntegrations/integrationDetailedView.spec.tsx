@@ -1,5 +1,8 @@
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {Organization} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -79,9 +82,9 @@ describe('IntegrationDetailedView', function () {
   it('shows integration name, status, and install button', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
@@ -92,9 +95,9 @@ describe('IntegrationDetailedView', function () {
   it('view configurations', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />
     );
 
@@ -107,9 +110,9 @@ describe('IntegrationDetailedView', function () {
   it('disables configure for members without access', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />,
       {organization: Organization({access: ['org:read']})}
     );
@@ -151,9 +154,9 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
-        location={TestStubs.location({query: {tab: 'configurations'}})}
+        location={LocationFixture({query: {tab: 'configurations'}})}
       />,
       {organization: Organization({access: ['org:read']})}
     );
@@ -195,10 +198,10 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     expect(screen.getByText('features')).toBeInTheDocument();
@@ -219,10 +222,10 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
 
@@ -250,14 +253,14 @@ describe('IntegrationDetailedView', function () {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
-        location={TestStubs.location({query: {}})}
+        location={LocationFixture({query: {}})}
       />
     );
     await userEvent.click(screen.getByText('features'));

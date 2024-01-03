@@ -1,10 +1,18 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {GroupStatus, GroupStatusResolution, MarkReviewed} from 'sentry/types';
+import {
+  EventOrGroupType,
+  GroupStatus,
+  GroupStatusResolution,
+  MarkReviewed,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -13,13 +21,13 @@ describe('StreamGroup', function () {
   let group1;
 
   beforeEach(function () {
-    group1 = TestStubs.Group({
+    group1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: '13',
         slug: 'foo-project',
-      },
-      type: 'error',
+      }),
+      type: EventOrGroupType.ERROR,
       inbox: {
         date_added: '2020-11-24T13:17:42.248751Z',
         reason: 0,
@@ -28,7 +36,7 @@ describe('StreamGroup', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [ProjectFixture({slug: 'foo-project'})],
     });
     GroupStore.loadInitialData([group1]);
   });

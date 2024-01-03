@@ -1,14 +1,30 @@
 import {Event as EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
+import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Repository} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
+const organization = Organization();
+const project = ProjectFixture({});
+
+const integration = GitHubIntegrationFixture();
+const repo = Repository({integrationId: integration.id});
+
+const config = RepositoryProjectPathConfig({project, repo, integration});
+
 const eventEntryStacktrace = EventEntryStacktrace();
 const event = EventFixture({
+  projectID: project.id,
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
 });
@@ -33,6 +49,8 @@ function renderedComponent(
 
 describe('StackTrace', function () {
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
+
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
@@ -41,6 +59,11 @@ describe('StackTrace', function () {
       url: '/prompts-activity/',
       body: promptResponse,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
   });
   it('renders', function () {
     renderedComponent({});
@@ -415,6 +438,84 @@ describe('StackTrace', function () {
         'Occurred in non-app: raven/scripts/runner.py in main at line 112'
       );
       expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
+    });
+  });
+
+  describe('platform icons', function () {
+    it('uses the top in-app frame file extension for mixed stack trace platforms', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo.cs',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo.py',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+            }),
+            EventStacktraceFrame({
+              inApp: false,
+              filename: 'foo.rb',
+            }),
+          ],
+        },
+      });
+
+      // foo.py is the most recent in-app frame with a valid file extension
+      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
+    });
+
+    it('uses frame.platform if file extension does not work', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo.cs',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+              platform: 'node',
+            }),
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+            }),
+            EventStacktraceFrame({
+              inApp: false,
+              filename: 'foo.rb',
+            }),
+          ],
+        },
+      });
+
+      expect(screen.getByTestId('platform-icon-node')).toBeInTheDocument();
+    });
+
+    it('falls back to the event platform if there is no other information', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrame({
+              inApp: true,
+              filename: 'foo',
+              platform: null,
+            }),
+          ],
+        },
+        platform: 'python',
+      });
+
+      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     });
   });
 });

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -10,7 +11,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {NewQuery} from 'sentry/types';
@@ -37,6 +38,7 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -57,6 +59,7 @@ export function ScreenLoadSpansTable({
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
   const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
@@ -117,6 +120,7 @@ export function ScreenLoadSpansTable({
     eventView,
     enabled: true,
     referrer: 'api.starfish.mobile-span-table',
+    cursor,
   });
 
   const columnNameMap = {
@@ -168,7 +172,7 @@ export function ScreenLoadSpansTable({
         ? parseFloat(row['ttfd_contribution_rate()'])
         : 0;
 
-      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate > 0.99) {
         const tooltipValue = tct(
           'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
           {
@@ -182,7 +186,7 @@ export function ScreenLoadSpansTable({
         );
       }
 
-      if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate === 1) {
+      if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate > 0.99) {
         const tooltipValue = tct(
           'This span always ends before TTFD and may affect final display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
           {
@@ -216,7 +220,7 @@ export function ScreenLoadSpansTable({
         ? parseFloat(row['ttid_contribution_rate()'])
         : 0;
 
-      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate === 1) {
+      if (!isNaN(ttid_contribution_rate) && ttid_contribution_rate > 0.99) {
         const tooltipValue = tct(
           'This span always ends before TTID and may affect initial display. [link: Learn more.]',
           {
@@ -269,6 +273,11 @@ export function ScreenLoadSpansTable({
       width: column.width,
     };
 
+    const affectsIsCurrentSort =
+      column.key === 'affects' &&
+      (sort?.field === 'ttid_contribution_rate()' ||
+        sort?.field === 'ttfd_contribution_rate()');
+
     function generateSortLink() {
       if (!tableMeta) {
         return undefined;
@@ -281,21 +290,38 @@ export function ScreenLoadSpansTable({
         }
       }
 
-      const newSort = `${newSortDirection === 'desc' ? '-' : ''}${column.key}`;
+      function getNewSort() {
+        if (column.key === 'affects') {
+          if (sort?.field === 'ttid_contribution_rate()') {
+            return '-ttfd_contribution_rate()';
+          }
+          return '-ttid_contribution_rate()';
+        }
+        return `${newSortDirection === 'desc' ? '-' : ''}${column.key}`;
+      }
 
       return {
         ...location,
-        query: {...location.query, [QueryParameterNames.SPANS_SORT]: newSort},
+        query: {...location.query, [QueryParameterNames.SPANS_SORT]: getNewSort()},
       };
     }
 
-    const canSort = isFieldSortable(field, tableMeta?.fields, true);
+    const canSort =
+      column.key === 'affects' || isFieldSortable(field, tableMeta?.fields, true);
 
     const sortLink = (
       <SortLink
         align={alignment}
         title={column.name}
-        direction={sort?.field === column.key ? sort.kind : undefined}
+        direction={
+          affectsIsCurrentSort
+            ? sort?.field === 'ttid_contribution_rate()'
+              ? 'desc'
+              : 'asc'
+            : sort?.field === column.key
+            ? sort.kind
+            : undefined
+        }
         canSort={canSort}
         generateSortLink={generateSortLink}
       />
@@ -304,6 +330,13 @@ export function ScreenLoadSpansTable({
   }
 
   const columnSortBy = eventView.getSorts();
+
+  const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [MobileCursors.SPANS_TABLE]: newCursor},
+    });
+  };
 
   return (
     <Fragment>
@@ -334,7 +367,7 @@ export function ScreenLoadSpansTable({
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }

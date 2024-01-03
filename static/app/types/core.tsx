@@ -79,6 +79,7 @@ export enum DataCategory {
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
   REPLAYS = 'replays',
+  MONITOR_SEATS = 'monitorSeats',
 }
 
 /**
@@ -95,6 +96,7 @@ export enum DataCategoryExact {
   TRANSACTION_PROCESSED = 'transaction_processed',
   TRANSACTION_INDEXED = 'transaction_indexed',
   MONITOR = 'monitor',
+  MONITOR_SEAT = 'monitorSeat',
 }
 
 export interface DataCategoryInfo {

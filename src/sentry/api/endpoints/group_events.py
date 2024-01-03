@@ -18,9 +18,9 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response, get_query_builder_for_group
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
 from sentry.eventstore.models import Event
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.search.utils import InvalidQuery, parse_query
 
 if TYPE_CHECKING:
@@ -128,7 +128,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 for evt in results["data"]
             ]
             if full:
-                eventstore.bind_nodes(results)
+                eventstore.backend.bind_nodes(results)
 
             return results
 

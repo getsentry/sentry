@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class RelocationPublicKeyEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -34,7 +34,8 @@ class RelocationPublicKeyEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("get.start", extra={"caller": request.user.id})
+        logger.info("publickeys.relocations.get.start", extra={"caller": request.user.id})
+
         if not options.get("relocation.enabled"):
             return Response({"detail": ERR_FEATURE_DISABLED}, status=400)
 

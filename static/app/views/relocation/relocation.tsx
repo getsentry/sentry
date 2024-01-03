@@ -1,25 +1,28 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
 import {Button, ButtonProps} from 'sentry/components/button';
+import LoadingError from 'sentry/components/loadingError';
 import LogoSentry from 'sentry/components/logoSentry';
-import {RelocationOnboardingContextProvider} from 'sentry/components/onboarding/relocationOnboardingContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
+import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
+import {RelocationOnboardingContextProvider} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import EncryptBackup from './encryptBackup';
 import GetStarted from './getStarted';
+import PublicKey from './publicKey';
 import {StepDescriptor} from './types';
+import UploadBackup from './uploadBackup';
 
 type RouteParams = {
   step: string;
@@ -27,7 +30,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}>;
 
-function getOrganizationOnboardingSteps(): StepDescriptor[] {
+function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [
     {
       id: 'get-started',
@@ -36,22 +39,61 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
       cornerVariant: 'top-left',
     },
     {
+      id: 'public-key',
+      title: t("Save Sentry's public key to your machine"),
+      Component: PublicKey,
+      cornerVariant: 'top-left',
+    },
+    {
       id: 'encrypt-backup',
       title: t('Encrypt backup'),
       Component: EncryptBackup,
+      cornerVariant: 'top-left',
+    },
+    {
+      id: 'upload-backup',
+      title: t('Upload backup'),
+      Component: UploadBackup,
       cornerVariant: 'top-left',
     },
   ];
 }
 
 function RelocationOnboarding(props: Props) {
-  const organization = useOrganization();
+  const [hasPublicKeyError, setHasError] = useState(false);
+
+  // TODO(getsentry/team-ospo#214): We should use sessionStorage to track this, since it should not
+  // change during a single run through this workflow.
+  const [publicKey, setPublicKey] = useState('');
+
+  const api = useApi();
+  const fetchData = useCallback(() => {
+    const endpoint = `/publickeys/relocations/`;
+    return api
+      .requestPromise(endpoint)
+      .then(response => {
+        setPublicKey(response.public_key);
+        setHasError(false);
+      })
+      .catch(_error => {
+        setPublicKey('');
+        setHasError(true);
+      });
+  }, [api]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const loadingError = (
+    <LoadingError message={t('Failed to load your public key.')} onRetry={fetchData} />
+  );
 
   const {
     params: {step: stepId},
   } = props;
 
-  const onboardingSteps = getOrganizationOnboardingSteps();
+  const onboardingSteps = getRelocationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
@@ -65,7 +107,7 @@ function RelocationOnboarding(props: Props) {
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
-    // TODO: find better way to delay the corner animation
+    // TODO(getsentry/team-ospo#214): Find a better way to delay the corner animation.
     window.clearTimeout(cornerVariantTimeoutRed.current);
 
     cornerVariantTimeoutRed.current = window.setTimeout(
@@ -90,7 +132,7 @@ function RelocationOnboarding(props: Props) {
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    props.router.push(normalizeUrl(`/relocation/${organization.slug}/${step.id}/`));
+    props.router.push(normalizeUrl(`/relocation/${step.id}/`));
   };
 
   const goNextStep = useCallback(
@@ -102,17 +144,13 @@ function RelocationOnboarding(props: Props) {
         cornerVariantControl.start('none');
       }
 
-      props.router.push(normalizeUrl(`/relocation/${organization.slug}/${nextStep.id}/`));
+      props.router.push(normalizeUrl(`/relocation/${nextStep.id}/`));
     },
-    [organization.slug, onboardingSteps, cornerVariantControl, props.router]
+    [onboardingSteps, cornerVariantControl, props.router]
   );
 
   if (!stepObj || stepIndex === -1) {
-    return (
-      <Redirect
-        to={normalizeUrl(`/relocation/${organization.slug}/${onboardingSteps[0].id}/`)}
-      />
-    );
+    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0].id}/`)} />;
   }
 
   return (
@@ -151,6 +189,7 @@ function RelocationOnboarding(props: Props) {
                       goNextStep(stepObj);
                     }
                   }}
+                  publicKey={publicKey}
                   route={props.route}
                   router={props.router}
                   location={props.location}
@@ -159,6 +198,7 @@ function RelocationOnboarding(props: Props) {
             </OnboardingStep>
           </AnimatePresence>
           <AdaptivePageCorners animateVariant={cornerVariantControl} />
+          {stepObj.id === 'public-key' && hasPublicKeyError ? loadingError : null}
         </Container>
       </RelocationOnboardingContextProvider>
     </OnboardingWrapper>
@@ -252,7 +292,7 @@ const Back = styled(({className, animate, ...props}: BackButtonProps) => (
       },
     }}
   >
-    <Button {...props} icon={<IconArrow direction="left" size="sm" />} priority="link">
+    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
       {t('Back')}
     </Button>
   </motion.div>

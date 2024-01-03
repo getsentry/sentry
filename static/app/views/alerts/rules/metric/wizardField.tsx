@@ -6,7 +6,11 @@ import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {
+  explodeFieldString,
+  generateFieldAsString,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -144,7 +148,7 @@ export default function WizardField({
             alertType,
           });
         const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
-        const fieldValue = explodeFieldString(aggregate ?? '');
+        const fieldValue = getFieldValue(aggregate ?? '', model);
 
         const fieldKey =
           fieldValue?.kind === FieldValueKind.FUNCTION
@@ -208,6 +212,56 @@ export default function WizardField({
     </FormField>
   );
 }
+
+// swaps out custom percentile values for known percentiles, used while we fade out custom percentiles in metric alerts
+// TODO(telemetry-experience): remove once we migrate all custom percentile alerts
+const getFieldValue = (aggregate: string | undefined, model) => {
+  const fieldValue = explodeFieldString(aggregate ?? '');
+
+  if (fieldValue?.kind !== FieldValueKind.FUNCTION) {
+    return fieldValue;
+  }
+
+  if (fieldValue.function[0] !== 'percentile') {
+    return fieldValue;
+  }
+
+  const newFieldValue: QueryFieldValue = {
+    kind: FieldValueKind.FUNCTION,
+    function: [
+      getApproximateKnownPercentile(fieldValue.function[2] as string),
+      fieldValue.function[1],
+      undefined,
+      undefined,
+    ],
+    alias: fieldValue.alias,
+  };
+
+  model.setValue('aggregate', generateFieldAsString(newFieldValue));
+
+  return newFieldValue;
+};
+
+const getApproximateKnownPercentile = (customPercentile: string) => {
+  const percentile = parseFloat(customPercentile);
+
+  if (percentile <= 0.5) {
+    return 'p50';
+  }
+  if (percentile <= 0.75) {
+    return 'p75';
+  }
+  if (percentile <= 0.9) {
+    return 'p90';
+  }
+  if (percentile <= 0.95) {
+    return 'p95';
+  }
+  if (percentile <= 0.99) {
+    return 'p99';
+  }
+  return 'p100';
+};
 
 const Container = styled('div')<{hideGap: boolean}>`
   display: grid;

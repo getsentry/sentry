@@ -25,7 +25,7 @@
       {
         "name": "statsPeriod",
         "in": "query",
-        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`).",
+        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`). If not provided, the API will return the max time period for the project (90 days for paid accounts, 30 days for free).",
         "schema": {
           "type": "string"
         }

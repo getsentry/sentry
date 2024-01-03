@@ -82,7 +82,7 @@ function FeatureDisabled({
             }
           )}
         </HelpText>
-        <CopyButton borderless icon={<IconCopy size="xs" />} onClick={onClick} size="xs">
+        <CopyButton borderless icon={<IconCopy />} onClick={onClick} size="xs">
           {t('Copy to Clipboard')}
         </CopyButton>
         <Pre onClick={e => selectText(e.target as HTMLElement)}>

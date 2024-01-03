@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,6 +10,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
@@ -18,16 +22,31 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {InteractiveTitle, organization} = props;
   const theme = useTheme();
+  const shouldUseStoredScores = useStoredScoresSetting();
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
+  const {data: projectScores, isLoading: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery({enabled: shouldUseStoredScores});
 
   const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
   const projectScore =
-    isLoading || noTransactions
+    (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
       ? undefined
+      : shouldUseStoredScores
+      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
       : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
+
+  const weights = projectScore
+    ? {
+        cls: projectScore.clsWeight,
+        fid: projectScore.fidWeight,
+        fcp: projectScore.fcpWeight,
+        lcp: projectScore.lcpWeight,
+        ttfb: projectScore.ttfbWeight,
+      }
+    : undefined;
 
   return (
     <GenericPerformanceWidget
@@ -48,7 +67,27 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
         InteractiveTitle ? () => <InteractiveTitle isLoading={false} /> : null
       }
       EmptyComponent={WidgetEmptyStateWarning}
-      Queries={{}}
+      Queries={{
+        project: {
+          component: provided => {
+            const loading = shouldUseStoredScores ? isProjectScoresLoading : isLoading;
+            const data = shouldUseStoredScores ? projectScores : projectData;
+            return (
+              <Fragment>
+                {provided.children({
+                  data,
+                  isLoading: loading,
+                  hasData: !loading && (data?.data?.[0]?.['count()'] as number) > 0,
+                })}
+              </Fragment>
+            );
+          },
+          fields: [],
+          transform: function (_: any, results: any) {
+            return results;
+          },
+        },
+      }}
       Visualizations={[
         {
           component: () => (
@@ -70,6 +109,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   ringSegmentColors={ringSegmentColors}
                   radiusPadding={10}
                   labelHeightPadding={0}
+                  weights={weights}
                 />
               ) : isLoading ? (
                 <StyledLoadingIndicator size={40} />

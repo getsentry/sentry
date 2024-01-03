@@ -104,7 +104,7 @@ function DebugFileRow({
               >
                 <Button
                   size="xs"
-                  icon={<IconDownload size="xs" />}
+                  icon={<IconDownload />}
                   href={downloadUrl}
                   disabled={!hasRole}
                 >
@@ -127,7 +127,7 @@ function DebugFileRow({
                 >
                   <Button
                     priority="danger"
-                    icon={<IconDelete size="xs" />}
+                    icon={<IconDelete />}
                     size="xs"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"

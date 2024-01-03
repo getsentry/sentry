@@ -24,7 +24,7 @@ from sentry.backup.helpers import (
 )
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
-from sentry.models.files.utils import get_storage
+from sentry.models.files.utils import get_relocation_storage, get_storage
 from sentry.models.importchunk import (
     ControlImportChunk,
     ControlImportChunkReplica,
@@ -70,6 +70,7 @@ from sentry.tasks.relocation import (
     preprocessing_colliding_users,
     preprocessing_complete,
     preprocessing_scan,
+    preprocessing_transfer,
     uploading_complete,
     validating_complete,
     validating_poll,
@@ -201,7 +202,7 @@ class RelocationTaskTestCase(TestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_scan.delay")
+@patch("sentry.tasks.relocation.preprocessing_scan.apply_async")
 class UploadingCompleteTest(RelocationTaskTestCase):
     def test_success(
         self,
@@ -267,7 +268,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_baseline_config.delay")
+@patch("sentry.tasks.relocation.preprocessing_transfer.apply_async")
 class PreprocessingScanTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -277,7 +278,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_success_admin_assisted_relocation(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -295,7 +296,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 1
+        assert preprocessing_transfer_mock.call_count == 1
 
         relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.want_usernames == [
@@ -306,7 +307,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_success_self_service_relocation(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -323,7 +324,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.started"
         fake_message_builder.return_value.send_async.assert_called_once_with(to=[self.owner.email])
 
-        assert preprocessing_baseline_config_mock.call_count == 1
+        assert preprocessing_transfer_mock.call_count == 1
 
         relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.want_usernames == [
@@ -334,7 +335,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_pause(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -348,7 +349,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
         assert fake_kms_client.get_public_key.call_count == 0
         assert fake_message_builder.call_count == 0
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.PAUSE.value
@@ -358,7 +359,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_retry_if_attempts_left(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -373,7 +374,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert fake_kms_client.asymmetric_decrypt.call_count == 0
         assert fake_kms_client.get_public_key.call_count == 0
         assert fake_message_builder.call_count == 0
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
@@ -382,7 +383,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_fail_if_no_attempts_left(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -405,7 +406,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -414,7 +415,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_fail_invalid_tarball(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -432,7 +433,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -441,7 +442,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_fail_decryption_failure(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -466,7 +467,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         )
 
         assert fake_kms_client.asymmetric_decrypt.call_count == 1
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -475,7 +476,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_fail_invalid_json(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -492,7 +493,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -501,7 +502,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_fail_no_users(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -518,7 +519,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -528,7 +529,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     @patch("sentry.tasks.relocation.MAX_USERS_PER_RELOCATION", 0)
     def test_fail_too_many_users(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -543,7 +544,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -552,7 +553,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_fail_no_orgs(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -569,7 +570,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -579,7 +580,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
     @patch("sentry.tasks.relocation.MAX_ORGS_PER_RELOCATION", 0)
     def test_fail_too_many_orgs(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -594,7 +595,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -603,7 +604,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     def test_fail_missing_orgs(
         self,
-        preprocessing_baseline_config_mock: Mock,
+        preprocessing_transfer_mock: Mock,
         fake_message_builder: Mock,
         fake_kms_client: FakeKeyManagementServiceClient,
     ):
@@ -622,7 +623,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert preprocessing_baseline_config_mock.call_count == 0
+        assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -633,18 +634,125 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
 
 @region_silo_test
+@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.tasks.relocation.preprocessing_baseline_config.apply_async")
+class PreprocessingTransferTest(RelocationTaskTestCase):
+    def setUp(self):
+        super().setUp()
+        self.relocation.step = Relocation.Step.PREPROCESSING.value
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
+        self.relocation.want_usernames = ["importing"]
+        self.relocation.save()
+        self.create_user("importing")
+        self.relocation_storage = get_relocation_storage()
+
+    def test_success(
+        self,
+        preprocessing_baseline_config_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        assert not self.relocation_storage.exists(f"runs/{self.uuid}")
+
+        preprocessing_transfer(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert preprocessing_baseline_config_mock.call_count == 1
+
+        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/conf")
+        assert len(files) == 2
+        assert "cloudbuild.yaml" in files
+        assert "cloudbuild.zip" in files
+
+        cb_yaml_file = self.relocation_storage.open(f"runs/{self.uuid}/conf/cloudbuild.yaml")
+        with cb_yaml_file:
+            cb_conf = yaml.safe_load(cb_yaml_file)
+            assert cb_conf is not None
+
+        # These entries in the generated `cloudbuild.yaml` depend on the UUID, so check them
+        # separately then replace them for snapshotting.
+        in_path = cb_conf["steps"][0]["args"][2]
+        findings_path = cb_conf["artifacts"]["objects"]["location"]
+        assert in_path == f"gs://default/runs/{self.uuid}/in"
+        assert findings_path == f"gs://default/runs/{self.uuid}/findings/"
+
+        # Do a snapshot test of the cloudbuild config.
+        cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/runs/<UUID>/in"
+        cb_conf["artifacts"]["objects"]["location"] = "gs://<BUCKET>/runs/<UUID>/findings/"
+        cb_conf["steps"][12]["args"][3] = "gs://<BUCKET>/runs/<UUID>/out"
+        self.insta_snapshot(cb_conf)
+
+        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
+        assert len(files) == 2
+        assert "kms-config.json" in files
+        assert "raw-relocation-data.tar" in files
+
+        kms_file = self.relocation_storage.open(f"runs/{self.uuid}/in/kms-config.json")
+        with kms_file:
+            json.load(kms_file)
+
+    def test_retry_if_attempts_left(
+        self,
+        preprocessing_baseline_config_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        RelocationFile.objects.filter(relocation=self.relocation).delete()
+        self.mock_message_builder(fake_message_builder)
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            preprocessing_transfer(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert preprocessing_baseline_config_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
+        assert not relocation.failure_reason
+
+    def test_fail_if_no_attempts_left(
+        self,
+        preprocessing_baseline_config_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_TRANSFER.name
+        self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
+        self.relocation.save()
+        RelocationFile.objects.filter(relocation=self.relocation).delete()
+        self.mock_message_builder(fake_message_builder)
+
+        with pytest.raises(Exception):
+            preprocessing_transfer(self.uuid)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+
+        assert preprocessing_baseline_config_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
+        assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
+
+
+@region_silo_test
 @patch(
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_colliding_users.delay")
+@patch("sentry.tasks.relocation.preprocessing_colliding_users.apply_async")
 class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
         self.relocation.step = Relocation.Step.PREPROCESSING.value
-        self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
+        self.relocation.latest_task = OrderedTask.PREPROCESSING_TRANSFER.name
         self.relocation.save()
+        self.relocation_storage = get_relocation_storage()
 
     def test_success(
         self,
@@ -662,17 +770,11 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 0
         assert preprocessing_colliding_users_mock.call_count == 1
 
-        relocation_file = (
-            RelocationFile.objects.filter(
-                relocation=self.relocation,
-                kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA.value,
-            )
-            .select_related("file")
-            .first()
-        )
-        assert relocation_file.file.name == "baseline-config.tar"
+        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
+        assert len(files) == 1
+        assert "baseline-config.tar" in files
 
-        with relocation_file.file.getfile() as fp:
+        with self.relocation_storage.open(f"runs/{self.uuid}/in/baseline-config.tar") as fp:
             json_models = json.loads(
                 decrypt_encrypted_tarball(fp, LocalFileDecryptor.from_bytes(self.priv_key_pem))
             )
@@ -750,7 +852,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_complete.delay")
+@patch("sentry.tasks.relocation.preprocessing_complete.apply_async")
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -762,6 +864,8 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         self.create_user("c")
         self.create_user("d")
         self.create_user("e")
+
+        self.relocation_storage = get_relocation_storage()
 
     def test_success(
         self,
@@ -779,17 +883,11 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert fake_message_builder.call_count == 0
         assert preprocessing_complete_mock.call_count == 1
 
-        relocation_file = (
-            RelocationFile.objects.filter(
-                relocation=self.relocation,
-                kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value,
-            )
-            .select_related("file")
-            .first()
-        )
-        assert relocation_file.file.name == "colliding-users.tar"
+        (_, files) = self.relocation_storage.listdir(f"runs/{self.uuid}/in")
+        assert len(files) == 1
+        assert "colliding-users.tar" in files
 
-        with relocation_file.file.getfile() as fp:
+        with self.relocation_storage.open(f"runs/{self.uuid}/in/colliding-users.tar") as fp:
             json_models = json.loads(
                 decrypt_encrypted_tarball(fp, LocalFileDecryptor.from_bytes(self.priv_key_pem))
             )
@@ -863,7 +961,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.validating_start.delay")
+@patch("sentry.tasks.relocation.validating_start.apply_async")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -872,25 +970,14 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation.want_usernames = ["importing"]
         self.relocation.save()
         self.create_user("importing")
-        self.storage = get_storage()
+        self.relocation_storage = get_relocation_storage()
 
-        file = File.objects.create(name="baseline-config.tar", type=RELOCATION_FILE_TYPE)
-        self.swap_file(file, "single-option.json", blob_size=16384)  # No chunking
-        RelocationFile.objects.create(
-            relocation=self.relocation,
-            file=file,
-            kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA.value,
-        )
-        assert file.blobs.count() == 1  # So small that chunking is unnecessary.
-
-        file = File.objects.create(name="colliding-users.tar", type=RELOCATION_FILE_TYPE)
-        self.swap_file(file, "user-with-maximum-privileges.json", blob_size=8192)  # Forces chunks
-        RelocationFile.objects.create(
-            relocation=self.relocation,
-            file=file,
-            kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA.value,
-        )
-        assert file.blobs.count() > 1  # A bit bigger, so we get chunks.
+        self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.yaml", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/conf/cloudbuild.zip", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/in/kms-config.json", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/in/raw-relocation-data.tar", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/in/baseline-config.tar", BytesIO())
+        self.relocation_storage.save(f"runs/{self.uuid}/in/colliding-users.tar", BytesIO())
 
     def test_success(
         self,
@@ -898,48 +985,11 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
-        assert not self.storage.exists(f"relocations/runs/{self.uuid}")
 
         preprocessing_complete(self.uuid)
 
         assert fake_message_builder.call_count == 0
         assert validating_start_mock.call_count == 1
-
-        (_, files) = self.storage.listdir(f"relocations/runs/{self.uuid}/conf")
-        assert len(files) == 2
-        assert "cloudbuild.yaml" in files
-        assert "cloudbuild.zip" in files
-
-        cb_yaml_file = self.storage.open(f"relocations/runs/{self.uuid}/conf/cloudbuild.yaml")
-        with cb_yaml_file:
-            cb_conf = yaml.safe_load(cb_yaml_file)
-            assert cb_conf is not None
-
-        # These entries in the generated `cloudbuild.yaml` depend on the UUID, so check them
-        # separately then replace them for snapshotting.
-        in_path = cb_conf["steps"][0]["args"][2]
-        findings_path = cb_conf["artifacts"]["objects"]["location"]
-        assert in_path == f"gs://default/relocations/runs/{self.uuid}/in"
-        assert findings_path == f"gs://default/relocations/runs/{self.uuid}/findings/"
-
-        # Do a snapshot test of the cloudbuild config.
-        cb_conf["steps"][0]["args"][2] = "gs://<BUCKET>/relocations/runs/<UUID>/in"
-        cb_conf["artifacts"]["objects"][
-            "location"
-        ] = "gs://<BUCKET>/relocations/runs/<UUID>/findings/"
-        cb_conf["steps"][12]["args"][3] = "gs://<BUCKET>/relocations/runs/<UUID>/out"
-        self.insta_snapshot(cb_conf)
-
-        (_, files) = self.storage.listdir(f"relocations/runs/{self.uuid}/in")
-        assert len(files) == 4
-        assert "kms-config.json" in files
-        assert "raw-relocation-data.tar" in files
-        assert "baseline-config.tar" in files
-        assert "colliding-users.tar" in files
-
-        kms_file = self.storage.open(f"relocations/runs/{self.uuid}/in/kms-config.json")
-        with kms_file:
-            json.load(kms_file)
 
         self.relocation.refresh_from_db()
         assert self.relocation.step == Relocation.Step.VALIDATING.value
@@ -950,7 +1000,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         validating_start_mock: Mock,
         fake_message_builder: Mock,
     ):
-        RelocationFile.objects.filter(relocation=self.relocation).delete()
+        self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.yaml")
         self.mock_message_builder(fake_message_builder)
 
         # An exception being raised will trigger a retry in celery.
@@ -973,7 +1023,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         self.relocation.latest_task = OrderedTask.PREPROCESSING_COMPLETE.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
-        RelocationFile.objects.filter(relocation=self.relocation).delete()
+        self.relocation_storage.delete(f"runs/{self.uuid}/in/raw-relocation-data.tar")
         self.mock_message_builder(fake_message_builder)
 
         with pytest.raises(Exception):
@@ -992,6 +1042,46 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
+    def test_fail_missing_cloudbuild_zip(
+        self,
+        validating_start_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation_storage.delete(f"runs/{self.uuid}/conf/cloudbuild.zip")
+        self.mock_message_builder(fake_message_builder)
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            preprocessing_complete(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert validating_start_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
+        assert not relocation.failure_reason
+
+    def test_fail_missing_kms_config(
+        self,
+        validating_start_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation_storage.delete(f"runs/{self.uuid}/in/kms-config.json")
+        self.mock_message_builder(fake_message_builder)
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            preprocessing_complete(self.uuid)
+
+        assert fake_message_builder.call_count == 0
+        assert validating_start_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
+        assert not relocation.failure_reason
+
 
 @region_silo_test
 @patch(
@@ -999,7 +1089,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
     new_callable=lambda: FakeCloudBuildClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.validating_poll.delay")
+@patch("sentry.tasks.relocation.validating_poll.apply_async")
 class ValidatingStartTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -1172,7 +1262,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             )
         )
 
-    @patch("sentry.tasks.relocation.validating_complete.delay")
+    @patch("sentry.tasks.relocation.validating_complete.apply_async")
     def test_success(
         self,
         validating_complete_mock: Mock,
@@ -1194,7 +1284,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
         assert self.relocation.latest_task == "VALIDATING_POLL"
 
-    @patch("sentry.tasks.relocation.validating_start.delay")
+    @patch("sentry.tasks.relocation.validating_start.apply_async")
     def test_timeout_starts_new_validation_attempt(
         self,
         validating_start_mock: Mock,
@@ -1220,7 +1310,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
             assert self.relocation_validation_attempt.status == ValidationStatus.TIMEOUT.value
 
-    @patch("sentry.tasks.relocation.validating_start.delay")
+    @patch("sentry.tasks.relocation.validating_start.apply_async")
     def test_failure_starts_new_validation_attempt(
         self,
         validating_start_mock: Mock,
@@ -1344,7 +1434,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
 
 def mock_invalid_finding(storage: Storage, uuid: str):
     storage.save(
-        f"relocations/runs/{uuid}/findings/import-baseline-config.json",
+        f"runs/{uuid}/findings/import-baseline-config.json",
         BytesIO(
             b"""
 [
@@ -1367,7 +1457,7 @@ def mock_invalid_finding(storage: Storage, uuid: str):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.importing.delay")
+@patch("sentry.tasks.relocation.importing.apply_async")
 class ValidatingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -1391,7 +1481,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 
         self.storage = get_storage()
         self.storage.save(
-            f"relocations/runs/{self.uuid}/findings/artifacts-prefixes-are-ignored.json",
+            f"runs/{self.uuid}/findings/artifacts-prefixes-are-ignored.json",
             BytesIO(b"invalid-json"),
         )
         files = [
@@ -1406,7 +1496,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
             "compare-colliding-users.json",
         ]
         for file in files:
-            self.storage.save(f"relocations/runs/{self.uuid}/findings/{file}", BytesIO(b"[]"))
+            self.storage.save(f"runs/{self.uuid}/findings/{file}", BytesIO(b"[]"))
 
     def test_valid(
         self,
@@ -1463,7 +1553,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
     ):
         self.mock_message_builder(fake_message_builder)
         self.storage.save(
-            f"relocations/runs/{self.uuid}/findings/null.json",
+            f"runs/{self.uuid}/findings/null.json",
             BytesIO(b"invalid-json"),
         )
 
@@ -1488,9 +1578,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         self.relocation.latest_task = OrderedTask.VALIDATING_COMPLETE.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
-        self.storage.save(
-            f"relocations/runs/{self.uuid}/findings/null.json", BytesIO(b"invalid-json")
-        )
+        self.storage.save(f"runs/{self.uuid}/findings/null.json", BytesIO(b"invalid-json"))
 
         with pytest.raises(Exception):
             validating_complete(self.uuid, self.relocation_validation_attempt.build_id)
@@ -1514,7 +1602,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.tasks.relocation.postprocessing.delay")
+@patch("sentry.tasks.relocation.postprocessing.apply_async")
 class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1579,7 +1667,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")
-@patch("sentry.tasks.relocation.notifying_users.delay")
+@patch("sentry.tasks.relocation.notifying_users.apply_async")
 class PostprocessingTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1725,7 +1813,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.notifying_owner.delay")
+@patch("sentry.tasks.relocation.notifying_owner.apply_async")
 class NotifyingUsersTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1847,7 +1935,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.completed.delay")
+@patch("sentry.tasks.relocation.completed.apply_async")
 class NotifyingOwnerTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1991,9 +2079,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
             "compare-colliding-users.json",
         ]
         for file in files:
-            self.storage.save(
-                f"relocations/runs/{self.relocation.uuid}/findings/{file}", BytesIO(b"[]")
-            )
+            self.storage.save(f"runs/{self.relocation.uuid}/findings/{file}", BytesIO(b"[]"))
 
     def mock_max_retries(
         self,

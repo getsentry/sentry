@@ -1,5 +1,6 @@
 import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
 import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
 import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
@@ -22,13 +23,13 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 describe('TeamStatsIssues', () => {
   const env1 = 'prod';
   const env2 = 'dev';
-  const project1 = TestStubs.Project({
+  const project1 = ProjectFixture({
     id: '2',
     name: 'js',
     slug: 'js',
     environments: [env1, env2],
   });
-  const project2 = TestStubs.Project({
+  const project2 = ProjectFixture({
     id: '3',
     name: 'py',
     slug: 'py',

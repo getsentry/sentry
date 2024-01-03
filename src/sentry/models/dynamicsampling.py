@@ -170,7 +170,6 @@ class CustomDynamicSamplingRule(Model):
         query: str,
         created_by_id: Optional[int] = None,
     ) -> "CustomDynamicSamplingRule":
-
         from sentry.models.organization import Organization
         from sentry.models.project import Project
 

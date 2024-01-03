@@ -1,33 +1,40 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, ReactNode, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
+import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
 import useCurrentProjectState from 'sentry/components/replaysOnboarding/useCurrentProjectState';
+import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
 import {
   generateDocKeys,
   isPlatformSupported,
+  replayJsFrameworkOptions,
 } from 'sentry/components/replaysOnboarding/utils';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
+  backend,
+  replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {Project, SelectValue} from 'sentry/types';
+import {PlatformKey, Project, SelectValue} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -98,20 +105,25 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     ];
   }, [supportedProjects, unsupportedProjects]);
 
+  const showLoaderInstructions =
+    currentProject &&
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
+
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
-    'npm' // this default  needs to be changed later. for backend platforms, should default to jsLoader
+    defaultTab
   );
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
   if (!isActive || !hasProjectAccess || !selectedProject) {
     return null;
   }
-
-  const showLoaderInstructions =
-    currentProject &&
-    currentProject.platform &&
-    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   return (
     <TaskSidebarPanel
@@ -182,11 +194,49 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
 }
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
+    return {
+      value: platform.id,
+      textValue: platform.name,
+      label: (
+        <PlatformLabel>
+          <PlatformIcon platform={platform.id} size={16} />
+          <TextOverflow>{platform.name}</TextOverflow>
+        </PlatformLabel>
+      ),
+    };
+  });
+
   const api = useApi();
   const organization = useOrganization();
   const previousProject = usePrevious(currentProject);
   const [received, setReceived] = useState<boolean>(false);
   const {getParamValue: setupMode} = useUrlParams('mode');
+  const [jsFramework, setJsFramework] = useState<{
+    value: PlatformKey;
+    label?: ReactNode;
+    textValue?: string;
+  }>(jsFrameworkSelectOptions[0]);
+
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+  const showJsFrameworkInstructions =
+    newOnboarding &&
+    currentProject &&
+    currentProject.platform &&
+    backend.includes(currentProject.platform) &&
+    setupMode() === 'npm';
+
+  const defaultTab =
+    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+      ? 'jsLoader'
+      : 'npm';
+
+  const npmOnlyFramework =
+    currentProject &&
+    currentProject.platform &&
+    replayFrontendPlatforms
+      .filter(p => p !== 'javascript')
+      .includes(currentProject.platform);
 
   useEffect(() => {
     if (previousProject.id !== currentProject.id) {
@@ -195,20 +245,36 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }, [previousProject.id, currentProject.id]);
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform)
-    : undefined;
+    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    : otherPlatform;
 
   const docKeys = useMemo(() => {
-    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
-  }, [currentPlatform]);
+    return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
+  }, [currentPlatform, newOnboarding]);
 
+  // Old onboarding docs
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,
     isPlatformSupported: isPlatformSupported(currentPlatform),
   });
 
-  if (isLoading) {
+  // New onboarding docs
+  const {
+    docs: newDocs,
+    dsn,
+    cdn,
+    isProjKeysLoading,
+  } = useLoadOnboardingDoc({
+    platform: showJsFrameworkInstructions
+      ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
+        replayJsFrameworkOptions[0]
+      : currentPlatform,
+    organization,
+    projectSlug: currentProject.slug,
+  });
+
+  if (isLoading || isProjKeysLoading) {
     return <LoadingIndicator />;
   }
 
@@ -238,7 +304,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (!currentPlatform || !hasOnboardingContents) {
+  if (
+    !currentPlatform ||
+    (!newOnboarding && !hasOnboardingContents) ||
+    (newOnboarding && !newDocs)
+  ) {
     return (
       <Fragment>
         <div>
@@ -260,8 +330,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
-
   return (
     <Fragment>
       <IntroText>
@@ -269,18 +337,50 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           `Adding Session Replay to your [platform] project is simple. Make sure you've got these basics down.`,
           {platform: currentPlatform?.name || currentProject.slug}
         )}
+        {showJsFrameworkInstructions ? (
+          <div>
+            {tct(
+              `Also, ensure that you have set up trace propagation in your backend projects. To learn more, [link:read the docs].`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/#:~:text=Make%20sure%20you%27ve%20set%20up%20trace%20propagation%20in%20your%20backend%20projects." />
+                ),
+              }
+            )}
+          </div>
+        ) : (
+          ''
+        )}
+        {showJsFrameworkInstructions ? (
+          <PlatformSelect>
+            {t('Select your JS Framework: ')}
+            <CompactSelect
+              triggerLabel={jsFramework.label}
+              value={jsFramework.value}
+              onChange={v => {
+                setJsFramework(v);
+              }}
+              options={jsFrameworkSelectOptions}
+              position="bottom-end"
+            />
+          </PlatformSelect>
+        ) : null}
       </IntroText>
-      {newOnboarding ? (
-        <SdkDocumentation
-          platform={currentPlatform}
-          organization={organization}
-          projectSlug={currentProject.slug}
-          projectId={currentProject.id}
+      {newOnboarding && newDocs ? (
+        <ReplayOnboardingLayout
+          docsConfig={newDocs}
+          dsn={dsn}
+          cdn={cdn}
           activeProductSelection={[]}
+          platformKey={currentPlatform.id}
+          projectId={currentProject.id}
+          projectSlug={currentProject.slug}
           configType={
-            setupMode() === 'jsLoader'
-              ? 'replayOnboardingJsLoader'
-              : 'replayOnboardingNpm'
+            setupMode() === 'npm' || // switched to NPM tab
+            (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
+            npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
+              ? 'replayOnboardingNpm'
+              : 'replayOnboardingJsLoader'
           }
         />
       ) : (
@@ -337,6 +437,8 @@ function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
 
 const IntroText = styled('div')`
   padding-top: ${space(3)};
+  display: grid;
+  gap: ${space(1)};
 `;
 
 const OnboardingStepContainer = styled('div')`
@@ -435,6 +537,19 @@ const HeaderActions = styled('div')`
 
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
+`;
+
+const PlatformLabel = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const PlatformSelect = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  padding-bottom: ${space(1)};
 `;
 
 export default ReplaysOnboardingSidebar;

@@ -1,40 +1,65 @@
-import {Fragment, memo, useRef} from 'react';
+import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
+
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
-import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SplitPanel, {BaseSplitDivider, DividerProps} from 'sentry/components/splitPanel';
-import {IconGrabbable} from 'sentry/icons';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDDMContext} from 'sentry/views/ddm/context';
+import {useDashboardImport} from 'sentry/views/ddm/dashboardImportModal';
+import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
+import {useScratchpads} from 'sentry/views/ddm/scratchpadContext';
 import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
-import {TraceTable} from 'sentry/views/ddm/traceTable';
-import {TrayContent} from 'sentry/views/ddm/trayContent';
+import ShareButton from 'sentry/views/ddm/shareButton';
+import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
-const SIZE_LOCAL_STORAGE_KEY = 'ddm-split-size';
+export const DDMLayout = memo(() => {
+  const organization = useOrganization();
+  const {metricsMeta, isLoading} = useDDMContext();
+  const {isLoading: isLoadingScratchpads} = useScratchpads();
+  const hasMetrics = !isLoading && metricsMeta.length > 0;
+  const {activateSidebar} = useMetricsOnboardingSidebar();
 
-function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
+  const importDashboard = useDashboardImport();
+  const addCustomMetric = useCallback(
+    (referrer: string) => {
+      Sentry.metrics.increment('ddm.add_custom_metric', 1, {
+        tags: {
+          referrer,
+        },
+      });
+      activateSidebar();
+    },
+    [activateSidebar]
+  );
+
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>
-            {t('DDM')}
+            {t('Metrics')}
             <PageHeadingQuestionTooltip
-              docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
+              docsUrl={METRICS_DOCS_URL}
               title={t('Delightful Developer Metrics.')}
             />
             <FeatureBadge type="alpha" />
@@ -42,11 +67,30 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            {hasMetrics && (
+              <Button
+                priority="primary"
+                onClick={() => addCustomMetric('header')}
+                size="sm"
+              >
+                {t('Add Custom Metric')}
+              </Button>
+            )}
+            <ShareButton />
             <GithubFeedbackButton
               href="https://github.com/getsentry/sentry/discussions/58584"
               label={t('Discussion')}
               title={null}
             />
+            {hasDDMExperimentalFeature(organization) && (
+              <Button
+                size="sm"
+                icon={<IconDownload size="xs" />}
+                onClick={importDashboard}
+              >
+                {t('Import Dashboard')}
+              </Button>
+            )}
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
@@ -61,77 +105,63 @@ function MainContent({showTraceTable}: {showTraceTable?: boolean}) {
             </PageFilterBar>
             <ScratchpadSelector />
           </PaddedContainer>
-          <MetricScratchpad />
+          {isLoading || isLoadingScratchpads ? (
+            <LoadingIndicator />
+          ) : hasMetrics ? (
+            <Fragment>
+              <MetricScratchpad />
+              <WidgetDetails />
+            </Fragment>
+          ) : (
+            <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
+              <h3>{t('Get started with custom metrics')}</h3>
+              <p>
+                {t(
+                  "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+                )}
+              </p>
+              <Button
+                priority="primary"
+                onClick={() => addCustomMetric('onboarding_panel')}
+              >
+                {t('Add Custom Metric')}
+              </Button>
+            </OnboardingPanel>
+          )}
         </Layout.Main>
-        {showTraceTable && <TraceTable />}
       </Layout.Body>
     </Fragment>
   );
-}
-
-export const DDMLayout = memo(() => {
-  const organization = useOrganization();
-  const hasNewLayout = hasDDMExperimentalFeature(organization);
-
-  const measureRef = useRef<HTMLDivElement>(null);
-  const {height} = useDimensions({elementRef: measureRef});
-  const hasSize = height > 0;
-
-  if (!hasNewLayout) {
-    return (
-      <Layout.Page>
-        <MainContent showTraceTable />
-      </Layout.Page>
-    );
-  }
-
-  return (
-    <FullViewport ref={measureRef}>
-      {
-        // FullViewport has a grid layout with `grid-template-rows: auto 1fr;`
-        // therefore we need the empty div so that SplitPanel can span the whole height
-        // TODO(arthur): Check on the styles of FullViewport
-      }
-      <div />
-      {hasSize && (
-        <SplitPanel
-          availableSize={height}
-          SplitDivider={SplitDivider}
-          sizeStorageKey={SIZE_LOCAL_STORAGE_KEY}
-          top={{
-            content: (
-              <ScrollingPage>
-                <MainContent />
-              </ScrollingPage>
-            ),
-            default: height * 0.7,
-            min: 100,
-            max: height - 58,
-          }}
-          bottom={<TrayContent />}
-        />
-      )}
-    </FullViewport>
-  );
 });
-
-const SplitDivider = styled((props: DividerProps) => (
-  <BaseSplitDivider {...props} icon={<IconGrabbable size="xs" />} />
-))<DividerProps>`
-  border-top: 1px solid ${$p => $p.theme.border};
-`;
-
-const ScrollingPage = styled(Layout.Page)`
-  height: 100%;
-  overflow: auto;
-`;
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  grid-template: 1fr / 1fr max-content;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: ${space(1)};
-  @media (max-width: ${props => props.theme.breakpoints.small}) {
-    grid-template: 1fr 1fr / 1fr;
+`;
+
+const EmptyStateImage = styled('img')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    user-select: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    margin-top: auto;
+    margin-bottom: auto;
+    transform: translateX(-50%);
+    left: 50%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    transform: translateX(-60%);
+    width: 280px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    transform: translateX(-75%);
+    width: 320px;
   }
 `;

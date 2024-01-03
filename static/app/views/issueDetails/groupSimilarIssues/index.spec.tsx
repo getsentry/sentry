@@ -1,5 +1,7 @@
 import {Groups} from 'sentry-fixture/groups';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -19,14 +21,14 @@ jest.mock('sentry/utils/useNavigate', () => ({
 describe('Issues Similar View', function () {
   let mock;
 
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     features: ['similarity-view'],
   });
 
   const routerContext = RouterContextFixture([
     {
       router: {
-        ...TestStubs.router(),
+        ...RouterFixture(),
         params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
       },
     },
@@ -43,7 +45,7 @@ describe('Issues Similar View', function () {
     similar: Groups().map((issue, i) => [issue, scores[i]]),
   };
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({

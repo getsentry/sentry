@@ -34,8 +34,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'count()',
       ],
       name: 'Web Vitals',
-      query:
-        'transaction.op:pageload' + (transaction ? ` transaction:"${transaction}"` : ''),
+      query: [
+        'transaction.op:pageload',
+        ...(transaction ? [`transaction:"${transaction}"`] : []),
+      ].join(' '),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),

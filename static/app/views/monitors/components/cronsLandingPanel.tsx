@@ -173,7 +173,7 @@ export function CronsLandingPanel() {
   return (
     <Panel>
       <BackButton
-        icon={<IconChevron size="sm" direction="left" />}
+        icon={<IconChevron direction="left" />}
         onClick={() => navigateToPlatformGuide(null)}
         borderless
       >

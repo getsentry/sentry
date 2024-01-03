@@ -6,6 +6,7 @@ import {
   getDateTimeParams,
   getDDMInterval,
   getMetricsApiRequestQuery,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 
 describe('formatMetricsUsingUnitAndOp', () => {
@@ -191,5 +192,31 @@ describe('getDateTimeParams', () => {
       start: '2023-01-01T00:00:00.000Z',
       end: '2023-01-31T00:00:00.000Z',
     });
+  });
+});
+
+describe('stringifyMetricWidget', () => {
+  it('should format metric widget object into a string', () => {
+    const result = stringifyMetricWidget({
+      op: 'avg',
+      mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
+      groupBy: ['result'],
+      query: 'result:success',
+    });
+
+    expect(result).toEqual(
+      'avg(sentry.process_profile.symbolicate.process){result:success} by result'
+    );
+  });
+
+  it('defaults to an empty string', () => {
+    const result = stringifyMetricWidget({
+      op: '',
+      mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
+      groupBy: [],
+      query: '',
+    });
+
+    expect(result).toEqual('');
   });
 });

@@ -15,7 +15,7 @@ Prism.manual = true;
  * `loadPrismLanguage`. Maps language aliases (`js`) to the full language name
  * (`javascript`).
  */
-export const prismLanguageMap: Record<string, string> = Object.fromEntries(
+const PRISM_LANGUAGE_MAP: Record<string, string> = Object.fromEntries(
   Object.entries(prismComponents.languages)
     .map(([lang, value]) => {
       if (!value.alias) {
@@ -31,6 +31,37 @@ export const prismLanguageMap: Record<string, string> = Object.fromEntries(
     })
     .flat(1)
 );
+
+// Aliases that don't already exist in Prism.js
+// https://prismjs.com/#supported-languages
+const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
+  erl: 'erlang',
+  ex: 'elixir',
+  h: 'c',
+  pm: 'perl',
+  pyx: 'python',
+
+  // Ruby
+  jbuilder: 'ruby',
+  ru: 'ruby',
+  rake: 'ruby',
+
+  // JS
+  cjs: 'javascript',
+  mjs: 'javascript',
+  jsbundle: 'javascript',
+  bundle: 'javascript',
+  vue: 'javascript',
+  svelte: 'javascript',
+};
+
+export const getPrismLanguage = (lang: string) => {
+  const language = lang.toLowerCase();
+
+  const aliased = EXTRA_LANGUAGE_ALIASES[language];
+
+  return PRISM_LANGUAGE_MAP[aliased ?? language];
+};
 
 /**
  * Loads the specified Prism language (aliases like `js` for `javascript` also work).
@@ -50,7 +81,7 @@ export async function loadPrismLanguage(
   }
 ) {
   try {
-    const language: string | undefined = prismLanguageMap[lang.toLowerCase()];
+    const language: string | undefined = getPrismLanguage(lang);
 
     // Short-circuit if language already loaded
     if (Prism.languages[language]) {

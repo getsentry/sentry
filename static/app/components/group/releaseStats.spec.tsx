@@ -1,4 +1,7 @@
+import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,13 +9,13 @@ import GroupReleaseStats from 'sentry/components/group/releaseStats';
 
 describe('GroupReleaseStats', function () {
   const organization = Organization();
-  const project = TestStubs.Project();
-  const group = TestStubs.Group();
+  const project = ProjectFixture();
+  const group = GroupFixture();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
+      body: {id: group.id, firstRelease: undefined, lastRelease: undefined},
     });
   });
 
@@ -24,7 +27,7 @@ describe('GroupReleaseStats', function () {
         group={group}
         project={project}
         organization={organization}
-        allEnvironments={TestStubs.Group()}
+        allEnvironments={GroupFixture()}
         environments={[]}
         {...props}
       />
@@ -42,7 +45,9 @@ describe('GroupReleaseStats', function () {
   });
 
   it('renders specific environments', function () {
-    createWrapper({environments: TestStubs.Environments()});
+    createWrapper({
+      environments: EnvironmentsFixture().map(environment => environment.displayName),
+    });
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();

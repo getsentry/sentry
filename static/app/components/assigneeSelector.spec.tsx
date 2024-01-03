@@ -1,5 +1,9 @@
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {Group as GroupFixture} from 'sentry-fixture/group';
+import {Member as MemberFixture} from 'sentry-fixture/member';
+import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {Team} from 'sentry-fixture/team';
+import {User} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -27,26 +31,25 @@ describe('AssigneeSelector', () => {
   let GROUP_2;
 
   beforeEach(() => {
-    USER_1 = TestStubs.User({
+    USER_1 = User({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = User({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
-    USER_3 = TestStubs.User({
+    USER_3 = User({
       id: '3',
       name: 'J J',
       email: 'jj@example.com',
     });
-    USER_4 = TestStubs.Member({
+    USER_4 = MemberFixture({
       id: '4',
       name: 'Jane Doe',
       email: 'janedoe@example.com',
-      team_slug: 'cool-team2',
     });
 
     TEAM_1 = Team({
@@ -55,24 +58,18 @@ describe('AssigneeSelector', () => {
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = ProjectFixture({
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = GroupFixture({
       id: '1337',
-      project: {
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      },
+      project: PROJECT_1,
     });
 
-    GROUP_2 = TestStubs.Group({
+    GROUP_2 = GroupFixture({
       id: '1338',
-      project: {
-        id: PROJECT_1.id,
-        slug: PROJECT_1.slug,
-      },
+      project: PROJECT_1,
       owners: [
         {
           type: 'suspectCommit',
@@ -152,7 +149,7 @@ describe('AssigneeSelector', () => {
     it("should return the same member list if the session user isn't present", () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() =>
-        TestStubs.User({
+        User({
           id: '555',
           name: 'Here Comes a New Challenger',
           email: 'guile@mail.us.af.mil',
