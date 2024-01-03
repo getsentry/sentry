@@ -36,6 +36,7 @@ export function ProjectFixture(params: Partial<TProject> = {}): TProject {
     hasProfiles: false,
     hasReplays: false,
     hasSessions: false,
+    hasMonitors: false,
     isInternal: false,
     organization: OrganizationFixture(),
     plugins: [],
