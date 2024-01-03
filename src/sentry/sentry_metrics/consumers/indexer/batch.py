@@ -133,8 +133,8 @@ class IndexerBatch:
                 self._validate_message(parsed_payload)
                 self.parsed_payloads_by_meta[broker_meta] = parsed_payload
             # Temporary fix for influx of invalid messages with bad schema
-            # Catch this scenario early and skip any further processing, DLQing
-            # of the invalid message
+            # Catch this scenario early and skip any further processing or DLQing
+            # of the invalid message. The message will just be dropped.
             except ValidationError:
                 invalid_schema_msgs_cnt[namespace] += 1
                 continue
@@ -181,12 +181,14 @@ class IndexerBatch:
         try:
             self.schema_validator(use_case_id.value, parsed_payload)
         except ValidationError:
+            if options.get("sentry-metrics.indexer.raise-validation-errors"):
+                raise
+
             logger.warning(
                 "process_messages.invalid_schema",
                 extra={"payload_value": str(msg.payload.value)},
                 exc_info=True,
             )
-            raise
 
         self.__message_count[use_case_id] += 1
 
