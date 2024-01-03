@@ -47,6 +47,7 @@ def get_size_and_checksum(fileobj, logger=nooplogger):
             break
         size += len(chunk)
         checksum.update(chunk)
+    fileobj.seek(0)
 
     logger.debug("get_size_and_checksum.end")
     return size, checksum.hexdigest()

@@ -13,7 +13,7 @@ from sentry.api.permissions import SuperuserPermission
 class InternalQuotasEndpoint(Endpoint):
     owner = ApiOwner.OPEN_SOURCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 
