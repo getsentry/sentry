@@ -38,6 +38,7 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   erl: 'erlang',
   ex: 'elixir',
   h: 'c',
+  pl: 'perl',
   pm: 'perl',
   pyx: 'python',
 
