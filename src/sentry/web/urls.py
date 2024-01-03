@@ -393,10 +393,7 @@ urlpatterns += [
         generic_react_page_view,
     ),
     # Relocation
-    re_path(
-        r"^relocation/",
-        generic_react_page_view,
-    ),
+    re_path(r"^relocation/", generic_react_page_view, name="sentry-relocation"),
     # Admin
     re_path(
         r"^manage/",
