@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import features, search
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -26,6 +27,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
+    owner = ApiOwner.PERFORMANCE
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

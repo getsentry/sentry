@@ -2,6 +2,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
@@ -23,6 +24,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
+    owner = ApiOwner.PERFORMANCE
 
     rate_limits = {
         "GET": {
