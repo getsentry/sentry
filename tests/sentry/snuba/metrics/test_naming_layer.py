@@ -83,7 +83,6 @@ def test_valid_mri_schema_regex(name):
         "e:sessions/healthy..crashed.crashed@",
         "t:sessions/error.preaggr@none",
         "e:foo/error.preaggr@none" "foo.bar",
-        "e:sessions/error.098preaggr@none",
     ],
 )
 def test_invalid_mri_schema_regex(name):

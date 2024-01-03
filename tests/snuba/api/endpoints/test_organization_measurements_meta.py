@@ -71,6 +71,80 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
             }
         }
 
+    def test_measurements_with_numbers_in_name(self):
+        self.store_transaction_metric(
+            1,
+            metric="measurements.something_custom",
+            internal_metric="d:transactions/measurements.1234567890.abcdef@millisecond",
+            entity="metrics_distributions",
+            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
+        )
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "14d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "measurements.1234567890.abcdef": {
+                "functions": [
+                    "apdex",
+                    "avg",
+                    "p50",
+                    "p75",
+                    "p90",
+                    "p95",
+                    "p99",
+                    "p100",
+                    "max",
+                    "min",
+                    "sum",
+                    "percentile",
+                    "http_error_count",
+                    "http_error_rate",
+                ],
+                "unit": "millisecond",
+            }
+        }
+
+    def test_measurements_with_lots_of_periods(self):
+        self.store_transaction_metric(
+            1,
+            metric="measurements.something_custom",
+            internal_metric="d:transactions/measurements.a.b.c.d.e.f.g@millisecond",
+            entity="metrics_distributions",
+            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
+        )
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "14d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "measurements.a.b.c.d.e.f.g": {
+                "functions": [
+                    "apdex",
+                    "avg",
+                    "p50",
+                    "p75",
+                    "p90",
+                    "p95",
+                    "p99",
+                    "p100",
+                    "max",
+                    "min",
+                    "sum",
+                    "percentile",
+                    "http_error_count",
+                    "http_error_rate",
+                ],
+                "unit": "millisecond",
+            }
+        }
+
     def test_metric_outside_query_daterange(self):
         self.store_transaction_metric(
             1,
