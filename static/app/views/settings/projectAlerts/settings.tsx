@@ -44,17 +44,30 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
   const {
     data: project,
     isLoading: isProjectLoading,
+    isError: isProjectError,
     refetch: refetchProject,
   } = useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
   });
-  const {data: pluginList = [], isLoading: isPluginListLoading} = useApiQuery<Plugin[]>(
+  const {
+    data: pluginList = [],
+    isLoading: isPluginListLoading,
+    isError: isPluginListError,
+    refetch: refetchPluginList,
+  } = useApiQuery<Plugin[]>(
     makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
     {staleTime: 0}
   );
 
-  if (!isProjectLoading && !project) {
-    return <LoadingError onRetry={refetchProject} />;
+  if ((!isProjectLoading && !project) || isPluginListError || isProjectError) {
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetchProject();
+          refetchPluginList();
+        }}
+      />
+    );
   }
 
   const updatePlugin = (plugin: Plugin, enabled: boolean) => {
