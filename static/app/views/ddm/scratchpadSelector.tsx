@@ -3,9 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import * as Sentry from '@sentry/react';
-import {uuid4} from '@sentry/utils';
 import {AnimatePresence} from 'framer-motion';
-import isEmpty from 'lodash/isEmpty';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -18,148 +16,12 @@ import {IconBookmark, IconDashboard, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {clearQuery, updateQuery} from 'sentry/utils/metrics';
 import useKeyPress from 'sentry/utils/useKeyPress';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
-import useRouter from 'sentry/utils/useRouter';
+import {useScratchpads} from 'sentry/views/ddm/scratchpadContext';
 
 import {useCreateDashboard} from './useCreateDashboard';
-
-type Scratchpad = {
-  id: string;
-  name: string;
-  query: Record<string, unknown>;
-};
-
-type ScratchpadState = {
-  default: string | null;
-  scratchpads: Record<string, Scratchpad>;
-};
-
-function makeLocalStorageKey(orgSlug: string) {
-  return `ddm-scratchpads:${orgSlug}`;
-}
-
-export function useScratchpads() {
-  const {slug} = useOrganization();
-  const [state, setState] = useLocalStorageState<ScratchpadState>(
-    makeLocalStorageKey(slug),
-    {
-      default: null,
-      scratchpads: {},
-    }
-  );
-  const [selected, setSelected] = useState<string | null | undefined>(undefined); // scratchpad id
-  const router = useRouter();
-  const routerQuery = useMemo(() => router.location.query ?? {}, [router.location.query]);
-
-  useEffect(() => {
-    if (state.default && selected === undefined && !routerQuery.widgets) {
-      setSelected(state.default);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.default, selected]);
-
-  // changes the query when a scratchpad is selected, clears it when none is selected
-  useEffect(() => {
-    if (selected) {
-      const selectedQuery = state.scratchpads[selected].query;
-
-      const queryToUpdate = selectedQuery;
-
-      // if the selected scratchpad has a start and end date, override the statsPeriod
-      if (selectedQuery.start && selectedQuery.end) {
-        updateQuery(router, {...selectedQuery, statsPeriod: null});
-      } else {
-        updateQuery(router, queryToUpdate);
-      }
-    } else if (selected === null) {
-      clearQuery(router);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
-
-  // saves all changes to the selected scratchpad to local storage
-  useEffect(() => {
-    if (selected && !isEmpty(routerQuery)) {
-      update(selected, routerQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routerQuery]);
-
-  const toggleSelected = useCallback(
-    (id: string | null) => {
-      if (id === selected) {
-        setSelected(null);
-      } else {
-        setSelected(id);
-      }
-    },
-    [setSelected, selected]
-  );
-
-  const setDefault = useCallback(
-    (id: string | null) => {
-      setState({...state, default: id});
-    },
-    [state, setState]
-  );
-
-  const add = useCallback(
-    (name: string) => {
-      const id = uuid4();
-      const newScratchpads = {
-        ...state.scratchpads,
-        [id]: {name, id, query: {environment: null, statsPeriod: null, ...routerQuery}},
-      };
-      setState({...state, scratchpads: newScratchpads});
-      toggleSelected(id);
-    },
-    [state, setState, toggleSelected, routerQuery]
-  );
-
-  const update = useCallback(
-    (id: string, query: Scratchpad['query']) => {
-      const oldScratchpad = state.scratchpads[id];
-      const newQuery = {environment: null, statsPeriod: null, ...query};
-      const newScratchpads = {
-        ...state.scratchpads,
-        [id]: {...oldScratchpad, query: newQuery},
-      };
-      setState({...state, scratchpads: newScratchpads});
-    },
-    [state, setState]
-  );
-
-  const remove = useCallback(
-    (id: string) => {
-      const newScratchpads = {...state.scratchpads};
-      delete newScratchpads[id];
-      if (state.default === id) {
-        setState({...state, default: null, scratchpads: newScratchpads});
-      } else {
-        setState({...state, scratchpads: newScratchpads});
-      }
-      if (selected === id) {
-        toggleSelected(null);
-      }
-    },
-    [state, setState, toggleSelected, selected]
-  );
-
-  return {
-    all: state.scratchpads,
-    default: state.default,
-    selected,
-    add,
-    update,
-    remove,
-    toggleSelected,
-    setDefault,
-  };
-}
 
 export function ScratchpadSelector() {
   const scratchpads = useScratchpads();
