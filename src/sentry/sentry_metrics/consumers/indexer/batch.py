@@ -115,14 +115,14 @@ class IndexerBatch:
         (extract_strings and reconstruct_messages)
         """
         skipped_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
+        invalid_schema_msgs_cnt: MutableMapping[str, int] = defaultdict(int)
 
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             broker_meta = BrokerMeta(msg.value.partition, msg.value.offset)
+            namespace = self._extract_namespace(msg.payload.headers)
 
-            if (namespace := self._extract_namespace(msg.payload.headers)) in options.get(
-                "sentry-metrics.indexer.disabled-namespaces"
-            ):
+            if namespace in options.get("sentry-metrics.indexer.disabled-namespaces"):
                 assert namespace
                 skipped_msgs_cnt[namespace] += 1
                 self.filtered_msg_meta.add(broker_meta)
@@ -132,6 +132,12 @@ class IndexerBatch:
                 parsed_payload = self._extract_message(msg)
                 self._validate_message(parsed_payload)
                 self.parsed_payloads_by_meta[broker_meta] = parsed_payload
+            # Temporary fix for influx of invalid messages with bad schema
+            # Catch this scenario early and skip any further processing, DLQing
+            # of the invalid message
+            except ValidationError:
+                invalid_schema_msgs_cnt[namespace] += 1
+                continue
             except Exception as e:
                 self.invalid_msg_meta.add(broker_meta)
                 logger.exception(
@@ -142,6 +148,13 @@ class IndexerBatch:
         for namespace, cnt in skipped_msgs_cnt.items():
             metrics.incr(
                 "process_messages.namespace_disabled",
+                amount=cnt,
+                tags={"namespace": namespace},
+            )
+
+        for namespace, cnt in invalid_schema_msgs_cnt.items():
+            metrics.incr(
+                "process_messages.invalid_schema",
                 amount=cnt,
                 tags={"namespace": namespace},
             )
@@ -168,13 +181,12 @@ class IndexerBatch:
         try:
             self.schema_validator(use_case_id.value, parsed_payload)
         except ValidationError:
-            if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
-                raise
             logger.warning(
                 "process_messages.invalid_schema",
                 extra={"payload_value": str(msg.payload.value)},
                 exc_info=True,
             )
+            raise
 
         self.__message_count[use_case_id] += 1
 
