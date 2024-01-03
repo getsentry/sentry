@@ -77,9 +77,11 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         # Initialize the response results.
         response = []
         for time_string in results["intervals"]:
+            ts = parse_timestamp(time_string)
+            assert ts is not None
             response.append(
                 {
-                    "ts": int(parse_timestamp(time_string).timestamp()),
+                    "ts": int(ts.timestamp()),
                     "total": 0,
                     "dropped": 0,
                     "accepted": 0,

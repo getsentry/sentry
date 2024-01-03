@@ -649,7 +649,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             return Response(uuid_context, status=202)
 
         created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
-            kwargs.get("actions")
+            kwargs["actions"]
         )
         rule = Creator.run(request=request, **kwargs)
 

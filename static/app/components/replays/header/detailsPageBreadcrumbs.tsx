@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import {t} from 'sentry/locale';

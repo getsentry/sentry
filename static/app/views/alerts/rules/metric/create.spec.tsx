@@ -1,5 +1,6 @@
 import {EventsStats} from 'sentry-fixture/events';
-import LocationFixture from 'sentry-fixture/locationFixture';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -50,7 +51,7 @@ describe('Incident Rules Create', function () {
 
     render(
       <MetricRulesCreate
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         eventView={EventView.fromLocation(LocationFixture())}
         params={{projectId: project.slug}}
         organization={organization}

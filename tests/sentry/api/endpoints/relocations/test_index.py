@@ -172,8 +172,8 @@ class GetRelocationsTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 2
-        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
-        assert response.data[1]["status"] == Relocation.Status.SUCCESS.name
+        assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
+        assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_single_query_username(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -181,8 +181,8 @@ class GetRelocationsTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 2
-        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
-        assert response.data[1]["status"] == Relocation.Status.FAILURE.name
+        assert response.data[0]["status"] == Relocation.Status.FAILURE.name
+        assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_single_query_letter(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -190,9 +190,9 @@ class GetRelocationsTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 3
-        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
         assert response.data[1]["status"] == Relocation.Status.PAUSE.name
-        assert response.data[2]["status"] == Relocation.Status.SUCCESS.name
+        assert response.data[2]["status"] == Relocation.Status.IN_PROGRESS.name
 
     def test_multiple_queries(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -290,6 +290,7 @@ class PostRelocationsTest(APITestCase):
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["scheduledPauseAtStep"] is None
         assert response.data["creatorId"] == str(self.owner.id)
         assert response.data["creatorEmail"] == str(self.owner.email)
         assert response.data["creatorUsername"] == str(self.owner.username)
@@ -302,6 +303,82 @@ class PostRelocationsTest(APITestCase):
         assert relocation.want_org_slugs == ["testing"]
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
+
+        assert uploading_complete_mock.call_count == 1
+
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
+    def test_success_with_valid_autopause_option(self, uploading_complete_mock):
+        self.login_as(user=self.owner, superuser=False)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit.small": 1,
+                    "relocation.autopause": "IMPORTING",
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": "testing",
+                        },
+                        format="multipart",
+                    )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
+
+        assert uploading_complete_mock.call_count == 1
+
+    @patch("sentry.tasks.relocation.uploading_complete.delay")
+    def test_success_with_invalid_autopause_option(self, uploading_complete_mock):
+        self.login_as(user=self.owner, superuser=False)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with self.options(
+                {
+                    "relocation.enabled": True,
+                    "relocation.daily-limit.small": 1,
+                    "relocation.autopause": "DOESNOTEXIST",
+                }
+            ), open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": "testing",
+                        },
+                        format="multipart",
+                    )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["scheduledPauseAtStep"] is None
 
         assert uploading_complete_mock.call_count == 1
 
@@ -357,6 +434,33 @@ class PostRelocationsTest(APITestCase):
 
     def test_fail_without_superuser_when_feature_disabled(self):
         self.login_as(user=self.owner, superuser=False)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with open(FRESH_INSTALL_PATH) as f:
+                data = json.load(f)
+                with open(tmp_pub_key_path, "rb") as p:
+                    response = self.client.post(
+                        reverse(self.endpoint),
+                        {
+                            "owner": self.owner.username,
+                            "file": SimpleUploadedFile(
+                                "export.tar",
+                                create_encrypted_export_tarball(
+                                    data, LocalFileEncryptor(p)
+                                ).getvalue(),
+                                content_type="application/tar",
+                            ),
+                            "orgs": "testing, foo",
+                        },
+                        format="multipart",
+                    )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data.get("detail") is not None
+        assert response.data.get("detail") == ERR_FEATURE_DISABLED
+
+    def test_fail_expired_superuser_when_feature_disabled(self):
+        self.login_as(user=self.owner, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with open(FRESH_INSTALL_PATH) as f:

@@ -1,5 +1,7 @@
+import {Group as GroupFixture} from 'sentry-fixture/group';
 import {Organization} from 'sentry-fixture/organization';
 import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {Release as ReleaseFixture} from 'sentry-fixture/release';
 import {Repository} from 'sentry-fixture/repository';
 import {Team} from 'sentry-fixture/team';
 import {User} from 'sentry-fixture/user';
@@ -46,10 +48,17 @@ describe('GroupActivity', function () {
     activity?: Group['activity'];
     organization?: TOrganization;
   } = {}) {
-    const group = TestStubs.Group({
+    const group = GroupFixture({
       id: '1337',
       activity: activity ?? [
-        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: User()},
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'Test Note'},
+          dateCreated: '2020-01-01T00:00:00',
+          user: User(),
+          project,
+        },
       ],
       project,
     });
@@ -236,7 +245,7 @@ describe('GroupActivity', function () {
               message: '',
               repository: Repository(),
               releases: [
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
@@ -268,22 +277,22 @@ describe('GroupActivity', function () {
               message: '',
               repository: Repository(),
               releases: [
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-05-01',
                   dateReleased: '2022-05-02',
                   version: 'random',
                 }),
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-06-01',
                   dateReleased: '2022-06-02',
                   version: 'newest',
                 }),
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2021-08-03',
                   dateReleased: '2021-08-03',
                   version: 'oldest-release',
                 }),
-                TestStubs.Release({
+                ReleaseFixture({
                   dateCreated: '2022-04-21',
                   dateReleased: '2022-04-21',
                   version: 'randomTwo',

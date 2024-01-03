@@ -1,7 +1,11 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {deleteMonitorEnvironment, updateMonitor} from 'sentry/actionCreators/monitors';
+import {
+  deleteMonitorEnvironment,
+  setEnvironmentIsMuted,
+  updateMonitor,
+} from 'sentry/actionCreators/monitors';
 import Panel from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import {space} from 'sentry/styles/space';
@@ -35,7 +39,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const router = useRouter();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef(new Date());
   const start = getStartFromTimeWindow(nowRef.current, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
@@ -95,6 +99,32 @@ export function OverviewTimeline({monitorList}: Props) {
     });
   };
 
+  const handleToggleMuteEnvironment = async (
+    monitor: Monitor,
+    env: string,
+    isMuted: boolean
+  ) => {
+    const resp = await setEnvironmentIsMuted(
+      api,
+      organization.slug,
+      monitor.slug,
+      env,
+      isMuted
+    );
+
+    if (resp === null) {
+      return;
+    }
+
+    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
+      const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
+      // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
+      oldMonitorList[monitorIdx] = resp;
+      return oldMonitorList;
+    });
+  };
+
   const handleToggleStatus = async (monitor: Monitor) => {
     const status = monitor.status === 'active' ? 'disabled' : 'active';
     const resp = await updateMonitor(api, organization.slug, monitor.slug, {status});
@@ -145,6 +175,9 @@ export function OverviewTimeline({monitorList}: Props) {
           end={nowRef.current}
           width={timelineWidth}
           onDeleteEnvironment={env => handleDeleteEnvironment(monitor, env)}
+          onToggleMuteEnvironment={(env, isMuted) =>
+            handleToggleMuteEnvironment(monitor, env, isMuted)
+          }
           onToggleStatus={handleToggleStatus}
         />
       ))}

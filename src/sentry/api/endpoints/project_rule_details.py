@@ -345,7 +345,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
+            trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
 
             updated_rule = Updater.run(rule=rule, request=request, **kwargs)
 
