@@ -1,4 +1,4 @@
-import {WebhookPluginConfig} from 'sentry-fixture/integrationListDirectory';
+import {WebhookPluginConfigFixture} from 'sentry-fixture/integrationListDirectory';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +11,7 @@ describe('PluginConfig', () => {
   const {organization, project} = initializeOrg();
 
   it('can test webhook plugin', async () => {
-    const webhookPlugin = WebhookPluginConfig({enabled: true});
+    const webhookPlugin = WebhookPluginConfigFixture({enabled: true});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/${webhookPlugin.id}/`,
