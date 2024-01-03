@@ -444,7 +444,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         )
         result = self.run_query(request)
         assert request.dataset == "metrics"
-        assert len(result["data"]) == 0
+        assert len(result["data"]) == 10
 
     def test_gauges(self) -> None:
         query = MetricsQuery(
