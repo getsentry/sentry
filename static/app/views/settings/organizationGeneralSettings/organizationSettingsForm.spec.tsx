@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -40,7 +40,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={Organization()}
+        initialData={OrganizationFixture()}
         onSave={onSave}
       />
     );
@@ -106,7 +106,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={Organization()}
+        initialData={OrganizationFixture()}
         onSave={onSave}
       />
     );
@@ -141,7 +141,7 @@ describe('OrganizationSettingsForm', function () {
     render(
       <OrganizationSettingsForm
         {...routerProps}
-        initialData={Organization({codecovAccess: false})}
+        initialData={OrganizationFixture({codecovAccess: false})}
         onSave={onSave}
       />,
       {

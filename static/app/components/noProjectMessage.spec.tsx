@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -14,10 +14,10 @@ describe('NoProjectMessage', function () {
     ProjectsStore.reset();
   });
 
-  const org = Organization();
+  const org = OrganizationFixture();
 
   it('renders', function () {
-    const organization = Organization({slug: 'org-slug'});
+    const organization = OrganizationFixture({slug: 'org-slug'});
     const childrenMock = jest.fn().mockReturnValue(null);
     ProjectsStore.loadInitialData([]);
 
@@ -30,7 +30,10 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows "Create Project" button when there are no projects', function () {
-    const organization = Organization({slug: 'org-slug', features: ['team-roles']});
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['team-roles'],
+    });
     ProjectsStore.loadInitialData([]);
 
     render(<NoProjectMessage organization={organization} />);
@@ -41,7 +44,7 @@ describe('NoProjectMessage', function () {
   it('disable "Create Project" when user has no org-level access', function () {
     ProjectsStore.loadInitialData([]);
 
-    render(<NoProjectMessage organization={Organization({access: []})} />);
+    render(<NoProjectMessage organization={OrganizationFixture({access: []})} />);
 
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
@@ -49,13 +52,13 @@ describe('NoProjectMessage', function () {
   it('shows "Create Project" button when user has team-level access', function () {
     ProjectsStore.loadInitialData([]);
     TeamStore.loadInitialData([
-      {...Team(), access: ['team:admin', 'team:write', 'team:read']},
+      {...TeamFixture(), access: ['team:admin', 'team:write', 'team:read']},
     ]);
 
     // No org-level access
     render(
       <NoProjectMessage
-        organization={Organization({access: [], features: ['team-roles']})}
+        organization={OrganizationFixture({access: [], features: ['team-roles']})}
       />
     );
 

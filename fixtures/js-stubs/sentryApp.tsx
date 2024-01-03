@@ -1,6 +1,6 @@
 import {SentryApp as SentryAppType} from 'sentry/types';
 
-export function SentryApp(params: Partial<SentryAppType> = {}): SentryAppType {
+export function SentryAppFixture(params: Partial<SentryAppType> = {}): SentryAppType {
   return {
     name: 'Sample App',
     author: 'Sentry',

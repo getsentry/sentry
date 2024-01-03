@@ -4,7 +4,7 @@ import {
   DebugFileType,
 } from 'sentry/types';
 
-export function DebugFile(params = {}): TDebugFile {
+export function DebugFileFixture(params = {}): TDebugFile {
   return {
     objectName: 'libS.so',
     symbolType: 'elf',

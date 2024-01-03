@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -32,7 +32,7 @@ export function initializeData(settings?: InitializeDataSettings) {
   };
   const {query, features, projects, selectedProject: project} = _settings;
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects,
   });

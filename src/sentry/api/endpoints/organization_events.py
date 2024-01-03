@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
@@ -301,7 +302,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
             if request.GET.get("noPagination"):
                 return Response(

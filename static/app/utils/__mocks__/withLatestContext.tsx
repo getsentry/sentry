@@ -1,8 +1,8 @@
 import {Component} from 'react';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-const MOCK_ORG = Organization();
+const MOCK_ORG = OrganizationFixture();
 const DEFAULTS = {
   organization: MOCK_ORG,
   organizations: [MOCK_ORG],

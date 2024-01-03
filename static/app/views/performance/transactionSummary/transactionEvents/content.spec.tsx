@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +19,7 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 function initializeData() {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['discover-basic', 'performance-view'],
     projects: [ProjectFixture()],
   });
