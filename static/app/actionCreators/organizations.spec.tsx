@@ -1,12 +1,12 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('fetchOrganizations', function () {
   const api = new MockApiClient();
-  const usorg = Organization({slug: 'us-org'});
-  const deorg = Organization({slug: 'de-org'});
+  const usorg = OrganizationFixture({slug: 'us-org'});
+  const deorg = OrganizationFixture({slug: 'de-org'});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

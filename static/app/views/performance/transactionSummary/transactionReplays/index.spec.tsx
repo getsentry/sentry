@@ -1,5 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ReplayList} from 'sentry-fixture/replayList';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReplayListFixture} from 'sentry-fixture/replayList';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -206,7 +206,7 @@ describe('TransactionReplays', () => {
       body: {
         data: [
           {
-            ...ReplayList()[0],
+            ...ReplayListFixture()[0],
             count_errors: 1,
             duration: 52346,
             finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -218,7 +218,7 @@ describe('TransactionReplays', () => {
             ],
           },
           {
-            ...ReplayList()[0],
+            ...ReplayListFixture()[0],
             count_errors: 4,
             duration: 400,
             finished_at: new Date('2022-09-21T21:40:38+00:00'),

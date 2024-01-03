@@ -34,5 +34,4 @@ export function RouterFixture(params = {}): InjectedRouter {
   };
 }
 
-// TODO(epurkhiser): Remove once removed from getsentry
 export default RouterFixture;

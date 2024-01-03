@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -27,7 +27,7 @@ describe('WaitingForEvents', function () {
   describe('with a project', function () {
     function createWrapper() {
       return render(
-        <WaitingForEvents org={Organization()} project={ProjectFixture()} />,
+        <WaitingForEvents org={OrganizationFixture()} project={ProjectFixture()} />,
         {
           context: routerContext,
         }
@@ -52,7 +52,7 @@ describe('WaitingForEvents', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return render(<WaitingForEvents org={Organization()} />, {
+      return render(<WaitingForEvents org={OrganizationFixture()} />, {
         context: routerContext,
       });
     }
