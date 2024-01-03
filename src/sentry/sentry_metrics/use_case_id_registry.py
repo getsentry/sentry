@@ -4,8 +4,6 @@ import re
 from enum import Enum
 from typing import Mapping, Optional
 
-from sentry_kafka_schemas.codecs import ValidationError
-
 from sentry.sentry_metrics.configuration import UseCaseKey
 
 MRI_RE_PATTERN = re.compile("^([c|s|d|g|e]):([a-zA-Z0-9_]+)/.*$")
@@ -63,4 +61,4 @@ def extract_use_case_id(mri: str) -> UseCaseID:
         use_case_str = matched.group(2)
         if use_case_str in {id.value for id in UseCaseID}:
             return UseCaseID(use_case_str)
-    raise ValidationError(f"Invalid mri: {mri}")
+    raise ValueError(f"Invalid mri: {mri}")
