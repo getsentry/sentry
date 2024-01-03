@@ -8,7 +8,7 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 
-import {MRI, Project} from 'sentry/types';
+import {MRI} from 'sentry/types';
 import {
   defaultMetricDisplayType,
   MetricDisplayType,
@@ -19,7 +19,6 @@ import {
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {FocusArea} from 'sentry/views/ddm/chartBrush';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
@@ -31,7 +30,6 @@ interface DDMContextValue {
   addWidgets: (widgets: Partial<MetricWidgetQueryParams>[]) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusArea | null;
-  hasCustomMetrics: boolean;
   isLoading: boolean;
   metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
   removeFocusArea: () => void;
@@ -54,7 +52,6 @@ export const DDMContext = createContext<DDMContextValue>({
   duplicateWidget: () => {},
   widgets: [],
   metricsMeta: [],
-  hasCustomMetrics: false,
   isLoading: false,
   focusArea: null,
 });
@@ -72,17 +69,6 @@ const emptyWidget: MetricWidgetQueryParams = {
   displayType: MetricDisplayType.LINE,
   title: undefined,
 };
-
-function useCurrentProjects(): Project[] {
-  const {selection} = usePageFilters();
-  const {projects: projectIds} = selection;
-  const {projects} = useProjects();
-
-  return useMemo(() => {
-    const projectIdLookup = new Set(projectIds.map(id => id.toString()));
-    return projects.filter(project => projectIdLookup.has(project.id));
-  }, [projects, projectIds]);
-}
 
 export function useMetricWidgets() {
   const router = useRouter();
@@ -194,11 +180,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
   const pageFilters = usePageFilters().selection;
-
   const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
-
-  const currentProjects = useCurrentProjects();
-  const hasCustomMetrics = currentProjects.some(project => project.hasCustomMetrics);
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
@@ -262,7 +244,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeWidget,
       duplicateWidget: handleDuplicate,
       widgets,
-      hasCustomMetrics,
       isLoading,
       metricsMeta,
       focusArea,
@@ -275,7 +256,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       handleDuplicate,
       handleUpdateWidget,
       removeWidget,
-      hasCustomMetrics,
       isLoading,
       metricsMeta,
       selectedWidgetIndex,

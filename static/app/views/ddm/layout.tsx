@@ -34,7 +34,7 @@ import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
   const organization = useOrganization();
-  const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
+  const {metricsMeta, isLoading} = useDDMContext();
   const {isLoading: isLoadingScratchpads} = useScratchpads();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
@@ -67,7 +67,7 @@ export const DDMLayout = memo(() => {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {hasMetrics && !hasCustomMetrics && (
+            {hasMetrics && (
               <Button
                 priority="primary"
                 onClick={() => addCustomMetric('header')}
