@@ -475,6 +475,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
   componentWillUnmount() {
     this.inputResizeObserver?.disconnect();
+    this.updateAutoCompleteItems.cancel();
     document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
