@@ -33,5 +33,3 @@ export function RouterFixture(params = {}): InjectedRouter {
     ...params,
   };
 }
-
-export default RouterFixture;

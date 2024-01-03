@@ -12,6 +12,3 @@ export function LocationFixture(params: Partial<Location> = {}): Location {
     ...params,
   };
 }
-
-// TODO(epurkhiser): Remove once removed from getsentry
-export default LocationFixture;

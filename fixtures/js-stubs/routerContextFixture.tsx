@@ -22,6 +22,3 @@ export function RouterContextFixture([context, childContextTypes] = []) {
     },
   };
 }
-
-// TODO(epurkhiser): Remove once removed from getsentry
-export default RouterContextFixture;

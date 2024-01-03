@@ -16,6 +16,3 @@ export function RouteComponentPropsFixture<
     router,
   };
 }
-
-// TODO(epurkhiser): Remove once removed from getsentry
-export default RouteComponentPropsFixture;
