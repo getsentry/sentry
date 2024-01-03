@@ -14,9 +14,16 @@ type Props = FormProps & {
   onSubmit?: (data: Record<string, any>) => any | void;
 };
 
-function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}: Props) {
+function ApiForm({
+  onSubmit,
+  apiMethod,
+  apiEndpoint,
+  hostOverride,
+  model,
+  ...otherProps
+}: Props) {
   const api = useApi();
-  const formModel = useMemo(() => otherProps.model ?? new FormModel(), [otherProps]);
+  const formModel = useMemo(() => model ?? new FormModel(), [model]);
 
   const handleSubmit = useCallback(
     (

@@ -81,3 +81,11 @@ export function getRegionByName(regionName: string): Region | undefined {
     ({name}) => name.toUpperCase() === regionName.toUpperCase()
   );
 }
+
+export function getRegionBaseUrl(region?: Region): string | undefined {
+  if (!region?.url) {
+    return undefined;
+  }
+
+  return `${region.url}/api/0`;
+}

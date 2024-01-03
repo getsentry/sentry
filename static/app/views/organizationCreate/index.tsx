@@ -1,27 +1,44 @@
 import {ReactElement, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ApiForm from 'sentry/components/forms/apiForm';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {OrganizationSummary} from 'sentry/types';
+import {OrganizationSummary, Region} from 'sentry/types';
 import {
+  getRegionBaseUrl,
   getRegionByName,
   getRegionChoices,
   shouldDisplayRegions,
 } from 'sentry/utils/regions';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
+function removeDataStorageLocationFromFormData(
+  formData: Record<string, any>
+): Record<string, any> {
+  const shallowFormDataClone = {...formData};
+  delete shallowFormDataClone.dataStorageLocation;
+  return shallowFormDataClone;
+}
+
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
   const regionChoices = getRegionChoices();
-  const [regionUrl, setRegion] = useState<string | undefined>(undefined);
+  const [region, setRegion] = useState<Region | undefined>(undefined);
+
+  const formModel: FormModel = new FormModel({
+    apiOptions: {
+      baseUrl: getRegionBaseUrl(region),
+    },
+    transformData: removeDataStorageLocationFromFormData,
+  });
 
   let dataStorageSelect: ReactElement | null = null;
   if (shouldDisplayRegions()) {
@@ -31,7 +48,7 @@ function OrganizationCreate() {
         label="Data Storage Location"
         help="Where will this organization reside?"
         choices={regionChoices}
-        onChange={regionName => setRegion(getRegionByName(regionName)?.url)}
+        onChange={regionName => setRegion(getRegionByName(regionName))}
         inline={false}
         stacked
         required
@@ -49,12 +66,12 @@ function OrganizationCreate() {
           )}
         </p>
 
-        <ApiForm
+        <Form
           initialData={{defaultTeam: true}}
           submitLabel={t('Create Organization')}
           apiEndpoint="/organizations/"
           apiMethod="POST"
-          hostOverride={regionUrl}
+          model={formModel}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
             let nextUrl = normalizeUrl(
@@ -101,7 +118,7 @@ function OrganizationCreate() {
               required
             />
           )}
-        </ApiForm>
+        </Form>
       </NarrowLayout>
     </SentryDocumentTitle>
   );

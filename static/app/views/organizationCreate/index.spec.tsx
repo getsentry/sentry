@@ -152,11 +152,20 @@ describe('OrganizationCreate', function () {
     );
   });
 
-  it('renders with region data and selects US region as default when the feature flag is enabled', async function () {
+  it('renders without a pre-selected region, and does not submit until one is selected', async function () {
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
+    await userEvent.click(screen.getByText('Create Organization'));
+
+    expect(orgCreateMock).not.toHaveBeenCalled();
+    expect(window.location.assign).not.toHaveBeenCalled();
+
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Data Storage Location'}),
+      '🇺🇸 United States of America (US)'
+    );
     await userEvent.click(screen.getByText('Create Organization'));
 
     await waitFor(() => {
@@ -164,8 +173,7 @@ describe('OrganizationCreate', function () {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: undefined,
-        data: {defaultTeam: true, name: 'Good Burger', region: undefined},
+        data: {defaultTeam: true, name: 'Good Burger'},
       });
     });
 
@@ -210,14 +218,12 @@ describe('OrganizationCreate', function () {
     );
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = 'https://de.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        host: expectedHost,
-        data: {defaultTeam: true, name: 'Good Burger', region: 'de'},
+        data: {defaultTeam: true, name: 'Good Burger'},
       });
     });
 
