@@ -282,7 +282,7 @@ def create_alert_rule_data(project: Project, user: User, monitor: Monitor, alert
                 "value": monitor.slug,
             },
         ],
-        "frequency": 1440,
+        "frequency": 5,
         "name": f"Monitor Alert: {monitor.name}"[:64],
         "owner": None,
         "projects": [project.slug],
