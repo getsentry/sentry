@@ -30,3 +30,4 @@ class ApiOwner(Enum):
     TELEMETRY_EXPERIENCE = "telemetry-experience"
     UNOWNED = "unowned"
     WEB_FRONTEND_SDKS = "team-web-sdk-frontend"
+    WEB_BACKEND_SDKS = "team-web-sdk-backend"
