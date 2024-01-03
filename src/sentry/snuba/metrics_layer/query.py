@@ -203,7 +203,6 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         raise e
 
     # TODO: Right now, if the query is release health, the tag values in the results are left unresolved. We need to fix this.
-
     # If we normalized the start/end, return those values in the response so the caller is aware
     results = {
         **snuba_result,
@@ -379,7 +378,7 @@ def _lookup_indexer_resolve_exp(
         parameters = exp.parameters
         for i, p in enumerate(parameters):
             if isinstance(p, (Formula, Timeseries)):
-                new_mappings = _lookup_indexer_resolve_exp(p, org_id, use_case_id)
+                new_mappings = _lookup_indexer_resolve_exp(p, org_id, use_case_id, dataset)
                 indexer_mappings.update(new_mappings)
 
     return indexer_mappings
@@ -681,7 +680,7 @@ def _resolve_filters(
 
     mappings = {}
 
-    def resolve_exp(exp: FilterTypes, dataset: str) -> None:
+    def resolve_exp(exp: FilterTypes, dataset: str) -> FilterTypes:
         if dataset == Dataset.Metrics.value and (isinstance(exp, str) or isinstance(exp, list)):
             if isinstance(exp, str):
                 resolved = resolve_weak(use_case_id, org_id, exp)
