@@ -38,7 +38,7 @@ type ReplayRecordProp = {replayRecord: undefined | ReplayRecord};
 interface Result {
   attachments: unknown[];
   errors: ReplayError[];
-  fetchError: undefined | RequestError;
+  fetchError: null | RequestError;
   fetching: boolean;
   onRetry: () => void;
   projectSlug: string | null;
@@ -77,10 +77,13 @@ export default function useReplayData({
 }: Options): Result {
   const queryClient = useQueryClient();
 
-  const {data: replayData, isFetching: isFetchingReplay} = useApiQuery<{data: unknown}>(
-    [`/organizations/${orgSlug}/replays/${replayId}/`],
-    {staleTime: Infinity}
-  );
+  const {
+    data: replayData,
+    isFetching: isFetchingReplay,
+    error,
+  } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
+    staleTime: Infinity,
+  });
 
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
@@ -107,7 +110,7 @@ export default function useReplayData({
 
   const {pages: attachmentPages, isFetching: isFetchingAttachments} =
     useFetchParallelPages({
-      enabled: Boolean(projectSlug) && Boolean(replayRecord),
+      enabled: !error && Boolean(projectSlug) && Boolean(replayRecord),
       hits: replayRecord?.count_segments ?? 0,
       getQueryKey: getAttachmentsQueryKey,
       perPage: segmentsPerPage,
@@ -143,7 +146,7 @@ export default function useReplayData({
     isFetching: isFetchingErrors,
     getLastResponseHeader: lastErrorsResponseHeader,
   } = useFetchParallelPages<{data: ReplayError[]}>({
-    enabled: Boolean(projectSlug) && Boolean(replayRecord),
+    enabled: !error && Boolean(projectSlug) && Boolean(replayRecord),
     hits: replayRecord?.count_errors ?? 0,
     getQueryKey: getErrorsQueryKey,
     perPage: errorsPerPage,
@@ -152,7 +155,7 @@ export default function useReplayData({
   const linkHeader = lastErrorsResponseHeader?.('Link') ?? null;
   const links = parseLinkHeader(linkHeader);
   const {pages: extraErrorPages} = useFetchSequentialPages<{data: ReplayError[]}>({
-    enabled: !isFetchingErrors && Boolean(links.next?.results),
+    enabled: !error && !isFetchingErrors && Boolean(links.next?.results),
     initialCursor: links.next?.cursor,
     getQueryKey: getErrorsQueryKey,
     perPage: errorsPerPage,
@@ -180,7 +183,7 @@ export default function useReplayData({
     () => ({
       attachments: attachmentPages.flat(2),
       errors: errorPages.concat(extraErrorPages).flatMap(page => page.data),
-      fetchError: undefined,
+      fetchError: error,
       fetching: isFetchingReplay || isFetchingAttachments || isFetchingErrors,
       onRetry: clearQueryCache,
       projectSlug,
@@ -189,6 +192,7 @@ export default function useReplayData({
     [
       attachmentPages,
       clearQueryCache,
+      error,
       errorPages,
       extraErrorPages,
       isFetchingAttachments,
