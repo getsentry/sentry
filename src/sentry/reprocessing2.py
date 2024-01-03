@@ -79,7 +79,6 @@ instead of group deletion is:
 * All reprocessed events are "just" inserted over the old ones.
 """
 
-import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
@@ -98,7 +97,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import get_path, set_path
@@ -145,29 +143,6 @@ class CannotReprocess(Exception):
         Exception.__init__(self, reason)
 
 
-def _generate_unprocessed_event_node_id(project_id, event_id):
-    return hashlib.md5(f"{project_id}:{event_id}:unprocessed".encode()).hexdigest()
-
-
-def save_unprocessed_event(project, event_id):
-    """
-    Move event from event_processing_store into nodestore. Only call if event
-    has outcome=accepted.
-    """
-    with sentry_sdk.start_span(
-        op="sentry.reprocessing2.save_unprocessed_event.get_unprocessed_event"
-    ):
-        data = event_processing_store.get(
-            cache_key_for_event({"project": project.id, "event_id": event_id}), unprocessed=True
-        )
-        if data is None:
-            return
-
-    with sentry_sdk.start_span(op="sentry.reprocessing2.save_unprocessed_event.set_nodestore"):
-        node_id = _generate_unprocessed_event_node_id(project_id=project.id, event_id=event_id)
-        nodestore.set(node_id, data)
-
-
 def backup_unprocessed_event(data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
@@ -199,9 +174,6 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
         data = nodestore.get(node_id, subkey="unprocessed")
-        if data is None:
-            node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
-            data = nodestore.get(node_id)
 
     # Check data after checking presence of event to avoid too many instances.
     if data is None:
