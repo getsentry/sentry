@@ -34,6 +34,16 @@ function makeLocalStorageKey(orgSlug: string) {
 
 const EMPTY_QUERY = {};
 
+const mapProjectQueryParam = (project: any) => {
+  if (typeof project === 'string') {
+    return [Number(project)];
+  }
+  if (Array.isArray(project)) {
+    return project.map(Number);
+  }
+  return [];
+};
+
 function useScratchpadUrlSync() {
   const {slug} = useOrganization();
   const router = useRouter();
@@ -64,14 +74,7 @@ function useScratchpadUrlSync() {
 
   const savedProjects = selected && state.scratchpads[selected].query.project;
   // The scratchpad is "loading" while the project selection state is different from the saved state
-  const isLoading =
-    !!selected &&
-    !isEqual(
-      Array.isArray(savedProjects)
-        ? savedProjects?.map?.(Number)
-        : [Number(savedProjects)],
-      projects
-    );
+  const isLoading = !!selected && !isEqual(mapProjectQueryParam(savedProjects), projects);
 
   const toggleSelected = useCallback(
     (id: string | null) => {
@@ -113,7 +116,9 @@ function useScratchpadUrlSync() {
     (id: string, query: Scratchpad['query']) => {
       const currentState = stateRef.current;
       const oldScratchpad = currentState.scratchpads[id];
-      const newQuery = {...query};
+      const newQuery = {
+        ...query,
+      };
       const newScratchpads = {
         ...currentState.scratchpads,
         [id]: {...oldScratchpad, query: newQuery},
@@ -144,14 +149,15 @@ function useScratchpadUrlSync() {
   useEffect(() => {
     const selectedQuery = selected && stateRef.current.scratchpads[selected].query;
     if (selectedQuery && !isEqual(selectedQuery, routerQueryRef.current)) {
+      const queryCopy: Record<string, any> = {
+        project: undefined, // make sure that project will be removed if not present in the stored query
+        ...selectedQuery,
+      };
       // If the selected scratchpad has a start and end date, remove the statsPeriod
       if (selectedQuery.start && selectedQuery.end) {
-        const queryCopy = {...selectedQuery};
         delete queryCopy.statsPeriod;
-        updateQuery({...selectedQuery});
-      } else {
-        updateQuery(selectedQuery);
       }
+      updateQuery(queryCopy);
     } else if (selectedQuery === null) {
       clearQuery();
     }
