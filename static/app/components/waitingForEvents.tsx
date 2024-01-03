@@ -90,12 +90,9 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
       <MessageContainer>
         <h3>{t('Waiting for events…')}</h3>
         <p>
-          {tct(
-            'Our robot is waiting to [strike:devour] receive your first event.',
-            {
-              strike: <Strikethrough />,
-            }
-          )}
+          {tct('Our robot is waiting to [strike:devour] receive your first event.', {
+            strike: <Strikethrough />,
+          })}
         </p>
         <p>
           {project && (
