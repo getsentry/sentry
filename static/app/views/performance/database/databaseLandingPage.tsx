@@ -78,9 +78,9 @@ export function DatabaseLandingPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
-  const queryListResponse = useSpanMetrics(
-    pickBy(tableFilters, value => value !== undefined),
-    [
+  const queryListResponse = useSpanMetrics({
+    filters: pickBy(tableFilters, value => value !== undefined),
+    fields: [
       'project.id',
       'span.group',
       'span.description',
@@ -89,11 +89,11 @@ export function DatabaseLandingPage() {
       'sum(span.self_time)',
       'time_spent_percentage()',
     ],
-    [sort],
-    LIMIT,
+    sorts: [sort],
+    limit: LIMIT,
     cursor,
-    'api.starfish.use-span-list'
-  );
+    referrer: 'api.starfish.use-span-list',
+  });
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
     chartFilters,

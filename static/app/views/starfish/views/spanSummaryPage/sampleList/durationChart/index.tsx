@@ -96,14 +96,11 @@ function DurationChart({
     'api.starfish.sidebar-span-metrics-chart'
   );
 
-  const {data, error: spanMetricsError} = useSpanMetrics(
+  const {data, error: spanMetricsError} = useSpanMetrics({
     filters,
-    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-panel-samples-table-avg'
-  );
+    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
+  });
 
   const spanMetrics = data[0] ?? {};
 

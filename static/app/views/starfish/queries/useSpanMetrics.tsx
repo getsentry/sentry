@@ -13,14 +13,20 @@ import {
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
-export const useSpanMetrics = <T extends MetricsProperty[]>(
-  filters: SpanMetricsQueryFilters,
-  fields: T,
-  sorts?: Sort[],
-  limit?: number,
-  cursor?: string,
-  referrer: string = 'api.starfish.use-span-metrics'
+interface UseSpanMetricsOptions<Fields> {
+  cursor?: string;
+  fields?: Fields;
+  filters?: SpanMetricsQueryFilters;
+  limit?: number;
+  referrer?: string;
+  sorts?: Sort[];
+}
+
+export const useSpanMetrics = <Fields extends MetricsProperty[]>(
+  options: UseSpanMetricsOptions<Fields> = {}
 ) => {
+  const {fields = [], filters = {}, sorts = [], limit, cursor, referrer} = options;
+
   const location = useLocation();
 
   const eventView = getEventView(filters, fields, sorts, location);
@@ -48,7 +54,7 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 };
 
 function getEventView(
-  filters: SpanMetricsQueryFilters,
+  filters: SpanMetricsQueryFilters = {},
   fields: string[] = [],
   sorts: Sort[] = [],
   location: Location
