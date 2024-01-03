@@ -45,7 +45,7 @@ describe('DatabaseLandingPage', function () {
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
-  beforeAll(function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
