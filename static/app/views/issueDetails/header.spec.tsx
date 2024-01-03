@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,9 +12,9 @@ import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('groupDetails', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const project = ProjectFixture({
-    teams: [Team()],
+    teams: [TeamFixture()],
   });
 
   describe('issue category: error, js project', () => {
@@ -27,7 +27,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const jsProjectWithSimilarityView = ProjectFixture({
@@ -95,7 +95,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const mobileProjectWithSimilarityView = ProjectFixture({
@@ -139,7 +139,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 

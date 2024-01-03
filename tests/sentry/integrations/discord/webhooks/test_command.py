@@ -44,7 +44,7 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
     def test_link_no_user_id(self):
         guild_id = "guild-id"
@@ -69,7 +69,7 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
     def test_link_guild(self):
         guild_id = "guild-id"

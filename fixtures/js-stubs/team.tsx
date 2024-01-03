@@ -2,7 +2,7 @@ import {uuid4} from '@sentry/utils';
 
 import type {DetailedTeam as TeamType} from 'sentry/types';
 
-export function Team(params: Partial<TeamType> = {}): TeamType {
+export function TeamFixture(params: Partial<TeamType> = {}): TeamType {
   return {
     id: '1',
     slug: 'team-slug',

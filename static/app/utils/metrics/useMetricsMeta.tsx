@@ -1,4 +1,5 @@
 import {PageFilters} from 'sentry/types';
+import {formatMRI} from 'sentry/utils/metrics/mri';
 import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -20,10 +21,6 @@ function useMetaUseCase(
       staleTime: 2000, // 2 seconds to cover page load
     }
   );
-
-  if (apiQueryResult.data && Array.isArray(apiQueryResult.data)) {
-    apiQueryResult.data = apiQueryResult.data.sort((a, b) => a.mri.localeCompare(b.mri));
-  }
 
   return apiQueryResult;
 }
@@ -47,8 +44,15 @@ export function useMetricsMeta(
     enabled: enabledUseCases.includes('spans'),
   });
 
+  const data = [
+    ...(enabledUseCases.includes('sessions') ? sessionMeta : []),
+    ...(enabledUseCases.includes('transactions') ? txnsMeta : []),
+    ...(enabledUseCases.includes('custom') ? customMeta : []),
+    ...(enabledUseCases.includes('spans') ? spansMeta : []),
+  ].sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)));
+
   return {
-    data: [...sessionMeta, ...txnsMeta, ...customMeta, ...spansMeta],
+    data,
     isLoading:
       (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
       (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||

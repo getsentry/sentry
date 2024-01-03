@@ -1,8 +1,8 @@
-import {Groups} from 'sentry-fixture/groups';
+import {GroupsFixture} from 'sentry-fixture/groups';
 import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -43,7 +43,7 @@ describe('Issues Similar View', function () {
   ];
 
   const mockData = {
-    similar: Groups().map((issue, i) => [issue, scores[i]]),
+    similar: GroupsFixture().map((issue, i) => [issue, scores[i]]),
   };
 
   const router = RouterFixture();

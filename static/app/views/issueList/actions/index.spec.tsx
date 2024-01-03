@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   fireEvent,
@@ -18,7 +18,7 @@ import {IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
-const organization = Organization();
+const organization = OrganizationFixture();
 
 const defaultProps = {
   allResultsVisible: false,
@@ -419,7 +419,7 @@ describe('IssueListActions', function () {
     });
 
     describe('bulk action performance issues', function () {
-      const orgWithPerformanceIssues = Organization({
+      const orgWithPerformanceIssues = OrganizationFixture({
         features: ['performance-issues'],
       });
 

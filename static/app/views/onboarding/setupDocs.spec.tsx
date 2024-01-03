@@ -1,4 +1,4 @@
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -6,10 +6,10 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
+import {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
-const PROJECT_KEY = ProjectKeys()[0];
+const PROJECT_KEY = ProjectKeysFixture()[0];
 
 function renderMockRequests({
   project,
@@ -84,7 +84,7 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project}
+          recentCreatedProject={project as OnboardingRecentCreatedProject}
         />
       </OnboardingContextProvider>,
       {
@@ -132,7 +132,7 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project}
+          recentCreatedProject={project as OnboardingRecentCreatedProject}
         />
       </OnboardingContextProvider>,
       {
@@ -188,7 +188,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -242,7 +242,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -292,7 +292,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -342,7 +342,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -407,7 +407,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {
@@ -453,7 +453,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>
       );
@@ -506,7 +506,7 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project}
+            recentCreatedProject={project as OnboardingRecentCreatedProject}
           />
         </OnboardingContextProvider>,
         {

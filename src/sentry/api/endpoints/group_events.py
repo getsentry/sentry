@@ -128,7 +128,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 for evt in results["data"]
             ]
             if full:
-                eventstore.bind_nodes(results)
+                eventstore.backend.bind_nodes(results)
 
             return results
 

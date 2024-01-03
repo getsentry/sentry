@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,7 +13,7 @@ import {
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
 describe('SentryAppDetailedView', function () {
-  const org = Organization();
+  const org = OrganizationFixture();
 
   const {router} = initializeOrg({
     projects: [

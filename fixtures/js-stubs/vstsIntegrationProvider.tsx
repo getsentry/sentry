@@ -1,6 +1,6 @@
 import {IntegrationProvider} from 'sentry/types';
 
-export function VstsIntegrationProvider(
+export function VstsIntegrationProviderFixture(
   params: Partial<IntegrationProvider> = {}
 ): IntegrationProvider {
   return {

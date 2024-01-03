@@ -92,7 +92,7 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
-import {TraceTable} from 'sentry/views/ddm/traceTable';
+import {SampleTable} from 'sentry/views/ddm/sampleTable';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -757,7 +757,7 @@ function WidgetViewerModal(props: Props) {
                 <CodeLocations mri={parsedField.mri} />
               </TabPanels.Item>
               <TabPanels.Item key="samples">
-                <TraceTable />
+                <SampleTable mri={parsedField.mri} />
               </TabPanels.Item>
             </TabPanels>
           </MetricWidgetTabContent>
