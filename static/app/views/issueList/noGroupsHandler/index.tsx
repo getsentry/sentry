@@ -113,7 +113,7 @@ class NoGroupsHandler extends Component<Props, State> {
   }
 
   renderAwaitingEvents(projects: State['firstEventProjects']) {
-    const {organization, groupIds} = this.props;
+        const {organization, groupIds} = this.props;
 
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
@@ -133,7 +133,7 @@ class NoGroupsHandler extends Component<Props, State> {
       return (
       <EmptyStateWarning>
         <p>{emptyMessage}</p>
-      </EmptyStateWarning>
+</EmptyStateWarning>
     );
     }
     return <NoIssuesMatched />;
