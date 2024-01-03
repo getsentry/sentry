@@ -110,7 +110,9 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const {getReplayCountForTransaction} = useReplayCountForTransactions();
+  const projectIds = projects.map(p => p.id);
+
+  const {getReplayCountForTransaction} = useReplayCountForTransactions(projectIds);
   const replaysCount = getReplayCountForTransaction(transactionName);
 
   return (

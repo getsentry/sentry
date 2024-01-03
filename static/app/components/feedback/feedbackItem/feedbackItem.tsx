@@ -42,7 +42,7 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const {feedbackHasReplay} = useReplayCountForFeedbacks();
+  const {feedbackHasReplay} = useReplayCountForFeedbacks([feedbackItem.project.id]);
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
   const {markAsRead, resolve} = useMutateFeedback({

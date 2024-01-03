@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {type Group, IssueCategory, type Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -39,7 +38,7 @@ export default function useReplayFromIssue({
             query: `issue.id:[${group.id}]`,
             data_source: dataSource,
             statsPeriod: '14d',
-            project: ALL_ACCESS_PROJECTS,
+            project: group.project.id,
           },
         }
       );
@@ -48,7 +47,7 @@ export default function useReplayFromIssue({
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource]);
+  }, [api, organization.slug, group.id, group.project.id, dataSource]);
 
   const eventView = useMemo(() => {
     if (!replayIds || !replayIds.length) {

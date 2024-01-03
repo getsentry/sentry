@@ -11,14 +11,15 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Props = {
   groupId: string;
+  projectId: string;
 };
 
 /**
  * Show the count of how many replays are associated to an issue.
  */
-function IssueReplayCount({groupId}: Props) {
+function IssueReplayCount({groupId, projectId}: Props) {
   const organization = useOrganization();
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues([projectId]);
   const count = getReplayCountForIssue(groupId);
 
   if (count === undefined || count === 0) {

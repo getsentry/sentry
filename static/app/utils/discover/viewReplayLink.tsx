@@ -15,7 +15,7 @@ function ViewReplayLink({
   replayId: ReactText | string;
   to: ComponentProps<typeof Link>['to'];
 }) {
-  const {replayExists} = useReplayExists();
+  const {replayExists} = useReplayExists(['-1']);
 
   if (!replayExists(String(replayId))) {
     return (

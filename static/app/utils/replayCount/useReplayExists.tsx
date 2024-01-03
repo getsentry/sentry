@@ -4,13 +4,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 /**
  * Query results for whether a given replayId exists in the database (not deleted, etc)
  */
-export default function useReplayExists() {
+export default function useReplayExists(projectIds: [string]) {
   const organization = useOrganization();
   const {hasOne, hasMany} = useReplayCount({
     bufferLimit: 100,
     dataSource: 'discover',
     fieldName: 'replay_id',
     organization,
+    projectIds,
     statsPeriod: '90d',
   });
 

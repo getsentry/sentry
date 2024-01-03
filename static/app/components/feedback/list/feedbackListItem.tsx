@@ -50,7 +50,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const config = useLegacyStore(ConfigStore);
     const organization = useOrganization();
     const isOpen = useIsSelectedFeedback({feedbackItem});
-    const {feedbackHasReplay} = useReplayCountForFeedbacks();
+    const {feedbackHasReplay} = useReplayCountForFeedbacks([feedbackItem.project.id]);
     const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';

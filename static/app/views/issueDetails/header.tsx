@@ -58,7 +58,7 @@ function GroupHeaderTabs({
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
 
-  const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {getReplayCountForIssue} = useReplayCountForIssues([project.id]);
   const replaysCount = getReplayCountForIssue(group.id);
 
   const projectFeatures = new Set(project ? project.features : []);

@@ -95,7 +95,7 @@ function EventOrGroupExtraDetails({
           <span>{numComments}</span>
         </CommentsLink>
       )}
-      {showReplayCount && <IssueReplayCount groupId={id} />}
+      {showReplayCount && <IssueReplayCount groupId={id} projectId={project.id} />}
       {logger && (
         <LoggerAnnotation>
           <GlobalSelectionLink

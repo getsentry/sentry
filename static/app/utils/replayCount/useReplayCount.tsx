@@ -10,6 +10,7 @@ interface Props {
   dataSource: string;
   fieldName: string;
   organization: Organization;
+  projectIds: string[];
   statsPeriod: string;
 }
 
@@ -47,6 +48,7 @@ export default function useReplayCount({
   dataSource,
   fieldName,
   organization,
+  projectIds,
   statsPeriod,
 }: Props) {
   const cache = useAggregatedQueryKeys<string, CountState>({
@@ -57,13 +59,13 @@ export default function useReplayCount({
         {
           query: {
             data_source: dataSource,
-            project: -1,
+            project: projectIds,
             statsPeriod,
             query: `${fieldName}:[${ids.join(',')}]`,
           },
         },
       ],
-      [dataSource, fieldName, organization, statsPeriod]
+      [dataSource, fieldName, projectIds, organization, statsPeriod]
     ),
     responseReducer: useCallback(
       (data: undefined | CountState, response: ApiResult) => ({...data, ...response[0]}),
