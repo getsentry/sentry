@@ -12,6 +12,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as analytics from 'sentry/utils/analytics';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
 
 const MockNavigate = jest.fn();
@@ -30,7 +31,7 @@ describe('Issues Similar View', function () {
     {
       router: {
         ...RouterFixture(),
-        params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
+        params: {orgId: 'org-slug', projectId: 'project-slug', groupId: '1000000'},
       },
     },
   ]);
@@ -48,9 +49,11 @@ describe('Issues Similar View', function () {
 
   const router = RouterFixture();
 
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
+      url: '/organizations/org-slug/issues/1000000/similar/?limit=50',
       body: mockData.similar,
     });
   });
@@ -74,7 +77,7 @@ describe('Issues Similar View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        params={{orgId: 'org-slug', groupId: '1000000'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -103,7 +106,7 @@ describe('Issues Similar View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        params={{orgId: 'org-slug', groupId: '1000000'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -138,7 +141,7 @@ describe('Issues Similar View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        params={{orgId: 'org-slug', groupId: '1000000'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -153,5 +156,36 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
+  });
+
+  it('sends issue similarity embeddings agree analytics', async function () {
+    const features = ['issues-similarity-embeddings'];
+
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: '1000000'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext, organization: Organization({features})}
+    );
+    renderGlobalModal();
+
+    await selectNthSimilarItem(0);
+    await userEvent.click(await screen.findByRole('button', {name: 'Agree (1)'}));
+    expect(analyticsSpy).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(analyticsSpy).toHaveBeenCalledWith(
+        'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
+        expect.objectContaining({
+          parentGroupId: 1000000,
+          value: 'Yes',
+        })
+      );
+    });
   });
 });
