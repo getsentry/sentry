@@ -205,8 +205,15 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const {projects} = useProjects();
   const hasStacktraceLinkFeatureFlag =
     organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
-  const [isQueryEnabled, setIsQueryEnabled] = useState(!hasStacktraceLinkFeatureFlag);
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
+  // TODO: Currently we only support GitHub links. Implement support for other source code providers.
+  // Related comment: https://github.com/getsentry/sentry/pull/62596#discussion_r1443025242
+  const hasGithubSourceLink = (frame.sourceLink || '').startsWith(
+    'https://www.github.com/'
+  );
+  const [isQueryEnabled, setIsQueryEnabled] = useState(
+    hasGithubSourceLink ? false : !frame.inApp ? false : !hasStacktraceLinkFeatureFlag
+  );
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
@@ -230,14 +237,16 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     if (!validFilePath) {
       return setIsQueryEnabled(false);
     }
-    if (hasStacktraceLinkFeatureFlag) {
+    // Skip fetching if we already have the Source Link
+    if (hasStacktraceLinkFeatureFlag && !hasGithubSourceLink && frame.inApp) {
       // Introduce a delay before enabling the query
+
       timer = setTimeout(() => {
         setIsQueryEnabled(true);
       }, 100); // Delay of 100ms
     }
     return () => timer && clearTimeout(timer);
-  }, [hasStacktraceLinkFeatureFlag, validFilePath]); // Empty dependency array to run only on mount
+  }, [hasStacktraceLinkFeatureFlag, validFilePath, hasGithubSourceLink, frame]);
 
   const {
     data: match,
@@ -271,15 +280,32 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       : {}
   );
 
-  const onOpenLink = e => {
+  const onOpenLink = (e: React.MouseEvent, sourceLink: Frame['sourceLink'] = null) => {
     e.stopPropagation();
-    const provider = match!.config?.provider;
+    const provider = match?.config?.provider;
     if (provider) {
       trackAnalytics(
         'integrations.stacktrace_link_clicked',
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,
+          organization,
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
+        },
+        {startSession: true}
+      );
+    }
+    if (sourceLink) {
+      const url = new URL(sourceLink);
+      const hostname = url.hostname;
+      const parts = hostname.split('.');
+      const domain = parts.length > 1 ? parts[1] : '';
+      trackAnalytics(
+        'integrations.non_inapp_stacktrace_link_clicked',
+        {
+          view: 'stacktrace_issue_details',
+          provider: domain,
           organization,
           group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
           ...getAnalyticsDataForEvent(event),
@@ -295,6 +321,29 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   if (!validFilePath) {
     return null;
+  }
+
+  // Render the provided `sourceLink` for all the non-inapp frames for `csharp` platform Issues
+  // We skip fetching from the API for these frames.
+  if (
+    !match &&
+    hasGithubSourceLink &&
+    !frame.inApp &&
+    frame.sourceLink &&
+    hasStacktraceLinkFeatureFlag
+  ) {
+    return (
+      <StacktraceLinkWrapper>
+        <OpenInLink
+          onClick={e => onOpenLink(e, frame.sourceLink)}
+          href={frame.sourceLink}
+          openInNewTab
+        >
+          <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+          {hasStacktraceLinkFeatureFlag ? t('GitHub') : t('Open this line in GitHub')}
+        </OpenInLink>
+      </StacktraceLinkWrapper>
+    );
   }
 
   if (isLoading || !match) {
@@ -360,9 +409,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
     event.platform as PlatformKey
   );
-  const hasGithubSourceLink =
-    event.platform === 'csharp' &&
-    frame.sourceLink?.startsWith('https://www.github.com/');
+
   const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
   if (
@@ -520,6 +567,7 @@ const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organiza
       ? css`
           color: ${p.theme.subText};
           animation: ${fadeIn} 0.2s ease-in-out forwards;
+          width: max-content;
           &:hover {
             text-decoration: underline;
             text-decoration-color: ${p.theme.textColor};
