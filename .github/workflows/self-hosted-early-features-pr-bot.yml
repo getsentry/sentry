@@ -1,0 +1,54 @@
+name: self-hosted early features PR bot
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  sync:
+    name: make comment on missing EA'd features in self-hosted
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+
+      - name: getsentry token
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        id: getsentry
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - name: Make API Request
+        id: api_request
+        run: |
+          response=$(curl -s -H "Authorization: Bearer ${{ steps.getsentry.outputs.token }}" 'https://https://sentry.sentry.io/api/0/internal-stats/ea-feature-flags/')
+          missing_from_self_hosted=$(echo $response | jq -r '.missing_from_self_hosted | join(", ")')
+          echo "::set-output name=missing_from_self_hosted::$missing_from_self_hosted"
+
+      - name: Find previous dry-run comment
+        uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
+        if: github.event_name == 'pull_request'
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- MISSING EA'D FEATURE FLAGS FOR SELF-HOSTED -->'
+
+      - name: Add or update dry-run comment
+        uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
+        if: github.event_name == 'pull_request'
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          edit-mode: replace
+          body: >
+            <!-- MISSING EA'D FEATURE FLAGS FOR SELF-HOSTED -->
+
+            🏷  The following EA'd feature flags should be added to `SENTRY_EARLY_FEATURES`:
+
+            ```
+            ${{ steps.api_request.outputs.missing_from_self_hosted }}
+            ```
