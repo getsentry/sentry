@@ -60,10 +60,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         def stream_attachment():
             with attachment.getfile() as fp:
-                while True:
-                    chunk = fp.read(4096)
-                    if not chunk:
-                        return
+                while chunk := fp.read(4096):
                     yield chunk
 
         response = StreamingHttpResponse(
