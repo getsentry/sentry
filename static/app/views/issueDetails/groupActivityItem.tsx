@@ -244,6 +244,18 @@ function GroupActivityItem({
       case GroupActivityType.NOTE:
         return tct('[author] left a comment', {author});
       case GroupActivityType.SET_RESOLVED:
+        if ('integration_id' in activity.data && activity.data.integration_id) {
+          return tct('[author] marked this issue as resolved via [integration]', {
+            integration: (
+              <Link
+                to={`/settings/${organization.slug}/integrations/${activity.data.provider_key}/${activity.data.integration_id}/`}
+              >
+                {activity.data.provider}
+              </Link>
+            ),
+            author,
+          });
+        }
         return tct('[author] marked this issue as resolved', {author});
       case GroupActivityType.SET_RESOLVED_BY_AGE:
         return tct('[author] marked this issue as resolved due to inactivity', {
@@ -366,7 +378,7 @@ function GroupActivityItem({
       case GroupActivityType.SET_UNRESOLVED: {
         // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;
-        if (data.forecast) {
+        if ('forecast' in data && data.forecast) {
           return tct(
             '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
             {
@@ -375,6 +387,18 @@ function GroupActivityItem({
               event: data.forecast === 1 ? 'event' : 'events',
             }
           );
+        }
+        if ('integration_id' in data && data.integration_id) {
+          return tct('[author] marked this issue as unresolved via [integration]', {
+            integration: (
+              <Link
+                to={`/settings/${organization.slug}/integrations/${data.provider_key}/${data.integration_id}/`}
+              >
+                {data.provider}
+              </Link>
+            ),
+            author,
+          });
         }
         return tct('[author] marked this issue as unresolved', {author});
       }

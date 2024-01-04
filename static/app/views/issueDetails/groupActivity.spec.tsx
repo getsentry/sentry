@@ -21,11 +21,16 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Group, GroupActivityType, Organization as TOrganization} from 'sentry/types';
+import {
+  Group,
+  GroupActivityType,
+  Organization as TOrganization,
+  Project,
+} from 'sentry/types';
 import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {
-  let project;
+  let project!: Project;
   const dateCreated = '2021-10-01T15:31:38.950115Z';
 
   beforeEach(function () {
@@ -478,6 +483,50 @@ describe('GroupActivity', function () {
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
+    );
+  });
+
+  it('renders issue unresvoled via jira', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_UNRESOLVED,
+          project: ProjectFixture(),
+          data: {
+            integration_id: '1',
+            provider_key: 'jira',
+            provider: 'Jira',
+          },
+          user: null,
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry marked this issue as unresolved via Jira'
+    );
+  });
+
+  it('renders issue resolved via jira', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_RESOLVED,
+          project: ProjectFixture(),
+          data: {
+            integration_id: '1',
+            provider_key: 'jira',
+            provider: 'Jira',
+          },
+          user: null,
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry marked this issue as resolved via Jira'
     );
   });
 
