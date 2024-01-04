@@ -7,6 +7,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import NoIssuesMatched from 'sentry/views/issueList/noGroupsHandler/noIssuesMatched';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
@@ -132,11 +133,14 @@ class NoGroupsHandler extends Component<Props, State> {
 
   renderEmpty() {
     const {emptyMessage} = this.props;
-    return (
-      <EmptyStateWarning>
-        <p>{emptyMessage ?? t('Sorry, no issues match your filters.')}</p>
-      </EmptyStateWarning>
-    );
+    if (emptyMessage) {
+      return (
+        <EmptyStateWarning>
+          <p>{emptyMessage}</p>
+        </EmptyStateWarning>
+      );
+    }
+    return <NoIssuesMatched />;
   }
 
   render() {
