@@ -56,7 +56,7 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '2h',
       groupBy: ['project'],
       allowPrivate: true,
-      per_page: 10,
+      limit: 10,
     });
   });
 
@@ -81,7 +81,7 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '30m',
       groupBy: ['project'],
       allowPrivate: true,
-      per_page: 10,
+      limit: 10,
     });
   });
 
@@ -107,7 +107,7 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '5m',
       groupBy: ['environment'],
       allowPrivate: true,
-      per_page: 10,
+      limit: 10,
     });
   });
 });
