@@ -49,6 +49,25 @@ def should_skip_beacon(install_id):
     return False
 
 
+def get_events_24h() -> int:
+    from sentry.models.organization import Organization
+
+    organization_ids = list(Organization.objects.all().values_list("id", flat=True))
+    end = timezone.now()
+    sum_events = 0
+    for organization_id in organization_ids:
+        events_per_org_24h = tsdb.backend.get_sums(
+            model=TSDBModel.organization_total_received,
+            keys=[organization_id],
+            start=end - timedelta(hours=24),
+            end=end,
+            tenant_ids={"organization_id": organization_id},
+        )
+        sum_events += sum(p for _, p in events_per_org_24h.items())
+
+    return sum_events
+
+
 @instrumented_task(name="sentry.tasks.send_beacon", queue="update")
 def send_beacon():
     """
@@ -68,11 +87,6 @@ def send_beacon():
     if should_skip_beacon(install_id):
         return
 
-    end = timezone.now()
-    events_24h = tsdb.backend.get_sums(
-        model=TSDBModel.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
-    )["events.total"]
-
     # we need this to be explicitly configured and it defaults to None,
     # which is the same as False
     anonymous = options.get("beacon.anonymous") is not False
@@ -87,7 +101,7 @@ def send_beacon():
             "projects": Project.objects.count(),
             "teams": Team.objects.count(),
             "organizations": Organization.objects.count(),
-            "events.24h": events_24h,
+            "events.24h": get_events_24h(),
         },
         "packages": get_all_package_versions(),
         "anonymous": anonymous,

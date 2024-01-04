@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -28,7 +28,7 @@ describe('Hook', function () {
 
     render(
       <div>
-        <Hook name="sidebar:help-menu" organization={Organization()} />
+        <Hook name="sidebar:help-menu" organization={OrganizationFixture()} />
       </div>
     );
 
@@ -45,7 +45,7 @@ describe('Hook', function () {
     ));
 
     const {rerender} = render(
-      <Hook name="sidebar:help-menu" organization={Organization()} />
+      <Hook name="sidebar:help-menu" organization={OrganizationFixture()} />
     );
 
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('Hook', function () {
       </HookWrapper>
     ));
 
-    rerender(<Hook name="sidebar:help-menu" organization={Organization()} />);
+    rerender(<Hook name="sidebar:help-menu" organization={OrganizationFixture()} />);
 
     expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('Hook', function () {
   it('can use children as a render prop', function () {
     let idx = 0;
     render(
-      <Hook name="sidebar:help-menu" organization={Organization()}>
+      <Hook name="sidebar:help-menu" organization={OrganizationFixture()}>
         {({hooks}) =>
           hooks.map((hook, i) => (
             <HookWrapper key={i}>

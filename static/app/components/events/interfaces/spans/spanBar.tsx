@@ -78,6 +78,7 @@ import {
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
+import {NewTraceDetailsSpanBar} from './newTraceDetailsSpanBar';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
@@ -153,7 +154,7 @@ export type SpanBarProps = ScrollbarManagerChildrenProps & {
   showSpanTree: boolean;
   span: ProcessedSpanType | AggregateSpanType;
   spanNumber: number;
-  storeSpanBar: (spanBar: SpanBar) => void;
+  storeSpanBar: (spanBar: SpanBar | NewTraceDetailsSpanBar) => void;
   toggleEmbeddedChildren:
     | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;

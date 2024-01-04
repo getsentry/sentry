@@ -1,8 +1,8 @@
-import {PlatformExternalIssue as PlatformExternalIssueType} from 'sentry/types';
+import {PlatformExternalIssue} from 'sentry/types';
 
-export function PlatformExternalIssue(
-  params: Partial<PlatformExternalIssueType> = {}
-): PlatformExternalIssueType {
+export function PlatformExternalIssueFixture(
+  params: Partial<PlatformExternalIssue> = {}
+): PlatformExternalIssue {
   return {
     id: '1',
     serviceType: 'foo',

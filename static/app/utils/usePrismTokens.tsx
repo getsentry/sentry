@@ -2,9 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import Prism from 'prismjs';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type PrismHighlightParams = {
   code: string;
@@ -27,23 +25,17 @@ const useLoadPrismLanguage = (
   language: string,
   {code, onLoad}: {code: string; onLoad: () => void}
 ) => {
-  const organization = useOrganization({allowNull: true});
-
   useEffect(() => {
-    if (!language || !code || language.includes('/')) {
+    if (!language || !code) {
       return;
     }
 
     if (!getPrismLanguage(language)) {
-      trackAnalytics('stack_trace.prism_missing_language', {
-        organization,
-        attempted_language: language.toLowerCase(),
-      });
       return;
     }
 
     loadPrismLanguage(language, {onLoad});
-  }, [code, language, onLoad, organization]);
+  }, [code, language, onLoad]);
 };
 
 const getPrismGrammar = (language: string) => {
@@ -119,7 +111,7 @@ const splitTokenContentByLine = (
   return splitTokenContentByLine(token.content, types);
 };
 
-const breakTokensByLine = (
+export const breakTokensByLine = (
   tokens: Array<string | Prism.Token>
 ): SyntaxHighlightLine[] => {
   const lines = splitMultipleTokensByLine(tokens);

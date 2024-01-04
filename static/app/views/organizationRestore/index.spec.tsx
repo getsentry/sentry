@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -7,10 +7,10 @@ import OrganizationRestore from 'sentry/views/organizationRestore';
 
 describe('OrganizationRestore', function () {
   let mockUpdate, mockGet;
-  const pendingDeleteOrg = Organization({
+  const pendingDeleteOrg = OrganizationFixture({
     status: {id: 'pending_deletion', name: 'Pending Deletion'},
   });
-  const deleteInProgressOrg = Organization({
+  const deleteInProgressOrg = OrganizationFixture({
     status: {id: 'deletion_in_progress', name: 'Deletion in progress'},
   });
 
@@ -19,7 +19,7 @@ describe('OrganizationRestore', function () {
       url: `/organizations/${pendingDeleteOrg.slug}/`,
       method: 'PUT',
       status: 200,
-      body: Organization(),
+      body: OrganizationFixture(),
     });
   });
 

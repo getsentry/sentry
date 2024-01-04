@@ -1,11 +1,11 @@
 import {
-  SessionStatusCountByProjectInPeriod,
-  SessionStatusCountByReleaseInPeriod,
-  SessionTotalCountByProjectIn24h,
-  SessionUserStatusCountByReleaseInPeriod,
-  SesssionTotalCountByReleaseIn24h,
-  UserTotalCountByProjectIn24h,
-  UserTotalCountByReleaseIn24h,
+  SessionStatusCountByProjectInPeriodFixture,
+  SessionStatusCountByReleaseInPeriodFixture,
+  SessionTotalCountByProjectIn24hFixture,
+  SessionUserStatusCountByReleaseInPeriodFixture,
+  SesssionTotalCountByReleaseIn24hFixture,
+  UserTotalCountByProjectIn24hFixture,
+  UserTotalCountByReleaseIn24hFixture,
 } from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -36,7 +36,7 @@ describe('ReleasesRequest', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: SessionStatusCountByReleaseInPeriod(),
+      body: SessionStatusCountByReleaseInPeriodFixture(),
       match: [
         MockApiClient.matchQuery({
           query:
@@ -52,7 +52,7 @@ describe('ReleasesRequest', () => {
 
     requestForAutoHealthStatsPeriodSessionHistogram = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: SessionStatusCountByProjectInPeriod(),
+      body: SessionStatusCountByProjectInPeriodFixture(),
       match: [
         MockApiClient.matchQuery({
           query: undefined,
@@ -67,7 +67,7 @@ describe('ReleasesRequest', () => {
 
     requestForAutoTotalCountByProjectInPeriod = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: SessionTotalCountByProjectIn24h(),
+      body: SessionTotalCountByProjectIn24hFixture(),
       match: [
         MockApiClient.matchQuery({
           query: undefined,
@@ -82,7 +82,7 @@ describe('ReleasesRequest', () => {
 
     requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: SesssionTotalCountByReleaseIn24h(),
+      body: SesssionTotalCountByReleaseIn24hFixture(),
       match: [
         MockApiClient.matchQuery({
           query:
@@ -98,7 +98,7 @@ describe('ReleasesRequest', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
-      body: SesssionTotalCountByReleaseIn24h(),
+      body: SesssionTotalCountByReleaseIn24hFixture(),
       match: [
         MockApiClient.matchQuery({
           query:
@@ -114,7 +114,7 @@ describe('ReleasesRequest', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: SessionTotalCountByProjectIn24h(),
+      body: SessionTotalCountByProjectIn24hFixture(),
       match: [
         MockApiClient.matchQuery({
           query: undefined,
@@ -129,7 +129,7 @@ describe('ReleasesRequest', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: SessionUserStatusCountByReleaseInPeriod(),
+      body: SessionUserStatusCountByReleaseInPeriodFixture(),
       match: [
         MockApiClient.matchQuery({
           query:
@@ -145,7 +145,7 @@ describe('ReleasesRequest', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
-      body: UserTotalCountByReleaseIn24h(),
+      body: UserTotalCountByReleaseIn24hFixture(),
       match: [
         MockApiClient.matchQuery({
           query:
@@ -161,7 +161,7 @@ describe('ReleasesRequest', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: UserTotalCountByProjectIn24h(),
+      body: UserTotalCountByProjectIn24hFixture(),
       match: [
         MockApiClient.matchQuery({
           query: undefined,
