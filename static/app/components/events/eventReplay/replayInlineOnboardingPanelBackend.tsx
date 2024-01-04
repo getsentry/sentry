@@ -56,7 +56,7 @@ export default function ReplayInlineOnboardingPanelBackend({
             </ButtonBar>
           }
           description={t('Watch the errors and latency issues your users face')}
-          heading={tct('Set up your [platform] app with Session Replay', {
+          heading={tct('Set up your [platform] app now', {
             platform: <PurpleText>{platformName.name}</PurpleText>,
           })}
           icon={<IconBroadcast size="sm" color="purple300" />}
