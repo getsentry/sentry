@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -38,7 +38,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: Organization(),
+      body: OrganizationFixture(),
     });
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
@@ -72,7 +72,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: Organization({
+      body: OrganizationFixture({
         features: ['customer-domains'],
       }),
     });
@@ -109,7 +109,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: Organization({
+      body: OrganizationFixture({
         features: ['customer-domains'],
       }),
     });

@@ -93,3 +93,7 @@ class HashDiscarded(Exception):
         super().__init__(message)
         self.reason = reason
         self.tombstone_id = tombstone_id
+
+
+class InvalidParams(Exception):
+    pass

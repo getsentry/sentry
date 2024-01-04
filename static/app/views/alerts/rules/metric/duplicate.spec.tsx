@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {Member} from 'sentry-fixture/member';
-import {MetricRule} from 'sentry-fixture/metricRule';
+import {MemberFixture} from 'sentry-fixture/member';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -52,12 +52,12 @@ describe('MetricRuleDuplicate', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [Member()],
+      body: [MemberFixture()],
     });
   });
 
   it('renders new alert form with values copied over', async function () {
-    const rule = MetricRule();
+    const rule = MetricRuleFixture();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,
       alertThreshold: 60,
@@ -105,7 +105,7 @@ describe('MetricRuleDuplicate', function () {
   });
 
   it('duplicates slack actions', async function () {
-    const rule = MetricRule();
+    const rule = MetricRuleFixture();
     rule.triggers[0].actions.push({
       id: '13',
       alertRuleTriggerId: '12',

@@ -8,7 +8,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.api import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -74,7 +75,6 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
         try:
-
             metric = get_single_metric_info(
                 projects,
                 metric_name,

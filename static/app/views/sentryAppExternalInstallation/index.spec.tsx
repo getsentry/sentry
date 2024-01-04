@@ -1,7 +1,8 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
-import {Organization} from 'sentry-fixture/organization';
-import {SentryApp} from 'sentry-fixture/sentryApp';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -10,7 +11,7 @@ import type {Organization as TOrganization} from 'sentry/types';
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
-  let sentryApp: ReturnType<typeof TestStubs.SentryApp>,
+  let sentryApp: ReturnType<typeof SentryAppFixture>,
     getOrgsMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getOrgMock: ReturnType<typeof MockApiClient.addMockResponse>,
     getAppMock: ReturnType<typeof MockApiClient.addMockResponse>,
@@ -24,12 +25,12 @@ describe('SentryAppExternalInstallation', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    org1 = Organization({
+    org1 = OrganizationFixture({
       slug: 'org1',
       name: 'Organization 1',
     });
 
-    org2 = Organization({
+    org2 = OrganizationFixture({
       slug: 'org2',
       name: 'Organization 2',
     });
@@ -37,7 +38,7 @@ describe('SentryAppExternalInstallation', () => {
     org1Lite = pick(org1, ['slug', 'name', 'id']);
     org2Lite = pick(org2, ['slug', 'name', 'id']);
 
-    sentryApp = SentryApp({
+    sentryApp = SentryAppFixture({
       status: 'published',
       redirectUrl: 'https://google.com',
     });
@@ -81,7 +82,7 @@ describe('SentryAppExternalInstallation', () => {
     it('sets the org automatically', () => {
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
@@ -114,7 +115,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
@@ -149,7 +150,7 @@ describe('SentryAppExternalInstallation', () => {
     it('renders org dropdown', () => {
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );
@@ -172,7 +173,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(
         <SentryAppExternalInstallation
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={{sentryAppSlug: sentryApp.slug}}
         />
       );

@@ -1,6 +1,6 @@
-import {type Event as TEvent, EventOrGroupType} from 'sentry/types';
+import {type Event, EventOrGroupType, EventTransaction} from 'sentry/types';
 
-export function Event(params = {}): TEvent {
+export function EventFixture(params = {}): Event {
   return {
     id: '1',
     message: 'ApiException',
@@ -24,6 +24,38 @@ export function Event(params = {}): TEvent {
     type: EventOrGroupType.ERROR,
     occurrence: null,
     resolvedWith: [],
+    contexts: {},
+    ...params,
+  };
+}
+
+export function TransactionEventFixture(
+  params: Partial<EventTransaction> = {}
+): EventTransaction {
+  return {
+    type: EventOrGroupType.TRANSACTION,
+    id: '1',
+    message: '',
+    crashFile: null,
+    culprit: '',
+    dateCreated: '2023-12-28T15:58:48.762Z',
+    dist: '',
+    errors: [],
+    occurrence: null,
+    dateReceived: '2023-12-28T15:58:48.762Z',
+    size: 0,
+    user: null,
+    title: '',
+    metadata: {},
+    entries: [],
+    projectID: '1',
+    groupID: '1',
+    eventID: '47829ecde95d42ac843f24592b7b7e46',
+    tags: [],
+    endTimestamp: 1703779100,
+    startTimestamp: 1703779101,
+    fingerprints: [],
+    location: '',
     contexts: {},
     ...params,
   };

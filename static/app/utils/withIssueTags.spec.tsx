@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -39,7 +39,7 @@ describe('withIssueTags HoC', function () {
 
   it('forwards loaded tags to the wrapped component', async function () {
     const Container = withIssueTags(MyComponent);
-    render(<Container organization={Organization()} forwardedValue="value" />);
+    render(<Container organization={OrganizationFixture()} forwardedValue="value" />);
 
     // Should forward props.
     expect(await screen.findByText(/ForwardedValue: value/)).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('withIssueTags HoC', function () {
 
   it('updates the assigned tags with users and teams, and bookmark tags with users', function () {
     const Container = withIssueTags(MyComponent);
-    render(<Container organization={Organization()} forwardedValue="value" />);
+    render(<Container organization={OrganizationFixture()} forwardedValue="value" />);
 
     act(() => {
       TagStore.loadTagsSuccess([
@@ -78,9 +78,12 @@ describe('withIssueTags HoC', function () {
 
     act(() => {
       TeamStore.loadInitialData([
-        Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
+        TeamFixture({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
       ]);
-      MemberListStore.loadInitialData([User(), User({username: 'joe@example.com'})]);
+      MemberListStore.loadInitialData([
+        UserFixture(),
+        UserFixture({username: 'joe@example.com'}),
+      ]);
     });
 
     expect(
@@ -97,12 +100,15 @@ describe('withIssueTags HoC', function () {
   it('groups assignees and puts suggestions first', function () {
     const Container = withIssueTags(MyComponent);
     TeamStore.loadInitialData([
-      Team({id: '1', slug: 'best-team', name: 'Best Team', isMember: true}),
-      Team({id: '2', slug: 'worst-team', name: 'Worst Team', isMember: false}),
+      TeamFixture({id: '1', slug: 'best-team', name: 'Best Team', isMember: true}),
+      TeamFixture({id: '2', slug: 'worst-team', name: 'Worst Team', isMember: false}),
     ]);
-    MemberListStore.loadInitialData([User(), User({username: 'joe@example.com'})]);
+    MemberListStore.loadInitialData([
+      UserFixture(),
+      UserFixture({username: 'joe@example.com'}),
+    ]);
     const {container} = render(
-      <Container organization={Organization()} forwardedValue="value" />
+      <Container organization={OrganizationFixture()} forwardedValue="value" />
     );
 
     expect(container).toHaveTextContent(

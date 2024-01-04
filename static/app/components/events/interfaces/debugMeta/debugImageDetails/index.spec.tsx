@@ -1,20 +1,24 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
+import {EntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
+import {ImageFixture} from 'sentry-fixture/image';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import {ImageStatus} from 'sentry/types/debugImage';
 
 describe('Debug Meta - Image Details', function () {
-  const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
+  const image = ImageFixture();
+  const eventEntryDebugMeta = EntryDebugMetaFixture({data: {images: [image]}});
   const event = EventFixture({entries: [eventEntryDebugMeta]});
   const {organization, project} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${eventEntryDebugMeta.data.images[0].debug_id}`,
+      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${image.debug_id}`,
       method: 'GET',
       body: [],
     });
@@ -34,7 +38,7 @@ describe('Debug Meta - Image Details', function () {
         <DebugImageDetails
           {...modalProps}
           organization={organization}
-          image={eventEntryDebugMeta.data.images[0]}
+          image={{...image, status: ImageStatus.FOUND}}
           projSlug={project.slug}
           event={event}
           onReprocessEvent={jest.fn()}
