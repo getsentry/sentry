@@ -24,7 +24,7 @@ jobs:
       - name: Make API Request
         id: api_request
         run: |
-          response=$(curl -s -H "Authorization: Bearer ${{ steps.getsentry.outputs.token }}" 'https://https://sentry.sentry.io/api/0/internal-stats/ea-feature-flags/')
+          response=$(curl -s -H "Authorization: Bearer ${{ steps.getsentry.outputs.token }}" 'https://sentry.sentry.io/api/0/internal-stats/ea-feature-flags/')
           missing_from_self_hosted=$(echo $response | jq -r '.missing_from_self_hosted | join(", ")')
           echo "::set-output name=missing_from_self_hosted::$missing_from_self_hosted"
 
