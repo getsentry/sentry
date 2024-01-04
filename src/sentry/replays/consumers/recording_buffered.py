@@ -274,8 +274,9 @@ def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> 
 
 
 def commit_uploads(upload_events: list[UploadEvent]) -> None:
-    with ThreadPoolExecutor(max_workers=len(upload_events)) as pool:
-        pool.map(_do_upload, upload_events)
+    with sentry_sdk.start_span(op="replays.consumer.recording.upload_segments"):
+        with ThreadPoolExecutor(max_workers=len(upload_events)) as pool:
+            pool.map(_do_upload, upload_events)
 
 
 def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -> None:
@@ -295,11 +296,12 @@ def commit_replay_actions(replay_action_events: list[ReplayActionsEvent]) -> Non
 
 
 def _do_upload(upload_event: UploadEvent) -> None:
-    recording_metadata = RecordingSegmentStorageMeta(
-        project_id=upload_event["project_id"],
-        replay_id=upload_event["replay_id"],
-        segment_id=upload_event["segment_id"],
-        retention_days=upload_event["retention_days"],
-    )
-    recording_data = upload_event["payload"]
-    storage.set(recording_metadata, recording_data)
+    with sentry_sdk.start_span(op="replays.consumer.recording.upload_segment"):
+        recording_metadata = RecordingSegmentStorageMeta(
+            project_id=upload_event["project_id"],
+            replay_id=upload_event["replay_id"],
+            segment_id=upload_event["segment_id"],
+            retention_days=upload_event["retention_days"],
+        )
+        recording_data = upload_event["payload"]
+        storage.set(recording_metadata, recording_data)
