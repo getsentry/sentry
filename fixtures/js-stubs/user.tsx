@@ -1,6 +1,6 @@
 import type {User as UserType} from 'sentry/types';
 
-export function User(params: Partial<UserType> = {}): UserType {
+export function UserFixture(params: Partial<UserType> = {}): UserType {
   return {
     id: '1',
     username: 'foo@example.com',

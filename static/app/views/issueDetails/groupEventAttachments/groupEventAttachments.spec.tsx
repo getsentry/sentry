@@ -1,6 +1,6 @@
-import {EventAttachment} from 'sentry-fixture/eventAttachment';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -15,7 +15,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('GroupEventAttachments > Screenshots', function () {
   const {organization, routerContext} = initializeOrg({
-    organization: Organization(),
+    organization: OrganizationFixture(),
     router: {
       params: {orgId: 'org-slug', groupId: 'group-id'},
       location: {query: {types: 'event.screenshot'}},
@@ -25,13 +25,13 @@ describe('GroupEventAttachments > Screenshots', function () {
   let getAttachmentsMock;
 
   beforeEach(function () {
-    project = Project({platform: 'apple-ios'});
+    project = ProjectFixture({platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
     getAttachmentsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/attachments/',
-      body: [EventAttachment()],
+      body: [EventAttachmentFixture()],
     });
   });
 

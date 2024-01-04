@@ -1,9 +1,9 @@
 import selectEvent from 'react-select-event';
-import {Incident} from 'sentry-fixture/incident';
-import {IncidentStats} from 'sentry-fixture/incidentStats';
-import {MetricRule} from 'sentry-fixture/metricRule';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {IncidentStatsFixture} from 'sentry-fixture/incidentStats';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -42,13 +42,13 @@ describe('IncidentsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        Incident({
+        IncidentFixture({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
         }),
-        Incident({
+        IncidentFixture({
           id: '342',
           identifier: '2',
           title: 'Second incident',
@@ -59,7 +59,7 @@ describe('IncidentsList', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/2/stats/',
-      body: IncidentStats({
+      body: IncidentStatsFixture({
         totalEvents: 1000,
         uniqueUsers: 32,
         eventStats: {
@@ -225,16 +225,16 @@ describe('IncidentsList', () => {
   });
 
   it('displays owner from alert rule', async () => {
-    const team = Team();
+    const team = TeamFixture();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        Incident({
+        IncidentFixture({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: MetricRule({owner: `team:${team.id}`}),
+          alertRule: MetricRuleFixture({owner: `team:${team.id}`}),
         }),
       ],
     });

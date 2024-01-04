@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -10,7 +10,7 @@ import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload
 describe('DataDownload', function () {
   beforeEach(MockApiClient.clearMockResponses);
   const dateExpired = new Date();
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const mockRouteParams = {
     orgId: organization.slug,
     dataExportId: '721',

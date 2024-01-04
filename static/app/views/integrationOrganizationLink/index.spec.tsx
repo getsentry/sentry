@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
-import {Organization} from 'sentry-fixture/organization';
-import {VercelProvider} from 'sentry-fixture/vercelIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -12,12 +12,12 @@ describe('IntegrationOrganizationLink', () => {
   it('selecting org from dropdown loads the org through the API', async () => {
     const {routerProps} = initializeOrg();
 
-    const org1 = Organization({
+    const org1 = OrganizationFixture({
       slug: 'org1',
       name: 'Organization 1',
     });
 
-    const org2 = Organization({
+    const org2 = OrganizationFixture({
       slug: 'org2',
       name: 'Organization 2',
     });
@@ -37,7 +37,7 @@ describe('IntegrationOrganizationLink', () => {
 
     const getProviderMock = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/config/integrations/?provider_key=vercel`,
-      body: {providers: [VercelProvider()]},
+      body: {providers: [VercelProviderFixture()]},
     });
 
     render(

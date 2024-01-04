@@ -1,4 +1,10 @@
-import {getDateTimeParams, MetricMetaCodeLocation} from 'sentry/utils/metrics';
+import * as Sentry from '@sentry/react';
+
+import {
+  getDateTimeParams,
+  MetricMetaCodeLocation,
+  MetricRange,
+} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -7,9 +13,24 @@ type ApiResponse = {
   metrics: MetricMetaCodeLocation[];
 };
 
-export function useMetricsCodeLocations(mri: string | undefined) {
+type MetricsDDMMetaOpts = MetricRange & {
+  codeLocations?: boolean;
+  metricSpans?: boolean;
+};
+
+function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const {start, end} = options;
+  const dateTimeParams =
+    start || end ? {start, end} : getDateTimeParams(selection.datetime);
+
+  const minMaxParams =
+    // remove non-numeric values
+    options.min && options.max && !isNaN(options.min) && !isNaN(options.max)
+      ? {min: options.min, max: options.max}
+      : {};
 
   const {data, isLoading, isError, refetch} = useApiQuery<ApiResponse>(
     [
@@ -18,8 +39,10 @@ export function useMetricsCodeLocations(mri: string | undefined) {
         query: {
           metric: mri,
           project: selection.projects,
-          codeLocations: true,
-          ...getDateTimeParams(selection.datetime),
+          codeLocations: options.codeLocations,
+          metricSpans: options.metricSpans,
+          ...dateTimeParams,
+          ...minMaxParams,
         },
       },
     ],
@@ -40,6 +63,22 @@ export function useMetricsCodeLocations(mri: string | undefined) {
   return {data, isLoading, isError, refetch};
 }
 
+export function useMetricsSpans(mri: string | undefined, options: MetricRange = {}) {
+  return useMetricsDDMMeta(mri, {
+    ...options,
+    metricSpans: true,
+    // TODO: remove this once metric spans starts returning data
+    codeLocations: true,
+  });
+}
+
+export function useMetricsCodeLocations(
+  mri: string | undefined,
+  options: MetricRange = {}
+) {
+  return useMetricsDDMMeta(mri, {...options, codeLocations: true});
+}
+
 const mapToNewResponseShape = (data: ApiResponse) => {
   // If the response is already in the new shape, do nothing
   if (data.metrics) {
@@ -50,6 +89,8 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     return {
       mri: codeLocation.mri,
       timestamp: codeLocation.timestamp,
+      // @ts-expect-error metricSpans is defined in the old response shape
+      metricSpans: data.metricSpans,
       codeLocations: (codeLocation.frames ?? []).map(frame => {
         return {
           function: frame.function,
@@ -64,6 +105,11 @@ const mapToNewResponseShape = (data: ApiResponse) => {
       }),
     };
   });
+
+  // @ts-expect-error metricSpans is defined in the old response shape
+  if (data.metricSpans?.length) {
+    Sentry.captureMessage('Non-empty metric spans response');
+  }
 };
 
 const sortCodeLocations = (data: ApiResponse) => {

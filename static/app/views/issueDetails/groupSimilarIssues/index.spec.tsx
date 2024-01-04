@@ -1,8 +1,8 @@
-import {Groups} from 'sentry-fixture/groups';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {GroupsFixture} from 'sentry-fixture/groups';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -44,7 +44,7 @@ describe('Issues Similar View', function () {
   ];
 
   const mockData = {
-    similar: Groups().map((issue, i) => [issue, scores[i]]),
+    similar: GroupsFixture().map((issue, i) => [issue, scores[i]]),
   };
 
   const router = RouterFixture();
@@ -148,7 +148,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext, organization: Organization({features})}
+      {context: routerContext, organization: OrganizationFixture({features})}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
