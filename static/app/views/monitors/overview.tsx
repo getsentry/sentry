@@ -113,7 +113,7 @@ export default function Monitors() {
                   title={
                     disableNewMonitors &&
                     t(
-                      'The Crons beta is over. Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete. Please try again after January 11th, 2024.'
+                      'Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete.'
                     )
                   }
                 >
