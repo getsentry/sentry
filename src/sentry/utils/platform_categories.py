@@ -58,6 +58,7 @@ BACKEND = [
     "go-http",
     "go-iris",
     "go-martini",
+    "go-negroni",
     "java",
     "java-appengine",
     "java-log4j",
