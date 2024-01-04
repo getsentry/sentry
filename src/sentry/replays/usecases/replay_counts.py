@@ -56,6 +56,13 @@ def _get_replay_id_mappings(
         # if we want to validate list of replay_ids existence
         return {v: [v] for v in value}
 
+    # Any number of issues can be specified however we're only going to return at
+    # most 25 of them. Cap the lists length to 25. The other ids are silently
+    # dropped.
+    #
+    # NOTE: Should this be an error?
+    value = value[:25]
+
     builder = QueryBuilder(
         dataset=data_source,
         params={},
