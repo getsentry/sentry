@@ -872,3 +872,35 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
+
+    def test_post_rule_256_char_name(self):
+        char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name=char_256_name,
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=self.notify_issue_owners_action,
+            conditions=self.first_seen_condition,
+        )
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.label == char_256_name
+
+    def test_post_rule_over_256_char_name(self):
+        char_257_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFOK"
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name=char_257_name,
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            conditions=self.first_seen_condition,
+            actions=self.notify_issue_owners_action,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
