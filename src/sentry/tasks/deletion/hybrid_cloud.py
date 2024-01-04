@@ -224,7 +224,7 @@ def _process_hybrid_cloud_foreign_key_cascade(
             ),
         )
         sentry_sdk.capture_exception(err)
-        raise err
+        raise
 
 
 # Convenience wrapper for mocking in tests
