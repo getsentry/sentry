@@ -44,8 +44,6 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
             ]
         blocks = []
         for rule, group, event in digest_groups:
-            if len(blocks) > 1:
-                blocks.append({"type": "divider"})
             alert_as_blocks = SlackIssuesMessageBuilder(
                 group=group,
                 event=event,
