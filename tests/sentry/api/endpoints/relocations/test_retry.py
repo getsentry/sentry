@@ -67,10 +67,17 @@ class RetryRelocationTest(APITestCase):
             latest_task=OrderedTask.PREPROCESSING_SCAN.name,
             latest_task_attempts=1,
         )
+
+        # Make two files - one to be referenced by our existing `Relocation`, the other not.
         self.file: File = File.objects.create(
             name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE
         )
         self.file.putfile(get_test_tarball())
+        other_file: File = File.objects.create(
+            name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE
+        )
+        other_file.putfile(get_test_tarball())
+
         self.relocation_file = RelocationFile.objects.create(
             relocation=self.relocation,
             file=self.file,

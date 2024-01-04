@@ -80,7 +80,7 @@ class RelocationRetryEndpoint(Endpoint):
 
         # We can re-use the same `File` instance in the database, avoiding duplicating data.
         try:
-            file: File = File.objects.get()
+            file: File = File.objects.get(id=relocation_file.file_id)
             fileobj = file.getfile()
         except (File.DoesNotExist, FileNotFoundError):
             return Response(
