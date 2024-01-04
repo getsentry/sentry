@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-export default function LocationFixture(params: Partial<Location> = {}): Location {
+export function LocationFixture(params: Partial<Location> = {}): Location {
   return {
     key: '',
     search: '',

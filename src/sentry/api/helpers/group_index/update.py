@@ -71,7 +71,7 @@ def handle_discard(
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
         raise rest_framework.exceptions.ValidationError(
-            detail="Only error issues can be discarded.", code=400
+            detail="Only error issues can be discarded."
         )
     # grouped by project_id
     groups_to_delete = defaultdict(list)
@@ -202,7 +202,7 @@ def update_groups(
             },
         )
         if not serializer.is_valid():
-            raise serializers.ValidationError(serializer.errors, code=400)
+            raise serializers.ValidationError(serializer.errors)
 
     if serializer is None:
         return

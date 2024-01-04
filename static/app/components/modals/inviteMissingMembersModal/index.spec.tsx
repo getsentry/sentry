@@ -1,8 +1,8 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
-import {MissingMembers} from 'sentry-fixture/missingMembers';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -33,10 +33,10 @@ const mockRefObject = {
 };
 
 describe('InviteMissingMembersModal', function () {
-  const team = Team();
-  const org = Organization({access: ['member:write'], teams: [team]});
+  const team = TeamFixture();
+  const org = OrganizationFixture({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
-  const missingMembers = MissingMembers();
+  const missingMembers = MissingMembersFixture();
 
   const styledWrapper = styled(c => c.children);
   const modalProps: InviteMissingMembersModalProps = {
@@ -45,7 +45,7 @@ describe('InviteMissingMembersModal', function () {
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
-    organization: Organization(),
+    organization: OrganizationFixture(),
     missingMembers: [],
     allowedRoles: [],
     modalContainerRef: mockRefObject,
@@ -69,7 +69,7 @@ describe('InviteMissingMembersModal', function () {
   });
 
   it('does not render without org:write', function () {
-    const organization = Organization({access: []});
+    const organization = OrganizationFixture({access: []});
     render(<InviteMissingMembersModal {...modalProps} organization={organization} />);
 
     expect(
@@ -131,7 +131,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={Organization({defaultRole: 'member'})}
+        organization={OrganizationFixture({defaultRole: 'member'})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />
@@ -167,7 +167,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={Organization({defaultRole: 'member', teams: [team]})}
+        organization={OrganizationFixture({defaultRole: 'member', teams: [team]})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />

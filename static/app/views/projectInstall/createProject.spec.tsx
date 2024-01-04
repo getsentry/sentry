@@ -1,7 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
-import {Team} from 'sentry-fixture/team';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -35,7 +35,7 @@ function renderFrameworkModalMockRequests({
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/teams/`,
-    body: [Team({slug: teamSlug})],
+    body: [TeamFixture({slug: teamSlug})],
   });
 
   MockApiClient.addMockResponse({
@@ -64,14 +64,14 @@ function renderFrameworkModalMockRequests({
 }
 
 describe('CreateProject', function () {
-  const teamNoAccess = Team({
+  const teamNoAccess = TeamFixture({
     slug: 'test',
     id: '1',
     name: 'test',
     access: ['team:read'],
   });
 
-  const teamWithAccess = Team({
+  const teamWithAccess = TeamFixture({
     access: ['team:admin', 'team:write', 'team:read'],
   });
 
@@ -115,7 +115,7 @@ describe('CreateProject', function () {
     });
 
     renderFrameworkModalMockRequests({organization, teamSlug: 'team-two'});
-    TeamStore.loadUserTeams([Team({id: '2', slug: 'team-two', access: []})]);
+    TeamStore.loadUserTeams([TeamFixture({id: '2', slug: 'team-two', access: []})]);
 
     render(<CreateProject />, {
       context: RouterContextFixture([
@@ -148,9 +148,9 @@ describe('CreateProject', function () {
 
     OrganizationStore.onUpdate(organization);
     TeamStore.loadUserTeams([
-      Team({id: '1', slug: 'team-one', access: []}),
-      Team({id: '2', slug: 'team-two', access: ['team:admin']}),
-      Team({id: '3', slug: 'team-three', access: ['team:admin']}),
+      TeamFixture({id: '1', slug: 'team-one', access: []}),
+      TeamFixture({id: '2', slug: 'team-two', access: ['team:admin']}),
+      TeamFixture({id: '3', slug: 'team-three', access: ['team:admin']}),
     ]);
     render(<CreateProject />, {
       context: RouterContextFixture([{organization}]),
@@ -396,7 +396,7 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', function () {
-    const organization = Organization();
+    const organization = OrganizationFixture();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 

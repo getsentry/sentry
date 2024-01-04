@@ -1,5 +1,5 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +20,7 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
-import {ReplayList} from 'sentry-fixture/replayList';
+import {ReplayListFixture} from 'sentry-fixture/replayList';
 
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
@@ -297,7 +297,7 @@ describe('GroupReplays', () => {
         body: {
           data: [
             {
-              ...ReplayList()[0],
+              ...ReplayListFixture()[0],
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -309,7 +309,7 @@ describe('GroupReplays', () => {
               ],
             },
             {
-              ...ReplayList()[0],
+              ...ReplayListFixture()[0],
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),

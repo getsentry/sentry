@@ -1,6 +1,7 @@
 import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import * as Sentry from '@sentry/react';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 
@@ -11,18 +12,24 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  isCumulativeOp,
+  MetricDisplayType,
+} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
-import {useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
+import {FocusArea, useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
-import {useDDMContext} from 'sentry/views/ddm/context';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
 import {Series} from './widget';
 
 type ChartProps = {
+  addFocusArea: (area: FocusArea) => void;
   displayType: MetricDisplayType;
+  focusArea: FocusArea | null;
+  removeFocusArea: () => void;
   series: Series[];
   widgetIndex: number;
   operation?: string;
@@ -34,7 +41,18 @@ type ChartProps = {
 echarts.use(CanvasRenderer);
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
-  ({series, displayType, operation, widgetIndex}, forwardedRef) => {
+  (
+    {
+      series,
+      displayType,
+      operation,
+      widgetIndex,
+      addFocusArea,
+      focusArea,
+      removeFocusArea,
+    },
+    forwardedRef
+  ) => {
     const router = useRouter();
     const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -42,10 +60,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       isDisabled: false,
     });
 
-    const {focusArea, addFocusArea, removeFocusArea} = useDDMContext();
-
     const handleZoom = useCallback(
       (range: DateTimeObject) => {
+        Sentry.metrics.increment('ddm.enhance.zoom');
         updateDateTime(range, router, {save: true});
       },
       [router]
@@ -60,6 +77,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       {
         widgetIndex,
         isDisabled: !isHovered,
+        useFullYAxis: isCumulativeOp(operation),
       }
     );
 
@@ -84,7 +102,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
     const isSubMinuteBucket = bucketSize < 60_000;
     const seriesLength = seriesToShow[0]?.data.length;
-    const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
+    const displayFogOfWar = isCumulativeOp(operation);
 
     const chartProps = useMemo(() => {
       const formatters = {
@@ -107,6 +125,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         grid: {top: 20, bottom: 20, left: 15, right: 25},
         tooltip: {
           formatter: (params, asyncTicket) => {
+            if (focusAreaBrush.isDrawingRef.current) {
+              return '';
+            }
             const hoveredEchartElement = Array.from(
               document.querySelectorAll(':hover')
             ).find(element => {
@@ -120,6 +141,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         yAxis: {
+          // used to find and convert datapoint to pixel position
+          id: 'yAxis',
           axisLabel: {
             formatter: (value: number) => {
               return formatMetricsUsingUnitAndOp(value, unit, operation);
@@ -127,6 +150,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           },
         },
         xAxis: {
+          // used to find and convert datapoint to pixel position
+          id: 'xAxis',
           axisPointer: {
             snap: true,
           },
@@ -135,6 +160,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     }, [
       bucketSize,
       focusAreaBrush.options,
+      focusAreaBrush.isDrawingRef,
       forwardedRef,
       isSubMinuteBucket,
       operation,

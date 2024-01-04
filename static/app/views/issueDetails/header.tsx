@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import Badge from 'sentry/components/badge';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';

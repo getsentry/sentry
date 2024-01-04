@@ -30,6 +30,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
@@ -215,7 +216,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = models.SlugField(null=True)
+    slug = SentrySlugField(null=True)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)

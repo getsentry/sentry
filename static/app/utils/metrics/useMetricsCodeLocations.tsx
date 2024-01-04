@@ -26,6 +26,12 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
   const dateTimeParams =
     start || end ? {start, end} : getDateTimeParams(selection.datetime);
 
+  const minMaxParams =
+    // remove non-numeric values
+    options.min && options.max && !isNaN(options.min) && !isNaN(options.max)
+      ? {min: options.min, max: options.max}
+      : {};
+
   const {data, isLoading, isError, refetch} = useApiQuery<ApiResponse>(
     [
       `/organizations/${organization.slug}/ddm/meta/`,
@@ -33,8 +39,10 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
         query: {
           metric: mri,
           project: selection.projects,
-          ...options,
+          codeLocations: options.codeLocations,
+          metricSpans: options.metricSpans,
           ...dateTimeParams,
+          ...minMaxParams,
         },
       },
     ],
@@ -59,6 +67,8 @@ export function useMetricsSpans(mri: string | undefined, options: MetricRange = 
   return useMetricsDDMMeta(mri, {
     ...options,
     metricSpans: true,
+    // TODO: remove this once metric spans starts returning data
+    codeLocations: true,
   });
 }
 
@@ -79,6 +89,8 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     return {
       mri: codeLocation.mri,
       timestamp: codeLocation.timestamp,
+      // @ts-expect-error metricSpans is defined in the old response shape
+      metricSpans: data.metricSpans,
       codeLocations: (codeLocation.frames ?? []).map(frame => {
         return {
           function: frame.function,
@@ -94,8 +106,8 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     };
   });
 
-  // @ts-expect-error metricsSpans is defined in the old response shape
-  if (data.metricsSpans?.length) {
+  // @ts-expect-error metricSpans is defined in the old response shape
+  if (data.metricSpans?.length) {
     Sentry.captureMessage('Non-empty metric spans response');
   }
 };

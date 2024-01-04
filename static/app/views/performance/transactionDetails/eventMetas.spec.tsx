@@ -1,6 +1,6 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +13,7 @@ describe('EventMetas', () => {
       dateCreated: '2017-05-21T18:02:48.762Z',
     });
     const routerContext = RouterContextFixture([]);
-    const organization = Organization({});
+    const organization = OrganizationFixture({});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

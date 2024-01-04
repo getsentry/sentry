@@ -187,6 +187,8 @@ class IssueListOverview extends Component<Props, State> {
     ) {
       const loadedFromCache = this.loadFromCache();
       if (!loadedFromCache) {
+        // It's possible the projects query parameter is not yet ready and this
+        // request will be repeated in componentDidUpdate
         this.fetchData();
       }
     }
@@ -214,8 +216,12 @@ class IssueListOverview extends Component<Props, State> {
       this.fetchTags();
     }
 
+    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
+
     // Wait for saved searches to load before we attempt to fetch stream data
-    if (this.props.savedSearchLoading) {
+    // Selection changing could indicate that the projects query parameter has populated
+    // and we should refetch data.
+    if (this.props.savedSearchLoading && !selectionChanged) {
       return;
     }
 
@@ -252,8 +258,6 @@ class IssueListOverview extends Component<Props, State> {
       location: prevProps.location,
     });
     const newSort = this.getSort();
-
-    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
 
     // If any important url parameter changed or saved search changed
     // reload data.

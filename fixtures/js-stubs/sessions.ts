@@ -1,6 +1,6 @@
 import type {SessionApiResponse} from 'sentry/types';
 
-export function SessionsField(field: string): SessionApiResponse {
+export function SessionsFieldFixture(field: string): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -35,7 +35,7 @@ export function SessionsField(field: string): SessionApiResponse {
   };
 }
 
-export function SessionUserCountByStatus(): SessionApiResponse {
+export function SessionUserCountByStatusFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -123,7 +123,7 @@ export function SessionUserCountByStatus(): SessionApiResponse {
 
 // this one is higher than the first one
 // first one can be used as "This Release" and the second one works nicely as "All Releases"
-export function SessionUserCountByStatus2(): SessionApiResponse {
+export function SessionUserCountByStatus2Fixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -209,7 +209,7 @@ export function SessionUserCountByStatus2(): SessionApiResponse {
   };
 }
 
-export function SessionStatusCountByReleaseInPeriod(): SessionApiResponse {
+export function SessionStatusCountByReleaseInPeriodFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -308,7 +308,7 @@ export function SessionStatusCountByReleaseInPeriod(): SessionApiResponse {
   };
 }
 
-export function SessionStatusCountByProjectInPeriod(): SessionApiResponse {
+export function SessionStatusCountByProjectInPeriodFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -366,7 +366,7 @@ export function SessionStatusCountByProjectInPeriod(): SessionApiResponse {
   };
 }
 
-export function SesssionTotalCountByReleaseIn24h(): SessionApiResponse {
+export function SesssionTotalCountByReleaseIn24hFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -423,7 +423,7 @@ export function SesssionTotalCountByReleaseIn24h(): SessionApiResponse {
   };
 }
 
-export function SessionTotalCountByProjectIn24h(): SessionApiResponse {
+export function SessionTotalCountByProjectIn24hFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -470,7 +470,7 @@ export function SessionTotalCountByProjectIn24h(): SessionApiResponse {
   };
 }
 
-export function SessionUserStatusCountByReleaseInPeriod(): SessionApiResponse {
+export function SessionUserStatusCountByReleaseInPeriodFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -593,7 +593,7 @@ export function SessionUserStatusCountByReleaseInPeriod(): SessionApiResponse {
   };
 }
 
-export function SessionUserStatusCountByProjectInPeriod(): SessionApiResponse {
+export function SessionUserStatusCountByProjectInPeriodFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -663,7 +663,7 @@ export function SessionUserStatusCountByProjectInPeriod(): SessionApiResponse {
   };
 }
 
-export function UserTotalCountByReleaseIn24h(): SessionApiResponse {
+export function UserTotalCountByReleaseIn24hFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -719,7 +719,7 @@ export function UserTotalCountByReleaseIn24h(): SessionApiResponse {
   };
 }
 
-export function UserTotalCountByProjectIn24h(): SessionApiResponse {
+export function UserTotalCountByProjectIn24hFixture(): SessionApiResponse {
   return {
     start: '',
     end: '',
@@ -765,7 +765,7 @@ export function UserTotalCountByProjectIn24h(): SessionApiResponse {
   };
 }
 
-export function SessionUserCountByStatusByRelease(): SessionApiResponse {
+export function SessionUserCountByStatusByReleaseFixture(): SessionApiResponse {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',
@@ -855,7 +855,7 @@ export function SessionUserCountByStatusByRelease(): SessionApiResponse {
   };
 }
 
-export function SessionEmptyGroupedResponse(): SessionApiResponse {
+export function SessionEmptyGroupedResponseFixture(): SessionApiResponse {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',

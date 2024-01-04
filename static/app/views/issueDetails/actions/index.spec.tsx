@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -33,7 +34,7 @@ const group = GroupFixture({
   project,
 });
 
-const organization = Organization({
+const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],
@@ -131,7 +132,7 @@ describe('GroupActions', function () {
 
   describe('reprocessing', function () {
     it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
 
@@ -152,7 +153,7 @@ describe('GroupActions', function () {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
 
@@ -210,7 +211,7 @@ describe('GroupActions', function () {
   });
 
   it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = Organization({
+    const org = OrganizationFixture({
       ...organization,
       access: [...organization.access, 'event:admin'],
     });
