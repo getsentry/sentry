@@ -1,7 +1,6 @@
 import datetime
 from unittest import mock
 
-from django.conf import settings
 from django.core import mail
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
@@ -16,6 +15,7 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -286,11 +286,9 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         assert_security_email_sent("recovery-codes-regenerated")
 
     def test_delete(self):
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
         user = self.create_user(email="a@example.com", is_superuser=True)
 
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             auth = Authenticator.objects.create(type=2, user=user)  # sms
             available_auths = Authenticator.objects.all_interfaces_for_user(
                 user, ignore_backup=True
@@ -353,10 +351,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.login_as(user=superuser, superuser=True)
 
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
-
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             # enroll in one auth method
             interface = TotpInterface()
             interface.enroll(self.user)
@@ -377,10 +372,7 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     def test_require_2fa__delete_with_multiple_auth__ok(self):
         self._require_2fa_for_organization()
 
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
-
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             # enroll in two auth methods
             interface_sms = SmsInterface()
             interface_sms.phone_number = "5551231234"

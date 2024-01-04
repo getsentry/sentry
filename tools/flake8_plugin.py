@@ -30,6 +30,8 @@ S009_msg = "S009 Use `raise` with no arguments to reraise exceptions"
 
 S010_msg = "S010 Except handler does nothing and should be removed"
 
+S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -121,6 +123,25 @@ class SentryVisitor(ast.NodeVisitor):
             and node.handlers[-1].body[0].exc is None
         ):
             self.errors.append((node.handlers[-1].lineno, node.handlers[-1].col_offset, S010_msg))
+
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if (
+            # override_settings(...)
+            (isinstance(node.func, ast.Name) and node.func.id == "override_settings")
+            or
+            # self.settings(...)
+            (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+                and node.func.attr == "settings"
+            )
+        ):
+            for keyword in node.keywords:
+                if keyword.arg == "SENTRY_OPTIONS":
+                    self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
 
         self.generic_visit(node)
 
