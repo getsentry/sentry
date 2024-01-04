@@ -1,7 +1,7 @@
 import shuffle from 'lodash/shuffle';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {PageFilters} from 'sentry-fixture/pageFilters';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {NewQuery, SavedQuery} from 'sentry/types';
@@ -518,7 +518,7 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   };
 
   it('maps basic properties of a prebuilt query', function () {
-    const pageFilters = PageFilters();
+    const pageFilters = PageFiltersFixture();
 
     const eventView = EventView.fromNewQueryWithPageFilters(prebuiltQuery, pageFilters);
 
@@ -538,9 +538,12 @@ describe('EventView.fromNewQueryWithPageFilters()', function () {
   });
 
   it('merges page filter values', function () {
-    const pageFilters = TestStubs.PageFilters({
+    const pageFilters = PageFiltersFixture({
       datetime: {
         period: '3d',
+        start: null,
+        end: null,
+        utc: null,
       },
       projects: [42],
       environments: ['prod'],
@@ -2979,7 +2982,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3035,7 +3038,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -3099,7 +3102,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     display: 'previous',
     dataset: DiscoverDatasets.DISCOVER,
   };
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const showTransactions = EventsDisplayFilterName.P99;
   const breakdown = SpanOperationBreakdownFilter.HTTP;
   const webVital = WebVital.LCP;

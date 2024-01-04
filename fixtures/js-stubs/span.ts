@@ -1,6 +1,6 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 
-export function Span(params = {}): RawSpanType {
+export function SpanFixture(params = {}): RawSpanType {
   return {
     timestamp: 1657201239.51,
     start_timestamp: 1657201239.503,

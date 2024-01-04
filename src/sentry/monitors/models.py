@@ -29,6 +29,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
@@ -203,7 +204,7 @@ class Monitor(Model):
     API endpoints.
     """
 
-    slug = models.SlugField()
+    slug = SentrySlugField()
     """
     Organization unique slug of the monitor. Used to identify the monitor in
     check-in payloads. The slug can be changed.
@@ -556,6 +557,12 @@ class MonitorEnvironment(Model):
     The MonitorStatus of the monitor. This is denormalized from the check-ins
     list, since it would be possible to determine this by looking at recent
     check-ins. It is denormalized for simplicity.
+    """
+
+    is_muted = models.BooleanField(default=False)
+    """
+    Monitor environment is operating normally but will not produce incidents or produce
+    occurrences into the issues platform.
     """
 
     next_checkin = models.DateTimeField(null=True)

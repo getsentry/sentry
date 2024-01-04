@@ -1,16 +1,28 @@
-import {GitHubIntegration} from 'sentry-fixture/githubIntegration';
-import {Project} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {type CodeOwner as TCodeOwner} from 'sentry/types';
+import type {
+  CodeOwner as TCodeOwner,
+  OrganizationIntegration,
+  Project as TProject,
+  Repository as TRepository,
+} from 'sentry/types';
 
-export function CodeOwner({
-  project = Project(),
-  repo = Repository(),
-  integration = GitHubIntegration(),
+interface CodeOwnerParams extends Partial<TCodeOwner> {
+  integration?: OrganizationIntegration;
+  project?: TProject;
+  repo?: TRepository;
+}
+
+export function CodeOwnerFixture({
+  project = ProjectFixture(),
+  repo = RepositoryFixture(),
   ...params
-} = {}): TCodeOwner {
+}: CodeOwnerParams = {}): TCodeOwner {
+  const integration = GitHubIntegrationFixture();
+
   return {
     id: '1225',
     raw: '',
@@ -18,7 +30,7 @@ export function CodeOwner({
     dateUpdated: '2023-02-24T18:43:08.729490Z',
     codeMappingId: '11',
     provider: 'github',
-    codeMapping: RepositoryProjectPathConfig({project, repo, integration}),
+    codeMapping: RepositoryProjectPathConfigFixture({project, repo, integration}),
     codeOwnersUrl: 'https://github.com/getsentry/sentry/blob/master/.github/CODEOWNERS',
     ownershipSyntax: '',
     errors: {

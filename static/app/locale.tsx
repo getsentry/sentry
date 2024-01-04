@@ -2,7 +2,6 @@ import {cloneElement, Fragment, isValidElement} from 'react';
 import * as Sentry from '@sentry/react';
 import Jed from 'jed';
 import isObject from 'lodash/isObject';
-import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
 import localStorage from 'sentry/utils/localStorage';
@@ -98,7 +97,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
 
   // always re-parse, do not cache, because we change the match
   sprintf.parse(formatString).forEach((match: any, idx: number) => {
-    if (isString(match)) {
+    if (typeof match === 'string') {
       nodes.push(match);
       return;
     }
@@ -249,7 +248,7 @@ export function renderTemplate(
     const group = template[groupKey] || [];
 
     for (const item of group) {
-      if (isString(item)) {
+      if (typeof item === 'string') {
         children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
         children.push(renderGroup(item.group));

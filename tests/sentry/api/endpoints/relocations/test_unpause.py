@@ -110,6 +110,60 @@ class UnpauseRelocationTest(APITestCase):
         assert async_task_scheduled.call_count == 1
         assert async_task_scheduled.call_args.args == (str(self.relocation.uuid),)
 
+    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    def test_good_change_pending_pause_later(self, async_task_scheduled: Mock):
+        self.login_as(user=self.superuser, superuser=True)
+        self.relocation.status = Relocation.Status.IN_PROGRESS.value
+        self.relocation.step = Relocation.Step.VALIDATING.value
+        self.relocation.scheduled_pause_at_step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.save()
+        response = self.client.put(
+            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
+            {"untilStep": Relocation.Step.NOTIFYING.name},
+        )
+
+        assert response.status_code == 200
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.VALIDATING.name
+        assert response.data["scheduledPauseAtStep"] == Relocation.Step.NOTIFYING.name
+
+        assert async_task_scheduled.call_count == 0
+
+    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    def test_good_change_pending_pause_sooner(self, async_task_scheduled: Mock):
+        self.login_as(user=self.superuser, superuser=True)
+        self.relocation.status = Relocation.Status.IN_PROGRESS.value
+        self.relocation.step = Relocation.Step.VALIDATING.value
+        self.relocation.scheduled_pause_at_step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.save()
+        response = self.client.put(
+            f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/",
+            {"untilStep": Relocation.Step.IMPORTING.name},
+        )
+
+        assert response.status_code == 200
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.VALIDATING.name
+        assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
+
+        assert async_task_scheduled.call_count == 0
+
+    @patch("sentry.tasks.relocation.preprocessing_scan.delay")
+    def test_good_remove_pending_pause(self, async_task_scheduled: Mock):
+        self.login_as(user=self.superuser, superuser=True)
+        self.relocation.status = Relocation.Status.IN_PROGRESS.value
+        self.relocation.step = Relocation.Step.VALIDATING.value
+        self.relocation.scheduled_pause_at_step = Relocation.Step.POSTPROCESSING.value
+        self.relocation.save()
+        response = self.client.put(f"/api/0/relocations/{str(self.relocation.uuid)}/unpause/")
+
+        assert response.status_code == 200
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.VALIDATING.name
+        assert response.data["scheduledPauseAtStep"] is None
+
+        assert async_task_scheduled.call_count == 0
+
     @patch("sentry.tasks.relocation.notifying_users.delay")
     def test_good_unpause_no_follow_up_step(self, async_task_scheduled: Mock):
         self.login_as(user=self.superuser, superuser=True)

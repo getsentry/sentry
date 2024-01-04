@@ -38,7 +38,6 @@ from sentry.dynamic_sampling import (
 )
 from sentry.event_manager import (
     EventManager,
-    HashDiscarded,
     _get_event_instance,
     _save_grouphash_and_group,
     get_event_type,
@@ -46,6 +45,7 @@ from sentry.event_manager import (
     materialize_metadata,
 )
 from sentry.eventstore.models import Event
+from sentry.exceptions import HashDiscarded
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import (

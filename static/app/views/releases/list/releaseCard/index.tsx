@@ -18,7 +18,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Release} from 'sentry/types';
 
-import {ThresholdStatus} from '../../utils/types';
+import {Threshold, ThresholdStatus} from '../../utils/types';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import {ReleasesRequestRenderProps} from '../releasesRequest';
 
@@ -56,6 +56,7 @@ type Props = {
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
   thresholdStatuses: {[key: string]: ThresholdStatus[]};
+  thresholds: Threshold[];
 };
 
 function ReleaseCard({
@@ -70,6 +71,7 @@ function ReleaseCard({
   getHealthData,
   showReleaseAdoptionStages,
   thresholdStatuses,
+  thresholds,
 }: Props) {
   const {
     version,
@@ -94,16 +96,7 @@ function ReleaseCard({
     );
   }, [projects, selection.projects]);
 
-  const hasThresholds = useMemo(() => {
-    const project_slugs = projects.map(proj => proj.slug);
-    let has = false;
-    project_slugs.forEach(slug => {
-      if (`${slug}-${version}` in thresholdStatuses) {
-        has = thresholdStatuses[`${slug}-${version}`].length > 0;
-      }
-    });
-    return has;
-  }, [thresholdStatuses, version, projects]);
+  const hasThresholds = thresholds.length > 0;
 
   const getHiddenProjectsTooltip = () => {
     const limitedProjects = projectsToHide.map(p => p.slug).slice(0, 5);
@@ -194,6 +187,9 @@ function ReleaseCard({
           >
             {projectsToShow.map((project, index) => {
               const key = `${project.slug}-${version}`;
+              const projectThresholds = thresholds.filter(
+                threshold => threshold.project.slug === project.slug
+              );
               return (
                 <ReleaseCardProjectRow
                   key={`${key}-row`}
@@ -201,6 +197,7 @@ function ReleaseCard({
                   adoptionStages={adoptionStages}
                   getHealthData={getHealthData}
                   hasThresholds={hasThresholds}
+                  expectedThresholds={projectThresholds.length}
                   index={index}
                   isTopRelease={isTopRelease}
                   location={location}
