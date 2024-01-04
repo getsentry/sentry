@@ -424,6 +424,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             )
             assert response.status_code == 403
 
+    # su form is disabled by overriding local dev setting which skip checks
+    @mock.patch.object(superuser, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True)
     @override_settings(SENTRY_SELF_HOSTED=False)
     @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_user_has_password_su_form_off_saas(self):
@@ -432,18 +434,18 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         user = self.create_user("foo@example.com", is_superuser=True)
 
         with mock.patch.object(Superuser, "org_id", None):
-            # su form is disabled by overriding setting to skip checks
-            with mock.patch.object(superuser, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True):
-                self.login_as(user)
-                response = self.client.put(
-                    self.path,
-                    data={
-                        "password": "admin",
-                        "isSuperuserModal": True,
-                    },
-                )
-                assert response.status_code == 200
+            self.login_as(user)
+            response = self.client.put(
+                self.path,
+                data={
+                    "password": "admin",
+                    "isSuperuserModal": True,
+                },
+            )
+            assert response.status_code == 200
 
+    # su form is disabled by overriding local dev setting which skip checks
+    @mock.patch.object(superuser, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True)
     @override_settings(SENTRY_SELF_HOSTED=False)
     @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_su_form_off_no_password_or_u2f_saas(self):
@@ -452,17 +454,15 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         user = self.create_user("foo@example.com", is_superuser=True)
 
         with mock.patch.object(Superuser, "org_id", self.organization.id):
-            # su form is disabled by overriding setting to skip checks
-            with mock.patch.object(superuser, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True):
-                self.login_as(user)
-                response = self.client.put(
-                    self.path,
-                    data={
-                        "isSuperuserModal": True,
-                    },
-                )
-                assert response.status_code == 403
-                assert response.data["detail"]["code"] == "no_u2f"
+            self.login_as(user)
+            response = self.client.put(
+                self.path,
+                data={
+                    "isSuperuserModal": True,
+                },
+            )
+            assert response.status_code == 403
+            assert response.data["detail"]["code"] == "no_u2f"
 
     @override_settings(SENTRY_SELF_HOSTED=True, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     @with_feature("organizations:u2f-superuser-form")
