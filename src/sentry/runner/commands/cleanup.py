@@ -46,6 +46,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
     import logging
 
+    from sentry.db.analyze import AnalyzeQuery
+    from sentry.monitors import models as monitor_models
     from sentry.utils.imports import import_string
 
     logger = logging.getLogger("sentry.cleanup")
@@ -93,6 +95,12 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             while True:
                 if not task.chunk():
                     break
+
+            # special case for MonitorCheckIn to protect against index slippage
+            # run ANALYZE on the table
+            if model == monitor_models.MonitorCheckIn:
+                q = AnalyzeQuery(model=model)
+                q.execute()
         except Exception as e:
             logger.exception(e)
         finally:
@@ -159,7 +167,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         from sentry import models, nodestore
         from sentry.constants import ObjectStatus
         from sentry.data_export.models import ExportedData
-        from sentry.db.analyze import AnalyzeQuery
         from sentry.db.deletion import BulkDeleteQuery
         from sentry.models.rulefirehistory import RuleFireHistory
         from sentry.monitors import models as monitor_models
@@ -336,12 +343,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))
 
-                # special case for MonitorCheckIn to protect against index slippage
-                if model == monitor_models.MonitorCheckIn:
-                    imp = ".".join((model.__module__, model.__name__))
-
-                    q = AnalyzeQuery(model=model)
-                    task_queue.put((imp, q.execute()))
                 task_queue.join()
 
         project_deletion_query = models.Project.objects.filter(status=ObjectStatus.ACTIVE)
