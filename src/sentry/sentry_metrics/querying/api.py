@@ -240,7 +240,7 @@ class QueryResult:
     @property
     def query_name(self) -> str:
         timeseries = (
-            self.series_executable_query or self.totals_executable_query
+            cast(ExecutableQuery, self.series_executable_query or self.totals_executable_query)
         ).metrics_query.query
 
         aggregate = timeseries.aggregate
@@ -292,7 +292,9 @@ class QueryResult:
         # that we can correctly render groups in case they are not returned from the db.
         return cast(
             Optional[List[str]],
-            (self.series_executable_query or self.totals_executable_query).group_bys,
+            (
+                cast(ExecutableQuery, self.series_executable_query or self.totals_executable_query)
+            ).group_bys,
         )
 
     @property

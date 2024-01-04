@@ -208,6 +208,49 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[2]["series"] == {field: [0.0, 1.0, 2.0]}
         assert groups[2]["totals"] == {field: 3.0}
 
+    def test_query_with_group_by_on_null_tag(self) -> None:
+        for value, transaction, time in (
+            (1, "/hello", self.now()),
+            (5, None, self.now() + timedelta(minutes=30)),
+        ):
+            tags = {}
+            if transaction:
+                tags["transaction"] = transaction
+
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "distribution",
+                TransactionMRI.MEASUREMENTS_FCP.value,
+                tags,
+                self.ts(time),
+                value,
+                UseCaseID.TRANSACTIONS,
+            )
+
+        # Query with one aggregation and two group by.
+        field = f"sum({TransactionMRI.MEASUREMENTS_FCP.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query=None,
+            group_bys=["transaction"],
+            start=self.now(),
+            end=self.now() + timedelta(hours=1),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 2
+        assert groups[0]["by"] == {"transaction": ""}
+        assert groups[0]["series"] == {field: [5.0]}
+        assert groups[0]["totals"] == {field: 5.0}
+        assert groups[1]["by"] == {"transaction": "/hello"}
+        assert groups[1]["series"] == {field: [1.0]}
+        assert groups[1]["totals"] == {field: 1.0}
+
     def test_query_with_two_simple_filters(self) -> None:
         # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
