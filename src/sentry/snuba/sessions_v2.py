@@ -11,7 +11,7 @@ from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
-from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
+from sentry.release_health.base import AllowedResolution, SessionsQueryConfig, SessionsQueryResult
 from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -517,7 +517,7 @@ def _run_sessions_query(query):
 
 def massage_sessions_result(
     query, result_totals, result_timeseries, ts_col=TS_COL
-) -> Dict[str, List[Any]]:
+) -> SessionsQueryResult:
     """
     Post-processes the query result.
 

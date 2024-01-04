@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TypedDict,
     TypeVar,
 )
 
@@ -22,9 +23,10 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity, Limit, Offset
 from snuba_sdk.function import Function
 from snuba_sdk.query import Query
+from typing_extensions import NotRequired
 
 from sentry.constants import DataCategory
-from sentry.release_health.base import AllowedResolution
+from sentry.release_health.base import AllowedResolution, SessionsQueryGroup
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
     InvalidField,
@@ -458,15 +460,26 @@ def _outcomes_dataset(rollup: int) -> Tuple[Dataset, str]:
     return dataset, match
 
 
+class _OutcomesResult(TypedDict):
+    start: str
+    end: str
+    groups: Sequence[SessionsQueryGroup]
+    intervals: NotRequired[Sequence[str]]
+
+
 def massage_outcomes_result(
     query: QueryDefinition,
     result_totals: ResultSet,
     result_timeseries: Optional[ResultSet],
-) -> Dict[str, List[Any]]:
-    result: Dict[str, List[Any]] = massage_sessions_result(
-        query, result_totals, result_timeseries, ts_col=TS_COL
-    )
+) -> _OutcomesResult:
+    result = massage_sessions_result(query, result_totals, result_timeseries, ts_col=TS_COL)
+
+    ret: _OutcomesResult = {
+        "start": result["start"],
+        "end": result["end"],
+        "groups": result["groups"],
+        "intervals": result["intervals"],
+    }
     if result_timeseries is None:
-        del result["intervals"]
-    del result["query"]
-    return result
+        del ret["intervals"]
+    return ret

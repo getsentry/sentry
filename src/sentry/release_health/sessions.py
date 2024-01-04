@@ -111,7 +111,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             totals, series = _run_sessions_query(query_clone)
 
         with sentry_sdk.start_span(op=span_op, description="massage_sessions_results"):
-            return massage_sessions_result(query_clone, totals, series)  # type: ignore
+            return massage_sessions_result(query_clone, totals, series)
 
     def get_release_sessions_time_bounds(
         self,

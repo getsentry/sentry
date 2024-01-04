@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import Optional, Sequence, Set, Tuple
 
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -131,8 +131,8 @@ def _check_has_health_data(projects_list, now=None):
 
 def _check_releases_have_health_data(
     organization_id: int,
-    project_ids: List[int],
-    release_versions: List[str],
+    project_ids: Sequence[int],
+    release_versions: Sequence[str],
     start: datetime,
     end: datetime,
 ) -> Set[str]:
@@ -186,12 +186,14 @@ def _get_project_releases_by_stability(
 
     _, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
 
-    orderby = {
+    orderby_options: dict[str, list[object]]
+    orderby_options = {
         "crash_free_sessions": [["-divide", ["sessions_crashed", "sessions"]]],
         "crash_free_users": [["-divide", ["users_crashed", "users"]]],
         "sessions": ["-sessions"],
         "users": ["-users"],
-    }[scope]
+    }
+    orderby = orderby_options[scope]
 
     # Partial tiebreaker to make comparisons in the release-health duplex
     # backend more likely to succeed. A perfectly stable sorting would need to
@@ -548,7 +550,7 @@ def _get_crash_free_breakdown(project_id, release, start, environments=None, now
             else None,
         }
 
-    last = None
+    last: datetime | None = None
     rv = []
     for offset in (
         timedelta(days=1),
@@ -638,8 +640,8 @@ def _get_project_release_stats(project_id, release, stat, rollup, start, end, en
             for k in totals:
                 totals[k] += stats[bucket][1][k]
 
-    for idx, bucket in enumerate(stats):
-        if bucket[1] is None:
+    for idx, stats_bucket in enumerate(stats):
+        if stats_bucket[1] is None:
             stats[idx][1] = {
                 stat: 0,
                 stat + "_healthy": 0,
@@ -870,14 +872,14 @@ def _get_num_sessions_per_project(
     project_ids: Sequence[int],
     start: datetime,
     end: datetime,
-    environment_ids: Optional[Sequence[int]] = None,
+    environment_ids: Sequence[int] | None = None,
     rollup: Optional[int] = None,  # rollup in seconds
 ) -> Sequence[Tuple[int, int]]:
 
     filters = {"project_id": list(project_ids)}
 
     if environment_ids:
-        filters["environment"] = environment_ids
+        filters["environment"] = list(environment_ids)
 
     result_totals = raw_query(
         selected_columns=["sessions"],
