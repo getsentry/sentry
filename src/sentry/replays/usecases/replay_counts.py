@@ -68,8 +68,14 @@ def _get_replay_id_mappings(
     # safety check is inexpensive and bad-actors (or malfunctioning clients) could
     # provide every project_id manually.
     if select_column == "issue.id":
-        qs = Group.objects.select_related("project").filter(id__in=value)
-        snuba_params = dataclasses.replace(snuba_params, projects=[group.project for group in qs])
+        groups = Group.objects.select_related("project").filter(
+            project__organization_id=snuba_params.organization.id,
+            id__in=value,
+        )
+        snuba_params = dataclasses.replace(
+            snuba_params,
+            projects=[group.project for group in groups],
+        )
 
     builder = QueryBuilder(
         dataset=data_source,
