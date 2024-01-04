@@ -114,6 +114,30 @@ def create_replay_actions_payload(
     }
 
 
+def log_canvas_size(
+    org_id: int,
+    project_id: int,
+    replay_id: str,
+    events: list[dict[str, Any]],
+):
+    for event in events:
+        if event.get("type") == 3 and event.get("data", {}).get("source") == 9:
+            logger.info(
+                # Logging to the sentry.replays.slow_click namespace because
+                # its the only one configured to use BigQuery at the moment.
+                #
+                # NOTE: Needs an ops request to create a new dataset.
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "canvas_size",
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "replay_id": replay_id,
+                    "size": len(json.dumps(event)),
+                },
+            )
+
+
 def get_user_actions(
     project_id: int,
     replay_id: str,
