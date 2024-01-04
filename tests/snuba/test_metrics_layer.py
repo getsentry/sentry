@@ -475,7 +475,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 10
         assert result["totals"]["aggregate_value"] == 9.0
 
-    def test_groupby_metrics(self) -> None:
+    def test_metrics_groupby(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -504,9 +504,10 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = self.run_query(request)
         assert request.dataset == "metrics"
         assert len(result["data"]) == 10
-        # TODO: check reverse resolved tags
+        for data_point in result["data"]:
+            assert data_point["release"] == "release_even" or data_point["release"] == "release_odd"
 
-    def test_filters_metrics(self) -> None:
+    def test_metrics_filters(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -537,9 +538,8 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = self.run_query(request)
         assert request.dataset == "metrics"
         assert len(result["data"]) == 5
-        # TODO: check reverse resolved tags
 
-    def test_complex_metrics(self) -> None:
+    def test_metrics_complex(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -549,7 +549,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 aggregate="count",
                 groupby=[Column("release")],
                 filters=[
-                    Condition(Column("release"), Op.EQ, "release_even"),
+                    Condition(Column("release"), Op.IN, ["release_even", "release_odd"]),
                 ],
             ),
             start=self.hour_ago,
@@ -570,7 +570,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         )
         result = self.run_query(request)
         assert request.dataset == "metrics"
-        assert len(result["data"]) == 5
+        assert len(result["data"]) == 10
         # TODO: check reverse resolved tags
 
     @pytest.mark.skip(reason="This is not implemented in MQL")
