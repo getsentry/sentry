@@ -41,7 +41,7 @@ const USER_ENDPOINT = '/users/me/';
 const USER_ENDPOINT_QUERY_KEY: ApiQueryKey = [USER_ENDPOINT];
 
 function AccountDetails() {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const queryClient = useQueryClient();
   const {
     data: user,
