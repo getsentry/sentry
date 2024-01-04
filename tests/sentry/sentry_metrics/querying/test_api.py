@@ -336,6 +336,29 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         groups = results["groups"]
         assert len(groups) == 3
+        assert groups[0]["by"] == {"platform": "ios"}
+        assert groups[0]["series"] == {field_2: [0.0, 3.0, 3.0], field_1: [0.0, 3.0, 3.0]}
+        assert groups[0]["totals"] == {field_2: 3.0, field_1: 3.0}
+
+    def test_query_with_multiple_aggregations_and_single_group_by_and_order_by(self) -> None:
+        # Query with two aggregations.
+        field_1 = f"min({TransactionMRI.DURATION.value})"
+        field_2 = f"max({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field_1, field_2],
+            query=None,
+            group_bys=["platform"],
+            order_by=f"-{field_1}",
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 3
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field_2: [0.0, 5.0, 3.0], field_1: [0.0, 1.0, 2.0]}
         assert groups[0]["totals"] == {field_2: 5.0, field_1: 1.0}

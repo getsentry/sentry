@@ -3,12 +3,13 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-from typing import Any, Generator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
     Column,
+    Direction,
     MetricsQuery,
     MetricsScope,
     Request,
@@ -67,6 +68,7 @@ GroupsCollection = Sequence[Sequence[Group]]
 
 @dataclass(frozen=True)
 class ExecutableQuery:
+    identifier: str
     metrics_query: MetricsQuery
     group_bys: Optional[Sequence[str]]
     order_by: Optional[str]
@@ -76,10 +78,38 @@ class ExecutableQuery:
     def build_result(self, result: Mapping[str, Any]) -> "QueryResult":
         return QueryResult(executable_query=self, result=result)
 
-    def set_interval(self, new_interval) -> "ExecutableQuery":
-        return replace(self, metrics_query=self.metrics_query.set_rollup(Rollup(new_interval)))
+    def replace_date_range(self, start: datetime, end: datetime) -> "ExecutableQuery":
+        return replace(
+            self,
+            metrics_query=self.metrics_query.set_start(start).set_end(end),
+        )
 
-    def set_groups_filters(
+    def replace_interval(self, new_interval: int) -> "ExecutableQuery":
+        return replace(
+            self,
+            metrics_query=self.metrics_query.set_rollup(
+                replace(self.metrics_query.rollup, interval=new_interval)
+            ),
+        )
+
+    def replace_order_by(self, direction: Direction) -> "ExecutableQuery":
+        return replace(
+            self,
+            metrics_query=self.metrics_query.set_rollup(
+                replace(self.metrics_query.rollup, orderby=direction)
+            ),
+        ).to_totals_query()
+
+    def to_totals_query(self) -> "ExecutableQuery":
+        return replace(
+            self,
+            metrics_query=self.metrics_query.set_rollup(
+                # If an order_by is used, we must run a totals query.
+                replace(self.metrics_query.rollup, interval=None, totals=True)
+            ),
+        )
+
+    def add_group_filters(
         self,
         groups_collection: Optional[GroupsCollection],
     ) -> "ExecutableQuery":
@@ -318,6 +348,8 @@ class QueryResult:
         indexed_series = {}
         for index, data in enumerate(self.series):
             composite_key = self._build_composite_key_from_dict(data, alignment_keys)
+            # Since serieses have also the time component, we store multiple indexes of multiple times for the same
+            # group.
             indexed_series.setdefault(composite_key, []).append(index)
 
         aligned_series = []
@@ -445,7 +477,7 @@ class QueryParser:
 
     def generate_queries(
         self, environments: Sequence[Environment]
-    ) -> Generator[Timeseries, None, None]:
+    ) -> Generator[Tuple[str, Timeseries], None, None]:
         """
         Generates multiple timeseries queries given a base query.
         """
@@ -459,7 +491,7 @@ class QueryParser:
 
         for field in self._fields:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
-            yield self._parse_mql(mql_query).inject_environments(environments).get_mutated()
+            yield field, self._parse_mql(mql_query).inject_environments(environments).get_mutated()
 
 
 class QueryExecutor:
@@ -482,11 +514,11 @@ class QueryExecutor:
 
     def _execute(self, executable_query: ExecutableQuery) -> QueryResult:
         try:
-            query = executable_query.metrics_query
-
             series_result = None
             if executable_query.with_series:
-                series_result = run_query(request=self._build_request(query))
+                series_result = run_query(
+                    request=self._build_request(executable_query.metrics_query)
+                )
 
             totals_result = None
             if executable_query.with_totals:
@@ -495,13 +527,22 @@ class QueryExecutor:
                 if series_result:
                     modified_start = series_result["modified_start"]
                     modified_end = series_result["modified_end"]
-                    query = (
-                        executable_query.metrics_query.set_start(modified_start)
-                        .set_end(modified_end)
-                        .set_rollup(Rollup(totals=True))
+
+                    executable_query = executable_query.replace_date_range(
+                        modified_start, modified_end
                     )
 
-                totals_result = run_query(request=self._build_request(query))
+                if executable_query.order_by:
+                    order_by_direction = Direction.ASC
+                    if executable_query.order_by.startswith("-"):
+                        order_by_direction = Direction.DESC
+
+                    executable_query = executable_query.replace_order_by(order_by_direction)
+
+                executable_query = executable_query.to_totals_query()
+                totals_result = run_query(
+                    request=self._build_request(executable_query.metrics_query)
+                )
 
             result = {}
             if series_result and totals_result:
@@ -552,15 +593,28 @@ class QueryExecutor:
 
         raise MetricsQueryExecutionError(
             "Unable to find an interval to satisfy the query because too many results "
-            "are returned."
+            "are returned"
         )
+
+    def _find_reference_query(self) -> int:
+        if not self._scheduled_queries:
+            raise InvalidMetricsQueryError(
+                "Can't find a reference query because no queries were supplied"
+            )
+
+        for index, query in enumerate(self._scheduled_queries):
+            # This assumes that the identifier of the query is the aggregate string of the query.
+            if query.order_by:
+                return index
+
+        return 0
 
     def _serial_execute(self) -> Sequence[QueryResult]:
         if not self._scheduled_queries:
             return []
 
         # We execute the first reference query.
-        reference_query = self._scheduled_queries.pop(0)
+        reference_query = self._scheduled_queries.pop(self._find_reference_query())
         reference_query_result = self._execute(reference_query)
 
         # Case 1: we have fewer results that the limit. In this case we are free to run the follow-up queries under the
@@ -574,7 +628,7 @@ class QueryExecutor:
 
             reference_groups = reference_query_result.groups
             for query in self._scheduled_queries:
-                query = query.set_groups_filters(reference_groups)
+                query = query.add_group_filters(reference_groups)
                 query_result = self._execute(query)
 
                 query_result.align_with(reference_query_result)
@@ -589,7 +643,7 @@ class QueryExecutor:
         # We update the scheduled queries to use the new interval. It's important to note that we also add back the
         # reference query, since we need to execute it again.
         self._scheduled_queries = [
-            query.set_interval(new_interval)
+            query.replace_interval(new_interval)
             for query in [reference_query] + self._scheduled_queries
         ]
 
@@ -599,12 +653,19 @@ class QueryExecutor:
         return self._serial_execute()
 
     def schedule(
-        self, query: MetricsQuery, group_bys: Optional[Sequence[str]], order_by: Optional[str]
+        self,
+        identifier: str,
+        query: MetricsQuery,
+        group_bys: Optional[Sequence[str]],
+        order_by: Optional[str],
     ):
         with_series = True
         with_totals = True
 
+        # We bind a group_bys and order_by to each query individually. Even though this is not needed, in the future
+        # we might have totally independent queries.
         executable_query = ExecutableQuery(
+            identifier=identifier,
             metrics_query=query,
             group_bys=group_bys,
             order_by=order_by,
@@ -757,8 +818,8 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
 
     translated_groups = []
     for group_key, group_metrics in intermediate_groups.items():
-        translated_serieses: OrderedDict[str, Sequence[ResultValue]] = OrderedDict()
-        translated_totals: OrderedDict[str, ResultValue] = OrderedDict()
+        translated_serieses: Dict[str, Sequence[ResultValue]] = {}
+        translated_totals: Dict[str, ResultValue] = {}
         for metric_name, metric_values in group_metrics.items():
             series = metric_values.series
             total = metric_values.total
@@ -820,13 +881,24 @@ def run_metrics_query(
 
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
-    for timeseries in parser.generate_queries(environments=environments):
+    for field, timeseries in parser.generate_queries(environments=environments):
         query = (
             base_query.set_query(timeseries)
             .set_rollup(Rollup(interval=interval))
             .set_limit(SNUBA_QUERY_LIMIT)
         )
-        executor.schedule(query, group_bys, order_by)
+
+        # We will apply the order by if it only matches the field. This is done since for now we don't support a custom
+        # since for order bys.
+        query_order_by = None
+        if order_by and field == order_by.removeprefix("-"):
+            query_order_by = order_by
+
+        # The identifier of the query is the field which it tries to fetch. It has been chosen as the identifier since
+        # it's stable and uniquely identifies the query.
+        executor.schedule(
+            identifier=field, query=query, group_bys=group_bys, order_by=query_order_by
+        )
 
     # Iterating over each result.
     results = []
