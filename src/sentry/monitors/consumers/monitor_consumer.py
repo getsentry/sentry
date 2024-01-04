@@ -538,18 +538,18 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             # Retrieve existing check-in for update
             try:
                 if use_latest_checkin:
-                    checkin_window = 30
+                    checkin_window = 30  # minutes
                     check_in = None
+                    window_end = datetime.now()
 
                     while checkin_window < MAX_TIMEOUT:
-                        window_start = datetime.now()
-                        window_end = window_start - timedelta(minutes=checkin_window)
+                        window_start = window_end - timedelta(minutes=checkin_window)
                         check_ins = (
                             MonitorCheckIn.objects.select_for_update()
                             .filter(
                                 monitor_environment=monitor_environment,
-                                date_added__lte=window_start,
-                                date_added__gt=window_end,
+                                date_added__lte=window_end,
+                                date_added__gt=window_start,
                             )
                             .order_by("-date_added")
                         )
@@ -558,11 +558,15 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                                 check_in = check_in_test
                                 break
 
+                        # in progress check-in found
                         if check_in:
                             break
 
+                        # expand window
                         checkin_window *= 30
+                        window_end = window_start
 
+                    # no in progress check-in detected
                     if not check_in:
                         raise MonitorCheckIn.DoesNotExist
                 else:
