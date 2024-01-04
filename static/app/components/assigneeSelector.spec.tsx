@@ -1,9 +1,9 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -31,17 +31,17 @@ describe('AssigneeSelector', () => {
   let GROUP_2;
 
   beforeEach(() => {
-    USER_1 = User({
+    USER_1 = UserFixture({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = User({
+    USER_2 = UserFixture({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
-    USER_3 = User({
+    USER_3 = UserFixture({
       id: '3',
       name: 'J J',
       email: 'jj@example.com',
@@ -52,7 +52,7 @@ describe('AssigneeSelector', () => {
       email: 'janedoe@example.com',
     });
 
-    TEAM_1 = Team({
+    TEAM_1 = TeamFixture({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
@@ -149,7 +149,7 @@ describe('AssigneeSelector', () => {
     it("should return the same member list if the session user isn't present", () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() =>
-        User({
+        UserFixture({
           id: '555',
           name: 'Here Comes a New Challenger',
           email: 'guile@mail.us.af.mil',

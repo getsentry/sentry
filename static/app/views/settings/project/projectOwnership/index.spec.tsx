@@ -1,6 +1,6 @@
-import {GitHubIntegrationConfig} from 'sentry-fixture/integrationListDirectory';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {GitHubIntegrationConfigFixture} from 'sentry-fixture/integrationListDirectory';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -31,7 +31,7 @@ describe('Project Ownership', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?features=codeowners`,
       method: 'GET',
-      body: [GitHubIntegrationConfig()],
+      body: [GitHubIntegrationConfigFixture()],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
@@ -68,7 +68,7 @@ describe('Project Ownership', () => {
           organization={organization}
           project={project}
         />,
-        {organization: Organization({access: ['project:read']})}
+        {organization: OrganizationFixture({access: ['project:read']})}
       );
 
       expect(screen.queryByRole('button', {name: 'Edit'})).toBeEnabled();
@@ -80,7 +80,7 @@ describe('Project Ownership', () => {
 
   describe('with codeowners', () => {
     it('codeowners button opens modal', async () => {
-      const org = Organization({
+      const org = OrganizationFixture({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });

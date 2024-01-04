@@ -10,7 +10,7 @@ const nextRRWebId = (function () {
   return () => ++__rrwebID;
 })();
 
-export function RRWebInitFrameEvents({
+export function RRWebInitFrameEventsFixture({
   height = 600,
   href = 'http://localhost/',
   timestamp,
@@ -38,7 +38,7 @@ export function RRWebInitFrameEvents({
   ];
 }
 
-export function RRWebFullSnapshotFrameEvent({
+export function RRWebFullSnapshotFrameEventFixture({
   timestamp,
   childNodes = [],
 }: {
@@ -54,7 +54,7 @@ export function RRWebFullSnapshotFrameEvent({
         type: NodeType.Document,
         id: 0,
         childNodes: [
-          RRWebDOMFrame({
+          RRWebDOMFrameFixture({
             tagName: 'body',
             attributes: {
               style:
@@ -68,7 +68,7 @@ export function RRWebFullSnapshotFrameEvent({
   };
 }
 
-export function RRWebDOMFrame({
+export function RRWebDOMFrameFixture({
   id,
   tagName,
   attributes,
@@ -98,15 +98,15 @@ export function RRWebDOMFrame({
   };
 }
 
-export function RRWebHelloWorldFrame() {
-  return RRWebDOMFrame({
+export function RRWebHelloWorldFrameFixture() {
+  return RRWebDOMFrameFixture({
     tagName: 'div',
     childNodes: [
-      RRWebDOMFrame({
+      RRWebDOMFrameFixture({
         tagName: 'h1',
         attributes: {style: 'text-align: center;'},
         childNodes: [
-          RRWebDOMFrame({
+          RRWebDOMFrameFixture({
             textContent: 'Hello World',
           }),
         ],

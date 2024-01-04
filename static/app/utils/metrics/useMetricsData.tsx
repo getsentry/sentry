@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {ApiResult} from 'sentry/api';
 import {DateString, MetricsApiResponse} from 'sentry/types';
@@ -43,7 +43,7 @@ export function useMetricsData(
   const queryToSend = getMetricsApiRequestQuery(
     {
       field,
-      query: `${query}`,
+      query: `${query ?? ''}`,
       groupBy,
     },
     {datetime, projects, environments},
@@ -81,40 +81,53 @@ export function useMetricsDataZoom(
     }
   }, [rawData]);
 
-  const trimData = (start, end): MetricsApiResponse | undefined => {
-    if (!metricsData) {
-      return metricsData;
-    }
-    // find the index of the first interval that is greater than the start time
-    const startIndex = metricsData.intervals.findIndex(interval => interval >= start) - 1;
-    const endIndex = metricsData.intervals.findIndex(interval => interval >= end);
+  const trimData = useCallback(
+    (
+      currentData: MetricsApiResponse | undefined,
+      start,
+      end
+    ): MetricsApiResponse | undefined => {
+      if (!currentData) {
+        return currentData;
+      }
+      // find the index of the first interval that is greater than the start time
+      const startIndex =
+        currentData.intervals.findIndex(interval => interval >= start) - 1;
+      const endIndex = currentData.intervals.findIndex(interval => interval >= end);
 
-    if (startIndex === -1 || endIndex === -1) {
-      return metricsData;
-    }
+      if (startIndex === -1 || endIndex === -1) {
+        return currentData;
+      }
 
-    return {
-      ...metricsData,
-      intervals: metricsData.intervals.slice(startIndex, endIndex),
-      groups: metricsData.groups.map(group => ({
-        ...group,
-        series: Object.fromEntries(
-          Object.entries(group.series).map(([seriesName, series]) => [
-            seriesName,
-            series.slice(startIndex, endIndex),
-          ])
-        ),
-      })),
-    };
-  };
+      return {
+        ...currentData,
+        intervals: currentData.intervals.slice(startIndex, endIndex),
+        groups: currentData.groups.map(group => ({
+          ...group,
+          series: Object.fromEntries(
+            Object.entries(group.series).map(([seriesName, series]) => [
+              seriesName,
+              series.slice(startIndex, endIndex),
+            ])
+          ),
+        })),
+      };
+    },
+    []
+  );
+
+  const handleZoom = useCallback(
+    (start: DateString, end: DateString) => {
+      setMetricsData(currentData => trimData(currentData, start, end));
+    },
+    [trimData]
+  );
 
   return {
     data: metricsData,
     isLoading,
     isError,
     error,
-    onZoom: (start: DateString, end: DateString) => {
-      setMetricsData(trimData(start, end));
-    },
+    onZoom: handleZoom,
   };
 }

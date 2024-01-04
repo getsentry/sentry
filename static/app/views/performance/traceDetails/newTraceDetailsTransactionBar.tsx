@@ -2,11 +2,13 @@ import {createRef, Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import * as SpanContext from 'sentry/components/events/interfaces/spans/spanContext';
@@ -61,7 +63,6 @@ import {t} from 'sentry/locale';
 import {EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -71,11 +72,12 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useRouter from 'sentry/utils/useRouter';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
+import {EventDetail} from './newTraceDetailsContent';
 import {ProjectBadgeContainer} from './styles';
-import TransactionDetail from './transactionDetail';
 import {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {shortenErrorTitle} from './utils';
 
@@ -103,15 +105,25 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
+  onRowClick?: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   onlyOrphanErrors?: boolean;
 };
 
 function NewTraceDetailsTransactionBar(props: Props) {
-  const [showDetail, setShowDetail] = useState(false);
-  const [showEmbeddedChildren, setShowEmbeddedChildren] = useState(false);
+  const detail_id = props.location.query.detail;
+  const span_id = props.location.query.span;
+  const detailInQueryParam = !!(
+    isTraceTransaction(props.transaction) &&
+    detail_id &&
+    detail_id === props.transaction.event_id
+  );
+  const isHighlighted = !!(!span_id && detailInQueryParam);
+  const highlightEmbeddedSpan = !!(span_id && detailInQueryParam);
+  const [showEmbeddedChildren, setShowEmbeddedChildren] = useState(highlightEmbeddedSpan);
   const transactionRowDOMRef = createRef<HTMLDivElement>();
   const transactionTitleRef = createRef<HTMLDivElement>();
   let spanContentRef: HTMLDivElement | null = null;
+  const router = useRouter();
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
@@ -141,7 +153,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
     }
     const boundingRect = element.getBoundingClientRect();
     const offset = boundingRect.top + window.scrollY;
-    setShowDetail(true);
     window.scrollTo(0, offset);
   }, [transactionRowDOMRef]);
 
@@ -184,9 +195,20 @@ function NewTraceDetailsTransactionBar(props: Props) {
     ],
     {
       staleTime: 2 * 60 * 1000,
-      enabled: showEmbeddedChildren,
+      enabled: showEmbeddedChildren || isHighlighted,
     }
   );
+
+  useEffect(() => {
+    if (isTraceTransaction(props.transaction)) {
+      if (isHighlighted && props.onRowClick) {
+        props.onRowClick({
+          traceFullDetailedEvent: props.transaction,
+          event: embeddedChildren,
+        });
+      }
+    }
+  }, [isHighlighted, embeddedChildren, props, props.transaction]);
 
   const renderEmbeddedChildrenState = () => {
     if (showEmbeddedChildren) {
@@ -211,14 +233,19 @@ function NewTraceDetailsTransactionBar(props: Props) {
   };
 
   const handleRowCellClick = () => {
-    const {transaction, organization} = props;
+    const {transaction, organization, location} = props;
 
     if (isTraceError(transaction)) {
       browserHistory.push(generateIssueEventTarget(transaction, organization));
     }
 
     if (isTraceTransaction<TraceFullDetailed>(transaction)) {
-      setShowDetail(prev => !prev);
+      router.replace({
+        pathname: location.pathname,
+        query: isHighlighted
+          ? omit(router.location.query, 'detail')
+          : {...location.query, detail: transaction.event_id},
+      });
     }
   };
 
@@ -375,68 +402,69 @@ function NewTraceDetailsTransactionBar(props: Props) {
           orgSlug={organization.slug}
         >
           {results => (
-            <QuickTraceContext.Provider value={results}>
-              <ProfilesProvider
-                orgSlug={organization.slug}
-                projectSlug={embeddedChildren.projectSlug ?? ''}
-                profileId={profileId || ''}
-              >
-                <ProfileContext.Consumer>
-                  {profiles => (
-                    <ProfileGroupProvider
-                      type="flamechart"
-                      input={profiles?.type === 'resolved' ? profiles.data : null}
-                      traceID={profileId || ''}
+            <ProfilesProvider
+              orgSlug={organization.slug}
+              projectSlug={embeddedChildren.projectSlug ?? ''}
+              profileId={profileId || ''}
+            >
+              <ProfileContext.Consumer>
+                {profiles => (
+                  <ProfileGroupProvider
+                    type="flamechart"
+                    input={profiles?.type === 'resolved' ? profiles.data : null}
+                    traceID={profileId || ''}
+                  >
+                    <TransactionProfileIdProvider
+                      projectId={embeddedChildren.projectID}
+                      timestamp={embeddedChildren.dateReceived}
+                      transactionId={embeddedChildren.id}
                     >
-                      <TransactionProfileIdProvider
-                        projectId={embeddedChildren.projectID}
-                        timestamp={embeddedChildren.dateReceived}
-                        transactionId={embeddedChildren.id}
-                      >
-                        <SpanContext.Provider>
-                          <SpanContext.Consumer>
-                            {spanContextProps => (
-                              <Observer>
-                                {() => (
-                                  <NewTraceDetailsSpanTree
-                                    traceInfo={traceInfo}
-                                    traceViewHeaderRef={traceViewRef}
-                                    traceViewRef={traceViewRef}
-                                    parentHasContinuingDepths={
-                                      props.continuingDepths.length > 0
-                                    }
-                                    traceHasMultipleRoots={props.continuingDepths.some(
-                                      c => c.depth === 0 && c.isOrphanDepth
-                                    )}
-                                    parentIsLast={isLast}
-                                    parentGeneration={transaction.generation ?? 0}
-                                    organization={organization}
-                                    waterfallModel={waterfallModel}
-                                    filterSpans={waterfallModel.filterSpans}
-                                    spans={waterfallModel
-                                      .getWaterfall({
-                                        viewStart: 0,
-                                        viewEnd: 1,
-                                        traceInfo,
-                                      })
-                                      .slice(1)}
-                                    focusedSpanIds={waterfallModel.focusedSpanIds}
-                                    spanContextProps={spanContextProps}
-                                    operationNameFilters={
-                                      waterfallModel.operationNameFilters
-                                    }
-                                  />
-                                )}
-                              </Observer>
-                            )}
-                          </SpanContext.Consumer>
-                        </SpanContext.Provider>
-                      </TransactionProfileIdProvider>
-                    </ProfileGroupProvider>
-                  )}
-                </ProfileContext.Consumer>
-              </ProfilesProvider>
-            </QuickTraceContext.Provider>
+                      <SpanContext.Provider>
+                        <SpanContext.Consumer>
+                          {spanContextProps => (
+                            <Observer>
+                              {() => (
+                                <NewTraceDetailsSpanTree
+                                  quickTrace={results}
+                                  location={props.location}
+                                  onRowClick={props.onRowClick}
+                                  traceInfo={traceInfo}
+                                  traceViewHeaderRef={traceViewRef}
+                                  traceViewRef={traceViewRef}
+                                  parentHasContinuingDepths={
+                                    props.continuingDepths.length > 0
+                                  }
+                                  traceHasMultipleRoots={props.continuingDepths.some(
+                                    c => c.depth === 0 && c.isOrphanDepth
+                                  )}
+                                  parentIsLast={isLast}
+                                  parentGeneration={transaction.generation ?? 0}
+                                  organization={organization}
+                                  waterfallModel={waterfallModel}
+                                  filterSpans={waterfallModel.filterSpans}
+                                  spans={waterfallModel
+                                    .getWaterfall({
+                                      viewStart: 0,
+                                      viewEnd: 1,
+                                      traceInfo,
+                                    })
+                                    .slice(1)}
+                                  focusedSpanIds={waterfallModel.focusedSpanIds}
+                                  spanContextProps={spanContextProps}
+                                  operationNameFilters={
+                                    waterfallModel.operationNameFilters
+                                  }
+                                />
+                              )}
+                            </Observer>
+                          )}
+                        </SpanContext.Consumer>
+                      </SpanContext.Provider>
+                    </TransactionProfileIdProvider>
+                  </ProfileGroupProvider>
+                )}
+              </ProfileContext.Consumer>
+            </ProfilesProvider>
           )}
         </QuickTraceQuery>
       </Fragment>
@@ -582,11 +610,11 @@ function NewTraceDetailsTransactionBar(props: Props) {
   const renderDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) => {
-    if (showDetail) {
+    if (isHighlighted) {
       // Mock component to preserve layout spacing
       return (
         <DividerLine
-          showDetail
+          showDetail={isHighlighted}
           style={{
             position: 'absolute',
           }}
@@ -703,7 +731,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
                 left: startPercentage,
                 width: widthPercentage,
               })}
-              showDetail={showDetail}
+              showDetail={isHighlighted}
             >
               {getHumanDuration(duration)}
             </DurationPill>
@@ -754,7 +782,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const hideDurationRectangle = isTraceRoot(transaction) && onlyOrphanErrors;
 
     return (
-      <RowCellContainer showDetail={showDetail}>
+      <RowCellContainer showDetail={isHighlighted}>
         <RowCell
           data-test-id="transaction-row-title"
           data-type="span-row-cell"
@@ -762,7 +790,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
             width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
             paddingTop: 0,
           }}
-          showDetail={showDetail}
+          showDetail={isHighlighted}
           onClick={handleRowCellClick}
           ref={transactionTitleRef}
         >
@@ -785,7 +813,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
             paddingTop: 0,
             overflow: 'visible',
           }}
-          showDetail={showDetail}
+          showDetail={isHighlighted}
           onClick={handleRowCellClick}
         >
           <RowReplayTimeIndicators />
@@ -794,40 +822,19 @@ function NewTraceDetailsTransactionBar(props: Props) {
             {renderMeasurements()}
           </GuideAnchor>
         </RowCell>
-        {!showDetail && renderGhostDivider(dividerHandlerChildrenProps)}
+        {!isHighlighted && renderGhostDivider(dividerHandlerChildrenProps)}
       </RowCellContainer>
-    );
-  };
-
-  const renderDetail = () => {
-    const {location, organization, isVisible, transaction} = props;
-
-    if (isTraceError(transaction) || isTraceRoot(transaction)) {
-      return null;
-    }
-
-    if (!isVisible || !showDetail) {
-      return null;
-    }
-
-    return (
-      <TransactionDetail
-        location={location}
-        organization={organization}
-        transaction={transaction}
-        scrollIntoView={scrollIntoView}
-      />
     );
   };
 
   const {isVisible, transaction} = props;
 
   return (
-    <Fragment>
+    <Wrapper showingChildren={showEmbeddedChildren}>
       <StyledRow
         ref={transactionRowDOMRef}
         visible={isVisible}
-        showBorder={showDetail}
+        showBorder={isHighlighted}
         cursor={
           isTraceTransaction<TraceFullDetailed>(transaction) ? 'pointer' : 'default'
         }
@@ -844,11 +851,10 @@ function NewTraceDetailsTransactionBar(props: Props) {
             </DividerHandlerManager.Consumer>
           )}
         </ScrollbarManager.Consumer>
-        {renderDetail()}
       </StyledRow>
       {renderEmbeddedChildrenState()}
       {renderEmbeddedChildren()}
-    </Fragment>
+    </Wrapper>
   );
 }
 
@@ -863,6 +869,12 @@ const StyledRow = styled(Row)`
   ${RowCellContainer} {
     overflow: visible;
   }
+`;
+
+const Wrapper = styled('div')<{showingChildren: boolean}>`
+  ${p =>
+    p.showingChildren &&
+    'outline: 1px solid black; border-top: 1px solid black; border-bottom: 1px solid black; border-radius: 2px;'}
 `;
 
 const ErrorLink = styled(Link)`

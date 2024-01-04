@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, List, MutableMapping, Set
+from typing import Iterable, List, MutableMapping, Optional, Set
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -126,7 +126,12 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
     )
 
 
-def serialize_rpc_organization(org: Organization) -> RpcOrganization:
+def serialize_rpc_organization(
+    org: Organization,
+    *,
+    include_projects: Optional[bool] = True,
+    include_teams: Optional[bool] = True,
+) -> RpcOrganization:
     rpc_org: RpcOrganization = RpcOrganization(
         slug=org.slug,
         id=org.id,
@@ -137,10 +142,13 @@ def serialize_rpc_organization(org: Organization) -> RpcOrganization:
         date_added=org.date_added,
     )
 
-    projects: List[Project] = Project.objects.filter(organization=org)
-    teams: List[Team] = Team.objects.filter(organization=org)
-    rpc_org.projects.extend(serialize_project(project) for project in projects)
-    rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
+    if include_projects:
+        projects: List[Project] = Project.objects.filter(organization=org)
+        rpc_org.projects.extend(serialize_project(project) for project in projects)
+    if include_teams:
+        teams: List[Team] = Team.objects.filter(organization=org)
+        rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
+
     return rpc_org
 
 

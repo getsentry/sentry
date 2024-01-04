@@ -1,14 +1,14 @@
 import pytest
 
-from sentry.interfaces.security import Csp
+from sentry.security import csp
 
 
 @pytest.mark.parametrize(
     ("s", "expected"),
     (
-        pytest.param("", "'self'", id="empty string is equivalent to self"),
-        pytest.param("self", "'self'", id="unquoted self is equivalent to self"),
-        pytest.param("'self'", "'self'", id="self is preserved"),
+        pytest.param("", csp.LOCAL, id="empty string is equivalent to self"),
+        pytest.param("self", csp.LOCAL, id="unquoted self is equivalent to self"),
+        pytest.param("'self'", csp.LOCAL, id="self is preserved"),
         pytest.param("http", "http://", id="just http scheme"),
         pytest.param("https", "https://", id="just https scheme"),
         pytest.param("ftp://example.com/path", "ftp://example.com", id="keeps non-http schemes"),
@@ -19,4 +19,4 @@ from sentry.interfaces.security import Csp
     ),
 )
 def test_csp_url_normalization(s: str, expected: str) -> None:
-    assert Csp(blocked_uri=s).normalized_blocked_uri == expected
+    assert csp.normalize_value(s) == expected

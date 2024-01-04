@@ -1,6 +1,6 @@
-import {Incident as IncidentFixture} from 'sentry-fixture/incident';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {MetricRule} from 'sentry-fixture/metricRule';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +24,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [MetricRule()],
+      body: [MetricRuleFixture()],
     });
   });
 

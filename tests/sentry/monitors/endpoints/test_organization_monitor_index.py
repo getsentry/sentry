@@ -6,10 +6,10 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test.utils import override_settings
 
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import pickBy from 'lodash/pickBy';
 
 import Alert from 'sentry/components/alert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -66,6 +66,7 @@ export function DatabaseLandingPage() {
 
   const chartFilters = {
     'span.module': ModuleName.DB,
+    has: 'span.description',
   };
 
   const tableFilters = {
