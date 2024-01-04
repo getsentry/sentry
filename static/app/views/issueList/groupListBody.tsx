@@ -1,7 +1,7 @@
 import {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import LoadingError from 'sentry/components/loadingError';
 import PanelBody from 'sentry/components/panels/panelBody';
-import StreamGroup from 'sentry/components/stream/group';
+import StreamGroup, {GroupLoadingPlaceHolder} from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
 import theme from 'sentry/utils/theme';
