@@ -178,14 +178,12 @@ describe('Issues Similar View', function () {
     await selectNthSimilarItem(0);
     await userEvent.click(await screen.findByRole('button', {name: 'Agree (1)'}));
     expect(analyticsSpy).toHaveBeenCalledTimes(1);
-    await waitFor(() => {
-      expect(analyticsSpy).toHaveBeenCalledWith(
-        'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
-        expect.objectContaining({
-          parentGroupId: 1000000,
-          value: 'Yes',
-        })
-      );
-    });
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
+      expect.objectContaining({
+        parentGroupId: 1000000,
+        value: 'Yes',
+      })
+    );
   });
 });

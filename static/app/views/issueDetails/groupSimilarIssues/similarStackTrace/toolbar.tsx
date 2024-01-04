@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -9,7 +9,7 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {
@@ -20,33 +20,11 @@ type Props = {
 
 const initialState = {
   mergeCount: 0,
-  mergeList: [],
+  mergeList: [] as string[],
 };
 
 type State = typeof initialState;
 
-const handleSimilarityEmbeddings = (
-  organization: Organization | undefined,
-  value: string,
-  parentGroupId: number | undefined,
-  groupList: Group[]
-) => {
-  if (groupList.length === 0 || !organization || !parentGroupId) {
-    return;
-  }
-  for (const groupId of groupList) {
-    trackAnalytics(
-      'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
-      {
-        organization,
-        groupId: Number(groupId),
-        parentGroupId,
-        value,
-      }
-    );
-  }
-  addSuccessMessage('Sent analytic for similarity embeddings grouping');
-};
 class SimilarToolbar extends Component<Props, State> {
   state: State = initialState;
 
@@ -66,9 +44,31 @@ class SimilarToolbar extends Component<Props, State> {
 
   listener = GroupingStore.listen(this.onGroupChange, undefined);
 
+  handleSimilarityEmbeddings = (value: string) => {
+    if (
+      this.state.mergeList.length === 0 ||
+      !this.props.organization ||
+      !this.props.parentGroupId
+    ) {
+      return;
+    }
+    for (const groupId of this.state.mergeList) {
+      trackAnalytics(
+        'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
+        {
+          organization: this.props.organization,
+          groupId: Number(groupId),
+          parentGroupId: this.props.parentGroupId,
+          value,
+        }
+      );
+    }
+    addSuccessMessage('Sent analytic for similarity embeddings grouping');
+  };
+
   render() {
-    const {onMerge, parentGroupId, organization} = this.props;
-    const {mergeCount, mergeList} = this.state;
+    const {onMerge, organization} = this.props;
+    const {mergeCount} = this.state;
     const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
       'issues-similarity-embeddings'
     );
@@ -86,18 +86,13 @@ class SimilarToolbar extends Component<Props, State> {
             </Button>
           </Confirm>
           {hasSimilarityEmbeddingsFeature && (
-            <React.Fragment>
+            <Fragment>
               <Button
                 disabled={mergeCount === 0}
                 size="xs"
                 title={t('Agree with the grouping of %s issues', mergeCount)}
                 onClick={() => {
-                  handleSimilarityEmbeddings(
-                    organization,
-                    'Yes',
-                    parentGroupId,
-                    mergeList
-                  );
+                  this.handleSimilarityEmbeddings('Yes');
                 }}
               >
                 {t('Agree %s', `(${mergeCount || 0})`)}
@@ -107,17 +102,12 @@ class SimilarToolbar extends Component<Props, State> {
                 size="xs"
                 title={t('Disagree with the grouping of %s issues', mergeCount)}
                 onClick={() => {
-                  handleSimilarityEmbeddings(
-                    organization,
-                    'No',
-                    parentGroupId,
-                    mergeList
-                  );
+                  this.handleSimilarityEmbeddings('No');
                 }}
               >
                 {t('Disagree %s', `(${mergeCount || 0})`)}
               </Button>
-            </React.Fragment>
+            </Fragment>
           )}
         </ButtonPanel>
 
@@ -151,5 +141,5 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
 const ButtonPanel = styled('div')`
   display: flex;
   align-items: left;
-  gap: 10px;
+  gap: ${space(1)};
 `;
