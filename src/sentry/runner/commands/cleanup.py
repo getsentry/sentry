@@ -93,7 +93,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             while True:
                 if not task.chunk():
                     break
-
         except Exception as e:
             logger.exception(e)
         finally:
