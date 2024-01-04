@@ -185,7 +185,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   it('render no access without feature', function () {
