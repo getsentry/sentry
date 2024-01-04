@@ -696,3 +696,24 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_monitor_seat.assert_called_with(monitor)
+
+    def test_monitor_create_disabled_new_monitors(self):
+        with self.feature("organizations:crons-disable-new-projects"):
+            self.send_checkin(
+                "my-new-monitor",
+                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            )
+
+        assert not Monitor.objects.filter(slug="my-new-monitor").exists()
+
+    def test_monitor_create_disabled_existing_monitors(self):
+        self.project.flags.has_cron_monitors = True
+        self.project.save()
+
+        with self.feature("organizations:crons-disable-new-projects"):
+            self.send_checkin(
+                "my-new-monitor",
+                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            )
+
+        assert Monitor.objects.filter(slug="my-new-monitor").exists()
