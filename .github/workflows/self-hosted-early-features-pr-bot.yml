@@ -35,6 +35,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
+          body-includes: '<!-- MISSING EA FEATURE FLAGS FOR SELF-HOSTED -->'
 
       - name: Add or update dry-run comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
