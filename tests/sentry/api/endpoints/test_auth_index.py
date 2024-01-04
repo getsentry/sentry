@@ -11,6 +11,35 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
 
+def create_authenticator(user) -> None:
+    Authenticator.objects.create(
+        type=3,  # u2f
+        user=user,
+        config={
+            "devices": [
+                {
+                    "binding": {
+                        "publicKey": "aowekroawker",
+                        "keyHandle": "devicekeyhandle",
+                        "appId": "https://testserver/auth/2fa/u2fappid.json",
+                    },
+                    "name": "Amused Beetle",
+                    "ts": 1512505334,
+                },
+                {
+                    "binding": {
+                        "publicKey": "publickey",
+                        "keyHandle": "aowerkoweraowerkkro",
+                        "appId": "https://testserver/auth/2fa/u2fappid.json",
+                    },
+                    "name": "Sentry",
+                    "ts": 1512505334,
+                },
+            ]
+        },
+    )
+
+
 @control_silo_test
 class AuthDetailsEndpointTest(APITestCase):
     path = "/api/0/auth/"
@@ -53,34 +82,6 @@ class AuthLoginEndpointTest(APITestCase):
 class AuthVerifyEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
-    def get_auth(self, user):
-        return Authenticator.objects.create(
-            type=3,  # u2f
-            user=user,
-            config={
-                "devices": [
-                    {
-                        "binding": {
-                            "publicKey": "aowekroawker",
-                            "keyHandle": "devicekeyhandle",
-                            "appId": "https://testserver/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Amused Beetle",
-                        "ts": 1512505334,
-                    },
-                    {
-                        "binding": {
-                            "publicKey": "publickey",
-                            "keyHandle": "aowerkoweraowerkkro",
-                            "appId": "https://testserver/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Sentry",
-                        "ts": 1512505334,
-                    },
-                ]
-            },
-        )
-
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     def test_valid_password(self, mock_metrics):
         user = self.create_user("foo@example.com")
@@ -116,7 +117,7 @@ class AuthVerifyEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
-        self.get_auth(user)
+        create_authenticator(user)
         response = self.client.put(
             self.path,
             user=user,
@@ -139,7 +140,7 @@ class AuthVerifyEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
-        self.get_auth(user)
+        create_authenticator(user)
         response = self.client.put(
             self.path,
             user=user,
@@ -163,34 +164,6 @@ class AuthVerifyEndpointTest(APITestCase):
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
-    def get_auth(self, user):
-        return Authenticator.objects.create(
-            type=3,  # u2f
-            user=user,
-            config={
-                "devices": [
-                    {
-                        "binding": {
-                            "publicKey": "aowekroawker",
-                            "keyHandle": "devicekeyhandle",
-                            "appId": "https://testserver/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Amused Beetle",
-                        "ts": 1512505334,
-                    },
-                    {
-                        "binding": {
-                            "publicKey": "publickey",
-                            "keyHandle": "aowerkoweraowerkkro",
-                            "appId": "https://testserver/auth/2fa/u2fappid.json",
-                        },
-                        "name": "Sentry",
-                        "ts": 1512505334,
-                    },
-                ]
-            },
-        )
-
     @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
@@ -204,7 +177,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            self.get_auth(user)
+            create_authenticator(user)
 
             user.update(password="")
 
@@ -241,7 +214,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            self.get_auth(user)
+            create_authenticator(user)
 
             user.update(password="")
 
@@ -297,7 +270,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            self.get_auth(user)
+            create_authenticator(user)
 
             user.update(password="")
 
@@ -353,7 +326,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            self.get_auth(user)
+            create_authenticator(user)
 
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
@@ -384,7 +357,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            self.get_auth(user)
+            create_authenticator(user)
 
             AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
@@ -417,7 +390,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            self.get_auth(user)
+            create_authenticator(user)
 
             with mock.patch.object(Superuser, "org_id", self.organization.id):
                 self.login_as(user)
