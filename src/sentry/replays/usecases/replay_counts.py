@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
@@ -67,8 +68,8 @@ def _get_replay_id_mappings(
     # safety check is inexpensive and bad-actors (or malfunctioning clients) could
     # provide every project_id manually.
     if select_column == "issue.id":
-        queryset = Group.objects.select_related("project").filter(id__in=value)
-        snuba_params.projects = [group.project for group in queryset]
+        qs = Group.objects.select_related("project").filter(id__in=value)
+        snuba_params = dataclasses.replace(snuba_params, projects=[group.project for group in qs])
 
     builder = QueryBuilder(
         dataset=data_source,
