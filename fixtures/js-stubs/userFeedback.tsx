@@ -2,9 +2,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {UserReport as TUserReport} from 'sentry/types';
+import type {UserReport} from 'sentry/types';
 
-export function UserFeedbackFixture(params: Partial<TUserReport> = {}): TUserReport {
+export function UserFeedbackFixture(params: Partial<UserReport> = {}): UserReport {
   const event = EventFixture();
   return {
     id: '123',

@@ -1,11 +1,11 @@
 import {
   CandidateDownloadStatus,
   CandidateProcessingStatus,
-  type Image as TImage,
+  type Image,
   ImageStatus,
 } from 'sentry/types/debugImage';
 
-export function ImageFixture(params: Partial<TImage> = {}): TImage {
+export function ImageFixture(params: Partial<Image> = {}): Image {
   return {
     arch: 'x86_64',
     candidates: [
