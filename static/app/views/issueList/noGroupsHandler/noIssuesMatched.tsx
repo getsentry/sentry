@@ -31,7 +31,7 @@ function NoIssuesMatched() {
           </li>
           <li>
             {tct(
-              "Check your [filterSettings: inbound data filter] to make sure the events aren't being filtered out",
+              "Check your [filterSettings: inbound data filters] to make sure the events aren't being filtered out",
               {
                 filterSettings: (
                   <a
