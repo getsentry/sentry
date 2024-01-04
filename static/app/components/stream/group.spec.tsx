@@ -9,6 +9,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {
   EventOrGroupType,
+  Group,
   GroupStatus,
   GroupStatusResolution,
   MarkReviewed,
