@@ -154,8 +154,7 @@ class EventAttachment(Model):
             blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
 
             storage = get_storage()
-            cctx = zstandard.ZstdCompressor()
-            compressed_blob = cctx.stream_reader(blob)
+            compressed_blob = BytesIO(zstandard.compress(attachment.data))
             storage.save(blob_path, compressed_blob)
 
             return PutfileResult(
