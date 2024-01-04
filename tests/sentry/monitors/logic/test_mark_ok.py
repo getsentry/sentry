@@ -118,6 +118,17 @@ class MarkOkTestCase(TestCase):
             )
             mark_ok(checkin, checkin.date_added)
 
+        # create an in-progress check-in to make sure that we don't resolve anything
+        now = now + timedelta(minutes=1)
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=now,
+        )
+        mark_ok(checkin, checkin.date_added)
+
         # failure has not hit threshold, monitor should be in an OK status
         incident.refresh_from_db()
         monitor_environment.refresh_from_db()
