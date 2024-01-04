@@ -1,8 +1,8 @@
-import type {AvailableNotificationAction as AvailableNotificationActionType} from 'sentry/types';
+import type {AvailableNotificationAction} from 'sentry/types';
 
-export function AvailableNotificationActions(
-  params: AvailableNotificationActionType[] = []
-): {actions: AvailableNotificationActionType[]} {
+export function AvailableNotificationActionsFixture(
+  params: AvailableNotificationAction[] = []
+): {actions: AvailableNotificationAction[]} {
   return {
     actions: [
       {

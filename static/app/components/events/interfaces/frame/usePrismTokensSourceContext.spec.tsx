@@ -18,7 +18,11 @@ const defaultProps = {
 describe('usePrismTokensSourceContext', function () {
   beforeAll(async () => {
     // Loading languague up front makes tests run consistently
-    await loadPrismLanguage('javascript', {});
+    await Promise.all([
+      loadPrismLanguage('javascript', {}),
+      loadPrismLanguage('python', {}),
+      loadPrismLanguage('perl', {}),
+    ]);
   });
 
   it('splits tokens by line (normal case)', function () {
@@ -281,5 +285,101 @@ describe('usePrismTokensSourceContext', function () {
     ]);
 
     expect(lines[3]).toEqual([{children: '}', className: 'token punctuation'}]);
+  });
+
+  describe('other languages', function () {
+    it('python: fixes open syntax at start and end', function () {
+      const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+        initialProps: {
+          ...defaultProps,
+          contextLines: [
+            [8, 'some comment text'],
+            [9, '"""'],
+            [10, 'a = "10"'],
+            [11, 'print("blah")'],
+            [12, 'b = "20"'],
+            [13, "'''"],
+            [14, 'some comment text'],
+          ] as Array<[number, string]>,
+          lineNo: 11,
+          fileExtension: 'py',
+        },
+      });
+      const lines = result.current;
+
+      expect(lines).toEqual([
+        [{children: 'some comment text', className: 'token triple-quoted-string string'}],
+        [{children: '"""', className: 'token triple-quoted-string string'}],
+        [
+          {children: 'a ', className: 'token'},
+          {children: '=', className: 'token operator'},
+          {children: ' ', className: 'token'},
+          {children: '"10"', className: 'token string'},
+        ],
+        [
+          {children: 'print', className: 'token keyword'},
+          {children: '(', className: 'token punctuation'},
+          {children: '"blah"', className: 'token string'},
+          {children: ')', className: 'token punctuation'},
+        ],
+        [
+          {children: 'b ', className: 'token'},
+          {children: '=', className: 'token operator'},
+          {children: ' ', className: 'token'},
+          {children: '"20"', className: 'token string'},
+        ],
+        [{children: "'''", className: 'token triple-quoted-string string'}],
+        [{children: 'some comment text', className: 'token triple-quoted-string string'}],
+      ]);
+    });
+
+    it('perl: fixes open syntax at start and end', function () {
+      const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+        initialProps: {
+          ...defaultProps,
+          contextLines: [
+            [8, 'some comment text'],
+            [9, '=cut'],
+            [10, '$a = 10;'],
+            [11, 'print "blah";'],
+            [12, '$b = 20;'],
+            [13, '=comment'],
+            [14, 'some comment text'],
+          ] as Array<[number, string]>,
+          lineNo: 11,
+          fileExtension: 'pl',
+        },
+      });
+      const lines = result.current;
+
+      expect(lines).toEqual([
+        [{children: 'some comment text', className: 'token comment'}],
+        [{children: '=cut', className: 'token comment'}],
+        [
+          {children: '$a', className: 'token variable'},
+          {children: ' ', className: 'token'},
+          {children: '=', className: 'token operator'},
+          {children: ' ', className: 'token'},
+          {children: '10', className: 'token number'},
+          {children: ';', className: 'token punctuation'},
+        ],
+        [
+          {children: 'print', className: 'token keyword'},
+          {children: ' ', className: 'token'},
+          {children: '"blah"', className: 'token string'},
+          {children: ';', className: 'token punctuation'},
+        ],
+        [
+          {children: '$b', className: 'token variable'},
+          {children: ' ', className: 'token'},
+          {children: '=', className: 'token operator'},
+          {children: ' ', className: 'token'},
+          {children: '20', className: 'token number'},
+          {children: ';', className: 'token punctuation'},
+        ],
+        [{children: '=comment', className: 'token comment'}],
+        [{children: 'some comment text', className: 'token comment'}],
+      ]);
+    });
   });
 });

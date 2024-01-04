@@ -18,11 +18,11 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
-from sentry import ratelimits
+from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.monitors.constants import MAX_TIMEOUT
+from sentry.monitors.constants import PermitCheckInStatus, MAX_TIMEOUT
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
@@ -59,7 +59,9 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: Optional[Dict],
+    quotas_outcome: PermitCheckInStatus,
 ):
+
     try:
         monitor = Monitor.objects.get(
             slug=monitor_slug,
@@ -118,6 +120,13 @@ def _ensure_monitor_with_config(
     # Update existing monitor
     if monitor and not created and monitor.config != validated_config:
         monitor.update_config(config, validated_config)
+
+    # When accepting for upsert attempt to assign a seat for the monitor,
+    # otherwise the monitor is marked as disabled
+    if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
+        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
+        if seat_outcome != Outcome.ACCEPTED:
+            monitor.update(status=ObjectStatus.DISABLED)
 
     return monitor
 
@@ -340,6 +349,23 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         )
         return
 
+    # Does quotas allow for this check-in to be accepted?
+    quotas_outcome: PermitCheckInStatus = quotas.backend.check_accept_monitor_checkin(
+        project.id, monitor_slug
+    )
+
+    if quotas_outcome == PermitCheckInStatus.DROP:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="over_quota",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
+        return
+
     guid, use_latest_checkin = transform_checkin_uuid(
         txn,
         metric_kwargs,
@@ -407,6 +433,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
             project,
             monitor_slug,
             monitor_config,
+            quotas_outcome,
         )
     except MonitorLimitsExceeded:
         metrics.incr(
@@ -450,7 +477,29 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         )
         return
 
+    # When a monitor was accepted for upsert but is disabled we were unable to
+    # assign a seat. Discard the check-in in this case.
+    if (
+        quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+        and monitor.status == ObjectStatus.DISABLED
+    ):
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="over_quota",
+            timestamp=start_time,
+            category=DataCategory.MONITOR,
+        )
+        return
+
     # Discard check-ins if the monitor is disabled
+    #
+    # Typically a disabled monitor will result in a PermitCheckInStatus.DROP
+    # and we'll have dropped the check in earlier during processing. This check
+    # is here for the on-premise version of Sentry where quotas always accepts
+    # check-ins, even when the monitor is disabled.
     if monitor.status == ObjectStatus.DISABLED:
         metrics.incr(
             "monitors.checkin.result",

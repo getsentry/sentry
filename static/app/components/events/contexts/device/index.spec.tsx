@@ -1,5 +1,5 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -58,7 +58,7 @@ describe('device event context', function () {
   it('display redacted data', async function () {
     render(<DeviceEventContext event={event} data={deviceMockData} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
     expect(screen.getByText('Name')).toBeInTheDocument(); // subject

@@ -12,7 +12,8 @@ from sentry import features, search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
+from sentry.api.bases import OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
@@ -136,7 +137,7 @@ def inbox_search(
 
 
 @region_silo_endpoint
-class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

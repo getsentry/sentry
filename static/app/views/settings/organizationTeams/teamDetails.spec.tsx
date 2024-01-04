@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -10,9 +10,9 @@ import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 describe('TeamMembers', () => {
   let joinMock;
 
-  const organization = Organization();
-  const team = Team({hasAccess: false});
-  const teamHasAccess = Team({id: '1337', slug: 'django', hasAccess: true});
+  const organization = OrganizationFixture();
+  const team = TeamFixture({hasAccess: false});
+  const teamHasAccess = TeamFixture({id: '1337', slug: 'django', hasAccess: true});
 
   beforeEach(() => {
     TeamStore.init();

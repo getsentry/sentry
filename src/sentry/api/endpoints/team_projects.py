@@ -11,7 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -32,7 +32,7 @@ class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         help_text="The name for the project.", max_length=50, required=True
     )
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a project and is used for the interface.
         If not provided, it is automatically generated from the name.""",
         max_length=50,

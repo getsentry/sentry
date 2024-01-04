@@ -1,5 +1,5 @@
 import {ReactNode} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -21,7 +21,7 @@ function Wrapper({children}: {children?: ReactNode}) {
 }
 
 describe('useSpanMetricsSeries', () => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,

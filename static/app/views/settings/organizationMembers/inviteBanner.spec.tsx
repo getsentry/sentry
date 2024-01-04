@@ -1,7 +1,7 @@
 import moment from 'moment';
-import {Member} from 'sentry-fixture/member';
-import {MissingMembers} from 'sentry-fixture/missingMembers';
-import {Organization} from 'sentry-fixture/organization';
+import {MemberFixture} from 'sentry-fixture/member';
+import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +10,7 @@ import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBann
 
 const missingMembers = {
   integration: 'github',
-  users: MissingMembers(),
+  users: MissingMembersFixture(),
 };
 
 const noMissingMembers = {
@@ -37,7 +37,7 @@ describe('inviteBanner', function () {
   });
 
   it('render banners with feature flag', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
@@ -61,7 +61,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no feature flag', function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: [],
     });
 
@@ -82,7 +82,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no option', function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
     });
 
@@ -103,7 +103,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no missing members', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
@@ -133,7 +133,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no integration', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
@@ -163,7 +163,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if lacking org:write', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       access: [],
       githubNudgeInvite: true,
@@ -188,7 +188,7 @@ describe('inviteBanner', function () {
   });
 
   it('renders banner if snoozed_ts days is longer than threshold', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
@@ -222,7 +222,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if snoozed_ts days is shorter than threshold', async function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
@@ -259,7 +259,7 @@ describe('inviteBanner', function () {
   });
 
   it('invites member from banner', async function () {
-    const newMember = Member({
+    const newMember = MemberFixture({
       id: '6',
       email: 'hello@sentry.io',
       teams: [],
@@ -280,7 +280,7 @@ describe('inviteBanner', function () {
       body: [
         {
           integration: 'github',
-          users: MissingMembers().slice(0, 5),
+          users: MissingMembersFixture().slice(0, 5),
         },
       ],
     });
@@ -291,7 +291,7 @@ describe('inviteBanner', function () {
       body: newMember,
     });
 
-    const org = Organization({
+    const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       githubNudgeInvite: true,
     });
