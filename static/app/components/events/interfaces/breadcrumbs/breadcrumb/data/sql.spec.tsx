@@ -1,18 +1,13 @@
-import {Project} from 'sentry-fixture/project';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
 
 describe('Breadcrumb Data SQL', function () {
-  const project = Project({id: '0'});
-
   const {organization, router} = initializeOrg({
     router: {
-      location: {query: {project: project.id}},
+      location: {query: {project: '0'}},
     },
-    projects: [project],
   });
 
   it('displays formatted SQL message', function () {
