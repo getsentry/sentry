@@ -11,6 +11,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconInfo} from 'sentry/icons';
@@ -298,7 +299,20 @@ export function SetupReplaysCTA({
         </Button>
       </ButtonList>
       <StyledWidgetContainer>
-        <StyledHeaderContainer>{t('FAQ')}</StyledHeaderContainer>
+        <StyledHeaderContainer>
+          {t('FAQ')}
+          {
+            <QuestionTooltip
+              size="xs"
+              isHoverable
+              title={tct('See a [link:full list of FAQs].', {
+                link: (
+                  <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
+                ),
+              })}
+            />
+          }
+        </StyledHeaderContainer>
         <Accordion
           items={FAQ}
           expandedIndex={expanded}
@@ -370,4 +384,7 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
 `;
