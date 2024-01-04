@@ -96,9 +96,9 @@ class ExecutableQuery:
         return replace(
             self,
             metrics_query=self.metrics_query.set_rollup(
-                replace(self.metrics_query.rollup, orderby=direction)
+                replace(self.metrics_query.rollup, interval=None, totals=True, orderby=direction)
             ),
-        ).to_totals_query()
+        )
 
     def to_totals_query(self) -> "ExecutableQuery":
         return replace(
@@ -522,26 +522,31 @@ class QueryExecutor:
 
             totals_result = None
             if executable_query.with_totals:
+                totals_executable_query = executable_query
+
                 # In case we have a series query, we want to align the query intervals so that the totals align. This
                 # is not needed when running a single totals query.
                 if series_result:
                     modified_start = series_result["modified_start"]
                     modified_end = series_result["modified_end"]
 
-                    executable_query = executable_query.replace_date_range(
+                    totals_executable_query = executable_query.replace_date_range(
                         modified_start, modified_end
                     )
 
+                # In case we have an order by, we have to mutate the executable to perform a totals query without
+                # interval, since ordering is only supported that way.
                 if executable_query.order_by:
                     order_by_direction = Direction.ASC
                     if executable_query.order_by.startswith("-"):
                         order_by_direction = Direction.DESC
 
-                    executable_query = executable_query.replace_order_by(order_by_direction)
+                    totals_executable_query = executable_query.replace_order_by(order_by_direction)
 
-                executable_query = executable_query.to_totals_query()
                 totals_result = run_query(
-                    request=self._build_request(executable_query.metrics_query)
+                    request=self._build_request(
+                        totals_executable_query.to_totals_query().metrics_query
+                    )
                 )
 
             result = {}
@@ -776,7 +781,7 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
             for value in values:
                 # We compute a list containing all the group values.
                 grouped_values = []
-                for group_by in execution_result.group_bys or ():
+                for group_by in execution_result.executable_query.group_bys or ():
                     grouped_values.append((group_by, value.get(group_by)))
 
                 group_metrics = intermediate_groups.setdefault(tuple(grouped_values), OrderedDict())
@@ -811,6 +816,8 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
             intermediate_meta.append(QueryMeta(name=name, type=meta_type))
 
     # If we don't have time bounds and an interval, we can't return anything.
+    # TODO: we might want to give users the ability to just run totals queries. In that case, we will have to build
+    #   the logic that is able to not require an interval.
     assert start is not None and end is not None and interval is not None
 
     # We build the intervals that we will return to the API user.
@@ -834,6 +841,7 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
             # In case we get nan, we will cast it to None but this can be changed in case there is the need.
             translated_totals[metric_name] = _nan_to_none(total)
 
+        # The order of the keys is not deterministic in the nested dictionaries.
         inner_group = {
             "by": {name: value for name, value in group_key},
             "series": translated_serieses,
