@@ -22,7 +22,7 @@ from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.monitors.constants import PermitCheckInStatus, MAX_TIMEOUT
+from sentry.monitors.constants import MAX_TIMEOUT, PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
