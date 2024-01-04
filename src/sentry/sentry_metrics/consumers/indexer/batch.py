@@ -44,6 +44,7 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
+INDEXER_VALIDATION_ERROR_SAMPLE_RATE = 0.05
 # Do not change these values without also changing the corresponding MAX_INDEXED_COLUMN_LENGTH to
 # ensure that the database can store the data.
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
@@ -139,6 +140,7 @@ class IndexerBatch:
                 if isinstance(e, ValidationError):
                     self.filtered_msg_meta.add(broker_meta)
                     continue
+
                 self.invalid_msg_meta.add(broker_meta)
                 logger.exception(
                     str(e),
@@ -173,7 +175,14 @@ class IndexerBatch:
 
         try:
             self.schema_validator(use_case_id.value, parsed_payload)
-        except ValidationError:
+        except ValidationError as err:
+            # Sample sending the validation error to Sentry
+            if random.random() < INDEXER_VALIDATION_ERROR_SAMPLE_RATE:
+                with sentry_sdk.push_scope() as scope:
+                    scope.add_attachment(bytes=msg.payload.value, filename="message.txt")
+                    sentry_sdk.set_tag("invalid_message_schema", "true")
+                    sentry_sdk.capture_exception(err)
+
             # Always log a warning about failed schema validation
             logger.warning(
                 "process_messages.invalid_schema",
@@ -182,7 +191,7 @@ class IndexerBatch:
             )
 
             if options.get("sentry-metrics.indexer.raise-validation-errors"):
-                raise
+                raise err
 
         self.__message_count[use_case_id] += 1
 
