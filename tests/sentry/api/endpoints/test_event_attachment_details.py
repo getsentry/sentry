@@ -8,6 +8,8 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
+ATTACHMENT_CONTENT = b"File contents here" * 10_000
+
 
 class CreateAttachmentMixin:
     def create_attachment(self):
@@ -24,7 +26,7 @@ class CreateAttachmentMixin:
         )
 
         attachment = CachedAttachment(
-            name="hello.png", content_type="image/png; foo=bar", data=b"File contents here"
+            name="hello.png", content_type="image/png; foo=bar", data=ATTACHMENT_CONTENT
         )
         file = EventAttachment.putfile(
             self.project.id,
@@ -76,7 +78,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == str(self.attachment.size)
         assert response.get("Content-Type") == "image/png"
-        assert b"File contents here" == close_streaming_response(response)
+        assert close_streaming_response(response) == ATTACHMENT_CONTENT
 
         with self.options(
             {
@@ -95,7 +97,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == str(self.attachment.size)
         assert response.get("Content-Type") == "image/png"
-        assert b"File contents here" == close_streaming_response(response)
+        assert close_streaming_response(response) == ATTACHMENT_CONTENT
 
     def test_delete(self):
         self.login_as(user=self.user)
