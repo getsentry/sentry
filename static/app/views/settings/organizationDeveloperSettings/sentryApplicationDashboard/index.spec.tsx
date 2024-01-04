@@ -1,6 +1,6 @@
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
-import {SentryApp as SentryAppFixture} from 'sentry-fixture/sentryApp';
-import {SentryAppWebhookRequest} from 'sentry-fixture/sentryAppWebhookRequest';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -36,7 +36,7 @@ describe('Sentry Application Dashboard', function () {
           ],
         },
       });
-      webhookRequest = SentryAppWebhookRequest();
+      webhookRequest = SentryAppWebhookRequestFixture();
 
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -136,7 +136,7 @@ describe('Sentry Application Dashboard', function () {
           elements: [{type: 'stacktrace-link', uri: '/test', url: '/test'}],
         },
       });
-      webhookRequest = SentryAppWebhookRequest();
+      webhookRequest = SentryAppWebhookRequestFixture();
 
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,

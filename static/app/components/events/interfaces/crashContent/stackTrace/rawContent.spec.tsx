@@ -1,5 +1,5 @@
-import {ExceptionValue as ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
-import {Frame as FrameFixture} from 'sentry-fixture/frame';
+import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
+import {FrameFixture} from 'sentry-fixture/frame';
 
 import displayRawContent, {
   getJavaFrame,
@@ -78,7 +78,7 @@ describe('RawStacktraceContent', function () {
   });
 
   describe('render()', function () {
-    const exception = TestStubs.EventStacktraceException({
+    const exception = ExceptionValueFixture({
       module: 'example.application',
       type: 'Error',
       value: 'an error occurred',

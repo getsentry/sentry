@@ -523,14 +523,14 @@ def _update_frames_from_cached_values(
 
             if frames_changed:
                 logger.debug("We have merged the cached stacktrace to the incoming one.")
-        except Exception as error:
+        except Exception:
             logger.exception(
                 "We have failed to update the stacktrace from the cache. Not aborting execution.",
                 extra={"platform": platform},
             )
             # We want tests to fail to prevent breaking the caching system without noticing
             if os.environ.get("PYTEST_CURRENT_TEST"):
-                raise error
+                raise
 
     metrics.incr(
         f"{DATADOG_KEY}.merged_cached_values",
@@ -588,14 +588,14 @@ def _generate_stacktrace_fingerprint(
         )
 
         stacktrace_fingerprint = stacktrace_hash.hexdigest()
-    except Exception as error:
+    except Exception:
         # This will create an error in Sentry to help us evaluate why it failed
         logger.exception(
             "Stacktrace hashing failure. Investigate and fix.", extra={"platform": platform}
         )
         # We want tests to fail to prevent breaking the caching system without noticing
         if os.environ.get("PYTEST_CURRENT_TEST"):
-            raise error
+            raise
 
     # This will help us calculate the success ratio for fingerprint calculation
     metrics.incr(

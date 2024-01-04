@@ -1,4 +1,4 @@
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -303,6 +303,61 @@ describe('PageFilters ActionCreators', function () {
             project: ['1'],
           },
         })
+      );
+    });
+
+    it('does not invalidate all projects from query params', function () {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '-1',
+        },
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
+        shouldEnforceSingleProject: false,
+        router,
+      });
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [-1],
+          environments: [],
+        },
+        new Set(),
+        true
+      );
+    });
+
+    it('does invalidate all projects from query params if forced into single project', function () {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '-1',
+        },
+        memberProjects: organization.projects,
+        nonMemberProjects: [],
+        // User does not have access to global views
+        shouldEnforceSingleProject: true,
+        router,
+      });
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        {
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+          projects: [1],
+          environments: [],
+        },
+        new Set(),
+        true
       );
     });
 

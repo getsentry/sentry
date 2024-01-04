@@ -62,8 +62,6 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
 class _body_with_length:
     """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
 
-    request: HttpRequest
-
     def __init__(self, request: HttpRequest):
         self.request = request
 
@@ -148,7 +146,7 @@ def proxy_region_request(request: HttpRequest, region: Region) -> StreamingHttpR
             url=target_url,
             headers=header_dict,
             params=dict(query_params) if query_params is not None else None,
-            data=_body_with_length(request),  # type: ignore
+            data=_body_with_length(request),
             stream=True,
             timeout=settings.GATEWAY_PROXY_TIMEOUT,
         )

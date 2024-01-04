@@ -64,7 +64,7 @@ def calculate_threshold(project: Project) -> Optional[float]:
     ninety_days_ago = now - timedelta(days=90)
 
     subquery = Query(
-        match=Entity(EntityKey.IssuePlatform.value),
+        match=Entity(EntityKey.Events.value),
         select=[
             Column("group_id"),
             Function("min", [Column("timestamp")], "first_seen"),  # when the issue was first seen
@@ -130,7 +130,7 @@ def calculate_threshold(project: Project) -> Optional[float]:
     )
 
     request = Request(
-        dataset=Dataset.IssuePlatform.value,
+        dataset=Dataset.Events.value,
         app_id=REFERRER,
         query=query,
         tenant_ids={"referrer": REFERRER, "organization_id": project.organization.id},

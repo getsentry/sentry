@@ -7,6 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
@@ -335,6 +336,20 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         {tct(
           `Adding Session Replay to your [platform] project is simple. Make sure you've got these basics down.`,
           {platform: currentPlatform?.name || currentProject.slug}
+        )}
+        {showJsFrameworkInstructions ? (
+          <div>
+            {tct(
+              `Also, ensure that you have set up trace propagation in your backend projects. To learn more, [link:read the docs].`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/#:~:text=Make%20sure%20you%27ve%20set%20up%20trace%20propagation%20in%20your%20backend%20projects." />
+                ),
+              }
+            )}
+          </div>
+        ) : (
+          ''
         )}
         {showJsFrameworkInstructions ? (
           <PlatformSelect>

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
+import {replayBackendPlatforms} from 'sentry/data/platformCategories';
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -29,6 +30,10 @@ function EventReplayContent({
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
+  const onboardingPanelBackend = useCallback(
+    () => import('./replayInlineOnboardingPanelBackend'),
+    []
+  );
   const replayPreview = useCallback(() => import('./replayPreview'), []);
 
   if (fetching) {
@@ -39,6 +44,17 @@ function EventReplayContent({
     return (
       <ErrorBoundary mini>
         <LazyLoad component={onboardingPanel} />
+      </ErrorBoundary>
+    );
+  }
+
+  const platform = group?.project.platform ?? 'other';
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+  if (newOnboarding && !replayId && replayBackendPlatforms.includes(platform)) {
+    // if backend project, show new onboarding panel
+    return (
+      <ErrorBoundary mini>
+        <LazyLoad component={onboardingPanelBackend} platform={platform} />
       </ErrorBoundary>
     );
   }

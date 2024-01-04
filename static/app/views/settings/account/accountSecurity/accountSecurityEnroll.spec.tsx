@@ -1,6 +1,6 @@
-import {Authenticators} from 'sentry-fixture/authenticators';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +10,7 @@ const ENDPOINT = '/users/me/authenticators/';
 
 describe('AccountSecurityEnroll', function () {
   describe('Totp', function () {
-    const authenticator = Authenticators().Totp({
+    const authenticator = AuthenticatorsFixture().Totp({
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
       secret: 'secret',

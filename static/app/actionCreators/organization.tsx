@@ -158,7 +158,7 @@ export function fetchOrganizationDetails(
       isInitialFetch
     );
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData(projects ?? []);
 
     const teamPageLinks = resp?.getResponseHeader('Link');
     if (teamPageLinks) {

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache import cache
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.db.models.manager import BaseManager
@@ -328,12 +328,8 @@ class IncidentCreationTest(TestCase):
                         alert_rule=alert_rule,
                     )
                 assert incident.identifier == kwargs["identifier"]
-                try:
-                    create_method(*args, **kwargs)
-                except IntegrityError:
-                    raise
-                else:
-                    self.fail("Expected an integrity error")
+                create_method(*args, **kwargs)
+                self.fail("Expected an integrity error")
             else:
                 call_count[0] += 1
 

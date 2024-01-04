@@ -1,6 +1,6 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -75,7 +75,7 @@ describe('getIssueFieldRenderer', function () {
   describe('Issue fields', () => {
     it('can render assignee', async function () {
       MemberListStore.loadInitialData([
-        User({
+        UserFixture({
           name: 'Test User',
           email: 'test@sentry.io',
           avatar: {

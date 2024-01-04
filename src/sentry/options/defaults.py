@@ -5,14 +5,15 @@ from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_BOOL,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
     FLAG_MODIFIABLE_RATE,
-    FLAG_MODIFIABLE_SCALAR,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
+    FLAG_SCALAR,
 )
 from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
@@ -838,6 +839,14 @@ register(
     "processing.use-release-archives-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )  # unused
 
+# Whether to use `zstd` instead of `zlib` for the attachment cache.
+register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Set of projects that will always store `EventAttachment` blobs directly.
+register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Percentage sample rate for `EventAttachment`s that should use direct blob storage.
+register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -1564,6 +1573,23 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
+# Globally enables the check_accept_monitor_checkin method to be run during
+# monitor check-ins. This is temporarily in support of billing in getsentry.
+register(
+    "crons.check-accept-monitor-checkin-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# A list of monitor slugs that should have the check_accept_monitor_checkin
+# method run, even when check-accept-monitor-checkin-enabled is False.
+register(
+    "crons.check-accept-monitor-checkin-slug-overrides",
+    type=Sequence,
+    default=[],
+)
+
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
@@ -1816,16 +1842,22 @@ register(
 register(
     "relocation.enabled",
     default=False,
-    # TODO(getsentry/team-ospo#214): Eventually change this to `FLAG_BOOL |
-    # FLAG_AUTOMATOR_MODIFIABLE`, to enforce it only being toggled from code.
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new relocations should be autopaused, requiring admin approval
+# before continuing.
+register(
+    "relocation.autopause",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: globally limits the number of small (<=10MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.small",
     default=0,
-    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: globally limits the number of medium (>10MB && <=100MB) relocations allowed per silo
@@ -1833,12 +1865,12 @@ register(
 register(
     "relocation.daily-limit.medium",
     default=0,
-    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
 register(
     "relocation.daily-limit.large",
     default=0,
-    flags=FLAG_MODIFIABLE_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )

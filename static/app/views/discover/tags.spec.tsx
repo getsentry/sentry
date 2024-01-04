@@ -1,7 +1,7 @@
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -28,8 +28,8 @@ const commonQueryConditions = {
   environment: [],
   topEvents: '',
   yAxis: '',
-  createdBy: User(),
-  team: [parseInt(Team().id, 10)],
+  createdBy: UserFixture(),
+  team: [parseInt(TeamFixture().id, 10)],
   statsPeriod: '14d',
 };
 
@@ -38,7 +38,7 @@ describe('Tags', function () {
     return `/endpoint/${key}/${value}`;
   }
 
-  const org = Organization();
+  const org = OrganizationFixture();
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
