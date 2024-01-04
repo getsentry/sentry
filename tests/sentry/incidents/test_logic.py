@@ -289,7 +289,7 @@ class GetCrashRateIncidentAggregatesTest(TestCase, SnubaTestCase):
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         for _ in range(2):
             self.store_session(self.build_session(status="exited"))
-        self.dataset = Dataset.Sessions
+        self.dataset = Dataset.Metrics
 
     def test_sessions(self):
         incident = self.create_incident(
@@ -648,7 +648,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Sessions,
         )
         assert alert_rule.snuba_query.type == SnubaQuery.Type.CRASH_RATE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Sessions.value
+        assert alert_rule.snuba_query.dataset == Dataset.Metrics.value
 
         with self.feature("organizations:alert-crash-free-metrics"):
             alert_rule = create_alert_rule(
