@@ -496,7 +496,7 @@ class PostRelocationsTest(APITestCase):
     ]:
 
         @patch("sentry.tasks.relocation.uploading_complete.delay")
-        def test_good_good_org_slugs(
+        def test_good_valid_org_slugs(
             self, uploading_complete_mock, org_slugs=org_slugs, expected=expected
         ):
             self.login_as(user=self.owner, superuser=False)
