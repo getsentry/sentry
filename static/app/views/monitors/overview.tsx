@@ -45,7 +45,7 @@ function DisabledMonitorCreationPanel() {
       <h3>{t('Monitor Your Cron Jobs')}</h3>
       <Alert type="warning" showIcon>
         {t(
-          'The Crons beta period has officially ended. Creating additional monitors for projects without pre-existing monitors is temporarily disabled as we prepare for our launch. Please try again on January 9th, 2024.'
+          'The Crons beta is over. Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete. Please try again after January 11th, 2024.'
         )}
       </Alert>
     </OnboardingPanel>
@@ -113,7 +113,7 @@ export default function Monitors() {
                   title={
                     disableNewMonitors &&
                     t(
-                      'The Crons beta period has officially ended. Creating additional monitors is temporarily disabled as we prepare for our launch. Please try again on January 9th, 2024.'
+                      'The Crons beta is over. Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete. Please try again after January 11th, 2024.'
                     )
                   }
                 >
