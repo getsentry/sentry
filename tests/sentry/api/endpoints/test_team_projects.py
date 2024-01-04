@@ -133,7 +133,7 @@ class TeamProjectsCreateTest(APITestCase):
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
 
-    def test_without_default_rules(self):
+    def test_without_default_rules_disable_member_project_creation(self):
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -143,3 +143,27 @@ class TeamProjectsCreateTest(APITestCase):
         )
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
+
+    def test_disable_member_project_creation(self):
+        test_org = self.create_organization(flags=256)
+        test_team = self.create_team(organization=test_org)
+
+        test_member = self.create_user(is_superuser=False)
+        self.create_member(user=test_member, organization=test_org, role="member", teams=[])
+        self.login_as(user=test_member)
+        self.get_error_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=403,
+        )
+
+        test_manager = self.create_user(is_superuser=False)
+        self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
+        self.login_as(user=test_manager)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=201,
+        )

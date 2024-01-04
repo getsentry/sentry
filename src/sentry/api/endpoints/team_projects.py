@@ -164,6 +164,13 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if (
+            team.organization.flags.disable_member_project_creation
+            and not request.access.has_scope("org:write")
+        ):
+            return Response(
+                {"detail": "Your organization has disabled this feature for members."}, status=403
+            )
 
         result = serializer.validated_data
         with transaction.atomic(router.db_for_write(Project)):

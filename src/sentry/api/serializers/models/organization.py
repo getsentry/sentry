@@ -344,6 +344,7 @@ class OrganizationSerializer(Serializer):
                 and obj.flags.require_email_verification
             ),
             "avatar": avatar,
+            "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
             "features": feature_list,
             "links": {
                 "organizationUrl": generate_organization_url(obj.slug),
