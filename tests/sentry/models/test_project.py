@@ -57,6 +57,7 @@ class ProjectTest(APITestCase, TestCase):
         to_org = self.create_organization()
 
         project = self.create_project(teams=[team])
+        project_other = self.create_project(teams=[team])
 
         rule = Rule.objects.create(
             project=project,
@@ -79,6 +80,15 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor-also",
             organization_id=from_org.id,
             project_id=project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        monitor_other = Monitor.objects.create(
+            name="test-monitor-other",
+            slug="test-monitor-other",
+            organization_id=from_org.id,
+            project_id=project_other.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
@@ -109,14 +119,19 @@ class ProjectTest(APITestCase, TestCase):
             object_id=monitor.id, model_name="Monitor"
         ).exists()
 
-        updated_monitor = Monitor.objects.get(name="test-monitor-also")
+        updated_monitor = Monitor.objects.get(slug="test-monitor-also")
         assert updated_monitor.id == monitor_also.id
-        assert updated_monitor.organization_id != monitor_also.organization_id
-        assert updated_monitor.project_id == monitor_also.project_id
+        assert updated_monitor.organization_id == to_org.id
+        assert updated_monitor.project_id == project.id
+
+        unmoved_monitor = Monitor.objects.get(slug="test-monitor-other")
+        assert unmoved_monitor.id == monitor_other.id
+        assert unmoved_monitor.organization_id == from_org.id
+        assert unmoved_monitor.project_id == project_other.id
 
         existing_monitor = Monitor.objects.get(id=monitor_to.id)
         assert existing_monitor.id == monitor_to.id
-        assert existing_monitor.organization_id == monitor_to.organization_id
+        assert existing_monitor.organization_id == to_org.id
         assert existing_monitor.project_id == monitor_to.project_id
 
     def test_transfer_to_organization_slug_collision(self):
