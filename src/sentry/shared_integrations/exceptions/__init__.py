@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import errno
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from requests import Response
 from requests.exceptions import RequestException
-from rest_framework.request import Request as RestFrameworkRequest
-from rest_framework.response import Response as RestFrameworkResponse
 
 from sentry.utils import json
 
@@ -88,17 +86,24 @@ class ApiError(Exception):
         return cls(response.text, response.status_code, url=url)
 
 
+class _RequestHasUrl(Protocol):
+    @property
+    def url(self) -> str:
+        ...
+
+
 class ApiHostError(ApiError):
     code = 503
 
     @classmethod
     def from_exception(cls, exception: RequestException) -> ApiHostError:
-        if getattr(exception, "request", None):
-            return cls.from_request(exception.request)
+        maybe_request = getattr(exception, "request", None)
+        if maybe_request is not None:
+            return cls.from_request(maybe_request)
         return cls("Unable to reach host")
 
     @classmethod
-    def from_request(cls, request: RestFrameworkRequest) -> ApiHostError:
+    def from_request(cls, request: _RequestHasUrl) -> ApiHostError:
         host = urlparse(request.url).netloc
         return cls(f"Unable to reach host: {host}", url=request.url)
 
@@ -108,12 +113,13 @@ class ApiTimeoutError(ApiError):
 
     @classmethod
     def from_exception(cls, exception: RequestException) -> ApiTimeoutError:
-        if getattr(exception, "request"):
-            return cls.from_request(exception.request)
+        maybe_request = getattr(exception, "request", None)
+        if maybe_request is not None:
+            return cls.from_request(maybe_request)
         return cls("Timed out reaching host")
 
     @classmethod
-    def from_request(cls, request: RestFrameworkRequest) -> ApiTimeoutError:
+    def from_request(cls, request: _RequestHasUrl) -> ApiTimeoutError:
         host = urlparse(request.url).netloc
         return cls(f"Timed out attempting to reach host: {host}", url=request.url)
 
@@ -163,8 +169,6 @@ class IntegrationFormError(IntegrationError):
 class ClientError(RequestException):
     """4xx Error Occurred"""
 
-    def __init__(
-        self, status_code: str, url: str, response: RestFrameworkResponse | None = None
-    ) -> None:
+    def __init__(self, status_code: str, url: str, response: Response | None = None) -> None:
         http_error_msg = f"{status_code} Client Error: for url: {url}"
         super().__init__(http_error_msg, response=response)

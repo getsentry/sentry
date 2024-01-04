@@ -45,16 +45,19 @@ class AlertRuleActionRequester(Mediator):
         urlparts[2] = self.uri
         return urlunparse(urlparts)
 
-    def _get_response_message(self, response: Response, default_message: str) -> str:
+    def _get_response_message(self, response: Response | None, default_message: str) -> str:
         """
         Returns the message from the response body, if in the expected location.
         Used to bubble up info from the Sentry App to the UI.
         The location should be coordinated with the docs on Alert Rule Action UI Components.
         """
-        try:
-            message = response.json().get("message", default_message)
-        except Exception:
+        if response is None:
             message = default_message
+        else:
+            try:
+                message = response.json().get("message", default_message)
+            except Exception:
+                message = default_message
 
         return f"{self.sentry_app.name}: {message}"
 
