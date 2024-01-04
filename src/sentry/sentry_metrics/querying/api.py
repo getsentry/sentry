@@ -3,19 +3,10 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import sentry_sdk
-from snuba_sdk import (
-    AliasedExpression,
-    Column,
-    Direction,
-    MetricsQuery,
-    MetricsScope,
-    Request,
-    Rollup,
-    Timeseries,
-)
+from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request, Rollup, Timeseries
 from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, ConditionGroup, Op
 from snuba_sdk.mql.mql import parse_mql
 from snuba_sdk.query_visitors import InvalidQueryError
@@ -26,6 +17,7 @@ from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics import to_intervals
 from sentry.snuba.metrics_layer.query import run_query
 from sentry.utils.snuba import SnubaError
 
@@ -74,9 +66,6 @@ class ExecutableQuery:
     order_by: Optional[str]
     with_series: bool
     with_totals: bool
-
-    def build_result(self, result: Mapping[str, Any]) -> "QueryResult":
-        return QueryResult(executable_query=self, result=result)
 
     def replace_date_range(self, start: datetime, end: datetime) -> "ExecutableQuery":
         return replace(
@@ -185,16 +174,74 @@ class QueryMeta:
             self.type = self.type[6 : len(self.type) - 1]
 
 
+def _extract_groups_from_seq(seq: Sequence[Mapping[str, Any]]) -> GroupsCollection:
+    groups = []
+    for data in seq:
+        inner_group = []
+        for key, value in data.items():
+            # TODO: check if time can be used as a tag key.
+            if key not in ["aggregate_value", "time"]:
+                inner_group.append((key, value))
+
+        if inner_group:
+            groups.append(inner_group)
+
+    return groups
+
+
+def _build_composite_key_from_dict(
+    data: Mapping[str, Any], alignment_keys: Sequence[str]
+) -> Tuple[Tuple[str, str], ...]:
+    composite_key = []
+    for key in alignment_keys:
+        if (value := data.get(key)) is not None:
+            composite_key.append((key, value))
+
+    return tuple(composite_key)
+
+
+def _build_indexed_seq(
+    seq: Sequence[Mapping[str, Any]], alignment_keys: Sequence[str]
+) -> Mapping[GroupKey, int]:
+    indexed_seq = {}
+    for index, data in enumerate(seq):
+        composite_key = _build_composite_key_from_dict(data, alignment_keys)
+        indexed_seq[composite_key] = index
+
+    return indexed_seq
+
+
+def _build_aligned_seq(
+    seq: Sequence[Mapping[str, Any]],
+    reference_seq: Sequence[Mapping[str, Any]],
+    alignment_keys: Sequence[str],
+    indexed_seq: Mapping[GroupKey, int],
+) -> Sequence[Mapping[str, Any]]:
+    aligned_seq = []
+
+    for data in reference_seq:
+        composite_key = _build_composite_key_from_dict(data, alignment_keys)
+        index = indexed_seq.get(composite_key)
+        if index is not None:
+            aligned_seq.append(seq[index])
+
+    return aligned_seq
+
+
 @dataclass(frozen=True)
 class QueryResult:
-    # This is the timeseries query that is being passed to the metrics layer, thus it doesn't contain any
-    # mutations that the layer might do.
-    executable_query: ExecutableQuery
+    series_executable_query: Optional[ExecutableQuery]
+    totals_executable_query: Optional[ExecutableQuery]
     result: Mapping[str, Any]
+
+    def __post_init__(self):
+        assert self.series_executable_query or self.totals_executable_query
 
     @property
     def query_name(self) -> str:
-        timeseries = self.executable_query.metrics_query.query
+        timeseries = (
+            self.series_executable_query or self.totals_executable_query
+        ).metrics_query.query
 
         aggregate = timeseries.aggregate
         metric = timeseries.metric.mri or timeseries.metric.public_name
@@ -211,19 +258,12 @@ class QueryResult:
 
     @property
     def interval(self) -> int:
-        return self.executable_query.metrics_query.rollup.interval
+        if not self.series_executable_query:
+            raise MetricsQueryExecutionError(
+                "You have to run a timeseries query in order to use the interval"
+            )
 
-    @property
-    def group_bys(self) -> Sequence[str]:
-        # TODO: we might need to rework this assuming we have formulas.
-        group_bys = []
-        for group_by in self.executable_query.metrics_query.query.groupby or ():
-            if isinstance(group_by, Column):
-                group_bys.append(group_by.name)
-            elif isinstance(group_by, AliasedExpression):
-                group_bys.append(group_by.exp.name)
-
-        return group_bys
+        return self.series_executable_query.metrics_query.rollup.interval
 
     @property
     def series(self) -> Sequence[Mapping[str, Any]]:
@@ -242,22 +282,18 @@ class QueryResult:
 
     @property
     def groups(self) -> GroupsCollection:
-        groups = []
-
         # We prefer to use totals to determine the groups that we received, since those are less likely to hit the limit
         # , and thus they will be more comprehensive. In case the query doesn't have totals, we have to use series.
-        for data in self.totals or self.series:
-            inner_group = []
+        return _extract_groups_from_seq(self.totals or self.series)
 
-            for key, value in data.items():
-                # TODO: check if time can be used as a tag key.
-                if key not in ["aggregate_value", "time"]:
-                    inner_group.append((key, value))
-
-            if inner_group:
-                groups.append(inner_group)
-
-        return groups
+    @property
+    def group_bys(self) -> Optional[List[str]]:
+        # We return the groups directly from the query and not the actual groups returned by the query. This is done so
+        # that we can correctly render groups in case they are not returned from the db.
+        return cast(
+            Optional[List[str]],
+            (self.series_executable_query or self.totals_executable_query).group_bys,
+        )
 
     @property
     def length(self) -> int:
@@ -271,65 +307,22 @@ class QueryResult:
 
         return 0
 
-    @property
-    def alignment_keys(self) -> Optional[Sequence[str]]:
-        return self.executable_query.group_bys
-
-    def _build_composite_key_from_dict(
-        self, data: Mapping[str, Any], alignment_keys: Sequence[str]
-    ) -> Tuple[Tuple[str, str], ...]:
-        composite_key = []
-
-        for key in alignment_keys:
-            if (value := data.get(key)) is not None:
-                composite_key.append((key, value))
-
-        return tuple(composite_key)
-
-    def _build_indexed_seq(
-        self, seq: Sequence[Mapping[str, Any]], alignment_keys: Sequence[str]
-    ) -> Mapping[GroupKey, int]:
-        indexed_seq = {}
-
-        for index, data in enumerate(seq):
-            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
-            indexed_seq[composite_key] = index
-
-        return indexed_seq
-
-    def _build_aligned_seq(
-        self,
-        seq: Sequence[Mapping[str, Any]],
-        reference_seq: Sequence[Mapping[str, Any]],
-        alignment_keys: Sequence[str],
-        indexed_seq: Mapping[GroupKey, int],
-    ) -> Sequence[Mapping[str, Any]]:
-        aligned_seq = []
-
-        for data in reference_seq:
-            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
-            index = indexed_seq.get(composite_key)
-            if index is not None:
-                aligned_seq.append(seq[index])
-
-        return aligned_seq
-
     def align_with(self, reference_query_result: "QueryResult") -> "QueryResult":
         # Alignment keys define the order in which fields are used for indexing purposes when aligning different
         # sequences.
-        alignment_keys = reference_query_result.alignment_keys
+        alignment_keys = reference_query_result.group_bys
         if not alignment_keys:
             return self
 
         # For timeseries, we want to align based on the time also, since group bys + time are the common values
         # across separate queries.
-        indexed_series = self._build_indexed_seq(self.series, alignment_keys + ["time"])
-        indexed_totals = self._build_indexed_seq(self.totals, alignment_keys)
+        indexed_series = _build_indexed_seq(self.series, alignment_keys + ["time"])
+        indexed_totals = _build_indexed_seq(self.totals, alignment_keys)
 
-        aligned_series = self._build_aligned_seq(
+        aligned_series = _build_aligned_seq(
             self.series, reference_query_result.series, alignment_keys + ["time"], indexed_series
         )
-        aligned_totals = self._build_aligned_seq(
+        aligned_totals = _build_aligned_seq(
             self.totals, reference_query_result.totals, alignment_keys, indexed_totals
         )
 
@@ -341,20 +334,20 @@ class QueryResult:
         return self
 
     def align_series_to_totals(self) -> "QueryResult":
-        alignment_keys = self.alignment_keys
+        alignment_keys = self.group_bys
         if not alignment_keys:
             return self
 
-        indexed_series = {}
+        indexed_series: Dict[Tuple[Tuple[str, str], ...], List[int]] = {}
         for index, data in enumerate(self.series):
-            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
+            composite_key = _build_composite_key_from_dict(data, alignment_keys)
             # Since serieses have also the time component, we store multiple indexes of multiple times for the same
             # group.
             indexed_series.setdefault(composite_key, []).append(index)
 
         aligned_series = []
         for data in self.totals:
-            composite_key = self._build_composite_key_from_dict(data, alignment_keys)
+            composite_key = _build_composite_key_from_dict(data, alignment_keys)
             indexes = indexed_series.get(composite_key)
             for index in indexes or ():
                 aligned_series.append(self.series[index])
@@ -512,30 +505,29 @@ class QueryExecutor:
             tenant_ids={"referrer": self._referrer, "organization_id": self._organization.id},
         )
 
-    def _execute(self, executable_query: ExecutableQuery) -> QueryResult:
+    def _execute(
+        self, executable_query: ExecutableQuery, apply_totals_groups_on_series: bool = False
+    ) -> QueryResult:
         try:
-            series_result = None
-            if executable_query.with_series:
-                series_result = run_query(
-                    request=self._build_request(executable_query.metrics_query)
+            # We try to determine the interval of the query, which will be used to define clear time bounds for both
+            # queries. This is done here since the metrics layer doesn't adjust the time for totals queries.
+            # TODO: maybe we can find a way to tell the layer to use the interval in totals but just to honor the same
+            #   time interval as used in the series query.
+            interval = executable_query.metrics_query.rollup.interval
+            if interval:
+                modified_start, modified_end, _ = to_intervals(
+                    executable_query.metrics_query.start,
+                    executable_query.metrics_query.end,
+                    interval,
                 )
-
-            totals_result = None
-            if executable_query.with_totals:
-                totals_executable_query = executable_query
-
-                # In case we have a series query, we want to align the query intervals so that the totals align. This
-                # is not needed when running a single totals query.
-                if series_result:
-                    modified_start = series_result["modified_start"]
-                    modified_end = series_result["modified_end"]
-
-                    totals_executable_query = executable_query.replace_date_range(
+                if modified_start and modified_end:
+                    executable_query = executable_query.replace_date_range(
                         modified_start, modified_end
                     )
 
-                # In case we have an order by, we have to mutate the executable to perform a totals query without
-                # interval, since ordering is only supported that way.
+            totals_executable_query = executable_query
+            totals_result = None
+            if executable_query.with_totals:
                 if executable_query.order_by:
                     order_by_direction = Direction.ASC
                     if executable_query.order_by.startswith("-"):
@@ -547,6 +539,18 @@ class QueryExecutor:
                     request=self._build_request(
                         totals_executable_query.to_totals_query().metrics_query
                     )
+                )
+
+            series_executable_query = executable_query
+            series_result = None
+            if executable_query.with_series:
+                if apply_totals_groups_on_series and totals_result:
+                    series_executable_query = series_executable_query.add_group_filters(
+                        _extract_groups_from_seq(totals_result["data"])
+                    )
+
+                series_result = run_query(
+                    request=self._build_request(series_executable_query.metrics_query)
                 )
 
             result = {}
@@ -570,7 +574,11 @@ class QueryExecutor:
                     "modified_end": totals_result["modified_end"],
                 }
 
-            return executable_query.build_result(result)
+            return QueryResult(
+                series_executable_query=series_executable_query,
+                totals_executable_query=totals_executable_query,
+                result=result,
+            )
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
             raise MetricsQueryExecutionError(
@@ -620,7 +628,9 @@ class QueryExecutor:
 
         # We execute the first reference query.
         reference_query = self._scheduled_queries.pop(self._find_reference_query())
-        reference_query_result = self._execute(reference_query)
+        reference_query_result = self._execute(
+            executable_query=reference_query, apply_totals_groups_on_series=True
+        )
 
         # Case 1: we have fewer results that the limit. In this case we are free to run the follow-up queries under the
         # assumption that data doesn't change much between queries.
@@ -633,8 +643,10 @@ class QueryExecutor:
 
             reference_groups = reference_query_result.groups
             for query in self._scheduled_queries:
-                query = query.add_group_filters(reference_groups)
-                query_result = self._execute(query)
+                query_result = self._execute(
+                    executable_query=query.add_group_filters(reference_groups),
+                    apply_totals_groups_on_series=False,
+                )
 
                 query_result.align_with(reference_query_result)
                 results.append(query_result)
@@ -781,7 +793,7 @@ def _translate_query_results(execution_results: List[QueryResult]) -> Mapping[st
             for value in values:
                 # We compute a list containing all the group values.
                 grouped_values = []
-                for group_by in execution_result.executable_query.group_bys or ():
+                for group_by in execution_result.group_bys or ():
                     grouped_values.append((group_by, value.get(group_by)))
 
                 group_metrics = intermediate_groups.setdefault(tuple(grouped_values), OrderedDict())
