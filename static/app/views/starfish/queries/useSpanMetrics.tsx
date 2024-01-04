@@ -44,7 +44,7 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
   // eslint-disable-next-line @typescript-eslint/ban-types
-  const data = (result?.data ?? []) as Pick<MetricsResponse, T[number]>[] | [];
+  const data = (result?.data ?? []) as Pick<MetricsResponse, Fields[number]>[] | [];
 
   return {
     ...result,
