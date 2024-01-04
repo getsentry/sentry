@@ -60,17 +60,25 @@ GroupsCollection = Sequence[Sequence[Group]]
 
 @dataclass(frozen=True)
 class ExecutableQuery:
+    with_series: bool
+    with_totals: bool
+
     identifier: str
     metrics_query: MetricsQuery
     group_bys: Optional[Sequence[str]]
     order_by: Optional[str]
-    with_series: bool
-    with_totals: bool
+    limit: Optional[int]
 
     def replace_date_range(self, start: datetime, end: datetime) -> "ExecutableQuery":
         return replace(
             self,
             metrics_query=self.metrics_query.set_start(start).set_end(end),
+        )
+
+    def replace_limit(self, limit: int = SNUBA_QUERY_LIMIT) -> "ExecutableQuery":
+        return replace(
+            self,
+            metrics_query=self.metrics_query.set_limit(limit),
         )
 
     def replace_interval(self, new_interval: int) -> "ExecutableQuery":
@@ -508,7 +516,7 @@ class QueryExecutor:
         )
 
     def _execute(
-        self, executable_query: ExecutableQuery, apply_totals_groups_on_series: bool = False
+        self, executable_query: ExecutableQuery, is_reference_query: bool = False
     ) -> QueryResult:
         try:
             # We try to determine the interval of the query, which will be used to define clear time bounds for both
@@ -530,6 +538,16 @@ class QueryExecutor:
             totals_executable_query = executable_query
             totals_result = None
             if executable_query.with_totals:
+                # For totals queries, if there is a limit passed by the user, we will honor that and apply it only for
+                # the reference query, since we want to load the data for all groups that are decided by the reference
+                # query.
+                if is_reference_query and executable_query.limit:
+                    totals_executable_query = totals_executable_query.replace_limit(
+                        executable_query.limit
+                    )
+                else:
+                    totals_executable_query = totals_executable_query.replace_limit()
+
                 if executable_query.order_by:
                     order_by_direction = Direction.ASC
                     if executable_query.order_by.startswith("-"):
@@ -537,6 +555,7 @@ class QueryExecutor:
 
                     totals_executable_query = executable_query.replace_order_by(order_by_direction)
 
+                # TODO: check why limit is not working.
                 totals_result = run_query(
                     request=self._build_request(
                         totals_executable_query.to_totals_query().metrics_query
@@ -546,7 +565,13 @@ class QueryExecutor:
             series_executable_query = executable_query
             series_result = None
             if executable_query.with_series:
-                if apply_totals_groups_on_series and totals_result:
+                # For series queries, we always want to use the default limit.
+                series_executable_query = series_executable_query.replace_limit()
+
+                # There is a case in which we need to apply the totals groups directly on the series, which happens only
+                # when the reference queries are executed. The reason for this is that if we don't filter the values,
+                # we might hit the limit in the series query and lose data.
+                if is_reference_query and totals_result:
                     series_executable_query = series_executable_query.add_group_filters(
                         _extract_groups_from_seq(totals_result["data"])
                     )
@@ -631,7 +656,7 @@ class QueryExecutor:
         # We execute the first reference query.
         reference_query = self._scheduled_queries.pop(self._find_reference_query())
         reference_query_result = self._execute(
-            executable_query=reference_query, apply_totals_groups_on_series=True
+            executable_query=reference_query, is_reference_query=True
         )
 
         # Case 1: we have fewer results that the limit. In this case we are free to run the follow-up queries under the
@@ -647,7 +672,7 @@ class QueryExecutor:
             for query in self._scheduled_queries:
                 query_result = self._execute(
                     executable_query=query.add_group_filters(reference_groups),
-                    apply_totals_groups_on_series=False,
+                    is_reference_query=False,
                 )
 
                 query_result.align_with(reference_query_result)
@@ -677,6 +702,7 @@ class QueryExecutor:
         query: MetricsQuery,
         group_bys: Optional[Sequence[str]],
         order_by: Optional[str],
+        limit: Optional[int],
     ):
         with_series = True
         with_totals = True
@@ -684,12 +710,13 @@ class QueryExecutor:
         # We bind a group_bys and order_by to each query individually. Even though this is not needed, in the future
         # we might have totally independent queries.
         executable_query = ExecutableQuery(
+            with_series=with_series,
+            with_totals=with_totals,
             identifier=identifier,
             metrics_query=query,
             group_bys=group_bys,
             order_by=order_by,
-            with_series=with_series,
-            with_totals=with_totals,
+            limit=limit,
         )
         self._scheduled_queries.append(executable_query)
 
@@ -887,6 +914,7 @@ def run_metrics_query(
     query: Optional[str] = None,
     group_bys: Optional[Sequence[str]] = None,
     order_by: Optional[str] = None,
+    limit: Optional[int] = None,
 ):
     # Build the basic query that contains the metadata.
     base_query = MetricsQuery(
@@ -904,11 +932,7 @@ def run_metrics_query(
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
     for field, timeseries in parser.generate_queries(environments=environments):
-        query = (
-            base_query.set_query(timeseries)
-            .set_rollup(Rollup(interval=interval))
-            .set_limit(SNUBA_QUERY_LIMIT)
-        )
+        query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
 
         # We will apply the order by if it only matches the field. This is done since for now we don't support a custom
         # since for order bys.
@@ -919,7 +943,7 @@ def run_metrics_query(
         # The identifier of the query is the field which it tries to fetch. It has been chosen as the identifier since
         # it's stable and uniquely identifies the query.
         executor.schedule(
-            identifier=field, query=query, group_bys=group_bys, order_by=query_order_by
+            identifier=field, query=query, group_bys=group_bys, order_by=query_order_by, limit=limit
         )
 
     # Iterating over each result.

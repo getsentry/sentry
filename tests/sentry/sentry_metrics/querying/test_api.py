@@ -456,6 +456,48 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             (field_1, 1.0),
         ]
 
+    @pytest.mark.skip(reason="limit of queries is not working in the new metrics layer")
+    def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
+        self,
+    ) -> None:
+        # Query with two aggregations.
+        field_1 = f"min({TransactionMRI.DURATION.value})"
+        field_2 = f"max({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field_1, field_2],
+            query=None,
+            group_bys=["platform"],
+            order_by=f"{field_1}",
+            limit=2,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 2
+        assert groups[0]["by"] == {"platform": "android"}
+        assert sorted(groups[0]["series"].items(), key=lambda v: v[0]) == [
+            (field_2, [0.0, 1.0, 2.0]),
+            (field_1, [0.0, 1.0, 2.0]),
+        ]
+        assert sorted(groups[2]["totals"].items(), key=lambda v: v[0]) == [
+            (field_2, 2.0),
+            (field_1, 1.0),
+        ]
+        assert groups[0]["by"] == {"platform": "ios"}
+        assert sorted(groups[0]["series"].items(), key=lambda v: v[0]) == [
+            (field_2, [0.0, 3.0, 3.0]),
+            (field_1, [0.0, 3.0, 3.0]),
+        ]
+        assert sorted(groups[0]["totals"].items(), key=lambda v: v[0]) == [
+            (field_2, 3.0),
+            (field_1, 3.0),
+        ]
+
     def test_query_with_invalid_filters(self) -> None:
         # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
