@@ -44,12 +44,20 @@ def sync_status_inbound(
     except Exception:
         return
 
+    provider = installation.model.get_provider()
+    activity_data = {
+        "provider": provider.name,
+        "provider_key": provider.key,
+        "integration_id": integration_id,
+    }
+
     if action == ResolveSyncAction.RESOLVE:
         Group.objects.update_group_status(
             groups=affected_groups,
             status=GroupStatus.RESOLVED,
             substatus=None,
             activity_type=ActivityType.SET_RESOLVED,
+            activity_data=activity_data,
         )
 
         for group in affected_groups:
@@ -69,4 +77,5 @@ def sync_status_inbound(
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.ONGOING,
             activity_type=ActivityType.SET_UNRESOLVED,
+            activity_data=activity_data,
         )
