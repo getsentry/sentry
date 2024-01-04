@@ -56,18 +56,17 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
         try:
             client = ctx.enter_context(_client())
         except docker.errors.DockerException:
-            # we support using colima on both darwin and linux
-            if USE_COLIMA:
-                click.echo("Attempting to start colima...")
-                subprocess.check_call(
-                    (
-                        "python3",
-                        "-uS",
-                        f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
-                    )
-                )
             if DARWIN:
-                if not USE_COLIMA:
+                if USE_COLIMA:
+                    click.echo("Attempting to start colima...")
+                    subprocess.check_call(
+                        (
+                            "python3",
+                            "-uS",
+                            f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
+                        )
+                    )
+                else:
                     click.echo("Attempting to start docker...")
                     subprocess.check_call(
                         ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
