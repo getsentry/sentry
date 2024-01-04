@@ -191,7 +191,7 @@ class IndexerBatch:
             )
 
             if options.get("sentry-metrics.indexer.raise-validation-errors"):
-                raise err
+                raise
 
         self.__message_count[use_case_id] += 1
 
