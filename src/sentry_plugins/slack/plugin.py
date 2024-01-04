@@ -258,7 +258,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             if raise_exception or not (
                 e.text in IGNORABLE_SLACK_ERRORS or e.code in IGNORABLE_SLACK_ERROR_CODES
             ):
-                raise e
+                raise
 
     def get_client(self, project):
         webhook = self.get_option("webhook", project).strip()
