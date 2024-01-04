@@ -145,7 +145,7 @@ def get_user_actions(
 
         tag = event.get("data", {}).get("tag")
         if tag == "breadcrumb":
-            _handle_click_event(click_buffer, replay_id, event)
+            _handle_click_event(click_buffer, project_id, replay_id, event)
             _handle_mutations_event(project_id, replay_id, event)
         elif tag == "performanceSpan":
             _handle_resource_metric_event(event)
@@ -163,6 +163,7 @@ def iter_custom_events(events: list[dict[str, Any]]) -> Generator[dict[str, Any]
 
 def _handle_click_event(
     result: List[ReplayActionsEventPayloadClick],
+    project_id: int,
     replay_id: str,
     event: dict[str, Any],
 ) -> None:
@@ -185,6 +186,20 @@ def _handle_click_event(
             click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
             if click is not None:
                 result.append(click)
+
+        # Log the event for tracking.
+        log = event["data"].get("payload", {}).copy()
+        log["project_id"] = project_id
+        log["replay_id"] = replay_id
+        log["dom_tree"] = log.pop("message")
+        logger.info("sentry.replays.slow_click", extra=log)
+    elif category == "ui.multiClick":
+        # Log the event for tracking.
+        log = event["data"].get("payload", {}).copy()
+        log["project_id"] = project_id
+        log["replay_id"] = replay_id
+        log["dom_tree"] = log.pop("message")
+        logger.info("sentry.replays.slow_click", extra=log)
     elif category == "ui.click":
         click = create_click_event(payload, replay_id, is_dead=False, is_rage=False)
         if click is not None:
