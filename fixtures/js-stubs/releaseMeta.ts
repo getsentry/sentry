@@ -1,10 +1,8 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import type {ReleaseMeta as ReleaseMetaType} from 'sentry/types';
+import type {ReleaseMeta} from 'sentry/types';
 
-export function ReleaseMetaFixture(
-  params: Partial<ReleaseMetaType> = {}
-): ReleaseMetaType {
+export function ReleaseMetaFixture(params: Partial<ReleaseMeta> = {}): ReleaseMeta {
   const project = ProjectFixture();
   return {
     version: 'sentry-android-shop@1.2.0',

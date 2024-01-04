@@ -1,8 +1,8 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {AuditLog as AuditLogType} from 'sentry/types';
+import type {AuditLog} from 'sentry/types';
 
-export function AuditLogsFixture(params: AuditLogType[] = []): AuditLogType[] {
+export function AuditLogsFixture(params: AuditLog[] = []): AuditLog[] {
   return [
     {
       note: 'edited project ludic-science',

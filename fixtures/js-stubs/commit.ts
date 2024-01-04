@@ -1,9 +1,9 @@
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {type Commit as TCommit} from 'sentry/types';
+import {type Commit} from 'sentry/types';
 
-export function CommitFixture(params = {}): TCommit {
+export function CommitFixture(params = {}): Commit {
   return {
     dateCreated: '2018-11-30T18:46:31Z',
     message:

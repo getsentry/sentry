@@ -3,24 +3,19 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import type {
-  CodeOwner as TCodeOwner,
-  OrganizationIntegration,
-  Project as TProject,
-  Repository as TRepository,
-} from 'sentry/types';
+import type {CodeOwner, OrganizationIntegration, Project, Repository} from 'sentry/types';
 
-interface CodeOwnerParams extends Partial<TCodeOwner> {
+interface CodeOwnerParams extends Partial<CodeOwner> {
   integration?: OrganizationIntegration;
-  project?: TProject;
-  repo?: TRepository;
+  project?: Project;
+  repo?: Repository;
 }
 
 export function CodeOwnerFixture({
   project = ProjectFixture(),
   repo = RepositoryFixture(),
   ...params
-}: CodeOwnerParams = {}): TCodeOwner {
+}: CodeOwnerParams = {}): CodeOwner {
   const integration = GitHubIntegrationFixture();
 
   return {

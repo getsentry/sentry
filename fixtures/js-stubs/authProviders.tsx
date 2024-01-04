@@ -1,10 +1,8 @@
 import {AuthProviderFixture} from 'sentry-fixture/authProvider';
 
-import type {AuthProvider as AuthProviderType} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types';
 
-export function AuthProvidersFixture(
-  params: AuthProviderType[] = []
-): AuthProviderType[] {
+export function AuthProvidersFixture(params: AuthProvider[] = []): AuthProvider[] {
   return [
     AuthProviderFixture({
       key: 'dummy',

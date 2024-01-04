@@ -1,8 +1,8 @@
 import {PluginFixture} from 'sentry-fixture/plugin';
 
-import {Plugin as PluginType} from 'sentry/types';
+import {Plugin} from 'sentry/types';
 
-export function PluginsFixture(params: PluginType[] = []): PluginType[] {
+export function PluginsFixture(params: Plugin[] = []): Plugin[] {
   return [
     PluginFixture(),
     PluginFixture({

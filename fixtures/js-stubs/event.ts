@@ -1,6 +1,6 @@
-import {type Event as TEvent, EventOrGroupType, EventTransaction} from 'sentry/types';
+import {type Event, EventOrGroupType, EventTransaction} from 'sentry/types';
 
-export function EventFixture(params = {}): TEvent {
+export function EventFixture(params = {}): Event {
   return {
     id: '1',
     message: 'ApiException',

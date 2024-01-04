@@ -1,8 +1,8 @@
-import type {DeprecatedApiKey as DeprecatedApiKeyType} from 'sentry/views/settings/organizationApiKeys/types';
+import type {DeprecatedApiKey} from 'sentry/views/settings/organizationApiKeys/types';
 
 export function DeprecatedApiKeyFixture(
-  params: Partial<DeprecatedApiKeyType> = {}
-): DeprecatedApiKeyType {
+  params: Partial<DeprecatedApiKey> = {}
+): DeprecatedApiKey {
   return {
     allowed_origins: '',
     id: '1',
