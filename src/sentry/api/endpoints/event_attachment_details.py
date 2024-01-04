@@ -1,6 +1,6 @@
 import posixpath
 
-from django.http import FileResponse
+from django.http import StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -56,16 +56,19 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):
-        fp = attachment.getfile()
         name = posixpath.basename(" ".join(attachment.name.split()))
 
-        response = FileResponse(
-            fp,
-            as_attachment=True,
-            filename=name,
+        def stream_attachment():
+            with attachment.getfile() as fp:
+                while chunk := fp.read(4096):
+                    yield chunk
+
+        response = StreamingHttpResponse(
+            stream_attachment(),
             content_type=attachment.content_type,
         )
         response["Content-Length"] = attachment.size
+        response["Content-Disposition"] = f'attachment; filename="{name}"'
 
         return response
 
