@@ -205,9 +205,10 @@ class RelocationIndexEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Quickly check that this `owner` does not have more than one active `Relocation` in flight.
+        # Check that this `owner` does not have more than one active `Relocation` in flight.
         if Relocation.objects.filter(
-            owner_id=owner.id, status=Relocation.Status.IN_PROGRESS.value
+            owner_id=owner.id,
+            status__in={Relocation.Status.IN_PROGRESS.value, Relocation.Status.PAUSE.value},
         ).exists():
             return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=status.HTTP_409_CONFLICT)
 
