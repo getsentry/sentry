@@ -383,7 +383,6 @@ function getMetricRequest(
       },
     ] as any);
   }
-  const actualLimit = limit && Number(limit) >= 10 ? limit : 10;
 
   const useNewMetricsLayer = organization.features.includes(
     'metrics-api-new-metrics-layer'
@@ -398,7 +397,7 @@ function getMetricRequest(
     },
     pageFilters,
     {
-      limit: actualLimit,
+      limit,
       useNewMetricsLayer,
       fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }

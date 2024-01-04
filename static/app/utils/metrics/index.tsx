@@ -210,8 +210,9 @@ export function getMetricsApiRequestQuery(
     groupBy,
     orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
-    // max result groups
-    limit: 10,
+    // Max result groups for compatibility with old metrics layer
+    // TODO(telemetry-experience): remove once everyone is on new metrics layer
+    per_page: Math.max(10, overrides.limit ?? 0),
   };
 
   return {...queryToSend, ...overrides};
