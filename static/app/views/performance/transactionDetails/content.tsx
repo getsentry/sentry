@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {LocationDescriptorObject} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -15,7 +14,7 @@ import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
 import getUrlFromEvent from 'sentry/components/events/interfaces/request/getUrlFromEvent';
 import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
-import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
+import {handleTraceDetailsRouting} from 'sentry/components/events/interfaces/spans/utils';
 import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -51,7 +50,6 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
-import {getTraceDetailsUrl} from '../traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getSelectedProjectPlatforms} from '../utils';
 
@@ -171,33 +169,19 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
 
     const originatingUrl = getUrlFromEvent(event);
 
-    const handleTraceDetailRouting = (metaResults: TraceMetaQueryChildrenProps) => {
-      const {meta, isLoading} = metaResults;
+    const renderBody = (metaResults: TraceMetaQueryChildrenProps) => {
+      const {isLoading} = metaResults;
 
       if (isLoading) {
         return <LoadingIndicator />;
       }
 
-      if (
-        organization.features.includes('performance-trace-details') &&
-        meta &&
-        meta.transactions <= 200
-      ) {
-        const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-          organization,
-          traceId,
-          transactionName,
-          location.query
-        );
-
-        browserHistory.replace({
-          pathname: traceDetailsLocation.pathname,
-          query: {
-            transaction: traceDetailsLocation.query?.transaction,
-          },
-          hash: transactionTargetHash(event.eventID) + location.hash,
-        });
-      }
+      handleTraceDetailsRouting(
+        metaResults,
+        event,
+        organization,
+        location
+      );
 
       return (
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
@@ -366,7 +350,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
         start={start}
         end={end}
       >
-        {metaResults => handleTraceDetailRouting(metaResults)}
+        {metaResults => renderBody(metaResults)}
       </TraceMetaQuery>
     );
   }

@@ -274,7 +274,7 @@ function NewTraceDetailsContent(props: Props) {
               <EventVitals event={rootEvent} />
             </div>
           )}
-          <div style={{flex: 1, maxWidth: '800px'}}>
+          <div style={{flex: 1}}>
             <Tags
               generateUrl={(key: string, value: string) => {
                 const url = traceEventView.getResultsViewUrlTarget(
@@ -381,12 +381,10 @@ function NewTraceDetailsContent(props: Props) {
               organization={organization}
               location={location}
               transaction={
-                location.query.transaction
-                  ? {
-                      project: root?.project_id.toString() ?? '',
-                      name: location.query.transaction,
-                    }
-                  : undefined
+                  {
+                    project: rootEvent?.projectID ?? '',
+                    name: rootEvent?.title ?? ''
+                  }
               }
               traceSlug={traceSlug}
             />

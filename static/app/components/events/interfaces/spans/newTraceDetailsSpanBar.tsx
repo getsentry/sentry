@@ -64,7 +64,6 @@ import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import {StyledZoomIcon} from 'sentry/views/performance/traceDetails/newTraceDetailsTransactionBar';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
-import {MINIMAP_SPAN_BAR_HEIGHT} from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {SpanDetailProps} from './newTraceDetailsSpanDetails';
 import {withScrollbarManager} from './scrollbarManager';
@@ -95,6 +94,7 @@ import {
 } from './utils';
 
 export const MARGIN_LEFT = 0;
+const SPAN_BAR_HEIGHT = 24;
 
 export type NewTraceDetailsSpanBarProps = SpanBarProps & {
   location: Location;
@@ -122,9 +122,13 @@ export class NewTraceDetailsSpanBar extends Component<
     this.updateHighlightedState();
     this.connectObservers();
 
+    // If spn is anchored scroll to span bar and open it's detail panel
     if (this.isHighlighted && this.props.onRowClick) {
       this.props.onRowClick(this.getSpanDetailsProps());
 
+      // Needs a little delay after bar is rendered, to achieve
+      // scrollto bar functionality for spans that exist much further down the
+      // react virtualized list.
       if (!didAnchoredSpanMount()) {
         setTimeout(() => {
           this.scrollIntoView();
@@ -233,7 +237,7 @@ export class NewTraceDetailsSpanBar extends Component<
     }
 
     const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY - MINIMAP_SPAN_BAR_HEIGHT * 10;
+    const offset = boundingRect.top + window.scrollY - 40;
     window.scrollTo(0, offset);
   };
 
@@ -559,12 +563,16 @@ export class NewTraceDetailsSpanBar extends Component<
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
       this.setState({isIntersecting: entry.isIntersecting}, () => {
+
+        // Scrolls the next(invisible) bar from the virtualized list,
+        // by it's height. Allows us to look for anchored span bars occuring
+        // at the bottom of the span tree.
         if (
           this.hash_span_id &&
           !this.props.didAnchoredSpanMount() &&
           !this.state.isIntersecting
         ) {
-          window.scrollBy(0, 24);
+          window.scrollBy(0, SPAN_BAR_HEIGHT);
         }
       })
     );
@@ -795,7 +803,7 @@ export class NewTraceDetailsSpanBar extends Component<
         browserHistory.push({
           ...location,
           hash: `${transactionTargetHash(
-            (event as EventTransaction).eventID
+            event.eventID
           )}${spanTargetHash(span.span_id)}`,
         });
       }

@@ -175,7 +175,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
     if (
       'event_id' in transaction &&
       hashValues?.event_id === transaction.event_id &&
-      !hashValues?.span_id &&
       !isIntersecting &&
       !isBarScrolledTo
     ) {
@@ -419,9 +418,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
         <StyledZoomIcon
           isZoomIn={!showEmbeddedChildren}
           onClick={() => {
-            if(showEmbeddedChildren)
-              {window.scrollBy(0, window.innerHeight);}
-
             setShowEmbeddedChildren(prev => !prev);
 
             if (
@@ -951,7 +947,7 @@ export const StyledZoomIcon = styled(IconZoom)`
   height: 16px;
   width: 18px;
   z-index: 1000;
-  background: white;
+  background: ${p => p.theme.background};
   padding: 1px;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};

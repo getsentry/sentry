@@ -1,6 +1,5 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {LocationDescriptorObject} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
@@ -13,7 +12,7 @@ import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMessage from 'sentry/components/events/eventMessage';
 import EventVitals from 'sentry/components/events/eventVitals';
 import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
-import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
+import {handleTraceDetailsRouting} from 'sentry/components/events/interfaces/spans/utils';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -43,7 +42,6 @@ import {
   isTransaction,
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
@@ -161,34 +159,18 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
       metaResults?: TraceMetaQueryChildrenProps
     ) => {
       if (metaResults && isTransaction(event)) {
-        const {meta, isLoading} = metaResults;
+        const {isLoading} = metaResults;
 
         if (isLoading) {
           return <LoadingIndicator />;
         }
 
-        const traceId = event.contexts?.trace?.trace_id ?? '';
-
-        if (
-          organization.features.includes('performance-trace-details') &&
-          meta &&
-          meta.transactions <= 200
-        ) {
-          const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-            organization,
-            traceId,
-            transactionName,
-            location.query
-          );
-
-          browserHistory.replace({
-            pathname: traceDetailsLocation.pathname,
-            query: {
-              transaction: traceDetailsLocation.query?.transaction,
-            },
-            hash: transactionTargetHash(event.eventID) + location.hash,
-          });
-        }
+        handleTraceDetailsRouting(
+          metaResults,
+          event,
+          organization,
+          location
+        );
       }
 
       return (

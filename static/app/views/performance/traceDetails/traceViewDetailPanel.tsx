@@ -609,7 +609,6 @@ const StyledButton = styled(Button)`
 
 const StyledTable = styled('table')`
   margin-bottom: 0 !important;
-  width: fit-content;
 `;
 
 export default TraceViewDetailPanel;
