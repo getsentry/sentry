@@ -191,7 +191,7 @@ export function getDdmUrl(
 }
 
 export function getMetricsApiRequestQuery(
-  {field, query, groupBy}: MetricsApiRequestMetric,
+  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
@@ -208,9 +208,10 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
+    orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // max result groups
-    per_page: 10,
+    limit: 10,
   };
 
   return {...queryToSend, ...overrides};
