@@ -30,12 +30,10 @@ jobs:
 
       - name: Find previous dry-run comment
         uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
-        if: github.event_name == 'pull_request'
         id: fc
+        if: github.event_name == 'pull_request'
         with:
           issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: '<!-- MISSING EA'D FEATURE FLAGS FOR SELF-HOSTED -->'
 
       - name: Add or update dry-run comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
