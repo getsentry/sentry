@@ -113,6 +113,14 @@ class LayoutField(serializers.Field):
         return convert_dict_key_case(layout_to_store, snake_to_camel_case)
 
 
+class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
+    extraction_state = serializers.CharField(required=False)
+    enabled = serializers.BooleanField(required=False)
+
+    def validate(self, data):
+        return data
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -127,6 +135,8 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
     orderby = serializers.CharField(required=False, allow_blank=True)
+
+    on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
 
     required_for_create = {"fields", "conditions"}
 
