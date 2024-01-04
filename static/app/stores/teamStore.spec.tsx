@@ -1,13 +1,13 @@
-import {Team} from 'sentry-fixture/team';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamStore', function () {
-  const teamFoo = Team({
+  const teamFoo = TeamFixture({
     id: '1',
     slug: 'team-foo',
   });
-  const teamBar = Team({
+  const teamBar = TeamFixture({
     id: '2',
     slug: 'team-bar',
   });

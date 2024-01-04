@@ -1,5 +1,5 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -32,7 +32,7 @@ describe('Message entry', function () {
     render(<Message data={{formatted: null}} event={event} />, {
       context: routerContext,
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 

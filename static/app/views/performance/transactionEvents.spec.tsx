@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +19,7 @@ type Data = {
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: [ProjectFixture()],
   });

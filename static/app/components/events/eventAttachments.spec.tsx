@@ -1,5 +1,5 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventAttachment} from 'sentry-fixture/eventAttachment';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -95,7 +95,7 @@ describe('EventAttachments', function () {
           attachmentsRole: 'admin',
         },
       } as any);
-    const attachment = EventAttachment({
+    const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
         'Content-Type': 'text/plain',
@@ -127,7 +127,7 @@ describe('EventAttachments', function () {
   });
 
   it('can open attachment previews', async function () {
-    const attachment = EventAttachment({
+    const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
         'Content-Type': 'text/plain',
@@ -155,11 +155,11 @@ describe('EventAttachments', function () {
   });
 
   it('can delete attachments', async function () {
-    const attachment1 = EventAttachment({
+    const attachment1 = EventAttachmentFixture({
       id: '1',
       name: 'pic_1.png',
     });
-    const attachment2 = EventAttachment({
+    const attachment2 = EventAttachmentFixture({
       id: '2',
       name: 'pic_2.png',
     });

@@ -14,6 +14,7 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumers.recording_buffered import RecordingBufferedStrategyFactory
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils.cases import TransactionTestCase
@@ -174,3 +175,16 @@ class RecordingTestCase(TransactionTestCase):
 
 class ThreadedRecordingTestCase(RecordingTestCase):
     force_synchronous = False
+
+
+# Experimental Buffered Recording Consumer
+
+
+class RecordingBufferedTestCase(RecordingTestCase):
+    def processing_factory(self):
+        # The options don't matter because we're calling join which commits regardless.
+        return RecordingBufferedStrategyFactory(
+            max_buffer_row_count=1000,
+            max_buffer_size_in_bytes=1000,
+            max_buffer_time_in_seconds=1000,
+        )

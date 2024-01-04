@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {Organization} from 'sentry-fixture/organization';
-import {Tags} from 'sentry-fixture/tags';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
   act,
@@ -22,7 +22,7 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(Tags());
+    TagStore.loadTagsSuccess(TagsFixture());
     const supportedTags = TagStore.getState();
     supportedTags.firstRelease = {
       key: 'firstRelease',
@@ -33,7 +33,7 @@ describe('SmartSearchBar', function () {
       name: 'is',
     };
 
-    const organization = Organization({id: '123'});
+    const organization = OrganizationFixture({id: '123'});
 
     const location = {
       pathname: '/organizations/org-slug/recent-searches/',

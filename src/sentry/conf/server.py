@@ -1473,6 +1473,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable creating organizations within sentry
     # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
+    # Disables projects with zero monitors to create new ones
+    "organizations:crons-disable-new-projects": False,
     # Enable the new crons monitor form
     "organizations:crons-new-monitor-form": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
