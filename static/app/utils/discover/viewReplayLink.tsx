@@ -17,7 +17,7 @@ function ViewReplayLink({
 }) {
   const {replayExists} = useReplayExists();
 
-  if (!replayExists(String(replayId))) {
+  if (!replayId || !replayExists(String(replayId))) {
     return (
       <Tooltip title={t('This replay may have been rate limited or deleted.')}>
         <EmptyValueContainer>{t('(missing)')}</EmptyValueContainer>
