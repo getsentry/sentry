@@ -190,6 +190,6 @@ def main():
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)
                 logger.info("We have reported the error below to Sentry")
-            raise e
+            raise
     else:
         func(**kwargs)
