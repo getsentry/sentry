@@ -46,6 +46,7 @@ export interface Organization extends OrganizationSummary {
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
+  allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
   availableRoles: {id: string; name: string}[]; // Deprecated, use orgRoleList
