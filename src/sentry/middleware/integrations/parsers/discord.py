@@ -20,6 +20,7 @@ from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
 from sentry.utils.signing import unsign
+from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class DiscordRequestParser(BaseRequestParser):
     control_classes = [
         DiscordLinkIdentityView,
         DiscordUnlinkIdentityView,
+        DiscordExtensionConfigurationView,
     ]
 
     # Dynamically set to avoid RawPostDataException from double reads
