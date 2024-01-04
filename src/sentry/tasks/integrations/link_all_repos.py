@@ -73,7 +73,7 @@ def link_all_repos(
             return
 
         metrics.incr(f"{integration_key}.link_all_repos.api_error")
-        raise e
+        raise
 
     integration_repo_provider = get_integration_repository_provider(integration)
 

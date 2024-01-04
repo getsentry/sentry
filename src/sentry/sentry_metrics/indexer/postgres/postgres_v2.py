@@ -108,7 +108,7 @@ class PGStringIndexerV2(StringIndexer):
                         sleep(sleep_ms / 1000 * (2**retry_count))
                         last_seen_exception = e
                     else:
-                        raise e
+                        raise
             # If we haven't returned after successful bulk create, we should re-raise the last
             # seen exception
             assert isinstance(last_seen_exception, BaseException)

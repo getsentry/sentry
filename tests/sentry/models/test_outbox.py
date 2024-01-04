@@ -452,7 +452,7 @@ class RegionOutboxTest(TestCase):
             assert mock_metrics.incr.mock_calls == expected
         except Exception as e:
             ctx.__exit__(type(e), e, None)
-            raise e
+            raise
 
     def test_outbox_rescheduling(self):
         with patch("sentry.models.outbox.process_region_outbox.send") as mock_process_region_outbox:

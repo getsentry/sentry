@@ -211,4 +211,4 @@ def _run_deletion(
         )
         sentry_sdk.capture_exception(err)
         if in_test_environment():
-            raise err
+            raise

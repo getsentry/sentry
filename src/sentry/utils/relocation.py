@@ -498,7 +498,7 @@ def retry_task_or_fail_relocation(
     logger_data = {"uuid": relocation.uuid, "task": task.name, "attempts_left": attempts_left}
     try:
         yield
-    except Exception as e:
+    except Exception:
         # If this is the last attempt, fail in the manner requested before reraising the exception.
         # This ensures that the database entry for this `Relocation` correctly notes it as a
         # `FAILURE`.
@@ -508,7 +508,7 @@ def retry_task_or_fail_relocation(
             logger_data["reason"] = reason
             logger.info("Task retried", extra=logger_data)
 
-        raise e
+        raise
     else:
         logger.info("Task finished", extra=logger_data)
 

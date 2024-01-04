@@ -154,9 +154,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
                     self.bulk_create(subscriptions)
                     return True
-            except IntegrityError as e:
+            except IntegrityError:
                 if i == 0:
-                    raise e
+                    raise
         return False
 
     def get_participants(self, group: Group) -> ParticipantMap:

@@ -407,7 +407,7 @@ def _get_blames_from_all_integrations(
                             extra={**log_info, "code": e.code, "error_message": e.text},
                         )
                     # Rate limit and other API errors should be raised to the task to trigger a retry
-                    raise e
+                    raise
             except Exception:
                 logger.exception(
                     "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",

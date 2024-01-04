@@ -246,8 +246,8 @@ class RegionSiloClient(BaseSiloClient):
                 json=json,
                 raw_response=raw_response,
             )
-        except Exception as error:
+        except Exception:
             self.check_request_attempts(hash=hash, method=method, path=path)
-            raise error
+            raise
         self.cleanup_request_attempts(hash=hash)
         return response

@@ -100,9 +100,9 @@ class IdentityManager(BaseManager["Identity"]):
             )
             if not created:
                 identity.update(**defaults)
-        except IntegrityError as e:
+        except IntegrityError:
             if not should_reattach:
-                raise e
+                raise
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(

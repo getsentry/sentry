@@ -27,4 +27,4 @@ class SentryDatabaseCreation(DatabaseCreation):
             elif not keepdb:
                 # If the database should be kept, ignore "database already
                 # exists".
-                raise e
+                raise

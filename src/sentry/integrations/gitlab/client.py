@@ -125,9 +125,9 @@ class GitLabProxyApiClient(IntegrationProxyClient):
     def _issue_request_with_auto_token_refresh(self, *args: Any, **kwargs: Any):
         try:
             response = super().request(*args, **kwargs)
-        except ApiUnauthorized as e:
+        except ApiUnauthorized:
             if self.is_refreshing_token:
-                raise e
+                raise
             return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
         if (

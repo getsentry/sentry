@@ -189,9 +189,9 @@ class IntegrationRepositoryProvider:
 
         try:
             result, repo = self.create_repository(repo_config=config, organization=organization)
-        except RepoExistsError as e:
+        except RepoExistsError:
             metrics.incr("sentry.integration_repo_provider.repo_exists")
-            raise (e)
+            raise
         except Exception as e:
             return self.handle_api_error(e)
 

@@ -148,3 +148,37 @@ import sentry.testutils.outbox as outbox_utils
 def test_S008(src):
     expected = ["t.py:1:0: S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"]
     assert _run(src) == expected
+
+
+def test_S009():
+    src = """\
+try:
+    ...
+except OSError:
+    raise  # ok: what we want people to do!
+except TypeError as e:
+    raise RuntimeError()  # ok: reraising a different exception
+except ValueError as e:
+    raise e  # bad!
+"""
+    expected = ["t.py:8:4: S009 Use `raise` with no arguments to reraise exceptions"]
+    assert _run(src) == expected
+
+
+def test_S010():
+    src = """\
+try:
+    ...
+except ValueError:
+    ... # ok: not a reraise body
+except Exception:
+    raise  # bad!
+
+try:
+    ...
+except Exception:
+    ...
+    raise  # ok: non just a reraise body
+"""
+    expected = ["t.py:5:0: S010 Except handler does nothing and should be removed"]
+    assert _run(src) == expected

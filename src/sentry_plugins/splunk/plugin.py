@@ -229,7 +229,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 or exc.code == 502
             ):
                 return False
-            raise exc
+            raise
 
         metrics.incr(
             "integrations.splunk.forward-event.success", tags={"event_type": event.get_event_type()}

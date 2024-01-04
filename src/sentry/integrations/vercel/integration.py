@@ -312,7 +312,7 @@ class VercelIntegration(IntegrationInstallation):
             if error.code == 403:
                 pass
             else:
-                raise error
+                raise
 
 
 class VercelIntegrationProvider(IntegrationProvider):

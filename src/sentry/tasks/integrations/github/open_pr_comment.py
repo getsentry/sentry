@@ -473,4 +473,4 @@ def open_pr_comment_workflow(pr_id: int) -> None:
                 return
 
         metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "api_error"})
-        raise e
+        raise

@@ -463,7 +463,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             bulk_query_results = bulk_raw_query(
                 list(query_params_for_categories.values()), referrer=referrer
             )
-        except Exception as e:
+        except Exception:
             metrics.incr(
                 "snuba.search.group_category_bulk",
                 tags={
@@ -478,7 +478,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     [query_params_for_categories[GroupCategory.ERROR.value]], referrer=referrer
                 )
             else:
-                raise e
+                raise
 
         rows: list[MergeableRow] = []
         total = 0

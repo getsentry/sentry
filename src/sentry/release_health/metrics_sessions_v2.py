@@ -447,7 +447,7 @@ def run_sessions_query(
     ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]] = {}
     try:
         orderby = _parse_orderby(query, fields)
-    except NonPreflightOrderByException as exc:
+    except NonPreflightOrderByException:
         # We hit this branch when we suspect that the orderBy columns is one of the virtual
         # columns like `release.timestamp` that require a preflight query to be run, and so we
         # check here if it is one of the supported preflight query columns and if so we run the
@@ -460,7 +460,7 @@ def run_sessions_query(
             direction = Direction.ASC
 
         if raw_orderby not in PREFLIGHT_QUERY_COLUMNS:
-            raise exc
+            raise
         else:
             if raw_orderby == "release.timestamp" and "release" not in query.raw_groupby:
                 raise InvalidParams(

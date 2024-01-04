@@ -259,7 +259,7 @@ def write_import_findings(
     except ImportingError as e:
         if e.context:
             write_findings(findings_file, [e.context], printer.echo)
-        raise e
+        raise
     else:
         write_findings(findings_file, [], printer.echo)
 
@@ -279,7 +279,7 @@ def write_export_findings(
     except ExportingError as e:
         if e.context:
             write_findings(findings_file, [e.context], printer.echo)
-        raise e
+        raise
     else:
         write_findings(findings_file, [], printer.echo)
 

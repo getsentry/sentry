@@ -82,7 +82,7 @@ class NotificationPlugin(Plugin):
                 },
             )
             if raise_exception:
-                raise err
+                raise
             return False
 
     def rule_notify(self, event, futures):

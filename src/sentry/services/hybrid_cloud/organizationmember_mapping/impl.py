@@ -80,7 +80,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 )
 
                 if existing is None:
-                    raise e
+                    raise
                 else:
                     orm_mapping = existing
 

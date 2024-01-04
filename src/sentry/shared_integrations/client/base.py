@@ -321,7 +321,7 @@ class BaseApiClient(TrackResponseMixin):
                     raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
                 # If it's not something we recognize, let the caller deal with it
-                raise e
+                raise
 
             self.track_response_data(resp.status_code, span, None, resp, extra=extra)
 

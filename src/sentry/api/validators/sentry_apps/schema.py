@@ -270,8 +270,8 @@ def validate_ui_element_schema(instance):
         check_elements_is_array(instance)
         check_each_element_for_error(instance)
         check_only_one_of_each_element(instance)
-    except SchemaValidationError as e:
-        raise e
+    except SchemaValidationError:
+        raise
     except Exception as e:
         logger.warning(
             "Unexpected error validating schema: %s",
