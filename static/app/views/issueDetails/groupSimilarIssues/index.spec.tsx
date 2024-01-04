@@ -171,7 +171,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext, organization: Organization({features})}
+      {context: routerContext, organization: OrganizationFixture({features})}
     );
     renderGlobalModal();
 
