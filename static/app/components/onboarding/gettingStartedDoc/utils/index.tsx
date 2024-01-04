@@ -1,4 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import type {Organization, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -78,12 +79,12 @@ export const getReplayConfigureDescription = ({link}: {link: string}) =>
     }
   );
 
-export const getReplayJsLoaderSdkSetupSnippet = params => `
+export const getReplayJsLoaderSdkSetupSnippet = (params: DocsParams) => `
 <script>
   Sentry.onLoad(function() {
     Sentry.init({
       integrations: [
-        new Sentry.Replay(${getReplayConfigOptions(params.replayConfigOptions)}),
+        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),
       ],
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
