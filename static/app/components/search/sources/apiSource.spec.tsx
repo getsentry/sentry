@@ -1,10 +1,8 @@
 import {ComponentProps} from 'react';
-
 import {EventIdQueryResultFixture} from 'sentry-fixture/eventIdQueryResult';
-import {Members} from 'sentry-fixture/members';
+import {MembersFixture} from 'sentry-fixture/members';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,6 +10,8 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ApiSource} from 'sentry/components/search/sources/apiSource';
 import ConfigStore from 'sentry/stores/configStore';
+
+import {ShortIdQueryResultFixture} from '../../../../../fixtures/js-stubs/shortIdQueryResult';
 
 describe('ApiSource', function () {
   const {organization, router} = initializeOrg();
