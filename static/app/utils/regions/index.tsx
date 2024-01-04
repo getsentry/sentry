@@ -2,8 +2,10 @@ import {t} from "sentry/locale";
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Region} from 'sentry/types';
 
-const US_DISPLAY_NAME = t('United States of America (US)');
-const EU_DISPLAY_NAME = t('European Union (EU)');
+const RegionDisplayName: Record<string, string> = {
+  US: t('United States of America (US)'),
+  DE: t('European Union (EU)'),
+};
 
 enum RegionFlagIndicator {
   US = '🇺🇸',
@@ -18,16 +20,7 @@ export interface RegionData {
 }
 
 export function getRegionDisplayName(region: Region): string {
-  const regionName = region.name.toUpperCase();
-  switch(regionName) {
-    case 'US':
-      return US_DISPLAY_NAME;
-    case 'DE':
-      return EU_DISPLAY_NAME;
-    default:
-      return region.name;
-
-  }
+  return RegionDisplayName[region.name.toUpperCase()] ?? region.name;
 }
 
 export function getRegionFlagIndicator(region: Region): RegionFlagIndicator | undefined {
