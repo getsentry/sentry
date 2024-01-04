@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import robotBackground from 'sentry-images/spot/sentry-robot.png';
+import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
@@ -23,7 +23,7 @@ type Props = {
   sampleIssueId?: string;
 };
 
-function ErrorRobot({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
+function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
   const api = useApi();
 
   const [loading, setLoading] = useState(false);
@@ -81,20 +81,15 @@ function ErrorRobot({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
     );
 
   return (
-    <ErrorRobotWrapper data-test-id="awaiting-events" className="awaiting-events">
-      <Robot aria-hidden>
-        <Eye />
-      </Robot>
+    <Wrapper data-test-id="awaiting-events" className="awaiting-events">
+      <img
+        src={waitingForEventImg}
+        alt="No errors found spot illustration"
+        height={200}
+      />
       <MessageContainer>
         <h3>{t('Waiting for events…')}</h3>
-        <p>
-          {tct(
-            'Our error robot is waiting to [strike:devour] receive your first event.',
-            {
-              strike: <Strikethrough />,
-            }
-          )}
-        </p>
+        <p>{t('Your code sleuth eagerly awaits its first mission.')}</p>
         <p>
           {project && (
             <Button
@@ -110,18 +105,18 @@ function ErrorRobot({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
         </p>
         {sampleLink}
       </MessageContainer>
-    </ErrorRobotWrapper>
+    </Wrapper>
   );
 }
 
-export default ErrorRobot;
+export default WaitingForEvents;
 
-const ErrorRobotWrapper = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
   justify-content: center;
   font-size: ${p => p.theme.fontSizeLarge};
   border-radius: 0 0 3px 3px;
-  padding: 40px ${space(3)} ${space(3)};
+  padding: 40px ${space(3)};
   min-height: 260px;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
@@ -129,55 +124,6 @@ const ErrorRobotWrapper = styled('div')`
     align-items: center;
     padding: ${space(3)};
     text-align: center;
-  }
-`;
-
-const Robot = styled('div')`
-  display: block;
-  position: relative;
-  width: 220px;
-  height: 260px;
-  background: url(${robotBackground});
-  background-size: cover;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    width: 110px;
-    height: 130px;
-  }
-`;
-
-const Eye = styled('span')`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  position: absolute;
-  top: 70px;
-  left: 81px;
-  transform: translateZ(0);
-  animation: blink-eye 0.6s infinite;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    width: 6px;
-    height: 6px;
-    top: 35px;
-    left: 41px;
-  }
-
-  @keyframes blink-eye {
-    0% {
-      background: #e03e2f;
-      box-shadow: 0 0 10px #e03e2f;
-    }
-
-    50% {
-      background: #4a4d67;
-      box-shadow: none;
-    }
-
-    100% {
-      background: #e03e2f;
-      box-shadow: 0 0 10px #e03e2f;
-    }
   }
 `;
 
@@ -189,8 +135,4 @@ const MessageContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
   }
-`;
-
-const Strikethrough = styled('span')`
-  text-decoration: line-through;
 `;

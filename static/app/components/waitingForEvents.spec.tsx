@@ -4,9 +4,9 @@ import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ErrorRobot from 'sentry/components/errorRobot';
+import WaitingForEvents from 'sentry/components/waitingForEvents';
 
-describe('ErrorRobot', function () {
+describe('WaitingForEvents', function () {
   let getIssues: jest.Func;
   let routerContext;
 
@@ -27,7 +27,7 @@ describe('ErrorRobot', function () {
   describe('with a project', function () {
     function createWrapper() {
       return render(
-        <ErrorRobot org={OrganizationFixture()} project={ProjectFixture()} />,
+        <WaitingForEvents org={OrganizationFixture()} project={ProjectFixture()} />,
         {
           context: routerContext,
         }
@@ -52,7 +52,7 @@ describe('ErrorRobot', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return render(<ErrorRobot org={OrganizationFixture()} />, {
+      return render(<WaitingForEvents org={OrganizationFixture()} />, {
         context: routerContext,
       });
     }
