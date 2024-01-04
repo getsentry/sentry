@@ -40,6 +40,7 @@ ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTIN
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
     webhook_identifier = WebhookProviderIdentifier.SLACK
+    response_url: str | None = None
 
     control_classes = [
         SlackLinkIdentityView,
@@ -71,7 +72,7 @@ class SlackRequestParser(BaseRequestParser):
     """
 
     def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponseBase:
-        if not self.response_url:
+        if self.response_url is None:
             return self.get_response_from_control_silo()
 
         webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
