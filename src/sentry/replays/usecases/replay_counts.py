@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
@@ -19,9 +18,6 @@ MAX_VALS_PROVIDED = {
 }
 
 FILTER_HAS_A_REPLAY = " AND !replayId:''"
-
-
-logger = logging.getLogger()
 
 
 def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source) -> dict[str, Any]:
@@ -59,13 +55,6 @@ def _get_replay_id_mappings(
         # just return a mapping of replay_id:replay_id instead of hitting discover
         # if we want to validate list of replay_ids existence
         return {v: [v] for v in value}
-
-    # Any number of issues can be specified however we're only going to return at
-    # most 25 of them. Cap the lists length to 25. The other ids are silently
-    # dropped.
-    if len(value) > 25:
-        logger.warning("Received more than 25 ids: %d", len(value))
-        value = value[:25]
 
     builder = QueryBuilder(
         dataset=data_source,
