@@ -98,7 +98,7 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
             # special case for MonitorCheckIn to protect against index slippage
             # run ANALYZE on the table
-            if model == monitor_models.MonitorCheckIn:
+            if model is monitor_models.MonitorCheckIn:
                 q = AnalyzeQuery(model=model)
                 q.execute()
         except Exception as e:
