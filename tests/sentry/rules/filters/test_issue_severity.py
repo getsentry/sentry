@@ -22,9 +22,9 @@ class IssueSeverityFilterTest(RuleTestCase):
         data_cases = [
             {"match": MatchType.GREATER_OR_EQUAL, "value": 0.5},
             {"match": MatchType.GREATER_OR_EQUAL, "value": 0.7},
-            {"match": MatchType.LESS_OR_EQUAL, "value": 0.7},
+            {"match": MatchType.LESS, "value": 0.9},
             {"match": MatchType.LESS_OR_EQUAL, "value": 0.9},
-            {"match": MatchType.LESS_OR_EQUAL, "value": "0.9"},
+            {"match": MatchType.LESS, "value": "0.9"},
         ]
 
         for data_case in data_cases:
@@ -61,8 +61,9 @@ class IssueSeverityFilterTest(RuleTestCase):
         data_cases = [
             {"match": MatchType.GREATER_OR_EQUAL, "value": 0.9},
             {"match": MatchType.GREATER_OR_EQUAL, "value": "0.9"},
-            {"match": MatchType.LESS_OR_EQUAL, "value": "0.5"},
-            {"match": MatchType.LESS_OR_EQUAL, "value": 0.5},
+            {"match": MatchType.LESS, "value": "0.5"},
+            {"match": MatchType.LESS, "value": 0.5},
+            {"match": MatchType.LESS_OR_EQUAL, "value": 0.7},
             {"value": 0.5},
             {"match": MatchType.GREATER_OR_EQUAL},
             {},

@@ -13,7 +13,7 @@ from sentry.types.condition_activity import ConditionActivity
 
 SEVERITY_MATCH_CHOICES = {
     MatchType.GREATER_OR_EQUAL: "greater than or equal to",
-    MatchType.LESS_OR_EQUAL: "less than or equal to",
+    MatchType.LESS: "less than",
 }
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
 
@@ -51,8 +51,10 @@ class IssueSeverityFilter(EventFilter):
 
         if match == MatchType.GREATER_OR_EQUAL:
             return severity >= value
-        elif match == MatchType.LESS_OR_EQUAL:
-            return severity <= value
+        elif (
+            match == MatchType.LESS or match == MatchType.LESS_OR_EQUAL
+        ):  # backwards compatibility, since this was changed from LTE to LT
+            return severity < value
 
         return False
 
