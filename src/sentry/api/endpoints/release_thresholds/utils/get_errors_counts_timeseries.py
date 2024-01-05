@@ -60,3 +60,35 @@ def get_errors_counts_timeseries_by_project_and_release(
     )["data"]
 
     return data
+
+
+from django.utils.datastructures import MultiValueDict
+from rest_framework.request import Request
+
+from sentry import release_health
+from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
+from sentry.snuba.sessions_v2 import QueryDefinition
+
+
+def fetch_sessions_data(request: Request, organization: Organization, params: dict[str, Any]):
+    with handle_query_errors():
+        # HACK to prevent front-end crash when release health is sessions-based:
+        query_params = MultiValueDict(request.GET)
+        interval = request.GET.get("interval")
+        if not release_health.backend.is_metrics_based() and interval == "10s":
+            query_params["interval"] = "1m"
+
+        # crash free rates are on an INTERVAL basis :think:
+        # Does this mean that if we fail on the first event, we'll at least not have a 0% crash free rate immediately?
+        query_config = release_health.backend.sessions_query_config(organization)
+
+        query = QueryDefinition(
+            query=query_params,
+            params=params,
+            query_config=query_config,
+        )
+
+        return release_health.backend.run_sessions_query(
+            organization.id, query, span_op="release_thresholds.endpoint"
+        )
