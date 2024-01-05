@@ -332,10 +332,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   return (
     <Fragment>
       <IntroText>
-        {tct(
-          `Adding Session Replay to your [platform] project is simple. Make sure you've got these basics down.`,
-          {platform: currentPlatform?.name || currentProject.slug}
-        )}
         {showJsFrameworkInstructions ? (
           <PlatformSelect>
             {t('Select your JS Framework: ')}
@@ -421,7 +417,7 @@ function OnboardingStepV2({step, content}: OnboardingStepV2Props) {
 }
 
 const IntroText = styled('div')`
-  padding-top: ${space(3)};
+  padding-top: ${space(1)};
   display: grid;
   gap: ${space(1)};
 `;
