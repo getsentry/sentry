@@ -12,6 +12,7 @@ import {
   getReplayConfigureDescription,
   getReplayJsLoaderSdkSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -64,6 +65,7 @@ const replayOnboardingJsLoader: OnboardingConfig = {
         },
       ],
       isOptional: true,
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],
