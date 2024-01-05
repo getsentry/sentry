@@ -64,7 +64,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         snuba_response = query_replay_instance(
-            project_id=[id for id in filter_params["project_id"]],
+            project_id=filter_params["project_id"],
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],

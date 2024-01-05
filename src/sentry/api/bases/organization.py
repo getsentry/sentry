@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Iterable, Optional, Set, TypedDict
+from typing import Any, Optional, Set, TypedDict
 
 import sentry_sdk
 from django.core.cache import cache
@@ -242,12 +242,12 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         return (args, kwargs)
 
 
-class FilterParams(TypedDict):
-    start: datetime
-    end: datetime
-    project_id: Iterable[int]
+class FilterParams(TypedDict, total=False):
+    start: datetime | None
+    end: datetime | None
+    project_id: list[int]
     project_objects: list[Project]
-    organization_id: str
+    organization_id: int
     environment: list[str] | None
     environment_objects: list[Environment] | None
 
