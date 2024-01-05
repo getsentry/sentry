@@ -817,7 +817,7 @@ const SuperuserBadge = styled(Badge)`
   top: -5px;
   right: 5px;
 
-  /* Hiding on smaller screens because it looks misplaced*/
+  /* Hiding on smaller screens because it looks misplaced */
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
