@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from logging import Logger, getLogger
 from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, Optional, TypedDict
 
 from sentry import search
@@ -18,6 +19,9 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+
+
+default_logger = getLogger("sentry.releases.servicer")
 
 
 class SerializedThreshold(TypedDict):
@@ -49,12 +53,16 @@ class FlattenedThresholds:
 
 
 class ReleaseThresholdServicer:
-    def __init__(self, repository: Optional[ReleaseThresholdsRepository] = None) -> None:
+    def __init__(
+        self,
+        repository: Optional[ReleaseThresholdsRepository] = None,
+        logger: Logger = default_logger,
+    ) -> None:
         self.repository = repository if repository else ReleaseThresholdsRepository()
+        self.logger = logger
 
-    @classmethod
     def _get_new_issue_count_is_healthy(
-        cls,
+        self,
         project: Project,
         release: Release,
         release_threshold: ReleaseThreshold,
@@ -77,7 +85,21 @@ class ReleaseThresholdServicer:
         if release_threshold.environment:
             query_kwargs["environments"] = [release_threshold.environment]
 
-        result = search.query(**query_kwargs)
+        try:
+            result = search.query(**query_kwargs)
+        except Exception as e:
+            self.logger.error(
+                "There was an error trying to grab new issue count",
+                exc_info=e,
+                extra={
+                    "project": project.id,
+                    "release": release.id,
+                    "release_threshold": release_threshold.id,
+                    "query_kwargs": query_kwargs,
+                },
+            )
+            return False
+
         new_issues = result.hits
 
         baseline_value = release_threshold.value
