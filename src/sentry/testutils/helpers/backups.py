@@ -76,6 +76,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -361,14 +362,28 @@ class BackupTestCase(TransactionTestCase):
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_organization(
-        self, slug: str, owner: User, invitee: User, other: list[User] | None = None
+        self,
+        slug: str,
+        owner: User,
+        member: User,
+        other_members: list[User] | None = None,
+        invites: dict[User, str] | None = None,
     ) -> Organization:
         org = self.create_organization(name=slug, owner=owner)
         owner_id: BoundedBigAutoField = owner.id
-        invited = self.create_member(organization=org, user=invitee, role="member")
-        if other:
-            for o in other:
-                self.create_member(organization=org, user=o, role="member")
+        invited = self.create_member(organization=org, user=member, role="member")
+        if other_members:
+            for user in other_members:
+                self.create_member(organization=org, user=user, role="member")
+        if invites:
+            for inviter, email in invites.items():
+                OrganizationMember.objects.create(
+                    organization_id=org.id,
+                    role="member",
+                    email=email,
+                    inviter_id=inviter.id,
+                    invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                )
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -626,8 +641,8 @@ class BackupTestCase(TransactionTestCase):
         owner = self.create_exhaustive_user(
             "owner", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
         )
-        invitee = self.create_exhaustive_user("invitee")
-        org = self.create_exhaustive_organization("test-org", owner, invitee)
+        member = self.create_exhaustive_user("member")
+        org = self.create_exhaustive_organization("test-org", owner, member)
         self.create_exhaustive_sentry_app("test app", owner, org)
         self.create_exhaustive_global_configs(owner)
 

@@ -2271,6 +2271,73 @@ class CustomImportBehaviorTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, json.load(tmp_file))
 
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
+    def test_organization_member_inviter_id(self, expected_models: list[Type[Model]]):
+        admin = self.create_exhaustive_user("admin", email="admin@test.com", is_superuser=True)
+        owner = self.create_exhaustive_user("owner", email="owner@test.com")
+        member = self.create_exhaustive_user("member", email="member@test.com")
+        org = self.create_exhaustive_organization(
+            slug="test-org",
+            owner=owner,
+            member=member,
+            invites={
+                admin: "invited-by-admin@test.com",
+                owner: "invited-by-owner@test.com",
+            },
+        )
+
+        # Give each member an inviter that is not in the organization itself (the "admin"), meaning
+        # they will not be imported if we only filter down to `test-org`. The desired outcome is
+        # that the inviter is nulled out.
+        for org_member in OrganizationMember.objects.filter(organization=org):
+            if not org_member.inviter_id:
+                org_member.inviter_id = admin.id
+                org_member.save()
+        assert (
+            OrganizationMember.objects.filter(organization=org.id, inviter_id__isnull=False).count()
+            == 4
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    org_filter={"test-org"},
+                    printer=NOOP_PRINTER,
+                )
+
+            # `owner` and `member` should both have had their `inviter_id` scrubbed.
+            org_id = Organization.objects.get(slug="test-org").id
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                user_email="owner@test.com",
+                email__isnull=True,
+                inviter_id__isnull=True,
+            ).exists()
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                user_email="member@test.com",
+                email__isnull=True,
+                inviter_id__isnull=True,
+            ).exists()
+
+            # The invitee invited by the not-imported `admin` should lose their `inviter_id`, but
+            # the one invited by `owner` should keep it.
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                email="invited-by-admin@test.com",
+                inviter_id__isnull=True,
+            ).exists()
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                email="invited-by-owner@test.com",
+                inviter_id__isnull=False,
+            ).exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
 
 @pytest.mark.skipif(reason="not legacy")
 class TestLegacyTestSuite:
