@@ -364,7 +364,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["totals"] == {field_2: 6.0, field_1: 1.0}
 
     def test_query_with_multiple_aggregations_and_single_group_by(self) -> None:
-        # Query with two aggregations.
         field_1 = f"min({TransactionMRI.DURATION.value})"
         field_2 = f"max({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -410,7 +409,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ]
 
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by(self) -> None:
-        # Query with two aggregations.
         field_1 = f"min({TransactionMRI.DURATION.value})"
         field_2 = f"max({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -459,7 +457,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
         self,
     ) -> None:
-        # Query with two aggregations.
         field_1 = f"min({TransactionMRI.DURATION.value})"
         field_2 = f"max({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -496,6 +493,28 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             (field_2, 6.0),
             (field_1, 3.0),
         ]
+
+    def test_query_with_invalid_order_by(
+        self,
+    ) -> None:
+        field_1 = f"min({TransactionMRI.DURATION.value})"
+        field_2 = f"max({TransactionMRI.DURATION.value})"
+        field_3 = f"avg({TransactionMRI.DURATION.value})"
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_query(
+                fields=[field_1, field_2],
+                query=None,
+                group_bys=["platform"],
+                order_by=f"{field_3}",
+                limit=2,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
 
     def test_query_with_invalid_filters(self) -> None:
         # Query with one aggregation, one group by and two filters.
