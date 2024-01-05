@@ -180,10 +180,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     textValue?: string;
   }>(jsFrameworkSelectOptions[0]);
 
-  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
-
   const defaultTab =
-    currentProject && currentProject.platform && backend.includes(currentProject.platform)
+    currentProject.platform && backend.includes(currentProject.platform)
       ? 'jsLoader'
       : 'npm';
 
@@ -192,8 +190,15 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     defaultTab
   );
 
+  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
+
+  const showJsFrameworkInstructions =
+    newOnboarding &&
+    currentProject.platform &&
+    replayBackendPlatforms.includes(currentProject.platform) &&
+    setupMode() === 'npm';
+
   const npmOnlyFramework =
-    currentProject &&
     currentProject.platform &&
     replayFrontendPlatforms
       .filter(p => p !== 'javascript')
@@ -220,13 +225,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const docKeys = useMemo(() => {
     return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
   }, [currentPlatform, newOnboarding]);
-
-  const showJsFrameworkInstructions =
-    newOnboarding &&
-    currentProject &&
-    currentProject.platform &&
-    replayBackendPlatforms.includes(currentProject.platform) &&
-    setupMode() === 'npm';
 
   // Old onboarding docs
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({

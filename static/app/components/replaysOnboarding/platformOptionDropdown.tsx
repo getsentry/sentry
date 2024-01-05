@@ -16,7 +16,7 @@ export type OptionControlProps = {
    */
   value: string;
   /**
-   * Click handler.
+   * Click handler
    */
   onChange?: (selectedOption: SelectOption<string>) => void;
 };
@@ -53,7 +53,7 @@ export function PlatformOptionDropdown({platformOptions}: PlatformOptionsControl
 
   return (
     <OptionControl
-      key="siblingOption"
+      key="platformOption"
       option={platforms}
       value={urlOptionValues.siblingOption ?? platforms.items[0]?.label}
       onChange={v => handleChange('siblingOption', v.value)}
