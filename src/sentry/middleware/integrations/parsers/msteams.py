@@ -9,6 +9,7 @@ from django.http.response import HttpResponseBase
 from sentry.integrations.msteams.webhook import MsTeamsWebhookEndpoint, MsTeamsWebhookMixin
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -49,7 +50,12 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         if not self.can_infer_integration(data=self.request_data):
             return self.get_response_from_control_silo()
 
-        regions = self.get_regions_from_organizations()
+        regions = []
+        try:
+            regions = self.get_regions_from_organizations()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            pass
+
         if len(regions) == 0:
             with sentry_sdk.push_scope() as scope:
                 scope.set_extra("view_class", self.view_class)
