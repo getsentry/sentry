@@ -110,6 +110,14 @@ class ExecutableQuery:
         self,
         groups_collection: Optional[GroupsCollection],
     ) -> "ExecutableQuery":
+        """
+        Adds a series of filters to the query which will make sure that the results returned only belong to the supplied
+        groups.
+
+        The need for this filter arises because when executing multiple queries, we want to have the same groups
+        returned, in order to make results consistent. Note that in case queries have different groups, some results
+        might be missing, since the reference query dictates which values are returned during the alignment process.
+        """
         if not groups_collection:
             return self
 
