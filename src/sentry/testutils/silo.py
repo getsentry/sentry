@@ -47,47 +47,49 @@ TestMethod = Callable[..., None]
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
+class ThreadLocalSiloModeState(threading.local):
+    mode: SiloMode | None = None
+    region: Region | None = None
+
+
+_thread_local_silo_mode_state = ThreadLocalSiloModeState()
+
+
 def monkey_patch_single_process_silo_mode_state():
-    class LocalSiloModeState(threading.local):
-        mode: SiloMode | None = None
-        region: Region | None = None
-
-    state = LocalSiloModeState()
-
     @contextlib.contextmanager
     def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
-        assert state.mode is None, (
+        assert _thread_local_silo_mode_state.mode is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
         )
 
-        old_mode = state.mode
-        old_region = state.region
-        state.mode = mode
-        state.region = region
+        old_mode = _thread_local_silo_mode_state.mode
+        old_region = _thread_local_silo_mode_state.region
+        _thread_local_silo_mode_state.mode = mode
+        _thread_local_silo_mode_state.region = region
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.region = old_region
+            _thread_local_silo_mode_state.mode = old_mode
+            _thread_local_silo_mode_state.region = old_region
 
     @contextlib.contextmanager
     def exit() -> Generator[None, None, None]:
-        old_mode = state.mode
-        old_region = state.region
-        state.mode = None
-        state.region = None
+        old_mode = _thread_local_silo_mode_state.mode
+        old_region = _thread_local_silo_mode_state.region
+        _thread_local_silo_mode_state.mode = None
+        _thread_local_silo_mode_state.region = None
         try:
             yield
         finally:
-            state.mode = old_mode
-            state.region = old_region
+            _thread_local_silo_mode_state.mode = old_mode
+            _thread_local_silo_mode_state.region = old_region
 
     def get_mode() -> SiloMode | None:
-        return state.mode
+        return _thread_local_silo_mode_state.mode
 
     def get_region() -> Region | None:
-        return state.region
+        return _thread_local_silo_mode_state.region
 
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
