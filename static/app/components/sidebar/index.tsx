@@ -5,13 +5,12 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge';
+import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {isDone} from 'sentry/components/sidebar/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconDashboard,
@@ -32,7 +31,6 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -111,41 +109,6 @@ function useOpenOnboardingSidebar(organization?: Organization) {
       activatePanel(SidebarPanelKey.ONBOARDING_WIZARD);
     }
   }, [openOnboardingSidebar]);
-}
-
-function SuperuserWarning(props: {organization?: Organization}) {
-  if (props.organization?.slug === 'demo') {
-    return null;
-  }
-
-  AlertStore.addAlert({
-    id: 'superuser-warning',
-    message: t(
-      'You are in superuser mode. Accessing customer data without the express permission of the customer will result in penalties up to and including termination.'
-    ),
-    type: 'error',
-    opaque: true,
-    neverExpire: true,
-    noDuplicates: true,
-  });
-
-  return (
-    <SuperuserBadge type="warning">
-      <Tooltip
-        title={
-          <Fragment>
-            <strong>You are in superuser mode</strong>
-            <br />
-            <br />
-            Accessing customer data without the express permission of the customer will
-            result in penalties up to and including termination!
-          </Fragment>
-        }
-      >
-        Superuser
-      </Tooltip>
-    </SuperuserBadge>
-  );
 }
 
 function Sidebar({organization}: Props) {
@@ -554,7 +517,7 @@ function Sidebar({organization}: Props) {
             config={config}
           />
 
-          {hasSuperuserSession && <SuperuserWarning organization={organization} />}
+          {hasSuperuserSession && <Hook name="component:superuser-warning" />}
         </DropdownSidebarSection>
 
         <PrimaryItems>
@@ -810,17 +773,6 @@ const DropdownSidebarSection = styled(SidebarSection)<{
         background: ${p.theme.superuserSidebar};
       }
     `}
-`;
-
-const SuperuserBadge = styled(Badge)`
-  position: absolute;
-  top: -5px;
-  right: 5px;
-
-  /* Hiding on smaller screens because it looks misplaced */
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
 `;
 
 const SidebarCollapseItem = styled(SidebarItem)`
