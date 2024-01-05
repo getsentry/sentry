@@ -138,3 +138,11 @@ function isAnrEvent(event: Event) {
     mechanismTag === 'mx_hang_diagnostic';
   return isANR;
 }
+
+export function hasFileExtension(filepath: string) {
+  // Regular expression to match a file extension
+  const fileExtensionPattern = /\.[0-9a-z]+$/i;
+
+  // Check if the filepath matches the pattern
+  return fileExtensionPattern.test(filepath);
+}
