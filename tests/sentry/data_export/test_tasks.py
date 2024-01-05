@@ -618,17 +618,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project()
-        data = load_data("transaction")
-        for i in range(50):
-            event = data.copy()
-            event.update(
-                {
-                    "transaction": f"/event/{i:03d}/",
-                    "timestamp": iso_format(before_now(minutes=1, seconds=i)),
-                    "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
-                }
-            )
-            self.store_event(event, project_id=self.project.id)
+        self.data = load_data("transaction")
 
     @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 200)
     @patch("sentry.data_export.models.ExportedData.email_success")
@@ -640,11 +630,52 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         it stops the current batch and starts another. This runs for 2 batches and
         during the 3rd batch, it will finish exporting all 50 rows.
         """
+        for i in range(50):
+            event = self.data.copy()
+            event.update(
+                {
+                    "transaction": f"/event/{i:03d}/",
+                    "timestamp": iso_format(before_now(minutes=1, seconds=i)),
+                    "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
+                }
+            )
+            self.store_event(event, project_id=self.project.id)
         de = ExportedData.objects.create(
             user_id=self.user.id,
             organization=self.org,
             query_type=ExportQueryType.DISCOVER,
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=3)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file_id is not None
+        assert isinstance(de._get_file(), File)
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_character_escape(self, emailer):
+        strings = [
+            "SyntaxError: Unexpected token '\u0003', \"\u0003WM�\u0000\u0000\u0000\u0000��\"... is not valid JSON"
+        ]
+        for string in strings:
+            event = self.data.copy()
+            event.update(
+                {
+                    "transaction": string,
+                    "timestamp": iso_format(before_now(minutes=1, seconds=0)),
+                    "start_timestamp": iso_format(before_now(minutes=1, seconds=1)),
+                }
+            )
+            self.store_event(event, project_id=self.project.id)
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={"project": [self.project.id], "field": ["transaction"], "query": ""},
         )
         with self.tasks():
             assemble_download(de.id, batch_size=3)
