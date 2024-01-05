@@ -9,6 +9,7 @@ from sentry.replays.usecases.ingest.dom_index import (
     _parse_classes,
     encode_as_uuid,
     get_user_actions,
+    log_canvas_size,
     parse_replay_actions,
 )
 from sentry.utils import json
@@ -632,3 +633,44 @@ def test_parse_classes():
     assert _parse_classes("  a b ") == ["a", "b"]
     assert _parse_classes("a  ") == ["a"]
     assert _parse_classes("  a") == ["a"]
+
+
+def test_log_canvas_size():
+    event = {
+        "type": 3,
+        "data": {
+            "source": 9,
+            "id": 2440,
+            "type": 0,
+            "commands": [
+                {"property": "clearRect", "args": [0, 0, 1342, 60]},
+                {
+                    "property": "drawImage",
+                    "args": [
+                        {
+                            "rr_type": "ImageBitmap",
+                            "args": [
+                                {
+                                    "rr_type": "Blob",
+                                    "data": [{"rr_type": "ArrayBuffer", "base64": "..."}],
+                                    "type": "image/png",
+                                }
+                            ],
+                        },
+                        0,
+                        0,
+                    ],
+                },
+            ],
+        },
+        "timestamp": 1704225903264,
+    }
+
+    # Valid event.
+    log_canvas_size(1, 1, "a", [event])
+
+    # Invalid event.
+    log_canvas_size(1, 1, "a", [{}])
+
+    # No events.
+    log_canvas_size(1, 1, "a", [])
