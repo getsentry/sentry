@@ -40,17 +40,18 @@ export function PlatformSelector() {
       >
         <SegmentedControl.Item
           key="Android"
+          aria-label={t('Android')}
           icon={
             <PlatformIcon
               format="lg"
               size={28}
               platform="android"
-              aria-label={t('Android')}
             />
           }
         />
         <SegmentedControl.Item
           key="iOS"
+          aria-label={t('iOS')}
           icon={
             <PlatformIcon format="lg" size={28} platform="apple" aria-label={t('iOS')} />
           }

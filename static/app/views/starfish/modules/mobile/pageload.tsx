@@ -32,7 +32,6 @@ export default function PageloadModule() {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
 
-
   const project = useMemo(() => {
     if (selection.projects.length !== 1) {
       return null;
