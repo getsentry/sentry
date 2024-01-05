@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {
@@ -285,6 +286,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
         link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
       }),
       configurations: getSetupConfiguration(params),
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],
