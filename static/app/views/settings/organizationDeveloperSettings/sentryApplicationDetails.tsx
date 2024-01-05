@@ -435,6 +435,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                     appPublished={app ? app.status === 'published' : false}
                     scopes={scopes}
                     events={events}
+                    newApp={!app}
                   />
                 </Fragment>
               );

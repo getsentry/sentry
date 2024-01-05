@@ -20,6 +20,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   events: WebhookEvent[];
+  newApp: boolean;
   scopes: Scope[];
 };
 
@@ -87,7 +88,7 @@ export default class PermissionsObserver extends Component<Props, State> {
   renderCallout() {
     const {elevating} = this.state;
 
-    if (elevating === true) {
+    if (!this.props.newApp && elevating === true) {
       return (
         <Alert type="warning" showIcon>
           {t(
