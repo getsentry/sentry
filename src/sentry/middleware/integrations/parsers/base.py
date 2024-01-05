@@ -218,3 +218,6 @@ class BaseRequestParser(abc.ABC):
             organizations = self.get_organizations_from_integration()
 
         return [get_region_for_organization(organization.slug) for organization in organizations]
+
+    def get_default_missing_integration_response(self) -> HttpResponse:
+        return HttpResponse(status=400)

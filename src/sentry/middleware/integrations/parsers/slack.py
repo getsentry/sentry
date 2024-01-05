@@ -24,6 +24,7 @@ from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
@@ -126,10 +127,13 @@ class SlackRequestParser(BaseRequestParser):
         if data and is_event_challenge(data):
             return self.get_response_from_control_silo()
 
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+        try:
+            regions = self.get_regions_from_organizations()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            logger.info(
+                "%s.no_integrations_found", self.provider, extra={"path": self.request.path}
+            )
+            return self.get_default_missing_integration_response()
 
         if self.view_class == SlackActionEndpoint:
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)

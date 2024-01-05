@@ -56,8 +56,9 @@ class VstsRequestParserTest(TestCase):
         ) as get_response_from_control_silo, mock.patch.object(
             parser, "get_regions_from_organizations", return_value=[]
         ):
-            parser.get_response()
-            assert get_response_from_control_silo.called
+            response = parser.get_response()
+            assert not get_response_from_control_silo.called
+            assert response.status_code == 202
 
         # Regions found
         with mock.patch.object(
@@ -78,7 +79,7 @@ class VstsRequestParserTest(TestCase):
                 reverse("vsts-extension-configuration"), data={"targetId": "1", "targetName": "foo"}
             )
             parser.get_response()
-            assert get_response_from_control_silo.called
+            assert not get_response_from_control_silo.called
             assert not get_response_from_outbox_creation.called
 
             parser.request = self.factory.get(
@@ -88,7 +89,7 @@ class VstsRequestParserTest(TestCase):
                 ),
             )
             parser.get_response()
-            assert get_response_from_control_silo.called
+            assert not get_response_from_control_silo.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
