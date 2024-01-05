@@ -133,7 +133,7 @@ class RuleActionSerializer(serializers.Serializer):
 
 
 class RuleSerializer(RuleSetSerializer):
-    name = serializers.CharField(max_length=64)
+    name = serializers.CharField(max_length=256)
     environment = serializers.CharField(max_length=64, required=False, allow_null=True)
     actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
     owner = ActorField(required=False, allow_null=True)
