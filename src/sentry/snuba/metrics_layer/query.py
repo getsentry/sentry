@@ -211,12 +211,12 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         mappings.update(indexer_mappings)
         request.query = metrics_query.set_indexer_mappings(mappings)
         request.tenant_ids["use_case_id"] = metrics_query.scope.use_case_id
-    except Exception as e:
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "resolve_error"},
         )
-        raise e
+        raise
 
     try:
         snuba_result = bulk_snuba_queries(
@@ -225,12 +225,12 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
             use_cache=True,
             use_mql=True,
         )[0]
-    except Exception as e:
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "query_error"},
         )
-        raise e
+        raise
 
     snuba_result = convert_snuba_result(
         snuba_result,
@@ -560,21 +560,21 @@ def snql_query(request: Request, start: datetime, end: datetime) -> Mapping[str,
         else:
             request.dataset = Dataset.PerformanceMetrics.value
 
-    except Exception as e:
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "resolve_error"},
         )
-        raise e
+        raise
 
     try:
         snuba_results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
-    except Exception as e:
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "query_error"},
         )
-        raise e
+        raise
 
     snuba_results = convert_snuba_result(
         snuba_results,

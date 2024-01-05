@@ -1,8 +1,8 @@
-import type {AvailableNotificationAction as AvailableNotificationActionType} from 'sentry/types';
+import type {AvailableNotificationAction} from 'sentry/types';
 
 export function AvailableNotificationActionsFixture(
-  params: AvailableNotificationActionType[] = []
-): {actions: AvailableNotificationActionType[]} {
+  params: AvailableNotificationAction[] = []
+): {actions: AvailableNotificationAction[]} {
   return {
     actions: [
       {
@@ -155,6 +155,3 @@ export function AvailableNotificationActionsFixture(
     ],
   };
 }
-
-// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
-export {AvailableNotificationActionsFixture as AvailableNotificationActions};

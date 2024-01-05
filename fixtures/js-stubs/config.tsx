@@ -1,8 +1,8 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import {Config as ConfigType} from 'sentry/types';
+import type {Config} from 'sentry/types';
 
-export function ConfigFixture(params: Partial<ConfigType> = {}): ConfigType {
+export function ConfigFixture(params: Partial<Config> = {}): Config {
   return {
     theme: 'light',
     user: UserFixture(),
@@ -68,6 +68,3 @@ export function ConfigFixture(params: Partial<ConfigType> = {}): ConfigType {
     ...params,
   };
 }
-
-// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
-export {ConfigFixture as Config};

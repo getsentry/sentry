@@ -2,14 +2,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   EventOrGroupType,
-  type Group as GroupType,
+  type Group,
   GroupStatus,
   GroupUnresolved,
   IssueCategory,
   IssueType,
 } from 'sentry/types';
 
-export function GroupFixture(params: Partial<GroupType> = {}): GroupType {
+export function GroupFixture(params: Partial<Group> = {}): Group {
   const unresolvedGroup: GroupUnresolved = {
     activity: [],
     annotations: [],
@@ -62,8 +62,5 @@ export function GroupFixture(params: Partial<GroupType> = {}): GroupType {
     userReportCount: 0,
   };
 
-  return {...unresolvedGroup, ...params} as GroupType;
+  return {...unresolvedGroup, ...params} as Group;
 }
-
-// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
-export {GroupFixture as Group};

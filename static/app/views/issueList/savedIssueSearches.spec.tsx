@@ -62,7 +62,7 @@ describe('SavedIssueSearches', function () {
   beforeEach(() => {
     localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   it('displays saved searches with correct text and in correct sections', async function () {

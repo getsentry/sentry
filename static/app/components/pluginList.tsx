@@ -58,12 +58,11 @@ function PluginList({
     <div>
       {pluginList
         .filter(p => p.enabled)
-        .map(data => (
+        .map(plugin => (
           <PluginConfig
-            data={data}
-            organization={organization}
+            plugin={plugin}
             project={project}
-            key={data.id}
+            key={plugin.id}
             onDisablePlugin={handleDisablePlugin}
           />
         ))}

@@ -1,6 +1,6 @@
-import {type Event, EventOrGroupType, EventsStats as TEventsStats} from 'sentry/types';
+import {type Event, EventOrGroupType, EventsStats} from 'sentry/types';
 
-export function EventsStatsFixture(params = {}): TEventsStats {
+export function EventsStatsFixture(params = {}): EventsStats {
   return {
     data: [
       [new Date().getTime(), [{count: 321}, {count: 79}]],

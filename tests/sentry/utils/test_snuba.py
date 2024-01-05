@@ -13,6 +13,7 @@ from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.utils.snuba import (
+    ROUND_UP,
     RetrySkipTimeout,
     SnubaQueryParams,
     UnqualifiedQueryError,
@@ -303,6 +304,36 @@ class PrepareQueryParamsTest(TestCase):
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
         self.now = django_timezone.now().replace(microsecond=0)
+
+    def test_quantizes_with_duration(self):
+        key_hash = 0
+        time = datetime(2023, 12, 27, 4, 4, 24)
+
+        assert quantize_time(time, key_hash, 60) == datetime(2023, 12, 27, 4, 4, 0)
+        assert quantize_time(time, key_hash, 120) == datetime(2023, 12, 27, 4, 4, 0)
+        assert quantize_time(time, key_hash, 900) == datetime(2023, 12, 27, 4, 0, 0)
+
+    def test_quantizes_with_key_hash(self):
+        key_hash = 12
+        time = datetime(2023, 12, 27, 4, 4, 24)
+
+        assert quantize_time(time, key_hash, 60) == datetime(2023, 12, 27, 4, 4, 12)
+        assert quantize_time(time, key_hash, 900) == datetime(2023, 12, 27, 4, 0, 12)
+
+    def test_quantizes_if_already_quantized(self):
+        key_hash = 1
+        duration = 10
+        time = datetime(2023, 12, 27, 21, 22, 41)
+
+        assert quantize_time(time, key_hash, duration) == datetime(2023, 12, 27, 21, 22, 31)
+
+    def test_quantizes_with_rounding_up(self):
+        assert quantize_time(datetime(2023, 12, 27, 4, 4, 0), 0, 60, ROUND_UP) == datetime(
+            2023, 12, 27, 4, 4, 0
+        )
+        assert quantize_time(datetime(2023, 12, 27, 4, 4, 24), 0, 60, ROUND_UP) == datetime(
+            2023, 12, 27, 4, 5, 0
+        )
 
     def test_cache_suffix_time(self):
         starting_key = quantize_time(self.now, 0)
