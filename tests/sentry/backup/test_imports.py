@@ -54,6 +54,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
@@ -1620,6 +1621,36 @@ class CollisionTests(ImportTestCase):
 
                 with open(tmp_path, "rb") as tmp_file:
                     verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(COLLISION_TESTED, SavedSearch)
+    def test_colliding_saved_search(self, expected_models: list[Type[Model]]):
+        self.create_organization("some-org", owner=self.user)
+        SavedSearch.objects.create(
+            name="Global Search",
+            query="saved query",
+            is_global=True,
+            visibility=Visibility.ORGANIZATION,
+        )
+        assert SavedSearch.objects.count() == 1
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            assert SavedSearch.objects.count() == 0
+
+            # Allow `is_global` searches for `ImportScope.Global` imports.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SavedSearch.objects.count() == 1
+
+            # Disallow `is_global` searches for `ImportScope.Organization` imports.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SavedSearch.objects.count() == 1
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
     @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
     def test_colliding_configs_overwrite_configs_enabled_in_config_scope(
