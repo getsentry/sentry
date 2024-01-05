@@ -14,7 +14,7 @@ export enum PackageManager {
   MAVEN = 'maven',
 }
 
-type PlaformOptionKey = 'packageManager';
+type PlatformOptionKey = 'packageManager';
 
 interface StepsParams {
   dsn: string;
@@ -25,7 +25,7 @@ interface StepsParams {
 }
 
 // Configuration Start
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   packageManager: {
     label: t('Package Manager'),
     items: [
