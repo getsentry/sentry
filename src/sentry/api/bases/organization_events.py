@@ -30,7 +30,7 @@ from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.utils import DATASET_OPTIONS, get_dataset
+from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -269,7 +269,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
                 }
                 if dataset is not None:
-                    meta["dataset"] = snuba.DATASET_LABELS.get(dataset, "unknown")
+                    meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
             else:
                 meta = fields_meta
 
