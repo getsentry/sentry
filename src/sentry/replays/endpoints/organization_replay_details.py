@@ -59,6 +59,12 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         try:
+            assert filter_params["start"]
+            assert filter_params["end"]
+        except Exception:
+            return Response(status=404)
+
+        try:
             replay_id = str(uuid.UUID(replay_id))
         except ValueError:
             return Response(status=404)
