@@ -528,7 +528,6 @@ def convert_snuba_result(
                         string_to_use_case_id(use_case_id_str), org_id, int(data_point[key])
                     )
                     if reverse_resolve:
-
                         data_point[key] = reverse_resolve
     return snuba_result
 
@@ -664,7 +663,7 @@ def _resolve_formula_metrics(
 
 def _resolve_metrics_query(
     metrics_query: MetricsQuery, dataset: str
-) -> tuple[MetricsQuery, Mapping[str, str | int]]:
+) -> tuple[MetricsQuery, Mapping[str, str | int], ReverseMappings]:
     """
     Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
     that shows all the strings that were resolved and what they were resolved too.
@@ -752,6 +751,7 @@ def _resolve_groupby(
                 new_groupby.append(
                     AliasedExpression(exp=replace(col, name=f"tags[{resolved}]"), alias=col.name)
                 )
+                reverse_mappings.tag_keys.add(col.name)
             else:
                 new_groupby.append(
                     AliasedExpression(
@@ -759,7 +759,6 @@ def _resolve_groupby(
                     )
                 )
             mappings[col.name] = resolved
-            reverse_mappings.tag_keys.add(col.name)
         else:
             new_groupby.append(col)
 
