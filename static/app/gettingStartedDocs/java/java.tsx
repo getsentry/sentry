@@ -16,7 +16,7 @@ export enum PackageManager {
   SBT = 'sbt',
 }
 
-type PlaformOptionKey = 'packageManager';
+type PlatformOptionKey = 'packageManager';
 
 interface StepsParams {
   dsn: string;
@@ -34,7 +34,7 @@ const packageManagerName: Record<PackageManager, string> = {
   [PackageManager.SBT]: 'SBT',
 };
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   packageManager: {
     label: t('Package Manager'),
     items: [

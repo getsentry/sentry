@@ -22,9 +22,9 @@ export enum SiblingOption {
   VUE2 = 'vue2',
 }
 
-type PlaformOptionKey = 'siblingOption';
+type PlatformOptionKey = 'siblingOption';
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Sibling Package'),
     items: [
@@ -33,7 +33,7 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
         value: SiblingOption.ANGULARV12,
       },
       {
-        label: t('Angular 10 and 11'),
+        label: t('Angular 10 & 11'),
         value: SiblingOption.ANGULARV10,
       },
       {

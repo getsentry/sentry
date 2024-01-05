@@ -20,9 +20,9 @@ export enum VueVersion {
   VUE2 = 'vue2',
 }
 
-type PlaformOptionKey = 'siblingOption';
+type PlatformOptionKey = 'siblingOption';
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Vue Version'),
     items: [
