@@ -25,6 +25,7 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
         not monitor_env.monitor.is_muted
         and not monitor_env.is_muted
         and monitor_env.status != MonitorStatus.OK
+        and checkin.status == CheckInStatus.OK
     ):
         params["status"] = MonitorStatus.OK
         recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 1)
