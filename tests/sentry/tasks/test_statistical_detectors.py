@@ -280,7 +280,7 @@ def test_detect_transaction_trends(
     timestamp,
     project,
 ):
-    n = 20
+    n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     query_transactions.side_effect = [
@@ -323,7 +323,7 @@ def test_detect_transaction_trends_auto_resolution(
     timestamp,
     project,
 ):
-    n = 75
+    n = 150
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     raw_snql_query.side_effect = [
@@ -333,7 +333,7 @@ def test_detect_transaction_trends_auto_resolution(
                     "project_id": project.id,
                     "transaction_name": "/123",
                     "count": 100,
-                    "p95": 100 if i < 10 else 300 if i < 20 else 100,
+                    "p95": 100 if i < 25 or i >= 50 else 300,
                 },
             ],
         }
@@ -349,7 +349,7 @@ def test_detect_transaction_trends_auto_resolution(
     }
 
     with override_options(options), Feature(features):
-        for ts in timestamps[:20]:
+        for ts in timestamps[:50]:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
     assert detect_transaction_change_points.apply_async.called
@@ -365,7 +365,7 @@ def test_detect_transaction_trends_auto_resolution(
             baseline=100,
             regressed=300,
         )
-        for ts in timestamps[20:]:
+        for ts in timestamps[50:]:
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
     status_change = StatusChangeMessage(
@@ -395,7 +395,7 @@ def test_detect_transaction_trends_ratelimit(
     organization,
     project,
 ):
-    n = 20
+    n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     query_transactions.side_effect = [
@@ -442,6 +442,7 @@ def test_detect_transaction_trends_ratelimit(
             detect_transaction_trends([project.organization.id], [project.id], ts)
 
     if expected_calls > 0:
+        assert detect_transaction_change_points.apply_async.call_count == 1
         detect_transaction_change_points.apply_async.assert_has_calls(
             [
                 mock.call(
@@ -449,13 +450,12 @@ def test_detect_transaction_trends_ratelimit(
                         [(project.id, "/1"), (project.id, "/2"), (project.id, "/3")][
                             -expected_calls:
                         ],
-                        timestamp + timedelta(hours=5),
+                        mock.ANY,
                     ],
                     countdown=12 * 60 * 60,
                 ),
             ],
         )
-        assert detect_transaction_change_points.apply_async.call_count == 1
     else:
         assert detect_transaction_change_points.apply_async.call_count == 0
 
@@ -620,7 +620,7 @@ def test_detect_function_trends(
     timestamp,
     project,
 ):
-    n = 20
+    n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     query_functions.side_effect = [
@@ -662,7 +662,7 @@ def test_detect_function_trends_auto_resolution(
     timestamp,
     project,
 ):
-    n = 750
+    n = 150
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     functions_query.side_effect = [
@@ -672,7 +672,7 @@ def test_detect_function_trends_auto_resolution(
                     "project.id": project.id,
                     "fingerprint": 123,
                     "count()": 100,
-                    "p95()": 100 if i < 10 else 300 if i < 20 else 100,
+                    "p95()": 100 if i < 25 or i >= 50 else 300,
                     "timestamp": ts.isoformat(),
                 },
             ],
@@ -689,7 +689,7 @@ def test_detect_function_trends_auto_resolution(
     }
 
     with override_options(options), Feature(features):
-        for ts in timestamps[:20]:
+        for ts in timestamps[:50]:
             detect_function_trends([project.id], ts)
 
     assert detect_function_change_points.apply_async.called
@@ -705,7 +705,7 @@ def test_detect_function_trends_auto_resolution(
             baseline=100,
             regressed=300,
         )
-        for ts in timestamps[20:]:
+        for ts in timestamps[50:]:
             detect_function_trends([project.id], ts)
 
     assert produce_occurrence_to_kafka.called
@@ -726,7 +726,7 @@ def test_detect_function_trends_ratelimit(
     timestamp,
     project,
 ):
-    n = 20
+    n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
     query_functions.side_effect = [
@@ -773,18 +773,18 @@ def test_detect_function_trends_ratelimit(
             detect_function_trends([project.id], ts)
 
     if expected_calls > 0:
+        assert detect_function_change_points.apply_async.call_count == 1
         detect_function_change_points.apply_async.assert_has_calls(
             [
                 mock.call(
                     args=[
                         [(project.id, 1), (project.id, 2), (project.id, 3)][-expected_calls:],
-                        timestamp + timedelta(hours=5),
+                        mock.ANY,
                     ],
                     countdown=12 * 60 * 60,
                 ),
             ],
         )
-        assert detect_function_change_points.apply_async.call_count == 1
     else:
         assert detect_function_change_points.apply_async.call_count == 0
 

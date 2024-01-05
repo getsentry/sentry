@@ -170,7 +170,7 @@ class EndpointRegressionDetector(RegressionDetector):
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
             kind=cls.kind,
-            min_data_points=6,
+            min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
             threshold=0.2,
@@ -211,7 +211,7 @@ class FunctionRegressionDetector(RegressionDetector):
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
             kind=cls.kind,
-            min_data_points=6,
+            min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
             threshold=0.2,
