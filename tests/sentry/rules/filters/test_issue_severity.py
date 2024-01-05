@@ -20,11 +20,13 @@ class IssueSeverityFilterTest(RuleTestCase):
         mock_group.return_value = event.group
 
         data_cases = [
+            {"match": MatchType.GREATER, "value": 0.6},
             {"match": MatchType.GREATER_OR_EQUAL, "value": 0.5},
             {"match": MatchType.GREATER_OR_EQUAL, "value": 0.7},
             {"match": MatchType.LESS_OR_EQUAL, "value": 0.7},
             {"match": MatchType.LESS_OR_EQUAL, "value": 0.9},
             {"match": MatchType.LESS_OR_EQUAL, "value": "0.9"},
+            {"match": MatchType.LESS, "value": 0.9},
         ]
 
         for data_case in data_cases:
@@ -59,10 +61,14 @@ class IssueSeverityFilterTest(RuleTestCase):
         mock_group.return_value = event.group
 
         data_cases = [
+            {"match": MatchType.GREATER, "value": 0.8},
+            {"match": MatchType.GREATER, "value": 0.7},
             {"match": MatchType.GREATER_OR_EQUAL, "value": 0.9},
             {"match": MatchType.GREATER_OR_EQUAL, "value": "0.9"},
             {"match": MatchType.LESS_OR_EQUAL, "value": "0.5"},
             {"match": MatchType.LESS_OR_EQUAL, "value": 0.5},
+            {"match": MatchType.LESS, "value": 0.6},
+            {"match": MatchType.LESS, "value": 0.7},
             {"value": 0.5},
             {"match": MatchType.GREATER_OR_EQUAL},
             {},

@@ -16,7 +16,7 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
+from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -102,7 +102,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    replay_click_post_processor(message, headers, recording_segment, transaction)
+    recording_post_processor(message, headers, recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -188,7 +188,7 @@ def _report_size_metrics(
         )
 
 
-def replay_click_post_processor(
+def recording_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
@@ -219,6 +219,14 @@ def replay_click_post_processor(
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
             )
+
+        # Log canvas mutations to bigquery.
+        log_canvas_size(
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            parsed_segment_data,
+        )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
