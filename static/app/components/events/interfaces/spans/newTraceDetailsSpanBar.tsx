@@ -122,7 +122,7 @@ export class NewTraceDetailsSpanBar extends Component<
     this.updateHighlightedState();
     this.connectObservers();
 
-    // If spn is anchored scroll to span bar and open it's detail panel
+    // If span is anchored scroll to span bar and open it's detail panel
     if (this.isHighlighted && this.props.onRowClick) {
       this.props.onRowClick(this.getSpanDetailsProps());
 
@@ -193,18 +193,16 @@ export class NewTraceDetailsSpanBar extends Component<
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
-  hash_span_id: string | undefined = undefined;
-  hash_event_id: string | undefined = undefined;
+  hashSpanId: string | undefined = undefined;
   isHighlighted: boolean = false;
 
   updateHighlightedState = () => {
     const hashValues = parseTraceDetailsURLHash(this.props.location.hash);
-    this.hash_span_id = hashValues?.span_id;
-    this.hash_event_id = hashValues?.event_id;
+    this.hashSpanId = hashValues?.spanId;
     this.isHighlighted = !!(
       !isGapSpan(this.props.span) &&
-      this.hash_span_id &&
-      this.hash_span_id === this.props.span.span_id
+      this.hashSpanId &&
+      this.hashSpanId === this.props.span.span_id
     );
 
     // TODO Abdullah Khan: Converting the component to a functional component will help us get rid
@@ -568,7 +566,7 @@ export class NewTraceDetailsSpanBar extends Component<
         // by it's height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
         if (
-          this.hash_span_id &&
+          this.hashSpanId &&
           !this.props.didAnchoredSpanMount() &&
           !this.state.isIntersecting
         ) {

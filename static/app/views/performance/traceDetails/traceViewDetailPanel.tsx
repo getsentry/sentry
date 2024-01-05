@@ -213,8 +213,9 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     .sort();
 
   const renderMeasurements = () =>  {
-      if(!detail.event)
-        {return null;}
+      if(!detail.event){
+        return null;
+      }
 
       const {measurements} = detail.event;
 
@@ -222,7 +223,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
         .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
         .sort();
 
-      if (measurementKeys.length <= 0) {
+      if (!measurements || measurementKeys.length <= 0) {
         return null;
       }
 
@@ -233,7 +234,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
               key={measurement}
               title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
             >
-              {`${Number(measurements?.[measurement].value.toFixed(3)).toLocaleString()}ms`}
+              <PerformanceDuration milliseconds={Number(measurements[measurement].value.toFixed(3))} abbreviation />
             </Row>
           ))}
         </Fragment>

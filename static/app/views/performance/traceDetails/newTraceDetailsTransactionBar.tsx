@@ -116,11 +116,11 @@ function NewTraceDetailsTransactionBar(props: Props) {
   const hashValues = parseTraceDetailsURLHash(props.location.hash);
   const eventIDInQueryParam = !!(
     isTraceTransaction(props.transaction) &&
-    hashValues?.event_id &&
-    hashValues.event_id === props.transaction.event_id
+    hashValues?.eventId &&
+    hashValues.eventId === props.transaction.event_id
   );
-  const isHighlighted = !!(!hashValues?.span_id && eventIDInQueryParam);
-  const highlightEmbeddedSpan = !!(hashValues?.span_id && eventIDInQueryParam);
+  const isHighlighted = !!(!hashValues?.spanId && eventIDInQueryParam);
+  const highlightEmbeddedSpan = !!(hashValues?.spanId && eventIDInQueryParam);
   const [showEmbeddedChildren, setShowEmbeddedChildren] = useState(
     isHighlighted || highlightEmbeddedSpan
   );
@@ -174,7 +174,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
 
     if (
       'event_id' in transaction &&
-      hashValues?.event_id === transaction.event_id &&
+      hashValues?.eventId === transaction.event_id &&
       !isIntersecting &&
       !isBarScrolledTo
     ) {
@@ -186,8 +186,8 @@ function NewTraceDetailsTransactionBar(props: Props) {
     };
   }, [
     setIntersecting,
-    hashValues?.event_id,
-    hashValues?.span_id,
+    hashValues?.eventId,
+    hashValues?.spanId,
     props,
     scrollIntoView,
     isIntersecting,

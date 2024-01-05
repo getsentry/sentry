@@ -920,8 +920,8 @@ export function scrollToSpan(
 }
 
 type TraceDetailsHashIds = {
-  event_id: string | undefined;
-  span_id: string | undefined;
+  eventId: string | undefined;
+  spanId: string | undefined;
 };
 
 export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | null {
@@ -930,12 +930,12 @@ export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | nu
   }
 
   const values = hash.split('#').slice(1);
-  const event_id = values.find(value => value.includes('txn'))?.split('-')[1];
-  const span_id = values.find(value => value.includes('span'))?.split('-')[1];
+  const eventId = values.find(value => value.includes('txn'))?.split('-')[1];
+  const spanId = values.find(value => value.includes('span'))?.split('-')[1];
 
   return {
-    event_id,
-    span_id,
+    eventId,
+    spanId,
   };
 }
 

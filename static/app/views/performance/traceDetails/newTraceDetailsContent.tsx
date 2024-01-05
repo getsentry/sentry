@@ -376,7 +376,6 @@ function NewTraceDetailsContent(props: Props) {
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          {
             <Breadcrumb
               organization={organization}
               location={location}
@@ -388,7 +387,6 @@ function NewTraceDetailsContent(props: Props) {
               }
               traceSlug={traceSlug}
             />
-          }
           <Layout.Title data-test-id="trace-header">
             {t('Trace ID: %s', traceSlug)}
           </Layout.Title>
