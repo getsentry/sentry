@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, Set, TypedDict
+from typing import Any, Iterable, Optional, Set, TypedDict
 
 import sentry_sdk
 from django.core.cache import cache
@@ -243,9 +243,9 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
 
 class FilterParams(TypedDict):
-    start: datetime | None
-    end: datetime | None
-    project_id: set[int]
+    start: datetime
+    end: datetime
+    project_id: Iterable[int]
     project_objects: list[Project]
     organization_id: str
     environment: list[str] | None
@@ -442,7 +442,7 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         set_measurement("query.num_projects", len_projects)
 
-        params: dict[str, Any] = {
+        params: FilterParams = {
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
