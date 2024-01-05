@@ -9,8 +9,6 @@ import typing
 from enum import Enum
 from typing import Any, Callable, Generator, Iterable
 
-from django.conf import settings
-
 if typing.TYPE_CHECKING:
     from sentry.types.region import Region
 
@@ -39,7 +37,10 @@ class SiloMode(Enum):
 
     @classmethod
     def get_current_mode(cls) -> SiloMode:
-        process_level_silo_mode = cls.resolve(settings.SILO_MODE)
+        from django.conf import settings
+
+        configured_mode: str | SiloMode | None = settings.SILO_MODE  # type: ignore[misc]
+        process_level_silo_mode = cls.resolve(configured_mode)
         return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
 
 
