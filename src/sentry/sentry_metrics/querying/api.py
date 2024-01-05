@@ -183,6 +183,11 @@ class QueryMeta:
 
 
 def _extract_groups_from_seq(seq: Sequence[Mapping[str, Any]]) -> GroupsCollection:
+    """
+    Returns the groups from a sequence of rows returned by Snuba.
+
+    Rows from Snuba are in the form [{"time": x, "aggregate_value": y, "group_1": z, "group_2": a}].
+    """
     groups = []
     for data in seq:
         inner_group = []
@@ -200,6 +205,9 @@ def _extract_groups_from_seq(seq: Sequence[Mapping[str, Any]]) -> GroupsCollecti
 def _build_composite_key_from_dict(
     data: Mapping[str, Any], alignment_keys: Sequence[str]
 ) -> Tuple[Tuple[str, str], ...]:
+    """
+    Builds a hashable composite key given a series of keys that are looked up in the supplied data.
+    """
     composite_key = []
     for key in alignment_keys:
         if (value := data.get(key)) is not None:
@@ -211,6 +219,10 @@ def _build_composite_key_from_dict(
 def _build_indexed_seq(
     seq: Sequence[Mapping[str, Any]], alignment_keys: Sequence[str]
 ) -> Mapping[GroupKey, int]:
+    """
+    Creates an inverted index on the supplied sequence of Snuba rows. The index is keyed by the composite key which is
+    computed from a set of alignment keys that define the order in which the key is built.
+    """
     indexed_seq = {}
     for index, data in enumerate(seq):
         composite_key = _build_composite_key_from_dict(data, alignment_keys)
@@ -225,6 +237,10 @@ def _build_aligned_seq(
     alignment_keys: Sequence[str],
     indexed_seq: Mapping[GroupKey, int],
 ) -> Sequence[Mapping[str, Any]]:
+    """
+    Aligns a sequence of rows to a reference sequence of rows by using reverse index which was built to speed up the
+    alignment process.
+    """
     aligned_seq = []
 
     for data in reference_seq:
@@ -318,6 +334,11 @@ class QueryResult:
         return 0
 
     def align_with(self, reference_query_result: "QueryResult") -> "QueryResult":
+        """
+        Aligns the series and totals results with a reference query.
+
+        Note that the alignment performs a mutation of the current object.
+        """
         # Alignment keys define the order in which fields are used for indexing purposes when aligning different
         # sequences.
         alignment_keys = reference_query_result.group_bys
@@ -344,6 +365,11 @@ class QueryResult:
         return self
 
     def align_series_to_totals(self) -> "QueryResult":
+        """
+        Aligns the series to the totals of the same query.
+
+        Note that the alignment performs a mutation of the current object.
+        """
         alignment_keys = self.group_bys
         if not alignment_keys:
             return self
@@ -508,7 +534,11 @@ class QueryExecutor:
         self._scheduled_queries: List[ExecutableQuery] = []
 
     def _build_request(self, query: MetricsQuery) -> Request:
+        """
+        Builds a Snuba request given a MetricsQuery to execute.
+        """
         return Request(
+            # The dataset used here is arbitrary, since the `run_query` function will infer it internally.
             dataset=Dataset.Metrics.value,
             query=query,
             app_id="default",
@@ -518,6 +548,9 @@ class QueryExecutor:
     def _execute(
         self, executable_query: ExecutableQuery, is_reference_query: bool = False
     ) -> QueryResult:
+        """
+        Executes a query as series and/or totals and returns the result.
+        """
         try:
             # We try to determine the interval of the query, which will be used to define clear time bounds for both
             # queries. This is done here since the metrics layer doesn't adjust the time for totals queries.
@@ -614,6 +647,10 @@ class QueryExecutor:
             )
 
     def _derive_next_interval(self, result: QueryResult) -> int:
+        """
+        Computes the best possible interval, given a fixed set of available intervals, which can fit in the limit
+        of rows that Snuba can return.
+        """
         # We try to estimate the number of groups.
         groups_number = len(result.groups)
 
@@ -638,23 +675,34 @@ class QueryExecutor:
         )
 
     def _find_reference_query(self) -> int:
+        """
+        Finds the reference query among the _schedule_queries.
+
+        A reference query is the first query which is run, and it's used to determine the ordering of the follow-up
+        queries.
+        """
         if not self._scheduled_queries:
             raise InvalidMetricsQueryError(
                 "Can't find a reference query because no queries were supplied"
             )
 
         for index, query in enumerate(self._scheduled_queries):
-            # This assumes that the identifier of the query is the aggregate string of the query.
             if query.order_by:
                 return index
 
         return 0
 
     def _serial_execute(self) -> Sequence[QueryResult]:
+        """
+        Executes serially all the queries that are supplied to the QueryExecutor.
+
+        The execution will try to satisfy the query by dynamically changing its interval, in the case in which the
+        Snuba limit is reached.
+        """
         if not self._scheduled_queries:
             return []
 
-        # We execute the first reference query.
+        # We execute the first reference query which will dictate the order of the follow-up queries.
         reference_query = self._scheduled_queries.pop(self._find_reference_query())
         reference_query_result = self._execute(
             executable_query=reference_query, is_reference_query=True
@@ -668,7 +716,6 @@ class QueryExecutor:
             reference_query_result.align_series_to_totals()
 
             results = [reference_query_result]
-
             reference_groups = reference_query_result.groups
             for query in self._scheduled_queries:
                 query_result = self._execute(
@@ -705,14 +752,14 @@ class QueryExecutor:
         order_by: Optional[str],
         limit: Optional[int],
     ):
-        with_series = True
-        with_totals = True
+        """
+        Lazily schedules a query for execution.
 
-        # We bind a group_bys and order_by to each query individually. Even though this is not needed, in the future
-        # we might have totally independent queries.
+        Note that this method won't execute the query, since it's lazy in nature.
+        """
         executable_query = ExecutableQuery(
-            with_series=with_series,
-            with_totals=with_totals,
+            with_series=True,
+            with_totals=True,
             identifier=identifier,
             metrics_query=query,
             group_bys=group_bys,
@@ -932,6 +979,8 @@ def run_metrics_query(
 
     # Parsing the input and iterating over each timeseries.
     parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
+
+    applied_order_by = False
     for field, timeseries in parser.generate_queries(environments=environments):
         query = base_query.set_query(timeseries).set_rollup(Rollup(interval=interval))
 
@@ -940,11 +989,17 @@ def run_metrics_query(
         query_order_by = None
         if order_by and field == order_by.removeprefix("-"):
             query_order_by = order_by
+            applied_order_by = True
 
         # The identifier of the query is the field which it tries to fetch. It has been chosen as the identifier since
         # it's stable and uniquely identifies the query.
         executor.schedule(
             identifier=field, query=query, group_bys=group_bys, order_by=query_order_by, limit=limit
+        )
+
+    if order_by and not applied_order_by:
+        raise InvalidMetricsQueryError(
+            f"The supplied orderBy {order_by} is not matching with any field of the query"
         )
 
     # Iterating over each result.
