@@ -194,7 +194,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const hasStacktraceLinkFeatureFlag =
     organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
   const [isQueryEnabled, setIsQueryEnabled] = useState(!hasStacktraceLinkFeatureFlag);
-  const validFilePath = hasFileExtension(frame.absPath || '');
+  const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
