@@ -89,10 +89,10 @@ def monkey_patch_single_process_silo_mode_state():
     def get_region() -> Region | None:
         return state.region
 
-    SingleProcessSiloModeState.enter = staticmethod(enter)
-    SingleProcessSiloModeState.exit = staticmethod(exit)
-    SingleProcessSiloModeState.get_mode = staticmethod(get_mode)
-    SingleProcessSiloModeState.get_region = staticmethod(get_region)
+    SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
 
 
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
