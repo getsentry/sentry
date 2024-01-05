@@ -2,6 +2,7 @@ import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {ParntershipAgreementType} from 'sentry/views/partnershipAgreement';
 
 import type {User} from './user';
 
@@ -162,6 +163,10 @@ export interface Config {
    */
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
+  partnershipAgreementPrompt: {
+    agreements: Array<ParntershipAgreementType>;
+    partnerDisplayName: string;
+  } | null;
   privacyUrl: string | null;
   // The list of regions the current user has memberships in.
   regions: Region[];
