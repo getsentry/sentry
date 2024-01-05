@@ -65,6 +65,15 @@ GENERIC_ENTITIES = {
 
 
 class ReverseMappings:
+    """
+    Used to keep track of which tag values need to be reverse resolved in the result for
+    metrics (release health) queries. Stores a set of tag_keys in which the tag values need
+    to be reverse resolved. Only tag keys which are resolved will be included in this set.
+    Therefore, columns like project_id is included. Reverse_mappings saves a dictionary of resolved integers
+    to their original string values when they are first resolved before query execution.
+    Groupby columns values will still need to access the indexer as those reverse mappings will not be present here.
+    """
+
     def __init__(self) -> None:
         self.tag_keys: set[str] = set()
         self.reverse_mappings: dict[int, str] = dict()
@@ -513,7 +522,7 @@ def convert_snuba_result(
                 if data_point[key] in reverse_mappings.reverse_mappings:
                     data_point[key] = reverse_mappings.reverse_mappings[data_point[key]]
                 else:
-                    # Reverse mapping was not saved in initial resolve, this means column is was only specfied in groupby.
+                    # Reverse mapping was not saved in initial resolve, this means column was only specfied in groupby.
                     # We need to manually do a reverse resolve here.
                     reverse_resolve = reverse_resolve_weak(
                         string_to_use_case_id(use_case_id_str), org_id, int(data_point[key])
