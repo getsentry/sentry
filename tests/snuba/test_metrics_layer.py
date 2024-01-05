@@ -549,7 +549,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 aggregate="count",
                 groupby=[Column("release")],
                 filters=[
-                    Condition(Column("release"), Op.IN, ["release_even", "release_odd"]),
+                    Condition(Column("release"), Op.EQ, "release_even"),
                 ],
             ),
             start=self.hour_ago,
@@ -570,8 +570,44 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         )
         result = self.run_query(request)
         assert request.dataset == "metrics"
-        assert len(result["data"]) == 10
-        # TODO: check reverse resolved tags
+        assert len(result["data"]) == 5
+        assert any(data_point["release"] == "release_even" for data_point in result["data"])
+
+    def test_metrics_correctly_reverse_resolved(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    None,
+                    SessionMRI.RAW_SESSION.value,
+                ),
+                aggregate="count",
+                groupby=[Column("release"), Column("project_id")],
+                filters=[
+                    Condition(Column("release"), Op.EQ, "release_even"),
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.SESSIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = self.run_query(request)
+        assert request.dataset == "metrics"
+        assert len(result["data"]) == 5
+        assert any(data_point["release"] == "release_even" for data_point in result["data"])
+        assert any(data_point["project_id"] == self.project.id for data_point in result["data"])
 
     @pytest.mark.skip(reason="This is not implemented in MQL")
     def test_failure_rate(self) -> None:
