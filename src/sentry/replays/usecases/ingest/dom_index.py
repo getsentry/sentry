@@ -119,7 +119,7 @@ def log_canvas_size(
     project_id: int,
     replay_id: str,
     events: list[dict[str, Any]],
-):
+) -> None:
     for event in events:
         if event.get("type") == 3 and event.get("data", {}).get("source") == 9:
             logger.info(
