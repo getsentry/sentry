@@ -38,22 +38,21 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     'php' as PlatformKey,
     'bun' as PlatformKey,
     'elixir' as PlatformKey,
+    'go' as PlatformKey,
   ])('should SUPPORT Backend framework %s', platform => {
     const project = mockProjectFixture(platform);
     expect(projectSupportsReplay(project)).toBeTruthy();
     expect(projectCanLinkToReplay(project)).toBeTruthy();
   });
 
-  it.each([
-    'java' as PlatformKey,
-    'rust' as PlatformKey,
-    'python' as PlatformKey,
-    'go-http' as PlatformKey,
-  ])('should NOT SUPPORT but CAN LINK for Backend framework %s', platform => {
-    const project = mockProjectFixture(platform);
-    expect(projectSupportsReplay(project)).toBeFalsy();
-    expect(projectCanLinkToReplay(project)).toBeTruthy();
-  });
+  it.each(['java' as PlatformKey, 'rust' as PlatformKey, 'python' as PlatformKey])(
+    'should NOT SUPPORT but CAN LINK for Backend framework %s',
+    platform => {
+      const project = mockProjectFixture(platform);
+      expect(projectSupportsReplay(project)).toBeFalsy();
+      expect(projectCanLinkToReplay(project)).toBeTruthy();
+    }
+  );
 
   it.each([
     'apple-macos' as PlatformKey,

@@ -91,7 +91,6 @@ export function ReplayOnboardingLayout({
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
         </Header>
-        <Divider withBottomMargin />
         <Steps>
           {steps.map(step =>
             step.type === StepType.CONFIGURE ? (
@@ -123,14 +122,8 @@ const Header = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const Divider = styled('hr')<{withBottomMargin?: boolean}>`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.border};
-  border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
+  margin-bottom: ${space(3)};
+  margin-top: 0;
 `;
 
 const Steps = styled('div')`

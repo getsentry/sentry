@@ -1,8 +1,8 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {Member as MemberType} from 'sentry/types';
+import type {Member} from 'sentry/types';
 
-export function MemberFixture(params: Partial<MemberType> = {}): MemberType {
+export function MemberFixture(params: Partial<Member> = {}): Member {
   return {
     id: '1',
     email: 'sentry1@test.com',
@@ -36,6 +36,3 @@ export function MemberFixture(params: Partial<MemberType> = {}): MemberType {
     ...params,
   };
 }
-
-// TODO(@gggritso): Remove this once the imports in `getsentry` are up-to-date
-export {MemberFixture as Member};

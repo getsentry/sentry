@@ -1,13 +1,13 @@
 import {ImageFixture} from 'sentry-fixture/image';
 
 import {
-  type Entry as TEntry,
-  type EntryDebugMeta as TEntryDebugMeta,
-  type EntryRequest as TEntryRequest,
+  type Entry,
+  type EntryDebugMeta,
+  type EntryRequest,
   EntryType,
 } from 'sentry/types';
 
-export function EventEntryFixture(params = {}): TEntry {
+export function EventEntryFixture(params = {}): Entry {
   return {
     type: EntryType.MESSAGE,
     data: {
@@ -17,7 +17,7 @@ export function EventEntryFixture(params = {}): TEntry {
   };
 }
 
-export function EntryRequestFixture(params: Partial<TEntryRequest> = {}): TEntryRequest {
+export function EntryRequestFixture(params: Partial<EntryRequest> = {}): EntryRequest {
   return {
     type: EntryType.REQUEST,
     data: {
@@ -30,8 +30,8 @@ export function EntryRequestFixture(params: Partial<TEntryRequest> = {}): TEntry
 }
 
 export function EntryDebugMetaFixture(
-  params: Partial<TEntryDebugMeta> = {}
-): TEntryDebugMeta {
+  params: Partial<EntryDebugMeta> = {}
+): EntryDebugMeta {
   return {
     type: EntryType.DEBUGMETA,
     data: {

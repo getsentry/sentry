@@ -160,7 +160,6 @@ class BlacklistAdapter(HTTPAdapter):
             num_pools=connections,
             maxsize=maxsize,
             block=block,
-            strict=True,
             is_ipaddress_permitted=self.is_ipaddress_permitted,
             **pool_kwargs,
         )
@@ -223,7 +222,7 @@ class UnixHTTPConnection(HTTPConnection):
         # If provided, set socket level options before connecting.
         _set_socket_options(sock, self.socket_options)
 
-        if self.timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+        if self.timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # type: ignore[attr-defined]
             sock.settimeout(self.timeout)
         sock.connect(self.socket_path)
         return sock

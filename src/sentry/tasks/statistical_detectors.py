@@ -163,14 +163,14 @@ class EndpointRegressionDetector(RegressionDetector):
     regression_type = RegressionType.ENDPOINT
     min_change = 200  # 200ms in ms
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
             kind=cls.kind,
-            min_data_points=6,
+            min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
             threshold=0.2,
@@ -204,14 +204,14 @@ class FunctionRegressionDetector(RegressionDetector):
     regression_type = RegressionType.FUNCTION
     min_change = 100_000_000  # 100ms in ns
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
             kind=cls.kind,
-            min_data_points=6,
+            min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
             threshold=0.2,

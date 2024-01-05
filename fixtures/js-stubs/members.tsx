@@ -1,9 +1,9 @@
 import {MemberFixture} from 'sentry-fixture/member';
 import {UserFixture} from 'sentry-fixture/user';
 
-import type {Member as MemberType} from 'sentry/types';
+import type {Member} from 'sentry/types';
 
-export function MembersFixture(params: MemberType[] = []): MemberType[] {
+export function MembersFixture(params: Member[] = []): Member[] {
   return [
     MemberFixture(),
     {

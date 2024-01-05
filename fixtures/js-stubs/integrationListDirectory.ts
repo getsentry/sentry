@@ -1,4 +1,4 @@
-import {Integration, IntegrationProvider, SentryApp} from 'sentry/types';
+import type {Integration, IntegrationProvider, Plugin, SentryApp} from 'sentry/types';
 
 export function ProviderListFixture(): {providers: IntegrationProvider[]} {
   return {
@@ -294,4 +294,55 @@ export function PluginListConfigFixture() {
       metadata: {},
     },
   ];
+}
+
+export function WebhookPluginConfigFixture(plugin?: Partial<Plugin>): Plugin {
+  return {
+    id: 'webhooks',
+    name: 'WebHooks',
+    slug: 'webhooks',
+    shortName: 'WebHooks',
+    type: 'notification',
+    canDisable: true,
+    isTestable: true,
+    hasConfiguration: true,
+    metadata: {},
+    contexts: [],
+    status: 'unknown',
+    assets: [],
+    doc: '',
+    enabled: true,
+    version: '24.1.0.dev0',
+    author: {
+      name: 'Sentry Team',
+      url: 'https://github.com/getsentry/sentry',
+    },
+    isDeprecated: false,
+    isHidden: false,
+    description:
+      '\nTrigger outgoing HTTP POST requests from Sentry.\n\nNote: To configure webhooks over multiple projects, we recommend setting up an\nInternal Integration.\n',
+    features: ['alert-rule'],
+    featureDescriptions: [
+      {
+        description: 'Configure rule based outgoing HTTP POST requests from Sentry.',
+        featureGate: 'alert-rule',
+        featureId: 1,
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Report Issue',
+        url: 'https://github.com/getsentry/sentry/issues',
+      },
+      {
+        title: 'View Source',
+        url: 'https://github.com/getsentry/sentry/tree/master/src/sentry/plugins/sentry_webhooks',
+      },
+      {
+        title: 'Internal Integrations',
+        url: 'https://docs.sentry.io/workflow/integrations/integration-platform/#internal-integrations',
+      },
+    ],
+    ...plugin,
+  };
 }

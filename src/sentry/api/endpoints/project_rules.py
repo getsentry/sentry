@@ -110,7 +110,7 @@ def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
 
 
 class ProjectRulesPostSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     actionMatch = serializers.ChoiceField(
         choices=(
             ("all", "All conditions must evaluate to true."),
