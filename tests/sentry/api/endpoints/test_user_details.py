@@ -39,6 +39,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
+        assert not resp.data["options"]["issueDetailsNewExperienceQ42023"]
 
     def test_superuser(self):
         superuser = self.create_user(email="b@example.com", is_superuser=True)
@@ -84,6 +85,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "language": "fr",
                 "clock24Hours": True,
                 "extra": True,
+                "issueDetailsNewExperienceQ42023": True,
             },
         )
 
@@ -100,6 +102,10 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="stacktrace_order") == "2"
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
+        assert UserOption.objects.get_value(
+            user=self.user, key="issue_details_new_experience_q4_2023"
+        )
+
         assert not UserOption.objects.get_value(user=self.user, key="extra")
 
     def test_saving_changes_value(self):

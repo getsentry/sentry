@@ -78,6 +78,7 @@ class UserOptionsSerializer(serializers.Serializer):
         ),
         required=False,
     )
+    issueDetailsNewExperienceQ42023 = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer):
@@ -216,6 +217,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "stacktraceOrder": "stacktrace_order",
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
+            "issueDetailsNewExperienceQ42023": "issue_details_new_experience_q4_2023",
         }
 
         options_result = serializer_options.validated_data
