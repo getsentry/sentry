@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
+from typing import Sequence
 
 import sentry_sdk
 from django.http.response import HttpResponseBase
@@ -13,7 +14,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.region import RegionResolutionError
+from sentry.types.region import Region, RegionResolutionError
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         if not self.can_infer_integration(data=self.request_data):
             return self.get_response_from_control_silo()
 
-        regions = []
+        regions: Sequence[Region] = []
         try:
             regions = self.get_regions_from_organizations()
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
