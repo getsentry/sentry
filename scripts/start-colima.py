@@ -13,10 +13,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     # 12.3.1: arm64
     APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
-    cpus = int(subprocess.run(("sysctl", "-n", "hw.ncpu"), check=True, capture_output=True).stdout)
-    memsize_bytes = int(
-        subprocess.run(("sysctl", "-n", "hw.memsize"), check=True, capture_output=True).stdout
-    )
+    cpus = os.cpu_count()
+    if cpus is None:
+        raise SystemExit("failed to determine cpu count")
+
+    # SC_PAGE_SIZE is POSIX 2008
+    # SC_PHYS_PAGES is a linux addition but also supported by more recent MacOS versions
+    SC_PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
+    SC_PHYS_PAGES = os.sysconf("SC_PHYS_PAGES")
+    if SC_PAGE_SIZE == -1 or SC_PHYS_PAGES == -1:
+        raise SystemExit("failed to determine memsize_bytes")
+    memsize_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+
     args = [
         "--cpu",
         f"{cpus//2}",
