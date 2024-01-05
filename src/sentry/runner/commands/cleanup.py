@@ -67,6 +67,8 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             configured = True
 
             from sentry import deletions, models, similarity
+            from sentry.db.analyze import AnalyzeQuery
+            from sentry.monitors import models as monitor_models
 
             skip_models = [
                 # Handled by other parts of cleanup
@@ -93,6 +95,12 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             while True:
                 if not task.chunk():
                     break
+
+            # special case for MonitorCheckIn to protect against index slippage
+            # run ANALYZE on the table
+            if model is monitor_models.MonitorCheckIn:
+                q = AnalyzeQuery(model=model)
+                q.execute()
         except Exception as e:
             logger.exception(e)
         finally:
