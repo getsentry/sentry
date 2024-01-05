@@ -1,4 +1,5 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button, ButtonProps} from 'sentry/components/button';
@@ -286,7 +287,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
 
     return (
       <p>
-        <strong>{message}</strong>
+        <StrongBreakWord>{message}</StrongBreakWord>
       </p>
     );
   }
@@ -347,3 +348,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
 }
 
 export default Confirm;
+
+const StrongBreakWord = styled('strong')`
+  overflow-wrap: break-word;
+`;
