@@ -725,7 +725,7 @@ def _resolve_metrics_query(
 
         metrics_query = metrics_query.set_query(metrics_query.query.set_parameters(parameters))
 
-    return metrics_query, mappings
+    return metrics_query, mappings, reverse_mappings
 
 
 def _resolve_groupby(
@@ -783,7 +783,9 @@ def _resolve_filters(
 
     mappings = {}
 
-    def resolve_exp(exp: FilterTypes, dataset: str) -> FilterTypes:
+    def resolve_exp(
+        exp: FilterTypes, dataset: str, reverse_mappings: ReverseMappings
+    ) -> FilterTypes:
         if dataset == Dataset.Metrics.value and (isinstance(exp, str) or isinstance(exp, list)):
             if isinstance(exp, str):
                 resolved = resolve_weak(use_case_id, org_id, exp)
