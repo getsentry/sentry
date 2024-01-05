@@ -192,13 +192,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     defaultTab
   );
 
-  const showJsFrameworkInstructions =
-    newOnboarding &&
-    currentProject &&
-    currentProject.platform &&
-    replayBackendPlatforms.includes(currentProject.platform) &&
-    setupMode() === 'npm';
-
   const npmOnlyFramework =
     currentProject &&
     currentProject.platform &&
@@ -228,6 +221,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
   }, [currentPlatform, newOnboarding]);
 
+  const showJsFrameworkInstructions =
+    newOnboarding &&
+    currentProject &&
+    currentProject.platform &&
+    replayBackendPlatforms.includes(currentProject.platform) &&
+    setupMode() === 'npm';
+
   // Old onboarding docs
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
@@ -251,8 +251,77 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projectSlug: currentProject.slug,
   });
 
+  // New onboarding docs for initial loading of JS Framework options
+  const {docs: jsFrameworkDocs} = useLoadOnboardingDoc({
+    platform:
+      replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
+      replayJsFrameworkOptions[0],
+    organization,
+    projectSlug: currentProject.slug,
+  });
+
   if (isLoading || isProjKeysLoading) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <Header>
+          {showRadioButtons ? (
+            <StyledRadioGroup
+              label="mode"
+              choices={[
+                [
+                  'npm',
+                  backendPlatforms ? (
+                    <PlatformSelect key="platform-select">
+                      {t('I use')}
+                      <div
+                        onClick={e => {
+                          // we need to stop bubbling the CompactSelect click event
+                          // failing to do so will cause the sidebar panel to close
+                          // the event.target will be unmounted by the time the panel listener
+                          // receives the event and assume the click was outside the panel
+                          e.stopPropagation();
+                        }}
+                      >
+                        <CompactSelect
+                          triggerLabel={jsFramework.label}
+                          value={jsFramework.value}
+                          onChange={setJsFramework}
+                          options={jsFrameworkSelectOptions}
+                          position="bottom-end"
+                          key={jsFramework.textValue}
+                        />
+                      </div>
+                      {jsFrameworkDocs?.platformOptions && (
+                        <Fragment>
+                          {t('with')}
+                          <PlatformOptionDropdown
+                            platformOptions={jsFrameworkDocs?.platformOptions}
+                          />
+                        </Fragment>
+                      )}
+                    </PlatformSelect>
+                  ) : (
+                    t('I use NPM or Yarn')
+                  ),
+                ],
+                ['jsLoader', t('I use HTML templates')],
+              ]}
+              value={setupMode()}
+              onChange={setSetupMode}
+            />
+          ) : (
+            newDocs?.platformOptions &&
+            newOnboarding && (
+              <PlatformSelect>
+                {t("I'm using")}
+                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
+              </PlatformSelect>
+            )
+          )}
+        </Header>
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   const doesNotSupportReplay = currentProject.platform
@@ -319,19 +388,29 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 backendPlatforms ? (
                   <PlatformSelect key="platform-select">
                     {t('I use')}
-                    <CompactSelect
-                      triggerLabel={jsFramework.label}
-                      value={jsFramework.value}
-                      onChange={setJsFramework}
-                      options={jsFrameworkSelectOptions}
-                      position="bottom-end"
-                      key={jsFramework.textValue}
-                    />
-                    {newDocs?.platformOptions && (
+                    <div
+                      onClick={e => {
+                        // we need to stop bubbling the CompactSelect click event
+                        // failing to do so will cause the sidebar panel to close
+                        // the event.target will be unmounted by the time the panel listener
+                        // receives the event and assume the click was outside the panel
+                        e.stopPropagation();
+                      }}
+                    >
+                      <CompactSelect
+                        triggerLabel={jsFramework.label}
+                        value={jsFramework.value}
+                        onChange={setJsFramework}
+                        options={jsFrameworkSelectOptions}
+                        position="bottom-end"
+                        key={jsFramework.textValue}
+                      />
+                    </div>
+                    {jsFrameworkDocs?.platformOptions && (
                       <Fragment>
                         {t('with')}
                         <PlatformOptionDropdown
-                          platformOptions={newDocs?.platformOptions}
+                          platformOptions={jsFrameworkDocs?.platformOptions}
                         />
                       </Fragment>
                     )}
@@ -343,9 +422,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               ['jsLoader', t('I use HTML templates')],
             ]}
             value={setupMode()}
-            onChange={id => {
-              setSetupMode(id);
-            }}
+            onChange={setSetupMode}
           />
         ) : (
           newDocs?.platformOptions &&
@@ -357,7 +434,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )
         )}
       </Header>
-
       {newOnboarding && newDocs ? (
         <ReplayOnboardingLayout
           docsConfig={newDocs}
