@@ -296,6 +296,7 @@ describe('StacktraceLink', function () {
 
   it('renders the link using a valid sourceLink for a .NET project', async function () {
     const dotnetFrame = {
+      filename: 'path/to/file.py',
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
       lineNo: '100',
     } as unknown as Frame;
@@ -325,7 +326,8 @@ describe('StacktraceLink', function () {
 
   it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
     const dotnetFrame = {
-      sourceLink: 'https://www.github.com/source/link/url#L1',
+      filename: 'link/url.py',
+      sourceLink: 'https://www.github.com/source/link/url.py#L1',
       lineNo: '1',
     } as unknown as Frame;
     MockApiClient.addMockResponse({
