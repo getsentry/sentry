@@ -149,6 +149,7 @@ class ReleaseThresholdServicer:
                 if threshold.threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
                     is_healthy = self._get_new_issue_count_is_healthy(
                         project=project,
+                        release=release,
                         release_threshold=threshold,
                         start=threshold_start,
                         end=threshold_end,
