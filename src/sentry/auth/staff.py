@@ -56,7 +56,7 @@ def is_active_staff(request: Request) -> bool:
 class Staff(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
-    def __init__(self, request, allowed_ips=UNSET):
+    def __init__(self, request, allowed_ips=UNSET) -> None:
         self.uid: str | None = None
         self.request = request
         if allowed_ips is not UNSET:
