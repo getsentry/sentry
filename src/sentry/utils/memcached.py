@@ -33,10 +33,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import pickle
-import warnings
 
 from django.core.cache.backends.memcached import BaseMemcachedCache
-from django.utils.deprecation import RemovedInDjango41Warning
 
 
 class MemcachedCache(BaseMemcachedCache):
@@ -47,21 +45,16 @@ class MemcachedCache(BaseMemcachedCache):
     _missing_key = None
 
     def __init__(self, server, params):
-        warnings.warn(
-            "MemcachedCache is deprecated in favor of PyMemcacheCache and " "PyLibMCCache.",
-            RemovedInDjango41Warning,
-            stacklevel=2,
-        )
         # python-memcached ≥ 1.45 returns None for a nonexistent key in
         # incr/decr(), python-memcached < 1.45 raises ValueError.
         import memcache
 
         super().__init__(server, params, library=memcache, value_not_found_exception=ValueError)
-        self._options = {"pickleProtocol": pickle.HIGHEST_PROTOCOL, **self._options}
+        self._options = {"pickleProtocol": pickle.HIGHEST_PROTOCOL, **self._options}  # type: ignore[has-type]
 
     def get(self, key, default=None, version=None):
         key = self.make_and_validate_key(key, version=version)
-        val = self._cache.get(key)
+        val = self._cache.get(key)  # type: ignore[attr-defined]
         # python-memcached doesn't support default values in get().
         # https://github.com/linsomniac/python-memcached/issues/159
         # Remove this method if that issue is fixed.
@@ -70,8 +63,6 @@ class MemcachedCache(BaseMemcachedCache):
         return val
 
     def delete(self, key, version=None):
-        # python-memcached's delete() returns True when key doesn't exist.
-        # https://github.com/linsomniac/python-memcached/issues/170
-        # Call _deletetouch() without the NOT_FOUND in expected results.
-        key = self.make_and_validate_key(key, version=version)
-        return bool(self._cache._deletetouch([b"DELETED"], "delete", key))
+        key = self.make_key(key, version=version)
+        self.validate_key(key)
+        return bool(self._cache.delete(key))  # type: ignore[attr-defined]
