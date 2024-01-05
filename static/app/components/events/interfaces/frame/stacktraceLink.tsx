@@ -10,6 +10,7 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -193,6 +194,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const hasStacktraceLinkFeatureFlag =
     organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
   const [isQueryEnabled, setIsQueryEnabled] = useState(!hasStacktraceLinkFeatureFlag);
+  const validFilePath = hasFileExtension(frame.absPath || '');
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
@@ -213,6 +215,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   useEffect(() => {
     let timer;
+    if (!validFilePath) {
+      return setIsQueryEnabled(false);
+    }
     if (hasStacktraceLinkFeatureFlag) {
       // Introduce a delay before enabling the query
       timer = setTimeout(() => {
@@ -220,7 +225,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       }, 100); // Delay of 100ms
     }
     return () => timer && clearTimeout(timer);
-  }, [hasStacktraceLinkFeatureFlag]); // Empty dependency array to run only on mount
+  }, [hasStacktraceLinkFeatureFlag, validFilePath]); // Empty dependency array to run only on mount
 
   const {
     data: match,
@@ -275,6 +280,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const handleSubmit = () => {
     refetch();
   };
+
+  if (!validFilePath) {
+    return null;
+  }
 
   if (isLoading || !match) {
     return (
