@@ -5,7 +5,6 @@ import {Location} from 'history';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {MINIMAP_SPAN_BAR_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
@@ -83,6 +82,7 @@ import {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {shortenErrorTitle} from './utils';
 
 const MARGIN_LEFT = 0;
+const TRANSACTION_BAR_HEIGHT = 24;
 
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
@@ -157,7 +157,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       return;
     }
     const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY - MINIMAP_SPAN_BAR_HEIGHT * 5;
+    const offset = boundingRect.top + window.scrollY - TRANSACTION_BAR_HEIGHT;
     window.scrollTo(0, offset);
     props.onBarScrolledTo();
   }, [transactionRowDOMRef, props]);
@@ -179,6 +179,10 @@ function NewTraceDetailsTransactionBar(props: Props) {
       !isBarScrolledTo
     ) {
       scrollIntoView();
+    }
+
+    if(isIntersecting){
+      props.onBarScrolledTo();
     }
 
     return () => {

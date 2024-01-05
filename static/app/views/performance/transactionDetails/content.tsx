@@ -178,8 +178,6 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
         {metaResults => (
                   <TraceDetailsRouting
                   event={event}
-                  organization={organization}
-                  location={location}
                   metaResults={metaResults}
                 >
                 <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>

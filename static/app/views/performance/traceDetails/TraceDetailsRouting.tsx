@@ -1,35 +1,52 @@
 import {useEffect} from 'react';
-import {Location} from 'history';
+import {browserHistory} from 'react-router';
+import {LocationDescriptorObject} from 'history';
 
-import {handleTraceDetailsRouting} from 'sentry/components/events/interfaces/spans/utils';
+import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Event, Organization} from 'sentry/types';
+import {Event} from 'sentry/types';
 import {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+
+import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
+import {getTraceDetailsUrl} from './utils';
 
 type Props = {
     children: JSX.Element;
     event: Event;
-    location: Location;
     metaResults: TraceMetaQueryChildrenProps | undefined;
-    organization: Organization;
 }
 
 function TraceDetailsRouting(props: Props) {
-    const {metaResults, location, organization, event, children} = props;
+    const {metaResults, event, children} = props;
+    const organization = useOrganization();
+    const location = useLocation();
 
     useEffect(() => {
-        handleTraceDetailsRouting(
-            metaResults,
-            event,
+        const traceId = event.contexts?.trace?.trace_id ?? '';
+
+        if (
+            organization.features.includes('performance-trace-details') &&
+            metaResults?.meta &&
+            metaResults?.meta.transactions <= DEFAULT_TRACE_ROWS_LIMIT
+        ) {
+            const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
             organization,
-            location
-          );
+            traceId,
+            event.title,
+            location.query
+            );
+
+            browserHistory.replace({
+            pathname: traceDetailsLocation.pathname,
+            query: {
+                transaction: traceDetailsLocation.query?.transaction,
+            },
+            hash: transactionTargetHash(event.eventID) + location.hash,
+            });
+        }
     }, [event, metaResults, location , organization]);
-
-
-    if(!organization.features.includes('performance-trace-details')){
-        return children;
-    }
 
     if (metaResults?.isLoading &&
       organization.features.includes('performance-trace-details')

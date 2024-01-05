@@ -161,8 +161,6 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
       return (
         <TraceDetailsRouting
           event={event}
-          location={location}
-          organization={organization}
           metaResults={metaResults}
         >
           <TransactionProfileIdProvider
