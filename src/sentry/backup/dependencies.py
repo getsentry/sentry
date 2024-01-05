@@ -7,6 +7,7 @@ from functools import lru_cache
 from typing import NamedTuple, Optional, Tuple, Type
 
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
@@ -402,6 +403,9 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             uniques: set[frozenset[str]] = {
                 frozenset(combo) for combo in model._meta.unique_together
             }
+            for constraint in model._meta.constraints:
+                if isinstance(constraint, UniqueConstraint):
+                    uniques.add(frozenset(constraint.fields))
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
