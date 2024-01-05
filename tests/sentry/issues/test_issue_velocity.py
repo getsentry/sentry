@@ -85,9 +85,8 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
                     },
                 )
 
-        # with 5 issues that are older than a week, p99 should be approximately the hourly event
-        # rate of the most frequent issue
-        expected_threshold = 6 / WEEK_IN_HOURS
+        # approximate calculation of 95th percentile for small sample
+        expected_threshold = 6 * 0.95 / WEEK_IN_HOURS
         actual_threshold = calculate_threshold(self.project)
 
         # clickhouse's quantile function is approximate
