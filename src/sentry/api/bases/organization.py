@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Set
+from datetime import datetime
+from typing import Any, Optional, Set, TypedDict
 
 import sentry_sdk
 from django.core.cache import cache
@@ -241,6 +242,16 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         return (args, kwargs)
 
 
+class FilterParams(TypedDict):
+    start: datetime | None
+    end: datetime | None
+    project_id: set[int]
+    project_objects: list[Project]
+    organization_id: str
+    environment: list[str] | None
+    environment_objects: list[Environment] | None
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
@@ -371,7 +382,7 @@ class OrganizationEndpoint(Endpoint):
         organization: Organization,
         date_filter_optional: bool = False,
         project_ids: list[int] | set[int] | None = None,
-    ) -> dict[str, Any]:
+    ) -> FilterParams:
         """
         Extracts common filter parameters from the request and returns them
         in a standard format.
