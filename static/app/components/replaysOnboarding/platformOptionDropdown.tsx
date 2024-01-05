@@ -1,9 +1,6 @@
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  PlatformOptionsControlProps,
-  useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import useRouter from 'sentry/utils/useRouter';
 
 export type OptionControlProps = {
@@ -16,12 +13,27 @@ export type OptionControlProps = {
    */
   value: string;
   /**
+   * Whether the option is disabled
+   */
+  disabled?: boolean;
+  /**
    * Click handler
    */
   onChange?: (selectedOption: SelectOption<string>) => void;
 };
 
-function OptionControl({option, value, onChange}: OptionControlProps) {
+type PlatformOptionsControlProps = {
+  /**
+   * Object with an option array for each platformOption
+   */
+  platformOptions: Record<string, PlatformOption>;
+  /**
+   * Whether the option is disabled
+   */
+  disabled?: boolean;
+};
+
+function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
   return (
     <CompactSelect
       triggerLabel={
@@ -31,11 +43,15 @@ function OptionControl({option, value, onChange}: OptionControlProps) {
       onChange={onChange}
       options={option.items}
       position="bottom-end"
+      disabled={disabled}
     />
   );
 }
 
-export function PlatformOptionDropdown({platformOptions}: PlatformOptionsControlProps) {
+export function PlatformOptionDropdown({
+  platformOptions,
+  disabled,
+}: PlatformOptionsControlProps) {
   const router = useRouter();
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
@@ -57,6 +73,7 @@ export function PlatformOptionDropdown({platformOptions}: PlatformOptionsControl
       option={platforms}
       value={urlOptionValues.siblingOption ?? platforms.items[0]?.label}
       onChange={v => handleChange('siblingOption', v.value)}
+      disabled={disabled}
     />
   );
 }

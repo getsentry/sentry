@@ -277,6 +277,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                         options={jsFrameworkSelectOptions}
                         position="bottom-end"
                         key={jsFramework.textValue}
+                        disabled={setupMode() === 'jsLoader'}
                       />
                     ),
                   })}
@@ -285,6 +286,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                       optionSelect: (
                         <PlatformOptionDropdown
                           platformOptions={jsFrameworkDocs?.platformOptions}
+                          disabled={setupMode() === 'jsLoader'}
                         />
                       ),
                     })}
