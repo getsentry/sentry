@@ -147,10 +147,8 @@ def process_async_webhooks(
                 "conflict_text": e.text,
             },
         )
-    except ApiTimeoutError as err:
-        raise err
-    except ApiConnectionResetError as err:
-        raise err
+    except (ApiTimeoutError, ApiConnectionResetError):
+        raise
     except ApiError as api_err:
         err_cause = api_err.__cause__
         if err_cause is not None and isinstance(err_cause, HTTPError):
@@ -160,7 +158,7 @@ def process_async_webhooks(
                 and status.HTTP_500_INTERNAL_SERVER_ERROR <= orig_response.status_code < 600
             ):
                 # Retry on 5xx errors
-                raise api_err
+                raise
         # For some integrations, we make use of outboxes to handle asynchronous webhook requests.
         # There is an edge case where webhook requests eventually become invalid and
         # the 3rd-party destination (integration provider) will reject them.

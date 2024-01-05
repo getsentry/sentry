@@ -2,19 +2,18 @@ import type {
   Integration,
   Project,
   Repository,
-  RepositoryProjectPathConfig as RepositoryProjectPathConfigType,
+  RepositoryProjectPathConfig,
 } from 'sentry/types';
 
-interface RepositoryProjectPathConfigArgs
-  extends Partial<RepositoryProjectPathConfigType> {
+interface RepositoryProjectPathConfigArgs extends Partial<RepositoryProjectPathConfig> {
   integration: Pick<Integration, 'id' | 'provider'>;
   project: Pick<Project, 'id' | 'slug'>;
   repo: Pick<Repository, 'id' | 'name'>;
 }
 
-export function RepositoryProjectPathConfig(
+export function RepositoryProjectPathConfigFixture(
   params: RepositoryProjectPathConfigArgs
-): RepositoryProjectPathConfigType {
+): RepositoryProjectPathConfig {
   const {project, repo, integration, ...rest} = params;
   return {
     id: '2',

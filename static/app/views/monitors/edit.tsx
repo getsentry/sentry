@@ -9,16 +9,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
@@ -29,10 +25,9 @@ export default function EditMonitor() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/monitors/${monitorSlug}/`,
-    {query: {expand: ['alertRule']}},
-  ];
+  const queryKey = makeMonitorDetailsQueryKey(organization, monitorSlug, {
+    expand: ['alertRule'],
+  });
 
   const {
     isLoading,

@@ -139,7 +139,18 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
-  metricSpans?: any[];
+  metricSpans?: MetricSpan[];
+};
+
+export type MetricSpan = {
+  duration: number;
+  profileId: string;
+  projectId: number;
+  spanId: string;
+  traceId: string;
+  transactionId: string;
+  // Not there yet but we will add it
+  replayId?: string;
 };
 
 export type MetricRange = {
@@ -508,6 +519,16 @@ export function useUpdateQuery() {
     },
     [routerRef]
   );
+}
+
+export function useClearQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(() => {
+    clearQuery(routerRef.current);
+  }, [routerRef]);
 }
 
 // TODO(ddm): there has to be a nicer way to do this

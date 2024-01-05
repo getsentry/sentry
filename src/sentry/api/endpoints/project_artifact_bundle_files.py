@@ -136,8 +136,6 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 max_offset=MAX_ARTIFACT_BUNDLE_FILES_OFFSET,
                 on_results=serialize_results,
             )
-        except Exception as exc:
-            raise exc
         finally:
             # We must close the archive before returning the value, otherwise we will get an error.
             archive.close()

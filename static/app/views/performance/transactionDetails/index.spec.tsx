@@ -1,6 +1,6 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +13,7 @@ const alertText =
 
 describe('EventDetails', () => {
   const project = ProjectFixture();
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['performance-view'],
     projects: [project],
   });

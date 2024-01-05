@@ -39,7 +39,7 @@ IDLE_MAX_AGE = timedelta(minutes=15)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
-ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
+STAFF_ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
 
 DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
@@ -89,7 +89,7 @@ class Staff(ElevatedMode):
 
         # _admin should have always completed SSO to gain status.
         # We expect ORG_ID to always be set in production.
-        if ORG_ID and not has_completed_sso(self.request, ORG_ID):
+        if STAFF_ORG_ID and not has_completed_sso(self.request, STAFF_ORG_ID):
             # Allow staff session on dev env for non sso flow
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
                 return False, InactiveReason.INCOMPLETE_SSO

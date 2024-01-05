@@ -1,6 +1,6 @@
-import {EventAttachment} from 'sentry-fixture/eventAttachment';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +9,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Modal from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {EventAttachment} from 'sentry/types';
 import {Project} from 'sentry/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
@@ -22,11 +23,11 @@ function renderModal({
   enablePagination,
   groupId,
 }: {
-  eventAttachment: ReturnType<typeof EventAttachment>;
+  eventAttachment: EventAttachment;
   initialData: any;
   projectSlug: Project['slug'];
   attachmentIndex?: number;
-  attachments?: ReturnType<typeof EventAttachment>[];
+  attachments?: EventAttachment[];
   enablePagination?: boolean;
   groupId?: string;
 }) {
@@ -65,7 +66,7 @@ describe('Modals -> ScreenshotModal', function () {
   let getAttachmentsMock;
   beforeEach(() => {
     initialData = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         params: {groupId: 'group-id'},
         location: {query: {types: 'event.screenshot'}},
@@ -77,7 +78,7 @@ describe('Modals -> ScreenshotModal', function () {
 
     getAttachmentsMock = MockApiClient.addMockResponse({
       url: '/issues/group-id/attachments/',
-      body: [EventAttachment()],
+      body: [EventAttachmentFixture()],
       headers: {
         link:
           '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
@@ -90,7 +91,7 @@ describe('Modals -> ScreenshotModal', function () {
     MockApiClient.clearMockResponses();
   });
   it('paginates single screenshots correctly', async function () {
-    const eventAttachment = EventAttachment();
+    const eventAttachment = EventAttachmentFixture();
     renderModal({
       eventAttachment,
       initialData,
@@ -98,11 +99,11 @@ describe('Modals -> ScreenshotModal', function () {
       attachmentIndex: 0,
       attachments: [
         eventAttachment,
-        EventAttachment({id: '2', event_id: 'new event id'}),
-        EventAttachment({id: '3'}),
-        EventAttachment({id: '4'}),
-        EventAttachment({id: '5'}),
-        EventAttachment({id: '6'}),
+        EventAttachmentFixture({id: '2', event_id: 'new event id'}),
+        EventAttachmentFixture({id: '3'}),
+        EventAttachmentFixture({id: '4'}),
+        EventAttachmentFixture({id: '5'}),
+        EventAttachmentFixture({id: '6'}),
       ],
       enablePagination: true,
       groupId: 'group-id',
@@ -115,24 +116,24 @@ describe('Modals -> ScreenshotModal', function () {
   });
 
   it('fetches a new batch of screenshots correctly', async function () {
-    const eventAttachment = EventAttachment();
+    const eventAttachment = EventAttachmentFixture();
     renderModal({
       eventAttachment,
       initialData,
       projectSlug: project.slug,
       attachmentIndex: 11,
       attachments: [
-        EventAttachment({id: '2'}),
-        EventAttachment({id: '3'}),
-        EventAttachment({id: '4'}),
-        EventAttachment({id: '5'}),
-        EventAttachment({id: '6'}),
-        EventAttachment({id: '7'}),
-        EventAttachment({id: '8'}),
-        EventAttachment({id: '9'}),
-        EventAttachment({id: '10'}),
-        EventAttachment({id: '11'}),
-        EventAttachment({id: '12'}),
+        EventAttachmentFixture({id: '2'}),
+        EventAttachmentFixture({id: '3'}),
+        EventAttachmentFixture({id: '4'}),
+        EventAttachmentFixture({id: '5'}),
+        EventAttachmentFixture({id: '6'}),
+        EventAttachmentFixture({id: '7'}),
+        EventAttachmentFixture({id: '8'}),
+        EventAttachmentFixture({id: '9'}),
+        EventAttachmentFixture({id: '10'}),
+        EventAttachmentFixture({id: '11'}),
+        EventAttachmentFixture({id: '12'}),
         eventAttachment,
       ],
       enablePagination: true,
@@ -151,8 +152,8 @@ describe('Modals -> ScreenshotModal', function () {
   });
 
   it('renders with previous and next buttons when passed attachments and index', async function () {
-    const eventAttachment = EventAttachment();
-    const attachments = [eventAttachment, EventAttachment({id: '2'})];
+    const eventAttachment = EventAttachmentFixture();
+    const attachments = [eventAttachment, EventAttachmentFixture({id: '2'})];
     render(
       <Modal
         Header={stubEl}
@@ -188,7 +189,7 @@ describe('Modals -> ScreenshotModal', function () {
   });
 
   it('does not render pagination buttons when only one screenshot', function () {
-    const eventAttachment = EventAttachment();
+    const eventAttachment = EventAttachmentFixture();
     const attachments = [eventAttachment];
     render(
       <Modal
