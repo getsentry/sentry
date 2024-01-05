@@ -6,11 +6,14 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, Optional, TypedDict
 
 from sentry import search
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.models.release_threshold import ReleaseThreshold
 from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.releases.repository import ReleaseThresholdsRepository, TimeRange
+from sentry.search.events.constants import RELEASE_ALIAS
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
@@ -53,6 +56,7 @@ class ReleaseThresholdServicer:
     def _get_new_issue_count_is_healthy(
         cls,
         project: Project,
+        release: Release,
         release_threshold: ReleaseThreshold,
         start: datetime,
         end: datetime,
@@ -64,6 +68,11 @@ class ReleaseThresholdServicer:
             "date_to": end,
             "count_hits": True,
             "limit": 1,  # we don't need the returned objects, just the total count
+            "search_filters": [
+                SearchFilter(
+                    key=SearchKey(RELEASE_ALIAS), operator="=", value=SearchValue(release.id)
+                )
+            ],
         }
         if release_threshold.environment:
             query_kwargs["environments"] = [release_threshold.environment]
