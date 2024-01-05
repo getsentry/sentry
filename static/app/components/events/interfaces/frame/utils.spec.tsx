@@ -10,7 +10,7 @@ describe('hasFileExtension', () => {
 
   test('returns false for file names without extensions', () => {
     expect(hasFileExtension('example')).toBe(false);
-    expect(hasFileExtension('<anoymous>')).toBe(false);
+    expect(hasFileExtension('<anonymous>')).toBe(false);
     expect(hasFileExtension('example.')).toBe(false);
     expect(hasFileExtension('https://sentry.sentry.io/issues/')).toBe(false);
   });
