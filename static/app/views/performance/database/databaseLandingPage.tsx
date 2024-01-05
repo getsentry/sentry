@@ -79,9 +79,9 @@ export function DatabaseLandingPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
-  const queryListResponse = useSpanMetrics(
-    pickBy(tableFilters, value => value !== undefined),
-    [
+  const queryListResponse = useSpanMetrics({
+    filters: pickBy(tableFilters, value => value !== undefined),
+    fields: [
       'project.id',
       'span.group',
       'span.description',
@@ -90,23 +90,25 @@ export function DatabaseLandingPage() {
       'sum(span.self_time)',
       'time_spent_percentage()',
     ],
-    [sort],
-    LIMIT,
+    sorts: [sort],
+    limit: LIMIT,
     cursor,
-    'api.starfish.use-span-list'
-  );
+    referrer: 'api.starfish.use-span-list',
+  });
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    chartFilters,
-    ['spm()'],
-    'api.starfish.span-landing-page-metrics-chart'
+    {
+      filters: chartFilters,
+      yAxis: ['spm()'],
+      referrer: 'api.starfish.span-landing-page-metrics-chart',
+    }
   );
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    chartFilters,
-    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+    filters: chartFilters,
+    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.span-landing-page-metrics-chart',
+  });
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;

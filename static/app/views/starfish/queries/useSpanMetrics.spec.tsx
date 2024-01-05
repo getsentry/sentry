@@ -67,7 +67,7 @@ describe('useSpanMetrics', () => {
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics(filters, fields, sorts, limit, cursor, referrer),
+        useSpanMetrics({filters, fields, sorts, limit, cursor, referrer}),
       {
         wrapper: Wrapper,
         initialProps: {

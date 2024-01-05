@@ -23,11 +23,15 @@ export type SpanMetrics = {
   'time_spent_percentage()': number;
 };
 
-export const useSpanMetricsSeries = (
-  filters: SpanMetricsQueryFilters,
-  yAxis: string[] = [],
-  referrer = 'span-metrics-series'
-) => {
+interface UseSpanMetricsSeriesOptions {
+  filters?: SpanMetricsQueryFilters;
+  referrer?: string;
+  yAxis?: string[];
+}
+
+export const useSpanMetricsSeries = (options: UseSpanMetricsSeriesOptions) => {
+  const {filters = {}, yAxis = [], referrer = 'span-metrics-series'} = options;
+
   const pageFilters = usePageFilters();
 
   const eventView = getEventView(filters, pageFilters.selection, yAxis);
