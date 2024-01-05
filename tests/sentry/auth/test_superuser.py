@@ -289,7 +289,8 @@ class SuperuserTestCase(TestCase):
         request.user = user
         assert superuser.is_active
 
-        data = request.session.get(SESSION_KEY)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
@@ -369,7 +370,8 @@ class SuperuserTestCase(TestCase):
         assert not superuser.is_active
 
         # a non-superuser
-        request.user = self.create_user("baz@example.com")
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        request.user = self.create_user("baz@example.com")  # type:ignore[unreachable]
         assert not superuser.is_active
 
         # a superuser

@@ -14,6 +14,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta
+from typing import Tuple
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -22,7 +23,7 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
 
 from sentry.api.exceptions import SentryAPIException
-from sentry.auth.elevated_mode import ElevatedMode
+from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
@@ -96,7 +97,7 @@ class Superuser(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
     org_id = ORG_ID
 
-    def _check_expired_on_org_change(self):
+    def _check_expired_on_org_change(self) -> bool:
         if self.expires is not None:
             session_start_time = self.expires - MAX_AGE
             current_datetime = timezone.now()
@@ -127,7 +128,7 @@ class Superuser(ElevatedMode):
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
@@ -145,30 +146,30 @@ class Superuser(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self):
+    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
         """
-        Returns ``(bool is_privileged, str reason)``
+        Returns ``(bool is_privileged, RequestStatus reason)``
         """
         allowed_ips = self.allowed_ips
         # if we've bound superuser to an organization they must
         # have completed SSO to gain status
         if self.org_id and not has_completed_sso(self.request, self.org_id):
+            # Allow superuser session on dev env for non sso flow
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
-                return False, "incomplete-sso"
+                return False, InactiveReason.INCOMPLETE_SSO
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
-            return True, None
+            return True, InactiveReason.NONE
         ip = ipaddress.ip_address(str(self.request.META["REMOTE_ADDR"]))
         if not any(ip in addr for addr in allowed_ips):
-            return False, "invalid-ip"
-        return True, None
+            return False, InactiveReason.INVALID_IP
+        return True, InactiveReason.NONE
 
     def get_session_data(self, current_datetime=None):
         """
         Return the current session data, with native types coerced.
         """
         request = self.request
-        data = request.session.get(SESSION_KEY)
 
         try:
             cookie_token = request.get_signed_cookie(
@@ -181,6 +182,7 @@ class Superuser(ElevatedMode):
             )
             return
 
+        data = request.session.get(SESSION_KEY)
         if not cookie_token:
             if data:
                 logger.warning(
@@ -260,7 +262,7 @@ class Superuser(ElevatedMode):
 
         return data
 
-    def _populate(self, current_datetime=None):
+    def _populate(self, current_datetime=None) -> None:
         if current_datetime is None:
             current_datetime = timezone.now()
 
@@ -297,7 +299,7 @@ class Superuser(ElevatedMode):
                         },
                     )
 
-    def _set_logged_in(self, expires, token, user, current_datetime=None):
+    def _set_logged_in(self, expires, token, user, current_datetime=None) -> None:
         # we bind uid here, as if you change users in the same request
         # we wouldn't want to still support superuser auth (given
         # the superuser check happens right here)
@@ -320,16 +322,21 @@ class Superuser(ElevatedMode):
             "uid": self.uid,
         }
 
-    def _set_logged_out(self):
+    def _set_logged_out(self) -> None:
         self.uid = None
         self.expires = None
         self.token = None
         self._is_active = False
-        self._inactive_reason = None
+        self._inactive_reason = InactiveReason.NONE
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, prefilled_su_modal=None, current_datetime=None):
+    def set_logged_in(
+        self,
+        user,
+        current_datetime=None,
+        prefilled_su_modal=None,
+    ) -> None:
         """
         Mark a session as superuser-enabled.
         """
@@ -403,7 +410,7 @@ class Superuser(ElevatedMode):
             metrics.incr("superuser.failure", sample_rate=1.0, tags={"reason": "missing-user-info"})
             logger.exception("superuser.superuser_access.missing_user_info")
 
-    def set_logged_out(self):
+    def set_logged_out(self) -> None:
         """
         Mark a session as superuser-disabled.
         """
@@ -414,7 +421,7 @@ class Superuser(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response):
+    def on_response(self, response) -> None:
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window

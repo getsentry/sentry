@@ -14,8 +14,8 @@ from sentry.auth.staff import (
     COOKIE_PATH,
     COOKIE_SALT,
     COOKIE_SECURE,
-    IDLE_MAX_STAFF_SESSION_AGE,
-    MAX_STAFF_SESSION_AGE,
+    IDLE_MAX_AGE,
+    MAX_AGE,
     SESSION_KEY,
     Staff,
     is_active_staff,
@@ -182,8 +182,8 @@ class StaffTestCase(TestCase):
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com")
         request = self.make_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
-        staff.set_logged_in(user, current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
+        staff.set_logged_in(user)
 
         # request.user wasn't set
         assert not staff.is_active
@@ -191,16 +191,17 @@ class StaffTestCase(TestCase):
         request.user = user
         assert staff.is_active
 
-        data = request.session.get(SESSION_KEY)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
-        assert data["exp"] == (self.current_datetime + MAX_STAFF_SESSION_AGE).strftime("%s")
-        assert data["idl"] == (self.current_datetime + IDLE_MAX_STAFF_SESSION_AGE).strftime("%s")
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
+        assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
         assert data["uid"] == str(user.id)
 
     def test_logout_clears_session(self):
         request = self.build_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
         staff.set_logged_out()
 
         assert not staff.is_active
@@ -268,7 +269,10 @@ class StaffTestCase(TestCase):
         assert not staff.is_active
 
         # a non-staff
-        request.user = self.create_user("baz@example.com", is_staff=False)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        request.user = self.create_user(  # type:ignore[unreachable]
+            "baz@example.com", is_staff=False
+        )
         assert not staff.is_active
 
         # a staff
