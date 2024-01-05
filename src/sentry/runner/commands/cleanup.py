@@ -46,8 +46,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
     # Configure within each Process
     import logging
 
-    from sentry.db.analyze import AnalyzeQuery
-    from sentry.monitors import models as monitor_models
     from sentry.utils.imports import import_string
 
     logger = logging.getLogger("sentry.cleanup")
@@ -95,12 +93,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             while True:
                 if not task.chunk():
                     break
-
-            # special case for MonitorCheckIn to protect against index slippage
-            # run ANALYZE on the table
-            if model is monitor_models.MonitorCheckIn:
-                q = AnalyzeQuery(model=model)
-                q.execute()
         except Exception as e:
             logger.exception(e)
         finally:
