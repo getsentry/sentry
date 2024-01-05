@@ -553,9 +553,10 @@ class QueryExecutor:
                     if executable_query.order_by.startswith("-"):
                         order_by_direction = Direction.DESC
 
-                    totals_executable_query = executable_query.replace_order_by(order_by_direction)
+                    totals_executable_query = totals_executable_query.replace_order_by(
+                        order_by_direction
+                    )
 
-                # TODO: check why limit is not working.
                 totals_result = run_query(
                     request=self._build_request(
                         totals_executable_query.to_totals_query().metrics_query
