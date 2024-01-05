@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from dateutil import parser
@@ -121,8 +120,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
         data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
-        start: datetime
-        end: datetime
         start, end = get_date_range_from_params(params=data)
         logger.info(
             "Checking release status health",

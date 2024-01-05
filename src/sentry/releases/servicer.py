@@ -5,12 +5,15 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, Optional, TypedDict
 
+from sentry import search
 from sentry.api.serializers import serialize
+from sentry.models.project import Project
+from sentry.models.release_threshold import ReleaseThreshold
+from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.releases.repository import ReleaseThresholdsRepository, TimeRange
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 if TYPE_CHECKING:
-    from sentry.models.deploy import Deploy
     from sentry.models.organization import Organization
 
 
@@ -45,6 +48,35 @@ class FlattenedThresholds:
 class ReleaseThresholdServicer:
     def __init__(self, repository: Optional[ReleaseThresholdsRepository] = None) -> None:
         self.repository = repository if repository else ReleaseThresholdsRepository()
+
+    @classmethod
+    def _get_new_issue_count_is_healthy(
+        cls,
+        project: Project,
+        release_threshold: ReleaseThreshold,
+        start: datetime,
+        end: datetime,
+    ) -> bool:
+        # Can we filter by release, is that a thing?
+        query_kwargs = {
+            "projects": [project],
+            "date_from": start,
+            "date_to": end,
+            "count_hits": True,
+            "limit": 1,  # we don't need the returned objects, just the total count
+        }
+        if release_threshold.environment:
+            query_kwargs["environments"] = [release_threshold.environment]
+
+        result = search.query(**query_kwargs)
+        new_issues = result.hits
+
+        baseline_value = release_threshold.value
+        if release_threshold.trigger_type == TriggerType.OVER:
+            # If new issues is under/equal the threshold value, then it is healthy
+            return new_issues <= baseline_value
+        # Else, if new issues is over/equal the threshold value, then it is healthy
+        return new_issues >= baseline_value
 
     def get_thresholds_by_type(
         self,
@@ -84,9 +116,7 @@ class ReleaseThresholdServicer:
                         "end": datetime.now(tz=timezone.utc),
                     }
 
-                latest_deploy: Deploy | None = release_thresholds.get_latest_deploy_id_by_threshold(
-                    index=i
-                )
+                latest_deploy = release_thresholds.get_latest_deploy_id_by_threshold(index=i)
                 # NOTE: query window starts at the earliest release up until the latest threshold window
                 if latest_deploy:
                     threshold_start = latest_deploy.date_finished
@@ -104,18 +134,26 @@ class ReleaseThresholdServicer:
                 # meaning project and environment models are dictionaries
                 enriched_threshold: EnrichedThreshold = serialize(threshold)
                 # NOTE: start/end for a threshold are different from start/end for querying data
+
+                threshold_end = threshold_start + timedelta(seconds=threshold.window_in_seconds)
+                is_healthy = False
+                if threshold.threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
+                    is_healthy = self._get_new_issue_count_is_healthy(
+                        project=project,
+                        release_threshold=threshold,
+                        start=threshold_start,
+                        end=threshold_end,
+                    )
+
                 enriched_threshold.update(
                     {
                         "key": release_thresholds.get_threshold_key(),
                         "start": threshold_start,
-                        "end": threshold_start
-                        + timedelta(
-                            seconds=threshold.window_in_seconds
-                        ),  # start + threshold.window
+                        "end": threshold_end,  # start + threshold.window
                         "release": release.version,
                         "project_slug": project.slug,
                         "project_id": project.id,
-                        "is_healthy": False,
+                        "is_healthy": is_healthy,
                     }
                 )
                 thresholds_by_type[threshold.threshold_type]["thresholds"].append(
