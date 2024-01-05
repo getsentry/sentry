@@ -163,7 +163,7 @@ class EndpointRegressionDetector(RegressionDetector):
     regression_type = RegressionType.ENDPOINT
     min_change = 200  # 200ms in ms
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
@@ -204,7 +204,7 @@ class FunctionRegressionDetector(RegressionDetector):
     regression_type = RegressionType.FUNCTION
     min_change = 100_000_000  # 100ms in ns
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
