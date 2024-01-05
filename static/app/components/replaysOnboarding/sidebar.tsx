@@ -258,65 +258,65 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     projectSlug: currentProject.slug,
   });
 
+  const radioButtons = (
+    <Header>
+      {showRadioButtons ? (
+        <StyledRadioGroup
+          label="mode"
+          choices={[
+            [
+              'npm',
+              backendPlatforms ? (
+                <PlatformSelect key="platform-select">
+                  {tct('I use [platformSelect]', {
+                    platformSelect: (
+                      <CompactSelect
+                        triggerLabel={jsFramework.label}
+                        value={jsFramework.value}
+                        onChange={setJsFramework}
+                        options={jsFrameworkSelectOptions}
+                        position="bottom-end"
+                        key={jsFramework.textValue}
+                      />
+                    ),
+                  })}
+                  {jsFrameworkDocs?.platformOptions &&
+                    tct('with [optionSelect]', {
+                      optionSelect: (
+                        <PlatformOptionDropdown
+                          platformOptions={jsFrameworkDocs?.platformOptions}
+                        />
+                      ),
+                    })}
+                </PlatformSelect>
+              ) : (
+                t('I use NPM or Yarn')
+              ),
+            ],
+            ['jsLoader', t('I use HTML templates')],
+          ]}
+          value={setupMode()}
+          onChange={setSetupMode}
+        />
+      ) : (
+        newDocs?.platformOptions &&
+        newOnboarding && (
+          <PlatformSelect>
+            {tct("I'm using [platformSelect]", {
+              platformSelect: (
+                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
+              ),
+            })}
+          </PlatformSelect>
+        )
+      )}
+    </Header>
+  );
+
   if (isLoading || isProjKeysLoading) {
     return (
       <Fragment>
-        <Header>
-          {showRadioButtons ? (
-            <StyledRadioGroup
-              label="mode"
-              choices={[
-                [
-                  'npm',
-                  backendPlatforms ? (
-                    <PlatformSelect key="platform-select">
-                      {t('I use')}
-                      <div
-                        onClick={e => {
-                          // we need to stop bubbling the CompactSelect click event
-                          // failing to do so will cause the sidebar panel to close
-                          // the event.target will be unmounted by the time the panel listener
-                          // receives the event and assume the click was outside the panel
-                          e.stopPropagation();
-                        }}
-                      >
-                        <CompactSelect
-                          triggerLabel={jsFramework.label}
-                          value={jsFramework.value}
-                          onChange={setJsFramework}
-                          options={jsFrameworkSelectOptions}
-                          position="bottom-end"
-                          key={jsFramework.textValue}
-                        />
-                      </div>
-                      {jsFrameworkDocs?.platformOptions && (
-                        <Fragment>
-                          {t('with')}
-                          <PlatformOptionDropdown
-                            platformOptions={jsFrameworkDocs?.platformOptions}
-                          />
-                        </Fragment>
-                      )}
-                    </PlatformSelect>
-                  ) : (
-                    t('I use NPM or Yarn')
-                  ),
-                ],
-                ['jsLoader', t('I use HTML templates')],
-              ]}
-              value={setupMode()}
-              onChange={setSetupMode}
-            />
-          ) : (
-            newDocs?.platformOptions &&
-            newOnboarding && (
-              <PlatformSelect>
-                {t("I'm using")}
-                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
-              </PlatformSelect>
-            )
-          )}
-        </Header>
+        {radioButtons}
         <LoadingIndicator />
       </Fragment>
     );
@@ -376,62 +376,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   return (
     <Fragment>
-      <Header>
-        {showRadioButtons ? (
-          <StyledRadioGroup
-            label="mode"
-            choices={[
-              [
-                'npm',
-                backendPlatforms ? (
-                  <PlatformSelect key="platform-select">
-                    {t('I use')}
-                    <div
-                      onClick={e => {
-                        // we need to stop bubbling the CompactSelect click event
-                        // failing to do so will cause the sidebar panel to close
-                        // the event.target will be unmounted by the time the panel listener
-                        // receives the event and assume the click was outside the panel
-                        e.stopPropagation();
-                      }}
-                    >
-                      <CompactSelect
-                        triggerLabel={jsFramework.label}
-                        value={jsFramework.value}
-                        onChange={setJsFramework}
-                        options={jsFrameworkSelectOptions}
-                        position="bottom-end"
-                        key={jsFramework.textValue}
-                      />
-                    </div>
-                    {jsFrameworkDocs?.platformOptions && (
-                      <Fragment>
-                        {t('with')}
-                        <PlatformOptionDropdown
-                          platformOptions={jsFrameworkDocs?.platformOptions}
-                        />
-                      </Fragment>
-                    )}
-                  </PlatformSelect>
-                ) : (
-                  t('I use NPM or Yarn')
-                ),
-              ],
-              ['jsLoader', t('I use HTML templates')],
-            ]}
-            value={setupMode()}
-            onChange={setSetupMode}
-          />
-        ) : (
-          newDocs?.platformOptions &&
-          newOnboarding && (
-            <PlatformSelect>
-              {t("I'm using")}
-              <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
-            </PlatformSelect>
-          )
-        )}
-      </Header>
+      {radioButtons}
       {newOnboarding && newDocs ? (
         <ReplayOnboardingLayout
           docsConfig={newDocs}
