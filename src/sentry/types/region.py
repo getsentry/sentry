@@ -287,8 +287,9 @@ def get_local_region() -> Region:
     # context when passing through test rpc calls, but we can't rely on settings because
     # django settings are not thread safe :'(
     # We use this thread local instead which is managed by the SiloMode context managers
-    if SingleProcessSiloModeState.get_region():
-        return SingleProcessSiloModeState.get_region()
+    single_process_region = SingleProcessSiloModeState.get_region()
+    if single_process_region is not None:
+        return single_process_region
 
     if not settings.SENTRY_REGION:
         if in_test_environment():
