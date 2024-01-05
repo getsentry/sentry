@@ -47,12 +47,12 @@ def override_org_id(new_org_id: int):
     the module level, but we cannot override module level variables using
     Django's built-in override_settings, so we need this context manager.
     """
-    old_org_id = staff.ORG_ID
-    staff.ORG_ID = new_org_id
+    old_org_id = staff.STAFF_ORG_ID
+    staff.STAFF_ORG_ID = new_org_id
     try:
         yield
     finally:
-        staff.ORG_ID = old_org_id
+        staff.STAFF_ORG_ID = old_org_id
 
 
 @control_silo_test
