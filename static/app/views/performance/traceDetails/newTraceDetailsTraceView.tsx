@@ -1,4 +1,4 @@
-import {createRef, Fragment, memo, useEffect} from 'react';
+import {createRef, Fragment, memo, useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -151,6 +151,7 @@ function NewTraceView({
   onRowClick,
   ...props
 }: Props) {
+  const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
   const sentrySpan = sentryTransaction?.startChild({
     op: 'trace.render',
@@ -232,6 +233,8 @@ function NewTraceView({
             numberOfHiddenErrorsAbove={0}
           />
           <TransactionGroup
+            isBarScrolledTo={isTransactionBarScrolledTo}
+            onBarScrolledTo={() => setIsTransactionBarScrolledTo(true)}
             onRowClick={onRowClick}
             location={location}
             traceViewRef={traceViewRef}
@@ -347,6 +350,8 @@ function NewTraceView({
             numberOfHiddenErrorsAbove={index > 0 ? currentHiddenCount : 0}
           />
           <TransactionGroup
+            isBarScrolledTo={isTransactionBarScrolledTo}
+            onBarScrolledTo={() => setIsTransactionBarScrolledTo(true)}
             onRowClick={onRowClick}
             location={location}
             organization={organization}
@@ -440,6 +445,8 @@ function NewTraceView({
                 </TraceViewHeaderContainer>
                 <TraceViewContainer ref={traceViewRef}>
                   <TransactionGroup
+                    isBarScrolledTo={isTransactionBarScrolledTo}
+                    onBarScrolledTo={() => setIsTransactionBarScrolledTo(true)}
                     onRowClick={onRowClick}
                     location={location}
                     organization={organization}

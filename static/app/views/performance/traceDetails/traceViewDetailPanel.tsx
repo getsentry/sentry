@@ -56,6 +56,7 @@ import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {PageErrorProvider} from 'sentry/utils/performance/contexts/pageError';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -211,6 +212,35 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     .filter(isNotPerformanceScoreMeasurement)
     .sort();
 
+  const renderMeasurements = () =>  {
+      if(!detail.event){
+        return null;
+      }
+
+      const {measurements} = detail.event;
+
+      const measurementKeys = Object.keys(measurements ?? {})
+        .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+        .sort();
+
+      if (!measurements || measurementKeys.length <= 0) {
+        return null;
+      }
+
+      return (
+        <Fragment>
+          {measurementKeys.map(measurement => (
+            <Row
+              key={measurement}
+              title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
+            >
+              <PerformanceDuration milliseconds={Number(measurements[measurement].value.toFixed(3))} abbreviation />
+            </Row>
+          ))}
+        </Fragment>
+      );
+  };
+
   const renderGoToProfileButton = () => {
     if (!detail.traceFullDetailedEvent.profile_id) {
       return null;
@@ -358,6 +388,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           </Row>
 
           <OpsBreakdown event={detail.event} />
+
+          {renderMeasurements()}
 
           <Tags
             enableHiding
@@ -551,6 +583,8 @@ const Title = styled(FlexBox)`
 const TransactionOp = styled('div')`
   font-size: 25px;
   font-weight: bold;
+  max-width: 600px;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TransactionIdTitle = styled('a')`

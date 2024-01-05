@@ -1,4 +1,4 @@
-import {LocationDescriptor, Query} from 'history';
+import {LocationDescriptorObject, Query} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {Organization, OrganizationSummary} from 'sentry/types';
@@ -19,7 +19,7 @@ export function getTraceDetailsUrl(
   traceSlug: string,
   dateSelection,
   query: Query
-): LocationDescriptor {
+): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
   const queryParams = {

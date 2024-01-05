@@ -31,8 +31,12 @@ import {formatTagKey} from 'sentry/utils/discover/fields';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
-import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import TraceMetaQuery, {
+} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import {
+  getTraceTimeRangeFromEvent,
+  isTransaction,
+} from 'sentry/utils/performance/quickTrace/utils';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
 import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
@@ -43,6 +47,7 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
+import TraceDetailsRouting from '../traceDetails/TraceDetailsRouting';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getSelectedProjectPlatforms} from '../utils';
 
@@ -171,165 +176,166 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
         end={end}
       >
         {metaResults => (
-          <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-            {results => (
-              <TransactionProfileIdProvider
-                projectId={event.projectID}
-                transactionId={event.type === 'transaction' ? event.id : undefined}
-                timestamp={event.dateReceived}
-              >
-                <Layout.Header>
-                  <Layout.HeaderContent>
-                    <Breadcrumb
-                      organization={organization}
-                      location={location}
-                      transaction={{
-                        project: event.projectID,
-                        name: transactionName,
-                      }}
-                      eventSlug={eventSlug}
-                    />
-                    <Layout.Title data-test-id="event-header">
-                      <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-                        <EventTitle>{event.title}</EventTitle>
-                      </Tooltip>
-                      {originatingUrl && (
-                        <Button
-                          aria-label={t('Go to originating URL')}
-                          size="zero"
-                          icon={<IconOpen />}
-                          href={originatingUrl}
-                          external
-                          translucentBorder
-                          borderless
-                        />
-                      )}
-                    </Layout.Title>
-                  </Layout.HeaderContent>
-                  <Layout.HeaderActions>
-                    <ButtonBar gap={1}>
-                      <Button size="sm" onClick={this.toggleSidebar}>
-                        {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-                      </Button>
-                      {results && (
-                        <Button
-                          size="sm"
-                          icon={<IconOpen />}
-                          href={eventJsonUrl}
-                          external
-                        >
-                          {t('JSON')} (<FileSize bytes={event.size} />)
-                        </Button>
-                      )}
-                      {hasProfilingFeature && (
-                        <TransactionToProfileButton projectSlug={this.projectId} />
-                      )}
-                    </ButtonBar>
-                  </Layout.HeaderActions>
-                </Layout.Header>
-                <Layout.Body>
-                  {results && (
-                    <Layout.Main fullWidth>
-                      <EventMetas
-                        quickTrace={results}
-                        meta={metaResults?.meta ?? null}
-                        event={event}
-                        organization={organization}
-                        projectId={this.projectId}
-                        location={location}
-                        errorDest="issue"
-                        transactionDest="performance"
-                      />
-                    </Layout.Main>
-                  )}
-                  <Layout.Main fullWidth={!isSidebarVisible}>
-                    <Projects orgId={organization.slug} slugs={[this.projectId]}>
-                      {({projects: _projects}) => (
-                        <SpanEntryContext.Provider
-                          value={{
-                            getViewChildTransactionTarget: childTransactionProps => {
-                              return getTransactionDetailsUrl(
-                                organization.slug,
-                                childTransactionProps.eventSlug,
-                                childTransactionProps.transaction,
-                                location.query
-                              );
-                            },
-                          }}
-                        >
-                          <QuickTraceContext.Provider value={results}>
-                            {hasProfilingFeature ? (
-                              <ProfilesProvider
-                                orgSlug={organization.slug}
-                                projectSlug={this.projectId}
-                                profileId={profileId || ''}
-                              >
-                                <ProfileContext.Consumer>
-                                  {profiles => (
-                                    <ProfileGroupProvider
-                                      type="flamechart"
-                                      input={
-                                        profiles?.type === 'resolved'
-                                          ? profiles.data
-                                          : null
-                                      }
-                                      traceID={profileId || ''}
-                                    >
-                                      <BorderlessEventEntries
-                                        organization={organization}
-                                        event={event}
-                                        project={_projects[0] as Project}
-                                        showTagSummary={false}
-                                        location={location}
-                                      />
-                                    </ProfileGroupProvider>
-                                  )}
-                                </ProfileContext.Consumer>
-                              </ProfilesProvider>
-                            ) : (
-                              <BorderlessEventEntries
-                                organization={organization}
-                                event={event}
-                                project={_projects[0] as Project}
-                                showTagSummary={false}
-                                location={location}
+                  <TraceDetailsRouting
+                  event={event}
+                  metaResults={metaResults}
+                >
+                <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+                  {results => (
+                    <TransactionProfileIdProvider
+                      projectId={event.projectID}
+                      transactionId={event.type === 'transaction' ? event.id : undefined}
+                      timestamp={event.dateReceived}
+                    >
+                      <Layout.Header>
+                        <Layout.HeaderContent>
+                          <Breadcrumb
+                            organization={organization}
+                            location={location}
+                            transaction={{
+                              project: event.projectID,
+                              name: transactionName,
+                            }}
+                            eventSlug={eventSlug}
+                          />
+                          <Layout.Title data-test-id="event-header">
+                            <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+                              <EventTitle>{event.title}</EventTitle>
+                            </Tooltip>
+                            {originatingUrl && (
+                              <Button
+                                aria-label={t('Go to originating URL')}
+                                size="zero"
+                                icon={<IconOpen />}
+                                href={originatingUrl}
+                                external
+                                translucentBorder
+                                borderless
                               />
                             )}
-                          </QuickTraceContext.Provider>
-                        </SpanEntryContext.Provider>
-                      )}
-                    </Projects>
-                  </Layout.Main>
-                  {isSidebarVisible && (
-                    <Layout.Side>
-                      {results === undefined && (
-                        <Fragment>
-                          <EventMetadata
-                            event={event}
-                            organization={organization}
-                            projectId={this.projectId}
-                          />
-                          <RootSpanStatus event={event} />
-                        </Fragment>
-                      )}
-                      <EventVitals event={event} />
-                      <EventCustomPerformanceMetrics
-                        event={event}
-                        location={location}
-                        organization={organization}
-                        source={EventDetailPageSource.PERFORMANCE}
-                      />
-                      <TagsTable
-                        event={event}
-                        query={query}
-                        generateUrl={this.generateTagUrl}
-                      />
-                    </Layout.Side>
+                          </Layout.Title>
+                        </Layout.HeaderContent>
+                        <Layout.HeaderActions>
+                          <ButtonBar gap={1}>
+                            <Button size="sm" onClick={this.toggleSidebar}>
+                              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+                            </Button>
+                            {results && (
+                              <Button size="sm" icon={<IconOpen />} href={eventJsonUrl} external>
+                                {t('JSON')} (<FileSize bytes={event.size} />)
+                              </Button>
+                            )}
+                            {hasProfilingFeature && isTransaction(event) && (
+                              <TransactionToProfileButton
+                                event={event}
+                                projectSlug={this.projectId}
+                              />
+                            )}
+                          </ButtonBar>
+                        </Layout.HeaderActions>
+                      </Layout.Header>
+                      <Layout.Body>
+                        {results && (
+                          <Layout.Main fullWidth>
+                            <EventMetas
+                              quickTrace={results}
+                              meta={metaResults?.meta ?? null}
+                              event={event}
+                              organization={organization}
+                              projectId={this.projectId}
+                              location={location}
+                              errorDest="issue"
+                              transactionDest="performance"
+                            />
+                          </Layout.Main>
+                        )}
+                        <Layout.Main fullWidth={!isSidebarVisible}>
+                          <Projects orgId={organization.slug} slugs={[this.projectId]}>
+                            {({projects: _projects}) => (
+                              <SpanEntryContext.Provider
+                                value={{
+                                  getViewChildTransactionTarget: childTransactionProps => {
+                                    return getTransactionDetailsUrl(
+                                      organization.slug,
+                                      childTransactionProps.eventSlug,
+                                      childTransactionProps.transaction,
+                                      location.query
+                                    );
+                                  },
+                                }}
+                              >
+                                <QuickTraceContext.Provider value={results}>
+                                  {hasProfilingFeature ? (
+                                    <ProfilesProvider
+                                      orgSlug={organization.slug}
+                                      projectSlug={this.projectId}
+                                      profileId={profileId || ''}
+                                    >
+                                      <ProfileContext.Consumer>
+                                        {profiles => (
+                                          <ProfileGroupProvider
+                                            type="flamechart"
+                                            input={
+                                              profiles?.type === 'resolved' ? profiles.data : null
+                                            }
+                                            traceID={profileId || ''}
+                                          >
+                                            <BorderlessEventEntries
+                                              organization={organization}
+                                              event={event}
+                                              project={_projects[0] as Project}
+                                              showTagSummary={false}
+                                              location={location}
+                                            />
+                                          </ProfileGroupProvider>
+                                        )}
+                                      </ProfileContext.Consumer>
+                                    </ProfilesProvider>
+                                  ) : (
+                                    <BorderlessEventEntries
+                                      organization={organization}
+                                      event={event}
+                                      project={_projects[0] as Project}
+                                      showTagSummary={false}
+                                      location={location}
+                                    />
+                                  )}
+                                </QuickTraceContext.Provider>
+                              </SpanEntryContext.Provider>
+                            )}
+                          </Projects>
+                        </Layout.Main>
+                        {isSidebarVisible && (
+                          <Layout.Side>
+                            {results === undefined && (
+                              <Fragment>
+                                <EventMetadata
+                                  event={event}
+                                  organization={organization}
+                                  projectId={this.projectId}
+                                />
+                                <RootSpanStatus event={event} />
+                              </Fragment>
+                            )}
+                            <EventVitals event={event} />
+                            <EventCustomPerformanceMetrics
+                              event={event}
+                              location={location}
+                              organization={organization}
+                              source={EventDetailPageSource.PERFORMANCE}
+                            />
+                            <TagsTable
+                              event={event}
+                              query={query}
+                              generateUrl={this.generateTagUrl}
+                            />
+                          </Layout.Side>
+                        )}
+                      </Layout.Body>
+                    </TransactionProfileIdProvider>
                   )}
-                </Layout.Body>
-              </TransactionProfileIdProvider>
-            )}
-          </QuickTraceQuery>
+                </QuickTraceQuery>
+                </TraceDetailsRouting>
         )}
       </TraceMetaQuery>
     );

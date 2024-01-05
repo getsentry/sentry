@@ -37,21 +37,25 @@ class WaterfallModel {
   hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
   focusedSpanIds: Set<string> | undefined = undefined;
+  traceInfo: TraceInfo | undefined = undefined;
 
   constructor(
     event: Readonly<EventTransaction | AggregateEventTransaction>,
     affectedSpanIds?: string[],
     focusedSpanIds?: string[],
-    hiddenSpanSubTrees?: Set<string>
+    hiddenSpanSubTrees?: Set<string>,
+    traceInfo?: TraceInfo
   ) {
     this.event = event;
+    this.traceInfo = traceInfo;
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
     this.rootSpan = new SpanTreeModel(
       rootSpan,
       this.parsedTrace.childSpans,
       this.api,
-      true
+      true,
+      traceInfo
     );
 
     // Track the trace bounds of the current transaction and the trace bounds of
@@ -286,17 +290,15 @@ class WaterfallModel {
   generateBounds = ({
     viewStart,
     viewEnd,
-    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
-    traceInfo?: TraceInfo;
   }) => {
-    const bounds = traceInfo
+    const bounds = this.traceInfo
       ? {
-          traceEndTimestamp: traceInfo.endTimestamp,
-          traceStartTimestamp: traceInfo.startTimestamp,
+          traceEndTimestamp: this.traceInfo.endTimestamp,
+          traceStartTimestamp: this.traceInfo.startTimestamp,
         }
       : this.getTraceBounds();
 
@@ -310,17 +312,14 @@ class WaterfallModel {
   getWaterfall = ({
     viewStart,
     viewEnd,
-    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
-    traceInfo?: TraceInfo;
   }) => {
     const generateBounds = this.generateBounds({
       viewStart,
       viewEnd,
-      traceInfo,
     });
 
     return this.rootSpan.getSpansList({

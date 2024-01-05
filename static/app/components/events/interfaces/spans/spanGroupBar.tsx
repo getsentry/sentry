@@ -59,6 +59,7 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   spanTargetHash,
+  VerticalMark,
 } from './utils';
 
 const MARGIN_LEFT = 0;
@@ -79,6 +80,7 @@ type Props = {
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
+  measurements?: Map<number, VerticalMark>;
   spanBarType?: SpanBarType;
 };
 
@@ -151,13 +153,14 @@ function renderDivider(
 
 function renderMeasurements(
   event: Readonly<EventTransaction | AggregateEventTransaction>,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType,
+  measurements: Map<number, VerticalMark> | undefined,
 ) {
-  const measurements = getMeasurements(event, generateBounds);
+  const barMeasurements =  measurements ?? getMeasurements(event, generateBounds);
 
   return (
     <Fragment>
-      {Array.from(measurements).map(([timestamp, verticalMark]) => {
+      {Array.from(barMeasurements).map(([timestamp, verticalMark]) => {
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
         const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -194,6 +197,7 @@ export function SpanGroupBar(props: Props) {
     getCurrentLeftPos,
     spanBarType,
     event,
+    measurements
   } = props;
 
   const theme = useTheme();
@@ -346,7 +350,7 @@ export function SpanGroupBar(props: Props) {
                 onClick={() => toggleSpanGroup()}
               >
                 {props.renderSpanRectangles()}
-                {renderMeasurements(event, generateBounds)}
+                {renderMeasurements(event, generateBounds, measurements)}
                 <SpanBarCursorGuide />
               </RowCell>
               <DividerLineGhostContainer

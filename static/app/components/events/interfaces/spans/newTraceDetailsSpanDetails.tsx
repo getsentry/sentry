@@ -455,6 +455,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     <TransactionToProfileButton
                       size="xs"
                       projectSlug={project.slug}
+                      event={event}
                       query={{
                         spanId: span.span_id,
                       }}

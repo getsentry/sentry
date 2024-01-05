@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import {Location,LocationDescriptorObject} from 'history';
 import isNumber from 'lodash/isNumber';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
@@ -13,13 +13,16 @@ import {
   AggregateEventTransaction,
   EntrySpans,
   EntryType,
+  Event,
   EventTransaction,
 } from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
+import {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
@@ -458,6 +461,36 @@ export function getTraceContext(
   return event?.contexts?.trace;
 }
 
+export function handleTraceDetailsRouting(
+    metaResults: TraceMetaQueryChildrenProps | undefined,
+    event: Event,
+    organization: Organization,
+    location: Location
+  ) {
+    const traceId = event.contexts?.trace?.trace_id ?? '';
+
+    if (
+      organization.features.includes('performance-trace-details') &&
+      metaResults?.meta &&
+      metaResults?.meta.transactions <= 200
+    ) {
+      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+        organization,
+        traceId,
+        event.title,
+        location.query
+      );
+
+      browserHistory.replace({
+        pathname: traceDetailsLocation.pathname,
+        query: {
+          transaction: traceDetailsLocation.query?.transaction,
+        },
+        hash: transactionTargetHash(event.eventID) + location.hash,
+      });
+    }
+}
+
 export function parseTrace(
   event: Readonly<EventTransaction | AggregateEventTransaction>
 ): ParsedTraceType {
@@ -883,6 +916,26 @@ export function scrollToSpan(
       organization,
       span_id: spanId,
     });
+  };
+}
+
+type TraceDetailsHashIds = {
+  eventId: string | undefined;
+  spanId: string | undefined;
+};
+
+export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | null {
+  if (!hash) {
+    return null;
+  }
+
+  const values = hash.split('#').slice(1);
+  const eventId = values.find(value => value.includes('txn'))?.split('-')[1];
+  const spanId = values.find(value => value.includes('span'))?.split('-')[1];
+
+  return {
+    eventId,
+    spanId,
   };
 }
 
