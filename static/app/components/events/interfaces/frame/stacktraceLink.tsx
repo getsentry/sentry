@@ -486,12 +486,13 @@ const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organiza
   ${p =>
     p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
       ? css`
-          color: ${p.theme.linkColor};
+          color: ${p.theme.subText};
           animation: ${fadeIn} 0.2s ease-in-out forwards;
           &:hover {
             text-decoration: underline;
-            text-decoration-color: ${p.theme.linkUnderline};
+            text-decoration-color: ${p.theme.textColor};
             text-underline-offset: ${space(0.5)};
+            color: ${p.theme.textColor};
           }
         `
       : css`
