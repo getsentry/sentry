@@ -12,10 +12,11 @@ from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.releases.servicer import EnrichedThreshold
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format
 
 
-class ReleaseThresholdStatusTest(APITestCase):
+class ReleaseThresholdStatusTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-release-threshold-statuses"
     method = "get"
 
@@ -95,7 +96,7 @@ class ReleaseThresholdStatusTest(APITestCase):
             project=self.project1,
             environment=self.canary_environment,
         )
-        ReleaseThreshold.objects.create(
+        self.new_issue_count_release_threshold = ReleaseThreshold.objects.create(
             threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
             trigger_type=1,
             value=100,
@@ -132,6 +133,19 @@ class ReleaseThresholdStatusTest(APITestCase):
         )
 
         self.login_as(user=self.user)
+        self._setup_new_issue_counts()
+
+    def _setup_new_issue_counts(self) -> None:
+        self.store_event(
+            project_id=self.new_issue_count_release_threshold.project.id,
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(datetime.now() - timedelta(hours=24)),
+                "user": {"id": self.user.id, "email": self.user.email},
+                "release": self.release1.id,
+                "environment": self.canary_environment.name,
+            },
+        )
 
     def test_get_success(self):
         """
@@ -488,7 +502,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -511,7 +526,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -534,7 +550,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -557,7 +574,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -580,7 +598,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -664,7 +683,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -687,7 +707,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -772,7 +793,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -795,7 +817,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -879,7 +902,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -902,7 +926,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -966,7 +991,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -989,7 +1015,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -1012,7 +1039,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -1035,7 +1063,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(
@@ -1058,7 +1087,8 @@ class ErrorCountThresholdCheckTest(TestCase):
             "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "window_in_seconds": 60,
+            # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
         is_healthy, metric_count = is_error_count_healthy(

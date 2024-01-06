@@ -69,7 +69,6 @@ class ReleaseThresholdServicer:
         start: datetime,
         end: datetime,
     ) -> bool:
-        # Can we filter by release, is that a thing?
         query_kwargs = {
             "projects": [project],
             "date_from": start,
@@ -152,7 +151,8 @@ class ReleaseThresholdServicer:
                 if latest_deploy:
                     threshold_start = latest_deploy.date_finished
                 else:
-                    threshold_start = release.date
+                    # release.date is annotated through a query and linter does not like the name change
+                    threshold_start = release.date  # type: ignore
 
                 query_windows_by_type[threshold.threshold_type]["start"] = min(
                     threshold_start, query_windows_by_type[threshold.threshold_type]["start"]
