@@ -1,0 +1,24 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module* (removed codegen marker)
+            "com.example.api.OutboundController$$EnhancerByGuice$$<auto>"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+system:
+  hash: "7d2cc7acbf90328200d960bf78a26234"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "com.example.api.OutboundController$$EnhancerByGuice$$<auto>"
+          function*
+            "jipJipManagementApplication"

@@ -98,7 +98,6 @@ class GroupingConfigLoader:
 
 
 class ProjectGroupingConfigLoader(GroupingConfigLoader):
-
     option_name: str  # Set in subclasses
 
     def _get_config_id(self, project):
@@ -155,6 +154,19 @@ def get_default_enhancements(config_id=None):
     return Enhancements(rules=[], bases=[base]).dumps()
 
 
+def get_projects_default_fingerprinting_bases(project, config_id: str | None = None):
+    from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+
+    config_id = (
+        config_id
+        or PrimaryGroupingConfigLoader()._get_config_id(project)
+        or DEFAULT_GROUPING_CONFIG
+    )
+
+    bases = CONFIGURATIONS[config_id].fingerprinting_bases
+    return bases
+
+
 def get_default_grouping_config_dict(id=None):
     """Returns the default grouping config."""
     if id is None:
@@ -181,12 +193,13 @@ def load_default_grouping_config():
     return load_grouping_config(config_dict=None)
 
 
-def get_fingerprinting_config_for_project(project):
+def get_fingerprinting_config_for_project(project, config_id: str | None = None):
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
+    bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
     rules = project.get_option("sentry:fingerprinting_rules")
     if not rules:
-        return FingerprintingRules([])
+        return FingerprintingRules([], bases=bases)
 
     from sentry.utils.cache import cache
     from sentry.utils.hashlib import md5_text
@@ -197,9 +210,9 @@ def get_fingerprinting_config_for_project(project):
         return FingerprintingRules.from_json(rv)
 
     try:
-        rv = FingerprintingRules.from_config_string(rules)
+        rv = FingerprintingRules.from_config_string(rules, bases=bases)
     except InvalidFingerprintingConfig:
-        rv = FingerprintingRules([])
+        rv = FingerprintingRules([], bases=bases)
     cache.set(cache_key, rv.to_json())
     return rv
 
@@ -232,7 +245,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
         rv = strategy.get_grouping_component_variants(event, context=context)
-        for (variant, component) in rv.items():
+        for variant, component in rv.items():
             per_variant_components.setdefault(variant, []).append(component)
 
             if winning_strategy is None:
@@ -249,7 +262,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
                 component.update(contributes=False, hint=precedence_hint)
 
     rv = {}
-    for (variant, components) in per_variant_components.items():
+    for variant, components in per_variant_components.items():
         component = GroupingComponent(id=variant, values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
@@ -298,7 +311,7 @@ def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
         rv = {}
-        for (key, component) in components.items():
+        for key, component in components.items():
             component.update(
                 contributes=False,
                 hint="custom fingerprint takes precedence",
@@ -311,14 +324,14 @@ def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant
     # If the fingerprints are unsalted, we can return them right away.
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
-        for (key, component) in components.items():
+        for key, component in components.items():
             rv[key] = ComponentVariant(component, context.config)
 
     # Otherwise we need to salt each of the components.
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        for (key, component) in components.items():
+        for key, component in components.items():
             rv[key] = SaltedComponentVariant(
                 fingerprint, component, context.config, fingerprint_info
             )
@@ -337,7 +350,6 @@ def sort_grouping_variants(variants):
     hierarchical_variants = []
 
     for name, variant in variants.items():
-
         if name in HIERARCHICAL_VARIANTS:
             hierarchical_variants.append((name, variant))
         else:
@@ -371,6 +383,16 @@ def detect_synthetic_exception(event_data, grouping_config):
         mechanism = get_path(exception, "mechanism")
         # Only detect if undecided:
         if mechanism is not None and mechanism.get("synthetic") is None:
+            exception_type = exception.get("type")
+            if exception_type and _synthetic_exception_type_re.match(exception_type):
+                mechanism["synthetic"] = True
+    for exception in get_path(event_data, "exception", "values", filter=True, default=[]):
+        mechanism = get_path(exception, "mechanism")
+        # Only detect if undecided:
+        if mechanism is not None and mechanism.get("synthetic") is None:
+            exception_type = exception.get("type")
+            if exception_type and _synthetic_exception_type_re.match(exception_type):
+                mechanism["synthetic"] = True
             exception_type = exception.get("type")
             if exception_type and _synthetic_exception_type_re.match(exception_type):
                 mechanism["synthetic"] = True

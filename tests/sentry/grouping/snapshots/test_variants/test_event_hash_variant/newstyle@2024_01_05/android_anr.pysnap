@@ -1,0 +1,1570 @@
+---
+created: '2023-12-12T13:53:09.636718Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            module*
+              "com.android.internal.os.ZygoteInit"
+            filename (module takes precedence)
+              "zygoteinit.java"
+            function*
+              "main"
+          frame (non app frame)
+            module*
+              "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            filename (module takes precedence)
+              "zygoteinit.java"
+            function*
+              "run"
+          frame (marked out of app by stack trace rule (module:java.* -app))
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "method.java"
+            function*
+              "invoke"
+          frame (marked out of app by stack trace rule (module:java.* -app))
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "method.java"
+            function*
+              "invoke"
+          frame (non app frame)
+            module*
+              "android.app.ActivityThread"
+            filename (module takes precedence)
+              "activitythread.java"
+            function*
+              "main"
+          frame (non app frame)
+            module*
+              "android.os.Looper"
+            filename (module takes precedence)
+              "looper.java"
+            function*
+              "loop"
+          frame (non app frame)
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "handler.java"
+            function*
+              "dispatchMessage"
+          frame (non app frame)
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "handler.java"
+            function*
+              "handleCallback"
+          frame (non app frame)
+            module*
+              "android.view.Choreographer$FrameDisplayEventReceiver"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "run"
+          frame (non app frame)
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "doFrame"
+          frame (non app frame)
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "doCallbacks"
+          frame (non app frame)
+            module*
+              "android.view.Choreographer$CallbackRecord"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "run"
+          frame (non app frame)
+            module*
+              "android.view.ViewRootImpl$TraversalRunnable"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "run"
+          frame (non app frame)
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "doTraversal"
+          frame (non app frame)
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "performTraversals"
+          frame (non app frame)
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "performLayout"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (non app frame)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (non app frame)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "onLayout"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "dispatchLayout"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "dispatchLayoutStep1"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "processAdapterUpdatesAndSetAnimationFlags"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.AdapterHelper"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "consumeUpdatesInOnePass"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.RecyclerView$6"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "offsetPositionsForAdd"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "offsetPositionRecordsForInsert"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.ChildHelper"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "getUnfilteredChildAt"
+          frame (non app frame)
+            module*
+              "androidx.recyclerview.widget.RecyclerView$5"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "getChildAt"
+        type*
+          "ApplicationNotResponding"
+        value* (stripped event-specific values)
+          "Application Not Responding for at least <int> ms."
+      threads (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (marked out of app by stack trace rule (module:java.* -app))
+            module*
+              "java.lang.Thread"
+            filename (module takes precedence)
+              "thread.java"
+            function*
+              "getStackTrace"
+          frame (non app frame)
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "vmstack.java"
+            function*
+              "getThreadStackTrace"
+--------------------------------------------------------------------------
+system:
+  hash: "2552498cfe69a6ddf1dcdde5440ce9c3"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "com.android.internal.os.ZygoteInit"
+            filename (module takes precedence)
+              "zygoteinit.java"
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            filename (module takes precedence)
+              "zygoteinit.java"
+            function*
+              "run"
+          frame (marked out of app by stack trace rule (module:java.* -app))
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "method.java"
+            function*
+              "invoke"
+          frame (marked out of app by stack trace rule (module:java.* -app))
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "method.java"
+            function*
+              "invoke"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.app.ActivityThread"
+            filename (module takes precedence)
+              "activitythread.java"
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.os.Looper"
+            filename (module takes precedence)
+              "looper.java"
+            function*
+              "loop"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "handler.java"
+            function*
+              "dispatchMessage"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "handler.java"
+            function*
+              "handleCallback"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.Choreographer$FrameDisplayEventReceiver"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "run"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "doFrame"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "doCallbacks"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.Choreographer$CallbackRecord"
+            filename (module takes precedence)
+              "choreographer.java"
+            function*
+              "run"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewRootImpl$TraversalRunnable"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "run"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "doTraversal"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "performTraversals"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "viewrootimpl.java"
+            function*
+              "performLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "layoutVertical"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "linearlayout.java"
+            function*
+              "setChildFrame"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "framelayout.java"
+            function*
+              "layoutChildren"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "viewgroup.java"
+            function*
+              "layout"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "view.java"
+            function*
+              "layout"
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "onLayout"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "dispatchLayout"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "dispatchLayoutStep1"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "processAdapterUpdatesAndSetAnimationFlags"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.AdapterHelper"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "consumeUpdatesInOnePass"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.RecyclerView$6"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "offsetPositionsForAdd"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "offsetPositionRecordsForInsert"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.ChildHelper"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "getUnfilteredChildAt"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "androidx.recyclerview.widget.RecyclerView$5"
+            filename (module takes precedence)
+              "sourcefile"
+            function*
+              "getChildAt"
+        type*
+          "ApplicationNotResponding"
+        value (ignored because stacktrace takes precedence)
+          "Application Not Responding for at least <int> ms."
+      threads (exception of system takes precedence)
+        stacktrace*
+          frame*
+            module*
+              "java.lang.Thread"
+            filename (module takes precedence)
+              "thread.java"
+            function*
+              "getStackTrace"
+          frame (ignored by stack trace rule (category:internals -group))
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "vmstack.java"
+            function*
+              "getThreadStackTrace"

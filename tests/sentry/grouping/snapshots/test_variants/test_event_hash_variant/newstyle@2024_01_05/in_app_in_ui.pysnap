@@ -1,0 +1,294 @@
+---
+created: '2023-12-12T13:53:15.232494Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "5b032559156688c9eabe4e4bd5ae6bd4"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "main.m"
+            function*
+              "main"
+          frame (non app frame)
+            function*
+              "UIApplicationMain"
+          frame (non app frame)
+            function*
+              "-[UIApplication _run]"
+          frame (non app frame)
+            function*
+              "GSEventRunModal"
+          frame (non app frame)
+            function*
+              "CFRunLoopRunSpecific"
+          frame (non app frame)
+            function*
+              "__CFRunLoopRun"
+          frame (non app frame)
+            function*
+              "__CFRunLoopDoObservers"
+          frame (non app frame)
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame (non app frame)
+            function*
+              "CA::Transaction::observer_callback"
+          frame (non app frame)
+            function*
+              "CA::Transaction::commit"
+          frame (non app frame)
+            function*
+              "CA::Context::commit_transaction"
+          frame (non app frame)
+            function*
+              "CA::Layer::layout_and_display_if_needed"
+          frame (non app frame)
+            function*
+              "CA::Layer::layout_if_needed"
+          frame (non app frame)
+            function*
+              "-[CALayer layoutSublayers]"
+          frame (non app frame)
+            function*
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "TableView.layoutSubviews"
+          frame (non app frame)
+            function*
+              "-[UITableView layoutSubviews]"
+          frame (non app frame)
+            function*
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame (non app frame)
+            function*
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame*
+            filename*
+              "anytableviewcontroller.swift"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename*
+              "dailydigesttableviewsection.swift"
+            function*
+              "DailyDigestTableViewSection.photoCell"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "Sequence.compactMap<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSource"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"
+--------------------------------------------------------------------------
+system:
+  hash: "1921b991270e24c19ea1ed6863892d71"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "start"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename*
+              "main.m"
+            function*
+              "main"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "UIApplicationMain"
+          frame*
+            function*
+              "-[UIApplication _run]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "GSEventRunModal"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "CFRunLoopRunSpecific"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopRun"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRunLoopDoObservers"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Transaction::observer_callback"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Transaction::commit"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Context::commit_transaction"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Layer::layout_and_display_if_needed"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "CA::Layer::layout_if_needed"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[CALayer layoutSublayers]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "TableView.layoutSubviews"
+          frame*
+            function*
+              "-[UITableView layoutSubviews]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UITableView _updateVisibleCellsNow:]"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored due to recursion)
+            filename*
+              "<compiler-generated>"
+            function*
+              "AnyTableViewController.tableView"
+          frame*
+            filename*
+              "anytableviewcontroller.swift"
+            function*
+              "AnyTableViewController.tableView"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename*
+              "dailydigesttableviewsection.swift"
+            function*
+              "DailyDigestTableViewSection.photoCell"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "Sequence.compactMap<T>"
+          frame (ignored by stack trace rule (category:internals -group))
+            filename*
+              "<compiler-generated>"
+            function*
+              "closure"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSources"
+          frame*
+            filename*
+              "mediaslideshow+extensions.swift"
+            function*
+              "MediaSlideshow.toSource"
+          frame*
+            filename*
+              "<compiler-generated>"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function*
+              "CurrentUserProfile.isVideoAutoplay.getter"
+          frame*
+            filename*
+              "currentuserprofile.swift"
+            function*
+              "value"
+        type (ignored because exception is synthetic)
+          "EXC_BREAKPOINT"
+        value (ignored because stacktrace takes precedence)
+          "autoplayOption"

@@ -4,6 +4,7 @@ import inspect
 import logging
 from pathlib import Path
 
+from django.conf import settings
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
@@ -194,7 +195,7 @@ class FingerprintingRules:
         return cls(rules=[Rule._from_config_structure(x) for x in data["rules"]], version=version)
 
     def _to_config_structure(self, include_builtin=False):
-        rules = self.iter_rules() if include_builtin else self.rules
+        rules = self.iter_rules(include_builtin=include_builtin)
 
         return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
 
@@ -518,12 +519,17 @@ def _load_configs():
                 config_file_path,
                 ex,
             )
+            if settings.DEBUG:
+                raise
         except Exception as ex:
             logger.warning(
                 "Failed to load Fingerprinting Config %s: %s",
                 config_file_path,
                 ex,
             )
+            if settings.DEBUG:
+                raise
+
     return configs
 
 

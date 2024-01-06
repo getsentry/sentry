@@ -1,0 +1,114 @@
+---
+created: '2023-11-28T16:31:48.761745Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame (non app frame)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame (non app frame)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (non app frame)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (non app frame)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (non app frame)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (non app frame)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"
+--------------------------------------------------------------------------
+system:
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "main"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "normalFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame (ignored due to recursion)
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "recurFunc"
+        frame*
+          module*
+            "com.example.Application"
+          filename (module takes precedence)
+            "application.java"
+          function*
+            "throwError"

@@ -202,6 +202,18 @@ register_strategy_config(
 )
 
 
+register_strategy_config(
+    id="newstyle:2024-01-05",
+    base="newstyle:2023-01-11",
+    risk=RISK_LEVEL_MEDIUM,
+    hidden=True,
+    changelog="""
+        * Added ChukloadErrors via new built-in fingerprinting support.
+    """,
+    fingerprinting_bases=["nextjs@2023-12-22"],
+)
+
+
 # Deprecated strategies
 #
 # These should not be used.  They are experiments which should be phased out
