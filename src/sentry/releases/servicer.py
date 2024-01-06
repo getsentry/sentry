@@ -85,7 +85,7 @@ class ReleaseThresholdServicer:
             query_kwargs["environments"] = [release_threshold.environment]
 
         try:
-            result = search.query(**query_kwargs)
+            result = search.query(**query_kwargs)  # type: ignore
         except Exception as e:
             self.logger.error(
                 "There was an error trying to grab new issue count",
@@ -164,8 +164,8 @@ class ReleaseThresholdServicer:
                 # NOTE: enriched threshold is SERIALIZED
                 # meaning project and environment models are dictionaries
                 enriched_threshold: EnrichedThreshold = serialize(threshold)
-                # NOTE: start/end for a threshold are different from start/end for querying data
 
+                # NOTE: start/end for a threshold are different from start/end for querying data
                 threshold_end = threshold_start + timedelta(seconds=threshold.window_in_seconds)
                 is_healthy = False
                 if threshold.threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
