@@ -17,9 +17,10 @@ class InternalEAFeaturesEndpoint(Endpoint):
         ea_org = Organization()
         ea_org.flags.early_adopter = True
 
-        ea_features = [
-            feature_name for feature_name in features_dict if features.has(feature_name, ea_org)
-        ]
+        features_batch = features.batch_has(features_dict.keys(), organization=ea_org)
+        all_features_dict = features_batch[f"organization:{ea_org.id}"]
+
+        ea_features = list(filter(lambda key: all_features_dict[key], all_features_dict))
 
         missing_from_self_hosted = [
             feature for feature in ea_features if feature not in SENTRY_EARLY_FEATURES
