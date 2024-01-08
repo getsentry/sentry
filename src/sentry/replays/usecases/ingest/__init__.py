@@ -6,15 +6,12 @@ import zlib
 from datetime import datetime, timezone
 from typing import Optional, TypedDict, cast
 
-from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import Hub, set_tag
 from sentry_sdk.tracing import Span
 
-from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.replays.feature import has_feature_access
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
@@ -197,14 +194,6 @@ def recording_post_processor(
     segment_bytes: bytes,
     transaction: Span,
 ) -> None:
-    if not has_feature_access(
-        message.org_id,
-        options.get("replay.ingest.dom-click-search"),
-        settings.SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST,
-    ):
-        _report_size_metrics(size_compressed=len(segment_bytes))
-        return None
-
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)
