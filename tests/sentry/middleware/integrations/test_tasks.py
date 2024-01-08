@@ -117,6 +117,41 @@ class AsyncSlackResponseTest(TestCase):
         )
         assert slack_response.call_count == 0
 
+    @responses.activate
+    @override_regions(region_config)
+    def test_fallback_to_request_body(self):
+        responses.add(
+            responses.POST,
+            "https://us.testserver/extensions/slack/action/",
+            status=404,
+            body="ok=false&region=us",
+            adding_headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": "0",
+            },
+        )
+        responses.add(
+            responses.POST,
+            "https://eu.testserver/extensions/slack/action/",
+            status=204,
+            body="ok=true&region=eu",
+            adding_headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Content-Length": "0",
+            },
+        )
+        slack_response = responses.add(
+            responses.POST,
+            self.response_url,
+            status=200,
+        )
+        convert_to_async_slack_response(
+            region_names=["us", "eu"],
+            payload=self.payload,
+            response_url=self.response_url,
+        )
+        assert slack_response.call_count == 1
+
 
 @control_silo_test
 class AsyncDiscordResponseTest(TestCase):

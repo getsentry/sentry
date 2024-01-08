@@ -60,11 +60,18 @@ def convert_to_async_slack_response(
     if not result["response"]:
         return
 
+    response_payload = None
     try:
-        payload = json.loads(result["response"].content.decode(encoding="utf-8"))
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-    integration_response = requests.post(response_url, json=payload)
+        response_body = result["response"].content
+        response_payload = json.loads(response_body.decode(encoding="utf-8"))
+    except Exception:
+        pass
+
+    integration_response = (
+        requests.post(response_url, json=response_payload)
+        if response_payload is not None
+        else requests.post(response_url, data=response_body)
+    )
     logger.info(
         "slack.async_integration_response",
         extra={
