@@ -7,7 +7,6 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -20,6 +19,7 @@ from sentry.search.utils import map_device_class_level
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.snuba.utils import DATASET_OPTIONS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

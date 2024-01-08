@@ -3,7 +3,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
-from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 
 
 class DiscoverProcessorTest(TestCase, SnubaTestCase):
@@ -88,3 +88,24 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         assert new_result_list[0] != result_list
         assert new_result_list[0]["count(id) / fake(field)"] == 5
         assert new_result_list[0]["count(id) / 2"] == 8
+
+
+class DiscoverIssuesProcessorTest(TestCase, PerformanceIssueTestCase):
+    def test_handle_dataset(self):
+        query = {
+            "statsPeriod": "14d",
+            "project": [self.project.id],
+            "field": ["count(id)", "fake(field)", "issue"],
+            "query": "",
+        }
+        query["field"] = ["title", "count()"]
+        query["dataset"] = "issuePlatform"
+        self.create_performance_issue()
+        processor = DiscoverProcessor(organization_id=self.organization.id, discover_query=query)
+        assert processor.header_fields == [
+            "title",
+            "count",
+        ]
+        result = processor.data_fn(0, 1)
+        assert len(result["data"]) == 1
+        assert result["data"][0]["title"] == "N+1 Query"
