@@ -19,9 +19,9 @@ from sentry.services.hybrid_cloud.organization.model import (
 @control_silo_endpoint
 class OrgAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrgAuthTokenPermission,)

@@ -110,8 +110,8 @@ def get_serializer_field_metadata(serializer, fields=None):
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
 

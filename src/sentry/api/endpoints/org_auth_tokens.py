@@ -35,8 +35,8 @@ from sentry.utils.security.orgauthtoken_token import (
 @control_silo_endpoint
 class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrgAuthTokenPermission,)

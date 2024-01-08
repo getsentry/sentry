@@ -48,7 +48,7 @@ class UserPasswordSerializer(serializers.Serializer):
 class UserPasswordEndpoint(UserEndpoint):
     owner = ApiOwner.SECURITY
     publish_status = {
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def put(self, request: Request, user) -> Response:

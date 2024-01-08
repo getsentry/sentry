@@ -16,7 +16,7 @@ logger = logging.getLogger("sentry.accounts")
 @control_silo_endpoint
 class UserSocialIdentityDetailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
 
