@@ -67,7 +67,7 @@ describe('useSpanMetricsSeries', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(
-      ({filters, yAxis}) => useSpanMetricsSeries(filters, yAxis),
+      ({filters, yAxis}) => useSpanMetricsSeries({filters, yAxis}),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -121,7 +121,7 @@ describe('useSpanMetricsSeries', () => {
     });
 
     const {rerender, waitForNextUpdate} = reactHooks.renderHook(
-      ({yAxis}) => useSpanMetricsSeries({}, yAxis),
+      ({yAxis}) => useSpanMetricsSeries({yAxis}),
       {
         wrapper: Wrapper,
         initialProps: {

@@ -110,9 +110,9 @@ import sentry_sdk
 sentry_sdk.init(
     ...
     _experiments={
-        # Turns on the metrics module (required)
+        # Turns on the metrics module
         "enable_metrics": True,
-        # Enables sending of code locations for metrics (recommended)
+        # Enables sending of code locations for metrics
         "metric_code_locations": True,
     },
 )`;
@@ -154,9 +154,9 @@ export const getPythonMetricsOnboarding = ({
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
+              label: 'Python',
+              value: 'python',
+              language: 'python',
               code: getPythonConfigureSnippet(),
             },
           ],
@@ -181,9 +181,9 @@ export const getPythonMetricsOnboarding = ({
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
+              label: 'Python',
+              value: 'python',
+              language: 'python',
               code: getPythonVerifySnippet(),
             },
           ],

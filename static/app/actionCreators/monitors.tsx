@@ -6,6 +6,7 @@ import {
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {logException} from 'sentry/utils/logging';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {Monitor} from 'sentry/views/monitors/types';
 
 export async function deleteMonitor(api: Client, orgId: string, monitorSlug: string) {
@@ -60,8 +61,16 @@ export async function updateMonitor(
     clearIndicators();
     return resp;
   } catch (err) {
+    const respError: RequestError = err;
+    const updateKeys = Object.keys(data);
+
+    // If we are updating a single value in the monitor we can read the
+    // validation error for that key, otherwise fallback to the default error
+    const validationError =
+      updateKeys.length === 1 ? respError.responseJSON?.[updateKeys[0]]?.[0] : undefined;
+
     logException(err);
-    addErrorMessage(t('Unable to update monitor.'));
+    addErrorMessage(validationError ?? t('Unable to update monitor.'));
   }
 
   return null;
