@@ -640,22 +640,27 @@ def post_process_group(
             ]
 
         try:
-            if not is_transaction_event:
-                if len(group_states) == 0:
-                    metrics.incr("sentry.tasks.post_process.error_empty_group_states")
-                elif len(group_states) > 1:
-                    metrics.incr("sentry.tasks.post_process.error_too_many_group_states")
-                elif group_id != group_states[0]["id"]:
-                    metrics.incr("sentry.tasks.post_process.error_group_states_dont_match_group")
-            else:
-                if len(group_states) == 1:
-                    metrics.incr("sentry.tasks.post_process.transaction_has_group_state")
-                    if group_id != group_states[0]["id"]:
+            if group_states is not None:
+                if not is_transaction_event:
+                    if len(group_states) == 0:
+                        metrics.incr("sentry.tasks.post_process.error_empty_group_states")
+                    elif len(group_states) > 1:
+                        metrics.incr("sentry.tasks.post_process.error_too_many_group_states")
+                    elif group_id != group_states[0]["id"]:
                         metrics.incr(
-                            "sentry.tasks.post_process.transaction_group_states_dont_match_group"
+                            "sentry.tasks.post_process.error_group_states_dont_match_group"
                         )
-                if len(group_states) > 1:
-                    metrics.incr("sentry.tasks.post_process.transaction_has_too_many_group_states")
+                else:
+                    if len(group_states) == 1:
+                        metrics.incr("sentry.tasks.post_process.transaction_has_group_state")
+                        if group_id != group_states[0]["id"]:
+                            metrics.incr(
+                                "sentry.tasks.post_process.transaction_group_states_dont_match_group"
+                            )
+                    if len(group_states) > 1:
+                        metrics.incr(
+                            "sentry.tasks.post_process.transaction_has_too_many_group_states"
+                        )
         except Exception:
             logger.exception(
                 "Error logging group_states stats. If this happens it's noisy but not critical, nothing is broken"
