@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Sequence, Set
 
-from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request, OrderBy, Direction
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.organization import Organization
@@ -12,7 +12,7 @@ from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.metadata.utils import get_snuba_conditions_from_query
 from sentry.snuba import spans_indexed
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import is_mri
+from sentry.snuba.metrics.naming_layer.mri import is_mri, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -46,8 +46,8 @@ class SpansSource(ABC):
         organization: Organization,
         projects: Sequence[Project],
     ):
-        self._organization = organization
-        self._projects = projects
+        self.organization = organization
+        self.projects = projects
 
     def get_spans(
         self,
@@ -58,14 +58,7 @@ class SpansSource(ABC):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Span]:
-        """
-        Returns multiple `Span`s given a set of `span_ids`.
-
-        The rationale behind this query is that we want to query the main `spans` entity to get more information about the
-        span. Since this query is relatively inefficient due to the use of the `IN` operator, we might want to change the
-        data representation in the future.
-        """
-        span_ids = self.get_span_ids(
+        return self._get_spans(
             metric_mri=metric_mri,
             conditions=get_snuba_conditions_from_query(query) if query else None,
             start=start,
@@ -74,50 +67,13 @@ class SpansSource(ABC):
             max_value=max_value,
         )
 
-        if not span_ids:
-            return []
-
-        data = spans_indexed.query(
-            selected_columns=[
-                "project_id",
-                "span_id",
-                "trace_id",
-                "transaction_id",
-                "profile_id",
-                "duration",
-                "timestamp",
-            ],
-            # We are interested in the most recent spans for now.
-            orderby=["-timestamp"],
-            params={
-                "organization_id": self._organization.id,
-                "project_objects": self._projects,
-                "start": start,
-                "end": end,
-            },
-            query=f"span_id:[{','.join(span_ids)}]",
-            referrer=Referrer.API_DDM_FETCH_SPANS.value,
-        )["data"]
-
-        return [
-            Span(
-                project_id=value["project_id"],
-                span_id=value["span_id"],
-                trace_id=value["trace_id"],
-                transaction_id=value["transaction_id"],
-                profile_id=value["profile_id"],
-                duration=value["duration"],
-            )
-            for value in data
-        ]
-
     @classmethod
     @abstractmethod
     def supports(cls, metric_mri: str) -> bool:
         raise NotImplementedError
 
     @abstractmethod
-    def get_span_ids(
+    def _get_spans(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -125,16 +81,12 @@ class SpansSource(ABC):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Set[str]:
+    ) -> Sequence[Span]:
         raise NotImplementedError
 
 
 class MetricsSummariesSpansSource(SpansSource):
-    @classmethod
-    def supports(cls, metric_mri: str) -> bool:
-        return is_mri(metric_mri)
-
-    def get_span_ids(
+    def _get_span_ids_from_metrics_summaries(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -151,7 +103,7 @@ class MetricsSummariesSpansSource(SpansSource):
         series of Snuba conditions that we apply on the tags of the metric summary. For example, if you are filtering by
         tag device:iPhone, we will only show you the spans in which the metric with tag device:iPhone was emitted.
         """
-        project_ids = [project.id for project in self._projects]
+        project_ids = [project.id for project in self.projects]
 
         where = []
         if min_value is not None:
@@ -182,7 +134,7 @@ class MetricsSummariesSpansSource(SpansSource):
             dataset=Dataset.SpansIndexed.value,
             app_id="metrics",
             query=query,
-            tenant_ids={"organization_id": self._organization.id},
+            tenant_ids={"organization_id": self.organization.id},
         )
 
         data = raw_snql_query(
@@ -191,9 +143,163 @@ class MetricsSummariesSpansSource(SpansSource):
 
         return {value["span_id"] for value in data}
 
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        return is_mri(metric_mri)
 
-# List of span sources that are currently supported. The highest priority ones should be placed on the top of the list.
-SUPPORTED_SPANS_SOURCES = [MetricsSummariesSpansSource]
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        span_ids = self._get_span_ids_from_metrics_summaries(
+            metric_mri=metric_mri,
+            conditions=conditions,
+            start=start,
+            end=end,
+            min_value=min_value,
+            max_value=max_value,
+        )
+        if not span_ids:
+            return []
+
+        # return get_indexed_spans(
+        #     where=[Condition(Column("span_id"), Op.IN, list(span_ids))],
+        #     start=start,
+        #     end=end,
+        #     organization=self.organization,
+        #     projects=self.projects,
+        # )
+        return get_indexed_spans_2(
+            span_ids=span_ids,
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
+
+
+class TransactionDurationSpansSource(SpansSource):
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        return metric_mri == TransactionMRI.DURATION.value
+
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        # return get_indexed_spans(
+        #     query=f"duration:>={min_value} AND duration:<={max_value} AND is_segment:1",
+        #     start=start,
+        #     end=end,
+        #     organization=self.organization,
+        #     projects=self.projects,
+        # )
+        return []
+
+def get_indexed_spans_2(
+    span_ids: Set[str],
+    start: datetime,
+    end: datetime,
+    organization: Organization,
+    projects: Sequence[Project],
+):
+    data = spans_indexed.query(
+        selected_columns=[
+            "project_id",
+            "span_id",
+            "trace_id",
+            "transaction_id",
+            "profile_id",
+            "duration",
+            "timestamp",
+        ],
+        # We are interested in the most recent spans for now.
+        orderby=["-timestamp"],
+        params={
+            "organization_id": organization.id,
+            "project_objects": projects,
+            "start": start,
+            "end": end,
+        },
+        query=f"span_id:[{','.join(span_ids)}]",
+        referrer=Referrer.API_DDM_FETCH_SPANS.value,
+    )["data"]
+
+    return [
+        Span(
+            project_id=value["project_id"],
+            span_id=value["span_id"],
+            trace_id=value["trace_id"],
+            transaction_id=value["transaction_id"],
+            profile_id=value["profile_id"],
+            duration=value["duration"],
+        )
+        for value in data
+    ]
+
+def get_indexed_spans(
+    where: Optional[ConditionGroup],
+    start: datetime,
+    end: datetime,
+    organization: Organization,
+    projects: Sequence[Project],
+):
+    """
+    Fetches indexed spans using internal query builders.
+    """
+    project_ids = [project.id for project in projects]
+
+    query = Query(
+        match=Entity(EntityKey.Spans.value),
+        select=[
+            Column("project_id"),
+            Column("span_id"),
+            Column("trace_id"),
+            Column("transaction_id"),
+            Column("profile_id"),
+            Column("duration"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+        ],
+       # + (where or []),
+        orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
+    )
+
+    request = Request(
+        dataset=Dataset.SpansIndexed.value,
+        app_id="metrics",
+        query=query,
+        tenant_ids={"organization_id": organization.id},
+    )
+
+    data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)[
+        "data"
+    ]
+
+    return [
+        Span(
+            project_id=value["project_id"],
+            span_id=value["span_id"],
+            trace_id=value["trace_id"],
+            transaction_id=value["transaction_id"],
+            profile_id=value["profile_id"],
+            duration=value["duration"],
+        )
+        for value in data
+    ]
 
 
 def get_spans_source(
@@ -204,7 +310,7 @@ def get_spans_source(
 
     In case multiple sources would apply to a `metric_mri` the first one is chosen.
     """
-    for source_clazz in SUPPORTED_SPANS_SOURCES:
+    for source_clazz in [TransactionDurationSpansSource, MetricsSummariesSpansSource]:
         if source_clazz.supports(metric_mri):
             return source_clazz(organization=organization, projects=projects)
 
@@ -220,6 +326,7 @@ def get_spans_of_metric(
     max_value: Optional[float],
     organization: Organization,
     projects: Sequence[Project],
+    # TODO: add environment support.
 ) -> MetricSpans:
     """
     Returns the spans in which the metric with `metric_mri` was emitted.
