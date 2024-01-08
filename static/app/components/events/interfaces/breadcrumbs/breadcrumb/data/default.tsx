@@ -4,6 +4,8 @@ import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfac
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
@@ -106,7 +108,12 @@ function FormatMessage({
         <Highlight text={searchTerm}>{transactionData.title}</Highlight>
       </Link>
     ) : (
-      content
+      <Tooltip
+        showUnderline
+        title={t('This transaction cannot be found due to sampling.')}
+      >
+        {content}
+      </Tooltip>
     );
 
     return description;
