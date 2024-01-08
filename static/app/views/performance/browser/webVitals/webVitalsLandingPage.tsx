@@ -102,13 +102,11 @@ export default function WebVitalsLandingPage() {
                   webVital={state.webVital}
                 />
               </PerformanceScoreChartContainer>
-              <WebVitalMetersContainer>
-                <WebVitalMeters
-                  projectData={projectData}
-                  projectScore={projectScore}
-                  onClick={webVital => setState({...state, webVital})}
-                />
-              </WebVitalMetersContainer>
+              <WebVitalMeters
+                projectData={projectData}
+                projectScore={projectScore}
+                onClick={webVital => setState({...state, webVital})}
+              />
               <PagePerformanceTable />
             </Fragment>
           )}
@@ -138,8 +136,4 @@ const PerformanceScoreChartContainer = styled('div')`
 
 const OnboardingContainer = styled('div')`
   margin-top: ${space(2)};
-`;
-
-const WebVitalMetersContainer = styled('div')`
-  margin-bottom: ${space(4)};
 `;
