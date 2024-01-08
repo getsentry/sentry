@@ -109,13 +109,28 @@ def _format_event_id(event_id: str) -> str:
     return uuid.UUID(event_id).hex
 
 
-def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
+def _deserialize_payload_as_ingest(payload: bytes) -> Mapping[str, Any]:
     return INGEST_SPAN_SCHEMA.decode(payload)
+
+
+def _deserialize_payload_as_snuba(payload: bytes) -> Mapping[str, Any]:
+    return SNUBA_SPAN_SCHEMA.decode(payload)
 
 
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredPayload:
     try:
-        payload = _deserialize_payload(message.payload.value)
+        # Try to deserialize as snuba-spans schema.
+        _ = _deserialize_payload_as_snuba(message.payload.value)
+        # If it works, the payload was already translated to a snuba-spans
+        # schema and we can sent it right away to Kafka.
+        return KafkaPayload(key=None, value=message.payload.value, headers=[])
+    except Exception:
+        # If it fails, it's not in the snuba-spans schema and we proceed
+        # as usual.
+        pass
+
+    try:
+        payload = _deserialize_payload_as_ingest(message.payload.value)
     except ValidationError as err:
         metrics.incr("spans.consumer.schema_validation.failed.input")
         _capture_exception(err)
