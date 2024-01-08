@@ -228,46 +228,56 @@ function PerformanceScoreRingWithTooltips({
       <svg height={height} width={width}>
         {!hideWebVitalLabels && (
           <Fragment>
-            <WebVitalLabel
-              {...commonWebVitalLabelProps}
-              webVital="lcp"
-              coordinates={{
-                x: lcpX,
-                y: lcpY,
-              }}
-            />
-            <WebVitalLabel
-              {...commonWebVitalLabelProps}
-              webVital="fcp"
-              coordinates={{
-                x: fcpX,
-                y: fcpY,
-              }}
-            />
-            <WebVitalLabel
-              {...commonWebVitalLabelProps}
-              webVital="fid"
-              coordinates={{
-                x: fidX,
-                y: fidY,
-              }}
-            />
-            <WebVitalLabel
-              {...commonWebVitalLabelProps}
-              webVital="cls"
-              coordinates={{
-                x: clsX,
-                y: clsY,
-              }}
-            />
-            <WebVitalLabel
-              {...commonWebVitalLabelProps}
-              webVital="ttfb"
-              coordinates={{
-                x: ttfbX,
-                y: ttfbY,
-              }}
-            />
+            {weights.lcp > 0 && (
+              <WebVitalLabel
+                {...commonWebVitalLabelProps}
+                webVital="lcp"
+                coordinates={{
+                  x: lcpX,
+                  y: lcpY,
+                }}
+              />
+            )}
+            {weights.fcp > 0 && (
+              <WebVitalLabel
+                {...commonWebVitalLabelProps}
+                webVital="fcp"
+                coordinates={{
+                  x: fcpX,
+                  y: fcpY,
+                }}
+              />
+            )}
+            {weights.fid > 0 && (
+              <WebVitalLabel
+                {...commonWebVitalLabelProps}
+                webVital="fid"
+                coordinates={{
+                  x: fidX,
+                  y: fidY,
+                }}
+              />
+            )}
+            {weights.cls > 0 && (
+              <WebVitalLabel
+                {...commonWebVitalLabelProps}
+                webVital="cls"
+                coordinates={{
+                  x: clsX,
+                  y: clsY,
+                }}
+              />
+            )}
+            {weights.ttfb > 0 && (
+              <WebVitalLabel
+                {...commonWebVitalLabelProps}
+                webVital="ttfb"
+                coordinates={{
+                  x: ttfbX,
+                  y: ttfbY,
+                }}
+              />
+            )}
           </Fragment>
         )}
         <PerformanceScoreRing
