@@ -429,7 +429,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {showStacktraceLinkInFrame && (
+            {showStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}
@@ -438,7 +438,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 />
               </ErrorBoundary>
             )}
-            {showSentryAppStacktraceLinkInFrame && (
+            {showSentryAppStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
               <ErrorBoundary mini>
                 <OpenInContextLine
                   lineNo={data.lineNo}
