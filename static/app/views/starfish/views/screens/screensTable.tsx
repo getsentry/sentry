@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -8,6 +8,7 @@ import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import {Project} from 'sentry/types';
 import {
   TableData,
   TableDataRow,
@@ -19,7 +20,6 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
@@ -36,12 +36,18 @@ type Props = {
   isLoading: boolean;
   pageLinks: string | undefined;
   onCursor?: CursorHandler;
+  project?: Project | null;
 };
 
-export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
+export function ScreensTable({
+  data,
+  eventView,
+  isLoading,
+  pageLinks,
+  onCursor,
+  project,
+}: Props) {
   const location = useLocation();
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const truncatedPrimary = formatVersionAndCenterTruncate(
@@ -52,14 +58,6 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
     secondaryRelease ?? '',
     MAX_TABLE_RELEASE_CHARS
   );
-
-  const project = useMemo(() => {
-    if (selection.projects.length !== 1) {
-      return null;
-    }
-    return projects.find(p => p.id === String(selection.projects));
-  }, [projects, selection.projects]);
-
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
