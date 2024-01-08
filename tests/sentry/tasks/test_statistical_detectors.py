@@ -519,13 +519,13 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
 @pytest.mark.parametrize(
     ["existing", "expected_versions"],
     [
-        pytest.param([], [1], id="no existing"),
+        pytest.param([], [0], id="no existing"),
         pytest.param(
             [
                 (1, False, "1"),
                 (2, False, "1"),
             ],
-            [3],
+            [2],
             id="existing inactive",
         ),
         pytest.param(
@@ -545,7 +545,7 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
                 (3, False, "2"),
                 (4, True, "2"),
             ],
-            [3, None],
+            [2, None],
             id="mixed active and inactive",
         ),
         pytest.param(
@@ -553,7 +553,7 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
                 (1, True, "1"),
                 (2, False, "1"),
             ],
-            [3],
+            [2],
             id="use latest version",
         ),
     ],
@@ -605,7 +605,7 @@ def test_get_regression_versions(
     regressions = list(detector_cls.get_regression_versions(mock_regressions()))
 
     assert regressions == [
-        (expected_version, breakpoints[i])
+        (expected_version, None if expected_version == 0 else timestamp, breakpoints[i])
         for i, expected_version in enumerate(expected_versions)
         if expected_version is not None
     ]
@@ -878,7 +878,7 @@ def test_new_regression_group(
     project,
     timestamp,
 ):
-    def get_regressions():
+    def get_regressions(ts):
         yield {
             "project": str(project.id),
             "transaction": object_name,
@@ -889,10 +889,10 @@ def test_new_regression_group(
             "trend_percentage": 1.23,
             "absolute_percentage_change": 1.23,
             "trend_difference": 1.23,
-            "breakpoint": (timestamp - timedelta(days=1)).timestamp(),
+            "breakpoint": (ts - timedelta(days=1)).timestamp(),
         }
 
-    regressions = get_regressions()
+    regressions = get_regressions(timestamp)
     regressions = detector_cls.save_regressions_with_versions(regressions)
     assert len(list(regressions)) == 1  # indicates we should've saved 1 regression group
 
@@ -927,7 +927,7 @@ def test_new_regression_group(
 
     # there is a buffer on auto resolution, so in the first 24 hours
     # after the regression is detected, we will not auto resolve the issue
-    for hours in range(23, 0, -1):
+    for hours in reversed(range(1, 24)):
         ts = timestamp - timedelta(hours=hours)
         trends = get_trends(ts)
         trends = detector_cls.get_regression_groups(trends)
@@ -941,6 +941,66 @@ def test_new_regression_group(
     trends = detector_cls.redirect_resolutions(trends, timestamp)
     assert len(list(trends)) == 0  # should resolve, so it is redirected, thus 0
     assert produce_occurrence_to_kafka.called
+
+
+@pytest.mark.parametrize(
+    ["detector_cls", "object_name"],
+    [
+        pytest.param(
+            EndpointRegressionDetector,
+            "transaction_1",
+            id="endpoint",
+        ),
+        pytest.param(
+            FunctionRegressionDetector,
+            "123",
+            id="function",
+        ),
+    ],
+)
+@django_db_all
+def test_save_regressions_with_versions(
+    detector_cls,
+    object_name,
+    project,
+    timestamp,
+):
+    RegressionGroup.objects.create(
+        type=detector_cls.regression_type.value,
+        date_regressed=timestamp,
+        version=1,
+        active=False,
+        project_id=project.id,
+        fingerprint=generate_fingerprint(detector_cls.regression_type, object_name),
+        baseline=100,
+        regressed=300,
+    )
+
+    def get_regressions(ts):
+        yield {
+            "project": str(project.id),
+            "transaction": object_name,
+            "aggregate_range_1": 100,
+            "aggregate_range_2": 200,
+            "unweighted_t_value": 1.23,
+            "unweighted_p_value": 1.23,
+            "trend_percentage": 1.23,
+            "absolute_percentage_change": 1.23,
+            "trend_difference": 1.23,
+            "breakpoint": ts.timestamp(),
+        }
+
+    # there is a buffer on issue creation, so in the first 24 hours
+    # after the first regression is detected, we will not regress the issue
+    for hours in range(1, 24):
+        regressions = get_regressions(timestamp + timedelta(hours=hours))
+        regressions = detector_cls.save_regressions_with_versions(regressions)
+        assert len(list(regressions)) == 0
+
+    # once the buffer period is over, we allow regressions again
+    regressions = get_regressions(timestamp + timedelta(hours=24))
+    regressions = detector_cls.save_regressions_with_versions(regressions)
+    assert len(list(regressions)) == 1
 
 
 @region_silo_test
