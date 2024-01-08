@@ -1,6 +1,6 @@
 import {User} from 'sentry/types';
 
-export function UserDetails(params: Partial<User> = {}): User {
+export function UserDetailsFixture(params: Partial<User> = {}): User {
   return {
     username: 'billyfirefoxusername@test.com',
     emails: [

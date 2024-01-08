@@ -39,7 +39,6 @@ class UserNotificationEmailGetTest(UserNotificationEmailTestBase):
         }
 
 
-# TODO(hybrid-cloud): Fix underlying logic, which is not silo safe
 @control_silo_test()
 class UserNotificationEmailTest(UserNotificationEmailTestBase):
     method = "put"

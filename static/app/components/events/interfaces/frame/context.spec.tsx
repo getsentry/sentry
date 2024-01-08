@@ -1,10 +1,10 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {GitHubIntegration} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {EventFixture} from 'sentry-fixture/event';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -14,13 +14,13 @@ import {Coverage, Frame, LineCoverage} from 'sentry/types';
 import Context, {getLineCoverage} from './context';
 
 describe('Frame - Context', function () {
-  const org = Organization();
-  const project = Project({});
+  const org = OrganizationFixture();
+  const project = ProjectFixture({});
   const event = EventFixture({projectID: project.id});
-  const integration = GitHubIntegration();
-  const repo = Repository({integrationId: integration.id});
+  const integration = GitHubIntegrationFixture();
+  const repo = RepositoryFixture({integrationId: integration.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
-  const config = RepositoryProjectPathConfig({project, repo, integration});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
   beforeEach(function () {
     jest.clearAllMocks();
@@ -102,7 +102,7 @@ describe('Frame - Context', function () {
           hasContextSource
           frame={testFrame}
           event={event}
-          organization={Organization({
+          organization={OrganizationFixture({
             features: ['issue-details-stacktrace-syntax-highlighting'],
           })}
           registers={{}}

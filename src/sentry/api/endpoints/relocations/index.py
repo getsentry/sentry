@@ -18,7 +18,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
 from sentry.api.exceptions import SuperuserRequired
-from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
@@ -28,7 +27,9 @@ from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import MAX_USERNAME_LENGTH
 from sentry.options import get
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
@@ -84,9 +85,67 @@ class RelocationsPostSerializer(serializers.Serializer):
     )
 
 
+def validate_new_relocation_request(
+    request: Request, owner_username: str, org_slugs: list[str], file_size: int
+) -> Response | None:
+    # We only honor the `relocation.enabled` flag for non-superusers.
+    try:
+        is_superuser = SuperuserPermission().has_permission(request, None)
+    except SuperuserRequired:
+        is_superuser = False
+    if not options.get("relocation.enabled") and not is_superuser:
+        return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
+
+    # Only superusers can start relocations for other users.
+    creator = user_service.get_user(user_id=request.user.id)
+    if creator is None:
+        raise RuntimeError("Could not ascertain request user's username")
+    if not is_superuser and creator.username != owner_username:
+        return Response(
+            {"detail": ERR_INVALID_OWNER.substitute(creator_username=creator.username)},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Validate org slug formatting.
+    for org_slug in org_slugs:
+        if not re.match(ORG_SLUG_PATTERN, org_slug):
+            return Response(
+                {"detail": ERR_INVALID_ORG_SLUG.substitute(org_slug=org_slug)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    # Regular users may be throttled, but superusers never are.
+    relocation_size_category = get_relocation_size_category(file_size)
+    if not is_superuser and should_throttle_relocation(relocation_size_category):
+        return Response(
+            {"detail": ERR_THROTTLED_RELOCATION},
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+    return None
+
+
+def validate_relocation_uniqueness(owner: RpcUser) -> Response | None:
+    # Check that this `owner` does not have more than one active `Relocation` in flight.
+    if Relocation.objects.filter(
+        owner_id=owner.id,
+        status__in={Relocation.Status.IN_PROGRESS.value, Relocation.Status.PAUSE.value},
+    ).exists():
+        return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=status.HTTP_409_CONFLICT)
+
+    return None
+
+
+def get_autopause_value() -> int | None:
+    try:
+        return Relocation.Step[options.get("relocation.autopause")].value
+    except KeyError:
+        return None
+
+
 @region_silo_endpoint
 class RelocationIndexEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -165,37 +224,18 @@ class RelocationIndexEndpoint(Endpoint):
 
         logger.info("relocations.index.post.start", extra={"caller": request.user.id})
 
-        try:
-            is_superuser = SuperuserPermission().has_permission(request, None)
-        except SuperuserRequired:
-            is_superuser = False
-        if not options.get("relocation.enabled") and not is_superuser:
-            return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
-
         serializer = RelocationsPostSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated = serializer.validated_data
         fileobj = validated.get("file")
+        file_size = fileobj.size
         owner_username = validated.get("owner")
         org_slugs = [org.strip() for org in validated.get("orgs").split(",")]
-        for org_slug in org_slugs:
-            if not re.match(ORG_SLUG_PATTERN, org_slug):
-                return Response(
-                    {"detail": ERR_INVALID_ORG_SLUG.substitute(org_slug=org_slug)},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        # Only superusers can start relocations for other users.
-        creator = user_service.get_user(user_id=request.user.id)
-        if creator is None:
-            raise RuntimeError("Could not ascertain request user's username")
-        if not is_superuser and creator.username != owner_username:
-            return Response(
-                {"detail": ERR_INVALID_OWNER.substitute(creator_username=creator.username)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        err = validate_new_relocation_request(request, owner_username, org_slugs, file_size)
+        if err is not None:
+            return err
 
         try:
             owner = user_service.get_by_username(username=owner_username)[0]
@@ -205,19 +245,9 @@ class RelocationIndexEndpoint(Endpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Quickly check that this `owner` does not have more than one active `Relocation` in flight.
-        if Relocation.objects.filter(
-            owner_id=owner.id, status=Relocation.Status.IN_PROGRESS.value
-        ).exists():
-            return Response({"detail": ERR_DUPLICATE_RELOCATION}, status=status.HTTP_409_CONFLICT)
-
-        # Regular users may be throttled, but superusers never are.
-        relocation_size_category = get_relocation_size_category(fileobj.size)
-        if not is_superuser and should_throttle_relocation(relocation_size_category):
-            return Response(
-                {"detail": ERR_THROTTLED_RELOCATION},
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
-            )
+        err = validate_relocation_uniqueness(owner)
+        if err is not None:
+            return err
 
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         file.putfile(fileobj, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
@@ -230,6 +260,7 @@ class RelocationIndexEndpoint(Endpoint):
                 owner_id=owner.id,
                 want_org_slugs=org_slugs,
                 step=Relocation.Step.UPLOADING.value,
+                scheduled_pause_at_step=get_autopause_value(),
             )
             RelocationFile.objects.create(
                 relocation=relocation,

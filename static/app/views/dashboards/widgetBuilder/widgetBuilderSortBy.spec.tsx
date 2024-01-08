@@ -1,8 +1,8 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
-import {Tags} from 'sentry-fixture/tags';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -191,19 +191,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsField(`sum(session)`),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('session.all'),
+      body: MetricsFieldFixture('session.all'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
 
     MockApiClient.addMockResponse({

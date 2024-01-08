@@ -1,7 +1,7 @@
-import {GlobalSelection} from 'sentry-fixture/globalSelection';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {GroupStatus} from 'sentry/types';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
@@ -39,8 +39,8 @@ describe('transformIssuesResponseToTable', function () {
           conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
           orderby: '',
         },
-        Organization(),
-        GlobalSelection()
+        OrganizationFixture(),
+        GlobalSelectionFixture()
       )
     ).toEqual(
       expect.objectContaining({

@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -13,7 +13,7 @@ describe('TeamInsightsContainer', () => {
   });
 
   it('blocks access if org is missing flag', () => {
-    const organization = Organization();
+    const organization = OrganizationFixture();
     const context = RouterContextFixture([{organization}]);
     render(
       <TeamInsightsContainer organization={organization}>
@@ -26,7 +26,7 @@ describe('TeamInsightsContainer', () => {
   });
   it('allows access for orgs with flag', () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
-    const organization = Organization({features: ['team-insights']});
+    const organization = OrganizationFixture({features: ['team-insights']});
     const context = RouterContextFixture([{organization}]);
     render(
       <TeamInsightsContainer organization={organization}>
@@ -39,7 +39,7 @@ describe('TeamInsightsContainer', () => {
   });
   it('shows message for users with no teams', () => {
     ProjectsStore.loadInitialData([]);
-    const organization = Organization({features: ['team-insights']});
+    const organization = OrganizationFixture({features: ['team-insights']});
     const context = RouterContextFixture([{organization}]);
     render(<TeamInsightsContainer organization={organization} />, {context});
 

@@ -76,9 +76,9 @@ export default function SpansTable({
     has: 'span.description',
   };
 
-  const {isLoading, data, meta, pageLinks} = useSpanMetrics(
-    pickBy(filters, value => value !== undefined),
-    [
+  const {isLoading, data, meta, pageLinks} = useSpanMetrics({
+    filters: pickBy(filters, value => value !== undefined),
+    fields: [
       PROJECT_ID,
       SPAN_OP,
       SPAN_GROUP,
@@ -90,11 +90,11 @@ export default function SpansTable({
       'http_error_count()',
       'time_spent_percentage()',
     ],
-    [sort],
+    sorts: [sort],
     limit,
     cursor,
-    'api.starfish.use-span-list'
-  );
+    referrer: 'api.starfish.use-span-list',
+  });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({

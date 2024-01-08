@@ -1,5 +1,5 @@
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   TrendParameterColumn,

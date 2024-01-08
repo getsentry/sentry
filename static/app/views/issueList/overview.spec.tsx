@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {GroupStats} from 'sentry-fixture/groupStats';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Search} from 'sentry-fixture/search';
-import {Tags} from 'sentry-fixture/tags';
+import {GroupFixture} from 'sentry-fixture/group';
+import {GroupStatsFixture} from 'sentry-fixture/groupStats';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {SearchFixture} from 'sentry-fixture/search';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -65,10 +65,10 @@ const routerProps = {
 describe('IssueList', function () {
   let props;
 
-  const tags = Tags();
+  const tags = TagsFixture();
   const group = GroupFixture({project});
-  const groupStats = GroupStats();
-  const savedSearch = Search({
+  const groupStats = GroupStatsFixture();
+  const savedSearch = SearchFixture({
     id: '789',
     query: 'is:unresolved TypeError',
     sort: 'date',
@@ -236,7 +236,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          Search({
+          SearchFixture({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -274,7 +274,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          Search({
+          SearchFixture({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -329,7 +329,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          Search({
+          SearchFixture({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
@@ -370,7 +370,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          Search({
+          SearchFixture({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
@@ -407,7 +407,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          Search({
+          SearchFixture({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -460,7 +460,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: Organization({
+        organization: OrganizationFixture({
           features: ['issue-stream-performance', 'issue-stream-performance-cache'],
           projects: [],
         }),
@@ -516,7 +516,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          Search({
+          SearchFixture({
             id: '123',
             name: 'Pinned search',
             isPinned: true,
@@ -618,7 +618,7 @@ describe('IssueList', function () {
     });
 
     it('unpins a custom query', async function () {
-      const pinnedSearch = Search({
+      const pinnedSearch = SearchFixture({
         id: '666',
         name: 'My Pinned Search',
         query: 'assigned:me level:fatal',
@@ -664,7 +664,7 @@ describe('IssueList', function () {
     });
 
     it('pins a saved query', async function () {
-      const assignedToMe = Search({
+      const assignedToMe = SearchFixture({
         id: '234',
         name: 'Assigned to Me',
         isPinned: false,
@@ -1154,7 +1154,7 @@ describe('IssueList', function () {
           params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
-        organization: Organization({
+        organization: OrganizationFixture({
           projects: [],
         }),
         ...moreProps,
@@ -1204,7 +1204,7 @@ describe('IssueList', function () {
       });
 
       await createWrapper({
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });
@@ -1245,7 +1245,7 @@ describe('IssueList', function () {
         body: projects,
       });
       await createWrapper({
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });
@@ -1296,7 +1296,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });
@@ -1343,7 +1343,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });

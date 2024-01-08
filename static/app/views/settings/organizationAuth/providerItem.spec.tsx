@@ -1,6 +1,6 @@
-import {AuthProviders} from 'sentry-fixture/authProviders';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {AuthProvidersFixture} from 'sentry-fixture/authProviders';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,8 +8,8 @@ import {descopeFeatureName} from 'sentry/utils';
 import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function () {
-  const provider = AuthProviders()[0];
-  const org = Organization({
+  const provider = AuthProvidersFixture()[0];
+  const org = OrganizationFixture({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
   const routerContext = RouterContextFixture([{organization: org}]);

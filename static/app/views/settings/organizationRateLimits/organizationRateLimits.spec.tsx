@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +10,7 @@ import OrganizationRateLimits, {
 const ENDPOINT = '/organizations/org-slug/';
 
 describe('Organization Rate Limits', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     quota: {
       projectLimit: 75,
       accountLimit: 70000,
@@ -42,7 +42,7 @@ describe('Organization Rate Limits', function () {
   });
 
   it('renders with maxRate and maxRateInterval set', function () {
-    const org = Organization({
+    const org = OrganizationFixture({
       ...organization,
       quota: {
         maxRate: 100,
