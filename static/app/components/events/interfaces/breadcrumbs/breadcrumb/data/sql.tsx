@@ -1,20 +1,34 @@
 import styled from '@emotion/styled';
 
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import {prismStyles} from 'sentry/styles/prism';
+import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 import Summary from './summary';
 
 type Props = {
-  message: string;
+  breadcrumb: BreadcrumbTypeNavigation | BreadcrumbTypeDefault;
   searchTerm: string;
+  meta?: Record<any, any>;
 };
 
-export function Sql({message, searchTerm}: Props) {
-  const tokens = usePrismTokens({code: message, language: 'sql'});
+export function Sql({breadcrumb, meta, searchTerm}: Props) {
+  const {data, message} = breadcrumb;
+  /**
+   * Normalize the message by replacing '...' with '\n\u2026' and '[Filtered]' with 'Filtered'.
+   * This is done to ensure '.' and '[]' are NOT labeled as punctuation by usePrismTokens
+   * and instead are special cases where we apply AnnotatedText
+   */
+  const messageFormatted = message?.replace(/\.\.\.|(\[Filtered\])/g, (_match, p1) => {
+    return p1 ? 'Filtered' : '\n\u2026';
+  });
+
+  const tokens = usePrismTokens({code: messageFormatted!, language: 'sql'});
+
   return (
-    <Summary>
+    <Summary kvData={data} meta={meta}>
       <Wrapper>
         <pre className="language-sql">
           <code>
@@ -23,7 +37,14 @@ export function Sql({message, searchTerm}: Props) {
                 <div>
                   {line.map((token, j) => (
                     <span key={j} className={token.className}>
-                      <Highlight text={searchTerm}>{token.children}</Highlight>
+                      {token.children === '\u2026' || token.children === 'Filtered' ? (
+                        <AnnotatedText
+                          value={`[${token.children}]`}
+                          meta={meta?.message?.['']}
+                        />
+                      ) : (
+                        <Highlight text={searchTerm}>{token.children}</Highlight>
+                      )}
                     </span>
                   ))}
                 </div>
