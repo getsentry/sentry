@@ -191,9 +191,12 @@ export const QUOTA_FIELDS = [
   {
     name: 'quotaMonitorSeats',
     label: t('Cron Monitors'),
-    help: tct('Receive notifications about your cron monitors quotas. [learnMore:Learn more]', {
-      learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeats')} />,
-    }),
+    help: tct(
+      'Receive notifications about your cron monitors quotas. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeat')} />,
+      }
+    ),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
