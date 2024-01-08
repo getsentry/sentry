@@ -8,7 +8,7 @@ import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 export default storyBook(QuestionTooltip, story => {
-  story('Default', () => {
+  story('Basics', () => {
     return (
       <Fragment>
         <p>
