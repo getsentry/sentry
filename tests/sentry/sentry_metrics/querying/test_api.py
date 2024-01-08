@@ -439,7 +439,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
         self.store_session(
             self.build_session(
