@@ -168,11 +168,11 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_params(request.GET)
 
         try:
+            limit = request.GET.get("limit")
             # We then run the query and inject directly the field, query and groupBy, since they will be parsed
             # internally.
             results = run_metrics_query(
                 fields=request.GET.getlist("field", []),
-                query=request.GET.get("query"),
                 interval=interval,
                 start=start,
                 end=end,
@@ -182,8 +182,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 # TODO: move referrers into a centralized place.
                 referrer="metrics.data.api",
                 # Optional parameters.
+                query=request.GET.get("query"),
                 group_bys=request.GET.getlist("groupBy"),
                 order_by=request.GET.get("orderBy"),
+                limit=int(limit) if limit else None,
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
