@@ -178,7 +178,7 @@ export function Content({
         )}
         <StyledPre className="exc-message">
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
-            <AnnotatedText value={exceptionValue} meta={meta?.[excIdx]?.value?.['']} />
+            <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
             exceptionValue
           )}
