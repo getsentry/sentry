@@ -71,31 +71,6 @@ export default storyBook(OnboardingPanel, story => {
       </Fragment>
     );
   });
-
-  // story('Additional props', () => {
-  //   return (
-  //     <Fragment>
-  //       <p>
-  //         Optionally, you can also specify a few other <JSXNode name="Tooltip" /> props:
-  //       </p>
-  //       <ul>
-  //         <li>
-  //           <JSXProperty name="containerDisplayMode" value />
-  //         </li>
-  //         <li>
-  //           <JSXProperty name="isHoverable" value />
-  //         </li>
-  //         <li>
-  //           <JSXProperty name="overlayStyle" value />
-  //         </li>
-  //         <li>
-  //           <JSXProperty name="position" value />
-  //         </li>
-  //       </ul>
-  //       <p>All the standard values for these props apply.</p>
-  //     </Fragment>
-  //   );
-  // });
 });
 
 const ButtonList = styled(ButtonBar)`
