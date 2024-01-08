@@ -448,9 +448,12 @@ class RegressionDetector(ABC):
                     tzinfo=timezone.utc
                 )
 
-                # if the date regressed is the same as the previous instance,
-                # it's the same regression so skip it
-                if date_regressed == prev_date_regressed:
+                # enforce a buffer window after the date regressed after which the issue
+                # cannot be changed to regressed again to avoid the issue state changing frequently
+                if (
+                    prev_date_regressed is not None
+                    and prev_date_regressed + cls.buffer_period > date_regressed
+                ):
                     continue
 
                 regression_groups.append(
