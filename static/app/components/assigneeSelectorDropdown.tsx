@@ -91,6 +91,7 @@ export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
+  alignMenu?: 'left' | 'right' | undefined;
   assignedTo?: Actor | null;
   disabled?: boolean;
   group?: Group | FeedbackIssue;
@@ -539,7 +540,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   render() {
-    const {disabled, children, assignedTo} = this.props;
+    const {alignMenu, disabled, children, assignedTo} = this.props;
     const {loading} = this.state;
     const memberList = this.memberList();
 
@@ -554,7 +555,7 @@ export class AssigneeSelectorDropdown extends Component<
           memberList !== undefined ? this.renderNewDropdownItems.bind(this) : () => null
         }
         onSelect={this.handleAssign}
-        alignMenu="right"
+        alignMenu={alignMenu ?? 'right'}
         itemSize="small"
         searchPlaceholder={t('Filter teams and people')}
         menuFooter={
