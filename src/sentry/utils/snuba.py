@@ -117,7 +117,6 @@ SPAN_COLUMN_MAP = {
     "span.domain": "domain",
     "span.duration": "duration",
     "span.group": "group",
-    "span.group_raw": "group_raw",
     "span.module": "module",
     "span.op": "op",
     "span.self_time": "exclusive_time",
