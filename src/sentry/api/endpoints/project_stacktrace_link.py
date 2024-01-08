@@ -153,13 +153,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     users can go from the file in the stack trace to the
     provider of their choice.
 
-    `file`: The file path from the stack trace
+    `file`: The file path from the stack trace frame
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
     `sdkName` (optional): The sdk.name associated with the event
     `absPath` (optional): The abs_path field value of the relevant stack frame
     `module`   (optional): The module field value of the relevant stack frame
     `package`  (optional): The package field value of the relevant stack frame
+    `absPath`  (optional): The absolute file path of the stack frame
     """
 
     owner = ApiOwner.ISSUES
@@ -167,8 +168,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
         filepath = ctx.get("file")
-        if not filepath:
-            return Response({"detail": "Filepath is required"}, status=400)
+        abs_path = ctx.get("absPath")
+        if not filepath or not abs_path:
+            return Response({"detail": "`file` or `absPath` is required"}, status=400)
+
+        files = [file for file in [filepath, abs_path] if file is not None]
 
         result: JSONData = {"config": None, "sourceUrl": None}
 
@@ -187,71 +191,72 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         current_config = None
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
-            for config in configs:
-                outcome = {}
-                munging_outcome = {}
+            for file in files:
+                for config in configs:
+                    outcome = {}
+                    munging_outcome = {}
 
-                # Munging is required for get_link to work with mobile platforms
-                if ctx["platform"] in ["java", "cocoa", "other"]:
-                    munging_outcome = try_path_munging(config, filepath, ctx)
-                    if munging_outcome.get("error") == "stack_root_mismatch":
-                        result["error"] = "stack_root_mismatch"
-                        continue
+                    # Munging is required for get_link to work with mobile platforms
+                    if ctx["platform"] in ["java", "cocoa", "other"]:
+                        munging_outcome = try_path_munging(config, file, ctx)
+                        if munging_outcome.get("error") == "stack_root_mismatch":
+                            result["error"] = "stack_root_mismatch"
+                            continue
 
-                if not munging_outcome:
-                    if not filepath.startswith(config.stack_root):
-                        # This may be overwritten if a valid code mapping is found
-                        result["error"] = "stack_root_mismatch"
-                        continue
-                    outcome = get_link(config, filepath, ctx["commit_id"])
-                    # XXX: I want to remove this whole block logic as I believe it is wrong
-                    # In some cases the stack root matches and it can either be that we have
-                    # an invalid code mapping or that munging is expect it to work
-                    if not outcome.get("sourceUrl"):
-                        munging_outcome = try_path_munging(config, filepath, ctx)
-                        if munging_outcome:
-                            # Report errors to Sentry for investigation
-                            logger.error("We should never be able to reach this code.")
+                    if not munging_outcome:
+                        if not file.startswith(config.stack_root):
+                            # This may be overwritten if a valid code mapping is found
+                            result["error"] = "stack_root_mismatch"
+                            continue
+                        outcome = get_link(config, file, ctx["commit_id"])
+                        # XXX: I want to remove this whole block logic as I believe it is wrong
+                        # In some cases the stack root matches and it can either be that we have
+                        # an invalid code mapping or that munging is expect it to work
+                        if not outcome.get("sourceUrl"):
+                            munging_outcome = try_path_munging(config, file, ctx)
+                            if munging_outcome:
+                                # Report errors to Sentry for investigation
+                                logger.error("We should never be able to reach this code.")
 
-                # Keep the original outcome if munging failed
-                if munging_outcome:
-                    outcome = munging_outcome
-                    scope.set_tag("stacktrace_link.munged", True)
+                    # Keep the original outcome if munging failed
+                    if munging_outcome:
+                        outcome = munging_outcome
+                        scope.set_tag("stacktrace_link.munged", True)
 
-                current_config = {
-                    "config": serialize(config, request.user),
-                    "outcome": outcome,
-                    "repository": config.repository,
-                }
+                    current_config = {
+                        "config": serialize(config, request.user),
+                        "outcome": outcome,
+                        "repository": config.repository,
+                    }
 
-                # Use the provider key to split up stacktrace-link metrics by integration type
-                provider = current_config["config"]["provider"]["key"]
-                scope.set_tag("integration_provider", provider)  # e.g. github
+                    # Use the provider key to split up stacktrace-link metrics by integration type
+                    provider = current_config["config"]["provider"]["key"]
+                    scope.set_tag("integration_provider", provider)  # e.g. github
 
-                # Stop processing if a match is found
-                if outcome.get("sourceUrl") and outcome["sourceUrl"]:
-                    result["sourceUrl"] = outcome["sourceUrl"]
-                    break
+                    # Stop processing if a match is found
+                    if outcome.get("sourceUrl") and outcome["sourceUrl"]:
+                        result["sourceUrl"] = outcome["sourceUrl"]
+                        break
 
-            # Post-processing before exiting scope context
-            if current_config:
-                result["config"] = current_config["config"]
-                if not result.get("sourceUrl"):
-                    result["error"] = current_config["outcome"]["error"]
-                    # When no code mapping have been matched we have not attempted a URL
-                    if current_config["outcome"].get("attemptedUrl"):
-                        result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
+                # Post-processing before exiting scope context
+                if current_config:
+                    result["config"] = current_config["config"]
+                    if not result.get("sourceUrl"):
+                        result["error"] = current_config["outcome"]["error"]
+                        # When no code mapping have been matched we have not attempted a URL
+                        if current_config["outcome"].get("attemptedUrl"):
+                            result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
 
-                should_get_coverage = codecov_enabled(project.organization)
-                scope.set_tag("codecov.enabled", should_get_coverage)
-                if should_get_coverage:
-                    codecov_data = fetch_codecov_data(config=current_config)
-                    if codecov_data:
-                        result["codecov"] = codecov_data
-            try:
-                set_tags(scope, result)
-            except Exception:
-                logger.exception("Failed to set tags.")
+                    should_get_coverage = codecov_enabled(project.organization)
+                    scope.set_tag("codecov.enabled", should_get_coverage)
+                    if should_get_coverage:
+                        codecov_data = fetch_codecov_data(config=current_config)
+                        if codecov_data:
+                            result["codecov"] = codecov_data
+                try:
+                    set_tags(scope, result)
+                except Exception:
+                    logger.exception("Failed to set tags.")
 
         if result["config"]:
             analytics.record(
@@ -260,7 +265,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 config_id=result["config"]["id"],
                 project_id=project.id,
                 organization_id=project.organization_id,
-                filepath=filepath,
+                filepath=file,
                 status=result.get("error") or "success",
             )
 
