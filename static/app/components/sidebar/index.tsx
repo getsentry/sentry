@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -116,7 +117,9 @@ function Sidebar({organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const hasSuperuserSession = isActiveSuperuser();
+
+  // Avoid showing superuser UI on self-hosted instances
+  const hasSuperuserSession = isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
 
   useOpenOnboardingSidebar();
 
@@ -504,6 +507,8 @@ function Sidebar({organization}: Props) {
             user={config.user}
             config={config}
           />
+
+          {hasSuperuserSession && <Hook name="component:superuser-warning" />}
         </DropdownSidebarSection>
 
         <PrimaryItems>
