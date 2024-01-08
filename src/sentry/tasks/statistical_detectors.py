@@ -162,6 +162,7 @@ class EndpointRegressionDetector(RegressionDetector):
     kind = "endpoint"
     regression_type = RegressionType.ENDPOINT
     min_change = 200  # 200ms in ms
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
 
@@ -203,6 +204,7 @@ class FunctionRegressionDetector(RegressionDetector):
     kind = "function"
     regression_type = RegressionType.FUNCTION
     min_change = 100_000_000  # 100ms in ns
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
 
