@@ -1,6 +1,8 @@
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAdminPermission
 from sentry.conf.server import SENTRY_EARLY_FEATURES
@@ -10,6 +12,10 @@ from sentry.models.organization import Organization
 @region_silo_endpoint
 class InternalEAFeaturesEndpoint(Endpoint):
     permission_classes = (OrganizationAdminPermission,)
+    owner = ApiOwner.OPEN_SOURCE
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
 
     def get(self, request):
         features_dict = features.all()
