@@ -2,6 +2,8 @@ from datetime import datetime, timedelta, timezone
 from unittest import mock
 from urllib.parse import urlencode
 
+from django.test import override_settings
+
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -528,11 +530,17 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 )
                 assert response.status_code == 403
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_with_referrer(self):
         from sentry.auth.superuser import Superuser
 
+        org_provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
         user = self.create_user("foo@example.com", is_superuser=True)
+        create_authenticator(user)
+        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
         with mock.patch.object(Superuser, "org_id", self.organization.id):
             self.login_as(user)
@@ -549,11 +557,17 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_with_bad_referrer(self):
         from sentry.auth.superuser import Superuser
 
+        org_provider = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
         user = self.create_user("foo@example.com", is_superuser=True)
+        create_authenticator(user)
+        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
 
         with mock.patch.object(Superuser, "org_id", self.organization.id):
             self.login_as(user)
