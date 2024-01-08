@@ -69,6 +69,38 @@ describe('App', function () {
     user.flags.newsletter_consent_prompt = false;
   });
 
+  it('renders PartnershipAgreement', async function () {
+    ConfigStore.set('partnershipAgreementPrompt', {partnerDisplayName: 'Foo', agreements:['standard', 'partner_presence']});
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    expect(
+      await screen.findByText(/This organization is created in partnership with Foo/)
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/and are aware of the partner's presence in the organization as a manager./)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('placeholder content')).not.toBeInTheDocument();
+  });
+
+  it('does not render PartnerAgreement for non-partnered orgs', async function () {
+    ConfigStore.set('partnershipAgreementPrompt', null);
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    const normalContent = await screen.findByText(
+      'placeholder content'
+    );
+    expect(normalContent).toBeInTheDocument();
+    expect(screen.queryByText(/This organization is created in partnership/)).not.toBeInTheDocument();
+  });
+
   it('renders InstallWizard', async function () {
     ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('needsUpgrade', true);
