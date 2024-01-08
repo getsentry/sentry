@@ -50,6 +50,10 @@ from sentry.utils.dates import outside_retention_with_modified_start, to_timesta
 
 logger = logging.getLogger(__name__)
 
+# Sentinels
+ROUND_UP = object()
+ROUND_DOWN = object()
+
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
@@ -1589,7 +1593,7 @@ def naiveify_datetime(dt):
     return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-def quantize_time(time, key_hash, duration=300):
+def quantize_time(time, key_hash, duration=300, rounding=ROUND_DOWN):
     """Adds jitter based on the key_hash around start/end times for caching snuba queries
 
     Given a time and a key_hash this should result in a timestamp that remains the same for a duration
@@ -1613,6 +1617,10 @@ def quantize_time(time, key_hash, duration=300):
     # Otherwise we're in the previous time window, subtract duration to give us the previous timewindows start
     else:
         seconds_past_hour = time_window_start - duration
+
+    if rounding == ROUND_UP:
+        seconds_past_hour += duration
+
     return (
         # Since we're adding seconds past the hour, we want time but without minutes or seconds
         time.replace(minute=0, second=0, microsecond=0)

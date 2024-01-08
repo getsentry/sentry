@@ -22,6 +22,7 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   unwrapTreeDepth,
+  VerticalMark,
 } from './utils';
 
 export type SpanSiblingGroupBarProps = {
@@ -41,6 +42,7 @@ export type SpanSiblingGroupBarProps = {
   spanNumber: number;
   toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
   treeDepth: number;
+  measurements?: Map<number, VerticalMark>;
   spanBarType?: SpanBarType;
 };
 
@@ -62,6 +64,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     isEmbeddedSpanTree,
     didAnchoredSpanMount,
     spanBarType,
+    measurements,
   } = props;
 
   const organization = useOrganization();
@@ -147,6 +150,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
   return (
     <SpanGroupBar
       event={event}
+      measurements={measurements}
       span={span}
       spanGrouping={spanGrouping}
       treeDepth={props.treeDepth}

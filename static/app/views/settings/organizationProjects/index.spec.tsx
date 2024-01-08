@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Project} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +10,7 @@ describe('OrganizationProjects', function () {
   let projectsGetMock: jest.Mock;
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
-  const project = Project();
+  const project = ProjectFixture();
   const {routerContext} = initializeOrg();
 
   beforeEach(function () {

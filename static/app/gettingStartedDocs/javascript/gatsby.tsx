@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   Docs,
@@ -10,6 +12,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -196,14 +199,19 @@ const replayOnboarding: OnboardingConfig = {
         link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/session-replay/',
       }),
       configurations: [getConfigureStep(params)],
-      additionalInfo: tct(
-        'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby] plugin, they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
-        {
-          codeGatsby: <code />,
-          codeSentry: <code />,
-          codeConfig: <code />,
-          codeNew: <code />,
-        }
+      additionalInfo: (
+        <Fragment>
+          {tracePropagationMessage}
+          {tct(
+            'Note: If [codeGatsby:gatsby-config.js] has any settings for the [codeSentry:@sentry/gatsby] plugin, they need to be moved into [codeConfig:sentry.config.js]. The [codeGatsby:gatsby-config.js] file does not support non-serializable options, like [codeNew:new Replay()].',
+            {
+              codeGatsby: <code />,
+              codeSentry: <code />,
+              codeConfig: <code />,
+              codeNew: <code />,
+            }
+          )}
+        </Fragment>
       ),
     },
   ],

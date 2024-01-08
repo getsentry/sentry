@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import useProjects from 'sentry/utils/useProjects';
 
 describe('useProjects', function () {
-  const org = Organization();
+  const org = OrganizationFixture();
 
   const mockProjects = [ProjectFixture()];
 

@@ -561,7 +561,7 @@ if (
     let controlSiloProxy = {};
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
-      // list to select contro/region when making API requests in non-proxied
+      // list to select control/region when making API requests in non-proxied
       // environments (like production). We'll likely need a way to consolidate this
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;

@@ -1,4 +1,4 @@
-import {ProjectKeys, ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -64,7 +64,7 @@ describe('LoaderScript', function () {
 
   it('renders for single project', async function () {
     const {organization, project} = initializeOrg();
-    const projectKey = ProjectKeys()[0];
+    const projectKey = ProjectKeysFixture()[0];
     const projectKeys = [projectKey];
 
     mockApi({organization, project, projectKeys});
@@ -143,7 +143,7 @@ describe('LoaderScript', function () {
 
   it('allows to update key settings', async function () {
     const {organization, project} = initializeOrg();
-    const baseKey = ProjectKeys()[0];
+    const baseKey = ProjectKeysFixture()[0];
     const projectKey = {
       ...baseKey,
       dynamicSdkLoaderOptions: {

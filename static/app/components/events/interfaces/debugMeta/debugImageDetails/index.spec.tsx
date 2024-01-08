@@ -1,6 +1,6 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EntryDebugMeta as EntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
-import {Image as ImageFixture} from 'sentry-fixture/image';
+import {EventFixture} from 'sentry-fixture/event';
+import {EntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
+import {ImageFixture} from 'sentry-fixture/image';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';

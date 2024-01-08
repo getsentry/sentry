@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 from typing import Optional, TypedDict, cast
 
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import Hub
+from sentry_sdk import Hub, set_tag
 from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
+from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -80,6 +80,9 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
 
 def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None:
     """Ingest recording messages."""
+    set_tag("org_id", message.org_id)
+    set_tag("project_id", message.project_id)
+
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)
     except MissingRecordingSegmentHeaders:
@@ -99,39 +102,55 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
-    replay_click_post_processor(message, headers, recording_segment, transaction)
+    recording_post_processor(message, headers, recording_segment, transaction)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
     if headers["segment_id"] == 0:
-        try:
-            project = Project.objects.get_from_cache(id=message.project_id)
-        except Project.DoesNotExist:
-            logger.warning(
-                "Recording segment was received for a project that does not exist.",
-                extra={
-                    "project_id": message.project_id,
-                    "replay_id": message.replay_id,
-                },
-            )
-            return None
-
-        if not project.flags.has_replays:
-            first_replay_received.send_robust(project=project, sender=Project)
-
-        track_outcome(
-            org_id=message.org_id,
-            project_id=message.project_id,
-            key_id=message.key_id,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=datetime.utcfromtimestamp(message.received).replace(tzinfo=timezone.utc),
-            event_id=message.replay_id,
-            category=DataCategory.REPLAY,
-            quantity=1,
+        track_initial_segment_event(
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            message.key_id,
+            message.received,
         )
 
     transaction.finish()
+
+
+def track_initial_segment_event(
+    org_id: int,
+    project_id: int,
+    replay_id,
+    key_id: int | None,
+    received: int,
+) -> None:
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        logger.warning(
+            "Recording segment was received for a project that does not exist.",
+            extra={
+                "project_id": project_id,
+                "replay_id": replay_id,
+            },
+        )
+        return None
+
+    if not project.flags.has_replays:
+        first_replay_received.send_robust(project=project, sender=Project)
+
+    track_outcome(
+        org_id=org_id,
+        project_id=project_id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.utcfromtimestamp(received).replace(tzinfo=timezone.utc),
+        event_id=replay_id,
+        category=DataCategory.REPLAY,
+        quantity=1,
+    )
 
 
 @metrics.wraps("replays.usecases.ingest.process_headers")
@@ -169,7 +188,7 @@ def _report_size_metrics(
         )
 
 
-def replay_click_post_processor(
+def recording_post_processor(
     message: RecordingIngestMessage,
     headers: RecordingSegmentHeaders,
     segment_bytes: bytes,
@@ -192,6 +211,14 @@ def replay_click_post_processor(
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
             )
+
+        # Log canvas mutations to bigquery.
+        log_canvas_size(
+            message.org_id,
+            message.project_id,
+            message.replay_id,
+            parsed_segment_data,
+        )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
