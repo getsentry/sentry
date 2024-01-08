@@ -9,6 +9,7 @@ class SdkConfig(TypedDict):
     release: str | None
     environment: str
     in_app_include: list[str]
+    project_root: str
     debug: bool
     send_default_pii: bool
     auto_enabling_integrations: bool
