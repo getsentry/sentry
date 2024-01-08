@@ -21,7 +21,7 @@ def normalize_symbol_source(key, source):
 class BuiltinSymbolSourcesEndpoint(Endpoint):
     owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
 
