@@ -39,6 +39,26 @@ class ProjectPerformanceGeneralSettingsTest(APITestCase):
             response = self.client.get(self.url, format="json")
             assert response.status_code == 404
 
+    def test_updates_to_new_value(self):
+        with self.feature(PERFORMANCE_SETTINGS_FEATURES):
+            response = self.client.post(
+                self.url,
+                data={
+                    "enable_images": True,
+                },
+            )
+            response = self.client.get(self.url, format="json")
+            assert response.data["enable_images"] is True
+
+            response = self.client.post(
+                self.url,
+                data={
+                    "enable_images": False,
+                },
+            )
+            response = self.client.get(self.url, format="json")
+            assert response.data["enable_images"] is False
+
     def test_update_project_setting_check_validation(self):
         with self.feature(PERFORMANCE_SETTINGS_FEATURES):
             response = self.client.post(
