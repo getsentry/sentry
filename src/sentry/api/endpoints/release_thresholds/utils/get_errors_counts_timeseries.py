@@ -70,17 +70,45 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.snuba.sessions_v2 import QueryDefinition
 
+# In minutes
+TWO_WEEKS = 20160
+ONE_WEEK = 10080
+TWENTY_FOUR_HOURS = 1440
+
+
+def _get_interval(start: datetime, end: datetime):
+    # NOTE: taken from releaseRequest.tsx
+    min_diff = (end - start).total_seconds() / 60
+
+    if min_diff >= TWO_WEEKS:
+        return "1d"
+    if min_diff >= ONE_WEEK:
+        return "6h"
+
+    if min_diff > TWENTY_FOUR_HOURS:
+        return "4h"
+
+    # TODO(sessions): sub-hour session resolution is still not possible
+    return "1h"
+
 
 def fetch_sessions_data(request: Request, organization: Organization, params: dict[str, Any]):
+    # NOTE: implementation derived from organization_sessions GET endpoint
     with handle_query_errors():
-        # HACK to prevent front-end crash when release health is sessions-based:
         query_params = MultiValueDict(request.GET)
-        interval = request.GET.get("interval")
+        query_params.setlist("groupBy", ["project", "release", "session.status"])
+        query_params.setlist("field", ["sum(session)"])  # alternatively count_unique(user)
+        query_params["query"] = " OR ".join(
+            [f"release:{version}" for version in query_params.getlist("release")]
+        )
+        interval = _get_interval(params["start"], params["end"])
+        query_params["interval"] = interval
+        # HACK to prevent front-end crash when release health is sessions-based:
         if not release_health.backend.is_metrics_based() and interval == "10s":
             query_params["interval"] = "1m"
 
-        # crash free rates are on an INTERVAL basis :think:
-        # Does this mean that if we fail on the first event, we'll at least not have a 0% crash free rate immediately?
+        # crash free rates are on a dynamic INTERVAL basis
+        # TODO: determine how this affects results for new releases
         query_config = release_health.backend.sessions_query_config(organization)
 
         query = QueryDefinition(
