@@ -66,7 +66,6 @@ class JiraRequestParser(BaseRequestParser):
                 self.provider,
                 extra={"path": self.request.path, "regions": regions},
             )
-            return self.get_response_from_control_silo()
 
         if self.view_class in self.immediate_response_region_classes:
             return self.get_response_from_region_silo(region=regions[0])
