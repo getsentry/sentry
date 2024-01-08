@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +24,7 @@ function WrapperComponent(props) {
 
 function initialize(projects, query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects,
   });

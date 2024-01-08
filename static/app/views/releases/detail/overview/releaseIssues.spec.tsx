@@ -1,7 +1,7 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +18,7 @@ describe('ReleaseIssues', function () {
 
   const props = {
     orgId: 'org',
-    organization: Organization(),
+    organization: OrganizationFixture(),
     version: '1.0.0',
     location: LocationFixture({query: {}}),
     releaseBounds: getReleaseBounds(ReleaseFixture({version: '1.0.0'})),

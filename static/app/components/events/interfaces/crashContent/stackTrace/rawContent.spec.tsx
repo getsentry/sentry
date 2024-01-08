@@ -1,3 +1,6 @@
+import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
+import {FrameFixture} from 'sentry-fixture/frame';
+
 import displayRawContent, {
   getJavaFrame,
   getJavaPreamble,
@@ -9,7 +12,7 @@ describe('RawStacktraceContent', function () {
     it('should render java frames', function () {
       expect(
         getJavaFrame(
-          TestStubs.Frame({
+          FrameFixture({
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
@@ -23,7 +26,7 @@ describe('RawStacktraceContent', function () {
       // without line number
       expect(
         getJavaFrame(
-          TestStubs.Frame({
+          FrameFixture({
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
@@ -36,7 +39,7 @@ describe('RawStacktraceContent', function () {
       // without line number and filename
       expect(
         getJavaFrame(
-          TestStubs.Frame({
+          FrameFixture({
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
@@ -52,7 +55,7 @@ describe('RawStacktraceContent', function () {
     it('takes a type and value', () => {
       expect(
         getJavaPreamble(
-          TestStubs.Frame({
+          ExceptionValueFixture({
             type: 'Baz',
             value: 'message',
             module: undefined,
@@ -64,7 +67,7 @@ describe('RawStacktraceContent', function () {
     it('takes a module name', () => {
       expect(
         getJavaPreamble(
-          TestStubs.Frame({
+          ExceptionValueFixture({
             module: 'foo.bar',
             type: 'Baz',
             value: 'message',
@@ -75,7 +78,7 @@ describe('RawStacktraceContent', function () {
   });
 
   describe('render()', function () {
-    const exception = TestStubs.EventStacktraceException({
+    const exception = ExceptionValueFixture({
       module: 'example.application',
       type: 'Error',
       value: 'an error occurred',
@@ -86,14 +89,14 @@ describe('RawStacktraceContent', function () {
       framesOmitted: null,
       registers: {},
       frames: [
-        TestStubs.Frame({
+        FrameFixture({
           function: 'main',
           module: 'example.application',
           lineNo: 1,
           filename: 'application',
           platform: undefined,
         }),
-        TestStubs.Frame({
+        FrameFixture({
           function: 'doThing',
           module: 'example.application',
           lineNo: 2,

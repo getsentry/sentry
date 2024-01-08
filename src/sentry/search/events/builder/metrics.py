@@ -57,6 +57,7 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
+    get_spec_version,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -162,13 +163,14 @@ class MetricsQueryBuilder(QueryBuilder):
                 Organization.objects.get_from_cache(id=self.organization_id),
             )
 
+            spec_version = get_spec_version(1) if use_updated_env_logic else get_spec_version(0)
             return OnDemandMetricSpec(
                 field=field,
                 query=self.query,
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
-                use_updated_env_logic=use_updated_env_logic,
+                spec_version=spec_version,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1148,17 +1150,26 @@ class MetricsQueryBuilder(QueryBuilder):
                     f"{referrer}.{referrer_suffix}",
                     use_cache,
                 )
+                for meta in current_result["meta"]:
+                    meta_dict[meta["name"]] = meta["type"]
                 for row in current_result["data"]:
                     # Arrays in clickhouse cannot contain multiple types, and since groupby values
                     # can contain any type, we must use tuples instead
-                    groupby_key = tuple(row[key] for key in groupby_aliases)
-                    value_map_key = ",".join(str(value) for value in groupby_key)
+                    groupby_key = tuple()
+                    value_map_strings = []
+                    for key in groupby_aliases:
+                        value = row[key]
+                        if meta_dict.get(key) == "DateTime":
+                            value = datetime.fromisoformat(value).replace(tzinfo=None)
+                            groupby_key += (str(value),)
+                        else:
+                            groupby_key += (value,)
+                        value_map_strings.append(str(value))
+                    value_map_key = ",".join(value_map_strings)
                     # First time we're seeing this value, add it to the values we're going to filter by
                     if value_map_key not in value_map and groupby_key:
                         groupby_values.append(groupby_key)
                     value_map[value_map_key].update(row)
-                for meta in current_result["meta"]:
-                    meta_dict[meta["name"]] = meta["type"]
 
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]

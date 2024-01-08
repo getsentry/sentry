@@ -6,6 +6,7 @@ import {
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {logException} from 'sentry/utils/logging';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {Monitor} from 'sentry/views/monitors/types';
 
 export async function deleteMonitor(api: Client, orgId: string, monitorSlug: string) {
@@ -49,7 +50,7 @@ export async function updateMonitor(
   orgId: string,
   monitorSlug: string,
   data: Partial<Monitor>
-) {
+): Promise<Monitor | null> {
   addLoadingMessage();
 
   try {
@@ -60,8 +61,42 @@ export async function updateMonitor(
     clearIndicators();
     return resp;
   } catch (err) {
+    const respError: RequestError = err;
+    const updateKeys = Object.keys(data);
+
+    // If we are updating a single value in the monitor we can read the
+    // validation error for that key, otherwise fallback to the default error
+    const validationError =
+      updateKeys.length === 1 ? respError.responseJSON?.[updateKeys[0]]?.[0] : undefined;
+
     logException(err);
-    addErrorMessage(t('Unable to update monitor.'));
+    addErrorMessage(validationError ?? t('Unable to update monitor.'));
+  }
+
+  return null;
+}
+
+export async function setEnvironmentIsMuted(
+  api: Client,
+  orgId: string,
+  monitorSlug: string,
+  environment: string,
+  isMuted: boolean
+) {
+  addLoadingMessage();
+
+  try {
+    const resp = await api.requestPromise(
+      `/organizations/${orgId}/monitors/${monitorSlug}/environments/${environment}`,
+      {method: 'PUT', data: {isMuted}}
+    );
+    clearIndicators();
+    return resp;
+  } catch (err) {
+    logException(err);
+    addErrorMessage(
+      isMuted ? t('Unable to mute environment.') : t('Unable to unmute environment.')
+    );
   }
 
   return null;

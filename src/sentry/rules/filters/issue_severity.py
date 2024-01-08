@@ -12,8 +12,10 @@ from sentry.rules.filters import EventFilter
 from sentry.types.condition_activity import ConditionActivity
 
 SEVERITY_MATCH_CHOICES = {
+    MatchType.GREATER: "greater than",
     MatchType.GREATER_OR_EQUAL: "greater than or equal to",
     MatchType.LESS_OR_EQUAL: "less than or equal to",
+    MatchType.LESS: "less than",
 }
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
 
@@ -49,10 +51,14 @@ class IssueSeverityFilter(EventFilter):
 
         match = self.get_option("match")
 
-        if match == MatchType.GREATER_OR_EQUAL:
+        if match == MatchType.GREATER:
+            return severity > value
+        elif match == MatchType.GREATER_OR_EQUAL:
             return severity >= value
         elif match == MatchType.LESS_OR_EQUAL:
             return severity <= value
+        elif match == MatchType.LESS:
+            return severity < value
 
         return False
 

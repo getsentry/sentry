@@ -1,6 +1,6 @@
-import type {Actor as ActorType} from 'sentry/types';
+import type {Actor} from 'sentry/types';
 
-export function Actor(params: Partial<ActorType> = {}): ActorType {
+export function ActorFixture(params: Partial<Actor> = {}): Actor {
   return {
     id: '1',
     email: 'foo@example.com',

@@ -1,5 +1,5 @@
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -16,8 +16,8 @@ function renderComponent({
 }
 
 describe('AvatarList', () => {
-  const user = User();
-  const team = Team();
+  const user = UserFixture();
+  const team = TeamFixture();
 
   it('renders with user letter avatars', () => {
     const users = [

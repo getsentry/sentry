@@ -202,7 +202,7 @@ class RelocationTaskTestCase(TestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_scan.delay")
+@patch("sentry.tasks.relocation.preprocessing_scan.apply_async")
 class UploadingCompleteTest(RelocationTaskTestCase):
     def test_success(
         self,
@@ -268,7 +268,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_transfer.delay")
+@patch("sentry.tasks.relocation.preprocessing_transfer.apply_async")
 class PreprocessingScanTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -635,7 +635,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_baseline_config.delay")
+@patch("sentry.tasks.relocation.preprocessing_baseline_config.apply_async")
 class PreprocessingTransferTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -745,7 +745,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_colliding_users.delay")
+@patch("sentry.tasks.relocation.preprocessing_colliding_users.apply_async")
 class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -852,7 +852,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.preprocessing_complete.delay")
+@patch("sentry.tasks.relocation.preprocessing_complete.apply_async")
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -961,7 +961,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.validating_start.delay")
+@patch("sentry.tasks.relocation.validating_start.apply_async")
 class PreprocessingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -1089,7 +1089,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
     new_callable=lambda: FakeCloudBuildClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.validating_poll.delay")
+@patch("sentry.tasks.relocation.validating_poll.apply_async")
 class ValidatingStartTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -1262,7 +1262,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             )
         )
 
-    @patch("sentry.tasks.relocation.validating_complete.delay")
+    @patch("sentry.tasks.relocation.validating_complete.apply_async")
     def test_success(
         self,
         validating_complete_mock: Mock,
@@ -1284,7 +1284,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
         assert self.relocation.latest_task == "VALIDATING_POLL"
 
-    @patch("sentry.tasks.relocation.validating_start.delay")
+    @patch("sentry.tasks.relocation.validating_start.apply_async")
     def test_timeout_starts_new_validation_attempt(
         self,
         validating_start_mock: Mock,
@@ -1310,7 +1310,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             assert self.relocation_validation.status == ValidationStatus.IN_PROGRESS.value
             assert self.relocation_validation_attempt.status == ValidationStatus.TIMEOUT.value
 
-    @patch("sentry.tasks.relocation.validating_start.delay")
+    @patch("sentry.tasks.relocation.validating_start.apply_async")
     def test_failure_starts_new_validation_attempt(
         self,
         validating_start_mock: Mock,
@@ -1457,7 +1457,7 @@ def mock_invalid_finding(storage: Storage, uuid: str):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.importing.delay")
+@patch("sentry.tasks.relocation.importing.apply_async")
 class ValidatingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
@@ -1602,7 +1602,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
     "sentry.backup.helpers.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
-@patch("sentry.tasks.relocation.postprocessing.delay")
+@patch("sentry.tasks.relocation.postprocessing.apply_async")
 class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1667,7 +1667,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")
-@patch("sentry.tasks.relocation.notifying_users.delay")
+@patch("sentry.tasks.relocation.notifying_users.apply_async")
 class PostprocessingTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1813,7 +1813,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.notifying_owner.delay")
+@patch("sentry.tasks.relocation.notifying_owner.apply_async")
 class NotifyingUsersTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1935,7 +1935,7 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.completed.delay")
+@patch("sentry.tasks.relocation.completed.apply_async")
 class NotifyingOwnerTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -2061,6 +2061,7 @@ class CompletedTest(RelocationTaskTestCase):
     new_callable=lambda: FakeCloudBuildClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.signals.relocated.send_robust")
 class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -2145,6 +2146,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_valid_no_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2174,6 +2176,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.succeeded" in email_types
         assert "relocation.failed" not in email_types
 
+        assert relocated_signal_mock.call_count == 1
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.SUCCESS.value
         assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
@@ -2183,6 +2187,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_valid_max_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2214,6 +2219,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.succeeded" in email_types
         assert "relocation.failed" not in email_types
 
+        assert relocated_signal_mock.call_count == 1
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.SUCCESS.value
         assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
@@ -2223,6 +2230,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_invalid_no_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2253,6 +2261,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.failed" in email_types
         assert "relocation.succeeded" not in email_types
 
+        assert relocated_signal_mock.call_count == 0
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
@@ -2262,6 +2272,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_invalid_max_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2293,6 +2304,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.started" in email_types
         assert "relocation.failed" in email_types
         assert "relocation.succeeded" not in email_types
+
+        assert relocated_signal_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value

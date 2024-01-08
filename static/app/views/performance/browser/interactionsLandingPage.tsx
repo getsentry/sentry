@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
 import SelectControl, {
   ControlProps,

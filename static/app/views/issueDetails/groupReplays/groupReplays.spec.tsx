@@ -1,5 +1,5 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +20,7 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
-import {ReplayList} from 'sentry-fixture/replayList';
+import {ReplayListFixture} from 'sentry-fixture/replayList';
 
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
@@ -121,38 +121,37 @@ describe('GroupReplays', () => {
             },
           })
         );
+        // Expect api path to have the correct query params
+        expect(mockReplayApi).toHaveBeenCalledWith(
+          mockReplayUrl,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              environment: [],
+              field: [
+                'activity',
+                'browser',
+                'count_dead_clicks',
+                'count_errors',
+                'count_rage_clicks',
+                'duration',
+                'finished_at',
+                'id',
+                'is_archived',
+                'os',
+                'project_id',
+                'started_at',
+                'user',
+              ],
+              per_page: 50,
+              project: -1,
+              queryReferrer: 'issueReplays',
+              query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
+              sort: '-started_at',
+              statsPeriod: '14d',
+            }),
+          })
+        );
       });
-
-      // Expect api path to have the correct query params
-      expect(mockReplayApi).toHaveBeenCalledWith(
-        mockReplayUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            environment: [],
-            field: [
-              'activity',
-              'browser',
-              'count_dead_clicks',
-              'count_errors',
-              'count_rage_clicks',
-              'duration',
-              'finished_at',
-              'id',
-              'is_archived',
-              'os',
-              'project_id',
-              'started_at',
-              'user',
-            ],
-            per_page: 50,
-            project: -1,
-            queryReferrer: 'groupReplays',
-            query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
-            sort: '-started_at',
-            statsPeriod: '14d',
-          }),
-        })
-      );
     });
 
     it('should show empty message when no replays are found', async () => {
@@ -211,12 +210,11 @@ describe('GroupReplays', () => {
 
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayApi).toHaveBeenCalledTimes(1);
+        expect(
+          screen.getByText('Invalid number: asdf. Expected number.')
+        ).toBeInTheDocument();
       });
-
-      expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      expect(
-        screen.getByText('Invalid number: asdf. Expected number.')
-      ).toBeInTheDocument();
     });
 
     it('should display default error message when api call fails without a body', async () => {
@@ -243,13 +241,13 @@ describe('GroupReplays', () => {
 
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayApi).toHaveBeenCalledTimes(1);
+        expect(
+          screen.getByText(
+            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+          )
+        ).toBeInTheDocument();
       });
-      expect(mockReplayApi).toHaveBeenCalledTimes(1);
-      expect(
-        screen.getByText(
-          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-        )
-      ).toBeInTheDocument();
     });
 
     it('should show loading indicator when loading replays', async () => {
@@ -279,8 +277,8 @@ describe('GroupReplays', () => {
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
-      expect(mockReplayApi).toHaveBeenCalledTimes(1);
     });
 
     it('should show a list of replays and have the correct values', async () => {
@@ -299,7 +297,7 @@ describe('GroupReplays', () => {
         body: {
           data: [
             {
-              ...ReplayList()[0],
+              ...ReplayListFixture()[0],
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -311,7 +309,7 @@ describe('GroupReplays', () => {
               ],
             },
             {
-              ...ReplayList()[0],
+              ...ReplayListFixture()[0],
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),
@@ -342,8 +340,8 @@ describe('GroupReplays', () => {
 
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
-      expect(mockReplayApi).toHaveBeenCalledTimes(1);
 
       // Expect the table to have 2 rows
       expect(screen.getAllByText('testDisplayName')).toHaveLength(2);

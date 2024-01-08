@@ -296,7 +296,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-type EntryBreadcrumbs = {
+export type EntryBreadcrumbs = {
   data: {
     values: Array<RawCrumb>;
   };
@@ -795,7 +795,13 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (EntrySpans | EntryRequest | EntryDebugMeta | AggregateEntrySpans)[];
+  entries: (
+    | EntrySpans
+    | EntryRequest
+    | EntryDebugMeta
+    | AggregateEntrySpans
+    | EntryBreadcrumbs
+  )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
   perfProblem?: PerformanceDetectorData;

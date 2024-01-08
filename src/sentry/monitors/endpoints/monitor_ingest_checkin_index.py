@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from django.db import router, transaction
@@ -9,7 +10,7 @@ from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import ratelimits
+from sentry import features, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -38,6 +39,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 from .base import MonitorIngestEndpoint
+
+logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
@@ -130,7 +133,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         else:
             ratelimit_key = f"{monitor.id}:{env_rate_limit_key}"
 
-        if ratelimits.is_limited(
+        if ratelimits.backend.is_limited(
             f"monitor-checkins:{ratelimit_key}",
             limit=CHECKIN_QUOTA_LIMIT,
             window=CHECKIN_QUOTA_WINDOW,
@@ -147,11 +150,21 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             monitor_data = result.get("monitor")
             create_monitor = monitor_data and not monitor
             update_monitor = monitor_data and monitor
+            disable_creation = (
+                features.has("organizations:crons-disable-new-projects", project.organization)
+                and not project.flags.has_cron_monitors
+            )
 
             # Create a new monitor during checkin. Uses update_or_create to
             # protect against races.
             try:
                 if create_monitor:
+                    if disable_creation:
+                        return self.respond(
+                            "Creating monitors in projects without pre-existing monitors is temporarily disabled",
+                            status=400,
+                        )
+
                     monitor, created = Monitor.objects.update_or_create(
                         organization_id=project.organization_id,
                         slug=monitor_data["slug"],
@@ -166,6 +179,20 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
                     if created:
                         signal_monitor_created(project, request.user, True)
+                    # TODO(rjo100): Temporarily log to measure impact of a bug incorrectly scoping
+                    # the Monitor lookups to the DSN's project_id. This means that any DSN check-in
+                    # will automatically get attached to a monitor with the given slug, regardless
+                    # of the monitor's attached project.
+                    if monitor and monitor.project_id != project.id:
+                        logger.error(
+                            "Monitor project + DSN project do not match",
+                            extra={
+                                "organization.id": project.organization_id,
+                                "monitor.project_id": monitor.project_id,
+                                "project.id": project.id,
+                            },
+                        )
+
             except MonitorLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=400)
 

@@ -11,8 +11,8 @@ type Options = {
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
-  queryReferrer: string;
   perPage?: number;
+  queryReferrer?: 'issueReplays';
 };
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean};

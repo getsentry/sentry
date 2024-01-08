@@ -1,10 +1,11 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
-import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -30,7 +31,7 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = Organization();
+  const org = OrganizationFixture();
   const project = ProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
@@ -40,11 +41,11 @@ describe('projectGeneralSettings', function () {
     securityTokenHeader: 'x-security-header',
     verifySSL: true,
   });
-  const groupingConfigs = GroupingConfigs();
+  const groupingConfigs = GroupingConfigsFixture();
   let routerContext;
   let putMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
     location: LocationFixture(),
     routes: router.routes,
@@ -57,7 +58,7 @@ describe('projectGeneralSettings', function () {
     jest.spyOn(window.location, 'assign');
     routerContext = RouterContextFixture([
       {
-        router: TestStubs.router({
+        router: RouterFixture({
           params: {
             projectId: project.slug,
           },
@@ -228,7 +229,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = Organization({access: ['org:read']});
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
     routerContext.context.organization = readOnlyOrg;
 
     render(
