@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import isObject from 'lodash/isObject';
 
 import {EventGroupComponent} from 'sentry/types';
 
@@ -19,9 +18,9 @@ function GroupingComponentChildren({component, showNonContributing}: Props) {
     <Fragment>
       {(component.values as EventGroupComponent[])
         .filter(value => groupingComponentFilter(value, showNonContributing))
-        .map((value, idx) => (
-          <GroupingComponentListItem key={idx}>
-            {isObject(value) ? (
+        .map(value => (
+          <GroupingComponentListItem key={value.id}>
+            {typeof value === 'object' ? (
               <GroupingComponent
                 component={value}
                 showNonContributing={showNonContributing}

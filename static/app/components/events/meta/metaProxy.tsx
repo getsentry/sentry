@@ -1,5 +1,4 @@
 import isEmpty from 'lodash/isEmpty';
-import isNull from 'lodash/isNull';
 import memoize from 'lodash/memoize';
 
 import {Meta} from 'sentry/types';
@@ -49,7 +48,7 @@ export class MetaProxy {
     }
 
     const value = Reflect.get(obj, prop, receiver);
-    if (!Reflect.has(obj, prop) || typeof value !== 'object' || isNull(value)) {
+    if (!Reflect.has(obj, prop) || typeof value !== 'object' || value === null) {
       return value;
     }
 

@@ -1,7 +1,6 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 import * as Sentry from '@sentry/react';
 import Jed from 'jed';
-import isObject from 'lodash/isObject';
 import {sprintf} from 'sprintf-js';
 
 import localStorage from 'sentry/utils/localStorage';
@@ -137,7 +136,7 @@ function argsInvolveReact(args: FormatArg[]): boolean {
     return true;
   }
 
-  if (args.length !== 1 || !isObject(args[0])) {
+  if (args.length !== 1 || !args[0] || typeof args[0] !== 'object') {
     return false;
   }
 

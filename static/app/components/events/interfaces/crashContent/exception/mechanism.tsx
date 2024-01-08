@@ -2,7 +2,6 @@ import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
-import isObject from 'lodash/isObject';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -85,7 +84,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
   }
 
   forOwn(data, (value, key) => {
-    if (!isObject(value)) {
+    if (!value || typeof value !== 'object') {
       pills.push(
         <Pill key={`data:${key}`} name={key}>
           {mechanismMeta?.data?.[key]?.[''] && !value ? (

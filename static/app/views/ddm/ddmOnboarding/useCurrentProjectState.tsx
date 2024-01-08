@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useState} from 'react';
-import first from 'lodash/first';
 import partition from 'lodash/partition';
 
 import {
@@ -67,7 +66,7 @@ export function useCurrentProjectState({isActive}: {isActive: boolean}) {
       const firstSelectedProject = projects.find(p => selectedProjectIds.includes(p.id));
       setCurrentProject(firstSelectedProject);
     } else {
-      setCurrentProject(first(projectsWithOnboarding) || first(supportedProjects));
+      setCurrentProject(projectsWithOnboarding.at(0) || supportedProjects.at(0));
     }
   }, [
     currentProject,

@@ -1,6 +1,3 @@
-import first from 'lodash/first';
-import last from 'lodash/last';
-
 import type {
   BreadcrumbFrame,
   NavigationFrame,
@@ -20,7 +17,7 @@ function getCurrentUrl(
     frame => frame.offsetMs < currentOffsetMS
   );
 
-  const mostRecentFrame = last(framesBeforeCurrentOffset) ?? first(frames);
+  const mostRecentFrame = framesBeforeCurrentOffset?.at(-1) ?? frames?.at(0);
   if (!mostRecentFrame) {
     return '';
   }
