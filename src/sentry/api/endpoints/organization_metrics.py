@@ -173,7 +173,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             results = run_metrics_query(
                 fields=request.GET.getlist("field", []),
                 query=request.GET.get("query"),
-                group_bys=request.GET.getlist("groupBy"),
                 interval=interval,
                 start=start,
                 end=end,
@@ -182,6 +181,9 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 environments=self.get_environments(request, organization),
                 # TODO: move referrers into a centralized place.
                 referrer="metrics.data.api",
+                # Optional parameters.
+                group_bys=request.GET.getlist("groupBy"),
+                order_by=request.GET.get("orderBy"),
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
