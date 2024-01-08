@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, DefaultDict, Dict, List, Tuple, TypedDict
+from typing import TYPE_CHECKING, DefaultDict, List
 
-from dateutil import parser
 from django.db.models import F, Q
 from django.http import HttpResponse
 from rest_framework import serializers
@@ -16,45 +15,28 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_healthy import (
+    is_error_count_healthy,
+)
 from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
 )
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.release import Release
-from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
+from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.release_threshold_status")
 
 if TYPE_CHECKING:
+    from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
     from sentry.models.deploy import Deploy
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.release_threshold.release_threshold import ReleaseThreshold
     from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-
-
-class SerializedThreshold(TypedDict):
-    date: datetime
-    environment: Dict[str, Any] | None
-    project: Dict[str, Any]
-    release: str
-    threshold_type: int
-    trigger_type: str
-    value: int
-    window_in_seconds: int
-
-
-class EnrichedThreshold(SerializedThreshold):
-    end: datetime
-    is_healthy: bool
-    key: str
-    project_slug: str
-    project_id: int
-    start: datetime
-    metric_value: int | None
 
 
 class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
@@ -402,53 +384,3 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         TODO: move this into a separate helper?
         """
         return f"{project.slug}-{release.version}"
-
-
-def is_error_count_healthy(
-    ethreshold: EnrichedThreshold, timeseries: List[Dict[str, Any]]
-) -> Tuple[bool, int]:
-    """
-    Iterate through timeseries given threshold window and determine health status
-    enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier
-    """
-    total_count = 0
-    threshold_environment: str | None = (
-        ethreshold["environment"]["name"] if ethreshold["environment"] else None
-    )
-    sorted_series = sorted(timeseries, key=lambda x: x["time"])
-    for i in sorted_series:
-        if parser.parse(i["time"]) > ethreshold["end"]:
-            # timeseries are ordered chronologically
-            # So if we're past our threshold.end, we can skip the rest
-            logger.info("Reached end of threshold window. Breaking")
-            metrics.incr("release.threshold_health_status.is_error_count_healthy.break_loop")
-            break
-        if (
-            parser.parse(i["time"]) <= ethreshold["start"]  # ts is before our threshold start
-            or parser.parse(i["time"]) > ethreshold["end"]  # ts is after our threshold end
-            or i["release"] != ethreshold["release"]  # ts is not our the right release
-            or i["project_id"] != ethreshold["project_id"]  # ts is not the right project
-            or i["environment"] != threshold_environment  # ts is not the right environment
-        ):
-            metrics.incr("release.threshold_health_status.is_error_count_healthy.skip")
-            continue
-        # else ethreshold.start < i.time <= ethreshold.end
-        metrics.incr("release.threshold_health_status.is_error_count_healthy.aggregate_total")
-        total_count += i["count()"]
-
-    logger.info(
-        "is_error_count_healthy",
-        extra={
-            "threshold": ethreshold,
-            "total_count": total_count,
-            "error_count_data": timeseries,
-            "threshold_environment": threshold_environment,
-        },
-    )
-
-    if ethreshold["trigger_type"] == TriggerType.OVER_STR:
-        # If total is under/equal the threshold value, then it is healthy
-        return total_count <= ethreshold["value"], total_count
-
-    # Else, if total is over/equal the threshold value, then it is healthy
-    return total_count >= ethreshold["value"], total_count
