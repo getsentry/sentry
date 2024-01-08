@@ -83,7 +83,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
     [mutation, feedbackIds]
   );
 
-  const updateComment = useCallback(
+  const mutateComments = useCallback(
     (
       activity: GroupActivity[],
       options?: MutateOptions<TData, TError, TVariables, TContext>
@@ -97,6 +97,6 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
     markAsRead,
     resolve,
     assign,
-    updateComment,
+    mutateComments,
   };
 }

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import CommentsSection from 'sentry/components/feedback/feedbackItem/commentsSection';
+import ActivitySection from 'sentry/components/feedback/feedbackItem/activitySection';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
@@ -81,8 +81,8 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           <TagsSection tags={tags} />
         </Section>
 
-        <Section icon={<IconChat size="xs" />} title={t('Comments')}>
-          <CommentsSection group={feedbackItem as unknown as Group} />
+        <Section icon={<IconChat size="xs" />} title={t('Activity')}>
+          <ActivitySection group={feedbackItem as unknown as Group} />
         </Section>
       </OverflowPanelItem>
     </Fragment>

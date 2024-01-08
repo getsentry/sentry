@@ -181,7 +181,7 @@ function CommentsSection(props: Props) {
   const mostRecentActivity = getGroupMostRecentActivity(activities);
   const reprocessingStatus = getGroupReprocessingStatus(group, mostRecentActivity);
 
-  const {updateComment} = useMutateFeedback({
+  const {mutateComments} = useMutateFeedback({
     feedbackIds: [group.id],
     organization,
   });
@@ -224,7 +224,7 @@ function CommentsSection(props: Props) {
                   group,
                   organization,
                   api,
-                  addComment: updateComment,
+                  addComment: mutateComments,
                   author: me,
                 });
                 setInputId(uniqueId());
@@ -252,7 +252,7 @@ function CommentsSection(props: Props) {
                         group,
                         organization,
                         api,
-                        deleteComment: updateComment,
+                        deleteComment: mutateComments,
                       })
                     }
                     onUpdate={n =>
@@ -261,7 +261,7 @@ function CommentsSection(props: Props) {
                         id: item.id,
                         group,
                         api,
-                        updateComment,
+                        updateComment: mutateComments,
                         organization,
                       })
                     }
