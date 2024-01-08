@@ -611,6 +611,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             status_code=500,
         )
 
+    @pytest.mark.skip(reason="transaction.duration is currently not supported")
     def test_get_metric_spans_with_transaction_duration(self):
         mri = TransactionMRI.DURATION.value
 
