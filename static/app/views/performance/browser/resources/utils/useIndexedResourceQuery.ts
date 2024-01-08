@@ -10,6 +10,7 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 
 type Options = {
+  enabled?: boolean;
   limit?: number;
   queryConditions?: string[];
   referrer?: string;
@@ -21,6 +22,7 @@ export const useIndexedResourcesQuery = ({
   limit = 50,
   sorts,
   referrer,
+  enabled = true,
 }: Options) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -55,6 +57,7 @@ export const useIndexedResourcesQuery = ({
     orgSlug,
     referrer,
     options: {
+      enabled,
       refetchOnWindowFocus: false,
     },
   });
