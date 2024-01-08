@@ -53,7 +53,8 @@ class MemcachedCache(BaseMemcachedCache):
         self._options = {"pickleProtocol": pickle.HIGHEST_PROTOCOL, **self._options}  # type: ignore[has-type]
 
     def get(self, key, default=None, version=None):
-        key = self.make_and_validate_key(key, version=version)
+        key = self.make_key(key, version=version)
+        self.validate_key(key)
         val = self._cache.get(key)  # type: ignore[attr-defined]
         # python-memcached doesn't support default values in get().
         # https://github.com/linsomniac/python-memcached/issues/159
