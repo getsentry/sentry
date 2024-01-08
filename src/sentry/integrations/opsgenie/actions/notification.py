@@ -85,7 +85,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                         "event_id": event.event_id,
                     },
                 )
-                raise e
+                raise
 
             logger.info(
                 "rule.success.opsgenie_notification",

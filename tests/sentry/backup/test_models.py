@@ -17,7 +17,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.backups import export_to_file
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.json import JSONData
-from tests.sentry.backup import expect_models
+from tests.sentry.backup import expect_models, verify_models_in_output
 
 DYNAMIC_RELOCATION_SCOPE_TESTED: set[NormalizedModelName] = set()
 
@@ -62,7 +62,7 @@ class DynamicRelocationScopeTests(TransactionTestCase):
 
         assert auth.get_relocation_scope() == RelocationScope.Config
         assert token.get_relocation_scope() == RelocationScope.Config
-        return self.export()
+        verify_models_in_output(expected_models, self.export())
 
     @expect_models(DYNAMIC_RELOCATION_SCOPE_TESTED, NotificationAction, NotificationActionProject)
     def test_notification_action(self, expected_models: list[Type[Model]]):
@@ -98,4 +98,4 @@ class DynamicRelocationScopeTests(TransactionTestCase):
 
         assert action.get_relocation_scope() == RelocationScope.Organization
         assert action_project.get_relocation_scope() == RelocationScope.Organization
-        return self.export()
+        verify_models_in_output(expected_models, self.export())

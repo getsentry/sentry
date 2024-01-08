@@ -372,13 +372,6 @@ register(
     default=0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# The sample rate at which to allow dom-click-search.
-register(
-    "replay.ingest.dom-click-search",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Replay Analyzer service.
 register(
     "replay.analyzer_service_url",
@@ -1058,6 +1051,15 @@ register(
 register(
     "sentry-metrics.indexer.release-health.schema-validation-rules",
     default={},  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to control whether or not we raise ValidationErrors in the indexer
+# (Temporary) raising the error would mean we skip the processing or DLQing of these
+# invalid messages
+register(
+    "sentry-metrics.indexer.raise-validation-errors",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

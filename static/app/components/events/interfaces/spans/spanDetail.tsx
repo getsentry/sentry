@@ -475,6 +475,7 @@ function SpanDetail(props: Props) {
                   title="Profile ID"
                   extra={
                     <TransactionToProfileButton
+                      event={event}
                       size="xs"
                       projectSlug={project.slug}
                       query={{

@@ -336,8 +336,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group_details:put client.ApiError",
             )
             return Response(e.body, status=e.status_code)
-        except Exception:
-            raise
 
     def delete(self, request: Request, group) -> Response:
         """

@@ -63,14 +63,11 @@ function SpanSummaryPage({params, location}: Props) {
       isAValidSort
     )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
-  const {data, isLoading: isSpanMetricsLoading} = useSpanMetrics(
+  const {data, isLoading: isSpanMetricsLoading} = useSpanMetrics({
     filters,
-    ['span.op', 'span.group', 'project.id', 'sps()'],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-page-metrics'
-  );
+    fields: ['span.op', 'span.group', 'project.id', 'sps()'],
+    referrer: 'api.starfish.span-summary-page-metrics',
+  });
 
   const spanMetrics = data[0] ?? {};
 
