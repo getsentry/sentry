@@ -4,6 +4,7 @@ import logging
 import uuid
 from datetime import datetime
 
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry import features
@@ -68,13 +69,19 @@ def mark_failed(
     else:
         last_checkin = failed_checkin.date_added
 
+    # Only update the timestamps if the check-in is the latest one
+    monitors_to_update = MonitorEnvironment.objects.filter(
+        Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True),
+        id=monitor_env.id,
+    )
+
     field_updates = {
         "last_checkin": last_checkin,
         "next_checkin": next_checkin,
         "next_checkin_latest": next_checkin_latest,
     }
 
-    monitor_env.update(**field_updates)
+    monitors_to_update.update(**field_updates)
 
     # refresh the object from the database so we have the updated values in our
     # cached instance

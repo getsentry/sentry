@@ -727,7 +727,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
         # In progress started an hour ago
         checkin1_start = ts - timedelta(hours=1)
 
-        # Timesout 90 minutes from when it started
+        # Times out 90 minutes from when it started
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
@@ -738,7 +738,7 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             timeout_at=checkin1_start + timedelta(minutes=90),
         )
 
-        # Second check in was started now, giving us the the overlapping
+        # Second check in was started now, giving us the overlapping
         # "concurrent" checkin scenario.
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -780,11 +780,11 @@ class MonitorTaskCheckTimeoutTest(TestCase):
             id=checkin2.id, status=CheckInStatus.IN_PROGRESS
         ).exists()
 
-        # XXX(epurkhiser): We do NOT update the MonitorStatus, another check-in
-        # has already happened. It may be worth re-visiting this logic later.
+        # We update the monitor status as the newest check-in is
+        # not in a terminal state
         monitor_env = MonitorEnvironment.objects.filter(
             id=monitor_environment.id,
-            status=MonitorStatus.OK,
+            status=MonitorStatus.TIMEOUT,
         )
         assert monitor_env.exists()
 
