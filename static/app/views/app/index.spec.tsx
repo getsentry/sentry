@@ -87,7 +87,7 @@ describe('App', function () {
   });
 
   it('does not render PartnerAgreement for non-partnered orgs', async function () {
-    ConfigStore.set('partnershipAgreementPrompt', null);
+    ConfigStore.set('partnershipAgreementPrompt', undefined);
     render(
       <App {...routerProps}>
         <div>placeholder content</div>

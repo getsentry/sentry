@@ -166,7 +166,7 @@ export interface Config {
   partnershipAgreementPrompt: {
     agreements: Array<ParntershipAgreementType>;
     partnerDisplayName: string;
-  } | null;
+  } | undefined | null;
   privacyUrl: string | null;
   // The list of regions the current user has memberships in.
   regions: Region[];
