@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import connections, transaction
 from django.db.transaction import Atomic, get_connection
 
-from sentry.silo import SiloMode, SingleProcessSiloModeState
+from sentry.silo import SiloMode
 from sentry.utils.env import in_test_environment
 
 
@@ -36,9 +36,8 @@ def django_test_transaction_water_mark(using: str | None = None):
     from sentry.testutils import hybrid_cloud  # NOQA:S007
 
     # Exempt get_connection call from silo validation checks
-    with (
-        SingleProcessSiloModeState.exit(),
-        SingleProcessSiloModeState.enter(SiloMode.MONOLITH),
+    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
+        SiloMode.MONOLITH
     ):
         connection = transaction.get_connection(using)
 
