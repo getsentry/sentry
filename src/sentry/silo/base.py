@@ -51,7 +51,9 @@ class SingleProcessSiloModeState(threading.local):
     process should be running in.
 
     All calls to this class's methods are no-ops in a production environment,
-    but are monkey-patched in a test environment.
+    but are monkey-patched in a test environment. See the function
+        sentry.testutils.silo.monkey_patch_single_process_silo_mode_state
+    for the test environment's method bodies.
     """
 
     @staticmethod
