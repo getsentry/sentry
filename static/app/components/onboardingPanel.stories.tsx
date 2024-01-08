@@ -8,6 +8,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(OnboardingPanel, story => {
@@ -39,6 +40,16 @@ export default storyBook(OnboardingPanel, story => {
           The onboarding content on the right here is specified through the children of
           the component.
         </p>
+        <p>The panel also automatically resizes correctly for narrow screens:</p>
+        <SizingWindow>
+          <OnboardingPanel image={<img src={emptyStateImg} />}>
+            <h3>What do users think?</h3>
+            <p>
+              You can't read minds. At least we hope not. Ask users for feedback on the
+              impact of their crashes or bugs and you shall receive.
+            </p>
+          </OnboardingPanel>
+        </SizingWindow>
       </Fragment>
     );
   });
