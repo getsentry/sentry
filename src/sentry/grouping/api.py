@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import TypedDict
 
-from sentry import options
+from sentry import features, options
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -196,7 +196,10 @@ def load_default_grouping_config():
 def get_fingerprinting_config_for_project(project, config_id: str | None = None):
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
-    bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
+    if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
+        bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
+    else:
+        bases = []
     rules = project.get_option("sentry:fingerprinting_rules")
     if not rules:
         return FingerprintingRules([], bases=bases)

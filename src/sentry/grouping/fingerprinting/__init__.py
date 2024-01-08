@@ -181,6 +181,8 @@ class FingerprintingRules:
             yield from self.rules
 
     def get_fingerprint_values_for_event(self, event):
+        if not (self.bases or self.rules):
+            return
         access = EventAccess(event)
         for rule in self.iter_rules():
             new_values = rule.get_fingerprint_values_for_event_access(access)
