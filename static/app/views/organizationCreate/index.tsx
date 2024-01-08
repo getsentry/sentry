@@ -32,6 +32,9 @@ function OrganizationCreate() {
   const regionChoices = getRegionChoices();
   const client = useApi();
 
+  // This is a trimmed down version of the logic in ApiForm. It validates the
+  // form data prior to submitting the request, and overrides the request host
+  // with the selected region's URL if one is provided.
   const submitOrganizationCreate: OnSubmitCallback = useCallback((data, onSubmitSuccess, onSubmitError, _event, formModel) => {
     if (!formModel.validateForm()) {
       return;
