@@ -25,6 +25,16 @@ export function Sql({breadcrumb, meta, searchTerm}: Props) {
     return p1 ? 'Filtered' : '\n\u2026';
   });
 
+  /**
+   * If annotated text is a size limit tooltip, we need to remove the extra copy of the text
+   * from the meta.
+   */
+  meta?.message?.[''].chunks?.forEach(element => {
+    if (element.type === 'text') {
+      delete element.text;
+    }
+  });
+
   const tokens = usePrismTokens({code: messageFormatted!, language: 'sql'});
 
   return (
@@ -41,7 +51,7 @@ export function Sql({breadcrumb, meta, searchTerm}: Props) {
                         <AnnotatedText
                           value={
                             // Puts the '[]' back if 'Filtered' present
-                            token.children === '\u2026' ? '...' : `[${token.children}]`
+                            token.children === '\u2026' ? '...' : '[Filtered]'
                           }
                           meta={meta?.message?.['']}
                         />
