@@ -59,6 +59,8 @@ class SpansSource(ABC):
     ) -> Sequence[Span]:
         return self._get_spans(
             metric_mri=metric_mri,
+            # TODO: when the environment support is added, inject here the environment condition after the AST is
+            #   generated.
             conditions=get_snuba_conditions_from_query(query) if query else None,
             start=start,
             end=end,
@@ -190,7 +192,7 @@ class TransactionDurationSpansSource(SpansSource):
         # TODO: implement transaction.duration handling by looking for:
         #   is_segment: 1
         #   duration >= min and duration <= max
-        #   sentry_tags as values from the query string
+        #   sentry_tags and tags as values from the query string
         return []
 
 
