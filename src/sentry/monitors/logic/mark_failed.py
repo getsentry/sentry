@@ -4,7 +4,6 @@ import logging
 import uuid
 from datetime import datetime
 
-from django.db.models import Q
 from django.utils import timezone
 
 from sentry import features
@@ -45,6 +44,17 @@ def mark_failed(
     if not failure_issue_threshold:
         failure_issue_threshold = 1
 
+    # We only mark the monitor as failed if a newer checkin wasn't responsible for the state
+    # change
+    has_newer_result = MonitorCheckIn.objects.filter(
+        monitor_environment=monitor_env,
+        date_added__gt=failed_checkin.date_added,
+        status__in=CheckInStatus.FINISHED_VALUES,
+    ).exists()
+
+    if has_newer_result:
+        return False
+
     # Compute the next check-in time from our reference time
     next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
@@ -58,38 +68,13 @@ def mark_failed(
     else:
         last_checkin = failed_checkin.date_added
 
-    # Select the MonitorEnvironment for update. We ONLY want to update the
-    # monitor if there have not been newer check-ins.
-    monitors_to_update = MonitorEnvironment.objects.filter(
-        Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True),
-        id=monitor_env.id,
-    )
-
     field_updates = {
         "last_checkin": last_checkin,
         "next_checkin": next_checkin,
         "next_checkin_latest": next_checkin_latest,
     }
 
-    # Additionally update status when not using thresholds. The threshold based
-    # failure will only update status once it has passed the threshold.
-    if not failure_issue_threshold:
-        failed_status_map = {
-            CheckInStatus.MISSED: MonitorStatus.MISSED_CHECKIN,
-            CheckInStatus.TIMEOUT: MonitorStatus.TIMEOUT,
-        }
-        field_updates["status"] = failed_status_map.get(failed_checkin.status, MonitorStatus.ERROR)
-
-    affected = monitors_to_update.update(**field_updates)
-
-    # If we did not update the monitor environment it means there was a newer
-    # check-in. We have nothing to do in this case.
-    #
-    # XXX: The `affected` result is the number of rows returned from the
-    # filter. Not the number of rows that had their values modified by the
-    # update.
-    if not affected:
-        return False
+    monitor_env.update(**field_updates)
 
     # refresh the object from the database so we have the updated values in our
     # cached instance
