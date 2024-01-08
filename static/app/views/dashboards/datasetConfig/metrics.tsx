@@ -15,10 +15,10 @@ import {
   groupByOp,
 } from 'sentry/utils/metrics';
 import {
-  formatMRI,
   formatMRIField,
   getMRI,
   getUseCaseFromMRI,
+  isMRIField,
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
@@ -127,20 +127,21 @@ function getMetricTimeseriesSortOptions(_, widgetQuery) {
   }, {});
 }
 
-function getMetricTableSortOptions(_, widgetQuery) {
-  if (!widgetQuery.fields[0]) {
+function getMetricTableSortOptions(_, widgetQuery: WidgetQuery) {
+  if (!widgetQuery.fields?.[0]) {
     return [];
   }
 
-  return widgetQuery.fields.map((field, i) => {
-    const mri = getMRI(field);
-    const alias = widgetQuery.fieldAliases?.[i];
+  return widgetQuery.fields
+    .map((field, i) => {
+      const alias = widgetQuery.fieldAliases?.[i];
 
-    return {
-      label: alias ?? formatMRI(mri),
-      value: mri,
-    };
-  });
+      return {
+        label: alias || formatMRIField(field),
+        value: field,
+      };
+    })
+    .filter(option => isMRIField(option.value));
 }
 
 function getFields(
@@ -382,7 +383,6 @@ function getMetricRequest(
       },
     ] as any);
   }
-  const per_page = limit && Number(limit) >= 10 ? limit : 10;
 
   const useNewMetricsLayer = organization.features.includes(
     'metrics-api-new-metrics-layer'
@@ -393,10 +393,11 @@ function getMetricRequest(
       field: query.aggregates[0],
       query: query.conditions,
       groupBy: query.columns,
+      orderBy: query.orderby,
     },
     pageFilters,
     {
-      per_page,
+      limit,
       useNewMetricsLayer,
       fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }
