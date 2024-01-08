@@ -1,6 +1,6 @@
-import {Actor} from 'sentry-fixture/actor';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
+import {ActorFixture} from 'sentry-fixture/actor';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
@@ -223,7 +223,7 @@ describe('GroupStore', function () {
     describe('onAssignToSuccess()', function () {
       it("should treat undefined itemIds argument as 'all'", function () {
         GroupStore.items = [g('1')];
-        const assignedGroup = g('1', {assignedTo: Actor()});
+        const assignedGroup = g('1', {assignedTo: ActorFixture()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
@@ -241,7 +241,7 @@ describe('GroupStore', function () {
                 id: '1',
                 type: GroupActivityType.NOTE,
                 dateCreated: '',
-                project: Project(),
+                project: ProjectFixture(),
                 data: {text: 'Orginal Text'},
               },
             ],

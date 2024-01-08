@@ -312,7 +312,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": "http://eu.testserver",
+                "regionUrl": generate_region_url(),
                 "sentryUrl": "http://testserver",
             }
 

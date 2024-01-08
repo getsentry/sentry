@@ -639,6 +639,33 @@ def post_process_group(
                 }
             ]
 
+        try:
+            if group_states is not None:
+                if not is_transaction_event:
+                    if len(group_states) == 0:
+                        metrics.incr("sentry.tasks.post_process.error_empty_group_states")
+                    elif len(group_states) > 1:
+                        metrics.incr("sentry.tasks.post_process.error_too_many_group_states")
+                    elif group_id != group_states[0]["id"]:
+                        metrics.incr(
+                            "sentry.tasks.post_process.error_group_states_dont_match_group"
+                        )
+                else:
+                    if len(group_states) == 1:
+                        metrics.incr("sentry.tasks.post_process.transaction_has_group_state")
+                        if group_id != group_states[0]["id"]:
+                            metrics.incr(
+                                "sentry.tasks.post_process.transaction_group_states_dont_match_group"
+                            )
+                    if len(group_states) > 1:
+                        metrics.incr(
+                            "sentry.tasks.post_process.transaction_has_too_many_group_states"
+                        )
+        except Exception:
+            logger.exception(
+                "Error logging group_states stats. If this happens it's noisy but not critical, nothing is broken"
+            )
+
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
@@ -1352,6 +1379,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
 
 
 MAX_NEW_ESCALATION_AGE_HOURS = 24
+MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
 
 def detect_new_escalation(job: PostProcessJob):
@@ -1383,7 +1411,11 @@ def detect_new_escalation(job: PostProcessJob):
     group_age_hours = group_age_seconds / 3600 if group_age_seconds >= 3600 else 1
     times_seen = group.times_seen_with_pending
     has_valid_status = group.substatus == GroupSubStatus.NEW
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status or times_seen <= 1:
+    if (
+        group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS
+        or not has_valid_status
+        or times_seen < MIN_EVENTS_FOR_NEW_ESCALATION
+    ):
         logger.warning(
             "tasks.post_process.detect_new_escalation.skipping_detection",
             extra={

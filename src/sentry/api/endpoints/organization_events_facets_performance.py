@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import DateArg
 from sentry.snuba import discover
@@ -116,14 +117,14 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     return {"data": []}
 
                 for row in results["data"]:
-                    row["tags_value"] = tagstore.get_tag_value_label(
+                    row["tags_value"] = tagstore.backend.get_tag_value_label(
                         row["tags_key"], row["tags_value"]
                     )
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return results
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
@@ -209,7 +210,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     return {"tags": top_tags, "histogram": {"data": []}}
 
                 for row in histogram["data"]:
-                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+                    row["tags_key"] = tagstore.backend.get_standardized_key(row["tags_key"])
 
                 return {"tags": top_tags, "histogram": histogram}
 
@@ -223,7 +224,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 ),
             }
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=HistogramPaginator(data_fn=data_fn),

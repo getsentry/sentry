@@ -1,7 +1,7 @@
-import {Broadcast} from 'sentry-fixture/broadcast';
-import {Organization} from 'sentry-fixture/organization';
-import {ServiceIncident} from 'sentry-fixture/serviceIncident';
-import {User} from 'sentry-fixture/user';
+import {BroadcastFixture} from 'sentry-fixture/broadcast';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -16,8 +16,8 @@ jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
   const {organization, routerContext} = initializeOrg();
-  const broadcast = Broadcast();
-  const user = User();
+  const broadcast = BroadcastFixture();
+  const user = UserFixture();
   const apiMocks = {
     broadcasts: jest.fn(),
     broadcastsMarkAsSeen: jest.fn(),
@@ -72,7 +72,7 @@ describe('Sidebar', function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     renderSidebar({
-      organization: Organization({access: ['member:read']}),
+      organization: OrganizationFixture({access: ['member:read']}),
     });
 
     await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
@@ -101,7 +101,7 @@ describe('Sidebar', function () {
     });
     it('has link to Members settings with `member:write`', async function () {
       renderSidebar({
-        organization: Organization({access: ['member:read']}),
+        organization: OrganizationFixture({access: ['member:read']}),
       });
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
@@ -239,7 +239,7 @@ describe('Sidebar', function () {
         .spyOn(incidentActions, 'loadIncidents')
         .mockImplementation((): Promise<SentryServiceStatus | null> => {
           return Promise.resolve({
-            incidents: [ServiceIncident()],
+            incidents: [ServiceIncidentFixture()],
             indicator: 'none',
             url: '',
           });

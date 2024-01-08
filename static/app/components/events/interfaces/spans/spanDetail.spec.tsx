@@ -1,7 +1,7 @@
-import {Event} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
-import {Span} from 'sentry-fixture/span';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {SpanFixture} from 'sentry-fixture/span';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,8 +10,8 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import {EventTransaction} from 'sentry/types';
 
 describe('SpanDetail', function () {
-  const organization = Organization();
-  const project = Project();
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
 
   const trace = {
     op: 'http.server',
@@ -24,13 +24,13 @@ describe('SpanDetail', function () {
     rootSpanStatus: undefined,
   };
 
-  const event = Event({
+  const event = EventFixture({
     title: '/api/0/detail',
     projectID: project.id,
     startTimestamp: 0,
   }) as EventTransaction;
 
-  const span = Span({
+  const span = SpanFixture({
     op: 'db',
     hash: 'a',
     description: 'SELECT * FROM users;',
@@ -70,7 +70,7 @@ describe('SpanDetail', function () {
     it('shows size fields', function () {
       render(
         renderSpanDetail({
-          span: Span({
+          span: SpanFixture({
             op: 'resource.link',
             description: 'static.assets/content.js',
             data: {
@@ -95,7 +95,7 @@ describe('SpanDetail', function () {
     it('renders "Similar Span" button but no Query Details button by default', function () {
       render(
         renderSpanDetail({
-          span: Span({
+          span: SpanFixture({
             op: 'db',
             hash: 'a',
             description: 'SELECT * FROM users;',
@@ -116,7 +116,7 @@ describe('SpanDetail', function () {
     it('renders "View Query Details" button if "Queries" view is enabled and span group is available', function () {
       render(
         renderSpanDetail({
-          span: Span({
+          span: SpanFixture({
             op: 'db',
             hash: 'a',
             description: 'SELECT * FROM users;',
@@ -125,7 +125,7 @@ describe('SpanDetail', function () {
               category: 'db',
             },
           }),
-          organization: Organization({
+          organization: OrganizationFixture({
             ...organization,
             features: ['performance-database-view'],
           }),

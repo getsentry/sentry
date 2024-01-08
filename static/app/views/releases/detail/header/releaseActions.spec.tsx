@@ -1,8 +1,13 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {HealthFixture} from 'sentry-fixture/health';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
+import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {
   render,
@@ -12,11 +17,28 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ReleaseProject, ReleaseStatus} from 'sentry/types';
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
-  const organization = Organization();
-  const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
+  const organization = OrganizationFixture();
+
+  const project1 = ReleaseProjectFixture({
+    slug: 'project1',
+    hasHealthData: true,
+    healthData: HealthFixture(),
+  }) as Required<ReleaseProject>;
+
+  const project2 = ReleaseProjectFixture({
+    slug: 'project2',
+    hasHealthData: true,
+    healthData: HealthFixture(),
+  }) as Required<ReleaseProject>;
+
+  const release = ReleaseFixture({
+    projects: [project1, project2],
+  });
+
   const location: Location = {
     ...LocationFixture(),
     pathname: `/organizations/sentry/releases/${release.version}/`,
@@ -46,7 +68,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
+        releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />
     );
@@ -90,12 +112,12 @@ describe('ReleaseActions', function () {
 
     render(
       <ReleaseActions
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         projectSlug={release.projects[0].slug}
-        release={{...release, status: 'archived'}}
+        release={{...release, status: ReleaseStatus.ARCHIVED}}
         refetchData={refetchDataMock}
-        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
+        releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />
     );
@@ -139,7 +161,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
+        releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
       {context: routerContext}
@@ -168,7 +190,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
-        releaseMeta={{...TestStubs.Release(), projects: release.projects}}
+        releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={{
           ...location,
           pathname: `/organizations/sentry/releases/${release.version}/files-changed/`,

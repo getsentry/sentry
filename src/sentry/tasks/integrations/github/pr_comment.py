@@ -46,7 +46,6 @@ class PullRequestIssue:
     url: str
     affected_users: Optional[int] = None
     event_count: Optional[int] = None
-    is_handled: Optional[bool] = None
     function_name: Optional[str] = None
 
 
@@ -292,7 +291,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
                 return
 
         metrics.incr(MERGED_PR_METRICS_BASE.format(key="error"), tags={"type": "api_error"})
-        raise e
+        raise
 
 
 @instrumented_task(

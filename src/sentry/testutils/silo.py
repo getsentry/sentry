@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import os
 import re
 import sys
+import threading
+import typing
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from typing import (
@@ -12,6 +15,7 @@ from typing import (
     Callable,
     Collection,
     Dict,
+    Generator,
     Iterable,
     List,
     Literal,
@@ -30,24 +34,70 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
-from sentry import deletions
-from sentry.api.utils import generate_region_url
-from sentry.db.models.base import BaseModel, ModelSiloLimit
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
-from sentry.deletions.base import BaseDeletionTask
-from sentry.models.actor import Actor
-from sentry.silo import SiloMode, match_fence_query
+from sentry.silo import SiloMode, SingleProcessSiloModeState, match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
+
+if typing.TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel, ModelSiloLimit
 
 TestMethod = Callable[..., None]
 
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
+def monkey_patch_single_process_silo_mode_state():
+    class LocalSiloModeState(threading.local):
+        mode: SiloMode | None = None
+        region: Region | None = None
+
+    state = LocalSiloModeState()
+
+    @contextlib.contextmanager
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+        assert state.mode is None, (
+            "Re-entrant invariant broken! Use exit_single_process_silo_context "
+            "to explicit pass 'fake' RPC boundaries."
+        )
+
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = mode
+        state.region = region
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    @contextlib.contextmanager
+    def exit() -> Generator[None, None, None]:
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = None
+        state.region = None
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    def get_mode() -> SiloMode | None:
+        return state.mode
+
+    def get_region() -> Region | None:
+        return state.region
+
+    SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+
+
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
+    from sentry.api.utils import generate_region_url
+
     single_tenants = frozenset(single_tenants)
     return tuple(
         Region(
@@ -65,6 +115,8 @@ def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tupl
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
+    from sentry.db.models.base import ModelSiloLimit
+
     silo_limit = getattr(t._meta, "silo_limit", None)
     if not isinstance(silo_limit, ModelSiloLimit):
         raise ValueError(
@@ -145,9 +197,11 @@ class _SiloModeTestModification:
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        with override_regions(self.regions) if self.regions else nullcontext():
-            with assume_test_silo_mode(silo_mode, can_be_monolith=False):
-                yield
+        with (
+            override_regions(self.regions) if self.regions else nullcontext(),
+            assume_test_silo_mode(silo_mode, can_be_monolith=False),
+        ):
+            yield
 
     def _create_overriding_test_class(
         self, test_class: Type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
@@ -316,6 +370,8 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
 
 @contextmanager
 def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = True) -> Any:
+    from sentry.db.models.base import ModelSiloLimit
+
     """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
@@ -367,6 +423,9 @@ _protected_operations: List[re.Pattern] = []
 
 
 def get_protected_operations() -> List[re.Pattern]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+
     if len(_protected_operations):
         return _protected_operations
 
@@ -502,6 +561,9 @@ def validate_no_cross_silo_foreign_keys(
 def validate_no_cross_silo_deletions(
     exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
 ) -> None:
+    from sentry import deletions
+    from sentry.deletions.base import BaseDeletionTask
+
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
@@ -543,6 +605,8 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 
 def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
+    from sentry.models.actor import Actor
+
     # HybridCloudForeignKey can point to region models if they have snowflake ids
     if issubclass(related_model, SnowflakeIdMixin):
         return

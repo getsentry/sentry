@@ -1,3 +1,6 @@
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -34,8 +37,10 @@ describe('TimeRangeSelector', function () {
 
   beforeEach(function () {
     ConfigStore.loadInitialData(
-      TestStubs.Config({
-        user: {options: {timezone: 'America/New_York'}},
+      ConfigFixture({
+        user: UserFixture({
+          options: {...UserFixture().options, timezone: 'America/New_York'},
+        }),
       })
     );
     onChange.mockReset();

@@ -1,4 +1,4 @@
-import {User} from 'sentry-fixture/user';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import {AvatarUser} from 'sentry/types';
 
 describe('UserBadge', function () {
-  const user: AvatarUser = User();
+  const user: AvatarUser = UserFixture();
 
   it('renders with no link when user is supplied', function () {
     render(<UserBadge user={user} />);
@@ -29,7 +29,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using username', function () {
-    const username = User({
+    const username = UserFixture({
       name: undefined,
       email: undefined,
       username: 'the-batman',
@@ -40,7 +40,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using ipaddress', function () {
-    const ipUser = User({
+    const ipUser = UserFixture({
       name: undefined,
       email: undefined,
       username: undefined,
@@ -53,7 +53,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using id', function () {
-    const idUser = User({
+    const idUser = UserFixture({
       id: '99',
       name: undefined,
       email: undefined,
@@ -72,7 +72,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using ip', function () {
-    const ipUser = User({
+    const ipUser = UserFixture({
       name: undefined,
       email: undefined,
       username: undefined,

@@ -104,13 +104,9 @@ export const enum ErrorHelpType {
   CHUNK_LOAD_ERROR = 'chunk_load_error',
   DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
   HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
+  MODULE_NOT_FOUND = 'module_not_found',
   DYNAMIC_SERVER_USAGE = 'dynamic_server_usage',
+  HYDRATION_ERROR = 'hydration_error',
   LOAD_FAILED = 'load_failed',
   SOCKET_HANG_UP = 'socket_hang_up',
-}
-
-export interface ErrorInfo {
-  errorHelpType: ErrorHelpType;
-  errorTitle: string;
-  projectCheck: boolean;
 }

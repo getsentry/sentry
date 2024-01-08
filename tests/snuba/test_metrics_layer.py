@@ -19,7 +19,7 @@ from snuba_sdk import (
     Timeseries,
 )
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionStatusTagValue, TransactionTagsKey
@@ -48,16 +48,21 @@ class MQLTest(TestCase, BaseMetricsTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
+        self.generic_metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
             TransactionMRI.DURATION.value: "distribution",
             TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
             "g:transactions/test_gauge@none": "gauge",
         }
+        self.metrics: Mapping[str, Literal["counter", "set", "distribution"]] = {
+            SessionMRI.RAW_DURATION.value: "distribution",
+            SessionMRI.RAW_USER.value: "set",
+            SessionMRI.RAW_SESSION.value: "counter",
+        }
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
         self.org_id = self.project.organization_id
-        for mri, metric_type in self.metrics.items():
+        for mri, metric_type in self.generic_metrics.items():
             assert metric_type in {"counter", "distribution", "set", "gauge"}
             for i in range(10):
                 value: int | dict[str, int]
@@ -85,8 +90,24 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     value,
                     UseCaseID.TRANSACTIONS,
                 )
+        for mri, metric_type in self.metrics.items():
+            assert metric_type in {"counter", "distribution", "set"}
+            for i in range(10):
+                value = i
+                self.store_metric(
+                    self.org_id,
+                    self.project.id,
+                    metric_type,
+                    mri,
+                    {
+                        "release": "release_even" if i % 2 == 0 else "release_odd",
+                    },
+                    self.ts(self.hour_ago + timedelta(minutes=1 * i)),
+                    value,
+                    UseCaseID.SESSIONS,
+                )
 
-    def test_basic(self) -> None:
+    def test_basic_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -123,7 +144,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
-    def test_groupby(self) -> None:
+    def test_groupby_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -163,7 +184,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
-    def test_filters(self) -> None:
+    def test_filters_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -199,7 +220,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert rows[0]["aggregate_value"] == [0]
         assert rows[1]["aggregate_value"] == [6.0]
 
-    def test_complex(self) -> None:
+    def test_complex_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
@@ -423,7 +444,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         )
         result = self.run_query(request)
         assert request.dataset == "metrics"
-        assert len(result["data"]) == 0
+        assert len(result["data"]) == 10
 
     def test_gauges(self) -> None:
         query = MetricsQuery(
@@ -453,6 +474,140 @@ class MQLTest(TestCase, BaseMetricsTestCase):
 
         assert len(result["data"]) == 10
         assert result["totals"]["aggregate_value"] == 9.0
+
+    def test_metrics_groupby(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    None,
+                    SessionMRI.RAW_DURATION.value,
+                ),
+                aggregate="max",
+                groupby=[Column("release")],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.SESSIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = self.run_query(request)
+        assert request.dataset == "metrics"
+        assert len(result["data"]) == 10
+        for data_point in result["data"]:
+            assert data_point["release"] == "release_even" or data_point["release"] == "release_odd"
+
+    def test_metrics_filters(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    None,
+                    SessionMRI.RAW_USER.value,
+                ),
+                aggregate="count",
+                filters=[
+                    Condition(Column("release"), Op.EQ, "release_even"),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.SESSIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = self.run_query(request)
+        assert request.dataset == "metrics"
+        assert len(result["data"]) == 5
+
+    def test_metrics_complex(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    None,
+                    SessionMRI.RAW_SESSION.value,
+                ),
+                aggregate="count",
+                groupby=[Column("release")],
+                filters=[
+                    Condition(Column("release"), Op.EQ, "release_even"),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.SESSIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = self.run_query(request)
+        assert request.dataset == "metrics"
+        assert len(result["data"]) == 5
+        assert any(data_point["release"] == "release_even" for data_point in result["data"])
+
+    def test_metrics_correctly_reverse_resolved(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    None,
+                    SessionMRI.RAW_SESSION.value,
+                ),
+                aggregate="count",
+                groupby=[Column("release"), Column("project_id")],
+                filters=[
+                    Condition(Column("release"), Op.EQ, "release_even"),
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.SESSIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = self.run_query(request)
+        assert request.dataset == "metrics"
+        assert len(result["data"]) == 5
+        assert any(data_point["release"] == "release_even" for data_point in result["data"])
+        assert any(data_point["project_id"] == self.project.id for data_point in result["data"])
 
     @pytest.mark.skip(reason="This is not implemented in MQL")
     def test_failure_rate(self) -> None:
@@ -535,6 +690,49 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         rows = result["data"]
         for i in range(10):
             assert rows[i]["aggregate_value"] == [i]
+            assert (
+                rows[i]["time"]
+                == (
+                    self.hour_ago.replace(second=0, microsecond=0) + timedelta(minutes=1 * i)
+                ).isoformat()
+            )
+
+    def test_dataset_correctness(self) -> None:
+        query = MetricsQuery(
+            query=Timeseries(
+                metric=Metric(
+                    "transaction.duration",
+                    TransactionMRI.DURATION.value,
+                ),
+                aggregate="quantiles",
+                aggregate_params=[0.5, 0.99],
+                groupby=[Column("transaction")],
+                filters=[
+                    Condition(Column("transaction"), Op.IN, ["transaction_0", "transaction_1"])
+                ],
+            ),
+            start=self.hour_ago,
+            end=self.now,
+            rollup=Rollup(interval=60, granularity=60),
+            scope=MetricsScope(
+                org_ids=[self.org_id],
+                project_ids=[self.project.id],
+                use_case_id=UseCaseID.TRANSACTIONS.value,
+            ),
+        )
+
+        request = Request(
+            dataset="metrics",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "metrics.testing.test", "organization_id": self.org_id},
+        )
+        result = self.run_query(request)
+        assert len(result["data"]) == 10
+        rows = result["data"]
+        for i in range(10):
+            assert rows[i]["aggregate_value"] == [i, i]
+            assert rows[i]["transaction"] == f"transaction_{i % 2}"
             assert (
                 rows[i]["time"]
                 == (

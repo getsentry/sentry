@@ -19,11 +19,11 @@ from sentry.web.frontend.base import OrganizationMixin
 @control_silo_endpoint
 class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes = ()
 
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         self.determine_active_organization(request)
@@ -39,7 +39,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         login_form = AuthenticationForm(request, request.data)
 
         # Rate limit logins
-        is_limited = ratelimiter.is_limited(
+        is_limited = ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
             ),

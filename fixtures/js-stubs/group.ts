@@ -1,15 +1,15 @@
-import {Project as MockProject} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   EventOrGroupType,
-  type Group as GroupType,
+  type Group,
   GroupStatus,
   GroupUnresolved,
   IssueCategory,
   IssueType,
 } from 'sentry/types';
 
-export function Group(params: Partial<GroupType> = {}): GroupType {
+export function GroupFixture(params: Partial<Group> = {}): Group {
   const unresolvedGroup: GroupUnresolved = {
     activity: [],
     annotations: [],
@@ -37,7 +37,7 @@ export function Group(params: Partial<GroupType> = {}): GroupType {
     pluginActions: [],
     pluginContexts: [],
     pluginIssues: [],
-    project: MockProject({
+    project: ProjectFixture({
       platform: 'javascript',
     }),
     seenBy: [],
@@ -62,5 +62,5 @@ export function Group(params: Partial<GroupType> = {}): GroupType {
     userReportCount: 0,
   };
 
-  return {...unresolvedGroup, ...params} as GroupType;
+  return {...unresolvedGroup, ...params} as Group;
 }

@@ -21,9 +21,9 @@ from snuba_sdk import (
 from snuba_sdk.formula import FormulaParameterGroup
 
 from sentry import options
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import resolve_weak, string_to_use_case_id
+from sentry.sentry_metrics.utils import resolve_weak, reverse_resolve_weak, string_to_use_case_id
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
@@ -33,7 +33,7 @@ from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 logger = logging.getLogger(__name__)
 
-FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition]
+FilterTypes = Union[Column, CurriedFunction, Condition, BooleanCondition, str, list]
 
 
 ALLOWED_GRANULARITIES = [10, 60, 3600, 86400]
@@ -49,6 +49,34 @@ AGGREGATE_ALIASES = {
     "p99": ("quantiles", [0.99]),
     "count_unique": ("uniq", None),
 }
+
+RELEASE_HEALTH_ENTITIES = {
+    "c": EntityKey.MetricsCounters,
+    "d": EntityKey.MetricsDistributions,
+    "s": EntityKey.MetricsSets,
+}
+
+GENERIC_ENTITIES = {
+    "c": EntityKey.GenericMetricsCounters,
+    "d": EntityKey.GenericMetricsDistributions,
+    "s": EntityKey.GenericMetricsSets,
+    "g": EntityKey.GenericMetricsGauges,
+}
+
+
+class ReverseMappings:
+    """
+    Used to keep track of which tag values need to be reverse resolved in the result for
+    metrics (release health) queries. Stores a set of tag_keys in which the tag values need
+    to be reverse resolved. Only tag keys which are resolved will be included in this set.
+    Therefore, columns like project_id is included. Reverse_mappings saves a dictionary of resolved integers
+    to their original string values when they are first resolved before query execution.
+    Groupby columns values will still need to access the indexer as those reverse mappings will not be present here.
+    """
+
+    def __init__(self) -> None:
+        self.tag_keys: set[str] = set()
+        self.reverse_mappings: dict[int, str] = dict()
 
 
 def run_query(request: Request) -> Mapping[str, Any]:
@@ -172,21 +200,23 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
         # There are two kinds of resolving: lookup up in the indexer, and resolving things like
         # aggregate_alias, entities and use_case_id.
         metrics_query, mappings = _resolve_query_metadata(metrics_query)
-        indexer_mappings = _lookup_indexer_resolve(metrics_query)
-        mappings.update(indexer_mappings)
-        request.query = metrics_query.set_indexer_mappings(mappings)
-        request.tenant_ids["use_case_id"] = metrics_query.scope.use_case_id
         # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
         # This is necessary here because the product code that uses this isn't aware of which feature is
         # using it.
         if metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
             request.dataset = Dataset.Metrics.value
-    except Exception as e:
+        else:
+            request.dataset = Dataset.PerformanceMetrics.value
+        indexer_mappings, reverse_mappings = _lookup_indexer_resolve(metrics_query, request.dataset)
+        mappings.update(indexer_mappings)
+        request.query = metrics_query.set_indexer_mappings(mappings)
+        request.tenant_ids["use_case_id"] = metrics_query.scope.use_case_id
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "resolve_error"},
         )
-        raise e
+        raise
 
     try:
         snuba_result = bulk_snuba_queries(
@@ -195,12 +225,20 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
             use_cache=True,
             use_mql=True,
         )[0]
-    except Exception as e:
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "query_error"},
         )
-        raise e
+        raise
+
+    snuba_result = convert_snuba_result(
+        snuba_result,
+        reverse_mappings,
+        request.dataset,
+        metrics_query.scope.use_case_id,
+        metrics_query.scope.org_ids[0],
+    )
 
     # If we normalized the start/end, return those values in the response so the caller is aware
     results = {
@@ -340,51 +378,54 @@ def _resolve_metrics_entity(mri: str) -> EntityKey:
     return GENERIC_ENTITIES[parsed_mri.entity]
 
 
-RELEASE_HEALTH_ENTITIES = {
-    "c": EntityKey.MetricsCounters,
-    "d": EntityKey.MetricsDistributions,
-    "s": EntityKey.MetricsSets,
-}
-
-GENERIC_ENTITIES = {
-    "c": EntityKey.GenericMetricsCounters,
-    "d": EntityKey.GenericMetricsDistributions,
-    "s": EntityKey.GenericMetricsSets,
-    "g": EntityKey.GenericMetricsGauges,
-}
-
-
-def _lookup_indexer_resolve(metrics_query: MetricsQuery) -> Mapping[str, str | int]:
+def _lookup_indexer_resolve(
+    metrics_query: MetricsQuery, dataset: str
+) -> tuple[Mapping[str, str | int], ReverseMappings]:
     """
     Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
     that shows all the strings that were resolved and what they were resolved too.
     """
+    reverse_mappings = ReverseMappings()
     org_id = metrics_query.scope.org_ids[0]
     use_case_id = string_to_use_case_id(metrics_query.scope.use_case_id)
-    return _lookup_indexer_resolve_exp(metrics_query.query, org_id, use_case_id)
+    indexer_mappings = _lookup_indexer_resolve_exp(
+        metrics_query.query, org_id, use_case_id, dataset, reverse_mappings
+    )
+    return indexer_mappings, reverse_mappings
 
 
 def _lookup_indexer_resolve_exp(
-    exp: Formula | Timeseries, org_id: int, use_case_id: UseCaseID
+    exp: Formula | Timeseries,
+    org_id: int,
+    use_case_id: UseCaseID,
+    dataset: str,
+    reverse_mappings: ReverseMappings,
 ) -> Mapping[str, str | int]:
     indexer_mappings: dict[str, str | int] = {}
-    new_mappings = _lookup_resolve_groupby(exp.groupby, use_case_id, org_id)
+    new_mappings = _lookup_resolve_groupby(exp.groupby, use_case_id, org_id, reverse_mappings)
     indexer_mappings.update(new_mappings)
-    new_mappings = _lookup_resolve_filters(exp.filters, use_case_id, org_id)
+    new_mappings = _lookup_resolve_filters(
+        exp.filters, use_case_id, org_id, dataset, reverse_mappings
+    )
     indexer_mappings.update(new_mappings)
 
     if isinstance(exp, Formula):
         parameters = exp.parameters
         for i, p in enumerate(parameters):
             if isinstance(p, (Formula, Timeseries)):
-                new_mappings = _lookup_indexer_resolve_exp(p, org_id, use_case_id)
+                new_mappings = _lookup_indexer_resolve_exp(
+                    p, org_id, use_case_id, dataset, reverse_mappings
+                )
                 indexer_mappings.update(new_mappings)
 
     return indexer_mappings
 
 
 def _lookup_resolve_groupby(
-    groupby: list[Column] | None, use_case_id: UseCaseID, org_id: int
+    groupby: list[Column] | None,
+    use_case_id: UseCaseID,
+    org_id: int,
+    reverse_mappings: ReverseMappings,
 ) -> Mapping[str, str | int]:
     """
     Go through the groupby columns and resolve any that need to be resolved.
@@ -399,12 +440,17 @@ def _lookup_resolve_groupby(
         resolved = resolve_weak(use_case_id, org_id, col.name)
         if resolved > -1:
             mappings[col.name] = resolved
+            reverse_mappings.tag_keys.add(col.name)
 
     return mappings
 
 
 def _lookup_resolve_filters(
-    filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int
+    filters: list[Condition | BooleanCondition],
+    use_case_id: UseCaseID,
+    org_id: int,
+    dataset: str,
+    reverse_mappings: ReverseMappings,
 ) -> Mapping[str, str | int]:
     """
     Go through the columns in the filter and resolve any that can be resolved.
@@ -416,23 +462,74 @@ def _lookup_resolve_filters(
 
     mappings = {}
 
-    def lookup_resolve_exp(exp: FilterTypes) -> None:
-        if isinstance(exp, Column):
+    def lookup_resolve_exp(
+        exp: FilterTypes, dataset: str, reverse_mappings: ReverseMappings
+    ) -> None:
+        if dataset == Dataset.Metrics.value and (isinstance(exp, str) or isinstance(exp, list)):
+            if isinstance(exp, str):
+                resolved = resolve_weak(use_case_id, org_id, exp)
+                if resolved > -1:
+                    mappings[exp] = resolved
+                    reverse_mappings.reverse_mappings[resolved] = exp
+            elif isinstance(exp, list):
+                for value in exp:
+                    assert isinstance(value, str)
+                    resolved = resolve_weak(use_case_id, org_id, value)
+                    if resolved > -1:
+                        mappings[value] = resolved
+                        reverse_mappings.reverse_mappings[resolved] = value
+            else:
+                raise InvalidParams("Invalid filter tag value type")
+        elif isinstance(exp, Column):
             resolved = resolve_weak(use_case_id, org_id, exp.name)
             if resolved > -1:
                 mappings[exp.name] = resolved
+                if dataset == Dataset.Metrics.value:
+                    reverse_mappings.tag_keys.add(exp.name)
         elif isinstance(exp, CurriedFunction):
             for p in exp.parameters:
-                lookup_resolve_exp(p)
+                lookup_resolve_exp(p, dataset, reverse_mappings)
         elif isinstance(exp, BooleanCondition):
             for c in exp.conditions:
-                lookup_resolve_exp(c)
+                lookup_resolve_exp(c, dataset, reverse_mappings)
         elif isinstance(exp, Condition):
-            lookup_resolve_exp(exp.lhs)
+            lookup_resolve_exp(exp.lhs, dataset, reverse_mappings)
+            # If the dataset is metrics, then we need to resolve the RHS tag values as well
+            if dataset == Dataset.Metrics.value:
+                lookup_resolve_exp(exp.rhs, dataset, reverse_mappings)
 
     for exp in filters:
-        lookup_resolve_exp(exp)
+        lookup_resolve_exp(exp, dataset, reverse_mappings)
     return mappings
+
+
+def convert_snuba_result(
+    snuba_result: Any,
+    reverse_mappings: ReverseMappings,
+    dataset: str,
+    use_case_id_str: str,
+    org_id: int,
+):
+    """
+    If the dataset is metrics (release-health), then we need to convert the resultant tag values from
+    their resolved integers back into their original strings.
+    """
+    if dataset == Dataset.PerformanceMetrics.value:
+        return snuba_result
+    for data_point in snuba_result["data"]:
+        for key in data_point:
+            if key in reverse_mappings.tag_keys:
+                if data_point[key] in reverse_mappings.reverse_mappings:
+                    data_point[key] = reverse_mappings.reverse_mappings[data_point[key]]
+                else:
+                    # Reverse mapping was not saved in initial resolve, this means column was only specfied in groupby.
+                    # We need to manually do a reverse resolve here.
+                    reverse_resolve = reverse_resolve_weak(
+                        string_to_use_case_id(use_case_id_str), org_id, int(data_point[key])
+                    )
+                    if reverse_resolve:
+                        data_point[key] = reverse_resolve
+    return snuba_result
 
 
 ####################
@@ -449,7 +546,9 @@ def snql_query(request: Request, start: datetime, end: datetime) -> Mapping[str,
     try:
         # Replace any aggregate aliases with the appropriate aggregate
         metrics_query = metrics_query.set_query(_resolve_aggregate_aliases(metrics_query.query))
-        resolved_metrics_query, mappings = _resolve_metrics_query(metrics_query)
+        resolved_metrics_query, mappings, reverse_mappings = _resolve_metrics_query(
+            metrics_query, request.dataset
+        )
         request.query = resolved_metrics_query.set_indexer_mappings(mappings)
         request.tenant_ids["use_case_id"] = resolved_metrics_query.scope.use_case_id
         # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
@@ -457,22 +556,32 @@ def snql_query(request: Request, start: datetime, end: datetime) -> Mapping[str,
         # using it.
         if resolved_metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
             request.dataset = Dataset.Metrics.value
+        else:
+            request.dataset = Dataset.PerformanceMetrics.value
 
-    except Exception as e:
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "resolve_error"},
         )
-        raise e
+        raise
 
     try:
         snuba_results = raw_snql_query(request, request.tenant_ids["referrer"], use_cache=True)
-    except Exception as e:
+    except Exception:
         metrics.incr(
             "metrics_layer.query",
             tags={**logging_tags, "status": "query_error"},
         )
-        raise e
+        raise
+
+    snuba_results = convert_snuba_result(
+        snuba_results,
+        reverse_mappings,
+        request.dataset,
+        metrics_query.scope.use_case_id,
+        metrics_query.scope.org_ids[0],
+    )
 
     # If we normalized the start/end, return those values in the response so the caller is aware
     results = {
@@ -553,8 +662,8 @@ def _resolve_formula_metrics(
 
 
 def _resolve_metrics_query(
-    metrics_query: MetricsQuery,
-) -> tuple[MetricsQuery, Mapping[str, str | int]]:
+    metrics_query: MetricsQuery, dataset: str
+) -> tuple[MetricsQuery, Mapping[str, str | int], ReverseMappings]:
     """
     Returns an updated metrics query with all the indexer resolves complete. Also returns a mapping
     that shows all the strings that were resolved and what they were resolved too.
@@ -569,8 +678,19 @@ def _resolve_metrics_query(
 
     use_case_id = string_to_use_case_id(use_case_id_str)
     metrics_query, mappings = _resolve_query_metrics(metrics_query, use_case_id, org_id)
+    reverse_mappings = ReverseMappings()
 
-    new_groupby, new_mappings = _resolve_groupby(metrics_query.query.groupby, use_case_id, org_id)
+    # Release health AKA sessions uses a separate Dataset. Change the dataset based on the use case id.
+    # This is necessary here because the product code that uses this isn't aware of which feature is
+    # using it.
+    if metrics_query.scope.use_case_id == UseCaseID.SESSIONS.value:
+        dataset = Dataset.Metrics.value
+    else:
+        dataset = Dataset.PerformanceMetrics.value
+
+    new_groupby, new_mappings = _resolve_groupby(
+        metrics_query.query.groupby, use_case_id, org_id, dataset, reverse_mappings
+    )
     metrics_query = metrics_query.set_query(metrics_query.query.set_groupby(new_groupby))
     mappings.update(new_mappings)
 
@@ -578,13 +698,17 @@ def _resolve_metrics_query(
         parameters = metrics_query.query.parameters
         for i, p in enumerate(parameters):
             if isinstance(p, Timeseries):
-                new_groupby, new_mappings = _resolve_groupby(p.groupby, use_case_id, org_id)
+                new_groupby, new_mappings = _resolve_groupby(
+                    p.groupby, use_case_id, org_id, dataset, reverse_mappings
+                )
                 parameters[i] = p.set_groupby(new_groupby)
                 mappings.update(new_mappings)
 
         metrics_query = metrics_query.set_query(metrics_query.query.set_parameters(parameters))
 
-    new_filters, new_mappings = _resolve_filters(metrics_query.query.filters, use_case_id, org_id)
+    new_filters, new_mappings = _resolve_filters(
+        metrics_query.query.filters, use_case_id, org_id, dataset, reverse_mappings
+    )
     metrics_query = metrics_query.set_query(metrics_query.query.set_filters(new_filters))
     mappings.update(new_mappings)
 
@@ -592,17 +716,23 @@ def _resolve_metrics_query(
         parameters = metrics_query.query.parameters
         for i, p in enumerate(parameters):
             if isinstance(p, Timeseries):
-                new_filters, new_mappings = _resolve_filters(p.filters, use_case_id, org_id)
+                new_filters, new_mappings = _resolve_filters(
+                    p.filters, use_case_id, org_id, dataset, reverse_mappings
+                )
                 parameters[i] = p.set_filters(new_filters)
                 mappings.update(new_mappings)
 
         metrics_query = metrics_query.set_query(metrics_query.query.set_parameters(parameters))
 
-    return metrics_query, mappings
+    return metrics_query, mappings, reverse_mappings
 
 
 def _resolve_groupby(
-    groupby: list[Column] | None, use_case_id: UseCaseID, org_id: int
+    groupby: list[Column] | None,
+    use_case_id: UseCaseID,
+    org_id: int,
+    dataset: str,
+    reverse_mappings: ReverseMappings,
 ) -> tuple[list[Column] | None, Mapping[str, int]]:
     """
     Go through the groupby columns and resolve any that need to be resolved.
@@ -617,11 +747,17 @@ def _resolve_groupby(
     for col in groupby:
         resolved = resolve_weak(use_case_id, org_id, col.name)
         if resolved > -1:
-            # TODO: This currently assumes the use of `tags_raw` but that might not always be correct
-            # It also doesn't take into account mapping indexed tag values back to their original values
-            new_groupby.append(
-                AliasedExpression(exp=replace(col, name=f"tags_raw[{resolved}]"), alias=col.name)
-            )
+            if dataset == Dataset.Metrics.value:
+                new_groupby.append(
+                    AliasedExpression(exp=replace(col, name=f"tags[{resolved}]"), alias=col.name)
+                )
+                reverse_mappings.tag_keys.add(col.name)
+            else:
+                new_groupby.append(
+                    AliasedExpression(
+                        exp=replace(col, name=f"tags_raw[{resolved}]"), alias=col.name
+                    )
+                )
             mappings[col.name] = resolved
         else:
             new_groupby.append(col)
@@ -630,7 +766,11 @@ def _resolve_groupby(
 
 
 def _resolve_filters(
-    filters: list[Condition | BooleanCondition], use_case_id: UseCaseID, org_id: int
+    filters: list[Condition | BooleanCondition],
+    use_case_id: UseCaseID,
+    org_id: int,
+    dataset: str,
+    reverse_mappings: ReverseMappings,
 ) -> tuple[list[Condition | BooleanCondition] | None, Mapping[str, int]]:
     """
     Go through the columns in the filter and resolve any that can be resolved.
@@ -642,19 +782,52 @@ def _resolve_filters(
 
     mappings = {}
 
-    def resolve_exp(exp: FilterTypes) -> FilterTypes:
-        if isinstance(exp, Column):
+    def resolve_exp(
+        exp: FilterTypes, dataset: str, reverse_mappings: ReverseMappings
+    ) -> FilterTypes:
+        if dataset == Dataset.Metrics.value and (isinstance(exp, str) or isinstance(exp, list)):
+            if isinstance(exp, str):
+                resolved = resolve_weak(use_case_id, org_id, exp)
+                if resolved > -1:
+                    mappings[exp] = resolved
+                    reverse_mappings.reverse_mappings[resolved] = exp
+                    return resolved
+            elif isinstance(exp, list):
+                resolved_values: list[int] = []
+                for value in exp:
+                    assert isinstance(value, str)
+                    resolved = resolve_weak(use_case_id, org_id, value)
+                    if resolved > -1:
+                        resolved_values.append(resolved)
+                        mappings[value] = resolved
+                        reverse_mappings.reverse_mappings[resolved] = value
+                    return resolved_values
+            else:
+                raise InvalidParams("Invalid filter tag value type")
+        elif isinstance(exp, Column):
             resolved = resolve_weak(use_case_id, org_id, exp.name)
             if resolved > -1:
                 mappings[exp.name] = resolved
-                return replace(exp, name=f"tags_raw[{resolved}]")
+                if dataset == Dataset.Metrics.value:
+                    reverse_mappings.tag_keys.add(exp.name)
+                    return replace(exp, name=f"tags[{resolved}]")
+                else:
+                    return replace(exp, name=f"tags_raw[{resolved}]")
         elif isinstance(exp, CurriedFunction):
-            return replace(exp, parameters=[resolve_exp(p) for p in exp.parameters])
+            return replace(
+                exp, parameters=[resolve_exp(p, dataset, reverse_mappings) for p in exp.parameters]
+            )
         elif isinstance(exp, BooleanCondition):
-            return replace(exp, conditions=[resolve_exp(c) for c in exp.conditions])
+            return replace(
+                exp, conditions=[resolve_exp(c, dataset, reverse_mappings) for c in exp.conditions]
+            )
         elif isinstance(exp, Condition):
-            return replace(exp, lhs=resolve_exp(exp.lhs))
+            exp = replace(exp, lhs=resolve_exp(exp.lhs, dataset, reverse_mappings))
+            # If the dataset is metrics, then we need to resolve the tag values as well
+            if dataset == Dataset.Metrics.value:
+                exp = replace(exp, rhs=resolve_exp(exp.rhs, dataset, reverse_mappings))
+            return exp
         return exp
 
-    new_filters = [resolve_exp(exp) for exp in filters]
+    new_filters = [resolve_exp(exp, dataset, reverse_mappings) for exp in filters]
     return new_filters, mappings
