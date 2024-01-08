@@ -162,22 +162,6 @@ export default class ReplayReader {
         finishedAtDelta: endTimestampMs - replayRecord.finished_at.getTime(),
       };
 
-      const metricData = {
-          unit: 'millisecond',
-          tags: {
-            // This is a boolean to reduce cardinality -- technically this can
-            // match 7.8.x, but replay wasn't released in that version, so this should be fine
-            recentSdkVersion: replayRecord.sdk.version.startsWith('7.8'),
-          }
-      };
-
-      if (this.timestampDeltas.startedAtDelta !== 0) {
-        Sentry.metrics.distribution('replay.start-time-delta', this.timestampDeltas.startedAtDelta, metricData);
-      }
-      if (this.timestampDeltas.finishedAtDelta !== 0) {
-        Sentry.metrics.distribution('replay.end-time-delta', this.timestampDeltas.finishedAtDelta, metricData);
-      }
-
       replayRecord.started_at = new Date(startTimestampMs);
       replayRecord.finished_at = new Date(endTimestampMs);
       replayRecord.duration = duration(
