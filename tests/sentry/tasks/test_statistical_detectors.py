@@ -889,7 +889,7 @@ def test_new_regression_group(
             "trend_percentage": 1.23,
             "absolute_percentage_change": 1.23,
             "trend_difference": 1.23,
-            "breakpoint": (timestamp - timedelta(hours=12)).timestamp(),
+            "breakpoint": (timestamp - timedelta(days=1)).timestamp(),
         }
 
     regressions = get_regressions()
@@ -903,17 +903,17 @@ def test_new_regression_group(
     )
     assert len(regression_groups) == 1  # confirm the regression group was saved
 
-    def get_trends():
+    def get_trends(ts):
         payload = DetectorPayload(
             project_id=project.id,
             group=object_name,
             fingerprint="",  # this fingerprint isn't used so leave it blank
             count=100,
             value=100,
-            timestamp=timestamp - timedelta(hours=1),
+            timestamp=ts - timedelta(hours=1),
         )
         state = MovingAverageDetectorState(
-            timestamp=timestamp - timedelta(hours=1),
+            timestamp=ts - timedelta(hours=1),
             count=100,
             moving_avg_short=100,
             moving_avg_long=100,
@@ -925,7 +925,18 @@ def test_new_regression_group(
             state=state,
         )
 
-    trends = get_trends()
+    # there is a buffer on auto resolution, so in the first 24 hours
+    # after the regression is detected, we will not auto resolve the issue
+    for hours in range(23, 0, -1):
+        ts = timestamp - timedelta(hours=hours)
+        trends = get_trends(ts)
+        trends = detector_cls.get_regression_groups(trends)
+        trends = detector_cls.redirect_resolutions(trends, ts)
+        assert len(list(trends)) == 1
+        assert not produce_occurrence_to_kafka.called
+
+    # once the buffer period is over, we allow auto resolution again
+    trends = get_trends(timestamp)
     trends = detector_cls.get_regression_groups(trends)
     trends = detector_cls.redirect_resolutions(trends, timestamp)
     assert len(list(trends)) == 0  # should resolve, so it is redirected, thus 0
