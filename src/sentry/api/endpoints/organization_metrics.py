@@ -26,6 +26,7 @@ from sentry.snuba.metrics import (
     get_tag_values,
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
@@ -168,22 +169,22 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_params(request.GET)
 
         try:
-            # We then run the query and inject directly the field, query and groupBy, since they will be parsed
-            # internally.
+            limit = request.GET.get("limit")
+
             results = run_metrics_query(
                 fields=request.GET.getlist("field", []),
-                query=request.GET.get("query"),
                 interval=interval,
                 start=start,
                 end=end,
                 organization=organization,
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
-                # TODO: move referrers into a centralized place.
-                referrer="metrics.data.api",
+                referrer=Referrer.API_DDM_METRICS_DATA.value,
                 # Optional parameters.
+                query=request.GET.get("query"),
                 group_bys=request.GET.getlist("groupBy"),
                 order_by=request.GET.get("orderBy"),
+                limit=int(limit) if limit else None,
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})

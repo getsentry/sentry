@@ -98,18 +98,25 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         )
 
     def test_compare_query_with_transactions_metric(self):
-        self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
-            tags={"transaction": "/hello", "platform": "ios"},
-            value=10,
-        )
+        for transaction, value in (("/hello", 10), ("/world", 5), ("/foo", 3)):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
 
         responses = []
         for flag_value in False, True:
+            field = f"sum({TransactionMRI.DURATION.value})"
             response = self.get_response(
                 self.project.organization.slug,
-                field=f"sum({TransactionMRI.DURATION.value})",
+                field=field,
+                groupBy="transaction",
+                orderBy=field,
                 useCase="transactions",
+                # We test the limit in both.
+                limit="2",
+                per_page="2",
                 useNewMetricsLayer="true" if flag_value else "false",
                 statsPeriod="1h",
                 interval="1h",
@@ -119,14 +126,19 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         response_old = responses[0].data
         response_new = responses[1].data
 
-        # We want to only compare a subset of the fields, since the new integration doesn't have all features.
-        assert response_old["groups"][0]["by"] == response_new["groups"][0]["by"]
-        assert list(response_old["groups"][0]["series"].values()) == list(
-            response_new["groups"][0]["series"].values()
-        )
-        assert list(response_old["groups"][0]["totals"].values()) == list(
-            response_new["groups"][0]["totals"].values()
-        )
+        for group_index in (0, 1):
+            # We want to only compare a subset of the fields since the APIs have some differences.
+            assert (
+                response_old["groups"][group_index]["by"]
+                == response_new["groups"][group_index]["by"]
+            )
+            assert list(response_old["groups"][group_index]["series"].values()) == list(
+                response_new["groups"][group_index]["series"].values()
+            )
+            assert list(response_old["groups"][group_index]["totals"].values()) == list(
+                response_new["groups"][group_index]["totals"].values()
+            )
+
         assert response_old["intervals"] == response_new["intervals"]
         assert response_old["start"] == response_new["start"]
         assert response_old["end"] == response_new["end"]
