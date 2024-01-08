@@ -519,13 +519,13 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
 @pytest.mark.parametrize(
     ["existing", "expected_versions"],
     [
-        pytest.param([], [1], id="no existing"),
+        pytest.param([], [0], id="no existing"),
         pytest.param(
             [
                 (1, False, "1"),
                 (2, False, "1"),
             ],
-            [3],
+            [2],
             id="existing inactive",
         ),
         pytest.param(
@@ -545,7 +545,7 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
                 (3, False, "2"),
                 (4, True, "2"),
             ],
-            [3, None],
+            [2, None],
             id="mixed active and inactive",
         ),
         pytest.param(
@@ -553,7 +553,7 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
                 (1, True, "1"),
                 (2, False, "1"),
             ],
-            [3],
+            [2],
             id="use latest version",
         ),
     ],
@@ -605,7 +605,7 @@ def test_get_regression_versions(
     regressions = list(detector_cls.get_regression_versions(mock_regressions()))
 
     assert regressions == [
-        (expected_version, breakpoints[i])
+        (expected_version, None if expected_version == 0 else timestamp, breakpoints[i])
         for i, expected_version in enumerate(expected_versions)
         if expected_version is not None
     ]
