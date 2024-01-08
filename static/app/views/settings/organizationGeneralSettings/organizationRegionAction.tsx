@@ -35,7 +35,7 @@ export function OrganizationRegionAction({organization, ...props}: Props) {
         {`${regionData.displayName} `}
         <OrganizationFlag>{regionData.flag}</OrganizationFlag>
       </div>
-      <FieldHelp>{t("Your org's data storage location.")}</FieldHelp>
+      <FieldHelp>{t("Your organization's data storage location.")}</FieldHelp>
     </OrganizationRegionInformationWrapper>
   );
 }
