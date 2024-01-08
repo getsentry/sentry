@@ -71,6 +71,7 @@ const SIZE_DATA_KEYS = [
   'Encoded Body Size',
   'Decoded Body Size',
   'Transfer Size',
+  'http.request_content_length',
   'http.response_content_length',
   'http.decoded_response_content_length',
   'http.response_transfer_size',
