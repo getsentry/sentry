@@ -127,7 +127,7 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         response_new = responses[1].data
 
         for group_index in (0, 1):
-            # We want to only compare a subset of the fields, since the new integration doesn't have all features.
+            # We want to only compare a subset of the fields since the APIs have some differences.
             assert (
                 response_old["groups"][group_index]["by"]
                 == response_new["groups"][group_index]["by"]
