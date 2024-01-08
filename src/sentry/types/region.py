@@ -12,7 +12,7 @@ from pydantic.tools import parse_obj_as
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo import SiloMode, SingleProcessSiloModeState
+from sentry.silo import SiloMode, single_process_silo_mode_state
 from sentry.utils import json
 from sentry.utils.env import in_test_environment
 
@@ -287,9 +287,8 @@ def get_local_region() -> Region:
     # context when passing through test rpc calls, but we can't rely on settings because
     # django settings are not thread safe :'(
     # We use this thread local instead which is managed by the SiloMode context managers
-    single_process_region = SingleProcessSiloModeState.get_region()
-    if single_process_region is not None:
-        return single_process_region
+    if single_process_silo_mode_state.region:
+        return single_process_silo_mode_state.region
 
     if not settings.SENTRY_REGION:
         if in_test_environment():
