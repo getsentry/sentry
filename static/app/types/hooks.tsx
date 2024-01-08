@@ -110,6 +110,10 @@ type ProfilingAM1OrMMXUpgradeProps = {
   organization: Organization;
 };
 
+type CronsBillingBannerProps = {
+  organization: Organization;
+};
+
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
   'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
@@ -153,6 +157,7 @@ export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
