@@ -15,7 +15,6 @@ from sentry.utils import json
 
 @instrumented_task(
     name="sentry.replays.tasks.delete_recording_segments",
-    queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
     silo_mode=SiloMode.REGION,

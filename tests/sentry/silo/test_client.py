@@ -343,6 +343,7 @@ class SiloClientTest(TestCase):
             assert response.get(PROXY_SIGNATURE_HEADER) is None
             assert response[PROXY_DIRECT_LOCATION_HEADER] == path
 
+    @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_invalid_region_silo_ip_address(self):
         internal_region_address = "http://172.31.255.31:9000"
