@@ -149,7 +149,7 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         assert len(config["metrics"]) == 2
         # The new way parenthesizes correctly the environment expression, making the original expression resolve first
         # and then AND with the injected environment.
-        assert config["metrics"][0] == {
+        assert config["metrics"][1] == {
             "category": "transaction",
             "condition": {
                 "inner": [
@@ -170,7 +170,7 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         }
         # The old way of generating the config has no parentheses, thus if we have lower binding in the original
         # expression, we will prioritize our filter.
-        assert config["metrics"][1] == {
+        assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {
                 "inner": [
