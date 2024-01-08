@@ -71,7 +71,7 @@ SPEC_VERSIONS = [
 ]
 
 
-def get_spec_versions(min_version: int = 0) -> Sequence[SpecVersion]:
+def get_spec_versions(min_version: int = MIN_VERSION) -> Sequence[SpecVersion]:
     """Get all spec versions starting at a minimum version."""
     return [spec_version for spec_version in SPEC_VERSIONS if spec_version.version >= min_version]
 
