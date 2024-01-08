@@ -10,6 +10,7 @@ from typing import (
     Dict,
     List,
     Literal,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -24,6 +25,7 @@ import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
+from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
@@ -37,6 +39,7 @@ from sentry.api.event_search import (
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
@@ -48,6 +51,67 @@ from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
+
+
+# This helps us control the different spec versions
+# in order to migrate customers from invalid specs
+class SpecVersion(NamedTuple):
+    version: int
+    flags: set[str] = set()
+
+    def matches_flags_set(self, flags: set[str]) -> bool:
+        return flags == self.flags
+
+
+class OnDemandMetricSpecVersioning:
+    # The flags from the spec versions alter the generated metric in OnDemandMetricSpec
+    # Once we're ready to abandon a version we will coalesce the list into a single element
+    # When there's a single version we should not have any flags and we should change
+    # OnDemandMetricSpec accordingly
+    spec_versions = [
+        SpecVersion(0),
+        SpecVersion(1, {"use_updated_env_logic"}),
+    ]
+
+    feature_to_flags_map = {
+        "organizations:on-demand-query-with-new-env-logic": {"use_updated_env_logic"},
+    }
+
+    @classmethod
+    def get_spec_versions(cls: Any) -> Sequence[SpecVersion]:
+        """Get all spec versions."""
+        return cls.spec_versions
+
+    @classmethod
+    def get_default_spec_version(cls: Any) -> SpecVersion:
+        # XXX: Remove this comment
+        # I believe this should be the original behaviour rather than the new one,
+        # however, the current code defaults to the new `use_updated_env_logic: bool = True``
+        return cls.spec_versions[-1]
+
+    @classmethod
+    def get_query_spec_version(cls: Any, feature_flag: str, org_id: int) -> SpecVersion:
+        """Return spec version based on feature flag enabled for an organization."""
+        org = Organization.objects.get_from_cache(id=org_id)
+        flags_set = (
+            cls.feature_to_flags_map[feature_flag] if features.has(feature_flag, org) else []
+        )
+
+        return cls._find_spec_version(flags_set)
+
+    @classmethod
+    def get_query_spec_version_flags_set(cls: Any, flags_set: set[str]) -> SpecVersion:
+        """Return spec version matching flags set."""
+        return cls._find_spec_version(flags_set)
+
+    @classmethod
+    def _find_spec_version(cls: Any, flags_set: set[str]) -> SpecVersion:
+        return [
+            spec_version
+            for spec_version in cls.spec_versions
+            if spec_version.matches_flags_set(flags_set)
+        ][0]
+
 
 # Name component of MRIs used for custom alert metrics.
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
@@ -1027,6 +1091,7 @@ class OnDemandMetricSpec:
     query: str
     groupbys: Sequence[str]
     spec_type: MetricSpecType
+    spec_version: SpecVersion
 
     # Public fields.
     op: MetricOperationType
@@ -1042,12 +1107,16 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-        use_updated_env_logic: bool = True,
+        spec_version: Optional[SpecVersion] = None,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.use_updated_env_logic = use_updated_env_logic
+        self.spec_version = (
+            spec_version
+            if spec_version
+            else OnDemandMetricSpecVersioning.get_default_spec_version()
+        )
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1259,7 +1328,7 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.use_updated_env_logic:
+            if self.spec_version.matches_flags_set({"use_updated_env_logic"}):
                 conditions = [ParenExpression(children=conditions)] if conditions else []
                 # This transformation is equivalent to (new_conditions) AND (conditions).
                 extended_conditions = [ParenExpression(children=new_conditions)] + conditions

@@ -6,6 +6,7 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
     SearchQueryConverter,
     apdex_tag_spec,
     cleanup_search_query,
@@ -684,14 +685,22 @@ def test_cleanup_with_environment_injection(query) -> None:
     # We test with both new and old env logic, in this case queries should be identical in both logics since we
     # scrape away parentheses.
     for updated_env_logic in (True, False):
+        spec_version = (
+            OnDemandMetricSpecVersioning.get_query_spec_version_flags_set({"use_updated_env_logic"})
+            if updated_env_logic
+            else OnDemandMetricSpecVersioning.get_default_spec_version()
+        )
         spec = OnDemandMetricSpec(
-            field, query, environment=environment, use_updated_env_logic=updated_env_logic
+            field,
+            query,
+            environment=environment,
+            spec_version=spec_version,
         )
         transformed_spec = OnDemandMetricSpec(
             field,
             transformed_query,
             environment=environment,
-            use_updated_env_logic=updated_env_logic,
+            spec_version=spec_version,
         )
 
         assert spec.query_hash == transformed_spec.query_hash

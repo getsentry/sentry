@@ -24,6 +24,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
 ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
+ON_DEMAND_SPEC_VERSION_NEW_ENV_LOGIC = "organizations:on-demand-query-with-new-env-logic"
 
 
 def create_alert(
@@ -149,9 +150,9 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         # We expect two specs since we collect both
         # Once we do not run two versions we will need to change this test
         assert len(config["metrics"]) == 2
-        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
-        # and then AND with the injected environment.
-        assert config["metrics"][0] == {
+        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
+        # expression, we will prioritize our filter.
+        assert config["metrics"][1] == {
             "category": "transaction",
             "condition": {
                 "inner": [
@@ -170,9 +171,9 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
             "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": "ca87c609"}],
         }
-        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
-        # expression, we will prioritize our filter.
-        assert config["metrics"][1] == {
+        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
+        # and then AND with the injected environment.
+        assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {
                 "inner": [
