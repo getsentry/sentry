@@ -206,7 +206,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
-            body=GITLAB_CODEOWNERS["raw"],
+            body=b"docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch

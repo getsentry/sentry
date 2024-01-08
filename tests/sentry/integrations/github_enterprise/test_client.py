@@ -142,7 +142,7 @@ class GitHubAppsClientTest(TestCase):
         responses.add(
             method=responses.GET,
             url=url,
-            body=GITHUB_CODEOWNERS["raw"],
+            body=b"docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
         )
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
