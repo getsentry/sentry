@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
+import PageBanner from 'sentry/components/alerts/pageBanner';
 import {LinkButton} from 'sentry/components/button';
-import PageBanner from 'sentry/components/replays/pageBanner';
 import {IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import useDismissAlert from 'sentry/utils/useDismissAlert';

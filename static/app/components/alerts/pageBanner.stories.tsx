@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
+import PageBanner from 'sentry/components/alerts/pageBanner';
 import {Button, LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PageBanner from 'sentry/components/replays/pageBanner';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {IconBroadcast} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
