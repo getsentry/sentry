@@ -9,6 +9,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import (
+    STACKFRAME_COUNT,
     PullRequestFile,
     format_issue_table,
     format_open_pr_comment,
@@ -385,6 +386,26 @@ class TestGetCommentIssues(CreateEventTestCase):
         group_id = self._create_event(
             function_names=["world", "hello"],
         ).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id]
+
+    def test_not_first_frame(self):
+        group_id = self._create_event(
+            function_names=["world", "hello"], filenames=["baz.py", "bar.py"]
+        ).group.id
+
+        top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        assert group_id != self.group_id
+        assert top_5_issue_ids == [self.group_id, group_id]
+
+    def test_not_within_frame_limit(self):
+        function_names = ["world"] + ["a" for _ in range(STACKFRAME_COUNT)]
+        filenames = ["baz.py"] + ["foo.py" for _ in range(STACKFRAME_COUNT)]
+        group_id = self._create_event(function_names=function_names, filenames=filenames).group.id
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]

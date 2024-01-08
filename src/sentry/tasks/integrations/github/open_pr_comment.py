@@ -9,7 +9,18 @@ from typing import Any, Dict, List, Set, Tuple
 
 from django.db.models import Value
 from django.db.models.functions import StrIndex
-from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Op,
+    OrderBy,
+    Query,
+)
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.github.client import GitHubAppsClient
@@ -55,6 +66,9 @@ class PullRequestFile:
 OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
+
+# Number of stackframes to check for filename + function combo, starting from the top
+STACKFRAME_COUNT = 6
 
 COMMENT_BODY_TEMPLATE = """## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
@@ -296,16 +310,33 @@ def get_top_5_issues_by_count_for_file(
                     Condition(Column("group_id"), Op.IN, group_ids),
                     Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
                     Condition(Column("timestamp"), Op.LT, datetime.now()),
-                    # NOTE: this currently looks at the top frame of the stack trace (old suspect commit logic)
-                    Condition(
-                        Function("arrayElement", (Column("exception_frames.filename"), -1)),
-                        Op.IN,
-                        sentry_filenames,
-                    ),
-                    Condition(
-                        Function("arrayElement", (Column("exception_frames.function"), -1)),
-                        Op.IN,
-                        function_names,
+                    # NOTE: ideally this would follow suspect commit logic
+                    BooleanCondition(
+                        BooleanOp.OR,
+                        [
+                            BooleanCondition(
+                                BooleanOp.AND,
+                                [
+                                    Condition(
+                                        Function(
+                                            "arrayElement",
+                                            (Column("exception_frames.filename"), i),
+                                        ),
+                                        Op.IN,
+                                        sentry_filenames,
+                                    ),
+                                    Condition(
+                                        Function(
+                                            "arrayElement",
+                                            (Column("exception_frames.function"), i),
+                                        ),
+                                        Op.IN,
+                                        function_names,
+                                    ),
+                                ],
+                            )
+                            for i in range(-STACKFRAME_COUNT, 0)  # first n frames
+                        ],
                     ),
                     Condition(Function("notHandled", []), Op.EQ, 1),
                 ]
