@@ -44,7 +44,7 @@ class ProjectPerformanceGeneralSettingsTest(APITestCase):
 
     def test_update_project_setting_check_validation(self):
         with self.feature(PERFORMANCE_SETTINGS_FEATURES):
-            response = self.client.put(
+            response = self.client.post(
                 self.url,
                 data={
                     "enable_images": -1,
