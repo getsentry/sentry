@@ -27,11 +27,9 @@ export default function FeedbackTimestampsTooltip({feedbackItem}: Props) {
       <dt>{t('Created')}</dt>
       <dd>
         {dateFirstSeen ? (
-          <Fragment>
-            <AutoSelectText>
-              {dateFirstSeen.format('ll')} {dateFirstSeen.format(format)}
-            </AutoSelectText>
-          </Fragment>
+          <AutoSelectText>
+            {dateFirstSeen.format('ll')} {dateFirstSeen.format(format)}
+          </AutoSelectText>
         ) : (
           <NotApplicableText>{t('n/a')}</NotApplicableText>
         )}
