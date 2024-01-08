@@ -1,4 +1,3 @@
-import base64
 import re
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
@@ -33,7 +32,7 @@ from tests.sentry.integrations.test_helpers import add_control_silo_proxy_respon
 GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
     "html_url": "https://github.com/org/reponame/CODEOWNERS",
-    "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
+    "raw": b"docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
 }
 
 
@@ -218,7 +217,7 @@ class GitHubAppsClientTest(TestCase):
         responses.add(
             method=responses.GET,
             url=f"https://api.github.com/repos/{self.repo.name}/contents/CODEOWNERS?ref=master",
-            json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            body=GITHUB_CODEOWNERS["raw"],
         )
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
