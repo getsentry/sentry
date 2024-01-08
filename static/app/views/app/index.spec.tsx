@@ -87,18 +87,15 @@ describe('App', function () {
   });
 
   it('does not render PartnerAgreement for non-partnered orgs', async function () {
-    ConfigStore.set('partnershipAgreementPrompt', undefined);
+    ConfigStore.set('partnershipAgreementPrompt', null);
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
 
-    const normalContent = await screen.findByText(
-      'placeholder content'
-    );
-    expect(normalContent).toBeInTheDocument();
-    expect(screen.queryByText(/This organization is created in partnership/)).not.toBeInTheDocument();
+    expect(screen.getByText('placeholder content')).toBeInTheDocument();
+    expect(await screen.queryByText(/This organization is created in partnership/)).not.toBeInTheDocument();
   });
 
   it('renders InstallWizard', async function () {

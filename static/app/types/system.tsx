@@ -163,10 +163,6 @@ export interface Config {
    */
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
-  partnershipAgreementPrompt: {
-    agreements: Array<ParntershipAgreementType>;
-    partnerDisplayName: string;
-  } | undefined | null;
   privacyUrl: string | null;
   // The list of regions the current user has memberships in.
   regions: Region[];
@@ -199,6 +195,10 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  partnershipAgreementPrompt?: {
+    agreements: Array<ParntershipAgreementType>;
+    partnerDisplayName: string;
+  } | null;
   statuspage?: {
     api_host: string;
     id: string;
