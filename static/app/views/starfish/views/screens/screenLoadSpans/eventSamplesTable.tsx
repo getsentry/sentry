@@ -26,10 +26,10 @@ import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoa
 type Props = {
   columnNameMap: Record<string, string>;
   cursorName: string;
-  eventIdKey: string;
+  eventIdKey: 'id' | 'transaction.id';
   eventView: EventView;
   isLoading: boolean;
-  profileIdKey: string;
+  profileIdKey: 'profile.id' | 'profile_id';
   sort: Sort;
   sortKey: string;
   data?: TableData;
@@ -87,7 +87,7 @@ export function EventSamplesTable({
         <IconWrapper>
           {profileTarget && (
             <Tooltip title={t('View Profile')}>
-              <LinkButton to={profileTarget} size="xs">
+              <LinkButton to={profileTarget} size="xs" aria-label={t('View Profile')}>
                 <IconProfiling size="xs" />
               </LinkButton>
             </Tooltip>
