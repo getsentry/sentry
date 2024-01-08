@@ -8,7 +8,7 @@ from typing import Optional, TypedDict, cast
 
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import Hub
+from sentry_sdk import Hub, set_tag
 from sentry_sdk.tracing import Span
 
 from sentry import options
@@ -83,6 +83,9 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
 
 def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None:
     """Ingest recording messages."""
+    set_tag("org_id", message.org_id)
+    set_tag("project_id", message.project_id)
+
     try:
         headers, recording_segment = process_headers(message.payload_with_headers)
     except MissingRecordingSegmentHeaders:
