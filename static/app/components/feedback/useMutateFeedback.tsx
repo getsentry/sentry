@@ -2,12 +2,16 @@ import {useCallback} from 'react';
 
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import type {Actor, GroupStatus, Organization} from 'sentry/types';
+import type {Actor, GroupActivity, GroupStatus, Organization} from 'sentry/types';
 import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TFeedbackIds = 'all' | string[];
-type TPayload = {hasSeen: boolean} | {status: GroupStatus} | {assignedTo: Actor | null};
+type TPayload =
+  | {hasSeen: boolean}
+  | {status: GroupStatus}
+  | {assignedTo: Actor | null}
+  | {activity: GroupActivity[]};
 type TData = unknown;
 type TError = unknown;
 type TVariables = [TFeedbackIds, TPayload];
@@ -43,6 +47,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
         : ids === 'all'
         ? getListQueryKey()[1]!
         : {query: {id: ids}};
+
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
     onSettled: (_resp, _error, [ids, _payload]) => {
@@ -78,9 +83,20 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
     [mutation, feedbackIds]
   );
 
+  const updateComment = useCallback(
+    (
+      activity: GroupActivity[],
+      options?: MutateOptions<TData, TError, TVariables, TContext>
+    ) => {
+      mutation.mutate([feedbackIds, {activity}], options);
+    },
+    [mutation, feedbackIds]
+  );
+
   return {
     markAsRead,
     resolve,
     assign,
+    updateComment,
   };
 }
