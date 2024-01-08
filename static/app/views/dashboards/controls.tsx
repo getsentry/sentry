@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -128,6 +128,18 @@ function Controls({
         </Button>
       </StyledButtonBar>
     );
+  }
+
+  const datasetChoices = new Map<string, string>();
+  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
+
+  if (organization.features.includes('dashboards-rh-widget')) {
+    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
+  }
+
+  if (hasDDMFeature(organization)) {
+    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
   }
 
   return (

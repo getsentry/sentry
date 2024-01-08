@@ -1045,6 +1045,8 @@ function WidgetBuilder({
     );
   }
 
+  console.log(state.dataSet);
+
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageFiltersContainer

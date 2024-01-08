@@ -60,7 +60,7 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type Props = WithRouterProps & {
   api: Client;
-  isEditing: boolean;
+  isEditingDashboard: boolean;
   location: Location;
   organization: Organization;
   selection: PageFilters;
@@ -113,11 +113,11 @@ class WidgetCard extends Component<Props, State> {
       onDuplicate,
       draggableProps,
       hideToolbar,
-      isEditing,
+      isEditingDashboard,
       isMobile,
     } = this.props;
 
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       return null;
     }
 
@@ -174,7 +174,7 @@ class WidgetCard extends Component<Props, State> {
       onEdit,
       onDuplicate,
       onDelete,
-      isEditing,
+      isEditingDashboard,
       router,
       location,
       index,
@@ -183,7 +183,7 @@ class WidgetCard extends Component<Props, State> {
     const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
       this.state;
 
-    if (isEditing) {
+    if (isEditingDashboard) {
       return null;
     }
 
