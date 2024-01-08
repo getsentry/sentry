@@ -180,6 +180,7 @@ export type ComponentHooks = {
   'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-warning': React.ComponentType<any>;
 };
 
 /**
