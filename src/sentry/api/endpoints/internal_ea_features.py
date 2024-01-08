@@ -17,8 +17,10 @@ class InternalEAFeaturesEndpoint(Endpoint):
         ea_org = Organization()
         ea_org.flags.early_adopter = True
 
-        features_batch = features.batch_has(features_dict.keys(), organization=ea_org)
-        all_features_dict = features_batch[f"organization:{ea_org.id}"]
+        features_batch = features.batch_has(list(features_dict.keys()), organization=ea_org)
+        all_features_dict = (
+            features_batch.get(f"organization:{ea_org.id}", {}) if features_batch else {}
+        )
 
         ea_features = list(filter(lambda key: all_features_dict[key], all_features_dict))
 
