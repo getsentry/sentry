@@ -12,7 +12,7 @@ from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -99,8 +99,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
     # within this scope.
-    driver = make_storage_driver(message.org_id)
-    driver.set(segment_data, recording_segment)
+    storage.set(segment_data, recording_segment)
 
     recording_post_processor(message, headers, recording_segment, transaction)
 

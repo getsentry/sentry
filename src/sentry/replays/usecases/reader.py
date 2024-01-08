@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Iterator, List, Optional
 
 import sentry_sdk
+from django.conf import settings
 from django.db.models import Prefetch
 from sentry_sdk.tracing import Span
 from snuba_sdk import (
@@ -40,16 +41,13 @@ def fetch_segments_metadata(
     limit: int,
 ) -> List[RecordingSegmentStorageMeta]:
     """Return a list of recording segment storage metadata."""
-    # NOTE: This method can miss segments that were split during the deploy.  E.g. half were on
-    # filestore the other half were on direct-storage.
+    if settings.SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP:
+        segments = fetch_filestore_segments_meta(project_id, replay_id, offset, limit)
+        if segments:
+            return segments
 
-    # TODO: Filestore is privileged until the direct storage is released to all projects.  Once
-    # direct-storage is the default driver we need to invert this.  90 days after deployment we
-    # need to remove filestore querying.
-    segments = fetch_filestore_segments_meta(project_id, replay_id, offset, limit)
-    if segments:
-        return segments
-
+    # If the setting wasn't enabled or no segments were found attempt to lookup using
+    # the default storage method.
     return fetch_direct_storage_segments_meta(project_id, replay_id, offset, limit)
 
 
@@ -59,13 +57,13 @@ def fetch_segment_metadata(
     segment_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return a recording segment storage metadata instance."""
-    # TODO: Filestore is privileged until the direct storage is released to all projects.  Once
-    # direct-storage is the default driver we need to invert this.  90 days after deployment we
-    # need to remove filestore querying.
-    segment = fetch_filestore_segment_meta(project_id, replay_id, segment_id)
-    if segment:
-        return segment
+    if settings.SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP:
+        segment = fetch_filestore_segment_meta(project_id, replay_id, segment_id)
+        if segment:
+            return segment
 
+    # If the setting wasn't enabled or no segments were found attempt to lookup using
+    # the default storage method.
     return fetch_direct_storage_segment_meta(project_id, replay_id, segment_id)
 
 
