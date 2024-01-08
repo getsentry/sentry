@@ -19,7 +19,7 @@ from sentry.models.integrations import Integration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
-from sentry.utils.signing import unsign
+from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class DiscordRequestParser(BaseRequestParser):
     control_classes = [
         DiscordLinkIdentityView,
         DiscordUnlinkIdentityView,
+        DiscordExtensionConfigurationView,
     ]
 
     # Dynamically set to avoid RawPostDataException from double reads
@@ -64,10 +65,8 @@ class DiscordRequestParser(BaseRequestParser):
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
-            params = unsign(self.match.kwargs.get("signed_params"))
-            integration_id = params.get("integration_id")
-
-            return Integration.objects.filter(id=integration_id).first()
+            # We don't need to identify an integration since we're handling these on Control
+            return None
 
         discord_request = self.discord_request
         if self.view_class == DiscordInteractionsEndpoint and discord_request:
