@@ -17,6 +17,7 @@ from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
@@ -69,6 +70,8 @@ def _configure_test_env_regions() -> None:
 
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
+
+    monkey_patch_single_process_silo_mode_state()
 
 
 def pytest_configure(config: pytest.Config) -> None:

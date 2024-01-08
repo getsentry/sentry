@@ -35,7 +35,7 @@ from typing_extensions import Self
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
@@ -556,8 +556,9 @@ class _RemoteSiloCall:
         else:
             target_mode = SiloMode.CONTROL
 
-        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-            target_mode, self.region
+        with (
+            SingleProcessSiloModeState.exit(),
+            SingleProcessSiloModeState.enter(target_mode, self.region),
         ):
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
