@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from dataclasses import asdict
 from datetime import datetime, timezone
 from unittest import mock
@@ -23,7 +22,7 @@ from sentry.utils.cache import cache
 GITLAB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
     "html_url": "https://gitlab.com/org/reponame/CODEOWNERS",
-    "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
+    "raw": b"docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
 }
 
 
@@ -207,7 +206,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
-            json={"content": base64.b64encode(GITLAB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            body=GITLAB_CODEOWNERS["raw"],
         )
         result = self.installation.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch

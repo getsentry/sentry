@@ -622,15 +622,18 @@ class GitHubClientMixin(GithubProxyClient):
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
         """
+        from base64 import b64decode
+
         headers = {"Content-Type": "application/raw; charset=utf-8"} if codeowners else {}
         contents = self.get(
             path=f"/repos/{repo.name}/contents/{path}",
             params={"ref": ref},
-            raw_response=True,
+            raw_response=True if codeowners else False,
             headers=headers,
         )
 
-        return contents.content
+        result = contents.content if codeowners else b64decode(contents["content"]).decode("utf-8")
+        return result
 
     def get_blame_for_file(
         self, repo: Repository, path: str, ref: str, lineno: int
