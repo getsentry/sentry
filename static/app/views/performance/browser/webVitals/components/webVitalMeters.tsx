@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toUpper from 'lodash/toUpper';
 
@@ -58,19 +57,16 @@ export default function WebVitalMeters({
   projectScore,
   showTooltip = true,
 }: Props) {
-  const theme = useTheme();
-
   if (!projectScore) {
     return null;
   }
 
   const webVitals = Object.keys(WEB_VITALS_METERS_CONFIG) as WebVitals[];
-  const colors = theme.charts.getColorPalette(3);
 
   return (
     <Container>
       <Flex>
-        {webVitals.map((webVital, index) => {
+        {webVitals.map(webVital => {
           const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
           const formattedMeterValueText = webVitalExists ? (
             WEB_VITALS_METERS_CONFIG[webVital].formatter(
@@ -105,10 +101,7 @@ export default function WebVitalMeters({
                   />
                 )}
                 <MeterHeader>{headerText}</MeterHeader>
-                <MeterValueText>
-                  <Dot color={colors[index]} />
-                  {formattedMeterValueText}
-                </MeterValueText>
+                <MeterValueText>{formattedMeterValueText}</MeterValueText>
               </MeterBarBody>
               <MeterBarFooter score={projectScore[`${webVital}Score`]} />
             </Fragment>
@@ -180,9 +173,6 @@ const MeterHeader = styled('div')`
 `;
 
 const MeterValueText = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
   flex: 1;
@@ -229,13 +219,4 @@ const StyledTooltip = styled(Tooltip)`
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
   right: ${space(1)};
-`;
-
-export const Dot = styled('span')<{color: string}>`
-  display: inline-block;
-  margin-right: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  width: ${space(1)};
-  height: ${space(1)};
-  background-color: ${p => p.color};
 `;
