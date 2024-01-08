@@ -1,7 +1,5 @@
 from sentry.projectoptions import register
 
-from ..api.endpoints.project_performance_general_settings import SETTINGS_PROJECT_OPTION_KEY
-
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
 LATEST_EPOCH = 11
@@ -133,7 +131,7 @@ register(
 )
 
 register(
-    key=SETTINGS_PROJECT_OPTION_KEY,
+    key="sentry:performance_general_settings",
     default=DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS,
 )
 
