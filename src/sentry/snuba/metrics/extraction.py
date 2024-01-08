@@ -61,7 +61,9 @@ class SpecVersion(NamedTuple):
         return flag in self.flags
 
 
-MIN_VERSION = 1
+# This is the lower spec version which we collect metrics for.
+# Once we're ready to abandon a version bump this value
+MIN_VERSION = 0
 
 SPEC_VERSIONS = [
     SpecVersion(0),
@@ -74,17 +76,13 @@ def get_spec_versions(min_version: int = 0) -> Sequence[SpecVersion]:
     return [spec_version for spec_version in SPEC_VERSIONS if spec_version.version >= min_version]
 
 
-def get_spec(flag: Optional[str] = None) -> SpecVersion | None:
-    """Get first matching spec version which contains that flag."""
-    result = None
-    if flag is None:
-        result = SPEC_VERSIONS[0]
-        assert result.flags == []
-    else:
-        for spec_version in SPEC_VERSIONS:
-            if spec_version.has_flag(flag):
-                result = spec_version
-    return result
+def get_spec_version(version: Optional[int] = None) -> SpecVersion:
+    """Get a specific spec version."""
+    if not version:
+        # Default to the latest version if none specified
+        version = len(SPEC_VERSIONS) - 1
+    assert version >= MIN_VERSION and version < len(SPEC_VERSIONS)
+    return SPEC_VERSIONS[version]
 
 
 # Name component of MRIs used for custom alert metrics.
@@ -1086,7 +1084,7 @@ class OnDemandMetricSpec:
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.spec_version = spec_version if spec_version else SPEC_VERSIONS[1]
+        self.spec_version = spec_version if spec_version else get_spec_version()
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]

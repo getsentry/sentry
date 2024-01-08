@@ -57,7 +57,7 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
-    get_spec,
+    get_spec_version,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -163,9 +163,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 Organization.objects.get_from_cache(id=self.organization_id),
             )
 
-            spec_version = (
-                get_spec("use_updated_env_logic") if use_updated_env_logic else get_spec()
-            )
+            spec_version = get_spec_version(1) if use_updated_env_logic else get_spec_version(0)
             return OnDemandMetricSpec(
                 field=field,
                 query=self.query,

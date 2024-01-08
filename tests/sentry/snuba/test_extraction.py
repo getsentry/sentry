@@ -10,7 +10,7 @@ from sentry.snuba.metrics.extraction import (
     apdex_tag_spec,
     cleanup_search_query,
     failure_tag_spec,
-    get_spec,
+    get_spec_version,
     query_tokens_to_string,
     should_use_on_demand_metrics,
     to_standard_metrics_query,
@@ -685,7 +685,7 @@ def test_cleanup_with_environment_injection(query) -> None:
     # We test with both new and old env logic, in this case queries should be identical in both logics since we
     # scrape away parentheses.
     for updated_env_logic in (True, False):
-        spec_version = get_spec("use_updated_env_logic") if updated_env_logic else get_spec()
+        spec_version = get_spec_version(1) if updated_env_logic else get_spec_version(0)
         spec = OnDemandMetricSpec(
             field,
             query,
