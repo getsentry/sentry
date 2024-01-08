@@ -16,7 +16,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
-  CRASH_FREE_SESSION_RATE_STR,
+  CRASH_FREE_SESSION_RATE_STR as _CRASH_FREE_SESSION_RATE_STR,
   CRASH_FREE_USER_RATE_STR as _CRASH_FREE_USER_RATE_STR,
   FAILURE_RATE_STR as _FAILURE_RATE_STR,
   NEW_ISSUE_COUNT_STR as _NEW_ISSUE_COUNT_STR,
@@ -317,11 +317,11 @@ export function ThresholdGroupRows({
                         textValue: 'Errors',
                         label: 'Error Count',
                       },
-                      {
-                        value: CRASH_FREE_SESSION_RATE_STR,
-                        textValue: 'Crash Free Sessions',
-                        label: 'Crash Free Sessions',
-                      },
+                      // {
+                      //   value: CRASH_FREE_SESSION_RATE_STR,
+                      //   textValue: 'Crash Free Sessions',
+                      //   label: 'Crash Free Sessions',
+                      // },
                     ]}
                   />
                   {threshold.trigger_type === 'over' ? (
