@@ -145,7 +145,7 @@ def _get_alert_metric_specs(
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
 
-            if results := _convert_snuba_query_to_metric(project, alert_snuba_query, prefilling):
+            if results := _convert_snuba_query_to_metrics(project, alert_snuba_query, prefilling):
                 for spec in results:
                     _log_on_demand_metric_spec(
                         project_id=project.id,
@@ -284,7 +284,7 @@ def convert_widget_query_to_metric(
             "on_demand_metrics.before_widget_spec_generation",
             tags={"prefilling": prefilling},
         )
-        if results := _convert_aggregate_and_query_to_metric(
+        if results := _convert_aggregate_and_query_to_metrics(
             project,
             # there is an internal check to make sure we extract metrics only for performance dataset
             # however widgets do not have a dataset field, so we need to pass it explicitly
