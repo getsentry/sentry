@@ -5,7 +5,7 @@ import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
-import {IconDelete, IconZoom} from 'sentry/icons';
+import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {MetricRange} from 'sentry/utils/metrics';
@@ -237,12 +237,7 @@ function BrushRectOverlay({
             icon={<IconZoom isZoomIn />}
             aria-label="zoom"
           />
-          <Button
-            size="xs"
-            onClick={onRemove}
-            icon={<IconDelete />}
-            aria-label="remove"
-          />
+          <Button size="xs" onClick={onRemove} icon={<IconClose />} aria-label="remove" />
         </FocusAreaRectActions>
       </FocusAreaRect>
     </FocusAreaWrapper>
