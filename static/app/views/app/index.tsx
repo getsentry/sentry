@@ -36,6 +36,7 @@ const InstallWizard: React.FC<InstallWizardProps> = lazy(
   () => import('sentry/views/admin/installWizard')
 );
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
+const PartnershipAgreement = lazy(() => import('sentry/views/partnershipAgreement'));
 
 /**
  * App is the root level container for all uathenticated routes.
@@ -160,12 +161,25 @@ function App({children, params}: Props) {
 
   const needsUpgrade = config.user?.isSuperuser && config.needsUpgrade;
   const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
+  const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
 
   function renderBody() {
     if (needsUpgrade) {
       return (
         <Suspense fallback={null}>
           <InstallWizard onConfigured={clearUpgrade} />;
+        </Suspense>
+      );
+    }
+
+    if (partnershipAgreementPrompt) {
+      return (
+        <Suspense fallback={null}>
+          <PartnershipAgreement
+            partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
+            agreements={partnershipAgreementPrompt.agreements}
+            onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)
+          } />
         </Suspense>
       );
     }
