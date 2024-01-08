@@ -19,7 +19,7 @@ from sentry.web.frontend.base import OrganizationMixin
 @control_silo_endpoint
 class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
