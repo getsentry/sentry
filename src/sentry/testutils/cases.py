@@ -1415,10 +1415,10 @@ class BaseSpansTestCase(SnubaTestCase):
             "event_id": transaction_id,
             "profile_id": profile_id,
             "tags": tags,
-            # "sentry_tags": sentry_tags,
-            # "is_segment": is_segment,
+            "is_segment": is_segment,
         }
-
+        if sentry_tags:
+            payload["sentry_tags"] = sentry_tags
         if metrics_summary:
             payload["_metrics_summary"] = metrics_summary
 

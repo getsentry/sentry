@@ -620,7 +620,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             timestamp=before_now(minutes=5),
             span_id=span_id,
             is_segment=1,
-            duration_ms=100
+            duration_ms=100,
         )
 
         response = self.get_success_response(
@@ -629,6 +629,8 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             project=[self.project.id],
             statsPeriod="1d",
             metricSpans="true",
+            min="50",
+            max="150",
         )
 
         metric_spans = response.data["metricSpans"]
