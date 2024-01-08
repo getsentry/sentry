@@ -66,7 +66,7 @@ class DiscordRequestParser(BaseRequestParser):
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
             # We don't need to identify an integration since we're handling these on Control
-            return
+            return None
 
         discord_request = self.discord_request
         if self.view_class == DiscordInteractionsEndpoint and discord_request:
