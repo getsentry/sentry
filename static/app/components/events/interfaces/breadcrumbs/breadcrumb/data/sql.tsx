@@ -41,9 +41,7 @@ export function Sql({breadcrumb, meta, searchTerm}: Props) {
                         <AnnotatedText
                           value={
                             // Puts the '[]' back if 'Filtered' present
-                            token.children === '\u2026'
-                              ? token.children
-                              : `[${token.children}]`
+                            token.children === '\u2026' ? '...' : `[${token.children}]`
                           }
                           meta={meta?.message?.['']}
                         />
