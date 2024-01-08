@@ -1,5 +1,4 @@
 import {Query} from 'history';
-import isObject from 'lodash/isObject';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
@@ -33,7 +32,10 @@ export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean 
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (isObject(value) || isObject(other)) {
+  } else if (
+    (value && typeof value === 'object') ||
+    (other && typeof other === 'object')
+  ) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
