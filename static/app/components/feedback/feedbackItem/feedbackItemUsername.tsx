@@ -82,12 +82,12 @@ export default function FeedbackItemUsername({
           size="xs"
           items={[
             {
-              key: 'copy-url',
+              key: 'copy-email',
               label: t('Copy Email Address'),
               onAction: handleCopyEmail,
             },
             {
-              key: 'copy-short-id',
+              key: 'copy-name',
               label: t('Copy Name'),
               onAction: handleCopyUsername,
             },
