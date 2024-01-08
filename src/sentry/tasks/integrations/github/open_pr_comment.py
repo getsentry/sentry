@@ -76,7 +76,7 @@ Your pull request is modifying functions with the following pre-existing issues:
 {issue_tables}
 ---
 
-<sub>Did you find this useful? React with a 👍 or 👎 or let us know in #proj-github-pr-comments</sub>"""
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
 ISSUE_TABLE_TEMPLATE = """📄 File: **{filename}**
 
