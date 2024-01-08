@@ -1,6 +1,6 @@
-import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -14,7 +14,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboards/create';
 
 describe('Dashboards > Create', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
 

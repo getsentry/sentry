@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {ProjectKeys, ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -30,7 +30,7 @@ function renderMockRequests(
   const projectKeys = MockApiClient.addMockResponse({
     url: `/projects/${organizationSlug}/${projectSlug}/keys/${keyId}/`,
     method: 'PUT',
-    body: ProjectKeys()[0],
+    body: ProjectKeysFixture()[0],
   });
 
   return {projectKeys};

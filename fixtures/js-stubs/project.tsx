@@ -1,10 +1,10 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
-import type {Project as TProject} from 'sentry/types';
+import type {Project} from 'sentry/types';
 
-export function Project(params: Partial<TProject> = {}): TProject {
-  const team = Team();
+export function ProjectFixture(params: Partial<Project> = {}): Project {
+  const team = TeamFixture();
   return {
     id: '2',
     slug: 'project-slug',
@@ -29,14 +29,16 @@ export function Project(params: Partial<TProject> = {}): TProject {
     firstTransactionEvent: false,
     groupingAutoUpdate: false,
     groupingConfig: '',
+    hasCustomMetrics: false,
     hasFeedbacks: false,
     hasNewFeedbacks: false,
     hasMinifiedStackTrace: false,
     hasProfiles: false,
     hasReplays: false,
     hasSessions: false,
+    hasMonitors: false,
     isInternal: false,
-    organization: Organization(),
+    organization: OrganizationFixture(),
     plugins: [],
     processingIssues: 0,
     relayPiiConfig: '',

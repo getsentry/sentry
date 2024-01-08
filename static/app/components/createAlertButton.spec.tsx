@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +17,7 @@ const onClickMock = jest.fn();
 jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -151,7 +151,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('shows a guide for org-owner/manager', () => {
-    const adminAccessOrg = Organization({
+    const adminAccessOrg = OrganizationFixture({
       ...organization,
       access: ['org:write'],
     });

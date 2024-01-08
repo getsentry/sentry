@@ -118,7 +118,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             response_option = handle_jira_api_error(exc, " to set badge")
             if response_option:
                 return self.get_response(response_option)
-            raise exc
+            raise
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:

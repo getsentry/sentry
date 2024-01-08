@@ -1,12 +1,12 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ErrorRobot from 'sentry/components/errorRobot';
+import WaitingForEvents from 'sentry/components/waitingForEvents';
 
-describe('ErrorRobot', function () {
+describe('WaitingForEvents', function () {
   let getIssues: jest.Func;
   let routerContext;
 
@@ -26,9 +26,12 @@ describe('ErrorRobot', function () {
 
   describe('with a project', function () {
     function createWrapper() {
-      return render(<ErrorRobot org={Organization()} project={ProjectFixture()} />, {
-        context: routerContext,
-      });
+      return render(
+        <WaitingForEvents org={OrganizationFixture()} project={ProjectFixture()} />,
+        {
+          context: routerContext,
+        }
+      );
     }
 
     it('Renders a button for creating an event', async function () {
@@ -49,7 +52,7 @@ describe('ErrorRobot', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return render(<ErrorRobot org={Organization()} />, {
+      return render(<WaitingForEvents org={OrganizationFixture()} />, {
         context: routerContext,
       });
     }

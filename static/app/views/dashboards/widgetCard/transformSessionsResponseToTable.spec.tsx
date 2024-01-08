@@ -1,11 +1,11 @@
-import {SessionUserCountByStatusByRelease} from 'sentry-fixture/sessions';
+import {SessionUserCountByStatusByReleaseFixture} from 'sentry-fixture/sessions';
 
 import {transformSessionsResponseToTable} from 'sentry/views/dashboards/widgetCard/transformSessionsResponseToTable';
 
 describe('transformSessionsResponseToTable', function () {
   it('transforms sessions into table', () => {
     expect(
-      transformSessionsResponseToTable(SessionUserCountByStatusByRelease(), [], [])
+      transformSessionsResponseToTable(SessionUserCountByStatusByReleaseFixture(), [], [])
     ).toEqual({
       data: [
         {
@@ -76,7 +76,7 @@ describe('transformSessionsResponseToTable', function () {
   it('adds derived metric fields', () => {
     expect(
       transformSessionsResponseToTable(
-        SessionUserCountByStatusByRelease(),
+        SessionUserCountByStatusByReleaseFixture(),
         ['count_crashed(session)'],
         []
       )
@@ -159,7 +159,7 @@ describe('transformSessionsResponseToTable', function () {
   it('strips away injected fields', () => {
     expect(
       transformSessionsResponseToTable(
-        SessionUserCountByStatusByRelease(),
+        SessionUserCountByStatusByReleaseFixture(),
         ['count_crashed(session)'],
         ['sum(session)']
       )

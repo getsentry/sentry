@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -67,7 +67,7 @@ describe('TableView > CellActions', function () {
     jest.mocked(browserHistory.push).mockReset();
     jest.mocked(browserHistory.replace).mockReset();
 
-    const organization = Organization({
+    const organization = OrganizationFixture({
       features: ['discover-basic'],
       projects: [ProjectFixture()],
     });
@@ -352,7 +352,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('renders size columns correctly', function () {
-    const orgWithFeature = Organization({
+    const orgWithFeature = OrganizationFixture({
       projects: [ProjectFixture()],
     });
 
@@ -404,7 +404,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('shows events with value less than selected custom performance metric', async function () {
-    const orgWithFeature = Organization({
+    const orgWithFeature = OrganizationFixture({
       projects: [ProjectFixture()],
     });
 

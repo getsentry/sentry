@@ -179,7 +179,7 @@ export class TransactionEventBuilder {
     return this;
   }
 
-  getEvent() {
+  getEventFixture() {
     return this.#event;
   }
 }

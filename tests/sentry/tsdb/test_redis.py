@@ -2,9 +2,9 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from django.test import override_settings
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
 from sentry.tsdb.redis import CountMinScript, RedisTSDB, SuppressionWrapper
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -28,10 +28,8 @@ def test_suppression_wrapper():
 
 
 class RedisTSDBTest(TestCase):
-    @override_settings(
-        SENTRY_OPTIONS={
-            "redis.clusters": {"tsdb": {"hosts": {i - 6: {"db": i} for i in range(6, 9)}}}
-        }
+    @override_options(
+        {"redis.clusters": {"tsdb": {"hosts": {i - 6: {"db": i} for i in range(6, 9)}}}}
     )
     def setUp(self):
         self.db = RedisTSDB(

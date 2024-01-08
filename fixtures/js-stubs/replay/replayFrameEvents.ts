@@ -48,7 +48,7 @@ export function ReplayBreadcrumbFrameEventFixture(
  * `ReplaySpanFrameData.*` contains more factories to build the required inner dataset.
  *
  * ```
- * SpanFrameEvent({
+ * SpanFrameEventFixture({
  *   timestamp,
  *   data: {
  *     payload: ReplaySpanFrameEventFixture({

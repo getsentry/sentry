@@ -1,5 +1,5 @@
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   MEPState,
@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/performance/data';
 
 describe('generatePerformanceEventView()', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   it('generates default values', function () {
     const result = generatePerformanceEventView(
