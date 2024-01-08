@@ -168,7 +168,7 @@ describe('OrganizationCreate', function () {
     );
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = "https://us.example.com";
+    const expectedHost = 'https://us.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
@@ -220,7 +220,7 @@ describe('OrganizationCreate', function () {
     );
     await userEvent.click(screen.getByText('Create Organization'));
 
-    const expectedHost = "https://de.example.com";
+    const expectedHost = 'https://de.example.com';
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
         success: expect.any(Function),
