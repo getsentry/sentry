@@ -55,9 +55,9 @@ export function getRegionChoices(): [string, string][] {
   const regions = ConfigStore.get('regions') ?? [];
 
   return regions.map(region => {
-    const {name} = region;
+    const {url} = region;
     return [
-      name,
+      url,
       `${getRegionFlagIndicator(region) || ''} ${getRegionDisplayName(region)}`,
     ];
   });

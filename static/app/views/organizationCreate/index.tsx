@@ -1,22 +1,21 @@
-import {useState} from 'react';
+import {useCallback} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {OnSubmitCallback} from "sentry/components/forms/types";
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {OrganizationSummary, Region} from 'sentry/types';
+import {OrganizationSummary} from 'sentry/types';
 import {
-  getRegionBaseUrl,
-  getRegionByName,
   getRegionChoices,
   shouldDisplayRegions,
 } from 'sentry/utils/regions';
+import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 function removeDataStorageLocationFromFormData(
@@ -31,14 +30,22 @@ function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
   const regionChoices = getRegionChoices();
-  const [region, setRegion] = useState<Region | undefined>(undefined);
+  const client = useApi();
 
-  const formModel: FormModel = new FormModel({
-    apiOptions: {
-      baseUrl: getRegionBaseUrl(region),
-    },
-    transformData: removeDataStorageLocationFromFormData,
-  });
+  const submitOrganizationCreate: OnSubmitCallback = useCallback((data, onSubmitSuccess, onSubmitError, _event, formModel) => {
+    if (!formModel.validateForm()) {
+      return;
+    }
+    const regionUrl = data.dataStorageLocation;
+
+    client.request("/organizations/", {
+      method:"POST",
+      data: removeDataStorageLocationFromFormData(data),
+      host: regionUrl,
+      success: onSubmitSuccess,
+      error: onSubmitError
+    });
+  }, [client]);
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
@@ -55,7 +62,7 @@ function OrganizationCreate() {
           submitLabel={t('Create Organization')}
           apiEndpoint="/organizations/"
           apiMethod="POST"
-          model={formModel}
+          onSubmit={submitOrganizationCreate}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
             let nextUrl = normalizeUrl(
@@ -92,7 +99,6 @@ function OrganizationCreate() {
               label="Data Storage Location"
               help="Where will this organization reside?"
               choices={regionChoices}
-              onChange={regionName => setRegion(getRegionByName(regionName))}
               inline={false}
               stacked
               required
