@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -28,8 +26,7 @@ class ProjectPerformanceGeneralSettingsTest(APITestCase):
             },
         )
 
-    @patch("sentry.models.ProjectOption.objects.get_value")
-    def test_get_project_general_settings_defaults(self, get_value):
+    def test_get_project_general_settings_defaults(self):
         with self.feature(PERFORMANCE_SETTINGS_FEATURES):
             response = self.client.get(self.url, format="json")
 
