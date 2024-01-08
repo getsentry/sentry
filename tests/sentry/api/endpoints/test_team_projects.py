@@ -145,6 +145,7 @@ class TeamProjectsCreateTest(APITestCase):
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
 
+    @with_feature("organizations:default-inbound-filters")
     def test_default_inbound_filters(self):
         filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
         python_response = self.get_success_response(
