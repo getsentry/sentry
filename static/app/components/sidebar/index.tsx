@@ -47,8 +47,6 @@ import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
-import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
-import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -258,9 +256,6 @@ function Sidebar({organization}: Props) {
               <Feature features="starfish-browser-webvitals" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  isAlpha={WEBVITALS_RELEASE_LEVEL === 'alpha'}
-                  isBeta={WEBVITALS_RELEASE_LEVEL === 'beta'}
-                  isNew={WEBVITALS_RELEASE_LEVEL === 'new'}
                   label={
                     <GuideAnchor target="performance-webvitals">
                       {t('Web Vitals')}
@@ -274,9 +269,6 @@ function Sidebar({organization}: Props) {
               <Feature features="performance-screens-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
-                  isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
-                  isNew={SCREENS_RELEASE_LEVEL === 'new'}
                   label={t('Mobile')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
@@ -286,7 +278,6 @@ function Sidebar({organization}: Props) {
               <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
-                  isNew
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
