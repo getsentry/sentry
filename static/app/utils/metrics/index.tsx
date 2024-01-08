@@ -191,7 +191,7 @@ export function getDdmUrl(
 }
 
 export function getMetricsApiRequestQuery(
-  {field, query, groupBy}: MetricsApiRequestMetric,
+  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
@@ -208,9 +208,11 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
+    orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
-    // max result groups
-    per_page: 10,
+    // Max result groups for compatibility with old metrics layer
+    // TODO(telemetry-experience): remove once everyone is on new metrics layer
+    per_page: Math.max(10, overrides.limit ?? 0),
   };
 
   return {...queryToSend, ...overrides};
