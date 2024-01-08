@@ -14,6 +14,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
 import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
@@ -24,6 +25,7 @@ import {
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
@@ -53,6 +55,8 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   State
 > {
   disableErrorReport = false;
+  // TODO: stop using control silo which is dependent on figuring out how to
+  // check the Github installation data which is on the control silo
   controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
@@ -111,11 +115,25 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     // auto select the org if there is only one
     const {organizations} = this.state;
     if (organizations.length === 1) {
-      this.onSelectOrg({value: organizations[0].slug});
+      this.onSelectOrg(organizations[0].slug);
+    }
+
+    // now check the subomdain and use that org slug if it exists
+    const customerDomain = ConfigStore.get('customerDomain');
+    if (customerDomain?.subdomain) {
+      this.onSelectOrg(customerDomain.subdomain);
     }
   }
 
-  onSelectOrg = async ({value: orgSlug}: {value: string}) => {
+  onSelectOrg = async (orgSlug: string) => {
+    const customerDomain = ConfigStore.get('customerDomain');
+    // redirect to the org if it's different than the org being selected
+    if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
+      window.location.assign(generateOrgSlugUrl(orgSlug));
+      return;
+    }
+
+    // otherwise proceed as normal
     this.setState({selectedOrgSlug: orgSlug, reloading: true, organization: undefined});
 
     try {
@@ -216,7 +234,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     // if we don't have an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
-        {({disabled}) => (
+        {({disabled, disabledReason}) => (
           <AddIntegration
             provider={provider}
             onInstall={this.onInstallWithInstallationId}
@@ -237,6 +255,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
                 >
                   {t('Install %s', provider.name)}
                 </Button>
+                {disabled && <DisabledNotice reason={disabledReason} />}
               </ButtonWrapper>
             )}
           </AddIntegration>
@@ -373,7 +392,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
-            onChange={this.onSelectOrg}
+            onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}
             placeholder={t('Select an organization')}
             options={options}

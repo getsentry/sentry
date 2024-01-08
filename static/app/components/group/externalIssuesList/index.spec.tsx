@@ -1,10 +1,11 @@
-import {Event} from 'sentry-fixture/event';
-import {Group} from 'sentry-fixture/group';
-import {JiraIntegration} from 'sentry-fixture/jiraIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
-import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
-import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+import {EventFixture} from 'sentry-fixture/event';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GroupFixture} from 'sentry-fixture/group';
+import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -17,10 +18,10 @@ jest.mock('sentry/utils/useSentryAppComponentsStore');
 const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);
 
 describe('ExternalIssuesList', () => {
-  const event = Event();
-  const group = Group();
-  const project = Project();
-  const organization = Organization();
+  const event = EventFixture();
+  const group = GroupFixture();
+  const project = ProjectFixture();
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     SentryAppInstallationStore.init!();
@@ -58,9 +59,9 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
-    const component = SentryAppComponent();
+    const component = SentryAppComponentFixture();
     SentryAppInstallationStore.load([
-      SentryAppInstallation({
+      SentryAppInstallationFixture({
         app: component.sentryApp,
       }),
     ]);
@@ -76,8 +77,8 @@ describe('ExternalIssuesList', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [
-        JiraIntegration({status: 'active', externalIssues: []}),
-        TestStubs.GitHubIntegration({
+        JiraIntegrationFixture({status: 'active', externalIssues: []}),
+        GitHubIntegrationFixture({
           status: 'active',
           externalIssues: [
             {
@@ -96,7 +97,7 @@ describe('ExternalIssuesList', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
       body: [],
     });
-    const component = SentryAppComponent();
+    const component = SentryAppComponentFixture();
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
     render(<ExternalIssuesList group={group} project={project} event={event} />, {
       organization,

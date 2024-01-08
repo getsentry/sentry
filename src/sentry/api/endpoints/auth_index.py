@@ -18,7 +18,7 @@ from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.superuser import Superuser
+from sentry.auth.superuser import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, Superuser
 from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -30,27 +30,16 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
 
-DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
-
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
 )
 
 
 @control_silo_endpoint
-class AuthIndexEndpoint(Endpoint):
-    publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
-    }
+class BaseAuthIndexEndpoint(Endpoint):
     """
-    Manage session authentication
-
-    Intended to be used by the internal Sentry application to handle
-    authentication methods from JS endpoints by relying on internal sessions
-    and simple HTTP authentication.
+    Base endpoint to manage session authentication. Shared between
+    AuthIndexEndpoint and StaffAuthIndexEndpoint (in getsentry)
     """
 
     owner = ApiOwner.ENTERPRISE
@@ -58,8 +47,15 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
+    def get(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        user = promote_request_rpc_user(request)
+        return Response(serialize(user, user, DetailedSelfUserSerializer()))
+
     @staticmethod
-    def _reauthenticate_with_sso(request, org_id):
+    def _reauthenticate_with_sso(request: Request, org_id: int) -> None:
         """
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
@@ -75,7 +71,7 @@ class AuthIndexEndpoint(Endpoint):
         )
 
     @staticmethod
-    def _verify_user_via_inputs(validator, request):
+    def _verify_user_via_inputs(validator: AuthVerifyValidator, request: Request) -> bool:
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
@@ -113,9 +109,26 @@ class AuthIndexEndpoint(Endpoint):
             return authenticated
         return False
 
+
+@control_silo_endpoint
+class AuthIndexEndpoint(BaseAuthIndexEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    """
+    Manage session authentication
+
+    Intended to be used by the internal Sentry application to handle
+    authentication methods from JS endpoints by relying on internal sessions
+    and simple HTTP authentication.
+    """
+
     def _validate_superuser(
         self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool
-    ):
+    ) -> bool:
         """
         For a superuser, they need to be validated before we can grant an active superuser session.
         If the user has a password or u2f device, authenticate the password/challenge that was sent is valid.
@@ -144,13 +157,6 @@ class AuthIndexEndpoint(Endpoint):
                 self._reauthenticate_with_sso(request, Superuser.org_id)
 
         return authenticated
-
-    def get(self, request: Request) -> Response:
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        user = promote_request_rpc_user(request)
-        return Response(serialize(user, user, DetailedSelfUserSerializer()))
 
     def post(self, request: Request) -> Response:
         """
@@ -197,7 +203,7 @@ class AuthIndexEndpoint(Endpoint):
 
         return self.get(request)
 
-    def put(self, request: Request):
+    def put(self, request: Request) -> Response:
         """
         Verify a User
         `````````````
@@ -252,12 +258,10 @@ class AuthIndexEndpoint(Endpoint):
             auth.login(request._request, promote_request_rpc_user(request))
             metrics.incr(
                 "sudo_modal.success",
-                sample_rate=1.0,
             )
         except auth.AuthUserPasswordExpired:
             metrics.incr(
                 "sudo_modal.failure",
-                sample_rate=1.0,
             )
             return Response(
                 {

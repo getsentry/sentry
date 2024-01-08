@@ -67,7 +67,13 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
+        self,
+        *,
+        id: int,
+        user_id: Optional[int] = None,
+        slug: Optional[str] = None,
+        include_projects: Optional[bool] = True,
+        include_teams: Optional[bool] = True,
     ) -> Optional[RpcUserOrganizationContext]:
         """
         Fetches the organization, team, and project data given by an organization id, regardless of its visibility
@@ -180,6 +186,14 @@ class OrganizationService(RpcService):
         """
         return _organization_check_service.check_organization_by_slug(
             slug=slug, only_visible=only_visible
+        )
+
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        """
+        Checks if an organization exists by the id.
+        """
+        return _organization_check_service.check_organization_by_id(
+            id=id, only_visible=only_visible
         )
 
     def get_organization_by_slug(
@@ -368,6 +382,13 @@ class OrganizationCheckService(abc.ABC):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
+
+    @abstractmethod
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        """
+        Checks if an organization exists by the id.
         """
         pass
 

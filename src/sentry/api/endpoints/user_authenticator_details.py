@@ -14,16 +14,16 @@ from sentry.auth.authenticators.u2f import decode_credential_id
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.authenticator import Authenticator
 from sentry.models.user import User
-from sentry.security import capture_security_activity
+from sentry.security.utils import capture_security_activity
 from sentry.utils.auth import MFA_SESSION_KEY
 
 
 @control_silo_endpoint
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationUserPermission,)

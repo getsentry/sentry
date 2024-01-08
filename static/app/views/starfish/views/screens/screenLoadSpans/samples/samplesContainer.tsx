@@ -65,14 +65,11 @@ export function ScreenLoadSampleContainer({
     filters.release = release;
   }
 
-  const {data} = useSpanMetrics(
+  const {data} = useSpanMetrics({
     filters,
-    [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-panel-samples-table-avg'
-  );
+    fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
+    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
+  });
 
   const spanMetrics = data[0] ?? {};
 

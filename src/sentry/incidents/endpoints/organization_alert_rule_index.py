@@ -29,12 +29,12 @@ from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
 )
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.api.utils import InvalidParams
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidParams
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models import AlertRule, Incident
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
@@ -274,8 +274,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(
-        max_length=64,
-        help_text="The name for the rule, which has a maximimum length of 64 characters.",
+        max_length=256,
+        help_text="The name for the rule, which has a maximimum length of 256 characters.",
     )
     aggregate = serializers.CharField(
         help_text="A string representing the aggregate function used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See [Metric Alert Rule Types](#metric-alert-rule-types) for valid configurations."

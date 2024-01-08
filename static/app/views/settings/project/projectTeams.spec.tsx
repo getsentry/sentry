@@ -1,4 +1,5 @@
-import {Team} from 'sentry-fixture/team';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,17 +19,17 @@ describe('ProjectTeams', function () {
   let project: Project;
   let routerContext: Record<string, any>;
 
-  const team1WithAdmin = Team({
+  const team1WithAdmin = TeamFixture({
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team2WithAdmin = Team({
+  const team2WithAdmin = TeamFixture({
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
     hasAccess: true,
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team3NoAdmin = Team({
+  const team3NoAdmin = TeamFixture({
     id: '3',
     slug: 'team-slug-3',
     name: 'Team Name 3',
@@ -71,7 +72,7 @@ describe('ProjectTeams', function () {
   it('renders', function () {
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -102,7 +103,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -112,6 +113,11 @@ describe('ProjectTeams', function () {
     expect(mock1).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+
+    renderGlobalModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -122,13 +128,7 @@ describe('ProjectTeams', function () {
 
     // Remove second team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
-
-    // Modal opens because this is the last team in project
-    renderGlobalModal();
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByTestId('confirm-button'));
-
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
       expect.objectContaining({
@@ -160,7 +160,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -169,6 +169,8 @@ describe('ProjectTeams', function () {
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    renderGlobalModal();
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -209,7 +211,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -220,6 +222,8 @@ describe('ProjectTeams', function () {
 
     // Remove first team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    renderGlobalModal();
+    await userEvent.click(screen.getByText('Remove Team'));
     expect(mock1).toHaveBeenCalledWith(
       endpoint1,
       expect.objectContaining({
@@ -232,11 +236,10 @@ describe('ProjectTeams', function () {
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     // Modal opens because this is the last team in project
-    renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Click confirm
-    await userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByText('Remove Team'));
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
@@ -256,7 +259,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -302,7 +305,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         project={project}
         organization={org}

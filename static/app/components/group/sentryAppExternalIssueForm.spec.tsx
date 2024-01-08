@@ -1,7 +1,13 @@
 import selectEvent from 'react-select-event';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {
+  SentryAppComponentAsyncFixture,
+  SentryAppComponentDependentFixture,
+  SentryAppComponentFixture,
+} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,14 +15,14 @@ import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExterna
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('SentryAppExternalIssueForm', () => {
-  const group = TestStubs.Group({
+  const group = GroupFixture({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const component = TestStubs.SentryAppComponent();
-  const sentryApp = SentryApp();
-  const sentryAppInstallation = SentryAppInstallation({});
+  const component = SentryAppComponentFixture();
+  const sentryApp = SentryAppFixture();
+  const sentryAppInstallation = SentryAppInstallationFixture({});
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
   let externalIssueRequest;
 
@@ -148,14 +154,14 @@ describe('SentryAppExternalIssueForm', () => {
 });
 
 describe('SentryAppExternalIssueForm Async Field', () => {
-  const component = TestStubs.SentryAppComponentAsync();
-  const group = TestStubs.Group({
+  const component = SentryAppComponentAsyncFixture();
+  const group = GroupFixture({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = SentryApp();
-  const sentryAppInstallation = SentryAppInstallation({});
+  const sentryApp = SentryAppFixture();
+  const sentryAppInstallation = SentryAppInstallationFixture({});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -195,14 +201,14 @@ describe('SentryAppExternalIssueForm Async Field', () => {
 });
 
 describe('SentryAppExternalIssueForm Dependent fields', () => {
-  const group = TestStubs.Group({
+  const group = GroupFixture({
     title: 'ApiError: Broken',
     shortId: 'SEN123',
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
-  const sentryApp = SentryApp();
-  const sentryAppInstallation = SentryAppInstallation({});
-  const component = TestStubs.SentryAppComponentDependent();
+  const sentryApp = SentryAppFixture();
+  const sentryAppInstallation = SentryAppInstallationFixture({});
+  const component = SentryAppComponentDependentFixture();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

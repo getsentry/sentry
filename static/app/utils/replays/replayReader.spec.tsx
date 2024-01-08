@@ -14,7 +14,7 @@ import {
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
-import {RRWebFullSnapshotFrameEvent} from 'sentry-fixture/replay/rrweb';
+import {RRWebFullSnapshotFrameEventFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -105,8 +105,8 @@ describe('ReplayReader', () => {
       timestamp,
       data: {payload: optionsFrame},
     });
-    const firstDiv = RRWebFullSnapshotFrameEvent({timestamp});
-    const secondDiv = RRWebFullSnapshotFrameEvent({timestamp});
+    const firstDiv = RRWebFullSnapshotFrameEventFixture({timestamp});
+    const secondDiv = RRWebFullSnapshotFrameEventFixture({timestamp});
     const clickEvent = ReplayClickEventFixture({timestamp});
     const secondClickEvent = ReplayClickEventFixture({timestamp: secondTimestamp});
     const thirdClickEvent = ReplayClickEventFixture({timestamp: thirdTimestamp});

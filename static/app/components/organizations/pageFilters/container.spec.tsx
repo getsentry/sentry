@@ -1,6 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -564,12 +565,12 @@ describe('PageFiltersContainer', function () {
     it('selects a project if user is superuser and belongs to no projects', function () {
       ConfigStore.init();
       ConfigStore.loadInitialData(
-        TestStubs.Config({
-          user: User({isSuperuser: true}),
+        ConfigFixture({
+          user: UserFixture({isSuperuser: true}),
         })
       );
       const project = ProjectFixture({id: '3', isMember: false});
-      const org = Organization({projects: [project]});
+      const org = OrganizationFixture({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 
@@ -596,7 +597,7 @@ describe('PageFiltersContainer', function () {
 
     it('selects first project if none (i.e. all) is requested', function () {
       const project = ProjectFixture({id: '3'});
-      const org = Organization({projects: [project]});
+      const org = OrganizationFixture({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 

@@ -67,6 +67,7 @@ export const backend: PlatformKey[] = [
   'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java',
   'java-appengine',
   'java-log4j',
@@ -299,16 +300,19 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
-const replayBackendPlatforms: readonly PlatformKey[] = [
+export const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'elixir',
   'go-echo',
   'go-fasthttp',
+  'go',
   'go-gin',
+  'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java-spring',
   'java-spring-boot',
   'node',
@@ -376,27 +380,31 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'php',
   'php-laravel',
-  'php-monolog',
-  'php-symfony',
+  // TODO: Enable once metrics are available for Symfony
+  // 'php-symfony',
   'python',
-  'python-django',
-  'python-flask',
-  'python-fastapi',
-  'python-starlette',
-  'python-sanic',
-  'python-celery',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
   'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pymongo',
   'python-pylons',
   'python-pyramid',
-  'python-tornado',
-  'python-rq',
-  'python-aiohttp',
-  'python-chalice',
-  'python-falcon',
   'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
   'python-tryton',
   'python-wsgi',
-  'python-serverless',
   'rust',
 ];
 
@@ -432,11 +440,12 @@ export const customMetricOnboardingPlatforms = new Set(
   [...customMetricPlatforms].filter(
     p =>
       // Legacy platforms that do not have in-product docs
-      !['javascript-backbone', 'javascript-capacitor', 'javascript-electron'].includes(
-        p
-      ) &&
-      // TODO: Remove this once we have onboarding instructions for these platforms
-      !p.includes('php') &&
-      !p.includes('python')
+      ![
+        'javascript-backbone',
+        'javascript-capacitor',
+        'javascript-electron',
+        'python-pylons',
+        'python-tryton',
+      ].includes(p)
   )
 );

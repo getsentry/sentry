@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
@@ -8,15 +8,21 @@ from django.utils import timezone
 
 from sentry.auth import staff
 from sentry.auth.staff import (
+    COOKIE_DOMAIN,
+    COOKIE_HTTPONLY,
     COOKIE_NAME,
+    COOKIE_PATH,
     COOKIE_SALT,
-    IDLE_MAX_STAFF_SESSION_AGE,
-    MAX_STAFF_SESSION_AGE,
+    COOKIE_SECURE,
+    IDLE_MAX_AGE,
+    MAX_AGE,
     SESSION_KEY,
     Staff,
     is_active_staff,
 )
 from sentry.auth.system import SystemToken
+from sentry.middleware.placeholder import placeholder_get_response
+from sentry.middleware.staff import StaffMiddleware
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -41,12 +47,12 @@ def override_org_id(new_org_id: int):
     the module level, but we cannot override module level variables using
     Django's built-in override_settings, so we need this context manager.
     """
-    old_org_id = staff.ORG_ID
-    staff.ORG_ID = new_org_id
+    old_org_id = staff.STAFF_ORG_ID
+    staff.STAFF_ORG_ID = new_org_id
     try:
         yield
     finally:
-        staff.ORG_ID = old_org_id
+        staff.STAFF_ORG_ID = old_org_id
 
 
 @control_silo_test
@@ -65,8 +71,11 @@ class StaffTestCase(TestCase):
         idle_expires=UNSET,
         uid=UNSET,
         session_data=True,
+        user=None,
     ):
-        request = self.make_request(user=self.user)
+        if user is None:
+            user = self.user
+        request = self.make_request(user=user)
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
@@ -82,7 +91,7 @@ class StaffTestCase(TestCase):
                     else idle_expires
                 ).strftime("%s"),
                 "tok": self.default_token if session_token is UNSET else session_token,
-                "uid": str(self.user.id) if uid is UNSET else uid,
+                "uid": str(user.id) if uid is UNSET else uid,
             }
         return request
 
@@ -173,8 +182,8 @@ class StaffTestCase(TestCase):
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com")
         request = self.make_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
-        staff.set_logged_in(user, current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
+        staff.set_logged_in(user)
 
         # request.user wasn't set
         assert not staff.is_active
@@ -182,20 +191,73 @@ class StaffTestCase(TestCase):
         request.user = user
         assert staff.is_active
 
-        data = request.session.get(SESSION_KEY)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
-        assert data["exp"] == (self.current_datetime + MAX_STAFF_SESSION_AGE).strftime("%s")
-        assert data["idl"] == (self.current_datetime + IDLE_MAX_STAFF_SESSION_AGE).strftime("%s")
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
+        assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
         assert data["uid"] == str(user.id)
 
     def test_logout_clears_session(self):
         request = self.build_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
         staff.set_logged_out()
 
         assert not staff.is_active
         assert not request.session.get(SESSION_KEY)
+
+    def test_middleware_as_staff(self):
+        request = self.build_request()
+
+        delattr(request, "staff")
+
+        middleware = StaffMiddleware(placeholder_get_response)
+        middleware.process_request(request)
+        assert request.staff.is_active
+        assert is_active_staff(request)
+
+        response = Mock()
+        middleware.process_response(request, response)
+        response.set_signed_cookie.assert_called_once_with(
+            COOKIE_NAME,
+            request.staff.token,
+            salt=COOKIE_SALT,
+            max_age=None,
+            secure=request.is_secure() if COOKIE_SECURE is None else COOKIE_SECURE,
+            httponly=COOKIE_HTTPONLY,
+            path=COOKIE_PATH,
+            domain=COOKIE_DOMAIN,
+        )
+
+    def test_middleware_as_staff_without_session(self):
+        request = self.build_request(session_data=False)
+
+        delattr(request, "staff")
+
+        middleware = StaffMiddleware(placeholder_get_response)
+        middleware.process_request(request)
+        assert not request.staff.is_active
+        assert not is_active_staff(request)
+
+        response = Mock()
+        middleware.process_response(request, response)
+        response.delete_cookie.assert_called_once_with(COOKIE_NAME)
+
+    def test_middleware_as_non_staff(self):
+        user = self.create_user("foo@example.com", is_staff=False)
+        request = self.build_request(user=user)
+
+        delattr(request, "staff")
+
+        middleware = StaffMiddleware(placeholder_get_response)
+        middleware.process_request(request)
+        assert not request.staff.is_active
+        assert not is_active_staff(request)
+
+        response = Mock()
+        middleware.process_response(request, response)
+        assert not response.set_signed_cookie.called
 
     def test_changed_user(self):
         request = self.build_request()
@@ -207,7 +269,10 @@ class StaffTestCase(TestCase):
         assert not staff.is_active
 
         # a non-staff
-        request.user = self.create_user("baz@example.com", is_staff=False)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        request.user = self.create_user(  # type:ignore[unreachable]
+            "baz@example.com", is_staff=False
+        )
         assert not staff.is_active
 
         # a staff

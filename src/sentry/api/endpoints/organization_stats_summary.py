@@ -15,17 +15,19 @@ from typing_extensions import TypedDict
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.utils import InvalidParams as InvalidParamsApi
+from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import COLUMN_MAP, QueryDefinition, run_outcomes_query_totals
-from sentry.snuba.sessions_v2 import InvalidField, InvalidParams, massage_sessions_result_summary
+from sentry.snuba.sessions_v2 import InvalidField, massage_sessions_result_summary
 from sentry.utils.outcomes import Outcome
 
 
@@ -118,7 +120,7 @@ class StatsSummaryApiResponse(TypedDict):
 
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
-class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
+class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC}
     owner = ApiOwner.ENTERPRISE
 
@@ -253,8 +255,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
     @contextmanager
     def handle_query_errors(self):
         try:
-            # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
-            with super().handle_query_errors():
+            with handle_query_errors():
                 yield
-        except (InvalidField, NoProjects, InvalidParams, InvalidQuery, InvalidParamsApi) as error:
+        except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
             raise ParseError(detail=str(error))

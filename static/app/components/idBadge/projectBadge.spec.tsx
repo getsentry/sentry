@@ -1,5 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

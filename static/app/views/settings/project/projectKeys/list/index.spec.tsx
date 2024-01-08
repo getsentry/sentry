@@ -1,5 +1,5 @@
-import {Project} from 'sentry-fixture/project';
-import {ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -58,7 +58,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project()}
+        project={ProjectFixture()}
       />
     );
 
@@ -74,7 +74,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'other'})}
+        project={ProjectFixture({platform: 'other'})}
       />
     );
 
@@ -107,7 +107,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'javascript'})}
+        project={ProjectFixture({platform: 'javascript'})}
       />
     );
 
@@ -145,7 +145,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'javascript-react'})}
+        project={ProjectFixture({platform: 'javascript-react'})}
       />
     );
 
@@ -184,12 +184,12 @@ describe('ProjectKeys', function () {
           cdn: '',
           unreal: '',
         },
+        dateCreated: '2018-02-28T07:13:51.087Z',
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
         name: 'Key 2',
         rateLimit: null,
-        projectId: '1',
-        dateCreated: '2018-02-28T07:13:51.087Z',
+        projectId: 1,
         id: '188ee45a58094d939428d8585aa6f662',
         isActive: true,
         label: 'Key 2',
@@ -222,7 +222,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project({platform: 'other'})}
+        project={ProjectFixture({platform: 'other'})}
       />
     );
 
@@ -236,7 +236,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project()}
+        project={ProjectFixture()}
       />
     );
 
@@ -253,7 +253,7 @@ describe('ProjectKeys', function () {
         {...routerProps}
         organization={organization}
         params={{projectId: project.slug}}
-        project={Project()}
+        project={ProjectFixture()}
       />
     );
 

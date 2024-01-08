@@ -4,7 +4,6 @@ import re
 from typing import Any
 from unittest.mock import patch
 
-from sentry.api.fields.sentry_slug import ORG_SLUG_PATTERN
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization, OrganizationStatus
@@ -12,6 +11,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.silo import SiloMode
+from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -198,7 +198,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert not org.slug.isdecimal()
 
     @patch(
-        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
+        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.backend.is_limited",
         return_value=False,
     )
     def test_name_slugify(self, is_limited):

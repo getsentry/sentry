@@ -16,14 +16,16 @@ export function useCreateDashboard() {
   return useMemo(() => {
     return function (scratchpad?: {name: string}) {
       const newDashboard = {
-        title: scratchpad?.name || 'DDM Dashboard',
+        title: scratchpad?.name || 'Metrics Dashboard',
         description: '',
         widgets: widgets
           .filter(widget => !!widget.mri)
           .map(widget =>
             // @ts-expect-error TODO(ogi): fix this
             convertToDashboardWidget(widget, widget.displayType)
-          ),
+          )
+          // Only import the first 30 widgets because of dashboard widget limit
+          .slice(0, 30),
         projects: selection.projects,
         environment: selection.environments,
         start: selection.datetime.start as string,

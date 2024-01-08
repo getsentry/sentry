@@ -4,6 +4,8 @@ import beautify from 'js-beautify';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import FeatureBadge from 'sentry/components/featureBadge';
+import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import {Flex} from 'sentry/components/profiling/flex';
 import {
   Provider as ReplayContextProvider,
@@ -12,7 +14,7 @@ import {
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import SplitDiff from 'sentry/components/splitDiff';
 import {TabList} from 'sentry/components/tabs';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -43,12 +45,33 @@ export default function ReplayComparisonModal({
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
-        <h4>{t('Hydration Error')}</h4>
+        <ModalHeader>
+          <h4>
+            Hydration Error
+            <FeatureBadge type="beta" />
+          </h4>
+          <GithubFeedbackButton
+            href="https://github.com/getsentry/sentry/discussions/62097"
+            label={t('Discussion')}
+            title={null}
+            analyticsEventKey="replay.details-hydration-discussion-clicked"
+            analyticsEventName="Replay Details Hydration Discussion Clicked"
+            priority="primary"
+          />
+        </ModalHeader>
       </Header>
       <Body>
-        <Flex gap={space(2)} column>
+        <StyledParagraph>
+          {tct(
+            'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before Hydration] refers to the html rendered on the server. [boldAfter:After Hydration] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
+            {
+              boldBefore: <strong />,
+              boldAfter: <strong />,
+            }
+          )}
+        </StyledParagraph>
+        <Flex gap={space(1)} column>
           <TabList
-            hideBorder
             selectedKey={activeTab}
             onSelectionChange={tab => setActiveTab(tab as 'visual' | 'html')}
           >
@@ -147,6 +170,13 @@ function ReplaySide({expectedTime, selector, onLoad}) {
   return <ReplayPlayer isPreview />;
 }
 
+const ModalHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+`;
+
 const ComparisonSideWrapper = styled('div')`
   display: contents;
   flex-grow: 1;
@@ -154,7 +184,7 @@ const ComparisonSideWrapper = styled('div')`
 `;
 
 const SplitDiffScrollWrapper = styled('div')`
-  height: 70vh;
+  height: 65vh;
   overflow: auto;
 `;
 
@@ -165,4 +195,13 @@ const DiffHeader = styled('div')`
   flex: 1;
   font-weight: 600;
   line-height: 1.2;
+
+  div:last-child {
+    padding-left: ${space(2)};
+  }
+`;
+
+const StyledParagraph = styled('p')`
+  padding-top: ${space(0.5)};
+  margin-bottom: ${space(1)};
 `;

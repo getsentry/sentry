@@ -1,6 +1,8 @@
-import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +10,7 @@ import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrati
 
 describe('IntegrationDetailedView', function () {
   const ENDPOINT = '/organizations/org-slug/';
-  const org = Organization({
+  const org = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
 
@@ -80,7 +82,7 @@ describe('IntegrationDetailedView', function () {
   it('shows integration name, status, and install button', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
         location={LocationFixture({query: {}})}
       />
@@ -93,7 +95,7 @@ describe('IntegrationDetailedView', function () {
   it('view configurations', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />
@@ -108,11 +110,11 @@ describe('IntegrationDetailedView', function () {
   it('disables configure for members without access', function () {
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'bitbucket'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />,
-      {organization: Organization({access: ['org:read']})}
+      {organization: OrganizationFixture({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
@@ -122,7 +124,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -152,11 +154,11 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />,
-      {organization: Organization({access: ['org:read']})}
+      {organization: OrganizationFixture({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
@@ -166,7 +168,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -196,7 +198,7 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
         location={LocationFixture({query: {}})}
@@ -210,7 +212,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -220,7 +222,7 @@ describe('IntegrationDetailedView', function () {
 
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
         location={LocationFixture({query: {}})}
@@ -245,17 +247,17 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/?provider_key=github&includeConfig=0`,
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
     render(
       <IntegrationDetailedView
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationSlug: 'github'}}
         organization={org}
         location={LocationFixture({query: {}})}

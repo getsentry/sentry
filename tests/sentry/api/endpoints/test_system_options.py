@@ -2,6 +2,7 @@ from django.urls import reverse
 
 from sentry import options
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class SystemOptionsTest(APITestCase):
@@ -79,7 +80,7 @@ class SystemOptionsTest(APITestCase):
         assert response.data["error"] == "unknown_option"
 
     def test_put_hardwired_option(self):
-        with self.settings(SENTRY_OPTIONS={"system.url-prefix": "cheese"}):
+        with override_options({"system.url-prefix": "cheese"}):
             self.login_as(user=self.user, superuser=True)
             self.add_user_permission(self.user, "options.admin")
             response = self.client.put(self.url, {"system.url-prefix": "bread"})

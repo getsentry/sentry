@@ -1,6 +1,5 @@
 from unittest import mock
 
-from django.conf import settings
 from django.core import mail
 from django.db import router
 from django.db.models import F
@@ -113,10 +112,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
-
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             resp = self.get_success_response("me", "sms")
             assert resp.data["form"]
             assert resp.data["secret"]
@@ -150,10 +146,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
         self.get_error_response("me", "sms", method="post", status_code=403, **form_data)
 
     def test_sms_invalid_otp(self):
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
-
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             self.get_error_response(
                 "me",
                 "sms",
@@ -174,10 +167,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
         UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
         self.login_as(user)
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
 
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             resp = self.get_error_response(
                 "me",
                 "sms",
@@ -194,13 +185,12 @@ class UserAuthenticatorEnrollTest(APITestCase):
             }
 
     @mock.patch(
-        "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.is_limited", return_value=True
+        "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.backend.is_limited",
+        return_value=True,
     )
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_rate_limited(self, try_enroll, is_limited):
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["system.url-prefix"] = "https://testserver"
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"system.url-prefix": "https://testserver"}):
             self.get_success_response("me", "u2f")
             self.get_error_response(
                 "me",
@@ -218,10 +208,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_u2f_can_enroll(self, try_enroll):
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["system.url-prefix"] = "https://testserver"
-
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"system.url-prefix": "https://testserver"}):
             resp = self.get_success_response("me", "u2f")
             assert resp.data["form"]
             assert "secret" not in resp.data
@@ -337,9 +324,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert not self.client.session.get("invite_member_id")
 
     def setup_u2f(self, om):
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["system.url-prefix"] = "https://testserver"
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"system.url-prefix": "https://testserver"}):
             # We have to add the invite details back in to the session
             # prior to .save_session() since this re-creates the session property
             # when under test. See here for more details:
@@ -380,10 +365,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         om = self.get_om_and_init_invite()
 
         # setup sms
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["sms.twilio-account"] = "twilio-account"
-
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"sms.twilio-account": "twilio-account"}):
             self.get_success_response(
                 "me", "sms", method="post", **{"secret": "secret12", "phone": "1231234"}
             )
@@ -488,9 +470,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_enroll_without_pending_invite__no_error(self, try_enroll, log):
-        new_options = settings.SENTRY_OPTIONS.copy()
-        new_options["system.url-prefix"] = "https://testserver"
-        with self.settings(SENTRY_OPTIONS=new_options):
+        with override_options({"system.url-prefix": "https://testserver"}):
             self.session["webauthn_register_state"] = "state"
             self.save_session()
             self.get_success_response(

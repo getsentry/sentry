@@ -165,7 +165,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
 
             if "tags" not in collapse:
-                tags = tagstore.get_group_tag_keys(
+                tags = tagstore.backend.get_group_tag_keys(
                     group,
                     environment_ids,
                     limit=100,
@@ -336,8 +336,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group_details:put client.ApiError",
             )
             return Response(e.body, status=e.status_code)
-        except Exception:
-            raise
 
     def delete(self, request: Request, group) -> Response:
         """
@@ -352,7 +350,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         from sentry.utils import snuba
 
         if group.issue_category != GroupCategory.ERROR:
-            raise ValidationError(detail="Only error issues can be deleted.", code=400)
+            raise ValidationError(detail="Only error issues can be deleted.")
 
         try:
             delete_group_list(request, group.project, [group], "delete")

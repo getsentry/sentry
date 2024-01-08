@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
@@ -31,7 +30,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}>;
 
-function getOrganizationOnboardingSteps(): StepDescriptor[] {
+function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [
     {
       id: 'get-started',
@@ -61,7 +60,6 @@ function getOrganizationOnboardingSteps(): StepDescriptor[] {
 }
 
 function RelocationOnboarding(props: Props) {
-  const organization = useOrganization();
   const [hasPublicKeyError, setHasError] = useState(false);
 
   // TODO(getsentry/team-ospo#214): We should use sessionStorage to track this, since it should not
@@ -95,7 +93,7 @@ function RelocationOnboarding(props: Props) {
     params: {step: stepId},
   } = props;
 
-  const onboardingSteps = getOrganizationOnboardingSteps();
+  const onboardingSteps = getRelocationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
@@ -134,7 +132,7 @@ function RelocationOnboarding(props: Props) {
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    props.router.push(normalizeUrl(`/relocation/${organization.slug}/${step.id}/`));
+    props.router.push(normalizeUrl(`/relocation/${step.id}/`));
   };
 
   const goNextStep = useCallback(
@@ -146,17 +144,13 @@ function RelocationOnboarding(props: Props) {
         cornerVariantControl.start('none');
       }
 
-      props.router.push(normalizeUrl(`/relocation/${organization.slug}/${nextStep.id}/`));
+      props.router.push(normalizeUrl(`/relocation/${nextStep.id}/`));
     },
-    [organization.slug, onboardingSteps, cornerVariantControl, props.router]
+    [onboardingSteps, cornerVariantControl, props.router]
   );
 
   if (!stepObj || stepIndex === -1) {
-    return (
-      <Redirect
-        to={normalizeUrl(`/relocation/${organization.slug}/${onboardingSteps[0].id}/`)}
-      />
-    );
+    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0].id}/`)} />;
   }
 
   return (

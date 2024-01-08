@@ -1,8 +1,8 @@
 import {Location} from 'history';
-import {GlobalSelection} from 'sentry-fixture/globalSelection';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -44,7 +44,7 @@ window.ResizeObserver =
 
 describe('ProfileSummaryPage', () => {
   it('renders new page', async () => {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       features: [],
       projects: [ProjectFixture()],
     });
@@ -86,7 +86,7 @@ describe('ProfileSummaryPage', () => {
       <ProfileSummaryPage
         view="flamegraph"
         params={{}}
-        selection={GlobalSelection()}
+        selection={GlobalSelectionFixture()}
         location={
           {
             query: {transaction: 'fancyservice'},
@@ -94,7 +94,7 @@ describe('ProfileSummaryPage', () => {
         }
       />,
       {
-        organization: Organization({
+        organization: OrganizationFixture({
           features: ['profiling-summary-redesign'],
         }),
         context: RouterContextFixture(),

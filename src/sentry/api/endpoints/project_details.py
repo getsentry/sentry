@@ -18,7 +18,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
@@ -134,7 +134,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         max_length=200,
         required=False,
     )
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         help_text="Uniquely identifies a project and is used for the interface.",
         max_length=50,
         required=False,
@@ -458,7 +458,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = [RelaxedProjectPermission]
+    permission_classes = (RelaxedProjectPermission,)
 
     def _get_unresolved_count(self, project):
         queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, project=project)
@@ -544,7 +544,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         if has_elevated_scopes:
-            serializer_cls = ProjectAdminSerializer
+            serializer_cls: type[ProjectMemberSerializer] = ProjectAdminSerializer
         else:
             serializer_cls = ProjectMemberSerializer
 

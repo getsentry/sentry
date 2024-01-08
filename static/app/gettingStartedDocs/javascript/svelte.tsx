@@ -5,10 +5,12 @@ import {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -32,7 +34,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(),`
+        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${
@@ -194,9 +196,10 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+              code: getSdkSetupSnippet(params),
             },
           ],
+          additionalInfo: tracePropagationMessage,
         },
       ],
     },

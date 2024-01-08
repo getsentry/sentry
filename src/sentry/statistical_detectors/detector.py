@@ -4,7 +4,7 @@ import heapq
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import DefaultDict, Generator, Iterable, List, Optional, Set, Tuple
 
 import sentry_sdk
@@ -23,12 +23,7 @@ from sentry.models.statistical_detectors import (
 from sentry.search.events.fields import get_function_alias
 from sentry.seer.utils import BreakpointData, detect_breakpoints
 from sentry.statistical_detectors.algorithm import DetectorAlgorithm
-from sentry.statistical_detectors.base import (
-    DetectorConfig,
-    DetectorPayload,
-    DetectorState,
-    TrendType,
-)
+from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.utils import metrics
@@ -50,16 +45,19 @@ class RegressionDetector(ABC):
     source: str
     kind: str
     regression_type: RegressionType
-    config: DetectorConfig
-    state_cls: type[DetectorState]
-    detector_cls: type[DetectorAlgorithm]
     min_change: int
+    buffer_period: timedelta
     resolution_rel_threshold: float
     escalation_rel_threshold: float
 
     @classmethod
     @abstractmethod
-    def make_detector_store(cls) -> DetectorStore:
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def detector_store_factory(cls) -> DetectorStore:
         ...
 
     @classmethod
@@ -96,7 +94,8 @@ class RegressionDetector(ABC):
         regressed_count = 0
         improved_count = 0
 
-        store = cls.make_detector_store()
+        algorithm = cls.detector_algorithm_factory()
+        store = cls.detector_store_factory()
 
         for payloads in chunked(cls.all_payloads(projects, start), 100):
             total_count += len(payloads)
@@ -106,37 +105,22 @@ class RegressionDetector(ABC):
             states = []
 
             for raw_state, payload in zip(raw_states, payloads):
-                try:
-                    state = cls.state_cls.from_redis_dict(raw_state)
-                except Exception as e:
-                    state = cls.state_cls.empty()
+                unique_project_ids.add(payload.project_id)
 
-                    if raw_state:
-                        # empty raw state implies that there was no
-                        # previous state so no need to capture an exception
-                        sentry_sdk.capture_exception(e)
-
-                algorithm = cls.detector_cls(cls.source, cls.kind, state, cls.config)
-                trend_type, score = algorithm.update(payload)
-
-                # the trend type can be None if no update happened,
-                # pass None to indicate we do not need up update the state
-                states.append(
-                    None if trend_type == TrendType.Skipped else algorithm.state.to_redis_dict()
-                )
+                trend_type, score, new_state = algorithm.update(raw_state, payload)
 
                 if trend_type == TrendType.Regressed:
                     regressed_count += 1
                 elif trend_type == TrendType.Improved:
                     improved_count += 1
 
-                unique_project_ids.add(payload.project_id)
+                states.append(None if new_state is None else new_state.to_redis_dict())
 
                 yield TrendBundle(
                     type=trend_type,
                     score=score,
                     payload=payload,
-                    state=algorithm.state,
+                    state=new_state,
                 )
 
             store.bulk_write_states(payloads, states)
@@ -336,6 +320,9 @@ class RegressionDetector(ABC):
                     and bundle.state.should_auto_resolve(
                         group.baseline, cls.resolution_rel_threshold
                     )
+                    # enforce a buffer window after which the issue cannot
+                    # auto resolve to avoid the issue state changing frequently
+                    and group.date_regressed + cls.buffer_period <= timestamp
                 ):
                     group.active = False
                     group.date_resolved = timestamp
@@ -407,7 +394,7 @@ class RegressionDetector(ABC):
         cls,
         regressions: Generator[BreakpointData, None, None],
         batch_size=100,
-    ) -> Generator[Tuple[int, BreakpointData], None, None]:
+    ) -> Generator[Tuple[int, datetime | None, BreakpointData], None, None]:
         active_regressions = 0
 
         for regression_chunk in chunked(regressions, batch_size):
@@ -431,9 +418,9 @@ class RegressionDetector(ABC):
                 group = existing_regression_groups.get((project_id, fingerprint))
 
                 if group is None:
-                    yield 1, regression
+                    yield 0, None, regression
                 elif not group.active:
-                    yield group.version + 1, regression
+                    yield group.version, group.date_regressed, regression
                 else:
                     # There is an active regression group already, so skip it
                     active_regressions += 1
@@ -454,14 +441,26 @@ class RegressionDetector(ABC):
         versioned_regressions = cls.get_regression_versions(regressions)
 
         for regression_chunk in chunked(versioned_regressions, batch_size):
-            RegressionGroup.objects.bulk_create(
-                [
+            regression_groups = []
+
+            for version, prev_date_regressed, regression in regression_chunk:
+                date_regressed = datetime.utcfromtimestamp(regression["breakpoint"]).replace(
+                    tzinfo=timezone.utc
+                )
+
+                # enforce a buffer window after the date regressed after which the issue
+                # cannot be changed to regressed again to avoid the issue state changing frequently
+                if (
+                    prev_date_regressed is not None
+                    and prev_date_regressed + cls.buffer_period > date_regressed
+                ):
+                    continue
+
+                regression_groups.append(
                     RegressionGroup(
                         type=cls.regression_type.value,
-                        date_regressed=datetime.utcfromtimestamp(regression["breakpoint"]).replace(
-                            tzinfo=timezone.utc
-                        ),
-                        version=version,
+                        date_regressed=date_regressed,
+                        version=version + 1,
                         active=True,
                         project_id=int(regression["project"]),
                         fingerprint=generate_fingerprint(
@@ -470,12 +469,11 @@ class RegressionDetector(ABC):
                         baseline=regression["aggregate_range_1"],
                         regressed=regression["aggregate_range_2"],
                     )
-                    for version, regression in regression_chunk
-                ]
-            )
+                )
 
-            for _, regression in regression_chunk:
                 yield regression
+
+            RegressionGroup.objects.bulk_create(regression_groups)
 
 
 def generate_fingerprint(regression_type: RegressionType, name: str | int) -> str:
