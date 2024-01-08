@@ -28,6 +28,7 @@ export type MetricsApiRequestMetric = {
   field: string;
   query: string;
   groupBy?: string[];
+  orderBy?: string;
 };
 
 export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
@@ -36,8 +37,7 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   environment?: string[];
   includeSeries?: number;
   includeTotals?: number;
-  orderBy?: string;
-  per_page?: number;
+  limit?: number;
   project?: number[];
   start?: DateString;
   statsPeriod?: string;

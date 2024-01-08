@@ -9,6 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import handle_query_errors
 from sentry.tagstore.base import TAG_KEY_RE
 
 
@@ -36,7 +37,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             paginator = SequencePaginator([])
         else:
-            with self.handle_query_errors():
+            with handle_query_errors():
                 environment_ids = None
                 if "environment_objects" in filter_params:
                     environment_ids = [env.id for env in filter_params["environment_objects"]]

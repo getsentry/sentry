@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import type {Location} from 'history';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -39,7 +39,7 @@ const renderActionDropdown = (
   value: React.ReactText | string[],
   contextValueType: ContextValueType
 ) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <ActionDropDown
       dataRow={dataRow}

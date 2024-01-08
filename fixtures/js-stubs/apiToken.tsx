@@ -1,8 +1,8 @@
-import type {InternalAppApiToken as InternalAppApiTokenType} from 'sentry/types';
+import type {InternalAppApiToken} from 'sentry/types';
 
-export function ApiToken(
-  params: Partial<InternalAppApiTokenType> = {}
-): InternalAppApiTokenType {
+export function ApiTokenFixture(
+  params: Partial<InternalAppApiToken> = {}
+): InternalAppApiToken {
   return {
     id: '1',
     token: 'apitoken123',

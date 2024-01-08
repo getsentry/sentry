@@ -161,15 +161,19 @@ function partitionEntriesForReplay(entries: Entry[]) {
   return [entries.slice(0, replayIndex), entries.slice(replayIndex)];
 }
 
-function Entries({
+export function Entries({
   definedEvent,
   projectSlug,
   isShare,
   group,
   organization,
+  hideBeforeReplayEntries = false,
+  hideBreadCrumbs = false,
 }: {
   definedEvent: Event;
   projectSlug: string;
+  hideBeforeReplayEntries?: boolean;
+  hideBreadCrumbs?: boolean;
   isShare?: boolean;
 } & Pick<Props, 'group' | 'organization'>) {
   if (!Array.isArray(definedEvent.entries)) {
@@ -190,13 +194,18 @@ function Entries({
 
   return (
     <Fragment>
-      {beforeReplayEntries.map((entry, entryIdx) => (
-        <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
-      ))}
+      {!hideBeforeReplayEntries &&
+        beforeReplayEntries.map((entry, entryIdx) => (
+          <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
+        ))}
       {!isShare && <EventReplay {...eventEntryProps} />}
-      {afterReplayEntries.map((entry, entryIdx) => (
-        <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
-      ))}
+      {afterReplayEntries.map((entry, entryIdx) => {
+        if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {
+          return null;
+        }
+
+        return <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />;
+      })}
     </Fragment>
   );
 }

@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -6,6 +7,7 @@ import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header'
 import Panel from 'sentry/components/panels/panel';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -77,26 +79,30 @@ const StyledPills = styled(Pills)`
 export function Tags({
   location,
   organization,
+  enableHiding,
   transaction,
 }: {
   location: Location;
   organization: Organization;
   transaction: TraceFullDetailed;
+  enableHiding?: boolean;
 }) {
   const {tags} = transaction;
+  const [showingAll, setShowingAll] = useState(enableHiding ? false : true);
 
   if (!tags || tags.length <= 0) {
     return null;
   }
 
   const orgSlug = organization.slug;
+  const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   return (
     <tr>
       <td className="key">Tags</td>
       <td className="value">
         <StyledPills>
-          {tags.map((tag, index) => {
+          {tags.slice(0, showingAll ? tags.length : 5).map((tag, index) => {
             const {pathname: streamPath, query} = transactionSummaryRouteWithQuery({
               orgSlug,
               transaction: transaction.transaction,
@@ -119,6 +125,16 @@ export function Tags({
               />
             );
           })}
+          {tags.length > 5 && enableHiding && (
+            <div style={{position: 'relative', height: '20px'}}>
+              <a
+                style={{position: 'absolute', bottom: '0px', whiteSpace: 'nowrap'}}
+                onClick={() => setShowingAll(prev => !prev)}
+              >
+                {renderText}
+              </a>
+            </div>
+          )}
         </StyledPills>
       </td>
     </tr>

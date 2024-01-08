@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -47,8 +47,8 @@ mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()}
 const AM1_FEATURES = [];
 const AM2_FEATURES = ['session-replay'];
 
-function getMockOrganization({features}: {features: string[]}) {
-  const mockOrg = Organization({
+function getMockOrganizationFixture({features}: {features: string[]}) {
+  const mockOrg = OrganizationFixture({
     features,
     access: [],
   });
@@ -76,7 +76,7 @@ describe('ReplayList', () => {
   });
 
   it('should render the onboarding panel when the org is on AM1', async () => {
-    const mockOrg = getMockOrganization({features: AM1_FEATURES});
+    const mockOrg = getMockOrganizationFixture({features: AM1_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
       hasSentOneReplay: false,
@@ -98,7 +98,7 @@ describe('ReplayList', () => {
   });
 
   it('should render the onboarding panel when the org is on AM1 and has sent some replays', async () => {
-    const mockOrg = getMockOrganization({features: AM1_FEATURES});
+    const mockOrg = getMockOrganizationFixture({features: AM1_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
       hasSentOneReplay: true,
@@ -120,7 +120,7 @@ describe('ReplayList', () => {
   });
 
   it('should render the onboarding panel when the org is on AM2 and has never sent a replay', async () => {
-    const mockOrg = getMockOrganization({features: AM2_FEATURES});
+    const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
       hasSentOneReplay: false,
@@ -142,7 +142,7 @@ describe('ReplayList', () => {
   });
 
   it('should render the rage-click sdk update banner when the org is AM2, has sent replays, but the sdk version is low', async () => {
-    const mockOrg = getMockOrganization({features: AM2_FEATURES});
+    const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
       hasSentOneReplay: true,
@@ -171,7 +171,7 @@ describe('ReplayList', () => {
   });
 
   it('should fetch the replay table and show selector tables when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {
-    const mockOrg = getMockOrganization({features: AM2_FEATURES});
+    const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
       hasSentOneReplay: true,

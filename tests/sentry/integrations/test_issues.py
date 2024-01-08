@@ -1,6 +1,7 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -10,6 +11,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.activity import ActivityType
 
 
 @region_silo_test
@@ -56,6 +58,12 @@ class IssueSyncIntegration(TestCase):
             )
 
             assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            activity = Activity.objects.get(group_id=group.id, type=ActivityType.SET_RESOLVED.value)
+            assert activity.data == {
+                "integration_id": integration.id,
+                "provider": integration.get_provider().name,
+                "provider_key": integration.get_provider().key,
+            }
 
     def test_status_sync_inbound_unresolve(self):
         group = self.group
@@ -102,6 +110,14 @@ class IssueSyncIntegration(TestCase):
             )
 
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+            activity = Activity.objects.get(
+                group_id=group.id, type=ActivityType.SET_UNRESOLVED.value
+            )
+            assert activity.data == {
+                "integration_id": integration.id,
+                "provider": integration.get_provider().name,
+                "provider_key": integration.get_provider().key,
+            }
 
 
 @region_silo_test

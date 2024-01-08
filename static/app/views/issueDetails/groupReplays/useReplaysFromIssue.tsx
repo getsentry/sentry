@@ -11,7 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
-function useReplayFromIssue({
+export default function useReplayFromIssue({
   group,
   location,
   organization,
@@ -51,7 +51,7 @@ function useReplayFromIssue({
   }, [api, organization.slug, group.id, dataSource]);
 
   const eventView = useMemo(() => {
-    if (!replayIds) {
+    if (!replayIds || !replayIds.length) {
       return null;
     }
     return EventView.fromSavedQuery({
@@ -59,7 +59,7 @@ function useReplayFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      query: `id:[${String(replayIds)}]`,
+      query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
       range: '14d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
@@ -77,8 +77,7 @@ function useReplayFromIssue({
   return {
     eventView,
     fetchError,
+    isFetching: replayIds === undefined,
     pageLinks: null,
   };
 }
-
-export default useReplayFromIssue;

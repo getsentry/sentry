@@ -1,10 +1,10 @@
 import type {RouteComponent, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import type {Organization as TOrganization, Project} from 'sentry/types';
 
@@ -48,11 +48,11 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     (additionalProject && [additionalProject]) || [{}]
   ).map(p => ProjectFixture(p));
   const [project] = projects;
-  const organization = Organization({
+  const organization = OrganizationFixture({
     projects,
     ...additionalOrg,
-    orgRoleList: OrgRoleList(),
-    teamRoleList: TeamRoleList(),
+    orgRoleList: OrgRoleListFixture(),
+    teamRoleList: TeamRoleListFixture(),
   });
   const router = RouterFixture({
     ...additionalRouter,

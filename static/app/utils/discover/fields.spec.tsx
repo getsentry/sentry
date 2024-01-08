@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   aggregateMultiPlotType,
@@ -299,7 +299,7 @@ describe('aggregateMultiPlotType', function () {
 });
 
 describe('generateAggregateFields', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   it('gets default aggregates', function () {
     expect(generateAggregateFields(organization, [])).toContainEqual({field: 'count()'});
   });

@@ -31,6 +31,7 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   unwrapTreeDepth,
+  VerticalMark,
 } from './utils';
 
 export type SpanDescendantGroupBarProps = {
@@ -47,6 +48,7 @@ export type SpanDescendantGroupBarProps = {
   spanNumber: number;
   toggleSpanGroup: () => void;
   treeDepth: number;
+  measurements?: Map<number, VerticalMark>;
   spanBarType?: SpanBarType;
 };
 
@@ -65,6 +67,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     removeContentSpanBarRef,
     didAnchoredSpanMount,
     spanBarType,
+    measurements,
   } = props;
 
   const theme = useTheme();
@@ -170,6 +173,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
       data-test-id="span-descendant-group-bar"
       event={event}
       span={span}
+      measurements={measurements}
       spanGrouping={spanGrouping}
       treeDepth={props.treeDepth}
       spanNumber={spanNumber}

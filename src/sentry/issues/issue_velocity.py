@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # for snuba operations
 REFERRER = "sentry.issues.issue_velocity"
-THRESHOLD_QUANTILE = {"name": "p99", "function": "quantile(0.99)"}
+THRESHOLD_QUANTILE = {"name": "p95", "function": "quantile(0.95)"}
 WEEK_IN_HOURS = 7 * 24
 
 # for redis operations
@@ -64,7 +64,7 @@ def calculate_threshold(project: Project) -> Optional[float]:
     ninety_days_ago = now - timedelta(days=90)
 
     subquery = Query(
-        match=Entity(EntityKey.IssuePlatform.value),
+        match=Entity(EntityKey.Events.value),
         select=[
             Column("group_id"),
             Function("min", [Column("timestamp")], "first_seen"),  # when the issue was first seen
@@ -125,12 +125,12 @@ def calculate_threshold(project: Project) -> Optional[float]:
                 [Column("hourly_event_rate")],
                 THRESHOLD_QUANTILE["name"],
             )
-        ],  # get the approximate 90th percentile of the event frequency in the past week
+        ],  # get the approximate 95th percentile of the event frequency in the past week
         limit=Limit(1),
     )
 
     request = Request(
-        dataset=Dataset.IssuePlatform.value,
+        dataset=Dataset.Events.value,
         app_id=REFERRER,
         query=query,
         tenant_ids={"referrer": REFERRER, "organization_id": project.organization.id},

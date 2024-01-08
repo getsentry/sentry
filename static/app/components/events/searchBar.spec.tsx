@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -35,7 +35,7 @@ describe('Events > SearchBar', function () {
   let props: React.ComponentProps<typeof SearchBar>;
 
   beforeEach(function () {
-    organization = Organization();
+    organization = OrganizationFixture();
     props = {
       organization,
       projectIds: [1, 2],
