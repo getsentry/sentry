@@ -94,6 +94,7 @@ def _get_interval(start: datetime, end: datetime):
 
 def fetch_sessions_data(request: Request, organization: Organization, params: dict[str, Any]):
     # NOTE: implementation derived from organization_sessions GET endpoint
+    # TODO: make fetch generic for other session types
     with handle_query_errors():
         query_params = MultiValueDict(request.GET)
         query_params.setlist("groupBy", ["project", "release", "session.status"])

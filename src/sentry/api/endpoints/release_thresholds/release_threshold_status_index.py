@@ -372,6 +372,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     params=filter_params,
                 )
                 print("SESSIONS DATA: ", sessions_data)
+                # TODO: check crash free session health
                 for ethreshold in category_thresholds:
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
