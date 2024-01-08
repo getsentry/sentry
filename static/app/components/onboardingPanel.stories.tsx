@@ -11,7 +11,7 @@ import JSXProperty from 'sentry/components/stories/jsxProperty';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(OnboardingPanel, story => {
-  story('Default', () => {
+  story('Basics', () => {
     return (
       <Fragment>
         <p>
