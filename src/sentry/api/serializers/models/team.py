@@ -361,7 +361,6 @@ class TeamWithProjectsSerializer(TeamSerializer):
 def get_scim_teams_members(
     team_list: Sequence[Team],
 ) -> MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]]:
-    # TODO(hybridcloud) Another cross silo join
     members = RangeQuerySetWrapper(
         OrganizationMember.objects.filter(teams__in=team_list)
         .prefetch_related("teams")

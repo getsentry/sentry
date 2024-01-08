@@ -219,7 +219,6 @@ export async function fetchOrganizations(api: Client, query?: Record<string, any
   const results = await Promise.all(
     regions.map(region =>
       api.requestPromise(`/organizations/`, {
-        // TODO(hybridcloud) Revisit this once domain splitting is working
         host: region.url,
         query,
       })
