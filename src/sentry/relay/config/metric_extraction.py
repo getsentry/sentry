@@ -245,7 +245,7 @@ def _merge_metric_specs(
     return [metric for metric in metrics.values()]
 
 
-def _convert_snuba_query_to_metric(
+def _convert_snuba_query_to_metrics(
     project: Project, snuba_query: SnubaQuery, prefilling: bool
 ) -> Optional[Sequence[HashedMetricSpec]]:
     """
@@ -253,7 +253,7 @@ def _convert_snuba_query_to_metric(
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
     environment = snuba_query.environment.name if snuba_query.environment is not None else None
-    return _convert_aggregate_and_query_to_metric(
+    return _convert_aggregate_and_query_to_metrics(
         project,
         snuba_query.dataset,
         snuba_query.aggregate,
@@ -466,7 +466,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     return True
 
 
-def _convert_aggregate_and_query_to_metric(
+def _convert_aggregate_and_query_to_metrics(
     project: Project,
     dataset: str,
     aggregate: str,
