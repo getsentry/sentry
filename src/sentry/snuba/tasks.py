@@ -33,8 +33,6 @@ logger = logging.getLogger(__name__)
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 
 
-# TODO(hybrid-cloud): Mark this as region silo only once testing/decorator
-#  interaction is cleaned up
 @instrumented_task(
     name="sentry.snuba.tasks.create_subscription_in_snuba",
     queue="subscriptions",
