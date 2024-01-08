@@ -473,7 +473,7 @@ class MonitorCheckIn(Model):
             models.Index(fields=["monitor_environment", "date_added", "status"]),
             # used for latest in monitor consumer
             models.Index(
-                fields=["monitor_environment", "date_added"],
+                fields=["monitor_environment", "-date_added"],
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="consumer_latest",
             ),
