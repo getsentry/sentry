@@ -310,7 +310,7 @@ def get_top_5_issues_by_count_for_file(
                     Condition(Column("group_id"), Op.IN, group_ids),
                     Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
                     Condition(Column("timestamp"), Op.LT, datetime.now()),
-                    # NOTE: this currently looks at the top frame of the stack trace (old suspect commit logic)
+                    # NOTE: ideally this would follow suspect commit logic
                     BooleanCondition(
                         BooleanOp.OR,
                         [
