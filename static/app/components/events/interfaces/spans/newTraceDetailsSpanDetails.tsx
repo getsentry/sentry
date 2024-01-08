@@ -344,7 +344,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
       if (data.hasOwnProperty(key) && defined(data[key])) {
-        keys[key] = data[key];
+        try {
+          keys[key] = parseInt(data[key], 10);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
       return keys;
     }, {});
