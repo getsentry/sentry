@@ -240,7 +240,7 @@ def get_region_by_name(name: str) -> Region:
     if region is not None:
         return region
     else:
-        region_names = global_regions.get_region_names(RegionCategory.MULTI_TENANT)
+        region_names = list(global_regions.get_region_names(RegionCategory.MULTI_TENANT))
         raise RegionResolutionError(
             f"No region with name: {name!r} "
             f"(expected one of {region_names!r} or a single-tenant name)"
