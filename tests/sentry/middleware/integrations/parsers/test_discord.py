@@ -174,7 +174,8 @@ class DiscordRequestParserTest(TestCase):
             "sentry-integration-discord-unlink-identity",
             kwargs={"signed_params": params},
         )
-        for path in [link_path, unlink_path]:
+        config_path = reverse("discord-extension-configuration")
+        for path in [link_path, unlink_path, config_path]:
             parser = self.get_parser(path)
 
             # Forwards to control silo
@@ -190,7 +191,7 @@ class DiscordRequestParserTest(TestCase):
                 assert not get_response_from_outbox_creation.called
 
             parser_integration = parser.get_integration_from_request()
-            assert parser_integration.id == self.integration.id
+            assert parser_integration is None
 
     @patch("sentry.middleware.integrations.parsers.discord.convert_to_async_discord_response")
     @patch("sentry.integrations.discord.requests.base.verify_signature")

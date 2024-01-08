@@ -8,7 +8,6 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.models.identity import Identity
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
 
 
 @dataclass
@@ -75,8 +74,6 @@ class CommitContextMixin(GetClient):
             response = client.get_blame_for_file(repo, filepath, ref, lineno)
         except IdentityNotValid:
             return None
-        except ApiError as e:
-            raise e
 
         return response
 
@@ -96,8 +93,6 @@ class CommitContextMixin(GetClient):
             response = client.get_blame_for_files(files, extra)
         except IdentityNotValid:
             return []
-        except ApiError as e:
-            raise e
 
         return response
 

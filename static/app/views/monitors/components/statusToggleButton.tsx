@@ -7,7 +7,7 @@ import {Monitor} from 'sentry/views/monitors/types';
 
 interface StatusToggleButtonProps extends Omit<BaseButtonProps, 'onClick'> {
   monitor: Monitor;
-  onToggleStatus: (status: ObjectStatus) => void;
+  onToggleStatus: (status: ObjectStatus) => Promise<void>;
 }
 
 function SimpleStatusToggle({

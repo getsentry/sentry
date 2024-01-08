@@ -3897,8 +3897,6 @@ SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organiza
 # lost as a result of toggling this setting.
 SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP = True
 
-SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST: list[int] = []
-
 SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},

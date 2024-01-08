@@ -14,6 +14,7 @@ from sentry.api.endpoints.relocations.index import (
     ERR_INVALID_ORG_SLUG,
     ERR_INVALID_OWNER,
     ERR_OWNER_NOT_FOUND,
+    ERR_THROTTLED_RELOCATION,
     ERR_UNKNOWN_RELOCATION_STATUS,
 )
 from sentry.backup.helpers import LocalFileEncryptor, create_encrypted_export_tarball
@@ -58,8 +59,8 @@ class GetRelocationsTest(APITestCase):
             status=Relocation.Status.IN_PROGRESS.value,
             step=Relocation.Step.IMPORTING.value,
             scheduled_pause_at_step=Relocation.Step.POSTPROCESSING.value,
-            want_org_slugs='["foo"]',
-            want_usernames='["alice", "bob"]',
+            want_org_slugs=["foo"],
+            want_usernames=["alice", "bob"],
             latest_notified=Relocation.EmailKind.STARTED.value,
             latest_task=OrderedTask.IMPORTING.name,
             **common,
@@ -69,8 +70,8 @@ class GetRelocationsTest(APITestCase):
             date_added=TEST_DATE_ADDED + timedelta(seconds=2),
             status=Relocation.Status.PAUSE.value,
             step=Relocation.Step.IMPORTING.value,
-            want_org_slugs='["bar"]',
-            want_usernames='["charlie", "denise"]',
+            want_org_slugs=["bar"],
+            want_usernames=["charlie", "denise"],
             latest_notified=Relocation.EmailKind.STARTED.value,
             latest_task=OrderedTask.IMPORTING.name,
             **common,
@@ -80,8 +81,8 @@ class GetRelocationsTest(APITestCase):
             date_added=TEST_DATE_ADDED + timedelta(seconds=3),
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
-            want_org_slugs='["foo"]',
-            want_usernames='["emily", "fred"]',
+            want_org_slugs=["foo"],
+            want_usernames=["emily", "fred"],
             latest_notified=Relocation.EmailKind.SUCCEEDED.value,
             latest_task=OrderedTask.COMPLETED.name,
             latest_unclaimed_emails_sent_at=TEST_DATE_UPDATED,
@@ -94,8 +95,8 @@ class GetRelocationsTest(APITestCase):
             failure_reason="Some failure reason",
             step=Relocation.Step.VALIDATING.value,
             scheduled_cancel_at_step=Relocation.Step.IMPORTING.value,
-            want_org_slugs='["qux"]',
-            want_usernames='["alice", "greg"]',
+            want_org_slugs=["qux"],
+            want_usernames=["alice", "greg"],
             latest_notified=Relocation.EmailKind.FAILED.value,
             latest_task=OrderedTask.VALIDATING_COMPLETE.name,
             **common,
@@ -256,7 +257,7 @@ class PostRelocationsTest(APITestCase):
         return (tmp_priv_key_path, tmp_pub_key_path)
 
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_success_simple(self, uploading_complete_mock):
+    def test_good_simple(self, uploading_complete_mock):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -307,7 +308,7 @@ class PostRelocationsTest(APITestCase):
         assert uploading_complete_mock.call_count == 1
 
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_success_with_valid_autopause_option(self, uploading_complete_mock):
+    def test_good_with_valid_autopause_option(self, uploading_complete_mock):
         self.login_as(user=self.owner, superuser=False)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -345,7 +346,7 @@ class PostRelocationsTest(APITestCase):
         assert uploading_complete_mock.call_count == 1
 
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_success_with_invalid_autopause_option(self, uploading_complete_mock):
+    def test_good_with_invalid_autopause_option(self, uploading_complete_mock):
         self.login_as(user=self.owner, superuser=False)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -383,7 +384,7 @@ class PostRelocationsTest(APITestCase):
         assert uploading_complete_mock.call_count == 1
 
     @patch("sentry.tasks.relocation.uploading_complete.delay")
-    def test_success_with_superuser_when_feature_disabled(self, uploading_complete_mock):
+    def test_good_with_superuser_when_feature_disabled(self, uploading_complete_mock):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -432,7 +433,7 @@ class PostRelocationsTest(APITestCase):
 
         assert uploading_complete_mock.call_count == 1
 
-    def test_fail_without_superuser_when_feature_disabled(self):
+    def test_bad_without_superuser_when_feature_disabled(self):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -459,7 +460,7 @@ class PostRelocationsTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_FEATURE_DISABLED
 
-    def test_fail_expired_superuser_when_feature_disabled(self):
+    def test_bad_expired_superuser_when_feature_disabled(self):
         self.login_as(user=self.owner, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -495,7 +496,7 @@ class PostRelocationsTest(APITestCase):
     ]:
 
         @patch("sentry.tasks.relocation.uploading_complete.delay")
-        def test_success_good_org_slugs(
+        def test_good_valid_org_slugs(
             self, uploading_complete_mock, org_slugs=org_slugs, expected=expected
         ):
             self.login_as(user=self.owner, superuser=False)
@@ -539,7 +540,7 @@ class PostRelocationsTest(APITestCase):
     ]:
 
         @patch("sentry.tasks.relocation.uploading_complete.delay")
-        def test_fail_bad_org_slugs(
+        def test_bad_invalid_org_slugs(
             self, uploading_complete_mock, org_slugs=org_slugs, invalid_org_slug=invalid_org_slug
         ):
             self.login_as(user=self.owner, superuser=False)
@@ -576,8 +577,9 @@ class PostRelocationsTest(APITestCase):
             )
             assert Relocation.objects.count() == relocation_count
             assert RelocationFile.objects.count() == relocation_file_count
+            assert uploading_complete_mock.call_count == 0
 
-    def test_success_relocation_for_same_owner_already_completed(self):
+    def test_good_relocation_for_same_owner_already_completed(self):
         self.login_as(user=self.owner, superuser=False)
         Relocation.objects.create(
             creator_id=self.superuser.id,
@@ -626,7 +628,7 @@ class PostRelocationsTest(APITestCase):
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
-    def test_fail_missing_file(self):
+    def test_bad_missing_file(self):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -649,7 +651,7 @@ class PostRelocationsTest(APITestCase):
         assert response.data.get("file") is not None
         assert response.data.get("file")[0].code == "required"
 
-    def test_fail_missing_orgs(self):
+    def test_bad_missing_orgs(self):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -680,7 +682,7 @@ class PostRelocationsTest(APITestCase):
         assert response.data.get("orgs") is not None
         assert response.data.get("orgs")[0].code == "required"
 
-    def test_fail_missing_owner(self):
+    def test_bad_missing_owner(self):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -711,7 +713,7 @@ class PostRelocationsTest(APITestCase):
         assert response.data.get("owner") is not None
         assert response.data.get("owner")[0].code == "required"
 
-    def test_fail_nonexistent_owner(self):
+    def test_bad_nonexistent_owner(self):
         self.login_as(user=self.superuser, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -745,7 +747,7 @@ class PostRelocationsTest(APITestCase):
             owner_username="doesnotexist"
         )
 
-    def test_fail_owner_not_self(self):
+    def test_bad_owner_not_self(self):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -777,44 +779,50 @@ class PostRelocationsTest(APITestCase):
         assert response.data.get("detail") is not None
         assert response.data.get("detail") == ERR_INVALID_OWNER.substitute(creator_username="owner")
 
-    def test_fail_relocation_for_same_owner_already_in_progress(self):
-        self.login_as(user=self.owner, superuser=False)
-        Relocation.objects.create(
-            creator_id=self.superuser.id,
-            owner_id=self.owner.id,
-            want_org_slugs=["not-relevant-to-this-test"],
-            step=Relocation.Step.UPLOADING.value,
-        )
+    for stat in [
+        Relocation.Status.IN_PROGRESS,
+        Relocation.Status.PAUSE,
+    ]:
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with self.options(
-                {
-                    "relocation.enabled": True,
-                    "relocation.daily-limit.small": 1,
-                }
-            ), open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
-                with open(tmp_pub_key_path, "rb") as p:
-                    simple_file = SimpleUploadedFile(
-                        "export.tar",
-                        create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
-                        content_type="application/tar",
-                    )
-                    simple_file.name = None
-                    response = self.client.post(
-                        reverse(self.endpoint),
-                        {
-                            "owner": self.owner.username,
-                            "file": simple_file,
-                            "orgs": "testing, foo",
-                        },
-                        format="multipart",
-                    )
+        def test_bad_relocation_for_same_owner_already_active(self, stat=stat):
+            self.login_as(user=self.owner, superuser=False)
+            Relocation.objects.create(
+                creator_id=self.superuser.id,
+                owner_id=self.owner.id,
+                want_org_slugs=["not-relevant-to-this-test"],
+                status=stat.value,
+                step=Relocation.Step.UPLOADING.value,
+            )
 
-        assert response.status_code == status.HTTP_409_CONFLICT
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+                with self.options(
+                    {
+                        "relocation.enabled": True,
+                        "relocation.daily-limit.small": 1,
+                    }
+                ), open(FRESH_INSTALL_PATH) as f:
+                    data = json.load(f)
+                    with open(tmp_pub_key_path, "rb") as p:
+                        simple_file = SimpleUploadedFile(
+                            "export.tar",
+                            create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
+                            content_type="application/tar",
+                        )
+                        simple_file.name = None
+                        response = self.client.post(
+                            reverse(self.endpoint),
+                            {
+                                "owner": self.owner.username,
+                                "file": simple_file,
+                                "orgs": "testing, foo",
+                            },
+                            format="multipart",
+                        )
 
-    def test_fail_throttle_if_daily_limit_reached(self):
+            assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_bad_throttle_if_daily_limit_reached(self):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -870,15 +878,12 @@ class PostRelocationsTest(APITestCase):
 
         assert initial_response.status_code == status.HTTP_201_CREATED
         assert throttled_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert throttled_response.data.get("detail") is not None
-        assert (
-            throttled_response.data.get("detail")
-            == "We've reached our daily limit of relocations - please try again tomorrow or contact support."
-        )
+        assert throttled_response.data.get("detail") == ERR_THROTTLED_RELOCATION
+
         assert Relocation.objects.count() == relocation_count + 1
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
-    def test_success_no_throttle_for_superuser(self):
+    def test_good_no_throttle_for_superuser(self):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -937,7 +942,7 @@ class PostRelocationsTest(APITestCase):
         assert Relocation.objects.count() == relocation_count + 2
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
-    def test_success_no_throttle_different_bucket_relocations(self):
+    def test_good_no_throttle_different_bucket_relocations(self):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -998,7 +1003,7 @@ class PostRelocationsTest(APITestCase):
         assert Relocation.objects.count() == relocation_count + 2
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
-    def test_success_no_throttle_relocation_over_multiple_days(self):
+    def test_good_no_throttle_relocation_over_multiple_days(self):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()

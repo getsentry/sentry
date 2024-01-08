@@ -185,7 +185,7 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {project} = this.props;
     const {pluginDetails} = this.state;
     if (!pluginDetails) {
       return null;
@@ -197,9 +197,8 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
         <div className="row">
           <div className="col-md-7">
             <PluginConfig
-              organization={organization}
               project={project}
-              data={pluginDetails}
+              plugin={pluginDetails}
               enabled={this.getEnabled()}
               onDisablePlugin={this.handleDisable}
             />
