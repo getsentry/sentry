@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List
 from unittest import mock
@@ -6,6 +7,11 @@ import pytest
 from django.db.models import F
 
 from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.grouptype import (
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
+from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -42,6 +48,7 @@ from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaTSResult
 
 
@@ -1001,6 +1008,151 @@ def test_save_regressions_with_versions(
     regressions = get_regressions(timestamp + timedelta(hours=24))
     regressions = detector_cls.save_regressions_with_versions(regressions)
     assert len(list(regressions)) == 1
+
+
+@pytest.mark.parametrize(
+    ["detector_cls", "object_name", "baseline", "regressed", "escalated", "issue_type"],
+    [
+        pytest.param(
+            EndpointRegressionDetector,
+            "transaction_1",
+            100,
+            300,
+            500,
+            PerformanceP95EndpointRegressionGroupType,
+            id="endpoint",
+        ),
+        pytest.param(
+            FunctionRegressionDetector,
+            "123",
+            100_000_000,
+            300_000_000,
+            500_000_000,
+            ProfileFunctionRegressionType,
+            id="function",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ["status", "substatus", "should_escalate"],
+    [
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING, False, id="escalating"),
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING, True, id="ongoing"),
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, False, id="regressed"),
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, False, id="new"),
+        pytest.param(GroupStatus.RESOLVED, None, False, id="resolved"),
+        pytest.param(
+            GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING, True, id="until escalating"
+        ),
+        pytest.param(
+            GroupStatus.IGNORED, GroupSubStatus.UNTIL_CONDITION_MET, False, id="until condition met"
+        ),
+        pytest.param(GroupStatus.IGNORED, GroupSubStatus.FOREVER, False, id="forever"),
+    ],
+)
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_redirect_escalations(
+    produce_occurrence_to_kafka,
+    detector_cls,
+    object_name,
+    baseline,
+    regressed,
+    escalated,
+    issue_type,
+    status,
+    substatus,
+    should_escalate,
+    project,
+    timestamp,
+):
+    RegressionGroup.objects.create(
+        type=detector_cls.regression_type.value,
+        date_regressed=timestamp - timedelta(days=1),
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=generate_fingerprint(detector_cls.regression_type, object_name),
+        baseline=baseline,
+        regressed=regressed,
+    )
+
+    event_id = uuid.uuid4().hex
+    message = {
+        "id": uuid.uuid4().hex,
+        "project_id": project.id,
+        "event_id": event_id,
+        "fingerprint": [generate_fingerprint(detector_cls.regression_type, object_name)],
+        "issue_title": issue_type.description,
+        "subtitle": "",  # unused for this test, leave blank
+        "resource_id": None,
+        "evidence_data": {},  # unused for this test, leave blank
+        "evidence_display": [],  # unused for this test, leave blank
+        "type": issue_type.type_id,
+        "detection_time": timestamp.isoformat(),
+        "level": "info",
+        "culprit": "",  # unused for this test, leave blank
+        "payload_type": PayloadType.OCCURRENCE.value,
+        "event": {
+            "timestamp": timestamp.isoformat(),
+            "project_id": project.id,
+            "transaction": "",
+            "event_id": event_id,
+            "platform": "python",
+            "received": timestamp.isoformat(),
+            "tags": {},
+        },
+    }
+
+    result = _process_message(message)
+    assert result is not None
+    _, group_info = result
+    assert group_info is not None
+    group = group_info.group
+    group.status = status
+    group.substatus = substatus
+    group.save()
+
+    def get_trends(ts):
+        payload = DetectorPayload(
+            project_id=project.id,
+            group=object_name,
+            fingerprint="",  # this fingerprint isn't used so leave it blank
+            count=100,
+            value=escalated,
+            timestamp=ts - timedelta(hours=1),
+        )
+        state = MovingAverageDetectorState(
+            timestamp=ts - timedelta(hours=1),
+            count=100,
+            moving_avg_short=escalated,
+            moving_avg_long=escalated,
+        )
+        yield TrendBundle(
+            type=TrendType.Unchanged,
+            score=1,
+            payload=payload,
+            state=state,
+        )
+
+    trends = get_trends(timestamp)
+    trends = detector_cls.get_regression_groups(trends)
+    trends = detector_cls.redirect_escalations(trends, timestamp)
+
+    if should_escalate:
+        assert len(list(trends)) == 0
+        status_change = StatusChangeMessage(
+            fingerprint=[generate_fingerprint(detector_cls.regression_type, object_name)],
+            project_id=project.id,
+            new_status=GroupStatus.UNRESOLVED,
+            new_substatus=GroupSubStatus.ESCALATING,
+        )
+        produce_occurrence_to_kafka.assert_has_calls(
+            [mock.call(payload_type=PayloadType.STATUS_CHANGE, status_change=status_change)]
+        )
+    else:
+        assert len(list(trends)) == 0
+        assert not produce_occurrence_to_kafka.called
 
 
 @region_silo_test
