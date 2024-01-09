@@ -494,6 +494,24 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             (field_1, 3.0),
         ]
 
+    def test_query_with_invalid_syntax(
+        self,
+    ) -> None:
+        field = f"min({TransactionMRI.DURATION.value})"
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_query(
+                fields=[field],
+                query="transaction:/api/0/organizations/{organization_slug}/",
+                limit=2,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
     def test_query_with_invalid_order_by(
         self,
     ) -> None:
