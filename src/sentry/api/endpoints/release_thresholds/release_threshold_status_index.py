@@ -123,8 +123,21 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # NOTE: start/end parameters determine window to query for releases
         # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
+        serializer = ReleaseThresholdStatusIndexSerializer(
+            data=request.query_params,
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        environments_list = serializer.validated_data.get(
+            "environment"
+        )  # list of environment names
+        project_slug_list = serializer.validated_data.get("projectSlug")
+        releases_list = serializer.validated_data.get("release")  # list of release versions
         try:
-            filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
+            filter_params = self.get_filter_params(
+                request, organization, date_filter_optional=True, project_slugs=project_slug_list
+            )
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
@@ -138,16 +151,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             },
         )
         metrics.incr("release.threshold_health_status.attempt")
-
-        serializer = ReleaseThresholdStatusIndexSerializer(
-            data=request.query_params,
-        )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        environments_list = serializer.validated_data.get("environment")
-        project_slug_list = serializer.validated_data.get("projectSlug")
-        releases_list = serializer.validated_data.get("release")
 
         # ========================================================================
         # Step 2: Fetch releases, prefetch projects & release_thresholds
