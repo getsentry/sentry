@@ -1401,15 +1401,15 @@ class BaseSpansTestCase(SnubaTestCase):
         metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
         timestamp: datetime = None,
         tags: Mapping[str, Any] = None,
-        sentry_tags: Mapping[str, Any] = None,
         store_only_summary: bool = False,
         is_segment: int = 0,
         duration_ms: int = 10,
+        transaction: str = None,
     ):
         payload = {
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "exclusive_time_ms": 5,
-            "duration_ms": 10,
+            "duration_ms": duration_ms,
             "project_id": project_id,
             "span_id": span_id,
             "trace_id": trace_id,
@@ -1418,6 +1418,9 @@ class BaseSpansTestCase(SnubaTestCase):
             "tags": tags,
             "is_segment": is_segment,
         }
+
+        sentry_tags = {"transaction": transaction or "/hello"}
+
         if sentry_tags:
             payload["sentry_tags"] = sentry_tags
         if metrics_summary:
