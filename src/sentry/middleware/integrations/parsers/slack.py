@@ -131,19 +131,10 @@ class SlackRequestParser(BaseRequestParser):
         try:
             regions = self.get_regions_from_organizations()
         except Integration.DoesNotExist:
-            logger.info(
-                "%s.no_integrations_found", self.provider, extra={"path": self.request.path}
-            )
-
             # Alert, as there may be a misconfiguration issue
             sentry_sdk.capture_exception()
             return self.get_default_missing_integration_response()
         except OrganizationIntegration.DoesNotExist:
-            logger.info(
-                "%s.no_organization_integration_found",
-                self.provider,
-                extra={"path": self.request.path},
-            )
             # Swallow this exception, as this is likely due to a user removing
             # their org's slack integration, and slack will continue to retry
             # this request until it succeeds.

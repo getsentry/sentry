@@ -57,15 +57,7 @@ class GithubRequestParser(BaseRequestParser):
 
         try:
             regions = self.get_regions_from_organizations()
-        except Integration.DoesNotExist:
-            logger.info("%s.no_integration_found", self.provider, extra={"path": self.request.path})
-            return self.get_default_missing_integration_response()
-        except OrganizationIntegration.DoesNotExist:
-            logger.info(
-                "%s.no_organization_integration_found",
-                self.provider,
-                extra={"path": self.request.path},
-            )
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
             return self.get_default_missing_integration_response()
 
         return self.get_response_from_outbox_creation(regions=regions)

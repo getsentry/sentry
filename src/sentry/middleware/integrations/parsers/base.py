@@ -203,7 +203,9 @@ class BaseRequestParser(abc.ABC):
         )
 
         if organization_integrations.count() == 0:
-            logger.info("%s.no_organizations", self.provider, extra={"path": self.request.path})
+            logger.info(
+                "%s.no_organization_integrations", self.provider, extra={"path": self.request.path}
+            )
             raise OrganizationIntegration.DoesNotExist()
         organization_ids = [oi.organization_id for oi in organization_integrations]
         return organization_mapping_service.get_many(organization_ids=organization_ids)
