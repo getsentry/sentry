@@ -165,7 +165,11 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                <AddWidgetButton onAddWidget={onAddWidget} />
+                <AddWidgetButton
+                  onAddWidget={onAddWidget}
+                  aria-label="Add widget"
+                  priority="primary"
+                />
               </Tooltip>
             ) : null}
           </Fragment>

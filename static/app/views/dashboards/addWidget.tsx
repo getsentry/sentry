@@ -1,6 +1,7 @@
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
+import {ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd} from 'sentry/icons';
@@ -54,15 +55,16 @@ function AddWidget({onAddWidget}: Props) {
         duration: 0.25,
       }}
     >
-      <AddWidgetButton onAddWidget={onAddWidget} />
-      <InnerWrapper />
+      <InnerWrapper>
+        <AddWidgetButton onAddWidget={onAddWidget} aria-label="Add widget" />
+      </InnerWrapper>
     </WidgetWrapper>
   );
 }
 
 export default AddWidget;
 
-export function AddWidgetButton({onAddWidget}: Props) {
+export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonProps) {
   const organization = useOrganization();
 
   const datasetChoices = new Map<string, string>();
@@ -86,6 +88,7 @@ export function AddWidgetButton({onAddWidget}: Props) {
       trigger={triggerProps => (
         <DropdownButton
           {...triggerProps}
+          {...buttonProps}
           data-test-id="widget-add"
           size="sm"
           icon={<IconAdd isCircled />}
