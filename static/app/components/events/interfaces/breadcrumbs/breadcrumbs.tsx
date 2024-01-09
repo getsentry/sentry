@@ -252,6 +252,7 @@ const StyledPanelTable = styled(PanelTable)`
   display: grid;
   overflow: hidden;
   grid-template-columns: 64px 140px 1fr 106px 100px;
+  margin-bottom: 0px;
 
   > * {
     :nth-child(-n + 6) {
@@ -330,7 +331,7 @@ const PanelDragHandle = styled('div')`
     content: '';
     height: 5px;
     width: 100%;
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p => p.theme.borderRadiusBottom};
     transition: background 100ms ease-in-out;
   }
 
