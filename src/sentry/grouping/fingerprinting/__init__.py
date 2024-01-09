@@ -209,9 +209,9 @@ class FingerprintingRules:
         return self._to_config_structure(bases=bases)
 
     @classmethod
-    def from_json(cls, value):
+    def from_json(cls, value, bases=None):
         try:
-            return cls._from_config_structure(value)
+            return cls._from_config_structure(value, bases=bases)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid fingerprinting config: %s" % e)
 

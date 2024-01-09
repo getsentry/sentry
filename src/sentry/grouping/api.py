@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Sequence, TypedDict
 
 from sentry import features, options
 from sentry.grouping.component import GroupingComponent
@@ -162,7 +162,7 @@ def get_default_enhancements(config_id=None):
 
 def get_projects_default_fingerprinting_bases(
     project: Project, config_id: str | None = None
-) -> list[str]:
+) -> Sequence[str]:
     """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
     from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
@@ -401,6 +401,12 @@ def detect_synthetic_exception(event_data, grouping_config):
         return
 
     for exception in get_path(event_data, "exception", "values", filter=True, default=[]):
+        mechanism = get_path(exception, "mechanism")
+        # Only detect if undecided:
+        if mechanism is not None and mechanism.get("synthetic") is None:
+            exception_type = exception.get("type")
+            if exception_type and _synthetic_exception_type_re.match(exception_type):
+                mechanism["synthetic"] = True
         mechanism = get_path(exception, "mechanism")
         # Only detect if undecided:
         if mechanism is not None and mechanism.get("synthetic") is None:
