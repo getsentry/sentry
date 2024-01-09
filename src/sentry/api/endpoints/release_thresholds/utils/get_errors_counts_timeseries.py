@@ -12,6 +12,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
+from sentry.api.bases import FilterParams
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 
@@ -92,7 +93,7 @@ def _get_interval(start: datetime, end: datetime):
     return "1h"
 
 
-def fetch_sessions_data(request: Request, organization: Organization, params: dict[str, Any]):
+def fetch_sessions_data(request: Request, organization: Organization, params: FilterParams):
     # NOTE: implementation derived from organization_sessions GET endpoint
     # TODO: make fetch generic for other session types
     with handle_query_errors():
