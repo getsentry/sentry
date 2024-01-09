@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
@@ -43,6 +44,7 @@ export function NewIssueExperienceButton() {
 
   return (
     <StyledButton
+      enabled={newIssueExperienceEnabled}
       size="sm"
       icon={<IconLab isSolid={newIssueExperienceEnabled} />}
       title={label}
@@ -54,10 +56,14 @@ export function NewIssueExperienceButton() {
   );
 }
 
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.button.primary.background};
+const StyledButton = styled(Button)<{enabled: boolean}>`
+  ${p =>
+    p.enabled &&
+    css`
+      color: ${p.theme.button.primary.background};
 
-  :hover {
-    color: ${p => p.theme.button.primary.background};
-  }
+      :hover {
+        color: ${p.theme.button.primary.background};
+      }
+    `}
 `;
