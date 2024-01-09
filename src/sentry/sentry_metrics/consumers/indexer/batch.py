@@ -1,5 +1,6 @@
 import logging
 import random
+import time
 from collections import defaultdict
 from typing import (
     Any,
@@ -44,7 +45,6 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-INDEXER_VALIDATION_ERROR_SAMPLE_RATE = 0.05
 # Do not change these values without also changing the corresponding MAX_INDEXED_COLUMN_LENGTH to
 # ensure that the database can store the data.
 MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
@@ -84,13 +84,14 @@ class IndexerBatch:
         self.tags_validator = tags_validator
         self.schema_validator = schema_validator
 
-        self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__parseable_message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_bytes: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_tags_len: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_value_len: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_bytes_max: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_tags_len_max: MutableMapping[UseCaseID, int] = defaultdict(int)
         self.__message_value_len_max: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__last_validation_error_time = time.time()
 
         # Invalid messages and filtered messages are both skipped during processing
         # (reconstruct_messages), but we want to put the invalid messages into the
@@ -173,27 +174,7 @@ class IndexerBatch:
         assert parsed_payload.get("name", None) is not None
         parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
 
-        try:
-            self.schema_validator(use_case_id.value, parsed_payload)
-        except ValidationError as err:
-            # Sample sending the validation error to Sentry
-            if random.random() < INDEXER_VALIDATION_ERROR_SAMPLE_RATE:
-                with sentry_sdk.push_scope() as scope:
-                    scope.add_attachment(bytes=msg.payload.value, filename="message.txt")
-                    sentry_sdk.set_tag("invalid_message_schema", "true")
-                    sentry_sdk.capture_exception(err)
-
-            # Always log a warning about failed schema validation
-            logger.warning(
-                "process_messages.invalid_schema",
-                extra={"payload_value": str(msg.payload.value)},
-                exc_info=True,
-            )
-
-            if options.get("sentry-metrics.indexer.raise-validation-errors"):
-                raise
-
-        self.__message_count[use_case_id] += 1
+        self.__parseable_message_count[use_case_id] += 1
 
         self.__message_bytes[use_case_id] += len(msg.payload.value)
         self.__message_tags_len[use_case_id] += len(parsed_payload.get("tags", {}))
@@ -210,6 +191,28 @@ class IndexerBatch:
             len(parsed_payload["value"]) if isinstance(parsed_payload["value"], Iterable) else 1,
             self.__message_value_len_max[use_case_id],
         )
+
+        try:
+            self.schema_validator(use_case_id.value, parsed_payload)
+        except ValidationError as err:
+            #  Send the validation error to Sentry every 60 seconds
+            if self.__last_validation_error_time + 60 < time.time():
+                with sentry_sdk.push_scope() as scope:
+                    scope.add_attachment(bytes=msg.payload.value, filename="message.txt")
+                    sentry_sdk.set_tag("invalid_message_schema", "true")
+                    sentry_sdk.capture_exception(err)
+
+                self.__last_validation_error_time = time.time()
+
+            # Always log a warning about failed schema validation
+            logger.warning(
+                "process_messages.invalid_schema",
+                extra={"payload_value": str(msg.payload.value)},
+                exc_info=True,
+            )
+
+            if options.get("sentry-metrics.indexer.raise-validation-errors"):
+                raise
 
         return parsed_payload
 
@@ -533,61 +536,72 @@ class IndexerBatch:
                     new_messages.append(Message(message.value.replace(kafka_payload)))
 
         with metrics.timer("metrics_consumer.reconstruct_messages.emit_payload_metrics"):
-            for use_case_id in self.__message_count:
-                metrics.incr(
-                    "metrics_consumer.process_message.messages_seen",
-                    amount=self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                )
-                metrics.distribution(
+
+            # calculate the total number of parseable messages
+            num_parseable_messages = sum(self.__parseable_message_count.values())
+
+            # we have this check to detect the case that ALL of the messages
+            # in a batch are just invalid JSON and cannot be parsed.
+            # in this scenario, recording these metrics is not meaningful.
+            if num_parseable_messages > 0:
+                for use_case_id in self.__parseable_message_count:
+                    metrics.incr(
+                        "metrics_consumer.process_message.messages_seen",
+                        amount=self.__parseable_message_count[use_case_id],
+                        tags={"use_case_id": use_case_id.value},
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_size_in_batch",
+                        self.__message_bytes[use_case_id]
+                        / self.__parseable_message_count[use_case_id],
+                        tags={"use_case_id": use_case_id.value},
+                        unit="byte",
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_tags_len_in_batch",
+                        self.__message_tags_len[use_case_id]
+                        / self.__parseable_message_count[use_case_id],
+                        tags={"use_case_id": use_case_id.value},
+                        unit="int",
+                    )
+                    metrics.distribution(
+                        "metrics_consumer.process_message.message.avg_value_len_in_batch",
+                        self.__message_value_len[use_case_id]
+                        / self.__parseable_message_count[use_case_id],
+                        tags={"use_case_id": use_case_id.value},
+                        unit="int",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_size_in_batch",
+                        self.__message_bytes_max[use_case_id],
+                        tags={"use_case_id": use_case_id.value},
+                        unit="byte",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_tags_len_in_batch",
+                        self.__message_tags_len_max[use_case_id],
+                        tags={"use_case_id": use_case_id.value},
+                        unit="int",
+                    )
+                    metrics.gauge(
+                        "metrics_consumer.process_message.message.max_value_len_in_batch",
+                        self.__message_value_len_max[use_case_id],
+                        tags={"use_case_id": use_case_id.value},
+                        unit="int",
+                    )
+
+                metrics.gauge(
                     "metrics_consumer.process_message.message.avg_size_in_batch",
-                    self.__message_bytes[use_case_id] / self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="byte",
+                    sum(self.__message_bytes.values()) / num_parseable_messages,
                 )
-                metrics.distribution(
+                metrics.gauge(
                     "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-                    self.__message_tags_len[use_case_id] / self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
+                    sum(self.__message_tags_len.values()) / num_parseable_messages,
                 )
-                metrics.distribution(
+                metrics.gauge(
                     "metrics_consumer.process_message.message.avg_value_len_in_batch",
-                    self.__message_value_len[use_case_id] / self.__message_count[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
+                    sum(self.__message_value_len.values()) / num_parseable_messages,
                 )
-                metrics.gauge(
-                    "metrics_consumer.process_message.message.max_size_in_batch",
-                    self.__message_bytes_max[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="byte",
-                )
-                metrics.gauge(
-                    "metrics_consumer.process_message.message.max_tags_len_in_batch",
-                    self.__message_tags_len_max[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
-                )
-                metrics.gauge(
-                    "metrics_consumer.process_message.message.max_value_len_in_batch",
-                    self.__message_value_len_max[use_case_id],
-                    tags={"use_case_id": use_case_id.value},
-                    unit="int",
-                )
-            num_messages = sum(self.__message_count.values())
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_size_in_batch",
-                sum(self.__message_bytes.values()) / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_tags_len_in_batch",
-                sum(self.__message_tags_len.values()) / num_messages,
-            )
-            metrics.gauge(
-                "metrics_consumer.process_message.message.avg_value_len_in_batch",
-                sum(self.__message_value_len.values()) / num_messages,
-            )
 
         return IndexerOutputMessageBatch(
             new_messages,
