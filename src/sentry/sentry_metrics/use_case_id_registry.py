@@ -55,7 +55,7 @@ def get_use_case_key(use_case_id: UseCaseID) -> Optional[UseCaseKey]:
 
 def extract_use_case_id(mri: str) -> UseCaseID:
     """
-    Returns the use case ID given the MRI, returns None if MRI is invalid.
+    Returns the use case ID given the MRI, raises an Exception if the MRI or use case is invalid.
     """
     if matched := MRI_RE_PATTERN.match(mri):
         use_case_str = matched.group(2)
