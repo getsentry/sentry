@@ -2,9 +2,11 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
+from sentry.api.bases import OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
 from sentry.api.serializers import serialize
@@ -16,12 +18,13 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
-class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
+class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
+    owner = ApiOwner.PERFORMANCE
 
     rate_limits = {
         "GET": {

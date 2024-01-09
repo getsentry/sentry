@@ -139,7 +139,18 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
-  metricSpans?: any[];
+  metricSpans?: MetricSpan[];
+};
+
+export type MetricSpan = {
+  duration: number;
+  profileId: string;
+  projectId: number;
+  spanId: string;
+  traceId: string;
+  transactionId: string;
+  // Not there yet but we will add it
+  replayId?: string;
 };
 
 export type MetricRange = {
@@ -180,7 +191,7 @@ export function getDdmUrl(
 }
 
 export function getMetricsApiRequestQuery(
-  {field, query, groupBy}: MetricsApiRequestMetric,
+  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
@@ -197,9 +208,11 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
+    orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
-    // max result groups
-    per_page: 10,
+    // Max result groups for compatibility with old metrics layer
+    // TODO(telemetry-experience): remove once everyone is on new metrics layer
+    per_page: Math.max(10, overrides.limit ?? 0),
   };
 
   return {...queryToSend, ...overrides};
@@ -508,6 +521,16 @@ export function useUpdateQuery() {
     },
     [routerRef]
   );
+}
+
+export function useClearQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(() => {
+    clearQuery(routerRef.current);
+  }, [routerRef]);
 }
 
 // TODO(ddm): there has to be a nicer way to do this

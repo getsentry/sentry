@@ -22,7 +22,7 @@ function DDM() {
 
   return (
     <SentryDocumentTitle title={t('Metrics')} orgSlug={organization.slug}>
-      <PageFiltersContainer disablePersistence>
+      <PageFiltersContainer>
         <DDMContextProvider>
           <DDMLayout />
         </DDMContextProvider>

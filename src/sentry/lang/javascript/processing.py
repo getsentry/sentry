@@ -236,6 +236,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         metrics.incr("sourcemaps.symbolicator.events.skipped")
         return
 
+    metrics.incr("process.javascript.symbolicate.request")
     response = symbolicator.process_js(
         stacktraces=stacktraces,
         modules=modules,

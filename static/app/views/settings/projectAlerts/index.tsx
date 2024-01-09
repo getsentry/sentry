@@ -11,14 +11,13 @@ interface Props
   project: Project;
 }
 
-function ProjectAlerts({children, organization, project}: Props) {
+function ProjectAlerts({children, project}: Props) {
   return (
     <Access access={['project:write']} project={project}>
       {({hasAccess}) => (
         <Fragment>
           {isValidElement(children) &&
             cloneElement<any>(children, {
-              organization,
               canEditRule: hasAccess,
             })}
         </Fragment>

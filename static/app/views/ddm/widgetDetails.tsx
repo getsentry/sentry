@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {TabList, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {TraceTable} from 'sentry/views/ddm/samplesTable';
+import {SampleTable} from 'sentry/views/ddm/sampleTable';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -19,7 +19,7 @@ enum Tab {
 
 export function WidgetDetails() {
   const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
-  const [selectedTab, setSelectedTab] = useState(Tab.CODE_LOCATIONS);
+  const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
   // the tray is minimized when the main content is maximized
   const selectedWidget = widgets[selectedWidgetIndex] as
     | MetricWidgetQueryParams
@@ -35,6 +35,7 @@ export function WidgetDetails() {
     <TrayWrapper>
       <Tabs value={selectedTab} onChange={setSelectedTab}>
         <TabList>
+          <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
           <TabList.Item
             textValue={t('Code Location')}
             key={Tab.CODE_LOCATIONS}
@@ -49,25 +50,29 @@ export function WidgetDetails() {
               <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
             </Tooltip>
           </TabList.Item>
-          <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
         </TabList>
+        <ContentWrapper>
+          {!selectedWidget?.mri ? (
+            <CenterContent>
+              <EmptyMessage
+                style={{margin: 'auto'}}
+                icon={<IconSearch size="xxl" />}
+                title={t('Nothing to show!')}
+                description={t('Choose a metric to display data.')}
+              />
+            </CenterContent>
+          ) : (
+            <TabPanels>
+              <TabPanels.Item key={Tab.SAMPLES}>
+                <SampleTable mri={selectedWidget?.mri} {...focusArea?.range} />
+              </TabPanels.Item>
+              <TabPanels.Item key={Tab.CODE_LOCATIONS}>
+                <CodeLocations mri={selectedWidget?.mri} {...focusArea?.range} />
+              </TabPanels.Item>
+            </TabPanels>
+          )}
+        </ContentWrapper>
       </Tabs>
-      <ContentWrapper>
-        {!selectedWidget?.mri ? (
-          <CenterContent>
-            <EmptyMessage
-              style={{margin: 'auto'}}
-              icon={<IconSearch size="xxl" />}
-              title={t('Nothing to show!')}
-              description={t('Choose a metric to display data.')}
-            />
-          </CenterContent>
-        ) : selectedTab === Tab.SAMPLES ? (
-          <TraceTable mri={selectedWidget.mri} {...focusArea?.range} />
-        ) : (
-          <CodeLocations mri={selectedWidget.mri} {...focusArea?.range} />
-        )}
-      </ContentWrapper>
     </TrayWrapper>
   );
 }
@@ -81,7 +86,6 @@ const TrayWrapper = styled('div')`
 const ContentWrapper = styled('div')`
   position: relative;
   padding: ${space(2)} 0;
-  overflow: auto;
 `;
 
 const CenterContent = styled('div')`

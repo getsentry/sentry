@@ -2061,6 +2061,7 @@ class CompletedTest(RelocationTaskTestCase):
     new_callable=lambda: FakeCloudBuildClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.signals.relocated.send_robust")
 class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -2145,6 +2146,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_valid_no_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2174,6 +2176,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.succeeded" in email_types
         assert "relocation.failed" not in email_types
 
+        assert relocated_signal_mock.call_count == 1
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.SUCCESS.value
         assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
@@ -2183,6 +2187,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_valid_max_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2214,6 +2219,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.succeeded" in email_types
         assert "relocation.failed" not in email_types
 
+        assert relocated_signal_mock.call_count == 1
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.SUCCESS.value
         assert relocation.latest_notified == Relocation.EmailKind.SUCCEEDED.value
@@ -2223,6 +2230,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_invalid_no_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2253,6 +2261,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.failed" in email_types
         assert "relocation.succeeded" not in email_types
 
+        assert relocated_signal_mock.call_count == 0
+
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
@@ -2262,6 +2272,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
     def test_invalid_max_retries(
         self,
+        relocated_signal_mock: Mock,
         fake_message_builder: Mock,
         fake_cloudbuild_client: FakeCloudBuildClient,
         fake_kms_client: FakeKeyManagementServiceClient,
@@ -2293,6 +2304,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.started" in email_types
         assert "relocation.failed" in email_types
         assert "relocation.succeeded" not in email_types
+
+        assert relocated_signal_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value

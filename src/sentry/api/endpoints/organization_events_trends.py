@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.datasets import function_aliases
@@ -465,7 +466,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         orderby = self.get_orderby(request)
         query = request.GET.get("query")
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             trend_query = TrendQueryBuilder(
                 dataset=Dataset.Discover,
                 params=params,
@@ -499,7 +500,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             result = trend_query.process_results(result)
             return result
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),

@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -12,9 +12,9 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
 describe('DatabaseLandingPage', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
-  let spanListRequestMock;
+  let spanListRequestMock, spanChartsRequestMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -45,7 +45,7 @@ describe('DatabaseLandingPage', function () {
 
   jest.mocked(useOrganization).mockReturnValue(organization);
 
-  beforeAll(function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -96,7 +96,7 @@ describe('DatabaseLandingPage', function () {
       },
     });
 
-    MockApiClient.addMockResponse({
+    spanChartsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
@@ -114,13 +114,60 @@ describe('DatabaseLandingPage', function () {
     jest.resetAllMocks();
   });
 
-  it('renders a list of queries', async function () {
-    // eslint-disable-next-line no-console
+  it('fetches module data', async function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />);
 
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query: 'span.module:db has:span.description',
+          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: 'spm()',
+        },
+      })
+    );
+
+    expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
+      2,
+      `/organizations/${organization.slug}/events-stats/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          cursor: undefined,
+          dataset: 'spansMetrics',
+          environment: [],
+          excludeOther: 0,
+          field: [],
+          interval: '30m',
+          orderby: undefined,
+          partial: 1,
+          per_page: 50,
+          project: [],
+          query: 'span.module:db has:span.description',
+          referrer: 'api.starfish.span-landing-page-metrics-chart',
+          statsPeriod: '10d',
+          topEvents: undefined,
+          yAxis: 'avg(span.self_time)',
+        },
+      })
+    );
 
     expect(spanListRequestMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,
@@ -147,6 +194,17 @@ describe('DatabaseLandingPage', function () {
         },
       })
     );
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+  });
+
+  it('renders a list of queries', async function () {
+    // eslint-disable-next-line no-console
+    jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
+
+    render(<DatabaseLandingPage />);
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(screen.getByRole('cell', {name: 'SELECT * FROM users'})).toBeInTheDocument();
     expect(

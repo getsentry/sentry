@@ -16,7 +16,6 @@ import {
   useInstantRef,
   useUpdateQuery,
 } from 'sentry/utils/metrics';
-import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -31,7 +30,6 @@ interface DDMContextValue {
   addWidgets: (widgets: Partial<MetricWidgetQueryParams>[]) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusArea | null;
-  hasCustomMetrics: boolean;
   isLoading: boolean;
   metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
   removeFocusArea: () => void;
@@ -54,7 +52,6 @@ export const DDMContext = createContext<DDMContextValue>({
   duplicateWidget: () => {},
   widgets: [],
   metricsMeta: [],
-  hasCustomMetrics: false,
   isLoading: false,
   focusArea: null,
 });
@@ -64,8 +61,8 @@ export function useDDMContext() {
 }
 
 const emptyWidget: MetricWidgetQueryParams = {
-  mri: '' as MRI,
-  op: undefined,
+  mri: 'd:transactions/duration@millisecond' satisfies MRI,
+  op: 'count',
   query: '',
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
@@ -183,18 +180,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
   const pageFilters = usePageFilters().selection;
-
   const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
-
-  // TODO(telemetry-experience): Switch to the logic below once we have the hasCustomMetrics flag on project
-  // const {projects} = useProjects();
-  // const selectedProjects = projects.filter(project =>
-  //   pageFilters.projects.includes(parseInt(project.id, 10))
-  // );
-  // const hasCustomMetrics = selectedProjects.some(project => project.hasCustomMetrics);
-  const hasCustomMetrics = !!metricsMeta.find(
-    meta => parseMRI(meta)?.useCase === 'custom'
-  );
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
@@ -258,7 +244,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeWidget,
       duplicateWidget: handleDuplicate,
       widgets,
-      hasCustomMetrics,
       isLoading,
       metricsMeta,
       focusArea,
@@ -271,7 +256,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       handleDuplicate,
       handleUpdateWidget,
       removeWidget,
-      hasCustomMetrics,
       isLoading,
       metricsMeta,
       selectedWidgetIndex,

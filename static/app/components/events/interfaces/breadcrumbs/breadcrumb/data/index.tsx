@@ -1,7 +1,12 @@
+import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {Organization} from 'sentry/types';
-import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
+import {
+  BreadcrumbMessageFormat,
+  BreadcrumbType,
+  RawCrumb,
+} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 
 import {Default} from './default';
@@ -29,6 +34,14 @@ export function Data({
 
   if (breadcrumb.type === BreadcrumbType.HTTP) {
     return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} meta={meta} />;
+  }
+
+  if (
+    !meta &&
+    breadcrumb.message &&
+    breadcrumb.messageFormat === BreadcrumbMessageFormat.SQL
+  ) {
+    return <Sql breadcrumb={breadcrumb} searchTerm={searchTerm} />;
   }
 
   if (
