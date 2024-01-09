@@ -153,8 +153,8 @@ def run_background_grouping(project: Project, job: Job) -> None:
             if config["id"]:
                 copied_event = copy.deepcopy(job["event"])
                 _calculate_background_grouping(project, copied_event, config)
-    except Exception:
-        sentry_sdk.capture_exception()
+    except Exception as err:
+        sentry_sdk.capture_exception(err)
 
 
 def _calculate_background_grouping(
