@@ -114,6 +114,10 @@ type CronsBillingBannerProps = {
   organization: Organization;
 };
 
+type OrganizationHeaderProps = {
+  organization: Organization;
+};
+
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
   'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
@@ -147,6 +151,8 @@ type QualitativeIssueFeedbackProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type MonitorCreatedCallback = (organization: Organization) => void;
+
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
@@ -173,6 +179,7 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:organization-header': React.ComponentType<OrganizationHeaderProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
@@ -317,6 +324,7 @@ export type ReactHooks = {
  */
 type CallbackHooks = {
   'callback:on-guide-update': GuideUpdateCallback;
+  'callback:on-monitor-created': MonitorCreatedCallback;
 };
 
 /**

@@ -468,6 +468,12 @@ class MonitorCheckIn(Model):
             # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
             # used for latest on api endpoints
+            models.Index(
+                fields=["monitor", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="api_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),

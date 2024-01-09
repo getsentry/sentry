@@ -236,11 +236,12 @@ def build_actions(
 
     def _resolve_button(use_block_kit) -> MessageAction:
         if use_block_kit:
-            # TODO(CEO): handle if not project.flags.has_releases in block kit - render a resolve button instead of a modal
             if status == GroupStatus.RESOLVED:
                 return MessageAction(
                     name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
                 )
+            if not project.flags.has_releases:
+                return MessageAction(name="status", label="Resolve", value="resolved")
             return MessageAction(
                 name="status",
                 label="Resolve",
