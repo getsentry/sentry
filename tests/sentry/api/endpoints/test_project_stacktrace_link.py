@@ -275,7 +275,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         self.get_success_response(
             self.organization.slug,
             self.project.slug,
-            qs_params={"file": self.filepath, "groupId": 1},
+            qs_params={"file": self.filepath, "groupId": 1, "absPath": self.filepath},
         )
 
         mock_record.assert_any_call(
@@ -285,6 +285,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             organization_id=self.organization.id,
             project_id=self.project.id,
             group_id="1",
+            frame_abs_path=self.filepath,
         )
         mock_record.assert_any_call(
             "integration.stacktrace.linked",
@@ -294,7 +295,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             organization_id=self.organization.id,
             filepath=self.filepath,
             status="success",
-            code_mapping_iterations=1,
+            link_fetch_iterations=1,
         )
 
 

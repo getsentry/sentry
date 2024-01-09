@@ -33,6 +33,7 @@ def get_link(
     filepath: str,
     version: Optional[str] = None,
     group_id: Optional[str] = None,
+    frame_abs_path: Optional[str] = None,
 ) -> Dict[str, str]:
     result = {}
 
@@ -57,6 +58,7 @@ def get_link(
                     organization_id=config.project.organization_id,
                     project_id=config.project_id,
                     group_id=group_id,
+                    frame_abs_path=frame_abs_path,
                 )
 
     except ApiError as e:
@@ -125,7 +127,8 @@ def try_path_munging(
     config: RepositoryProjectPathConfig,
     filepath: str,
     ctx: Mapping[str, Optional[str]],
-) -> Dict[str, str]:
+    current_iteration_count: int,
+) -> tuple[Dict[str, str], int]:
     result: Dict[str, str] = {}
     munged_frames = munged_filename_and_frames(
         str(ctx["platform"]), [ctx], "munged_filename", sdk_name=str(ctx["sdk_name"])
@@ -140,10 +143,16 @@ def try_path_munging(
                 result = {"error": "stack_root_mismatch"}
             else:
                 result = get_link(
-                    config, munged_filename, ctx.get("commit_id"), ctx.get("group_id")
+                    config,
+                    munged_filename,
+                    ctx.get("commit_id"),
+                    ctx.get("group_id"),
+                    ctx.get("abs_path"),
                 )
 
-    return result
+                current_iteration_count += 1
+
+    return result, current_iteration_count
 
 
 def set_tags(scope: Scope, result: JSONData) -> None:
@@ -202,17 +211,20 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         configs = get_sorted_code_mapping_configs(project)
 
         current_config = None
-        found_config_index = -1
+        iteration_count = 0
 
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
-            for index, config in enumerate(configs):
+            for config in configs:
                 outcome = {}
                 munging_outcome = {}
 
                 # Munging is required for get_link to work with mobile platforms
                 if ctx["platform"] in ["java", "cocoa", "other"]:
-                    munging_outcome = try_path_munging(config, filepath, ctx)
+                    munging_outcome, next_iteration_count = try_path_munging(
+                        config, filepath, ctx, iteration_count
+                    )
+                    iteration_count = next_iteration_count
                     if munging_outcome.get("error") == "stack_root_mismatch":
                         result["error"] = "stack_root_mismatch"
                         continue
@@ -223,13 +235,22 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                         result["error"] = "stack_root_mismatch"
                         continue
 
-                    outcome = get_link(config, filepath, ctx.get("commit_id"), ctx.get("group_id"))
-
+                    outcome = get_link(
+                        config,
+                        filepath,
+                        ctx.get("commit_id"),
+                        ctx.get("group_id"),
+                        ctx.get("abs_path"),
+                    )
+                    iteration_count += 1
                     # XXX: I want to remove this whole block logic as I believe it is wrong
                     # In some cases the stack root matches and it can either be that we have
                     # an invalid code mapping or that munging is expect it to work
                     if not outcome.get("sourceUrl"):
-                        munging_outcome = try_path_munging(config, filepath, ctx)
+                        munging_outcome, next_iteration_count = try_path_munging(
+                            config, filepath, ctx, iteration_count
+                        )
+                        iteration_count = next_iteration_count
                         if munging_outcome:
                             # Report errors to Sentry for investigation
                             logger.error("We should never be able to reach this code.")
@@ -252,7 +273,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 # Stop processing if a match is found
                 if outcome.get("sourceUrl") and outcome["sourceUrl"]:
                     result["sourceUrl"] = outcome["sourceUrl"]
-                    found_config_index = index
                     break
 
             # Post-processing before exiting scope context
@@ -276,6 +296,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                             organization_id=project.organization_id,
                             project_id=project.id,
                             group_id=ctx.get("group_id"),
+                            frame_abs_path=ctx.get("abs_path"),
                         )
                     if codecov_data:
                         result["codecov"] = codecov_data
@@ -293,7 +314,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 organization_id=project.organization_id,
                 filepath=filepath,
                 status=result.get("error") or "success",
-                code_mapping_iterations=found_config_index + 1,
+                link_fetch_iterations=iteration_count,
             )
 
         return Response(result)

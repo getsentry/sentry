@@ -29,7 +29,8 @@ class FunctionTimerEvent(analytics.Event):
         analytics.Attribute("duration"),
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("group_id"),
+        analytics.Attribute("group_id", required=False),
+        analytics.Attribute("frame_abs_path", required=False),
     )
 
 
