@@ -15,7 +15,7 @@ from sentry.sentry_metrics.querying.metadata.utils import (
     transform_to_tags,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI, is_mri
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI, is_measurement, is_mri, parse_mri
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -219,6 +219,56 @@ class TransactionDurationSpansSource(SpansSource):
             where += [Condition(Column("duration"), Op.GTE, min_value)]
         if max_value:
             where += [Condition(Column("duration"), Op.LTE, max_value)]
+
+        return get_indexed_spans(
+            where=[
+                Condition(Column("is_segment"), Op.GTE, 1),
+            ]
+            + where,
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
+
+
+class MeasurementsSpansSource(SpansSource):
+    def _extract_measurement_name(self, metric_mri: str) -> str:
+        # We assume the `parse_mri` to never fail, since we have the guarantee that `supports` is called first.
+        return parse_mri(metric_mri).name[13:]
+
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        parsed_mri = parse_mri(metric_mri)
+        if parsed_mri:
+            return is_measurement(parsed_mri)
+
+        return False
+
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        where = []
+
+        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_with(
+            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
+        )
+
+        measurement_name = self._extract_measurement_name(metric_mri)
+
+        if transformed_conditions:
+            where += transformed_conditions
+        if min_value:
+            where += [Condition(Column(f"measurements[{measurement_name}]"), Op.GTE, min_value)]
+        if max_value:
+            where += [Condition(Column(f"measurements[{measurement_name}]"), Op.LTE, max_value)]
 
         return get_indexed_spans(
             where=[
