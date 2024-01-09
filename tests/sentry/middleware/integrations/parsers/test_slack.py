@@ -4,8 +4,8 @@ import dataclasses
 from unittest.mock import patch
 from urllib.parse import urlencode
 
-from django.db import router, transaction
 import responses
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
