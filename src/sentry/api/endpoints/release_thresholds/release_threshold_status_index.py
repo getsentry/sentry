@@ -16,18 +16,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_healthy import (
-    is_error_count_healthy,
-)
-from sentry.api.endpoints.release_thresholds.utils import (
-    fetch_sessions_data,
-    get_errors_counts_timeseries_by_project_and_release,
-)
 from sentry.api.serializers import serialize
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.utils import metrics
+
+from .constants import CRASH_SESSIONS_DISPLAY
+from .health_checks import is_crash_free_rate_healthy, is_error_count_healthy
+from .utils import fetch_sessions_data, get_errors_counts_timeseries_by_project_and_release
 
 logger = logging.getLogger("sentry.release_threshold_status")
 
@@ -371,12 +368,12 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     organization=organization,
                     params=filter_params,
                 )
-                print("SESSIONS DATA: ", sessions_data)
-                # TODO: check crash free session health
                 for ethreshold in category_thresholds:
-                    release_threshold_health[ethreshold["key"]].append(
-                        ethreshold
-                    )  # so we can fill all thresholds under the same key
+                    is_healthy, rate = is_crash_free_rate_healthy(
+                        ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
+                    )
+                    ethreshold.update({"is_healthy": is_healthy, "metric_value": rate})
+                    release_threshold_health[ethreshold["key"]].append(ethreshold)
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_USER_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_user_rate")
                 for ethreshold in category_thresholds:
