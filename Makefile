@@ -140,7 +140,7 @@ test-python-ci:
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . $(COV_ARGS)
+		--cov . $(COV_ARGS) || (docker logs sentry_snuba && exit 1)
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
