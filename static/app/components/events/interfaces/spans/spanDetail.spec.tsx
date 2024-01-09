@@ -91,6 +91,29 @@ describe('SpanDetail', function () {
     });
   });
 
+  describe('http.client spans', function () {
+    it('shows size fields for integer and string values', function () {
+      render(
+        renderSpanDetail({
+          span: SpanFixture({
+            op: 'http.client',
+            description: 'POST /resources.json',
+            data: {
+              'http.response_content_length': '143',
+              'http.request_content_length': 12,
+            },
+          }),
+        })
+      );
+
+      expect(screen.getByText('http.response_content_length')).toBeInTheDocument();
+      expect(screen.getByText('143.0 B')).toBeInTheDocument();
+
+      expect(screen.getByText('http.request_content_length')).toBeInTheDocument();
+      expect(screen.getByText('12.0 B')).toBeInTheDocument();
+    });
+  });
+
   describe('db spans', function () {
     it('renders "Similar Span" button but no Query Details button by default', function () {
       render(
