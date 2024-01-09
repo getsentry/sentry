@@ -4,10 +4,6 @@ import {DataCategoryInfo} from 'sentry/types';
 import {formatBytesBase10} from 'sentry/utils';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
-export const MILLION = 10 ** 6;
-export const BILLION = 10 ** 9;
-export const GIGABYTE = 10 ** 9;
-
 type FormatOptions = {
   /**
    * Truncate 1234 => 1.2k or 1,234,000 to 1.23M
@@ -41,7 +37,7 @@ export function formatUsageWithUnits(
     return formatBytesBase10(usageQuantity);
   }
 
-  const usageGb = usageQuantity / GIGABYTE;
+  const usageGb = usageQuantity / 1e9;
   return options.isAbbreviated
     ? `${abbreviateUsageNumber(usageGb)} GB`
     : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
@@ -69,13 +65,14 @@ export function getFormatUsageOptions(
  * If you are not displaying usage numbers, it might be better to use
  * `formatAbbreviatedNumber` in 'sentry/utils/formatters'
  */
+
 export function abbreviateUsageNumber(n: number) {
-  if (n >= BILLION) {
-    return (n / BILLION).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
+  if (n >= 1e9) {
+    return (n / 1e9).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
   }
 
-  if (n >= MILLION) {
-    return (n / MILLION).toLocaleString(undefined, {maximumFractionDigits: 1}) + 'M';
+  if (n >= 1e6) {
+    return (n / 1e6).toLocaleString(undefined, {maximumFractionDigits: 1}) + 'M';
   }
 
   if (n >= 1000) {
