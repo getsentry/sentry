@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import ControlOutbox, OutboxCategory, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
@@ -26,10 +26,6 @@ class JiraServerRequestParserTest(TestCase):
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
-
-    def assert_no_outbox_created(self):
-        outboxes = ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).all()
-        assert len(outboxes) == 0, "No outboxes should be created"
 
     def setUp(self):
         super().setUp()
