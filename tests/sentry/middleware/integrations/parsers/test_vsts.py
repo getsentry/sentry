@@ -12,21 +12,15 @@ from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
-
-region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-region_config = (region,)
+from sentry.testutils.silo import control_silo_test, create_test_regions
 
 
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"))
 class VstsRequestParserTest(TestCase):
     factory = RequestFactory()
     shared_secret = "1234567890"
     path = f"{IntegrationClassification.integration_prefix}vsts/issue-updated/"
 
-    @override_regions(region_config)
     def setUp(self):
         super().setUp()
         self.user = self.create_user()
@@ -47,7 +41,6 @@ class VstsRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_work_item_webhook(self):
         # No integration found for request...
@@ -82,7 +75,7 @@ class VstsRequestParserTest(TestCase):
         assert_webhook_outboxes(
             factory_request=request,
             webhook_identifier=WebhookProviderIdentifier.VSTS,
-            region_names=[region.name],
+            region_names=["us"],
         )
 
     @responses.activate
@@ -140,7 +133,6 @@ class VstsRequestParserTest(TestCase):
         integration = parser.get_integration_from_request()
         assert integration is None
 
-    @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_webhook_outbox_creation(self):
         request = self.factory.post(
@@ -156,5 +148,5 @@ class VstsRequestParserTest(TestCase):
         assert_webhook_outboxes(
             factory_request=request,
             webhook_identifier=WebhookProviderIdentifier.VSTS,
-            region_names=[region.name],
+            region_names=["us"],
         )
