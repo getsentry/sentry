@@ -6,27 +6,19 @@ import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import useMutateFeedbackActivity, {
-  TContext,
-  TData,
-  TError,
-  TVariables,
-} from 'sentry/components/feedback/useMutateFeedbackActivity';
+import useMutateFeedbackActivity from 'sentry/components/feedback/useMutateFeedbackActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {
   Group,
-  GroupActivity,
   GroupActivityNote,
   GroupActivityReprocess,
   GroupActivityType,
   User,
 } from 'sentry/types';
-import {NoteType} from 'sentry/types/alerts';
 import {uniqueId} from 'sentry/utils/guid';
-import {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 import {
@@ -41,108 +33,6 @@ type Props = {
   group: Group;
 };
 
-function deleteNote({
-  id,
-  deleteComment,
-  group,
-}: {
-  deleteComment: (
-    noteId: string,
-    activity: GroupActivity[],
-    options?: MutateOptions<TData, TError, TVariables, TContext>
-  ) => void;
-  group: Group;
-  id: string;
-}) {
-  const mutationOptions = {
-    onError: () => {
-      addErrorMessage(t('An error occurred while removing the comment.'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Comment removed'));
-    },
-  };
-
-  // For cache purposes
-  const newActivity = group.activity.filter(a => a.id !== id);
-  deleteComment(id, newActivity, mutationOptions);
-}
-
-function createNote({
-  note,
-  addComment,
-  group,
-  author,
-}: {
-  addComment: (
-    note: NoteType,
-    activity: GroupActivity[],
-    options?: MutateOptions<TData, TError, TVariables, TContext>
-  ) => void;
-  author: User;
-  group: Group;
-  note: NoteType;
-}) {
-  const mutationOptions = {
-    onError: () => {
-      addErrorMessage(t('An error occurred while posting the comment.'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Comment posted'));
-    },
-  };
-
-  // For cache purposes
-  const newActivity: GroupActivityNote = {
-    id: '',
-    data: note,
-    type: GroupActivityType.NOTE,
-    dateCreated: new Date().toISOString(),
-    project: group.project,
-    user: author,
-  };
-  addComment(note, [newActivity, ...group.activity], mutationOptions);
-}
-
-function updateNote({
-  note,
-  id,
-  updateComment,
-  group,
-}: {
-  group: Group;
-  id: string;
-  note: NoteType;
-  updateComment: (
-    note: NoteType,
-    noteId: string,
-    activity: GroupActivity[],
-    options?: MutateOptions<TData, TError, TVariables, TContext>
-  ) => void;
-}) {
-  const mutationOptions = {
-    onError: () => {
-      addErrorMessage(t('An error occurred while updating the comment.'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Comment updated'));
-    },
-  };
-
-  // For cache purposes
-  const idx = group.activity.findIndex(a => a.id === id);
-
-  if (idx !== -1) {
-    const oldActivityItem = group.activity[idx] as GroupActivityNote;
-    const newActivity = Object.assign([...group.activity], {
-      [idx]: {...oldActivityItem, data: note},
-    });
-    updateComment(note, id, newActivity, mutationOptions);
-  } else {
-    updateComment(note, id, group.activity, mutationOptions);
-  }
-}
-
 function ActivitySection(props: Props) {
   const {group} = props;
   const organization = useOrganization();
@@ -155,6 +45,33 @@ function ActivitySection(props: Props) {
     organization,
     group,
   });
+
+  const deleteMutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while removing the comment.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Comment removed'));
+    },
+  };
+
+  const addMutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while posting the comment.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Comment posted'));
+    },
+  };
+
+  const updateMutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the comment.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Comment updated'));
+    },
+  };
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -189,12 +106,15 @@ function ActivitySection(props: Props) {
               storageKey="groupinput:latest"
               itemKey={group.id}
               onCreate={n => {
-                createNote({
-                  note: n,
-                  addComment,
-                  group,
-                  author: me,
-                });
+                const newActivity: GroupActivityNote = {
+                  id: '',
+                  data: n,
+                  type: GroupActivityType.NOTE,
+                  dateCreated: new Date().toISOString(),
+                  project: group.project,
+                  user: me,
+                };
+                addComment(n, [newActivity, ...group.activity], addMutationOptions);
                 setInputId(uniqueId());
               }}
               {...noteProps}
@@ -215,19 +135,19 @@ function ActivitySection(props: Props) {
                     dateCreated={item.dateCreated}
                     authorName={authorName}
                     onDelete={() => {
-                      deleteNote({
-                        id: item.id,
-                        deleteComment,
-                        group,
-                      });
+                      deleteComment(
+                        item.id,
+                        group.activity.filter(a => a.id !== item.id),
+                        deleteMutationOptions
+                      );
                     }}
                     onUpdate={n => {
-                      updateNote({
-                        note: n,
-                        id: item.id,
-                        updateComment,
-                        group,
-                      });
+                      const idx = group.activity.findIndex(a => a.id === item.id);
+                      if (idx !== -1) {
+                        const oldActivityItem = group.activity[idx] as GroupActivityNote;
+                        group.activity[idx] = {...oldActivityItem, data: n};
+                        updateComment(n, item.id, group.activity, updateMutationOptions);
+                      }
                     }}
                     {...noteProps}
                   />
