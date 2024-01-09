@@ -276,10 +276,6 @@ class OrganizationContextContainer extends Component<Props, State> {
     });
   }
 
-  getTitle() {
-    return this.state.organization?.name ?? 'Sentry';
-  }
-
   renderSidebar(): React.ReactNode {
     if (!this.props.includeSidebar) {
       return null;
@@ -312,7 +308,7 @@ class OrganizationContextContainer extends Component<Props, State> {
 
   renderBody() {
     return (
-      <SentryDocumentTitle noSuffix title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={this.state.organization?.name ?? 'Sentry'}>
         <OrganizationContext.Provider value={this.state.organization}>
           <div className="app">
             {this.state.hooks}
