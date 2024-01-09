@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -504,14 +505,15 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {!widgetLimitReached && (
-          <AddWidgetWrapper
-            key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={this.addWidgetLayout}
-          >
-            <AddWidget onAddWidget={this.handleStartAdd} />
-          </AddWidgetWrapper>
-        )}
+        {(isEditing || hasDDMExperimentalFeature(organization)) &&
+          !widgetLimitReached && (
+            <AddWidgetWrapper
+              key={ADD_WIDGET_BUTTON_DRAG_ID}
+              data-grid={this.addWidgetLayout}
+            >
+              <AddWidget onAddWidget={this.handleStartAdd} />
+            </AddWidgetWrapper>
+          )}
       </GridLayout>
     );
   }

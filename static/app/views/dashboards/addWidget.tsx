@@ -1,13 +1,13 @@
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -34,6 +34,8 @@ function AddWidget({onAddWidget}: Props) {
     transition: null,
   });
 
+  const organization = useOrganization();
+
   return (
     <WidgetWrapper
       key="add"
@@ -55,12 +57,33 @@ function AddWidget({onAddWidget}: Props) {
         duration: 0.25,
       }}
     >
-      <InnerWrapper>
-        <AddWidgetButton onAddWidget={onAddWidget} aria-label="Add widget" />
-      </InnerWrapper>
+      {hasDDMExperimentalFeature(organization) ? (
+        <InnerWrapper>
+          <AddWidgetButton onAddWidget={onAddWidget} aria-label="Add widget" />
+        </InnerWrapper>
+      ) : (
+        <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
+          <AddButton
+            data-test-id="widget-add"
+            icon={<IconAdd size="lg" isCircled color="inactive" />}
+            aria-label={t('Add widget')}
+          />
+        </InnerWrapper>
+      )}
     </WidgetWrapper>
   );
 }
+
+const AddButton = styled(Button)`
+  border: none;
+  &,
+  &:focus,
+  &:active,
+  &:hover {
+    background: transparent;
+    box-shadow: none;
+  }
+`;
 
 export default AddWidget;
 

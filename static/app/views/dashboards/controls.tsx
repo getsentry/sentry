@@ -12,6 +12,8 @@ import {IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -57,6 +59,8 @@ function Controls({
       </Button>
     );
   }
+
+  const organization = useOrganization();
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -165,11 +169,15 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                <AddWidgetButton
-                  onAddWidget={onAddWidget}
-                  aria-label="Add widget"
-                  priority="primary"
-                />
+                {hasDDMExperimentalFeature(organization) ? (
+                  <AddWidgetButton
+                    onAddWidget={onAddWidget}
+                    aria-label="Add widget"
+                    priority="primary"
+                  />
+                ) : (
+                  <div />
+                )}
               </Tooltip>
             ) : null}
           </Fragment>
