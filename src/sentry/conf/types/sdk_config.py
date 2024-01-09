@@ -8,6 +8,7 @@ from typing_extensions import NotRequired, TypedDict
 class SdkConfig(TypedDict):
     release: str | None
     environment: str
+    project_root: str
     in_app_include: list[str]
     debug: bool
     send_default_pii: bool
