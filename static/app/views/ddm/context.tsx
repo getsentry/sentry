@@ -61,8 +61,8 @@ export function useDDMContext() {
 }
 
 const emptyWidget: MetricWidgetQueryParams = {
-  mri: '' as MRI,
-  op: undefined,
+  mri: 'd:transactions/duration@millisecond' satisfies MRI,
+  op: 'count',
   query: '',
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
