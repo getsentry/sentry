@@ -511,11 +511,12 @@ class QueryParser:
         except InvalidQueryError as e:
             cause = e.__cause__
             if cause and isinstance(cause, IncompleteParseError):
-                # For now, we assume that the only failing part can be inside the filters, thus we skip the first column
-                # where the matching failed. When we will support full MQL, we can just return the entire context.
-                error_context = cause.text[cause.pos + 1 : cause.pos + 21]
+                error_context = cause.text[cause.pos : cause.pos + 20]
+                # We expose the entire MQL string to give more context when solving the error, since in the future we
+                # expect that MQL will be directly fed into the endpoint instead of being built from the supplied
+                # fields.
                 raise InvalidMetricsQueryError(
-                    f"The query could not be matched starting from '{error_context}...'"
+                    f"The query '{mql}' could not be matched starting from '{error_context}...'"
                 )
 
             raise InvalidMetricsQueryError("The supplied query is not valid")
