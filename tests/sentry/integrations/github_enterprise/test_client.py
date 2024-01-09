@@ -148,4 +148,8 @@ class GitHubAppsClientTest(TestCase):
             self.config.repository, ref=self.config.default_branch
         )
 
+        assert (
+            responses.calls[3].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert responses.calls[3].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITHUB_CODEOWNERS

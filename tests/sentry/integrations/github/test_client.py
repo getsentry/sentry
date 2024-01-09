@@ -222,7 +222,10 @@ class GitHubAppsClientTest(TestCase):
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
-
+        assert (
+            responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert responses.calls[1].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITHUB_CODEOWNERS
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
