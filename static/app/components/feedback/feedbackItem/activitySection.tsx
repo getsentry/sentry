@@ -142,12 +142,8 @@ function ActivitySection(props: Props) {
                       );
                     }}
                     onUpdate={n => {
-                      const idx = group.activity.findIndex(a => a.id === item.id);
-                      if (idx !== -1) {
-                        const oldActivityItem = group.activity[idx] as GroupActivityNote;
-                        group.activity[idx] = {...oldActivityItem, data: n};
-                        updateComment(n, item.id, group.activity, updateMutationOptions);
-                      }
+                      item.data.text = n.text; // update the note optimistically
+                      updateComment(n, item.id, group.activity, updateMutationOptions);
                     }}
                     {...noteProps}
                   />
