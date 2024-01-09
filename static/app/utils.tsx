@@ -1,4 +1,5 @@
 import {Query} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
