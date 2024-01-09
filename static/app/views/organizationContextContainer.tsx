@@ -347,8 +347,6 @@ export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
 
-export {OrganizationContextContainer as OrganizationLegacyContext};
-
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};
 `;

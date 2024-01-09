@@ -14,7 +14,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import useOrganization from 'sentry/utils/useOrganization';
-import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
+import OrganizationLegacyContext from 'sentry/views/organizationContextContainer';
 
 describe('OrganizationContextContainer', function () {
   const {organization, projects, routerProps} = initializeOrg();
