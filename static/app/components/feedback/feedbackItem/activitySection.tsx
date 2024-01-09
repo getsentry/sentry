@@ -1,33 +1,33 @@
 import {Fragment, useState} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
+import useMutateFeedbackActivity, {
+  TContext,
+  TData,
+  TError,
+  TVariables,
+} from 'sentry/components/feedback/useMutateFeedbackActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {
   Group,
+  GroupActivity,
   GroupActivityNote,
   GroupActivityReprocess,
   GroupActivityType,
-  Note as NoteType,
-  Organization,
   User,
 } from 'sentry/types';
+import {NoteType} from 'sentry/types/alerts';
 import {uniqueId} from 'sentry/utils/guid';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {MutateOptions} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 import {
   getGroupMostRecentActivity,
@@ -38,152 +38,122 @@ import {
 // This file is based on issueDetails/groupActivity.tsx
 
 type Props = {
-  api: Client;
   group: Group;
-  organization: Organization;
 };
 
 function deleteNote({
-  group,
   id,
-  organization,
-  api,
   deleteComment,
+  group,
 }: {
-  api: Client;
-  deleteComment;
+  deleteComment: (
+    noteId: string,
+    activity: GroupActivity[],
+    options?: MutateOptions<TData, TError, TVariables, TContext>
+  ) => void;
   group: Group;
   id: string;
-  organization: Organization;
 }) {
-  const promise = api.requestPromise(
-    `/organizations/${organization.slug}/issues/${group.id}/comments/${id}/`,
-    {
-      method: 'DELETE',
-    }
-  );
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while removing the comment.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Comment removed'));
+    },
+  };
 
+  // For cache purposes
   const newActivity = group.activity.filter(a => a.id !== id);
-  deleteComment(newActivity);
-
-  return promise;
+  deleteComment(id, newActivity, mutationOptions);
 }
 
 function createNote({
-  group,
   note,
-  organization,
-  api,
   addComment,
+  group,
   author,
 }: {
-  addComment;
-  api: Client;
+  addComment: (
+    note: NoteType,
+    activity: GroupActivity[],
+    options?: MutateOptions<TData, TError, TVariables, TContext>
+  ) => void;
   author: User;
   group: Group;
   note: NoteType;
-  organization: Organization;
 }) {
-  const promise = api.requestPromise(
-    `/organizations/${organization.slug}/issues/${group.id}/comments/`,
-    {
-      method: 'POST',
-      data: note,
-    }
-  );
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while posting the comment.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Comment posted'));
+    },
+  };
 
+  // For cache purposes
   const newActivity: GroupActivityNote = {
     id: '',
-    data: {text: note.text},
+    data: note,
     type: GroupActivityType.NOTE,
     dateCreated: new Date().toISOString(),
     project: group.project,
     user: author,
   };
-  addComment([newActivity, ...group.activity]);
-
-  return promise;
+  addComment(note, [newActivity, ...group.activity], mutationOptions);
 }
 
 function updateNote({
-  group,
   note,
   id,
-  api,
   updateComment,
-  organization,
+  group,
 }: {
-  api: Client;
   group: Group;
   id: string;
   note: NoteType;
-  organization: Organization;
-  updateComment;
+  updateComment: (
+    note: NoteType,
+    noteId: string,
+    activity: GroupActivity[],
+    options?: MutateOptions<TData, TError, TVariables, TContext>
+  ) => void;
 }) {
-  const promise = api.requestPromise(
-    `/organizations/${organization.slug}/issues/${group.id}/comments/${id}/`,
-    {
-      method: 'PUT',
-      data: note,
-    }
-  );
+  const mutationOptions = {
+    onError: () => {
+      addErrorMessage(t('An error occurred while updating the comment.'));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Comment updated'));
+    },
+  };
 
+  // For cache purposes
   const idx = group.activity.findIndex(a => a.id === id);
 
   if (idx !== -1) {
     const oldActivityItem = group.activity[idx] as GroupActivityNote;
     const newActivity = Object.assign([...group.activity], {
-      [idx]: {...oldActivityItem, data: {...oldActivityItem.data, text: note.text}},
+      [idx]: {...oldActivityItem, data: note},
     });
-    updateComment(newActivity);
+    updateComment(note, id, newActivity, mutationOptions);
+  } else {
+    updateComment(note, id, group.activity, mutationOptions);
   }
-
-  return promise;
 }
 
-const handleNoteDelete = async ({id, group, organization, api, deleteComment}) => {
-  addLoadingMessage(t('Removing comment\u{2026}'));
-
-  try {
-    await deleteNote({group, id, organization, api, deleteComment});
-    clearIndicators();
-  } catch (_err) {
-    addErrorMessage(t('Failed to delete comment'));
-  }
-};
-
-const handleNoteCreate = async ({note, group, organization, api, addComment, author}) => {
-  addLoadingMessage(t('Posting comment\u{2026}'));
-
-  try {
-    await createNote({group, note, organization, api, addComment, author});
-    clearIndicators();
-  } catch (error) {
-    addErrorMessage(t('Unable to post comment'));
-  }
-};
-
-const handleNoteUpdate = async ({note, id, group, api, updateComment, organization}) => {
-  addLoadingMessage(t('Updating comment\u{2026}'));
-
-  try {
-    await updateNote({group, note, id, updateComment, api, organization});
-    clearIndicators();
-  } catch (error) {
-    addErrorMessage(t('Unable to update comment'));
-  }
-};
-
-function CommentsSection(props: Props) {
-  const {group, organization, api} = props;
+function ActivitySection(props: Props) {
+  const {group} = props;
+  const organization = useOrganization();
   const {activity: activities, count, id: groupId} = group;
   const groupCount = Number(count);
   const mostRecentActivity = getGroupMostRecentActivity(activities);
   const reprocessingStatus = getGroupReprocessingStatus(group, mostRecentActivity);
 
-  const {mutateComments} = useMutateFeedback({
-    feedbackIds: [group.id],
+  const {addComment, deleteComment, updateComment} = useMutateFeedbackActivity({
     organization,
+    group,
   });
 
   const [inputId, setInputId] = useState(uniqueId());
@@ -219,12 +189,10 @@ function CommentsSection(props: Props) {
               storageKey="groupinput:latest"
               itemKey={group.id}
               onCreate={n => {
-                handleNoteCreate({
+                createNote({
                   note: n,
+                  addComment,
                   group,
-                  organization,
-                  api,
-                  addComment: mutateComments,
                   author: me,
                 });
                 setInputId(uniqueId());
@@ -246,25 +214,21 @@ function CommentsSection(props: Props) {
                     user={item.user as User}
                     dateCreated={item.dateCreated}
                     authorName={authorName}
-                    onDelete={() =>
-                      handleNoteDelete({
+                    onDelete={() => {
+                      deleteNote({
                         id: item.id,
+                        deleteComment,
                         group,
-                        organization,
-                        api,
-                        deleteComment: mutateComments,
-                      })
-                    }
-                    onUpdate={n =>
-                      handleNoteUpdate({
+                      });
+                    }}
+                    onUpdate={n => {
+                      updateNote({
                         note: n,
                         id: item.id,
+                        updateComment,
                         group,
-                        api,
-                        updateComment: mutateComments,
-                        organization,
-                      })
-                    }
+                      });
+                    }}
                     {...noteProps}
                   />
                 </ErrorBoundary>
@@ -297,4 +261,4 @@ function CommentsSection(props: Props) {
   );
 }
 
-export default withApi(withOrganization(CommentsSection));
+export default ActivitySection;
