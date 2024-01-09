@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 
-from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
-    EnrichedThreshold,
+from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_healthy import (
     is_error_count_healthy,
 )
+from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
 from sentry.api.serializers import serialize
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
