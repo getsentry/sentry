@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 from unittest import mock
 
 import pytest
@@ -39,7 +39,7 @@ def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
 
 
 def _metric_percentile_definition(
-    org_id: int, quantile: str, field: str = "transaction.duration", alias: Optional[str] = None
+    org_id, quantile, field="transaction.duration", alias=None
 ) -> Function:
     if alias is None:
         alias = f"p{quantile}_{field.replace('.', '_')}"
@@ -67,7 +67,7 @@ def _metric_percentile_definition(
     )
 
 
-def _metric_conditions(org_id: int, metrics: list[str]) -> List[Condition]:
+def _metric_conditions(org_id, metrics) -> List[Condition]:
     def _resolve_must_succeed(*a, **k):
         ret = indexer.resolve(*a, **k)
         assert ret is not None

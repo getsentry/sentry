@@ -1504,6 +1504,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-ui": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
+    # Enable inbound filters to be turned on by default for new Javascript Projects
+    "organizations:default-inbound-filters": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
     # Enable device.class as a selectable column
@@ -3053,6 +3055,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
+    "project_root": "/usr/src",
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,
     "send_default_pii": True,

@@ -10,7 +10,6 @@ from typing import (
     Dict,
     List,
     Literal,
-    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -49,41 +48,6 @@ from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
-
-
-# This helps us control the different spec versions
-# in order to migrate customers from invalid specs
-class SpecVersion(NamedTuple):
-    version: int
-    flags: Sequence[str] = []
-
-    def has_flag(self, flag: str) -> bool:
-        return flag in self.flags
-
-
-# This is the lower spec version which we collect metrics for.
-# Once we're ready to abandon a version bump this value
-MIN_VERSION = 0
-
-SPEC_VERSIONS = [
-    SpecVersion(0),
-    SpecVersion(1, ["use_updated_env_logic"]),
-]
-
-
-def get_spec_versions(min_version: int = MIN_VERSION) -> Sequence[SpecVersion]:
-    """Get all spec versions starting at a minimum version."""
-    return [spec_version for spec_version in SPEC_VERSIONS if spec_version.version >= min_version]
-
-
-def get_spec_version(version: Optional[int] = None) -> SpecVersion:
-    """Get a specific spec version."""
-    if not version:
-        # Default to the latest version if none specified
-        version = len(SPEC_VERSIONS) - 1
-    assert version >= MIN_VERSION and version < len(SPEC_VERSIONS)
-    return SPEC_VERSIONS[version]
-
 
 # Name component of MRIs used for custom alert metrics.
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
@@ -1063,7 +1027,6 @@ class OnDemandMetricSpec:
     query: str
     groupbys: Sequence[str]
     spec_type: MetricSpecType
-    spec_version: SpecVersion
 
     # Public fields.
     op: MetricOperationType
@@ -1079,12 +1042,12 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-        spec_version: Optional[SpecVersion] = None,
+        use_updated_env_logic: bool = True,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.spec_version = spec_version if spec_version else get_spec_version()
+        self.use_updated_env_logic = use_updated_env_logic
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1296,7 +1259,7 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.spec_version.has_flag("use_updated_env_logic"):
+            if self.use_updated_env_logic:
                 conditions = [ParenExpression(children=conditions)] if conditions else []
                 # This transformation is equivalent to (new_conditions) AND (conditions).
                 extended_conditions = [ParenExpression(children=new_conditions)] + conditions
