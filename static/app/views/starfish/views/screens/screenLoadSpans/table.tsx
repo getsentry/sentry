@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
@@ -14,7 +14,7 @@ import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
+import {NewQuery, Project} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   fromSorts,
@@ -39,14 +39,17 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/cons
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
+import {DEFAULT_PLATFORM,PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
 import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
 
 type Props = {
   primaryRelease?: string;
+  project?: Project | null;
   secondaryRelease?: string;
   transaction?: string;
 };
@@ -55,6 +58,7 @@ export function ScreenLoadSpansTable({
   transaction,
   primaryRelease,
   secondaryRelease,
+  project,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -68,21 +72,34 @@ export function ScreenLoadSpansTable({
     `transaction:"${transaction}"`,
   ]);
 
-  const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
-    `transaction:${transaction}`,
-    'has:span.description',
-    ...(spanOp
-      ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
-      : [
-          'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
-        ]),
-  ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
-  );
+  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const platform =
+        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+        DEFAULT_PLATFORM;
+
+  const queryStringPrimary = useMemo(() => {
+    const searchQuery = new MutableSearch([
+      'transaction.op:ui.load',
+      `transaction:${transaction}`,
+      'has:span.description',
+      ...(spanOp
+        ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
+        : [
+            'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
+          ]),
+    ]);
+
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      searchQuery.addFilterValue('os.name', platform);
+    }
+
+    return appendReleaseFilters(
+      searchQuery,
+      primaryRelease,
+      secondaryRelease
+    );
+  }, [hasPlatformSelectFeature, platform, primaryRelease, project, secondaryRelease, spanOp, transaction]);
 
   const sort = fromSorts(
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])

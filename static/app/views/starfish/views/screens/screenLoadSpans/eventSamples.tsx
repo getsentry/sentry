@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
+import {NewQuery, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
@@ -31,14 +31,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {DEFAULT_PLATFORM, PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
 import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 type Props = {
   cursorName: string;
   release: string;
   sortKey: string;
   transaction: string;
+  project?: Project | null;
   showDeviceClassSelector?: boolean;
 };
 
@@ -50,27 +53,42 @@ export function ScreenLoadEventSamples({
   release,
   sortKey,
   showDeviceClassSelector,
+  project,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
-  const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
-    `transaction:${transaction}`,
-    `release:${release}`,
-  ]);
-
   const deviceClass = decodeScalar(location.query['device.class']);
 
-  if (deviceClass) {
-    if (deviceClass === 'Unknown') {
-      searchQuery.addFilterValue('!has', 'device.class');
-    } else {
-      searchQuery.addFilterValue('device.class', deviceClass);
+  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const platform =
+        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+        DEFAULT_PLATFORM;
+
+  const searchQuery = useMemo(() => {
+    const mutableQuery = new MutableSearch([
+      'transaction.op:ui.load',
+      `transaction:${transaction}`,
+      `release:${release}`,
+    ]);
+
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      mutableQuery.addFilterValue('os.name', platform);
     }
-  }
+
+    if (deviceClass) {
+      if (deviceClass === 'Unknown') {
+        mutableQuery.addFilterValue('!has', 'device.class');
+      } else {
+        mutableQuery.addFilterValue('device.class', deviceClass);
+      }
+    }
+
+    return mutableQuery;
+  }, [deviceClass, hasPlatformSelectFeature, platform, project, release, transaction]);
 
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? {
     kind: 'desc',
