@@ -4,9 +4,9 @@ import io
 import os
 import tarfile
 import tempfile
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Type
 from unittest.mock import patch
 
 import pytest
@@ -16,6 +16,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from django.db import connections, router
+from django.db.models import Model
 from django.utils import timezone
 
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
@@ -28,6 +29,8 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
+from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
@@ -51,6 +54,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
+from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
@@ -61,7 +65,9 @@ from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
 from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
@@ -75,7 +81,11 @@ from sentry.testutils.helpers.backups import (
 from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
-from tests.sentry.backup import get_matching_exportable_models, mark, targets
+from tests.sentry.backup import (
+    expect_models,
+    get_matching_exportable_models,
+    verify_models_in_output,
+)
 
 
 class ImportTestCase(BackupTestCase):
@@ -1325,8 +1335,8 @@ class CollisionTests(ImportTestCase):
     Ensure that collisions are properly handled in different flag modes.
     """
 
-    @targets(mark(COLLISION_TESTED, ApiToken))
-    def test_colliding_api_token(self):
+    @expect_models(COLLISION_TESTED, ApiToken)
+    def test_colliding_api_token(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         expires_at = timezone.now() + DEFAULT_EXPIRATION
 
@@ -1440,10 +1450,10 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Monitor))
-    def test_colliding_monitor(self):
+    @expect_models(COLLISION_TESTED, Monitor)
+    def test_colliding_monitor(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         self.create_exhaustive_organization("some-org", owner, invited)
@@ -1471,10 +1481,10 @@ class CollisionTests(ImportTestCase):
             assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, OrgAuthToken))
-    def test_colliding_org_auth_token(self):
+    @expect_models(COLLISION_TESTED, OrgAuthToken)
+    def test_colliding_org_auth_token(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1520,10 +1530,10 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ProjectKey))
-    def test_colliding_project_key(self):
+    @expect_models(COLLISION_TESTED, ProjectKey)
+    def test_colliding_project_key(self, expected_models: list[Type[Model]]):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
@@ -1553,7 +1563,7 @@ class CollisionTests(ImportTestCase):
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
     @pytest.mark.xfail(
         not use_split_dbs(),
@@ -1561,8 +1571,8 @@ class CollisionTests(ImportTestCase):
         raises=urllib3.exceptions.MaxRetryError,
         strict=True,
     )
-    @targets(mark(COLLISION_TESTED, QuerySubscription))
-    def test_colliding_query_subscription(self):
+    @expect_models(COLLISION_TESTED, QuerySubscription)
+    def test_colliding_query_subscription(self, expected_models: list[Type[Model]]):
         # We need a celery task running to properly test the `subscription_id` assignment, otherwise
         # its value just defaults to `None`.
         with self.tasks():
@@ -1610,10 +1620,42 @@ class CollisionTests(ImportTestCase):
                 )
 
                 with open(tmp_path, "rb") as tmp_file:
-                    return json.load(tmp_file)
+                    verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_enabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, SavedSearch)
+    def test_colliding_saved_search(self, expected_models: list[Type[Model]]):
+        self.create_organization("some-org", owner=self.user)
+        SavedSearch.objects.create(
+            name="Global Search",
+            query="saved query",
+            is_global=True,
+            visibility=Visibility.ORGANIZATION,
+        )
+        assert SavedSearch.objects.count() == 1
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            assert SavedSearch.objects.count() == 0
+
+            # Allow `is_global` searches for `ImportScope.Global` imports.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SavedSearch.objects.count() == 1
+
+            # Disallow `is_global` searches for `ImportScope.Organization` imports.
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            assert SavedSearch.objects.count() == 1
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
+    def test_colliding_configs_overwrite_configs_enabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1704,10 +1746,12 @@ class CollisionTests(ImportTestCase):
                     assert actual_permission == old_user_role_permissions[i]
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole))
-    def test_colliding_configs_overwrite_configs_disabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
+    def test_colliding_configs_overwrite_configs_disabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user("owner", is_admin=True)
         self.create_exhaustive_global_configs(owner)
 
@@ -1794,10 +1838,12 @@ class CollisionTests(ImportTestCase):
                 assert actual_user_role.permissions[0] == "other.admin"
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
-    def test_colliding_user_with_merging_enabled_in_user_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP)
+    def test_colliding_user_with_merging_enabled_in_user_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1838,10 +1884,12 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP))
-    def test_colliding_user_with_merging_disabled_in_user_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP)
+    def test_colliding_user_with_merging_disabled_in_user_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1882,12 +1930,14 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(
-        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
+    @expect_models(
+        COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP
     )
-    def test_colliding_user_with_merging_enabled_in_organization_scope(self):
+    def test_colliding_user_with_merging_enabled_in_organization_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
 
@@ -1957,12 +2007,14 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(
-        mark(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP)
+    @expect_models(
+        COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail, UserIP
     )
-    def test_colliding_user_with_merging_disabled_in_organization_scope(self):
+    def test_colliding_user_with_merging_disabled_in_organization_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
         self.create_organization("some-org", owner=owner)
 
@@ -2036,10 +2088,12 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
-    def test_colliding_user_with_merging_enabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission)
+    def test_colliding_user_with_merging_enabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -2084,10 +2138,12 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
-    @targets(mark(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission))
-    def test_colliding_user_with_merging_disabled_in_config_scope(self):
+    @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserIP, UserPermission)
+    def test_colliding_user_with_merging_disabled_in_config_scope(
+        self, expected_models: list[Type[Model]]
+    ):
         self.create_exhaustive_user(username="owner", email="importing@example.com", is_admin=True)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -2131,7 +2187,187 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                return json.load(tmp_file)
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+
+CUSTOM_IMPORT_BEHAVIOR_TESTED: set[NormalizedModelName] = set()
+
+
+# There is no need to in both monolith and region mode for model-level unit tests - region mode
+# testing along should suffice.
+@region_silo_test
+class CustomImportBehaviorTests(ImportTestCase):
+    """
+    Test bespoke, per-model behavior. Since these tests are relatively expensive to set up and tear
+    down (think on the order of 5-10 seconds per test case), we encourage combining model test cases
+    as much as reasonably possible.
+    """
+
+    # TODO(hybrid-cloud): actor refactor. Remove this test case when done.
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Actor, AlertRule)
+    def test_alert_rule_with_owner_id(self, expected_models: list[Type[Model]]):
+        user = self.create_user()
+        org = self.create_organization(name="test-org", owner=user)
+        team = self.create_team(name="test-team", organization=org)
+
+        def create_fake_snuba_query() -> SnubaQuery:
+            return create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="level:error",
+                aggregate="count()",
+                time_window=timedelta(minutes=10),
+                resolution=timedelta(minutes=1),
+                environment=None,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+
+        # Create four `AlertRule`. Both of them fell through the `owner_id` migration, and therefore
+        # DO have an `owner_id`, but have NEITHER a `team_id` nor `user_id`.
+        #
+        # For the first two `AlertRule` rules, we'll include an `Actor` model with the correct data,
+        # meaning we just have to do a DB lookup, but the model import should go ahead as if the
+        # migration had been successful. For the third `AlertRule`, the `Actor` will also have both
+        # `team` and `user` set to null. Finally, the last instance will have no `Actor` at all.
+        #
+        # The expected result is that the first two instances succeed, while the last two are
+        # ignored.]
+        common_alert_rule_args = {
+            "organization": org,
+            "threshold_type": AlertRuleThresholdType.ABOVE.value,
+            "resolve_threshold": 10,
+            "threshold_period": 1,
+            "include_all_projects": False,
+            "comparison_delta": None,
+        }
+
+        # Use `bulk_create` to avoid the `.save()` checks that catch some otherwise invalid data -
+        # the whole point of this test is to ensure we gracefully recover when importing such data!
+        AlertRule.objects.bulk_create(
+            [
+                AlertRule(
+                    name="user-alert-rule",
+                    owner=Actor.objects.create(user_id=user.id, type=ACTOR_TYPES["user"]),
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+                AlertRule(
+                    name="team-alert-rule",
+                    owner=Actor.objects.get(team=team, type=ACTOR_TYPES["team"]),
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+                AlertRule(
+                    name="null-alert-rule",
+                    owner=Actor.objects.create(team=None, user_id=None, type=ACTOR_TYPES["team"]),
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+                AlertRule(
+                    name="unowned-alert-rule",
+                    owner=None,
+                    snuba_query=create_fake_snuba_query(),
+                    **common_alert_rule_args,
+                ),
+            ]
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    printer=NOOP_PRINTER,
+                )
+
+            user_alert_rule: AlertRule = AlertRule.objects.get(name="user-alert-rule")
+            user_actor: Actor = Actor.objects.get(id=user_alert_rule.owner_id)
+            assert user_alert_rule.owner is not None
+            assert user_alert_rule.user_id == user_actor.user_id
+            assert user_alert_rule.team is None
+            assert user_actor.team is None
+
+            team_alert_rule: AlertRule = AlertRule.objects.get(name="team-alert-rule")
+            team_actor: Actor = Actor.objects.get(id=team_alert_rule.owner_id)
+            assert team_alert_rule.owner is not None
+            assert team_alert_rule.team == team_actor.team
+            assert team_alert_rule.user_id is None
+            assert team_actor.user_id is None
+
+            null_alert_rule: AlertRule = AlertRule.objects.get(name="null-alert-rule")
+            unowned_alert_rule: AlertRule = AlertRule.objects.get(name="unowned-alert-rule")
+            assert null_alert_rule.owner is None
+            assert unowned_alert_rule.owner is None
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
+    def test_organization_member_inviter_id(self, expected_models: list[Type[Model]]):
+        admin = self.create_exhaustive_user("admin", email="admin@test.com", is_superuser=True)
+        owner = self.create_exhaustive_user("owner", email="owner@test.com")
+        member = self.create_exhaustive_user("member", email="member@test.com")
+        org = self.create_exhaustive_organization(
+            slug="test-org",
+            owner=owner,
+            member=member,
+            invites={
+                admin: "invited-by-admin@test.com",
+                owner: "invited-by-owner@test.com",
+            },
+        )
+
+        # Give each member an inviter that is not in the organization itself (the "admin"), meaning
+        # they will not be imported if we only filter down to `test-org`. The desired outcome is
+        # that the inviter is nulled out.
+        for org_member in OrganizationMember.objects.filter(organization=org):
+            if not org_member.inviter_id:
+                org_member.inviter_id = admin.id
+                org_member.save()
+        assert (
+            OrganizationMember.objects.filter(organization=org.id, inviter_id__isnull=False).count()
+            == 4
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    org_filter={"test-org"},
+                    printer=NOOP_PRINTER,
+                )
+
+            # `owner` and `member` should both have had their `inviter_id` scrubbed.
+            org_id = Organization.objects.get(slug="test-org").id
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                user_email="owner@test.com",
+                email__isnull=True,
+                inviter_id__isnull=True,
+            ).exists()
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                user_email="member@test.com",
+                email__isnull=True,
+                inviter_id__isnull=True,
+            ).exists()
+
+            # The invitee invited by the not-imported `admin` should lose their `inviter_id`, but
+            # the one invited by `owner` should keep it.
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                email="invited-by-admin@test.com",
+                inviter_id__isnull=True,
+            ).exists()
+            assert OrganizationMember.objects.filter(
+                organization=org_id,
+                email="invited-by-owner@test.com",
+                inviter_id__isnull=False,
+            ).exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, json.load(tmp_file))
 
 
 @pytest.mark.skipif(reason="not legacy")

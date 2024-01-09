@@ -1473,6 +1473,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable creating organizations within sentry
     # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     "organizations:create": True,
+    # Disables projects with zero monitors to create new ones
+    "organizations:crons-disable-new-projects": False,
     # Enable the new crons monitor form
     "organizations:crons-new-monitor-form": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
@@ -1502,6 +1504,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-ui": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
+    # Enable inbound filters to be turned on by default for new Javascript Projects
+    "organizations:default-inbound-filters": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
     # Enable device.class as a selectable column
@@ -1739,6 +1743,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-remove-metrics-compatibility-fallback": False,
     # Enable screens view powered by span metrics
     "organizations:performance-screens-view": False,
+    # Enable platform selector for screens flow
+    "organizations:performance-screens-platform-selector": False,
     # Enable column that shows ttid ttfd contributing spans
     "organizations:mobile-ttid-ttfd-contribution": False,
     # Enable slow DB performance issue type
@@ -2173,24 +2179,6 @@ SENTRY_CACHE_OPTIONS = {"is_default_cache": True}
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
 SENTRY_ATTACHMENTS_OPTIONS: dict[str, str] = {}
-
-# Replays blob cache backend.
-#
-# To ease first time setup, we default to whatever SENTRY_CACHE is configured as. If you're
-# handling a large amount of replays you should consider setting up an isolated cache provider.
-
-# To override the default configuration you need to provide the string path of a function or
-# class as the `SENTRY_REPLAYS_CACHE` value and optionally provide keyword arguments on the
-# `SENTRY_REPLAYS_CACHE_OPTIONS` value.  Its expected that you will use one of the classes
-# defined within `sentry/cache/` but it is not required.
-
-# For reference, this cache will store binary blobs of data up to 1MB in size.  This data is
-# ephemeral and will be deleted as soon as the ingestion pipeline finishes processing a replay
-# recording segment. You can determine the average size of the chunks being cached by running
-# queries against the ReplayRecordingSegment model with the File model joined. The File model has
-# a size attribute.
-SENTRY_REPLAYS_CACHE: str = "sentry.replays.cache.default"
-SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = (
@@ -3069,6 +3057,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
+    "project_root": "/usr/src",
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,
     "send_default_pii": True,
@@ -3798,7 +3787,7 @@ ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
 MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
-MAX_FAST_CONDITION_ISSUE_ALERTS = 200
+MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
@@ -3887,10 +3876,13 @@ SENTRY_SIGNUP_URL: str | None = None
 
 SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organization_onboarding_task.OrganizationOnboardingTaskBackend"
 
-# Temporary allowlist for specially configured organizations to use the direct-storage
-# driver.
-SENTRY_REPLAYS_STORAGE_ALLOWLIST: list[int] = []
-SENTRY_REPLAYS_DOM_CLICK_SEARCH_ALLOWLIST: list[int] = []
+# Previously replays were ingested using the filestore interface and service. Both the
+# interface and the service were dropped in favor of reusing the metadata contained
+# within ClickHouse and uploading directly to the cloud storage provider.
+#
+# Default: true. Disabling this option may make older records unretrievable. No data is
+# lost as a result of toggling this setting.
+SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP = True
 
 SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",

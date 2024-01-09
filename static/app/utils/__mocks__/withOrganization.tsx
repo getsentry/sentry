@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import SentryTypes from 'sentry/sentryTypes';
 
@@ -11,7 +11,7 @@ const withOrganizationMock = WrappedComponent =>
     render() {
       return (
         <WrappedComponent
-          organization={this.context.organization || Organization()}
+          organization={this.context.organization || OrganizationFixture()}
           {...this.props}
         />
       );

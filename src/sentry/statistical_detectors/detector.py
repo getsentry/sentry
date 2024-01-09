@@ -4,7 +4,7 @@ import heapq
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import DefaultDict, Generator, Iterable, List, Optional, Set, Tuple
 
 import sentry_sdk
@@ -46,6 +46,7 @@ class RegressionDetector(ABC):
     kind: str
     regression_type: RegressionType
     min_change: int
+    buffer_period: timedelta
     resolution_rel_threshold: float
     escalation_rel_threshold: float
 
@@ -319,6 +320,9 @@ class RegressionDetector(ABC):
                     and bundle.state.should_auto_resolve(
                         group.baseline, cls.resolution_rel_threshold
                     )
+                    # enforce a buffer window after which the issue cannot
+                    # auto resolve to avoid the issue state changing frequently
+                    and group.date_regressed + cls.buffer_period <= timestamp
                 ):
                     group.active = False
                     group.date_resolved = timestamp
@@ -390,7 +394,7 @@ class RegressionDetector(ABC):
         cls,
         regressions: Generator[BreakpointData, None, None],
         batch_size=100,
-    ) -> Generator[Tuple[int, BreakpointData], None, None]:
+    ) -> Generator[Tuple[int, datetime | None, BreakpointData], None, None]:
         active_regressions = 0
 
         for regression_chunk in chunked(regressions, batch_size):
@@ -414,9 +418,9 @@ class RegressionDetector(ABC):
                 group = existing_regression_groups.get((project_id, fingerprint))
 
                 if group is None:
-                    yield 1, regression
+                    yield 0, None, regression
                 elif not group.active:
-                    yield group.version + 1, regression
+                    yield group.version, group.date_regressed, regression
                 else:
                     # There is an active regression group already, so skip it
                     active_regressions += 1
@@ -437,14 +441,26 @@ class RegressionDetector(ABC):
         versioned_regressions = cls.get_regression_versions(regressions)
 
         for regression_chunk in chunked(versioned_regressions, batch_size):
-            RegressionGroup.objects.bulk_create(
-                [
+            regression_groups = []
+
+            for version, prev_date_regressed, regression in regression_chunk:
+                date_regressed = datetime.utcfromtimestamp(regression["breakpoint"]).replace(
+                    tzinfo=timezone.utc
+                )
+
+                # enforce a buffer window after the date regressed after which the issue
+                # cannot be changed to regressed again to avoid the issue state changing frequently
+                if (
+                    prev_date_regressed is not None
+                    and prev_date_regressed + cls.buffer_period > date_regressed
+                ):
+                    continue
+
+                regression_groups.append(
                     RegressionGroup(
                         type=cls.regression_type.value,
-                        date_regressed=datetime.utcfromtimestamp(regression["breakpoint"]).replace(
-                            tzinfo=timezone.utc
-                        ),
-                        version=version,
+                        date_regressed=date_regressed,
+                        version=version + 1,
                         active=True,
                         project_id=int(regression["project"]),
                         fingerprint=generate_fingerprint(
@@ -453,12 +469,11 @@ class RegressionDetector(ABC):
                         baseline=regression["aggregate_range_1"],
                         regressed=regression["aggregate_range_2"],
                     )
-                    for version, regression in regression_chunk
-                ]
-            )
+                )
 
-            for _, regression in regression_chunk:
                 yield regression
+
+            RegressionGroup.objects.bulk_create(regression_groups)
 
 
 def generate_fingerprint(regression_type: RegressionType, name: str | int) -> str:

@@ -1,4 +1,4 @@
-import {CodeOwner as CodeOwnerFixture} from 'sentry-fixture/codeOwner';
+import {CodeOwnerFixture} from 'sentry-fixture/codeOwner';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

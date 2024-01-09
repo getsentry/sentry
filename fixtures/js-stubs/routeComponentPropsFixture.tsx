@@ -1,7 +1,7 @@
 import type {RouteComponentProps} from 'react-router';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-export default function RouteComponentPropsFixture<
+export function RouteComponentPropsFixture<
   RouteParams = {orgId: string; projectId: string},
 >(
   params: Partial<RouteComponentProps<RouteParams, {}>> = {}

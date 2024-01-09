@@ -279,19 +279,19 @@ function buildRoutes() {
         )}
         key="org-join-request"
       />
-      {usingCustomerDomain && (
+      <Route
+        path="/relocation/"
+        component={
+          make(() => import('sentry/views/relocation'))
+        }
+        key="orgless-relocation"
+      >
+        <IndexRedirect to="get-started/" />
         <Route
-          path="/relocation/"
-          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
-          key="orgless-relocation"
-        >
-          <IndexRedirect to="get-started/" />
-          <Route
-            path=":step/"
-            component={make(() => import('sentry/views/relocation'))}
-          />
-        </Route>
-      )}
+          path=":step/"
+          component={make(() => import('sentry/views/relocation'))}
+        />
+      </Route>
       {usingCustomerDomain && (
         <Route
           path="/onboarding/"
@@ -567,6 +567,19 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
+      <Route path="metrics/" name={t('Metrics')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
+        />
+        <Route
+          name={t('Metrics Details')}
+          path=":mri/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
+          )}
+        />
+      </Route>
+
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}

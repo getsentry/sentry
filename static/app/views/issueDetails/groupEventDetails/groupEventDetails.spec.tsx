@@ -1,14 +1,16 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
-import {Commit} from 'sentry-fixture/commit';
-import {CommitAuthor} from 'sentry-fixture/commitAuthor';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
+import {CommitFixture} from 'sentry-fixture/commit';
+import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -467,7 +469,7 @@ describe('EventCause', () => {
   it('renders suspect commit', async function () {
     const props = makeDefaultMockData(
       undefined,
-      TestStubs.Project({firstEvent: EventFixture()})
+      ProjectFixture({firstEvent: EventFixture().dateCreated})
     );
 
     mockGroupApis(
@@ -490,8 +492,8 @@ describe('EventCause', () => {
       body: {
         committers: [
           {
-            commits: [Commit({author: CommitAuthor()})],
-            author: CommitAuthor(),
+            commits: [CommitFixture({author: CommitAuthorFixture()})],
+            author: CommitAuthorFixture(),
           },
         ],
       },
@@ -513,17 +515,17 @@ describe('Platform Integrations', () => {
   it('loads Integration UI components', async () => {
     const props = makeDefaultMockData();
 
-    const unpublishedIntegration = SentryApp({status: 'unpublished'});
-    const internalIntegration = SentryApp({status: 'internal'});
+    const unpublishedIntegration = SentryAppFixture({status: 'unpublished'});
+    const internalIntegration = SentryAppFixture({status: 'internal'});
 
-    const unpublishedInstall = TestStubs.SentryAppInstallation({
+    const unpublishedInstall = SentryAppInstallationFixture({
       app: {
         slug: unpublishedIntegration.slug,
         uuid: unpublishedIntegration.uuid,
       },
     });
 
-    const internalInstall = TestStubs.SentryAppInstallation({
+    const internalInstall = SentryAppInstallationFixture({
       app: {
         slug: internalIntegration.slug,
         uuid: internalIntegration.uuid,
@@ -545,7 +547,7 @@ describe('Platform Integrations', () => {
       })
     );
 
-    const component = SentryAppComponent({
+    const component = SentryAppComponentFixture({
       sentryApp: {
         uuid: unpublishedIntegration.uuid,
         slug: unpublishedIntegration.slug,

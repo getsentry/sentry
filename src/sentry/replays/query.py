@@ -106,7 +106,11 @@ def query_replays_count(
         query=Query(
             match=Entity("replays"),
             select=[
-                _strip_uuid_dashes("replay_id", Column("replay_id")),
+                # The expression is explicitly aliased as "rid" to prevent the default
+                # alias "replay_id" from shadowing the replay_id column. When the column
+                # is shadowed our index is disabled in the WHERE and we waste a lot of
+                # compute parsing UUIDs we don't care about.
+                _strip_uuid_dashes("replay_id", Column("replay_id"), alias="rid"),
                 Function(
                     "ifNull",
                     parameters=[

@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
@@ -19,7 +19,7 @@ describe('SettingsLayout', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization()],
+      body: [OrganizationFixture()],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',

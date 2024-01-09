@@ -75,6 +75,7 @@ const SIZE_DATA_KEYS = [
   'Encoded Body Size',
   'Decoded Body Size',
   'Transfer Size',
+  'http.request_content_length',
   'http.response_content_length',
   'http.decoded_response_content_length',
   'http.response_transfer_size',
@@ -361,7 +362,11 @@ function SpanDetail(props: Props) {
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
       if (data.hasOwnProperty(key) && defined(data[key])) {
-        keys[key] = data[key];
+        try {
+          keys[key] = parseInt(data[key], 10);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
       return keys;
     }, {});
@@ -476,6 +481,7 @@ function SpanDetail(props: Props) {
                   title="Profile ID"
                   extra={
                     <TransactionToProfileButton
+                      event={event}
                       size="xs"
                       projectSlug={project.slug}
                       query={{

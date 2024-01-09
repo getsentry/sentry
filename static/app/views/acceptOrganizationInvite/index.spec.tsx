@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Organization} from 'sentry-fixture/organization';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +25,7 @@ const getJoinButton = () => {
 };
 
 describe('AcceptOrganizationInvite', function () {
-  const organization = Organization({slug: 'org-slug'});
+  const organization = OrganizationFixture({slug: 'org-slug'});
   const initialData = window.__initialData;
 
   afterEach(() => {

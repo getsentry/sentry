@@ -1,11 +1,12 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
-import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -17,11 +18,11 @@ import {EntryType} from 'sentry/types';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
-  const organization = Organization();
-  const project = Project({});
-  const integration = TestStubs.GitHubIntegration();
-  const repo = Repository({integrationId: integration.id});
-  const config = RepositoryProjectPathConfig({project, repo, integration});
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({});
+  const integration = GitHubIntegrationFixture();
+  const repo = RepositoryFixture({integrationId: integration.id});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -36,9 +37,9 @@ describe('Exception Content', function () {
   });
 
   it('display redacted values from exception entry', async function () {
-    const projectDetails = Project({
+    const projectDetails = ProjectFixture({
       ...project,
-      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/`,
@@ -185,12 +186,12 @@ describe('Exception Content', function () {
             values: [
               {
                 stacktrace: {
-                  frames: [EventStacktraceFrame({platform: null})],
+                  frames: [EventStacktraceFrameFixture({platform: null})],
                 },
               },
               {
                 stacktrace: {
-                  frames: [EventStacktraceFrame({platform: 'cocoa'})],
+                  frames: [EventStacktraceFrameFixture({platform: 'cocoa'})],
                 },
               },
             ],

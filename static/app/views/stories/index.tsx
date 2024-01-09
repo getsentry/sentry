@@ -19,9 +19,9 @@ export default function Stories({location}: Props) {
   return (
     <Layout>
       <StoryHeader style={{gridArea: 'head'}} />
-      <aside style={{gridArea: 'aside'}}>
+      <Sidebar style={{gridArea: 'aside'}}>
         <StoryTree files={storiesContext().files()} />
-      </aside>
+      </Sidebar>
 
       {story.error ? (
         <VerticalScroll style={{gridArea: 'body'}}>
@@ -52,6 +52,10 @@ const Layout = styled('div')`
 
   height: 100vh;
   padding: var(--stories-grid-space);
+`;
+
+const Sidebar = styled('aside')`
+  overflow: auto;
 `;
 
 const VerticalScroll = styled('main')`

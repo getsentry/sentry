@@ -12,7 +12,7 @@ from pydantic.tools import parse_obj_as
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo import SiloMode, single_process_silo_mode_state
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.utils import json
 from sentry.utils.env import in_test_environment
 
@@ -240,7 +240,7 @@ def get_region_by_name(name: str) -> Region:
     if region is not None:
         return region
     else:
-        region_names = global_regions.get_region_names(RegionCategory.MULTI_TENANT)
+        region_names = list(global_regions.get_region_names(RegionCategory.MULTI_TENANT))
         raise RegionResolutionError(
             f"No region with name: {name!r} "
             f"(expected one of {region_names!r} or a single-tenant name)"
@@ -287,8 +287,9 @@ def get_local_region() -> Region:
     # context when passing through test rpc calls, but we can't rely on settings because
     # django settings are not thread safe :'(
     # We use this thread local instead which is managed by the SiloMode context managers
-    if single_process_silo_mode_state.region:
-        return single_process_silo_mode_state.region
+    single_process_region = SingleProcessSiloModeState.get_region()
+    if single_process_region is not None:
+        return single_process_region
 
     if not settings.SENTRY_REGION:
         if in_test_environment():
