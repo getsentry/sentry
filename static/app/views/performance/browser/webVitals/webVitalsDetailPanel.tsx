@@ -236,23 +236,21 @@ export function WebVitalsDetailPanel({
   };
 
   const webVitalScore = projectScore[`${webVital}Score`];
+  const webVitalValue = projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as
+    | number
+    | undefined;
 
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
-        {webVital && webVitalScore !== undefined && (
+        {webVital && (
           <WebVitalDescription
             value={
-              webVital !== 'cls'
-                ? getDuration(
-                    (projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number) /
-                      1000,
-                    2,
-                    true
-                  )
-                : (
-                    projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
-                  )?.toFixed(2)
+              webVitalValue !== undefined
+                ? webVital !== 'cls'
+                  ? getDuration(webVitalValue / 1000, 2, true)
+                  : webVitalValue?.toFixed(2)
+                : undefined
             }
             webVital={webVital}
             score={webVitalScore}
