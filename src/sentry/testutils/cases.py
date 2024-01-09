@@ -2175,7 +2175,6 @@ class ProfilesSnubaTestCase(
         self.store_event(transaction, project_id=project.id)
 
         timestamp = transaction["timestamp"]
-        trace_context = transaction.setdefault("contexts", {}).setdefault("trace", {})
         functions = [
             {
                 **function,
@@ -2195,8 +2194,6 @@ class ProfilesSnubaTestCase(
             "retention_days": 90,
             "timestamp": int(timestamp),
             "transaction_name": transaction["transaction"],
-            "transaction_op": trace_context["op"],
-            "transaction_status": trace_context["status"],
         }
 
         if extras is not None:
