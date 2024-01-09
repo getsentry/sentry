@@ -106,7 +106,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes
+        assert_no_webhook_outboxes()
 
     @override_regions(region_config)
     @patch(
