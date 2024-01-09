@@ -172,7 +172,7 @@ function Controls({
                 {hasDDMExperimentalFeature(organization) ? (
                   <AddWidgetButton
                     onAddWidget={onAddWidget}
-                    aria-label="Add widget"
+                    aria-label="Add Widget"
                     priority="primary"
                   />
                 ) : (
