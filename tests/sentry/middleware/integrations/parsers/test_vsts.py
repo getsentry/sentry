@@ -2,14 +2,13 @@ from copy import deepcopy
 
 import responses
 from django.http import HttpRequest, HttpResponse
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
 
 from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test, create_test_regions
@@ -41,7 +40,6 @@ class VstsRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_work_item_webhook(self):
         # No integration found for request...
         data = deepcopy(WORK_ITEM_UPDATED)
@@ -79,7 +77,6 @@ class VstsRequestParserTest(TestCase):
         )
 
     @responses.activate
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_control_paths(self):
         config_request = self.factory.get(
             reverse("vsts-extension-configuration"),
@@ -107,7 +104,6 @@ class VstsRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
         region_silo_payloads = [WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS]
 
@@ -133,7 +129,6 @@ class VstsRequestParserTest(TestCase):
         integration = parser.get_integration_from_request()
         assert integration is None
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_webhook_outbox_creation(self):
         request = self.factory.post(
             self.path,

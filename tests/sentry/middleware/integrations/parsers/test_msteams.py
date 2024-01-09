@@ -2,14 +2,13 @@ from copy import deepcopy
 
 import responses
 from django.http import HttpRequest, HttpResponse
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test, create_test_regions
@@ -63,7 +62,6 @@ class MsTeamsRequestParserTest(TestCase):
         }
 
     @responses.activate
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_routing_events(self):
         # No regions identified
         request = self.factory.post(
@@ -127,7 +125,6 @@ class MsTeamsRequestParserTest(TestCase):
             assert len(responses.calls) == 0
             assert_no_webhook_outboxes()
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
         CARD_ACTION_RESPONSE = self.generate_card_response(self.integration.id)
 
@@ -165,7 +162,6 @@ class MsTeamsRequestParserTest(TestCase):
             integration = parser.get_integration_from_request()
             assert integration is None
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_handle_control_silo_payloads(self):
         help_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         help_command["text"] = "Help"
