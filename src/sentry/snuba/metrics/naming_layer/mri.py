@@ -297,13 +297,7 @@ def is_measurement(parsed_mri: ParsedMRI) -> bool:
 
     This checks the namespace, and name to match what we consider to be a standard + custom measurement.
     """
-    return (
-        parsed_mri.namespace == "transactions"
-        and parsed_mri.name.startswith("measurements.")
-        and
-        # Iterate through the transaction MRI and check that this parsed_mri isn't in there
-        parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
-    )
+    return parsed_mri.namespace == "transactions" and parsed_mri.name.startswith("measurements.")
 
 
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
