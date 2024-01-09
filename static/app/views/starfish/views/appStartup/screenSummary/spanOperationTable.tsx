@@ -32,9 +32,9 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
-import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
@@ -45,6 +45,16 @@ type Props = {
   secondaryRelease?: string;
   transaction?: string;
 };
+
+const IOS_STARTUP_SPANS = ['app.start.cold', 'app.start.warm'];
+const ANDROID_STARTUP_SPANS = [
+  'app.start.cold',
+  'app.start.warm',
+  'contentprovider.load',
+  'application.load',
+  'activity.load',
+];
+export const STARTUP_SPANS = new Set([...IOS_STARTUP_SPANS, ...ANDROID_STARTUP_SPANS]);
 
 export function SpanOperationTable({
   transaction,
@@ -69,7 +79,7 @@ export function SpanOperationTable({
     '!span.description:"Warm Start"',
     ...(spanOp
       ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
-      : ['span.op:[app.start.cold,app.start.warm]']), // TODO: Add the android-specific span ops
+      : [`span.op:[${[...STARTUP_SPANS].join(',')}]`]),
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
@@ -110,7 +120,7 @@ export function SpanOperationTable({
   const {data, isLoading, pageLinks} = useTableQuery({
     eventView,
     enabled: true,
-    referrer: 'potato',
+    referrer: 'api.starfish.mobile-spartup-span-table',
     cursor,
   });
 
