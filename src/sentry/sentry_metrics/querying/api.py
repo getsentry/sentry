@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import sentry_sdk
+from parsimonious.exceptions import IncompleteParseError
 from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request, Rollup, Timeseries
 from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, ConditionGroup, Op
 from snuba_sdk.mql.mql import parse_mql
@@ -508,7 +509,17 @@ class QueryParser:
         try:
             timeseries = parse_mql(mql).query
         except InvalidQueryError as e:
-            raise InvalidMetricsQueryError(f"The supplied query is not valid: {type(e).__name__}")
+            cause = e.__cause__
+            if cause and isinstance(cause, IncompleteParseError):
+                error_context = cause.text[cause.pos : cause.pos + 20]
+                # We expose the entire MQL string to give more context when solving the error, since in the future we
+                # expect that MQL will be directly fed into the endpoint instead of being built from the supplied
+                # fields.
+                raise InvalidMetricsQueryError(
+                    f"The query '{mql}' could not be matched starting from '{error_context}...'"
+                )
+
+            raise InvalidMetricsQueryError("The supplied query is not valid")
 
         return MutableTimeseries(timeseries=timeseries)
 
@@ -650,9 +661,7 @@ class QueryExecutor:
             )
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
-            raise MetricsQueryExecutionError(
-                f"An error occurred while executing the query: {type(e).__name__}"
-            )
+            raise MetricsQueryExecutionError("An error occurred while executing the query")
 
     def _derive_next_interval(self, result: QueryResult) -> int:
         """

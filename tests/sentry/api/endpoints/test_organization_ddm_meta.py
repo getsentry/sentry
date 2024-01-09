@@ -9,6 +9,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata.code_locations import get_cache_key_for_code_location
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
+from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -484,46 +485,26 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     def test_get_metric_spans_with_multiple_spans(self):
         mri = "g:custom/page_load@millisecond"
 
-        span_id_1 = "98230207e6e4a6ad"
-        self.store_span(
-            project_id=self.project.id,
-            timestamp=before_now(minutes=5),
-            span_id=span_id_1,
-            metrics_summary={
-                mri: [
-                    {
-                        "min": 10.0,
-                        "max": 100.0,
-                        "sum": 110.0,
-                        "count": 2,
-                        "tags": {
-                            "transaction": "/hello",
-                        },
-                    }
-                ]
-            },
-        )
-
-        span_id_2 = "10220507e6f4e6ad"
-        self.store_span(
-            project_id=self.project.id,
-            # We mark the second span as "older".
-            timestamp=before_now(minutes=10),
-            span_id=span_id_2,
-            metrics_summary={
-                mri: [
-                    {
-                        "min": 10.0,
-                        "max": 100.0,
-                        "sum": 110.0,
-                        "count": 2,
-                        "tags": {
-                            "transaction": "/world",
-                        },
-                    }
-                ]
-            },
-        )
+        data = [("98230207e6e4a6ad", "/hello"), ("10220507e6f4e6ad", "/world")]
+        for index, (span_id, transaction) in enumerate(data):
+            self.store_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5 - index),
+                span_id=span_id,
+                metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {
+                                "transaction": transaction,
+                            },
+                        }
+                    ]
+                },
+            )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -536,8 +517,8 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 2
         # We expect the first span to be the newest.
-        assert metric_spans[0]["spanId"] == span_id_1
-        assert metric_spans[1]["spanId"] == span_id_2
+        assert metric_spans[0]["spanId"] == data[1][0]
+        assert metric_spans[1]["spanId"] == data[0][0]
 
     @patch("sentry.sentry_metrics.querying.metadata.metric_spans.MAX_NUMBER_OF_SPANS", 1)
     def test_get_metric_spans_with_limit_exceeded(self):
@@ -609,3 +590,104 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             query="device:something XOR device:something_else",
             status_code=500,
         )
+
+    def test_get_metric_spans_with_transaction_duration_with_filters(self):
+        mri = TransactionMRI.DURATION.value
+
+        data = [
+            ("98230207e6e4a6ad", "/api/users", "iPhone"),
+            ("96b41c8d77b591ab", "/api/users", "OnePlus"),
+        ]
+        for index, (span_id, transaction, device) in enumerate(data):
+            self.store_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5 - index),
+                span_id=span_id,
+                is_segment=True,
+                duration_ms=100,
+                transaction=transaction,
+                tags={"device": device},
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            query="transaction:/api/users AND device:OnePlus",
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["spanId"] == data[1][0]
+        assert metric_spans[0]["segmentName"] == data[1][1]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            query="transaction:/api/users AND (device:OnePlus OR device:iPhone)",
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["spanId"] == data[1][0]
+        assert metric_spans[0]["segmentName"] == data[1][1]
+        assert metric_spans[1]["spanId"] == data[0][0]
+        assert metric_spans[1]["segmentName"] == data[0][1]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            query="transaction:/api/users AND device:iPhone AND device:OnePlus",
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 0
+
+    def test_get_metric_spans_with_transaction_duration_with_bounds(self):
+        mri = TransactionMRI.DURATION.value
+
+        span_id = "98230207e6e4a6ad"
+        transaction = "/api/users"
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id=span_id,
+            is_segment=True,
+            duration_ms=100,
+            transaction=transaction,
+        )
+
+        for min_val, max_val, expected_span_ids in (
+            (10.0, 100.0, [span_id]),
+            (90.0, 150.0, [span_id]),
+            (10.0, 50.0, []),
+            (None, 90, []),
+            (None, 100, [span_id]),
+            (110, None, []),
+            (100, None, [span_id]),
+            (None, None, [span_id]),
+        ):
+            extra_params = {}
+            if min_val:
+                extra_params["min"] = min_val
+            if max_val:
+                extra_params["max"] = max_val
+
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=[mri],
+                project=[self.project.id],
+                statsPeriod="1d",
+                metricSpans="true",
+                **extra_params,
+            )
+
+            metric_spans = response.data["metricSpans"]
+            assert len(metric_spans) == len(cast(Sequence[str], expected_span_ids))
+            for i, expected_span_id in enumerate(cast(Sequence[str], expected_span_ids)):
+                assert metric_spans[i]["spanId"] == expected_span_id

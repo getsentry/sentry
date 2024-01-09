@@ -168,7 +168,7 @@ function WidgetBuilder({
   tags,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
-  const {source, displayType, defaultTitle, limit} = location.query;
+  const {source, displayType, defaultTitle, limit, dataset} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
@@ -211,15 +211,20 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const dataset = source === DashboardWidgetSource.DDM ? DataSet.METRICS : DataSet.EVENTS;
+  const dataSet = dataset
+    ? dataset
+    : source === DashboardWidgetSource.DDM
+    ? DataSet.METRICS
+    : DataSet.EVENTS;
 
   const api = useApi();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
-    getDatasetConfig(WidgetType.DISCOVER)
+    getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
   );
+
   const defaultThresholds: ThresholdsConfig = {max_values: {}, unit: null};
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
@@ -238,7 +243,7 @@ function WidgetBuilder({
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
-      dataSet: dataset,
+      dataSet,
       queryConditionsValid: true,
       selectedDashboard: dashboard.id || NEW_DASHBOARD_ID,
     };
