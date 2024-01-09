@@ -16,6 +16,7 @@ from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
@@ -1084,6 +1085,13 @@ def postprocessing(uuid: str) -> None:
                 default_org_role=org.default_role,
                 user_id=relocation.owner_id,
                 role="owner",
+            )
+
+            analytics.record(
+                organization_id=org.id,
+                slug=org.slug,
+                name=org.name,
+                owner_id=relocation.owner_id,
             )
 
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
