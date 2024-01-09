@@ -272,6 +272,7 @@ from .endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
+from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
 from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
@@ -2824,6 +2825,11 @@ INTERNAL_URLS = [
         r"^feature-flags/$",
         InternalFeatureFlagsEndpoint.as_view(),
         name="sentry-api-0-internal-feature-flags",
+    ),
+    re_path(
+        r"^feature-flags/ea-feature-flags$",
+        InternalEAFeaturesEndpoint.as_view(),
+        name="sentry-api-0-internal-ea-features",
     ),
 ]
 

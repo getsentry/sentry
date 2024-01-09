@@ -16,6 +16,7 @@ from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.region import find_regions_for_user
 from sentry.utils.security import get_secure_token
 
@@ -37,7 +38,7 @@ class UserEmailManager(BaseManager["UserEmail"]):
             emails_by_user[entry.user].add(entry.email)
         return emails_by_user
 
-    def get_primary_email(self, user: User) -> UserEmail:
+    def get_primary_email(self, user: RpcUser | User) -> UserEmail:
         user_email, _ = self.get_or_create(user_id=user.id, email=user.email)
         return user_email
 
