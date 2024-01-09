@@ -55,7 +55,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
         try:
             regions = self.get_regions_from_organizations()
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
-            pass
+            return self.get_default_missing_integration_response()
 
         if len(regions) == 0:
             with sentry_sdk.push_scope() as scope:
