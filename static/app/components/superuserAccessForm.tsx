@@ -21,6 +21,7 @@ type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']
 
 type Props = {
   api: Client;
+  hasStaff: boolean;
 };
 
 type State = {
@@ -85,11 +86,16 @@ class SuperuserAccessForm extends Component<Props, State> {
 
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     const {api} = this.props;
-    try {
+    let auth_url = '/staff-auth/';
+    if (!this.props.hasStaff) {
       data.isSuperuserModal = true;
       data.superuserAccessCategory = this.state.superuserAccessCategory;
       data.superuserReason = this.state.superuserReason;
-      await api.requestPromise('/auth/', {method: 'PUT', data});
+      auth_url = '/auth/';
+    }
+    try {
+
+      await api.requestPromise(auth_url, {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
       this.setState({showAccessForms: true});
@@ -164,8 +170,15 @@ class SuperuserAccessForm extends Component<Props, State> {
       this.handleLogout();
       return null;
     }
+
     return (
       <ThemeAndStyleProvider>
+        {this.props.hasStaff ? // Skip access form if using new new staff
+            <U2fContainer
+              authenticators={authenticators}
+              displayMode="sudo"
+              onTap={this.handleU2fTap}
+            /> :
         <Form
           submitLabel={t('Continue')}
           onSubmit={this.handleSubmit}
@@ -193,6 +206,7 @@ class SuperuserAccessForm extends Component<Props, State> {
             />
           )}
         </Form>
+        }
       </ThemeAndStyleProvider>
     );
   }
