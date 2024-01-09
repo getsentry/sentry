@@ -190,19 +190,23 @@ class FingerprintingRules:
                 return (rule,) + new_values
 
     @classmethod
-    def _from_config_structure(cls, data):
+    def _from_config_structure(cls, data, bases=None):
         version = data["version"]
         if version != VERSION:
             raise ValueError("Unknown version")
-        return cls(rules=[Rule._from_config_structure(x) for x in data["rules"]], version=version)
+        return cls(
+            rules=[Rule._from_config_structure(x) for x in data["rules"]],
+            version=version,
+            bases=bases,
+        )
 
     def _to_config_structure(self, include_builtin=False):
         rules = self.iter_rules(include_builtin=include_builtin)
 
         return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
 
-    def to_json(self):
-        return self._to_config_structure()
+    def to_json(self, bases=None):
+        return self._to_config_structure(bases=bases)
 
     @classmethod
     def from_json(cls, value):

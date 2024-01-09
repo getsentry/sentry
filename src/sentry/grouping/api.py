@@ -226,7 +226,7 @@ def get_fingerprinting_config_for_project(
     cache_key = "fingerprinting-rules:" + md5_text(rules).hexdigest()
     rv = cache.get(cache_key)
     if rv is not None:
-        return FingerprintingRules.from_json(rv)
+        return FingerprintingRules.from_json(rv, bases=bases)
 
     try:
         rv = FingerprintingRules.from_config_string(rules, bases=bases)
