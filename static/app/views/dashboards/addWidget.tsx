@@ -33,19 +33,8 @@ function AddWidget({onAddWidget}: Props) {
     id: ADD_WIDGET_BUTTON_DRAG_ID,
     transition: null,
   });
+
   const organization = useOrganization();
-
-  const datasetChoices = new Map<string, string>();
-  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
-  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
-
-  if (organization.features.includes('dashboards-rh-widget')) {
-    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
-
-  if (hasDDMFeature(organization)) {
-    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
-  }
 
   return (
     <WidgetWrapper

@@ -130,18 +130,6 @@ function Controls({
     );
   }
 
-  const datasetChoices = new Map<string, string>();
-  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
-  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
-
-  if (organization.features.includes('dashboards-rh-widget')) {
-    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
-
-  if (hasDDMFeature(organization)) {
-    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
-  }
-
   return (
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
