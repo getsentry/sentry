@@ -62,16 +62,11 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
-    GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
-    apply_server_fingerprinting,
-    detect_synthetic_exception,
-    get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
-    load_grouping_config,
 )
-from sentry.grouping.ingest import update_grouping_config_if_needed
+from sentry.grouping.ingest import calculate_event_grouping, update_grouping_config_if_needed
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
@@ -769,7 +764,7 @@ def _calculate_primary_hash(
 
     This is pulled out into a separate function mostly in order to make testing easier.
     """
-    return _calculate_event_grouping(project, job["event"], grouping_config)
+    return calculate_event_grouping(project, job["event"], grouping_config)
 
 
 def _calculate_secondary_hash(
@@ -786,10 +781,10 @@ def _calculate_secondary_hash(
             op="event_manager",
             description="event_manager.save.secondary_calculate_event_grouping",
         ):
-            # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
+            # create a copy since `calculate_event_grouping` modifies the event to add all sorts
             # of grouping info and we don't want the backup grouping data in there
             event_copy = copy.deepcopy(job["event"])
-            secondary_hashes = _calculate_event_grouping(
+            secondary_hashes = calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
             )
     except Exception:
@@ -807,7 +802,7 @@ def _calculate_background_grouping(
         "sdk": normalized_sdk_tag_from_event(event),
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
-        return _calculate_event_grouping(project, event, config)
+        return calculate_event_grouping(project, event, config)
 
 
 def _run_background_grouping(project: Project, job: Job) -> None:
@@ -2494,54 +2489,6 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
                 metrics.incr(f"event_manager.save.event_metrics.{metric_name}")
 
         job["event_metrics"] = event_metrics
-
-
-def _calculate_event_grouping(
-    project: Project, event: Event, grouping_config: GroupingConfig
-) -> CalculatedHashes:
-    """
-    Main entrypoint for modifying/enhancing and grouping an event, writes
-    hashes back into event payload.
-    """
-    metric_tags: MutableTags = {
-        "grouping_config": grouping_config["id"],
-        "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
-    }
-
-    with metrics.timer("save_event.calculate_event_grouping", tags=metric_tags):
-        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-                event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
-
-        # Detect & set synthetic marker if necessary
-        detect_synthetic_exception(event.data, grouping_config)
-
-        with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
-            # The active grouping config was put into the event in the
-            # normalize step before.  We now also make sure that the
-            # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to get_hashes will then
-            # look at `grouping_config` to pick the right parameters.
-            event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(
-                event.data.data,
-                get_fingerprinting_config_for_project(project),
-                allow_custom_title=True,
-            )
-
-        with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            # Here we try to use the grouping config that was requested in the
-            # event. If that config has since been deleted (because it was an
-            # experimental grouping config) we fall back to the default.
-            try:
-                hashes = event.get_hashes(grouping_config)
-            except GroupingConfigNotFound:
-                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = event.get_hashes()
-
-        hashes.write_to_event(event.data)
-        return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
