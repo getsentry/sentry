@@ -120,9 +120,11 @@ def calculate_event_grouping(
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            # Here we try to use the grouping config that was requested in the
-            # event. If that config has since been deleted (because it was an
-            # experimental grouping config) we fall back to the default.
+            # TODO: It's not clear we can even hit `GroupingConfigNotFound` here - this is leftover
+            # from a time before we started separately retrieving the grouping config and passing it
+            # directly to `get_hashes`. Now that we do that, a bogus config will get replaced by the
+            # default long before we get here. Should we consolidate bogus config handling into the
+            # code actually getting the config?
             try:
                 hashes = event.get_hashes(grouping_config)
             except GroupingConfigNotFound:
