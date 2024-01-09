@@ -4,7 +4,7 @@ import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import {t} from 'sentry/locale';
 import {space} from "sentry/styles/space";
 import {Organization} from 'sentry/types';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
+import {getRegionDataFromOrganization, shouldDisplayRegions} from 'sentry/utils/regions';
 
 type Props = {
   organization?: Organization;
@@ -20,7 +20,7 @@ const OrganizationFlag = styled('span')`
 `;
 
 export function OrganizationRegionAction({organization, ...props}: Props) {
-  if (!organization) {
+  if (!organization || !shouldDisplayRegions()) {
     return null;
   }
 
