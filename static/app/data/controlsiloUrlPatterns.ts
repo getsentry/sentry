@@ -137,7 +137,6 @@ const patterns: RegExp[] = [
   new RegExp('^auth/reactivate/$'),
   new RegExp('^auth/register/$'),
   new RegExp('^auth/close/$'),
-  new RegExp('^account/user-confirm/[^/]+/$'),
   new RegExp('^account/settings/identities/associate/[^/]+/[^/]+/[^/]+/$'),
   new RegExp('^account/settings/wizard/[^/]+/$'),
   new RegExp('^disabled-member/'),
