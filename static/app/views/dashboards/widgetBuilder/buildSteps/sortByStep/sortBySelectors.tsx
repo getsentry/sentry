@@ -123,7 +123,10 @@ export function SortBySelectors({
           <QueryField
             disabled={disableSort}
             fieldValue={
-              showCustomEquation
+              // Fields in metrics widgets would parse as function in explodeField
+              widgetType === WidgetType.METRICS
+                ? {kind: 'field', field: values.sortBy}
+                : showCustomEquation
                 ? explodeField({field: CUSTOM_EQUATION_VALUE})
                 : explodeField({field: values.sortBy})
             }
@@ -154,7 +157,6 @@ export function SortBySelectors({
                 onChange(customEquation);
                 return;
               }
-
               onChange({
                 sortBy: parsedValue,
                 sortDirection: values.sortDirection,
