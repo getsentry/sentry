@@ -9,7 +9,11 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.metadata.utils import get_snuba_conditions_from_query
+from sentry.sentry_metrics.querying.metadata.utils import (
+    get_snuba_conditions_from_query,
+    transform_conditions_with,
+    transform_to_tags,
+)
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI, is_mri
 from sentry.snuba.referrer import Referrer
@@ -17,6 +21,18 @@ from sentry.utils.snuba import raw_snql_query
 
 # Maximum number of unique spans returned by the database.
 MAX_NUMBER_OF_SPANS = 10
+# Sentry tag values that are converted to columns in Snuba. The conversion happens here:
+# https://github.com/getsentry/snuba/blob/master/snuba/datasets/processors/spans_processor.py
+SENTRY_TAG_TO_COLUMN_NAME = {
+    "module": "module",
+    "action": "action",
+    "domain": "domain",
+    "group": "group",
+    "system": "platform",
+    "transaction": "segment_name",
+    "op": "op",
+    "transaction.op": "transaction_op",
+}
 
 
 @dataclass(frozen=True)
@@ -27,6 +43,8 @@ class Span:
     transaction_id: Optional[str]
     profile_id: Optional[str]
     duration: int
+    segment_name: str
+    timestamp: datetime
 
 
 @dataclass(frozen=True)
@@ -105,12 +123,11 @@ class MetricsSummariesSpansSource(SpansSource):
         tag device:iPhone, we will only show you the spans in which the metric with tag device:iPhone was emitted.
         """
         where = []
+
         if min_value is not None:
             where.append(Condition(Column("min"), Op.GTE, min_value))
-
         if max_value is not None:
             where.append(Condition(Column("max"), Op.LTE, max_value))
-
         if conditions:
             where += conditions
 
@@ -157,7 +174,7 @@ class MetricsSummariesSpansSource(SpansSource):
     ) -> Sequence[Span]:
         span_ids = self._get_span_ids_from_metrics_summaries(
             metric_mri=metric_mri,
-            conditions=conditions,
+            conditions=transform_to_tags(conditions),
             start=start,
             end=end,
             min_value=min_value,
@@ -189,11 +206,30 @@ class TransactionDurationSpansSource(SpansSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Span]:
-        # TODO: implement transaction.duration handling by looking for:
-        #   is_segment: 1
-        #   duration >= min and duration <= max
-        #   sentry_tags and tags as values from the query string
-        return []
+        where = []
+
+        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_with(
+            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
+        )
+
+        if transformed_conditions:
+            where += transformed_conditions
+        if min_value:
+            where += [Condition(Column("duration"), Op.GTE, min_value)]
+        if max_value:
+            where += [Condition(Column("duration"), Op.LTE, max_value)]
+
+        return get_indexed_spans(
+            where=[
+                Condition(Column("is_segment"), Op.GTE, 1),
+            ]
+            + where,
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
 
 
 def get_indexed_spans(
@@ -204,7 +240,10 @@ def get_indexed_spans(
     projects: Sequence[Project],
 ):
     """
-    Fetches indexed spans using internal query builders.
+    Fetches top N most recent indexed spans.
+
+    The choice of not using query builders was deliberate, since we have to access columns that are not exposed via
+    the query builders because they are meant to be internal.
     """
     query = Query(
         match=Entity(EntityKey.Spans.value),
@@ -215,6 +254,8 @@ def get_indexed_spans(
             Column("transaction_id"),
             Column("profile_id"),
             Column("duration"),
+            Column("segment_name"),
+            Column("timestamp"),
         ],
         where=[
             Condition(Column("project_id"), Op.IN, [project.id for project in projects]),
@@ -222,7 +263,9 @@ def get_indexed_spans(
             Condition(Column("timestamp"), Op.LT, end),
         ]
         + (where or []),
+        # We want to get the newest spans.
         orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
+        limit=Limit(MAX_NUMBER_OF_SPANS),
     )
 
     request = Request(
@@ -242,6 +285,8 @@ def get_indexed_spans(
             transaction_id=value["transaction_id"],
             profile_id=value["profile_id"],
             duration=value["duration"],
+            segment_name=value["segment_name"],
+            timestamp=value["timestamp"],
         )
         for value in data
     ]
