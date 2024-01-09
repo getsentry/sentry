@@ -123,12 +123,11 @@ class MetricsSummariesSpansSource(SpansSource):
         tag device:iPhone, we will only show you the spans in which the metric with tag device:iPhone was emitted.
         """
         where = []
+
         if min_value is not None:
             where.append(Condition(Column("min"), Op.GTE, min_value))
-
         if max_value is not None:
             where.append(Condition(Column("max"), Op.LTE, max_value))
-
         if conditions:
             where += conditions
 
@@ -207,18 +206,25 @@ class TransactionDurationSpansSource(SpansSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Span]:
+        where = []
+
         transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
 
+        if transformed_conditions:
+            where += transformed_conditions
+        if min_value:
+            where += [Condition(Column("duration"), Op.GTE, min_value)]
+        if max_value:
+            where += [Condition(Column("duration"), Op.LTE, max_value)]
+
         return get_indexed_spans(
             where=[
-                Condition(Column("duration"), Op.GTE, min_value),
-                Condition(Column("duration"), Op.LTE, max_value),
                 Condition(Column("is_segment"), Op.GTE, 1),
             ]
-            + (transformed_conditions or []),
+            + where,
             start=start,
             end=end,
             organization=self.organization,
