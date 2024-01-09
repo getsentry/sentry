@@ -3,6 +3,18 @@ import {defined} from 'sentry/utils';
 
 import {Context} from './types';
 
+const serverSideSdks = [
+  'sentry.javascript.nextjs',
+  'sentry.javascript.gatsby',
+  'sentry.javascript.remix',
+  'sentry.javascript.astro',
+  'sentry.javascript.sveltekit',
+];
+
+function isServerSideRenderedEvent(event: Event) {
+  return event.sdk && serverSideSdks.includes(event.sdk.name);
+}
+
 /**
  * Generates a predicate to filter a list of contexts for an event.
  *
@@ -18,6 +30,16 @@ export const makeContextFilter = (event: Event) =>
 
       if (model === 'Mac' && !arch && os?.toLowerCase().includes('mac')) {
         return false;
+      }
+    }
+
+    if (isServerSideRenderedEvent(event)) {
+      if (context.keys.includes('browser')) {
+        const runtime = event.contexts?.runtime;
+
+        if (runtime?.name !== 'browser') {
+          return false;
+        }
       }
     }
 

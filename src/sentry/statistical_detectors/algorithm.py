@@ -71,7 +71,7 @@ class MovingAverageDetectorState(DetectorState):
         if change < min_change:
             return False
 
-        rel_change = change / baseline
+        rel_change = change / (regressed - baseline)
         if rel_change > rel_threshold:
             return True
 

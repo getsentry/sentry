@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import dataclasses
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
 
 from sentry.api.event_search import parse_search_query
+from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
@@ -26,6 +28,11 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 
     replay_ids_mapping = _get_replay_id_mappings(query, snuba_params, data_source)
 
+    # It's not guaranteed that any results will be returned by this query. If the result-set
+    # is empty exit early to save us a query.
+    if not replay_ids_mapping:
+        return {}
+
     replay_results = query_replays_count(
         project_ids=[p.id for p in snuba_params.projects],
         start=snuba_params.start,
@@ -43,7 +50,6 @@ def get_replay_counts(snuba_params: SnubaParams, query, return_ids, data_source)
 def _get_replay_id_mappings(
     query, snuba_params, data_source=Dataset.Discover
 ) -> dict[str, list[str]]:
-
     select_column, value = _get_select_column(query)
     query = query + FILTER_HAS_A_REPLAY if data_source == Dataset.Discover else query
 
@@ -51,6 +57,25 @@ def _get_replay_id_mappings(
         # just return a mapping of replay_id:replay_id instead of hitting discover
         # if we want to validate list of replay_ids existence
         return {v: [v] for v in value}
+
+    # The client may or may not have narrowed the request by project-id. We have a
+    # defined set of issue-ids and can efficiently look-up their project-ids if the
+    # client did not provide them. This optimization saves a significant amount of
+    # time and memory when querying ClickHouse.
+    #
+    # NOTE: Possible to skip this. If the client did not set project_id = -1 then
+    # we could trust the client narrowed the project-ids correctly. However, this
+    # safety check is inexpensive and bad-actors (or malfunctioning clients) could
+    # provide every project_id manually.
+    if select_column == "issue.id":
+        groups = Group.objects.select_related("project").filter(
+            project__organization_id=snuba_params.organization.id,
+            id__in=value,
+        )
+        snuba_params = dataclasses.replace(
+            snuba_params,
+            projects=[group.project for group in groups],
+        )
 
     builder = QueryBuilder(
         dataset=data_source,
@@ -73,7 +98,11 @@ def _get_replay_id_mappings(
 
     for row in discover_results["data"]:
         for replay_id in row["group_uniq_array_100_replayId"]:
-            replay_id_to_issue_map[replay_id].append(row[select_column])
+            # When no replay exists these strings are provided in their empty
+            # state rather than null. This can cause downstream problems so
+            # we filter them out.
+            if replay_id != "":
+                replay_id_to_issue_map[replay_id].append(row[select_column])
 
     return replay_id_to_issue_map
 
@@ -81,7 +110,7 @@ def _get_replay_id_mappings(
 def _get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
     ret: dict[str, int] = defaultdict(int)
     for row in replay_results["data"]:
-        identifiers = replay_ids_mapping[row["replay_id"]]
+        identifiers = replay_ids_mapping[row["rid"]]
         for identifier in identifiers:
             ret[identifier] = min(ret[identifier] + 1, MAX_REPLAY_COUNT)
     return ret
@@ -92,10 +121,10 @@ def _get_replay_ids(
 ) -> dict[str, list[str]]:
     ret: dict[str, list[str]] = defaultdict(list)
     for row in replay_results["data"]:
-        identifiers = replay_ids_mapping[row["replay_id"]]
+        identifiers = replay_ids_mapping[row["rid"]]
         for identifier in identifiers:
             if len(ret[identifier]) < MAX_REPLAY_COUNT:
-                ret[identifier].append(row["replay_id"])
+                ret[identifier].append(row["rid"])
     return ret
 
 

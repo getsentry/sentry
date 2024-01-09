@@ -3,14 +3,12 @@ from __future__ import annotations
 import copy
 import ipaddress
 import logging
-import mimetypes
 import random
 import re
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -73,6 +71,7 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
+from sentry.grouping.ingest import update_grouping_config_if_needed
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
@@ -80,12 +79,10 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
-from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
 from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
-from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -105,9 +102,8 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
-from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
-from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.reprocessing2 import is_reprocessed_event
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
@@ -559,6 +555,26 @@ class EventManager:
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_primary_hash(project, job, grouping_config)
 
+        if secondary_hashes:
+            tags = {
+                "primary_config": grouping_config["id"],
+                "secondary_config": secondary_grouping_config["id"],
+            }
+            current_values = hashes.hashes
+            secondary_values = secondary_hashes.hashes
+            hashes_match = current_values == secondary_values
+
+            if hashes_match:
+                tags["result"] = "no change"
+            else:
+                shared_hashes = set(current_values) & set(secondary_values)
+                if len(shared_hashes) > 0:
+                    tags["result"] = "partial change"
+                else:
+                    tags["result"] = "full change"
+
+            metrics.incr("grouping.hash_comparison", tags=tags)
+
         # Track the total number of grouping calculations done overall, so we can divide by the
         # count to get an average number of calculations per event
         metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
@@ -668,7 +684,6 @@ class EventManager:
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs=jobs, app_feature="errors")
-        save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
             if not project.first_event:
@@ -731,8 +746,7 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if _project_should_update_grouping(project):
-            _auto_update_grouping(project)
+        update_grouping_config_if_needed(project)
 
         return job["event"]
 
@@ -782,56 +796,6 @@ def _calculate_secondary_hash(
         sentry_sdk.capture_exception()
 
     return secondary_hashes
-
-
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
-
-
-def _auto_update_grouping(project: Project) -> None:
-    old_grouping = project.get_option("sentry:grouping_config")
-    new_grouping = DEFAULT_GROUPING_CONFIG
-
-    # update to latest grouping config but not if a user is already on
-    # beta.
-    if old_grouping == new_grouping or old_grouping == BETA_GROUPING_CONFIG:
-        return
-
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry only and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
-    cache_key = f"grouping-config-update:{project.id}:{old_grouping}"
-    lock = f"grouping-update-lock:{project.id}"
-    if cache.get(cache_key) is not None:
-        return
-
-    with locks.get(lock, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
-            return
-
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
-
-        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-        changes = {
-            "sentry:secondary_grouping_config": old_grouping,
-            "sentry:secondary_grouping_expiry": expiry,
-            "sentry:grouping_config": new_grouping,
-        }
-        for key, value in changes.items():
-            project.update_option(key, value)
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**changes, **project.get_audit_log_data()},
-        )
 
 
 def _calculate_background_grouping(
@@ -2405,6 +2369,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     return filtered
 
 
+@sentry_sdk.tracing.trace
 def save_attachment(
     cache_key: Optional[str],
     attachment: Attachment,
@@ -2440,7 +2405,7 @@ def save_attachment(
         timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     try:
-        data = attachment.data
+        attachment.data
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,
@@ -2456,18 +2421,7 @@ def save_attachment(
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
 
-    content_type = normalize_content_type(attachment.content_type, attachment.name)
-
-    file = File.objects.create(
-        name=attachment.name,
-        type=attachment.type,
-        headers={"Content-Type": content_type},
-    )
-    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
-
-    size = file.size
-    sha1 = file.checksum
-    file_id = file.id
+    file = EventAttachment.putfile(project.id, attachment)
 
     EventAttachment.objects.create(
         # lookup:
@@ -2477,11 +2431,12 @@ def save_attachment(
         # metadata:
         type=attachment.type,
         name=attachment.name,
-        content_type=content_type,
-        size=size,
-        sha1=sha1,
+        content_type=file.content_type,
+        size=file.size,
+        sha1=file.sha1,
         # storage:
-        file_id=file_id,
+        file_id=file.file_id,
+        blob_path=file.blob_path,
     )
 
     track_outcome(
@@ -2495,12 +2450,6 @@ def save_attachment(
         category=DataCategory.ATTACHMENT,
         quantity=attachment.size or 1,
     )
-
-
-def normalize_content_type(content_type: str | None, name: str) -> str:
-    if content_type:
-        return content_type.split(";")[0].strip()
-    return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 
 def save_attachments(cache_key: Optional[str], attachments: list[Attachment], job: Job) -> None:

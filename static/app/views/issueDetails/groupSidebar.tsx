@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import isObject from 'lodash/isObject';
 
 import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -117,7 +116,9 @@ export default function GroupSidebar({
         issues.push(
           <Fragment key={plugin.slug}>
             <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
-            <a href={issue.url}>{isObject(issue.label) ? issue.label.id : issue.label}</a>
+            <a href={issue.url}>
+              {typeof issue.label === 'object' ? issue.label.id : issue.label}
+            </a>
           </Fragment>
         );
       }

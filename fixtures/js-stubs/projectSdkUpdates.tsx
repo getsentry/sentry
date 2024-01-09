@@ -1,8 +1,8 @@
-import type {ProjectSdkUpdates as TProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types';
 
-export function ProjectSdkUpdates(
-  overrides?: Partial<TProjectSdkUpdates>
-): TProjectSdkUpdates {
+export function ProjectSdkUpdatesFixture(
+  overrides?: Partial<ProjectSdkUpdates>
+): ProjectSdkUpdates {
   return {
     projectId: '1',
     sdkName: 'sentry.javascript',

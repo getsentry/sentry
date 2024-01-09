@@ -51,7 +51,9 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.msteams.card_builder import build_incident_attachment
+        from sentry.integrations.msteams.card_builder.incident_attachment import (
+            build_incident_attachment,
+        )
 
         responses.add(
             method=responses.POST,

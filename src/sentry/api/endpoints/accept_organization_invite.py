@@ -89,7 +89,7 @@ class AcceptOrganizationInvite(Endpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
     # Disable authentication and permission requirements.
-    permission_classes = []
+    permission_classes = ()
 
     @staticmethod
     def respond_invalid() -> Response:

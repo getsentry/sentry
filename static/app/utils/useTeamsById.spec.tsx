@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -18,8 +18,8 @@ const queryClient = new QueryClient({
 });
 
 describe('useTeamsById', function () {
-  const org = Organization();
-  const mockTeams = [Team()];
+  const org = OrganizationFixture();
+  const mockTeams = [TeamFixture()];
 
   const wrapper = ({children}: {children?: any}) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -59,7 +59,7 @@ describe('useTeamsById', function () {
 
   it('provides only the specified slugs', async function () {
     TeamStore.loadInitialData(mockTeams);
-    const teamFoo = Team({id: '49', slug: 'foo'});
+    const teamFoo = TeamFixture({id: '49', slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
@@ -97,7 +97,7 @@ describe('useTeamsById', function () {
   });
 
   it('can load teams by id', async function () {
-    const requestedTeams = [Team({id: '2', slug: 'requested-team'})];
+    const requestedTeams = [TeamFixture({id: '2', slug: 'requested-team'})];
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',

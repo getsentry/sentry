@@ -11,6 +11,7 @@ import toPercent from 'sentry/utils/number/toPercent';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {NewTraceDetailsSpanBar} from './newTraceDetailsSpanBar';
 import {SpanBar} from './spanBar';
 
 export type ScrollbarManagerChildrenProps = {
@@ -21,7 +22,7 @@ export type ScrollbarManagerChildrenProps = {
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
-  storeSpanBar: (spanBar: SpanBar) => void;
+  storeSpanBar: (spanBar: SpanBar | NewTraceDetailsSpanBar) => void;
   updateHorizontalScrollState: (avgSpanDepth: number) => void;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
@@ -123,7 +124,7 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spanBars: SpanBar[] = [];
+  spanBars: (SpanBar | NewTraceDetailsSpanBar)[] = [];
   currentLeftPos = 0;
 
   getReferenceSpanBar() {
@@ -513,7 +514,7 @@ export class Provider extends Component<Props, State> {
     });
   }
 
-  storeSpanBar = (spanBar: SpanBar) => {
+  storeSpanBar = (spanBar: SpanBar | NewTraceDetailsSpanBar) => {
     this.spanBars.push(spanBar);
   };
 

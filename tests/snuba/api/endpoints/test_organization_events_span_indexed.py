@@ -56,7 +56,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "span_id": uuid4().hex[:16],
                 "parent_span_id": uuid4().hex[:16],
                 "segment_id": uuid4().hex[:16],
-                "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts.timestamp() * 1000),

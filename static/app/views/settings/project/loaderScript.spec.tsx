@@ -1,4 +1,4 @@
-import {ProjectKeys, ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -64,7 +64,7 @@ describe('LoaderScript', function () {
 
   it('renders for single project', async function () {
     const {organization, project} = initializeOrg();
-    const projectKey = ProjectKeys()[0];
+    const projectKey = ProjectKeysFixture()[0];
     const projectKeys = [projectKey];
 
     mockApi({organization, project, projectKeys});
@@ -102,7 +102,7 @@ describe('LoaderScript', function () {
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
         name: 'Key 2',
         rateLimit: null,
-        projectId: '1',
+        projectId: 1,
         dateCreated: '2018-02-28T07:13:51.087Z',
         id: '188ee45a58094d939428d8585aa6f662',
         isActive: true,
@@ -143,7 +143,7 @@ describe('LoaderScript', function () {
 
   it('allows to update key settings', async function () {
     const {organization, project} = initializeOrg();
-    const baseKey = ProjectKeys()[0];
+    const baseKey = ProjectKeysFixture()[0];
     const projectKey = {
       ...baseKey,
       dynamicSdkLoaderOptions: {
@@ -239,7 +239,7 @@ describe('LoaderScript', function () {
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
         name: 'Key 2',
         rateLimit: null,
-        projectId: '1',
+        projectId: 1,
         dateCreated: '2018-02-28T07:13:51.087Z',
         id: '188ee45a58094d939428d8585aa6f662',
         isActive: true,

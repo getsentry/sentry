@@ -1,8 +1,8 @@
 import {
-  MetricsField,
-  MetricsSessionUserCountByStatusByRelease,
+  MetricsFieldFixture,
+  MetricsSessionUserCountByStatusByReleaseFixture,
 } from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -80,7 +80,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField(`session.all`),
+      body: MetricsFieldFixture(`session.all`),
     });
     const children = jest.fn(() => <div />);
 
@@ -128,7 +128,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     });
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsSessionUserCountByStatusByRelease(),
+      body: MetricsSessionUserCountByStatusByReleaseFixture(),
     });
     const children = jest.fn(() => <div />);
     const queries = [
@@ -188,7 +188,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('calls session api when session.status is a group by', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
-      body: MetricsField(`count_unique(user)`),
+      body: MetricsFieldFixture(`count_unique(user)`),
     });
     const children = jest.fn(() => <div />);
     const queries = [
@@ -231,7 +231,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('appends dashboard filters to releases request', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsSessionUserCountByStatusByRelease(),
+      body: MetricsSessionUserCountByStatusByReleaseFixture(),
     });
 
     render(
@@ -261,7 +261,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('strips injected sort columns', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsSessionUserCountByStatusByRelease(),
+      body: MetricsSessionUserCountByStatusByReleaseFixture(),
     });
     const children = jest.fn(() => <div />);
 
@@ -462,7 +462,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsSessionUserCountByStatusByRelease(),
+      body: MetricsSessionUserCountByStatusByReleaseFixture(),
     });
     const children = jest.fn(() => <div />);
 
@@ -562,7 +562,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField(`count_unique(sentry.sessions.user)`),
+      body: MetricsFieldFixture(`count_unique(sentry.sessions.user)`),
     });
     const children = jest.fn(() => <div />);
 
@@ -608,7 +608,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: SessionsField(`session.all`),
+      body: SessionsFieldFixture(`session.all`),
       match: [
         MockApiClient.matchQuery({
           field: [`session.all`],
@@ -703,7 +703,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: SessionsField(`session.all`),
+      body: SessionsFieldFixture(`session.all`),
     });
 
     render(
@@ -735,7 +735,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('does not re-fetch when renaming legend alias / adding falsy fields', () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: SessionsField(`session.all`),
+      body: SessionsFieldFixture(`session.all`),
     });
     const children = jest.fn(() => <div />);
 
@@ -779,7 +779,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   it('does not re-fetch when dashboard filter remains the same', () => {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
-      body: SessionsField(`session.all`),
+      body: SessionsFieldFixture(`session.all`),
     });
     const children = jest.fn(() => <div />);
 

@@ -6,17 +6,19 @@ import inspect
 import os
 import re
 import sys
-from contextlib import contextmanager
+import threading
+import typing
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
     Collection,
     Dict,
+    Generator,
     Iterable,
     List,
     Literal,
-    MutableMapping,
     MutableSet,
     Sequence,
     Set,
@@ -28,29 +30,74 @@ from unittest import TestCase
 
 import pytest
 from django.apps import apps
-from django.conf import settings
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
-from sentry import deletions
-from sentry.api.utils import generate_region_url
-from sentry.db.models.base import BaseModel, ModelSiloLimit
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
-from sentry.deletions.base import BaseDeletionTask
-from sentry.models.actor import Actor
-from sentry.silo import SiloMode, match_fence_query
-from sentry.testutils.region import override_regions
+from sentry.silo import SiloMode, SingleProcessSiloModeState, match_fence_query
+from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
+
+if typing.TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel, ModelSiloLimit
 
 TestMethod = Callable[..., None]
 
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
+def monkey_patch_single_process_silo_mode_state():
+    class LocalSiloModeState(threading.local):
+        mode: SiloMode | None = None
+        region: Region | None = None
+
+    state = LocalSiloModeState()
+
+    @contextlib.contextmanager
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+        assert state.mode is None, (
+            "Re-entrant invariant broken! Use exit_single_process_silo_context "
+            "to explicit pass 'fake' RPC boundaries."
+        )
+
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = mode
+        state.region = region
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    @contextlib.contextmanager
+    def exit() -> Generator[None, None, None]:
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = None
+        state.region = None
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    def get_mode() -> SiloMode | None:
+        return state.mode
+
+    def get_region() -> Region | None:
+        return state.region
+
+    SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+
+
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
+    from sentry.api.utils import generate_region_url
+
     single_tenants = frozenset(single_tenants)
     return tuple(
         Region(
@@ -68,6 +115,8 @@ def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tupl
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
+    from sentry.db.models.base import ModelSiloLimit
+
     silo_limit = getattr(t._meta, "silo_limit", None)
     if not isinstance(silo_limit, ModelSiloLimit):
         raise ValueError(
@@ -118,20 +167,20 @@ class SiloModeTestDecorator:
     """
 
     def __init__(self, *silo_modes: SiloMode) -> None:
-        self.silo_modes = frozenset(sm for sm in silo_modes if sm != SiloMode.MONOLITH)
+        self.silo_modes = frozenset(silo_modes)
 
     def __call__(
         self,
         decorated_obj: Any = None,
+        *,
         regions: Sequence[Region] = (),
         include_monolith_run: bool = False,
     ) -> Any:
-        mod = _SiloModeTestModification(
-            silo_modes=self.silo_modes,
-            regions=tuple(regions),
-            include_monolith_run=include_monolith_run,
-        )
+        silo_modes = self.silo_modes
+        if include_monolith_run:
+            silo_modes |= frozenset([SiloMode.MONOLITH])
 
+        mod = _SiloModeTestModification(silo_modes=silo_modes, regions=tuple(regions))
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
@@ -141,44 +190,32 @@ class _SiloModeTestModification:
 
     silo_modes: frozenset[SiloMode]
     regions: tuple[Region, ...]
-    include_monolith_run: bool
 
-    run_original_class_in_silo_mode: bool = True
+    def __post_init__(self) -> None:
+        if not self.silo_modes:
+            raise ValueError("silo_modes must not be empty")
 
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
-        monolith_region = self.regions[0].name if self.regions else settings.SENTRY_MONOLITH_REGION
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(
-                override_settings(
-                    SILO_MODE=silo_mode,
-                    SENTRY_SUBNET_SECRET="secret",
-                    SENTRY_CONTROL_ADDRESS="http://controlserver/",
-                    SENTRY_MONOLITH_REGION=monolith_region,
-                )
-            )
-            stack.enter_context(override_regions(self.regions))
-            if silo_mode == SiloMode.REGION:
-                stack.enter_context(override_settings(SENTRY_REGION=monolith_region))
-
+        with (
+            override_regions(self.regions) if self.regions else nullcontext(),
+            assume_test_silo_mode(silo_mode, can_be_monolith=False),
+        ):
             yield
 
     def _create_overriding_test_class(
         self, test_class: Type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
     ) -> Type[TestCase]:
-        def decorate_with_context(callable: Callable[..., Any]) -> Callable[..., Any]:
-            def wrapper(*args, **kwds):
-                with self.test_config(silo_mode):
-                    return callable(*args, **kwds)
-
-            functools.update_wrapper(wrapper, callable)
-            return wrapper
+        def override_method(method_name: str) -> Callable[..., Any]:
+            context = self.test_config(silo_mode)
+            method: Callable[..., Any] = getattr(test_class, method_name)
+            return context(method)
 
         # Unfortunately, due to the way DjangoTestCase setup and app manipulation works, `override_settings` in a
         # run method produces unusual, broken results.  We're forced to wrap the hidden methods that invoke setup
         # test method in order to use override_settings correctly in django test cases.
         new_methods = {
-            method_name: decorate_with_context(getattr(test_class, method_name))
+            method_name: override_method(method_name)
             for method_name in ("_callSetUp", "_callTestMethod")
         }
         name = test_class.__name__ + name_suffix
@@ -194,12 +231,14 @@ class _SiloModeTestModification:
         to the module namespace.
         """
         if len(self.silo_modes) == 1:
-            (silo_mode,) = self.silo_modes
-            if not (self.include_monolith_run or settings.FORCE_SILOED_TESTS):
-                return silo_mode, ()
-            if self.run_original_class_in_silo_mode:
-                return silo_mode, (SiloMode.MONOLITH,)
-        return SiloMode.MONOLITH, self.silo_modes
+            (only_mode,) = self.silo_modes
+            return only_mode, ()
+        non_monolith_modes = [m for m in self.silo_modes if m != SiloMode.MONOLITH]
+        if len(non_monolith_modes) == 1:
+            (other_mode,) = non_monolith_modes
+            return other_mode, (SiloMode.MONOLITH,)
+        else:
+            return SiloMode.MONOLITH, non_monolith_modes
 
     def _add_siloed_test_classes_to_module(self, test_class: Type[TestCase]) -> Type[TestCase]:
         primary_mode, secondary_modes = self._arrange_silo_modes()
@@ -230,11 +269,7 @@ class _SiloModeTestModification:
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
 
-        mode_parameters = self.silo_modes
-        if self.include_monolith_run:
-            mode_parameters |= frozenset([SiloMode.MONOLITH])
-        parametrize = pytest.mark.parametrize("silo_mode", sorted(mode_parameters, key=str))
-        return parametrize(new_test_method)
+        return pytest.mark.parametrize("silo_mode", self.silo_modes)(new_test_method)
 
     def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
@@ -273,13 +308,13 @@ class _SiloModeTestModification:
             class_queue.extend(current_class.__bases__)
 
 
-all_silo_test = SiloModeTestDecorator(SiloMode.CONTROL, SiloMode.REGION)
+all_silo_test = SiloModeTestDecorator(*SiloMode)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass in CONTROL, REGION and MONOLITH modes.
 """
 
-no_silo_test = SiloModeTestDecorator()
+no_silo_test = SiloModeTestDecorator(SiloMode.MONOLITH)
 """
 Apply to test functions/classes to indicate that tests are
 free of silo mode logic and hybrid cloud service usage.
@@ -323,19 +358,22 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     if can_be_monolith and SiloMode.get_current_mode() == SiloMode.MONOLITH:
         desired_silo = SiloMode.MONOLITH
 
-    overrides: MutableMapping[str, Any] = {}
-    if desired_silo != SiloMode.get_current_mode():
-        overrides["SILO_MODE"] = desired_silo
-
-    if overrides:
-        with override_settings(**overrides):
+    with override_settings(SILO_MODE=desired_silo):
+        if desired_silo == SiloMode.REGION:
+            region_dir = get_test_env_directory()
+            with region_dir.swap_to_default_region():
+                yield
+        elif desired_silo == SiloMode.MONOLITH:
+            with override_settings(SENTRY_REGION=None):
+                yield
+        else:
             yield
-    else:
-        yield
 
 
 @contextmanager
 def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = True) -> Any:
+    from sentry.db.models.base import ModelSiloLimit
+
     """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
@@ -387,6 +425,9 @@ _protected_operations: List[re.Pattern] = []
 
 
 def get_protected_operations() -> List[re.Pattern]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+
     if len(_protected_operations):
         return _protected_operations
 
@@ -522,6 +563,9 @@ def validate_no_cross_silo_foreign_keys(
 def validate_no_cross_silo_deletions(
     exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
 ) -> None:
+    from sentry import deletions
+    from sentry.deletions.base import BaseDeletionTask
+
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
@@ -563,6 +607,8 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 
 def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
+    from sentry.models.actor import Actor
+
     # HybridCloudForeignKey can point to region models if they have snowflake ids
     if issubclass(related_model, SnowflakeIdMixin):
         return

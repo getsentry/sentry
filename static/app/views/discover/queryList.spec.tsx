@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
-import {DiscoverSavedQuery} from 'sentry-fixture/discover';
-import {Organization} from 'sentry-fixture/organization';
+import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -36,12 +37,12 @@ describe('Discover > QueryList', function () {
   });
 
   beforeEach(function () {
-    organization = Organization({
+    organization = OrganizationFixture({
       features: ['discover-basic', 'discover-query'],
     });
     savedQueries = [
-      DiscoverSavedQuery(),
-      DiscoverSavedQuery({name: 'saved query 2', id: '2'}),
+      DiscoverSavedQueryFixture(),
+      DiscoverSavedQueryFixture({name: 'saved query 2', id: '2'}),
     ];
 
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -89,7 +90,7 @@ describe('Discover > QueryList', function () {
   it('renders an empty list', function () {
     render(
       <QueryList
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={[]}
         savedQuerySearchQuery="no matches"
@@ -107,7 +108,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         renderPrebuilt
@@ -124,7 +125,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -157,7 +158,7 @@ describe('Discover > QueryList', function () {
       <QueryList
         savedQuerySearchQuery=""
         renderPrebuilt={false}
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -183,7 +184,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -205,7 +206,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -234,14 +235,14 @@ describe('Discover > QueryList', function () {
   });
 
   it('renders Add to Dashboard in context menu', async function () {
-    const featuredOrganization = Organization({
+    const featuredOrganization = OrganizationFixture({
       features: ['dashboards-edit'],
     });
 
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -272,7 +273,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
@@ -300,7 +301,7 @@ describe('Discover > QueryList', function () {
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', async function () {
-    const featuredOrganization = Organization({
+    const featuredOrganization = OrganizationFixture({
       features: ['dashboards-edit'],
     });
     const yAxis = ['count()', 'failure_count()'];
@@ -312,7 +313,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
@@ -338,7 +339,7 @@ describe('Discover > QueryList', function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        router={TestStubs.router()}
+        router={RouterFixture()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         renderPrebuilt={false}
@@ -360,17 +361,17 @@ describe('Discover > QueryList', function () {
 
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async function () {
-      const featuredOrganization = Organization({
+      const featuredOrganization = OrganizationFixture({
         features: ['dashboards-edit'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={TestStubs.router()}
+          router={RouterFixture()}
           organization={featuredOrganization}
           renderPrebuilt={false}
           savedQueries={[
-            DiscoverSavedQuery({
+            DiscoverSavedQueryFixture({
               display: DisplayModes.TOP5,
               orderby: 'test',
               fields: ['test', 'count()'],
@@ -426,17 +427,17 @@ describe('Discover > QueryList', function () {
     });
 
     it('opens a modal with the correct params for other chart', async function () {
-      const featuredOrganization = Organization({
+      const featuredOrganization = OrganizationFixture({
         features: ['dashboards-edit'],
       });
       render(
         <QueryList
           savedQuerySearchQuery=""
-          router={TestStubs.router()}
+          router={RouterFixture()}
           renderPrebuilt={false}
           organization={featuredOrganization}
           savedQueries={[
-            DiscoverSavedQuery({
+            DiscoverSavedQueryFixture({
               display: DisplayModes.DEFAULT,
               orderby: 'count()',
               fields: ['test', 'count()'],

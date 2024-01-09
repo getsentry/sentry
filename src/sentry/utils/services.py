@@ -11,6 +11,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     Mapping,
     MutableMapping,
     Optional,
@@ -18,7 +19,6 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
-    cast,
 )
 
 from django.utils.functional import LazyObject, empty
@@ -36,7 +36,7 @@ STATUS_SUCCESS = "success"
 
 
 class Service:
-    __all__: Tuple[str, ...] = ()
+    __all__: Iterable[str] = ()
 
     def validate(self) -> None:
         """
@@ -133,7 +133,7 @@ def resolve_callable(value: str | AnyCallable) -> AnyCallable:
     if callable(value):
         return value
     elif isinstance(value, str):
-        return cast(Callable[..., Any], import_string(value))
+        return import_string(value)
     else:
         raise TypeError("Expected callable or string")
 
