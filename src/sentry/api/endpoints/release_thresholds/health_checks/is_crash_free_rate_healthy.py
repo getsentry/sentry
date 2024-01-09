@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Dict, Tuple
 
-from sentry.models.release_threshold import TriggerType
+from sentry.models.release_threshold.constants import TriggerType
 
 from ..constants import CRASH_SESSIONS_DISPLAY, CRASH_USERS_DISPLAY
 
