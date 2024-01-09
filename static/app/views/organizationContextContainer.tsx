@@ -307,12 +307,14 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   renderBody() {
+    const {organization} = this.state;
+
     return (
-      <SentryDocumentTitle noSuffix title={this.state.organization?.name ?? 'Sentry'}>
-        <OrganizationContext.Provider value={this.state.organization}>
+      <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
+        <OrganizationContext.Provider value={organization}>
           <div className="app">
             {this.state.hooks}
-            <OrganizationHeader organization={this.state.organization} />
+            {organization && <OrganizationHeader organization={organization} />}
             {this.renderSidebar()}
             {this.props.children}
           </div>
