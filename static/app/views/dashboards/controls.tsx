@@ -170,7 +170,6 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-<<<<<<< HEAD
                 {hasDDMExperimentalFeature(organization) ? (
                   <AddWidgetButton
                     onAddWidget={onAddWidget}
@@ -195,13 +194,6 @@ function Controls({
                     {t('Add Widget')}
                   </Button>
                 )}
-=======
-                <AddWidgetButton
-                  onAddWidget={onAddWidget}
-                  aria-label="Add widget"
-                  priority="primary"
-                />
->>>>>>> eb22c4655ce (fix)
               </Tooltip>
             ) : null}
           </Fragment>

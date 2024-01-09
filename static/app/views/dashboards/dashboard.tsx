@@ -463,7 +463,7 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditing, dashboard, widgetLimitReached, organization} = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, organization} = this.props;
     let {widgets} = dashboard;
     // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
@@ -476,7 +476,7 @@ class Dashboard extends Component<Props, State> {
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
-    const canModifyLayout = !isMobile && isEditing;
+    const canModifyLayout = !isMobile && isEditingDashboard;
 
     return (
       <GridLayout
