@@ -25,7 +25,7 @@ import {Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
-import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {
   MEPConsumer,
   MEPState,
@@ -36,6 +36,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {WidgetCardHeader} from 'sentry/views/dashboards/widgetCard/header';
+import {MetricWidgetCardAdapter} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
@@ -60,8 +62,9 @@ type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'liste
 
 type Props = WithRouterProps & {
   api: Client;
-  isEditing: boolean;
+  isEditingDashboard: boolean;
   location: Location;
+  onUpdate: (widget: Widget) => void;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -70,6 +73,7 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   index?: string;
+  isEditingWidget?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
@@ -113,11 +117,11 @@ class WidgetCard extends Component<Props, State> {
       onDuplicate,
       draggableProps,
       hideToolbar,
-      isEditing,
+      isEditingDashboard,
       isMobile,
     } = this.props;
 
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       return null;
     }
 
@@ -174,7 +178,7 @@ class WidgetCard extends Component<Props, State> {
       onEdit,
       onDuplicate,
       onDelete,
-      isEditing,
+      isEditingDashboard,
       router,
       location,
       index,
@@ -183,7 +187,7 @@ class WidgetCard extends Component<Props, State> {
     const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
       this.state;
 
-    if (isEditing) {
+    if (isEditingDashboard) {
       return null;
     }
 
@@ -292,6 +296,25 @@ class WidgetCard extends Component<Props, State> {
         )
     );
 
+    if (widget.widgetType === WidgetType.METRICS) {
+      if (hasDDMExperimentalFeature(organization)) {
+        return (
+          <MetricWidgetCardAdapter
+            loading={false}
+            index={this.props.index}
+            isEditingWidget={this.props.isEditingWidget}
+            onEdit={this.props.onEdit}
+            onUpdate={this.props.onUpdate}
+            router={this.props.router}
+            location={this.props.location}
+            organization={organization}
+            selection={selection}
+            widget={widget}
+          />
+        );
+      }
+    }
+
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -306,60 +329,26 @@ class WidgetCard extends Component<Props, State> {
               disabled={Number(this.props.index) !== 0}
             >
               <WidgetCardPanel isDragging={false}>
-                <WidgetHeader>
-                  <WidgetHeaderDescription>
-                    <WidgetTitleRow>
-                      <Tooltip
-                        title={widget.title}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                      >
-                        <WidgetTitle>{widget.title}</WidgetTitle>
-                      </Tooltip>
-                      {widget.thresholds &&
-                        hasThresholdMaxValue(widget.thresholds) &&
-                        this.state.tableData &&
-                        organization.features.includes('dashboard-widget-indicators') &&
-                        getColoredWidgetIndicator(
-                          widget.thresholds,
-                          this.state.tableData
-                        )}
-                      <ExtractedMetricsTag queryKey={widget} />
-                    </WidgetTitleRow>
-                    {widget.description && (
-                      <Tooltip
-                        title={widget.description}
-                        containerDisplayMode="grid"
-                        showOnlyOnOverflow
-                        isHoverable
-                      >
-                        <WidgetDescription>{widget.description}</WidgetDescription>
-                      </Tooltip>
-                    )}
-                    <DashboardsMEPConsumer>
-                      {({}) => {
-                        // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-                        // if (
-                        //   isMetricsData === false &&
-                        //   widget.widgetType === WidgetType.DISCOVER
-                        // ) {
-                        //   return (
-                        //     <Tooltip
-                        //       containerDisplayMode="inline-flex"
-                        //       title={t(
-                        //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
-                        //       )}
-                        //     >
-                        //       <IconWarning color="warningText" />
-                        //     </Tooltip>
-                        //   );
-                        // }
-                        return null;
-                      }}
-                    </DashboardsMEPConsumer>
-                  </WidgetHeaderDescription>
-                  {this.renderContextMenu()}
-                </WidgetHeader>
+                <WidgetCardHeader
+                  widget={widget}
+                  title={
+                    <Tooltip
+                      title={widget.title}
+                      containerDisplayMode="grid"
+                      showOnlyOnOverflow
+                    >
+                      <HeaderTitle>{widget.title}</HeaderTitle>
+                    </Tooltip>
+                  }
+                  contextMenu={this.renderContextMenu()}
+                  thresholdColorIndicator={
+                    widget.thresholds &&
+                    hasThresholdMaxValue(widget.thresholds) &&
+                    this.state.tableData &&
+                    organization.features.includes('dashboard-widget-indicators') &&
+                    getColoredWidgetIndicator(widget.thresholds, this.state.tableData)
+                  }
+                />
                 {hasSessionDuration && SESSION_DURATION_ALERT}
 
                 {isWidgetInvalid ? (
@@ -500,20 +489,6 @@ const GrabbableButton = styled(Button)`
   cursor: grab;
 `;
 
-const WidgetTitle = styled(HeaderTitle)`
-  ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
-`;
-
-const WidgetHeader = styled('div')`
-  padding: ${space(2)} ${space(1)} 0 ${space(3)};
-  min-height: 36px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
   margin-bottom: 0;
@@ -523,13 +498,7 @@ const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
 `;
 
-const WidgetHeaderDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const WidgetTitleRow = styled('span')`
+export const WidgetTitleRow = styled('span')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};

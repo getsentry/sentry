@@ -175,7 +175,7 @@ interface MetricWidgetProps extends MetricWidgetQueryParams {
   widgetIndex: number;
 }
 
-const MetricWidgetBody = memo(
+export const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,

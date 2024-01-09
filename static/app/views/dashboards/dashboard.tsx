@@ -71,7 +71,7 @@ type Props = {
   dashboard: DashboardDetails;
   handleAddCustomWidget: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
-  isEditing: boolean;
+  isEditingDashboard: boolean;
   location: Location;
   /**
    * Fired when widgets are added/removed/sorted.
@@ -81,9 +81,12 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
+  editingWidgetIndex?: number;
   isPreview?: boolean;
   newWidget?: Widget;
+  onEndEditMetricWidget?: (widgets: Widget[]) => void;
   onSetNewWidget?: () => void;
+  onStartEditMetricWidget?: (index: number) => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
 };
@@ -210,6 +213,11 @@ class Dashboard extends Component<Props, State> {
   handleStartAdd = (dataset?: DataSet) => {
     const {organization, router, location, paramDashboardId} = this.props;
 
+    if (dataset === DataSet.METRICS) {
+      this.handleAddMetricsWidget();
+      return;
+    }
+
     if (paramDashboardId) {
       router.push(
         normalizeUrl({
@@ -238,8 +246,10 @@ class Dashboard extends Component<Props, State> {
     return;
   };
 
+  handleAddMetricsWidget() {}
+
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+    const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
 
     let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
@@ -260,26 +270,26 @@ class Dashboard extends Component<Props, State> {
     }
 
     onUpdate(nextList);
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
 
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
 
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
 
     const widgetCopy = cloneDeep(
       assignTempId({...widget, id: undefined, tempId: undefined})
@@ -290,13 +300,20 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleEditWidget = (index: number) => () => {
     const {organization, router, location, paramDashboardId} = this.props;
+
+    const widget = this.props.dashboard.widgets[index];
+
+    if (widget.widgetType === WidgetType.METRICS) {
+      this.handleStartEditMetricWidget(index);
+      return;
+    }
 
     if (paramDashboardId) {
       router.push(
@@ -324,6 +341,26 @@ class Dashboard extends Component<Props, State> {
     return;
   };
 
+  handleStartEditMetricWidget = (index: number) => {
+    this.props.onStartEditMetricWidget?.(index);
+    this.handleLayoutChange(null, this.state.layouts);
+  };
+
+  onUpdate = (widget: Widget, index: number) => (newWidget: Widget) => {
+    if (widget.widgetType === WidgetType.METRICS) {
+      this.handleEndEditMetricWidget(widget, index)(newWidget);
+      return;
+    }
+  };
+
+  handleEndEditMetricWidget = (widget: Widget, index: number) => (newWidget: Widget) => {
+    const widgets = [...this.props.dashboard.widgets];
+    // TODO: fix this
+    widgets[index] = {...widget, ...newWidget};
+
+    this.props.onEndEditMetricWidget?.(widgets);
+  };
+
   getWidgetIds() {
     return [
       ...this.props.dashboard.widgets.map((widget, index): string => {
@@ -335,22 +372,33 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, widgetLimitReached, isPreview, dashboard, location} = this.props;
+    const {
+      isEditingDashboard,
+      editingWidgetIndex,
+      widgetLimitReached,
+      isPreview,
+      dashboard,
+      location,
+    } = this.props;
+
+    const isEditingWidget = editingWidgetIndex === index;
 
     const widgetProps = {
       widget,
-      isEditing,
+      isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      onUpdate: this.onUpdate(widget, index),
       isPreview,
+      isEditingWidget,
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     const key = constructGridItemKey(widget);
     return (
-      <div key={key} data-grid={widget.layout}>
+      <div key={key}>
         <SortableWidget
           {...widgetProps}
           isMobile={isMobile}
@@ -463,7 +511,13 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditingDashboard, dashboard, widgetLimitReached, organization} = this.props;
+    const {
+      isEditingDashboard,
+      dashboard,
+      widgetLimitReached,
+      organization,
+      editingWidgetIndex,
+    } = this.props;
     let {widgets} = dashboard;
     // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
@@ -474,7 +528,12 @@ class Dashboard extends Component<Props, State> {
     });
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
-    const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
+
+    const widgetsWithLayout = assignDefaultLayout(
+      widgets,
+      columnDepths,
+      editingWidgetIndex
+    );
 
     const canModifyLayout = !isMobile && isEditingDashboard;
 

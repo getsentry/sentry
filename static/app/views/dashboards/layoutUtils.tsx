@@ -11,6 +11,7 @@ import {NUM_DESKTOP_COLS} from './dashboard';
 import {DisplayType, Widget, WidgetLayout} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
+export const MAX_DEFAULT_WIDGET_WIDTH = 6;
 
 const WIDGET_PREFIX = 'grid-item';
 
@@ -132,7 +133,8 @@ export function calculateColumnDepths(
  */
 export function getNextAvailablePosition(
   initialColumnDepths: number[],
-  height: number
+  height: number,
+  width: number = DEFAULT_WIDGET_WIDTH
 ): NextPosition {
   const columnDepths = [...initialColumnDepths];
   const maxColumnDepth = Math.max(...columnDepths);
@@ -150,7 +152,7 @@ export function getNextAvailablePosition(
       // If all of the columns from start to end (the size of the widget)
       // have at most the current depth, then we've found a valid positioning
       // No other widgets extend into the space we need
-      const end = start + DEFAULT_WIDGET_WIDTH;
+      const end = start + width;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
         for (let col = start; col < start + DEFAULT_WIDGET_WIDTH; col++) {
           columnDepths[col] = currDepth + height;
@@ -168,11 +170,14 @@ export function getNextAvailablePosition(
 
 export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layout'>>(
   widgets: T[],
-  initialColumnDepths: number[]
+  initialColumnDepths: number[],
+  editingWidgetIndex?: number
 ): T[] {
   let columnDepths = [...initialColumnDepths];
-  const newWidgets = widgets.map(widget => {
-    if (defined(widget.layout)) {
+  const newWidgets = widgets.map((widget, index) => {
+    const isEditingWidget = index === editingWidgetIndex;
+
+    if (defined(widget.layout) && !isEditingWidget) {
       return widget;
     }
     const height = getDefaultWidgetHeight(widget.displayType);
@@ -184,7 +189,13 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
 
     return {
       ...widget,
-      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
+      layout: {
+        ...nextPosition,
+        x: isEditingWidget ? 0 : nextPosition.x,
+        h: height,
+        minH: height,
+        w: isEditingWidget ? MAX_DEFAULT_WIDGET_WIDTH : DEFAULT_WIDGET_WIDTH,
+      },
     };
   });
   return newWidgets;
