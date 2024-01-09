@@ -1,7 +1,7 @@
 from datetime import datetime
 from itertools import chain
 
-from celery import Celery, Task
+from celery import Celery, Task, signals
 from celery.worker.request import Request
 from django.conf import settings
 from django.db import models
@@ -99,6 +99,11 @@ class SentryRequest(Request):
 
 class SentryCelery(Celery):
     task_cls = SentryTask
+
+
+@signals.worker_process_init.connect
+def record_worker_init(*args, **kwargs):
+    metrics.incr("sentry.jobs.process.start")
 
 
 app = SentryCelery("sentry")
