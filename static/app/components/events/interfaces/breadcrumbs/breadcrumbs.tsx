@@ -252,6 +252,7 @@ const StyledPanelTable = styled(PanelTable)`
   display: grid;
   overflow: hidden;
   grid-template-columns: 64px 140px 1fr 106px 100px;
+  margin-bottom: 1px;
 
   > * {
     :nth-child(-n + 6) {
@@ -319,7 +320,7 @@ const StyledIconSort = styled(IconSort)`
 const PanelDragHandle = styled('div')`
   position: absolute;
   bottom: -1px;
-  left: 1px;
+  left: 0px;
   right: 1px;
   height: 10px;
   cursor: ns-resize;
