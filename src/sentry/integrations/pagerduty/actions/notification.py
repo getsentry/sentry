@@ -77,7 +77,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                         "event_id": event.event_id,
                     },
                 )
-                raise e
+                raise
             rules = [f.rule for f in futures]
             rule = rules[0] if rules else None
             self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)

@@ -13,7 +13,7 @@ from sentry.models.authenticator import Authenticator
 @control_silo_endpoint
 class AuthenticatorIndexEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (IsAuthenticated,)

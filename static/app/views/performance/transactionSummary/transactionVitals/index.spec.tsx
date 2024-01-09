@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -41,7 +41,7 @@ function initialize({
   project = project || ProjectFixture();
   query = query || {};
   const data = initializeOrg({
-    organization: Organization({
+    organization: OrganizationFixture({
       features,
       projects: project ? [project] : [],
     }),
@@ -185,7 +185,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   it('render no access without feature', function () {

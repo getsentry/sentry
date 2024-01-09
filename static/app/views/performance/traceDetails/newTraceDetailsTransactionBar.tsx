@@ -1,19 +1,19 @@
-import {createRef, Fragment, useCallback, useEffect, useState} from 'react';
+import {createRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import * as SpanContext from 'sentry/components/events/interfaces/spans/spanContext';
 import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
 import {
   getMeasurementBounds,
+  parseTraceDetailsURLHash,
   SpanBoundsType,
   SpanGeneratedBoundsType,
   transactionTargetHash,
@@ -35,7 +35,6 @@ import {
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
-  EmbeddedTransactionBadge,
   ErrorBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
@@ -58,11 +57,12 @@ import {
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -82,6 +82,7 @@ import {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {shortenErrorTitle} from './utils';
 
 const MARGIN_LEFT = 0;
+const TRANSACTION_BAR_HEIGHT = 24;
 
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
@@ -89,11 +90,13 @@ type Props = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   hasGuideAnchor: boolean;
   index: number;
+  isBarScrolledTo: boolean;
   isExpanded: boolean;
   isLast: boolean;
   isOrphan: boolean;
   isVisible: boolean;
   location: Location;
+  onBarScrolledTo: () => void;
   onWheel: (deltaX: number) => void;
   organization: Organization;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
@@ -105,18 +108,23 @@ type Props = {
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
-  onRowClick?: (detailKey: EventDetail | undefined) => void;
+  onRowClick?: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   onlyOrphanErrors?: boolean;
 };
 
 function NewTraceDetailsTransactionBar(props: Props) {
-  const detail_id = props.location.query.detail;
-  const isHighlighted = !!(
+  const hashValues = parseTraceDetailsURLHash(props.location.hash);
+  const eventIDInQueryParam = !!(
     isTraceTransaction(props.transaction) &&
-    detail_id &&
-    detail_id === props.transaction.event_id
+    hashValues?.eventId &&
+    hashValues.eventId === props.transaction.event_id
   );
-  const [showEmbeddedChildren, setShowEmbeddedChildren] = useState(false);
+  const isHighlighted = !!(!hashValues?.spanId && eventIDInQueryParam);
+  const highlightEmbeddedSpan = !!(hashValues?.spanId && eventIDInQueryParam);
+  const [showEmbeddedChildren, setShowEmbeddedChildren] = useState(
+    isHighlighted || highlightEmbeddedSpan
+  );
+  const [isIntersecting, setIntersecting] = useState(false);
   const transactionRowDOMRef = createRef<HTMLDivElement>();
   const transactionTitleRef = createRef<HTMLDivElement>();
   let spanContentRef: HTMLDivElement | null = null;
@@ -149,20 +157,49 @@ function NewTraceDetailsTransactionBar(props: Props) {
       return;
     }
     const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY;
+    const offset = boundingRect.top + window.scrollY - TRANSACTION_BAR_HEIGHT;
     window.scrollTo(0, offset);
-  }, [transactionRowDOMRef]);
+    props.onBarScrolledTo();
+  }, [transactionRowDOMRef, props]);
 
   useEffect(() => {
-    const {location, transaction} = props;
-    const transactionTitleRefCurrentCopy = transactionTitleRef.current;
+    const {transaction, isBarScrolledTo} = props;
+    const observer = new IntersectionObserver(([entry]) =>
+      setIntersecting(entry.isIntersecting)
+    );
+
+    if (transactionRowDOMRef.current) {
+      observer.observe(transactionRowDOMRef.current);
+    }
 
     if (
       'event_id' in transaction &&
-      transactionTargetHash(transaction.event_id) === location.hash
+      hashValues?.eventId === transaction.event_id &&
+      !isIntersecting &&
+      !isBarScrolledTo
     ) {
       scrollIntoView();
     }
+
+    if(isIntersecting){
+      props.onBarScrolledTo();
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [
+    setIntersecting,
+    hashValues?.eventId,
+    hashValues?.spanId,
+    props,
+    scrollIntoView,
+    isIntersecting,
+    transactionRowDOMRef,
+  ]);
+
+  useEffect(() => {
+    const transactionTitleRefCurrentCopy = transactionTitleRef.current;
 
     if (transactionTitleRefCurrentCopy) {
       transactionTitleRefCurrentCopy.addEventListener('wheel', handleWheel, {
@@ -175,7 +212,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
         transactionTitleRefCurrentCopy.removeEventListener('wheel', handleWheel);
       }
     };
-  }, [handleWheel, props, scrollIntoView, transactionTitleRef]);
+  }, [handleWheel, props, transactionTitleRef]);
 
   const transactionEvent =
     isTraceTransaction<TraceFullDetailed>(props.transaction) ||
@@ -196,8 +233,20 @@ function NewTraceDetailsTransactionBar(props: Props) {
     }
   );
 
+  const waterfallModel = useMemo(() => {
+    return embeddedChildren
+      ? new WaterfallModel(
+          embeddedChildren,
+          undefined,
+          undefined,
+          undefined,
+          props.traceInfo
+        )
+      : null;
+  }, [embeddedChildren, props.traceInfo]);
+
   useEffect(() => {
-    if (isTraceTransaction(props.transaction)) {
+    if (isTraceTransaction(props.transaction) && !isTraceError(props.transaction)) {
       if (isHighlighted && props.onRowClick) {
         props.onRowClick({
           traceFullDetailedEvent: props.transaction,
@@ -234,14 +283,13 @@ function NewTraceDetailsTransactionBar(props: Props) {
 
     if (isTraceError(transaction)) {
       browserHistory.push(generateIssueEventTarget(transaction, organization));
+      return;
     }
 
     if (isTraceTransaction<TraceFullDetailed>(transaction)) {
       router.replace({
-        pathname: location.pathname,
-        query: isHighlighted
-          ? omit(router.location.query, 'detail')
-          : {...location.query, detail: transaction.event_id},
+        ...location,
+        hash: transactionTargetHash(transaction.event_id),
       });
     }
   };
@@ -328,7 +376,13 @@ function NewTraceDetailsTransactionBar(props: Props) {
       }
     );
 
-    if (hasToggle && (isExpanded || showEmbeddedChildren)) {
+    const embeddedChildrenLength =
+      (embeddedChildren && waterfallModel && waterfallModel.rootSpan.children.length) ??
+      0;
+    if (
+      hasToggle &&
+      (isExpanded || (showEmbeddedChildren && embeddedChildrenLength > 0))
+    ) {
       connectorBars.push(
         <ConnectorBar
           style={{
@@ -365,9 +419,8 @@ function NewTraceDetailsTransactionBar(props: Props) {
         position="top"
         containerDisplayMode="block"
       >
-        <EmbeddedTransactionBadge
-          inTraceView
-          expanded={showEmbeddedChildren}
+        <StyledZoomIcon
+          isZoomIn={!showEmbeddedChildren}
           onClick={() => {
             setShowEmbeddedChildren(prev => !prev);
 
@@ -384,13 +437,25 @@ function NewTraceDetailsTransactionBar(props: Props) {
   };
 
   const renderEmbeddedChildren = () => {
-    if (!embeddedChildren || !showEmbeddedChildren) {
+    if (!embeddedChildren || !showEmbeddedChildren || !waterfallModel) {
       return null;
     }
 
-    const {organization, traceViewRef, location, isLast, traceInfo} = props;
-    const waterfallModel = new WaterfallModel(embeddedChildren);
+    const {
+      organization,
+      traceViewRef,
+      location,
+      isLast,
+      traceInfo,
+      isExpanded,
+      toggleExpandedState,
+    } = props;
     const profileId = embeddedChildren.contexts?.profile?.profile_id ?? null;
+
+    if (isExpanded) {
+      toggleExpandedState();
+    }
+
     return (
       <Fragment>
         <QuickTraceQuery
@@ -399,68 +464,69 @@ function NewTraceDetailsTransactionBar(props: Props) {
           orgSlug={organization.slug}
         >
           {results => (
-            <QuickTraceContext.Provider value={results}>
-              <ProfilesProvider
-                orgSlug={organization.slug}
-                projectSlug={embeddedChildren.projectSlug ?? ''}
-                profileId={profileId || ''}
-              >
-                <ProfileContext.Consumer>
-                  {profiles => (
-                    <ProfileGroupProvider
-                      type="flamechart"
-                      input={profiles?.type === 'resolved' ? profiles.data : null}
-                      traceID={profileId || ''}
+            <ProfilesProvider
+              orgSlug={organization.slug}
+              projectSlug={embeddedChildren.projectSlug ?? ''}
+              profileId={profileId || ''}
+            >
+              <ProfileContext.Consumer>
+                {profiles => (
+                  <ProfileGroupProvider
+                    type="flamechart"
+                    input={profiles?.type === 'resolved' ? profiles.data : null}
+                    traceID={profileId || ''}
+                  >
+                    <TransactionProfileIdProvider
+                      projectId={embeddedChildren.projectID}
+                      timestamp={embeddedChildren.dateReceived}
+                      transactionId={embeddedChildren.id}
                     >
-                      <TransactionProfileIdProvider
-                        projectId={embeddedChildren.projectID}
-                        timestamp={embeddedChildren.dateReceived}
-                        transactionId={embeddedChildren.id}
-                      >
-                        <SpanContext.Provider>
-                          <SpanContext.Consumer>
-                            {spanContextProps => (
-                              <Observer>
-                                {() => (
-                                  <NewTraceDetailsSpanTree
-                                    traceInfo={traceInfo}
-                                    traceViewHeaderRef={traceViewRef}
-                                    traceViewRef={traceViewRef}
-                                    parentHasContinuingDepths={
-                                      props.continuingDepths.length > 0
-                                    }
-                                    traceHasMultipleRoots={props.continuingDepths.some(
-                                      c => c.depth === 0 && c.isOrphanDepth
-                                    )}
-                                    parentIsLast={isLast}
-                                    parentGeneration={transaction.generation ?? 0}
-                                    organization={organization}
-                                    waterfallModel={waterfallModel}
-                                    filterSpans={waterfallModel.filterSpans}
-                                    spans={waterfallModel
-                                      .getWaterfall({
-                                        viewStart: 0,
-                                        viewEnd: 1,
-                                        traceInfo,
-                                      })
-                                      .slice(1)}
-                                    focusedSpanIds={waterfallModel.focusedSpanIds}
-                                    spanContextProps={spanContextProps}
-                                    operationNameFilters={
-                                      waterfallModel.operationNameFilters
-                                    }
-                                  />
-                                )}
-                              </Observer>
-                            )}
-                          </SpanContext.Consumer>
-                        </SpanContext.Provider>
-                      </TransactionProfileIdProvider>
-                    </ProfileGroupProvider>
-                  )}
-                </ProfileContext.Consumer>
-              </ProfilesProvider>
-            </QuickTraceContext.Provider>
+                      <SpanContext.Provider>
+                        <SpanContext.Consumer>
+                          {spanContextProps => (
+                            <Observer>
+                              {() => (
+                                <NewTraceDetailsSpanTree
+                                  measurements={props.measurements}
+                                  quickTrace={results}
+                                  location={props.location}
+                                  onRowClick={props.onRowClick}
+                                  traceInfo={traceInfo}
+                                  traceViewHeaderRef={traceViewRef}
+                                  traceViewRef={traceViewRef}
+                                  parentHasContinuingDepths={
+                                    props.continuingDepths.length > 0
+                                  }
+                                  traceHasMultipleRoots={props.continuingDepths.some(
+                                    c => c.depth === 0 && c.isOrphanDepth
+                                  )}
+                                  parentIsLast={isLast}
+                                  parentGeneration={transaction.generation ?? 0}
+                                  organization={organization}
+                                  waterfallModel={waterfallModel}
+                                  filterSpans={waterfallModel.filterSpans}
+                                  spans={waterfallModel
+                                    .getWaterfall({
+                                      viewStart: 0,
+                                      viewEnd: 1,
+                                    })
+                                    .slice(1)}
+                                  focusedSpanIds={waterfallModel.focusedSpanIds}
+                                  spanContextProps={spanContextProps}
+                                  operationNameFilters={
+                                    waterfallModel.operationNameFilters
+                                  }
+                                />
+                              )}
+                            </Observer>
+                          )}
+                        </SpanContext.Consumer>
+                      </SpanContext.Provider>
+                    </TransactionProfileIdProvider>
+                  </ProfileGroupProvider>
+                )}
+              </ProfileContext.Consumer>
+            </ProfilesProvider>
           )}
         </QuickTraceQuery>
       </Fragment>
@@ -472,7 +538,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const left = getCurrentOffset();
 
     const hasOrphanErrors = numOfOrphanErrors && numOfOrphanErrors > 0;
-    let childrenLength =
+    let childrenLength: number | string =
       (!isTraceError(transaction) && transaction.children?.length) || 0;
     const generation = transaction.generation || 0;
     if (childrenLength <= 0 && !hasOrphanErrors && !showEmbeddedChildren) {
@@ -483,9 +549,11 @@ function NewTraceDetailsTransactionBar(props: Props) {
       );
     }
 
-    if (showEmbeddedChildren && embeddedChildren) {
-      const waterfallModel = new WaterfallModel(embeddedChildren);
-      childrenLength = waterfallModel.rootSpan.children.length;
+    if (showEmbeddedChildren) {
+      childrenLength =
+        embeddedChildren && waterfallModel
+          ? waterfallModel.rootSpan.children.length
+          : '?';
     } else {
       childrenLength = childrenLength + (numOfOrphanErrors ?? 0);
     }
@@ -510,7 +578,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
             setShowEmbeddedChildren(false);
           }}
         >
-          <Count value={childrenLength} />
+          <span>{childrenLength}</span>
           {!isRoot && !showEmbeddedChildren && (
             <div>
               <TreeToggleIcon direction={isExpanded ? 'up' : 'down'} />
@@ -826,7 +894,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
   const {isVisible, transaction} = props;
 
   return (
-    <Wrapper showingChildren={showEmbeddedChildren}>
+    <div>
       <StyledRow
         ref={transactionRowDOMRef}
         visible={isVisible}
@@ -850,7 +918,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       </StyledRow>
       {renderEmbeddedChildrenState()}
       {renderEmbeddedChildren()}
-    </Wrapper>
+    </div>
   );
 }
 
@@ -867,12 +935,6 @@ const StyledRow = styled(Row)`
   }
 `;
 
-const Wrapper = styled('div')<{showingChildren: boolean}>`
-  ${p =>
-    p.showingChildren &&
-    'outline: 1px solid black; border-top: 1px solid black; border-bottom: 1px solid black; border-radius: 2px;'}
-`;
-
 const ErrorLink = styled(Link)`
   color: ${p => p.theme.error};
 `;
@@ -880,4 +942,17 @@ const ErrorLink = styled(Link)`
 const StyledRowRectangle = styled(RowRectangle)`
   display: flex;
   align-items: center;
+`;
+
+export const StyledZoomIcon = styled(IconZoom)`
+  position: absolute;
+  left: -7px;
+  top: 4px;
+  height: 16px;
+  width: 18px;
+  z-index: 1000;
+  background: ${p => p.theme.background};
+  padding: 1px;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${space(0.5)};
 `;

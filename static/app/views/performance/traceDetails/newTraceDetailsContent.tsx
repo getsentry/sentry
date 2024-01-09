@@ -1,13 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -70,7 +70,9 @@ export type EventDetail = {
 
 function NewTraceDetailsContent(props: Props) {
   const router = useRouter();
-  const [detail, setDetail] = useState<EventDetail | undefined>(undefined);
+  const [detail, setDetail] = useState<EventDetail | SpanDetailProps | undefined>(
+    undefined
+  );
   const traceInfo = useMemo(
     () => getTraceInfo(props.traces ?? [], props.orphanErrors),
     [props.traces, props.orphanErrors]
@@ -272,7 +274,7 @@ function NewTraceDetailsContent(props: Props) {
               <EventVitals event={rootEvent} />
             </div>
           )}
-          <div style={{flex: 1, maxWidth: '800px'}}>
+          <div style={{flex: 1}}>
             <Tags
               generateUrl={(key: string, value: string) => {
                 const url = traceEventView.getResultsViewUrlTarget(
@@ -313,7 +315,10 @@ function NewTraceDetailsContent(props: Props) {
     if (!dateSelected) {
       return renderTraceRequiresDateRangeSelection();
     }
-    if (isLoading || isRootEventLoading) {
+
+    const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
+    const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
+    if (isLoading || (isRootEventLoading && !onlyOrphanErrors)) {
       return renderTraceLoading();
     }
 
@@ -356,8 +361,8 @@ function NewTraceDetailsContent(props: Props) {
           detail={detail}
           onClose={() => {
             router.replace({
-              pathname: location.pathname,
-              query: omit(router.location.query, 'detail'),
+              ...location,
+              hash: undefined,
             });
             setDetail(undefined);
           }}
@@ -371,11 +376,17 @@ function NewTraceDetailsContent(props: Props) {
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumb
-            organization={organization}
-            location={location}
-            traceSlug={traceSlug}
-          />
+            <Breadcrumb
+              organization={organization}
+              location={location}
+              transaction={
+                  {
+                    project: rootEvent?.projectID ?? '',
+                    name: rootEvent?.title ?? ''
+                  }
+              }
+              traceSlug={traceSlug}
+            />
           <Layout.Title data-test-id="trace-header">
             {t('Trace ID: %s', traceSlug)}
           </Layout.Title>

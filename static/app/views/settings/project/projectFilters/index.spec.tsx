@@ -1,7 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
-import {Tombstones} from 'sentry-fixture/tombstones';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
+import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -51,7 +51,7 @@ describe('ProjectFilters', function () {
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}tombstones/`,
-      body: Tombstones(),
+      body: TombstonesFixture(),
     });
   });
 
@@ -267,7 +267,7 @@ describe('ProjectFilters', function () {
         params={{projectId: project.slug, filterType: ''}}
         project={project}
       />,
-      {organization: Organization({access: []})}
+      {organization: OrganizationFixture({access: []})}
     );
 
     const checkboxes = await screen.findAllByRole('checkbox');
@@ -304,7 +304,7 @@ describe('ProjectFilters', function () {
       ...project,
       features: ['discard-groups'],
     });
-    const discardOrg = Organization({access: [], features: ['discard-groups']});
+    const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
 
     render(
       <ProjectFilters

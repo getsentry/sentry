@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
+import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
@@ -33,10 +34,12 @@ type Props = ScrollbarManagerChildrenProps & {
   traceViewRef: React.RefObject<HTMLDivElement>;
   transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
+  isBarScrolledTo?: boolean;
   isOrphanError?: boolean;
   measurements?: Map<number, VerticalMark>;
   numOfOrphanErrors?: number;
-  onRowClick?: (detailKey: EventDetail | undefined) => void;
+  onBarScrolledTo?: () => void;
+  onRowClick?: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   onlyOrphanErrors?: boolean;
 };
 
@@ -83,6 +86,8 @@ class TransactionGroup extends Component<Props, State> {
       isOrphanError,
       traceViewRef,
       onRowClick,
+      onBarScrolledTo,
+      isBarScrolledTo,
     } = this.props;
     const {isExpanded} = this.state;
 
@@ -112,9 +117,12 @@ class TransactionGroup extends Component<Props, State> {
 
     return (
       <Fragment>
-        {organization.features.includes('performance-trace-details') ? (
+        {organization.features.includes('performance-trace-details') &&
+        onBarScrolledTo ? (
           <NewTraceDetailsTransactionBar
             {...commonProps}
+            isBarScrolledTo={!!isBarScrolledTo}
+            onBarScrolledTo={onBarScrolledTo}
             traceViewRef={traceViewRef}
             onRowClick={onRowClick}
           />

@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -17,7 +17,7 @@ type InitialOpts = {
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
   const project = ProjectFixture({platform});
-  const organization = Organization({
+  const organization = OrganizationFixture({
     projects: [project],
     features: features ?? [],
   });

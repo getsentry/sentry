@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,13 +12,13 @@ import type {Team as TeamType, User as UserType} from 'sentry/types';
 
 describe('ActorAvatar', function () {
   const user: UserType = {
-    ...User(),
+    ...UserFixture(),
     id: '1',
     name: 'JanActore Bloggs',
     email: 'janebloggs@example.com',
   };
   const team1: TeamType = {
-    ...Team(),
+    ...TeamFixture(),
     id: '3',
     slug: 'cool-team',
     name: 'COOL TEAM',
@@ -71,11 +71,11 @@ describe('ActorAvatar', function () {
   });
 
   it('should fetch a team not in the store', async function () {
-    const organization = Organization();
+    const organization = OrganizationFixture();
 
     OrganizationStore.onUpdate(organization, {replace: true});
 
-    const team2 = Team({id: '2', name: 'COOL TEAM', slug: 'cool-team'});
+    const team2 = TeamFixture({id: '2', name: 'COOL TEAM', slug: 'cool-team'});
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,

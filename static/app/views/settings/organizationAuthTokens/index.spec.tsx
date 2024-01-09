@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -278,7 +278,7 @@ describe('OrganizationAuthTokensIndex', function () {
     });
 
     it('does not allow to revoke without permission', async function () {
-      const org = Organization({
+      const org = OrganizationFixture({
         access: ['org:read'],
       });
 
