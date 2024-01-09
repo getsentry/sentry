@@ -838,25 +838,30 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
         <PermissionAlert project={project} />
-        <Feature features="organizations:starfish-browser-resource-module-image-view">
-          <Form
-            initialData={this.state.general}
-            saveOnBlur
-            apiEndpoint={`/projects/${organization.slug}/${project.slug}/performance/configure/`}
-          >
-            <JsonForm
-              fields={[
-                {
-                  name: 'enable_images',
-                  type: 'boolean',
-                  label: t('Images'),
-                  help: t('Enables images from real data to be displayed'),
-                },
-              ]}
-              title={t('General')}
-            />
-          </Form>
-        </Feature>
+        <Access access={requiredScopes} project={project}>
+          {({hasAccess}) => (
+            <Feature features="organizations:starfish-browser-resource-module-image-view">
+              <Form
+                initialData={this.state.general}
+                saveOnBlur
+                apiEndpoint={`/projects/${organization.slug}/${project.slug}/performance/configure/`}
+              >
+                <JsonForm
+                  disabled={!hasAccess}
+                  fields={[
+                    {
+                      name: 'enable_images',
+                      type: 'boolean',
+                      label: t('Images'),
+                      help: t('Enables images from real data to be displayed'),
+                    },
+                  ]}
+                  title={t('General')}
+                />
+              </Form>
+            </Feature>
+          )}
+        </Access>
 
         <Form
           saveOnBlur
