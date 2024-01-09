@@ -34,6 +34,32 @@ class BackgroundGroupingTest(TestCase):
 
         assert mock_calc_background_grouping.call_count == 1
 
+    @patch("sentry_sdk.capture_exception")
+    def test_handles_errors_with_background_grouping(
+        self, mock_capture_exception: MagicMock
+    ) -> None:
+        background_grouping_error = Exception("nope")
+
+        with patch(
+            "sentry.grouping.ingest._calculate_background_grouping",
+            side_effect=background_grouping_error,
+        ):
+            manager = EventManager({"message": "foo 123"})
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            with self.options(
+                {
+                    "store.background-grouping-config-id": "mobile:2021-02-12",
+                    "store.background-grouping-sample-rate": 1.0,
+                }
+            ):
+                manager.save(self.project.id)
+
+            mock_capture_exception.assert_called_with(background_grouping_error)
+            # This proves the background grouping crash didn't crash the overall grouping process
+            assert event.group
+
     @patch("sentry.grouping.ingest._calculate_background_grouping")
     def test_background_grouping_can_be_disabled_via_sample_rate(
         self, mock_calc_background_grouping: MagicMock
