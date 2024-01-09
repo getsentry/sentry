@@ -9,6 +9,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata.code_locations import get_cache_key_for_code_location
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
+from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -609,3 +610,30 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             query="device:something XOR device:something_else",
             status_code=500,
         )
+
+    @pytest.mark.skip(reason="transaction.duration is currently not supported")
+    def test_get_metric_spans_with_transaction_duration(self):
+        mri = TransactionMRI.DURATION.value
+
+        span_id = "98230207e6e4a6ad"
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id=span_id,
+            is_segment=1,
+            duration_ms=100,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            min="50",
+            max="150",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["spanId"] == span_id
