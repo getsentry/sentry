@@ -1061,15 +1061,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control whether or not we raise ValidationErrors in the indexer
-# (Temporary) raising the error would mean we skip the processing or DLQing of these
-# invalid messages
-register(
-    "sentry-metrics.indexer.raise-validation-errors",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
