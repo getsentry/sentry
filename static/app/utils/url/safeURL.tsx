@@ -1,5 +1,6 @@
 /**
- * Returns the parsed URL object if the input is a valid URL, otherwise returns undefined.
+ * Does not throw error on invalid input and returns the parsed URL object
+ * if the input is a valid URL, otherwise returns undefined.
  * @param {string} input
  * @param {string | undefined} base
  * @returns {URL | undefined}
