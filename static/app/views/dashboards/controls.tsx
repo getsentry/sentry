@@ -13,7 +13,11 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+<<<<<<< HEAD
 import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
+=======
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+>>>>>>> c40d650cccb (fix)
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
