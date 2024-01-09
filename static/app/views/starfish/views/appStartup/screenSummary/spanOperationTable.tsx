@@ -136,7 +136,7 @@ export function SpanOperationTable({
       'Duration (%s)',
       truncatedSecondary
     ),
-    ['time_spent_percentage()']: t('Time Spent'),
+    ['time_spent_percentage()']: t('Total Time Spent'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {

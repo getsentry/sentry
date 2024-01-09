@@ -85,7 +85,7 @@ describe('SpanOpSelector', function () {
     expect(screen.getByRole('link', {name: 'Duration (release1)'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Duration (release2)'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Total Count'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Time Spent'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Total Time Spent'})).toBeInTheDocument();
 
     expect(await screen.findByRole('cell', {name: 'app.start.warm'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Application Init'})).toBeInTheDocument();
