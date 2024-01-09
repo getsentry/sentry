@@ -5,8 +5,9 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import type {Frame} from 'sentry/types';
-import {isUrl, safeURL} from 'sentry/utils';
+import {isUrl} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
 export function isFrameFilenamePathlike(frame: Frame): boolean {

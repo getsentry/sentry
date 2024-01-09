@@ -1,4 +1,4 @@
-import {safeURL} from './utils';
+import {safeURL} from './safeURL';
 
 function makeURLMockWithCanParse(spy: jest.Mock): [typeof URL, jest.Mock] {
   class URLMockWithCanParse extends URL {

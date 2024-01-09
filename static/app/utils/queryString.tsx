@@ -1,6 +1,7 @@
 import * as qs from 'query-string';
 
-import {escapeDoubleQuotes, safeURL} from 'sentry/utils';
+import {escapeDoubleQuotes} from 'sentry/utils';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(query: string): string {
