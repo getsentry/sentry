@@ -1,10 +1,15 @@
 import Color from 'color';
 
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Project} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
+
+export function isCrossPlatform(project: Project) {
+  return project.platform && ['react-native', 'flutter'].includes(project.platform);
+}
 
 export function transformReleaseEvents({
   yAxes,
