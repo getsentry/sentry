@@ -209,11 +209,6 @@ class Dashboard extends Component<Props, State> {
   handleStartAdd = (dataset?: DataSet) => {
     const {organization, router, location, paramDashboardId} = this.props;
 
-    if (dataset === DataSet.METRICS) {
-      this.handleAddMetricsWidget();
-      return;
-    }
-
     if (paramDashboardId) {
       router.push(
         normalizeUrl({
@@ -241,8 +236,6 @@ class Dashboard extends Component<Props, State> {
 
     return;
   };
-
-  handleAddMetricsWidget() {}
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
