@@ -147,8 +147,9 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
+      // TODO(nar), change out URL when moving tabs
       const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/starfish/appStartup/spans/` // todo, change out URL
+        `/organizations/${organization.slug}/starfish/appStartup/spans/`
       );
       const query = {
         ...location.query,
@@ -185,7 +186,6 @@ export function SpanOperationTable({
       width: column.width,
     };
 
-    // TODO: This could probably be simplified
     function generateSortLink() {
       if (!tableMeta) {
         return undefined;
