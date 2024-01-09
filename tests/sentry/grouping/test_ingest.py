@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
+from sentry.grouping.ingest import _calculate_background_grouping
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -12,7 +13,10 @@ pytestmark = [requires_snuba]
 
 @region_silo_test
 class BackgroundGroupingTest(TestCase):
-    @patch("sentry.grouping.ingest._calculate_background_grouping")
+    @patch(
+        "sentry.grouping.ingest._calculate_background_grouping",
+        wraps=_calculate_background_grouping,
+    )
     def test_applies_background_grouping(self, mock_calc_background_grouping: MagicMock) -> None:
         manager = EventManager({"message": "foo 123"})
         manager.normalize()
