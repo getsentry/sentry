@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
 
+import PageBanner from 'sentry/components/alerts/pageBanner';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import PageBanner from 'sentry/components/replays/pageBanner';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t, tct} from 'sentry/locale';

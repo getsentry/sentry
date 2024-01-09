@@ -110,6 +110,10 @@ type ProfilingAM1OrMMXUpgradeProps = {
   organization: Organization;
 };
 
+type CronsBillingBannerProps = {
+  organization: Organization;
+};
+
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
   'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
@@ -143,6 +147,8 @@ type QualitativeIssueFeedbackProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type MonitorCreatedCallback = (organization: Organization) => void;
+
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
@@ -153,6 +159,7 @@ export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -180,6 +187,7 @@ export type ComponentHooks = {
   'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-warning': React.ComponentType<any>;
 };
 
 /**
@@ -311,6 +319,7 @@ export type ReactHooks = {
  */
 type CallbackHooks = {
   'callback:on-guide-update': GuideUpdateCallback;
+  'callback:on-monitor-created': MonitorCreatedCallback;
 };
 
 /**

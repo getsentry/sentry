@@ -9,6 +9,7 @@ import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackVie
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,7 +40,12 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
       <OverflowPanelItem>
         <Section
           title={t('Description')}
-          contentRight={<FeedbackViewers feedbackItem={feedbackItem} />}
+          contentRight={
+            <Flex gap={space(1)} align="center">
+              <SmallTitle>{t('Viewers')}</SmallTitle>
+              <FeedbackViewers feedbackItem={feedbackItem} />
+            </Flex>
+          }
         >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
@@ -90,6 +96,10 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(4)};
+`;
+
+const SmallTitle = styled('span')`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
 const Blockquote = styled('blockquote')`
