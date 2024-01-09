@@ -1065,7 +1065,9 @@ def test_redirect_escalations(
     should_escalate,
     project,
     timestamp,
+    django_cache,  # the environment can persist in the cache otherwise
 ):
+
     RegressionGroup.objects.create(
         type=detector_cls.regression_type.value,
         date_regressed=timestamp - timedelta(days=1),
@@ -1084,14 +1086,14 @@ def test_redirect_escalations(
         "event_id": event_id,
         "fingerprint": [generate_fingerprint(detector_cls.regression_type, object_name)],
         "issue_title": issue_type.description,
-        "subtitle": "",  # unused for this test, leave blank
+        "subtitle": "",
         "resource_id": None,
-        "evidence_data": {},  # unused for this test, leave blank
-        "evidence_display": [],  # unused for this test, leave blank
+        "evidence_data": {},
+        "evidence_display": [],
         "type": issue_type.type_id,
         "detection_time": timestamp.isoformat(),
         "level": "info",
-        "culprit": "",  # unused for this test, leave blank
+        "culprit": "",
         "payload_type": PayloadType.OCCURRENCE.value,
         "event": {
             "timestamp": timestamp.isoformat(),
@@ -1141,6 +1143,7 @@ def test_redirect_escalations(
 
     if should_escalate:
         assert len(list(trends)) == 0
+        assert produce_occurrence_to_kafka.called
         status_change = StatusChangeMessage(
             fingerprint=[generate_fingerprint(detector_cls.regression_type, object_name)],
             project_id=project.id,
