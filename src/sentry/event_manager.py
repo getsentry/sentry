@@ -2369,6 +2369,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     return filtered
 
 
+@sentry_sdk.tracing.trace
 def save_attachment(
     cache_key: Optional[str],
     attachment: Attachment,

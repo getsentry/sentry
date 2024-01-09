@@ -1,5 +1,6 @@
 import zlib
 
+import sentry_sdk
 import zstandard
 
 from sentry import options
@@ -172,6 +173,7 @@ class BaseAttachmentCache:
 
         return bytes(data)
 
+    @sentry_sdk.tracing.trace
     def delete(self, key):
         for attachment in self.get(key):
             attachment.delete()
