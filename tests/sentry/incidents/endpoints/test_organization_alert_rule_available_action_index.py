@@ -7,7 +7,6 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations import SentryAppComponent, SentryAppInstallation
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.silo import SiloMode
@@ -67,7 +66,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_build_action_response_opsgenie(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_raw_integration(
                 provider="opsgenie", name="test-app", external_id="test-app", metadata=METADATA
             )
             integration.add_organization(self.organization, self.user)
@@ -91,7 +90,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     def test_build_action_response_pagerduty(self):
         service_name = SERVICES[0]["service_name"]
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_raw_integration(
                 provider="pagerduty",
                 name="Example PagerDuty",
                 external_id="example-pagerduty",
@@ -147,7 +146,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_simple(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id="1", provider="slack")
+            integration = self.create_raw_integration(external_id="1", provider="slack")
             integration.add_organization(self.organization)
 
         with self.feature("organizations:incidents"):
@@ -164,11 +163,11 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_duplicate_integrations(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_raw_integration(
                 external_id="1", provider="slack", name="slack 1"
             )
             integration.add_organization(self.organization)
-            other_integration = Integration.objects.create(
+            other_integration = self.create_raw_integration(
                 external_id="2", provider="slack", name="slack 2"
             )
             other_integration.add_organization(self.organization)
@@ -229,7 +228,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_no_ticket_actions(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id="1", provider="jira")
+            integration = self.create_raw_integration(external_id="1", provider="jira")
             integration.add_organization(self.organization)
 
         with self.feature(["organizations:incidents", "organizations:integrations-ticket-rules"]):
@@ -241,7 +240,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_integration_disabled(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_raw_integration(
                 external_id="1", provider="slack", status=ObjectStatus.DISABLED
             )
             integration.add_organization(self.organization)
@@ -254,7 +253,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
     def test_org_integration_disabled(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id="1", provider="slack")
+            integration = self.create_raw_integration(external_id="1", provider="slack")
             org_integration = integration.add_organization(self.organization)
             org_integration.update(status=ObjectStatus.DISABLED)
 

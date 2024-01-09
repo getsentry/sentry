@@ -9,7 +9,6 @@ from django.urls import reverse
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
-from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -149,7 +148,7 @@ class MsTeamsRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
         team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
-        expected_integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        expected_integration = self.create_raw_integration(external_id=team_id, provider="msteams")
 
         CARD_ACTION_RESPONSE = self.generate_card_response(expected_integration.id)
 

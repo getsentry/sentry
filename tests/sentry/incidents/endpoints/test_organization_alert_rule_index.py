@@ -16,7 +16,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
@@ -586,7 +585,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_raw_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",
@@ -633,7 +632,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_uuid4.return_value = self.get_mock_uuid()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_raw_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",
@@ -999,7 +998,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_raw_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",

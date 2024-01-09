@@ -5,7 +5,6 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry.eventstore.models import Event
 from sentry.integrations.jira_server import JiraServerCreateTicketAction
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
@@ -19,7 +18,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = Integration.objects.create(
+        self.integration = self.create_raw_integration(
             provider="jira_server",
             name="Jira Server",
             metadata={"base_url": "https://jira.example.com", "verify_ssl": True},
