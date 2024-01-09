@@ -70,17 +70,3 @@ export function shouldDisplayRegions(): boolean {
     regionCount > 1
   );
 }
-
-export function getRegionByName(regionName: string): Region | undefined {
-  return ConfigStore.get('regions').find(
-    ({name}) => name.toUpperCase() === regionName.toUpperCase()
-  );
-}
-
-export function getRegionBaseUrl(region?: Region): string | undefined {
-  if (!region?.url) {
-    return undefined;
-  }
-
-  return `${region.url}/api/0`;
-}
