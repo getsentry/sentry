@@ -443,8 +443,8 @@ class Fixtures:
 
         return integration
 
-    def create_raw_integration(self, external_id: str, **integration_params: Any) -> Integration:
-        return Factories.create_raw_integration(external_id=external_id, **integration_params)
+    def create_raw_integration(self, **integration_params: Any) -> Integration:
+        return Factories.create_raw_integration(**integration_params)
 
     def create_integration(
         self,
