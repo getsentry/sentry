@@ -248,6 +248,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
         group = self.create_group(project=self.project)
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
