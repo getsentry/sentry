@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IntegrationSerializer, serialize
+from sentry.api.utils import Timer
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
@@ -28,7 +29,10 @@ logger = logging.getLogger(__name__)
 
 
 def get_link(
-    config: RepositoryProjectPathConfig, filepath: str, version: Optional[str] = None
+    config: RepositoryProjectPathConfig,
+    filepath: str,
+    version: Optional[str] = None,
+    group_id: Optional[str] = None,
 ) -> Dict[str, str]:
     result = {}
 
@@ -42,9 +46,18 @@ def get_link(
     link = None
     try:
         if isinstance(install, RepositoryMixin):
-            link = install.get_stacktrace_link(
-                config.repository, formatted_path, config.default_branch, version
-            )
+            with Timer() as t:
+                link = install.get_stacktrace_link(
+                    config.repository, formatted_path, config.default_branch, version
+                )
+                analytics.record(
+                    "function_timer.timed",
+                    function_name="get_stacktrace_link",
+                    duration=t.duration,
+                    organization_id=config.project.organization_id,
+                    project_id=config.project_id,
+                    group_id=group_id,
+                )
 
     except ApiError as e:
         if e.code != 403:
@@ -77,6 +90,7 @@ def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional
         "module": parameters.get("module"),
         "package": parameters.get("package"),
         "line_no": parameters.get("lineNo"),
+        "group_id": parameters.get("groupId"),
     }
 
 
@@ -125,7 +139,9 @@ def try_path_munging(
             ):
                 result = {"error": "stack_root_mismatch"}
             else:
-                result = get_link(config, munged_filename, ctx["commit_id"])
+                result = get_link(
+                    config, munged_filename, ctx.get("commit_id"), ctx.get("group_id")
+                )
 
     return result
 
@@ -160,6 +176,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     `absPath` (optional): The abs_path field value of the relevant stack frame
     `module`   (optional): The module field value of the relevant stack frame
     `package`  (optional): The package field value of the relevant stack frame
+    `groupId`   (optional): The Issue's id.
     """
 
     owner = ApiOwner.ISSUES
@@ -185,9 +202,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         configs = get_sorted_code_mapping_configs(project)
 
         current_config = None
+        found_config_index = -1
+
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
-            for config in configs:
+            for index, config in enumerate(configs):
                 outcome = {}
                 munging_outcome = {}
 
@@ -203,7 +222,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                         # This may be overwritten if a valid code mapping is found
                         result["error"] = "stack_root_mismatch"
                         continue
-                    outcome = get_link(config, filepath, ctx["commit_id"])
+
+                    outcome = get_link(config, filepath, ctx.get("commit_id"), ctx.get("group_id"))
+
                     # XXX: I want to remove this whole block logic as I believe it is wrong
                     # In some cases the stack root matches and it can either be that we have
                     # an invalid code mapping or that munging is expect it to work
@@ -231,6 +252,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 # Stop processing if a match is found
                 if outcome.get("sourceUrl") and outcome["sourceUrl"]:
                     result["sourceUrl"] = outcome["sourceUrl"]
+                    found_config_index = index
                     break
 
             # Post-processing before exiting scope context
@@ -245,7 +267,16 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 should_get_coverage = codecov_enabled(project.organization)
                 scope.set_tag("codecov.enabled", should_get_coverage)
                 if should_get_coverage:
-                    codecov_data = fetch_codecov_data(config=current_config)
+                    with Timer() as t:
+                        codecov_data = fetch_codecov_data(config=current_config)
+                        analytics.record(
+                            "function_timer.timed",
+                            function_name="fetch_codecov_data",
+                            duration=t.duration,
+                            organization_id=project.organization_id,
+                            project_id=project.id,
+                            group_id=ctx.get("group_id"),
+                        )
                     if codecov_data:
                         result["codecov"] = codecov_data
             try:
@@ -262,6 +293,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 organization_id=project.organization_id,
                 filepath=filepath,
                 status=result.get("error") or "success",
+                code_mapping_iterations=found_config_index + 1,
             )
 
         return Response(result)
