@@ -1456,7 +1456,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         with assume_test_silo_mode(SiloMode.CONTROL):
             with unguarded_write(using=router.db_for_write(Integration)):
                 Integration.objects.all().delete()
-            integration = Integration.objects.create(provider="bitbucket")
+            integration = self.create_integration(provider="bitbucket")
             integration.add_organization(self.organization)
 
         with self.tasks():
@@ -1477,7 +1477,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         with assume_test_silo_mode(SiloMode.CONTROL):
             with unguarded_write(using=router.db_for_write(Integration)):
                 Integration.objects.all().delete()
-            integration = Integration.objects.create(
+            integration = self.create_integration(
                 external_id="35.232.149.196:12345",
                 provider="github_enterprise",
                 metadata={

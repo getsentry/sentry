@@ -10,7 +10,6 @@ from responses import matchers
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import APITestCase
@@ -42,7 +41,7 @@ class PagerDutyProxyClientTest(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.integration = Integration.objects.create(
+        self.integration = self.create_integration(
             provider=self.provider,
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
@@ -144,7 +143,7 @@ def assert_proxy_request(request, is_proxy=True):
 class PagerDutyProxyApiClientTest(APITestCase):
     def setUp(self):
         self.login_as(self.user)
-        self.integration = Integration.objects.create(
+        self.integration = self.create_integration(
             provider="pagerduty",
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
