@@ -147,6 +147,8 @@ type QualitativeIssueFeedbackProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type MonitorCreatedCallback = (organization: Organization) => void;
+
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
@@ -317,6 +319,7 @@ export type ReactHooks = {
  */
 type CallbackHooks = {
   'callback:on-guide-update': GuideUpdateCallback;
+  'callback:on-monitor-created': MonitorCreatedCallback;
 };
 
 /**
