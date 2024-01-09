@@ -8,10 +8,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconDownload, IconEdit} from 'sentry/icons';
+import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
@@ -174,9 +175,24 @@ function Controls({
                     onAddWidget={onAddWidget}
                     aria-label="Add Widget"
                     priority="primary"
+                    data-test-id="add-widget-library"
                   />
                 ) : (
-                  <div />
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    size="sm"
+                    disabled={widgetLimitReached}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAnalytics('dashboards_views.widget_library.opened', {
+                        organization,
+                      });
+                      onAddWidget(DataSet.EVENTS);
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
                 )}
               </Tooltip>
             ) : null}

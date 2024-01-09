@@ -59,7 +59,11 @@ function AddWidget({onAddWidget}: Props) {
     >
       {hasDDMExperimentalFeature(organization) ? (
         <InnerWrapper>
-          <AddWidgetButton onAddWidget={onAddWidget} aria-label="Add Widget" />
+          <AddWidgetButton
+            onAddWidget={onAddWidget}
+            aria-label="Add Widget"
+            data-test-id="widget-add"
+          />
         </InnerWrapper>
       ) : (
         <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
