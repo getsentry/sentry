@@ -105,21 +105,25 @@ function getFormattedMRIHeaders(query?: WidgetQuery) {
   }, {});
 }
 
-function getMetricTimeseriesSortOptions(_, widgetQuery) {
-  if (!widgetQuery.columns) {
+function getMetricTimeseriesSortOptions(_, widgetQuery: WidgetQuery) {
+  if (!widgetQuery.fields?.[0]) {
     return [];
   }
 
-  return widgetQuery.columns.reduce((acc, column) => {
+  return widgetQuery.fields.reduce((acc, field) => {
+    if (!isMRIField(field)) {
+      return acc;
+    }
     return {
       ...acc,
-      [column]: {
-        label: column,
+      [`field:${field}`]: {
+        label: formatMRIField(field),
         value: {
-          kind: FieldValueKind.TAG,
+          kind: FieldValueKind.FIELD,
+          value: field,
           meta: {
-            name: column,
-            dataType: 'string',
+            name: field,
+            dataType: 'number',
           },
         },
       },
@@ -356,9 +360,7 @@ export function transformMetricsResponseToSeries(
     });
   });
 
-  return results.sort((a, b) => {
-    return a.data[0].value < b.data[0].value ? -1 : 1;
-  });
+  return results;
 }
 
 function getMetricRequest(

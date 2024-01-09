@@ -366,6 +366,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
     const hasV2ReleaseUIEnabled =
+      organization.features.includes('releases-v2-internal') ||
       organization.features.includes('releases-v2') ||
       organization.features.includes('releases-v2-st');
 
