@@ -24,7 +24,6 @@ import EventView, {
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -193,7 +192,7 @@ export function ScreenLoadSpansTable({
         const tooltipValue = tct(
           'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
           {
-            link: <ExternalLink href="https://docs.sentry.io" />,
+            link: <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />,
           }
         );
         return (
@@ -205,10 +204,9 @@ export function ScreenLoadSpansTable({
 
       if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate > 0.99) {
         const tooltipValue = tct(
-          'This span always ends before TTFD and may affect final display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
+          'This span always ends before TTFD and may affect final display. [link: Learn more.]',
           {
-            link: <ExternalLink href="https://docs.sentry.io" />,
-            ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
+            link: <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />,
           }
         );
         return (
@@ -218,14 +216,17 @@ export function ScreenLoadSpansTable({
         );
       }
 
+      const tooltipValue = tct(
+        'This span may not be contributing to TTID or TTFD. [link: Learn more.]',
+        {
+          link: <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />,
+        }
+      );
+
       return (
         <Tooltip
           isHoverable
-          title={t(
-            '(TTID contribution rate: %s and TTFD contribution rate: %s)',
-            formatPercentage(ttid_contribution_rate),
-            formatPercentage(ttfd_contribution_rate)
-          )}
+          title={tooltipValue}
         >
           <Container>{'--'}</Container>
         </Tooltip>
@@ -241,7 +242,7 @@ export function ScreenLoadSpansTable({
         const tooltipValue = tct(
           'This span always ends before TTID and may affect initial display. [link: Learn more.]',
           {
-            link: <ExternalLink href="https://docs.sentry.io" />,
+            link: <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />,
           }
         );
         return (
@@ -252,10 +253,9 @@ export function ScreenLoadSpansTable({
       }
 
       const tooltipValue = tct(
-        'This span may not affect initial display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
+        'This span may not affect initial display. [link: Learn more.]',
         {
-          link: <ExternalLink href="https://docs.sentry.io" />,
-          ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
+          link: <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />,
         }
       );
 

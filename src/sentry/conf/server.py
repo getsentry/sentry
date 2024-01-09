@@ -1504,6 +1504,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-ui": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
+    # Enable inbound filters to be turned on by default for new Javascript Projects
+    "organizations:default-inbound-filters": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": True,
     # Enable device.class as a selectable column
@@ -1822,8 +1824,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:release-health-drop-sessions": False,
     # Enable new release UI
     "organizations:releases-v2": False,
-    "organizations:releases-v2-st": False,
     "organizations:releases-v2-banner": False,
+    "organizations:releases-v2-internal": False,
+    "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable team member role provisioning through scim
@@ -3053,6 +3056,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
+    "project_root": "/usr/src",
     "in_app_include": ["sentry", "sentry_plugins"],
     "debug": True,
     "send_default_pii": True,
@@ -3782,7 +3786,7 @@ ENABLE_ANALYTICS = False
 
 MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
 MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 200
-MAX_FAST_CONDITION_ISSUE_ALERTS = 200
+MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5

@@ -1,9 +1,15 @@
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
+import useOrganization from 'sentry/utils/useOrganization';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
 import WidgetWrapper from './widgetWrapper';
@@ -18,7 +24,7 @@ const initialStyles = {
 };
 
 type Props = {
-  onAddWidget: () => void;
+  onAddWidget: (dataset: DataSet) => void;
 };
 
 function AddWidget({onAddWidget}: Props) {
@@ -27,6 +33,8 @@ function AddWidget({onAddWidget}: Props) {
     id: ADD_WIDGET_BUTTON_DRAG_ID,
     transition: null,
   });
+
+  const organization = useOrganization();
 
   return (
     <WidgetWrapper
@@ -49,18 +57,26 @@ function AddWidget({onAddWidget}: Props) {
         duration: 0.25,
       }}
     >
-      <InnerWrapper onClick={onAddWidget}>
-        <AddButton
-          data-test-id="widget-add"
-          icon={<IconAdd size="lg" isCircled color="inactive" />}
-          aria-label={t('Add widget')}
-        />
-      </InnerWrapper>
+      {hasDDMExperimentalFeature(organization) ? (
+        <InnerWrapper>
+          <AddWidgetButton
+            onAddWidget={onAddWidget}
+            aria-label="Add Widget"
+            data-test-id="widget-add"
+          />
+        </InnerWrapper>
+      ) : (
+        <InnerWrapper onClick={() => onAddWidget(DataSet.EVENTS)}>
+          <AddButton
+            data-test-id="widget-add"
+            icon={<IconAdd size="lg" isCircled color="inactive" />}
+            aria-label={t('Add widget')}
+          />
+        </InnerWrapper>
+      )}
     </WidgetWrapper>
   );
 }
-
-export default AddWidget;
 
 const AddButton = styled(Button)`
   border: none;
@@ -72,6 +88,50 @@ const AddButton = styled(Button)`
     box-shadow: none;
   }
 `;
+
+export default AddWidget;
+
+export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonProps) {
+  const organization = useOrganization();
+
+  const datasetChoices = new Map<string, string>();
+  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
+
+  if (organization.features.includes('dashboards-rh-widget')) {
+    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
+  }
+
+  if (hasDDMFeature(organization)) {
+    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
+  }
+
+  return (
+    <CompactSelect
+      options={[...datasetChoices.entries()].map(([value, label]) => ({
+        label,
+        value,
+      }))}
+      trigger={triggerProps => (
+        <DropdownButton
+          {...triggerProps}
+          {...buttonProps}
+          data-test-id="widget-add"
+          size="sm"
+          icon={<IconAdd isCircled />}
+        >
+          {t('Add Widget')}
+        </DropdownButton>
+      )}
+      onChange={({value: dataset}) => {
+        trackAnalytics('dashboards_views.widget_library.opened', {
+          organization,
+        });
+        onAddWidget(dataset as DataSet);
+      }}
+    />
+  );
+}
 
 const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;

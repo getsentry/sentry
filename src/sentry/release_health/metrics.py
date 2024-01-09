@@ -405,7 +405,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return rv
 
-    def sessions_query_config(self, organization: Any, start: datetime) -> SessionsQueryConfig:
+    def sessions_query_config(self, organization: Any) -> SessionsQueryConfig:
         return SessionsQueryConfig(
             allowed_resolution=AllowedResolution.ten_seconds,
             allow_session_status_query=True,
