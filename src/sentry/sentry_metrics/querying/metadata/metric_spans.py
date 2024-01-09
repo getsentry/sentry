@@ -240,7 +240,7 @@ def get_indexed_spans(
     projects: Sequence[Project],
 ):
     """
-    Fetches top N most recent indexed spans by building a SNQL query directly.
+    Fetches top N most recent indexed spans.
 
     The choice of not using query builders was deliberate, since we have to access columns that are not exposed via
     the query builders because they are meant to be internal.
