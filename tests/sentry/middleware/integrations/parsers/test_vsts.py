@@ -10,6 +10,7 @@ from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPD
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -54,11 +55,13 @@ class VstsRequestParserTest(TestCase):
         with mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo, mock.patch.object(
-            parser, "get_regions_from_organizations", return_value=[]
+            parser,
+            "get_regions_from_organizations",
+            side_effect=OrganizationIntegration.DoesNotExist(),
         ):
             response = parser.get_response()
             assert not get_response_from_control_silo.called
-            assert response.status_code == 202
+            assert response.status_code == 400
 
         # Regions found
         with mock.patch.object(
