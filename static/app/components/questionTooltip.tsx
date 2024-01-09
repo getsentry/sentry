@@ -12,13 +12,13 @@ interface QuestionProps
     >
   > {
   /**
-   * Set's the size of the icon.
+   * Sets the size of the icon.
    *
    * Remember to keep the size relative to the text or content it is near.
    */
   size: IconSize;
   /**
-   * The message to show in the question icons tooltip
+   * The message to show in the question icons tooltip.
    */
   title: React.ReactNode;
   className?: string;

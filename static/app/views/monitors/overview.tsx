@@ -8,6 +8,7 @@ import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
@@ -45,12 +46,16 @@ function DisabledMonitorCreationPanel() {
       <h3>{t('Monitor Your Cron Jobs')}</h3>
       <Alert type="warning" showIcon>
         {t(
-          'The Crons beta period has officially ended. Creating additional monitors for projects without pre-existing monitors is temporarily disabled as we prepare for our launch. Please try again on January 9th, 2024.'
+          'The Crons beta is over. Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete. Please try again after January 11th, 2024.'
         )}
       </Alert>
     </OnboardingPanel>
   );
 }
+
+const CronsListPageHeader = HookOrDefault({
+  hookName: 'component:crons-list-page-header',
+});
 
 export default function Monitors() {
   const organization = useOrganization();
@@ -88,6 +93,7 @@ export default function Monitors() {
 
   return (
     <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
+      <CronsListPageHeader organization={organization} />
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -113,7 +119,7 @@ export default function Monitors() {
                   title={
                     disableNewMonitors &&
                     t(
-                      'The Crons beta period has officially ended. Creating additional monitors is temporarily disabled as we prepare for our launch. Please try again on January 9th, 2024.'
+                      'Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete.'
                     )
                   }
                 >

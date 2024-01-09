@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
@@ -64,6 +64,10 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   tooltipPrefix?: React.ReactNode;
   /**
+   * Any other props for the <Tooltip>
+   */
+  tooltipProps?: Partial<TooltipProps>;
+  /**
    * Include seconds in the tooltip
    */
   tooltipShowSeconds?: boolean;
@@ -107,6 +111,7 @@ function TimeSince({
   tooltipBody,
   tooltipSuffix,
   tooltipUnderlineColor,
+  tooltipProps,
   isTooltipHoverable = false,
   unitStyle,
   prefix = t('in'),
@@ -174,6 +179,7 @@ function TimeSince({
           {tooltipSuffix && <div>{tooltipSuffix}</div>}
         </Fragment>
       }
+      {...tooltipProps}
     >
       <time dateTime={dateObj?.toISOString()} {...props}>
         {relative}
