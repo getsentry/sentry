@@ -34,7 +34,7 @@ from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
 
-logger = logging.getLogger("sentry.statistical_detectorst.asks")
+logger = logging.getLogger("sentry.statistical_detectorst.tasks")
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,11 @@ class RegressionDetector(ABC):
     buffer_period: timedelta
     resolution_rel_threshold: float
     escalation_rel_threshold: float
+
+    @classmethod
+    def configure_tags(cls):
+        sentry_sdk.set_tag("regression.source", cls.source)
+        sentry_sdk.set_tag("regression.kind", cls.source)
 
     @classmethod
     @abstractmethod
@@ -479,7 +484,7 @@ class RegressionDetector(ABC):
             for key, bundle in pairs.items():
                 issue_group = issue_groups.get(key)
                 if issue_group is None:
-                    # something is wrong here maybe?
+                    sentry_sdk.capture_message("Missing issue group for regression issue")
                     continue
 
                 if (
