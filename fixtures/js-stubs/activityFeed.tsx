@@ -58,6 +58,7 @@ export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
         language: 'en',
         stacktraceOrder: -1,
         timezone: 'America/Los_Angeles',
+        issueDetailsNewExperienceQ42023: false,
       },
       flags: {newsletter_consent_prompt: false},
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},

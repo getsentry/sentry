@@ -56,6 +56,7 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -368,6 +369,9 @@ export function Actions(props: Props) {
   });
   return (
     <ActionWrapper>
+      {organization.features.includes('issue-details-new-experience-toggle') ? (
+        <NewIssueExperienceButton />
+      ) : null}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),

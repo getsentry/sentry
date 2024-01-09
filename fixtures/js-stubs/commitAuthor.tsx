@@ -38,6 +38,7 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
       defaultIssueEvent: 'recommended',
       avatarType: 'gravatar',
       theme: 'light',
+      issueDetailsNewExperienceQ42023: false,
     },
     permissions: new Set(),
     canReset2fa: false,
