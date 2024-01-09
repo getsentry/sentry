@@ -162,7 +162,7 @@ def get_default_enhancements(config_id=None):
 
 def get_projects_default_fingerprinting_bases(
     project: Project, config_id: str | None = None
-) -> Sequence[str]:
+) -> Sequence[str] | None:
     """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
     from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 

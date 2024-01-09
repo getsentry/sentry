@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 from pathlib import Path
+from typing import Sequence
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
@@ -163,7 +164,7 @@ class FingerprintingRules:
         rules,
         changelog=None,
         version=None,
-        bases: list[str] | None = None,
+        bases: Sequence[str] | None = None,
     ):
         if version is None:
             version = VERSION
