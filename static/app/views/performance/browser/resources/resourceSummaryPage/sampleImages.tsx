@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase2} from 'sentry/utils';
+import {formatBytesBase2, safeURL} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -129,12 +129,13 @@ function ImageContainer(props: {
 }
 
 const getFileNameFromDescription = (description: string) => {
-  try {
-    const url = new URL(description);
-    return url.pathname.split('/').pop() || '';
-  } catch (e) {
+  const url = safeURL(description);
+
+  if (!url) {
     return description;
   }
+
+  return url.pathname.split('/').pop() ?? '';
 };
 
 const ImageWrapper = styled('div')`

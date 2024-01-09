@@ -5,16 +5,16 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import type {Frame} from 'sentry/types';
-import {isUrl} from 'sentry/utils';
+import {isUrl, safeURL} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
 export function isFrameFilenamePathlike(frame: Frame): boolean {
   let filename = frame.absPath ?? '';
-  try {
-    filename = new URL(filename).pathname.split('/').reverse()[0];
-  } catch {
-    // do nothing
+
+  const parsedURL = safeURL(filename);
+  if (parsedURL) {
+    filename = parsedURL.pathname.split('/').reverse()[0];
   }
 
   return (

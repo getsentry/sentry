@@ -356,7 +356,7 @@ export function generateOrgSlugUrl(orgSlug) {
 }
 
 /**
- * Returns a URL object if the input is a valid URL, otherwise undefined.
+ * Returns the parsed URL object if the input is a valid URL, otherwise returns undefined.
  * @param {string} input
  * @param {string | undefined} base
  * @returns {URL | undefined}
