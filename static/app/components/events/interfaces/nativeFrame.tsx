@@ -333,17 +333,41 @@ function NativeFrame({
             </AddressCell>
           </GenericCellWrapper>
           <FunctionNameCell>
-            {functionName ? (
-              <AnnotatedText value={functionName.value} meta={functionName.meta} />
-            ) : (
-              `<${t('unknown')}>`
-            )}{' '}
-            {frame.filename && (
+            <Tooltip
+              title={
+                <Fragment>
+                  <FileName>
+                    {absoluteFilePaths ? frame.absPath : frame.filename}
+                    {frame.lineNo && `:${frame.lineNo}`}
+                  </FileName>
+                  <div>{frame.absPath}</div>
+                </Fragment>
+              }
+              disabled={
+                !frame.filename ||
+                !showStacktraceLinkInFrame ||
+                !(defined(frame.absPath) && frame.absPath !== frame.filename)
+              }
+              delay={tooltipDelay}
+              overlayStyle={{maxWidth: '60vw'}}
+              isHoverable
+              skipWrapper
+            >
+              <span>
+                {functionName ? (
+                  <AnnotatedText value={functionName.value} meta={functionName.meta} />
+                ) : (
+                  `<${t('unknown')}>`
+                )}{' '}
+              </span>
+            </Tooltip>
+            {frame.filename && !showStacktraceLinkInFrame && (
               <Tooltip
                 title={frame.absPath}
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
                 isHoverable
+                skipWrapper
               >
                 <FileName>
                   {'('}
