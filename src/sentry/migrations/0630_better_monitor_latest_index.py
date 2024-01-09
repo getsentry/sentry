@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0629_better_monitor_latest_index"),
+        ("sentry", "0629_eventattachment_index"),
     ]
 
     operations = [
