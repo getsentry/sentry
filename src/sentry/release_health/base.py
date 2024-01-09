@@ -321,7 +321,7 @@ class ReleaseHealthBackend(Service):
 
         raise NotImplementedError()
 
-    def sessions_query_config(self, organization: Any, start: datetime) -> SessionsQueryConfig:
+    def sessions_query_config(self, organization: Any) -> SessionsQueryConfig:
         """Return the backend-dependent config for sessions_v2.QueryDefinition"""
         raise NotImplementedError()
 

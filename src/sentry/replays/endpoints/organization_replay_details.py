@@ -58,6 +58,9 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response(status=404)
 
+        if not filter_params["start"] or not filter_params["end"]:
+            return Response(status=404)
+
         try:
             replay_id = str(uuid.UUID(replay_id))
         except ValueError:

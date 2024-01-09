@@ -42,6 +42,7 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
             project_id__in=filter_params["project_id"], group_id__isnull=False
         )
         if "environment" in filter_params:
+            assert filter_params["environment_objects"]
             queryset = queryset.filter(
                 environment_id__in=[env.id for env in filter_params["environment_objects"]]
             )
