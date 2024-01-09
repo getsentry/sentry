@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from sentry import features, options
 from sentry.grouping.component import GroupingComponent
@@ -25,6 +25,12 @@ from sentry.grouping.variants import (
     SaltedComponentVariant,
 )
 from sentry.utils.safe import get_path
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.strategies.base import StrategyConfiguration
+    from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
@@ -62,7 +68,7 @@ class GroupingConfigLoader:
 
     cache_prefix: str  # Set in subclasses
 
-    def get_config_dict(self, project) -> GroupingConfig:
+    def get_config_dict(self, project: Project) -> GroupingConfig:
         return {
             "id": self._get_config_id(project),
             "enhancements": self._get_enhancements(project),
@@ -154,7 +160,10 @@ def get_default_enhancements(config_id=None):
     return Enhancements(rules=[], bases=[base]).dumps()
 
 
-def get_projects_default_fingerprinting_bases(project, config_id: str | None = None):
+def get_projects_default_fingerprinting_bases(
+    project: Project, config_id: str | None = None
+) -> list[str]:
+    """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
     from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
     config_id = (
@@ -193,7 +202,14 @@ def load_default_grouping_config():
     return load_grouping_config(config_dict=None)
 
 
-def get_fingerprinting_config_for_project(project, config_id: str | None = None):
+def get_fingerprinting_config_for_project(
+    project: Project, config_id: str | None = None
+) -> FingerprintingRules:
+    """
+    Returns the fingerprinting rules for a project.
+    Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
+    """
+
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
     if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
@@ -274,7 +290,9 @@ def _get_calculated_grouping_variants_for_event(event, context):
     return rv
 
 
-def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant]:
+def get_grouping_variants_for_event(
+    event: Event, config: StrategyConfiguration | None = None
+) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
