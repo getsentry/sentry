@@ -31,64 +31,11 @@ FOR
 UPDATE NOWAIT`,
         }}
         searchTerm=""
-        meta={
-          {
-            // data: {
-            //   url: {
-            //     '': {
-            //       rem: [['project:0', 's', 0, 0]],
-            //       len: 19,
-            //       chunks: [
-            //         {
-            //           type: 'redaction',
-            //           text: '',
-            //           rule_id: 'project:0',
-            //           remark: 's',
-            //         },
-            //       ],
-            //     },
-            //   },
-            // },
-          }
-        }
       />,
       {organization, router}
     );
 
     expect(screen.getByText('SELECT db.id, db.project_id,')).toBeInTheDocument();
     expect(screen.getByText('ORDER BY db.id ASC')).toBeInTheDocument();
-  });
-
-  it('normalizes the message when annotatedText is present', function () {
-    render(
-      <Sql
-        breadcrumb={{
-          type: BreadcrumbType.WARNING,
-          level: BreadcrumbLevelType.WARNING,
-          message: 'Text...',
-        }}
-        searchTerm=""
-        meta={{
-          message: {
-            '': {
-              len: 2,
-              chunks: [
-                {
-                  type: 'redaction',
-                  text: '...',
-                  rule_id: '!limit',
-                  remark: 'x',
-                },
-              ],
-            },
-          },
-        }}
-      />,
-      {organization, router}
-    );
-
-    expect(screen.getByText('Text')).toBeInTheDocument();
-    expect(screen.getByText('...')).toBeInTheDocument();
-    expect(screen.queryByText('Text...')).not.toBeInTheDocument();
   });
 });

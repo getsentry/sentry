@@ -36,8 +36,12 @@ export function Data({
     return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} meta={meta} />;
   }
 
-  if (breadcrumb.message && breadcrumb.messageFormat === BreadcrumbMessageFormat.SQL) {
-    return <Sql breadcrumb={breadcrumb} searchTerm={searchTerm} meta={meta} />;
+  if (
+    !meta &&
+    breadcrumb.message &&
+    breadcrumb.messageFormat === BreadcrumbMessageFormat.SQL
+  ) {
+    return <Sql breadcrumb={breadcrumb} searchTerm={searchTerm} />;
   }
 
   if (
