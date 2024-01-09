@@ -7,18 +7,18 @@ import {DashboardDetails} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;
-  isEditingDashboard: boolean;
+  isEditing: boolean;
   onUpdate: (dashboard: DashboardDetails) => void;
 };
 
-function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
+function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
   return (
     <Fragment>
       {!dashboard ? (
         t('Dashboards')
       ) : (
         <EditableText
-          isDisabled={!isEditingDashboard}
+          isDisabled={!isEditing}
           value={dashboard.title}
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}

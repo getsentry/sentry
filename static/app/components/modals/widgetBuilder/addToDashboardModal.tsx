@@ -228,7 +228,7 @@ function AddToDashboardModal({
               >
                 <WidgetCard
                   organization={organization}
-                  isEditingDashboard={false}
+                  isEditing={false}
                   widgetLimitReached={false}
                   selection={
                     selectedDashboard
