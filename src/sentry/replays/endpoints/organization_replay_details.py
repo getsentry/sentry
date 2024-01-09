@@ -58,10 +58,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response(status=404)
 
-        try:
-            assert filter_params["start"]
-            assert filter_params["end"]
-        except Exception:
+        if not filter_params["start"] or not filter_params["end"]:
             return Response(status=404)
 
         try:
