@@ -12,5 +12,8 @@ export default function stripURLOrigin(url: string): string {
     return url;
   }
 
-  return parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
+  // We cannot do something like parsedUrl.pathname + parsedUrl.search + parsedUrl.hash
+  // as the parsed representation of the url may not exactly match the string url argument.
+  // See more detailed explanation in https://github.com/getsentry/sentry/pull/62839#discussion_r1446450773
+  return url.replace(parsedUrl.origin, '');
 }
