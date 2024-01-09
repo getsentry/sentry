@@ -9,6 +9,7 @@ from django.urls import reverse
 from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
+from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -92,7 +93,7 @@ class VstsRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
         account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
-        expected_integration = self.create_integration(
+        expected_integration = Integration.objects.create(
             provider="vsts",
             external_id=account_id,
             name="vsts_name",

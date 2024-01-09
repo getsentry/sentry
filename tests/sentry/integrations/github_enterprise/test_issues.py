@@ -6,6 +6,7 @@ from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
@@ -25,7 +26,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.model = self.create_integration(
+            self.model = Integration.objects.create(
                 provider="github_enterprise",
                 external_id="github_external_id",
                 name="getsentry",

@@ -45,6 +45,7 @@ from sentry.integrations.msteams.card_builder.notifications import (
 )
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
@@ -99,7 +100,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
 
-        self.integration = self.create_integration(
+        self.integration = Integration.objects.create(
             provider="msteams",
             name="Fellowship of the Ring",
             external_id="f3ll0wsh1p",

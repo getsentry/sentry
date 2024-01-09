@@ -7,6 +7,7 @@ import responses
 
 from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
+from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
@@ -22,7 +23,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_integration(
+            self.integration = Integration.objects.create(
                 provider="bitbucket",
                 external_id=self.subject,
                 name="MyBitBucket",
@@ -99,7 +100,7 @@ class BitbucketRepositoryProviderTest(TestCase):
 
         organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
+            integration = Integration.objects.create(
                 provider="bitbucket",
                 external_id="bitbucket_external_id",
                 name="Hello world",
@@ -149,7 +150,7 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_integration(
+            self.integration = Integration.objects.create(
                 provider="bitbucket",
                 external_id=self.subject,
                 name="MyBitBucket",

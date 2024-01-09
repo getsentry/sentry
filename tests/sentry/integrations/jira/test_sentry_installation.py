@@ -4,6 +4,7 @@ from jwt import ExpiredSignatureError
 
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils import AtlassianConnectValidationError
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.utils.http import absolute_uri
 
@@ -19,7 +20,7 @@ class JiraSentryInstallationViewTestCase(APITestCase):
         self.user.name = "Sentry Admin"
         self.user.save()
 
-        self.integration = self.create_integration(provider="jira", name="Example Jira")
+        self.integration = Integration.objects.create(provider="jira", name="Example Jira")
 
 
 class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):

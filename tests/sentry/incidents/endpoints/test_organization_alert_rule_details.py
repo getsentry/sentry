@@ -26,6 +26,7 @@ from sentry.incidents.models import (
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.client import SlackClient
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -668,7 +669,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         mock_uuid4.return_value = self.get_mock_uuid()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_integration(
+            self.integration = Integration.objects.create(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",
@@ -817,7 +818,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         mock_uuid4.return_value = self.get_mock_uuid()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_integration(
+            self.integration = Integration.objects.create(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",

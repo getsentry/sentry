@@ -8,6 +8,7 @@ import responses
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
@@ -42,7 +43,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             body=COMMIT_DETAILS_EXAMPLE,
         )
 
-        integration = self.create_integration(
+        integration = Integration.objects.create(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
@@ -86,7 +87,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
     @responses.activate
     def test_build_repository_config(self):
         organization = self.create_organization()
-        integration = self.create_integration(
+        integration = Integration.objects.create(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
@@ -132,7 +133,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         super().setUp()
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
-        self.integration = self.create_integration(
+        self.integration = Integration.objects.create(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",

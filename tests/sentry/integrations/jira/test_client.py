@@ -9,6 +9,7 @@ from responses.matchers import header_matcher, query_string_matcher
 
 from sentry.integrations.jira.client import JiraCloudClient
 from sentry.integrations.utils.atlassian_connect import get_query_hash
+from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
@@ -34,7 +35,7 @@ def mock_authorize_request(prepared_request: PreparedRequest):
 @control_silo_test
 class JiraClientTest(TestCase):
     def setUp(self):
-        self.integration = self.create_integration(
+        self.integration = Integration.objects.create(
             provider="jira",
             name="Jira Cloud",
             metadata={

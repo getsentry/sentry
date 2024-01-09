@@ -14,6 +14,7 @@ from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -735,7 +736,7 @@ class JiraServerIntegrationTest(APITestCase):
         assert result["key"] == "APP-123"
 
     def test_outbound_issue_sync(self):
-        integration = self.create_integration(provider="jira", name="Example Jira")
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         external_issue = ExternalIssue.objects.create(
@@ -809,7 +810,7 @@ class JiraServerIntegrationTest(APITestCase):
         assert len(responses.calls) == 1
 
     def test_update_organization_config_sync_keys(self):
-        integration = self.create_integration(provider="jira", name="Example Jira")
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -921,7 +922,7 @@ class JiraServerIntegrationTest(APITestCase):
         )
 
     def test_update_organization_config_issues_keys(self):
-        integration = self.create_integration(provider="jira", name="Example Jira")
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -955,7 +956,7 @@ class JiraServerIntegrationTest(APITestCase):
         ]
 
     def test_get_config_data(self):
-        integration = self.create_integration(provider="jira", name="Example Jira")
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
@@ -990,7 +991,7 @@ class JiraServerIntegrationTest(APITestCase):
         }
 
     def test_get_config_data_issues_keys(self):
-        integration = self.create_integration(provider="jira", name="Example Jira")
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -1015,7 +1016,7 @@ class JiraServerIntegrationTest(APITestCase):
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = self.create_integration(
+        integration = Integration.objects.create(
             provider="jira_server",
             name="Jira Server",
             metadata={

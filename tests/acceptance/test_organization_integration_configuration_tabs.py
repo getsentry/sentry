@@ -1,5 +1,6 @@
 from selenium.webdriver.common.by import By
 
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -10,7 +11,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
         super().setUp()
         self.login_as(self.user)
         self.provider = "github"
-        self.integration = self.create_integration(
+        self.integration = Integration.objects.create(
             provider=self.provider,
             external_id="some_github",
             name="Github",

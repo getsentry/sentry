@@ -12,6 +12,7 @@ from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import AtlassianConnectValidationError
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
@@ -26,7 +27,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        integration = self.create_integration(
+        integration = Integration.objects.create(
             provider="jira",
             name="Example Jira",
             metadata={

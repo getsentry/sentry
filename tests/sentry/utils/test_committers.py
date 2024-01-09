@@ -742,7 +742,7 @@ class GetEventFileCommitters(CommitTestCase):
     @with_feature("organizations:commit-context")
     def test_no_author(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            model = self.create_integration(
+            model = Integration.objects.create(
                 provider="github", external_id="github_external_id", name="getsentry"
             )
             model.add_organization(self.organization, self.user)

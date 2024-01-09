@@ -30,6 +30,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.integrations.integration import Integration
 from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
     EventsDatasetSnubaSearchBackend,
@@ -244,7 +245,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
             },
             project_id=self.project.id,
         )
-        integration = self.create_integration(provider="example", name="Example")
+        integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
             group=event.group,

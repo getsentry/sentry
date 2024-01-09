@@ -5,6 +5,7 @@ import responses
 
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -35,7 +36,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_integration(
+            self.integration = Integration.objects.create(
                 provider="pagerduty",
                 name="Example",
                 external_id=EXTERNAL_ID,
@@ -235,7 +236,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_name": "Informational",
         }
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
+            integration = Integration.objects.create(
                 provider="pagerduty",
                 name="Example 3",
                 external_id="example-3",
@@ -283,7 +284,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_name": "Informational",
         }
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_integration(
+            integration = Integration.objects.create(
                 provider="pagerduty",
                 name="Example 2",
                 external_id="example-2",

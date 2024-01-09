@@ -5,6 +5,7 @@ from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.integrations.discord.utils.channel import ChannelType
+from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import TestCase
 
 
@@ -49,7 +50,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         )
 
         alert_rule = self.create_alert_rule()
-        integration = self.create_integration(
+        integration = Integration.objects.create(
             provider="discord",
             name="Example Discord",
             external_id="guild_id",
@@ -85,7 +86,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         )
 
         alert_rule = self.create_alert_rule()
-        integration = self.create_integration(
+        integration = Integration.objects.create(
             provider="discord",
             name="Example Discord",
             external_id="guild_id",

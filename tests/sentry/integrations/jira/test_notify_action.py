@@ -4,6 +4,7 @@ from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -18,7 +19,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = JiraCreateTicketAction
 
     def setUp(self):
-        self.integration = self.create_integration(
+        self.integration = Integration.objects.create(
             provider="jira",
             name="Jira Cloud",
             metadata={

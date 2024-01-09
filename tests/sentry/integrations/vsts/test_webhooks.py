@@ -17,6 +17,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -32,7 +33,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.instance = "https://instance.visualstudio.com/"
         self.shared_secret = "1234567890"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.model = self.create_integration(
+            self.model = Integration.objects.create(
                 provider="vsts",
                 external_id=self.account_id,
                 name="vsts_name",

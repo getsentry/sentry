@@ -1,5 +1,6 @@
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.mediators.plugins.migrator import Migrator
+from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
@@ -22,7 +23,7 @@ class MigratorTest(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 
-        self.integration = self.create_integration(provider=ExampleIntegrationProvider.key)
+        self.integration = Integration.objects.create(provider=ExampleIntegrationProvider.key)
 
         self.migrator = Migrator(
             integration=serialize_integration(self.integration),

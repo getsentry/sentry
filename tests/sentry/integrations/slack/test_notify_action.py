@@ -6,6 +6,7 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
@@ -95,7 +96,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_valid_bot_channel_selected(self):
-        integration = self.create_integration(
+        integration = Integration.objects.create(
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX2",
