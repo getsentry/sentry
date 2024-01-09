@@ -1,39 +1,36 @@
 from __future__ import annotations
 
 import dataclasses
-from unittest.mock import MagicMock, patch, sentinel
+from unittest.mock import patch
 from urllib.parse import urlencode
 
-import pytest
+import responses
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.integrations.slack.requests.command import SlackCommandRequest
-from sentry.middleware.integrations.parsers.base import RegionResult
+from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.models.outbox import ControlOutbox, OutboxCategory
-from sentry.silo.client import SiloClientError
+from sentry.models.outbox import ControlOutbox
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import assert_no_webhook_outboxes
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 from sentry.utils.signing import sign
 
+region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+region_config = (region,)
+
 
 @control_silo_test
 class SlackRequestParserTest(TestCase):
-    get_response = MagicMock()
     factory = RequestFactory()
-    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    timestamp = "123123123"
 
-    @pytest.fixture(autouse=True)
-    def patch_get_region(self):
-        with patch.object(
-            SlackRequestParser, "get_regions_from_organizations", return_value=[self.region]
-        ):
-            yield
-
+    @override_regions(region_config)
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -41,49 +38,55 @@ class SlackRequestParserTest(TestCase):
             organization=self.organization, external_id="TXXXXXXX1", provider="slack"
         )
 
-    @patch.object(SlackCommandRequest, "integration")
-    @patch.object(SlackCommandRequest, "validate_integration")
-    @patch.object(SlackCommandRequest, "authorize")
-    def test_webhook(self, mock_authorize, mock_validate_integration, mock_integration):
+    def get_response(self, request: HttpRequest) -> HttpResponse:
+        return HttpResponse(status=200, content="passthrough")
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_webhook(self):
         # Retrieve the correct integration
-        mock_integration.id = self.integration.id
         data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
+        signature = _encode_data(secret="slack-signing-secret", data=data, timestamp=self.timestamp)
         request = self.factory.post(
             path=reverse("sentry-integration-slack-commands"),
             data=data,
             content_type="application/x-www-form-urlencoded",
+            HTTP_X_SLACK_SIGNATURE=signature,
+            HTTP_X_SLACK_REQUEST_TIMESTAMP=self.timestamp,
         )
         parser = SlackRequestParser(request, self.get_response)
         integration = parser.get_integration_from_request()
-        assert mock_authorize.called
-        assert mock_validate_integration.called
         assert integration == self.integration
 
         # Returns response from region
-        region_response = RegionResult(response=sentinel.response)
-        with patch.object(
-            parser, "get_response_from_outbox_creation"
-        ) as get_response_from_outbox_creation, patch.object(
-            parser,
-            "get_responses_from_region_silos",
-            return_value={self.region.name: region_response},
-        ) as mock_response_from_region:
-            assert not get_response_from_outbox_creation.called
-            response = parser.get_response()
-            assert mock_response_from_region.called
-            assert response == region_response.response
-            # No outboxes will be created from the slack request parser
-            assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
+        responses.add(
+            responses.POST,
+            "https://us.testserver/extensions/slack/commands/",
+            status=201,
+            body=b"region_response",
+        )
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 201
+        assert response.content == b"region_response"
+        assert len(responses.calls) == 1
+        assert_no_webhook_outboxes()
 
-        # Raises SiloClientError on failure
-        with pytest.raises(SiloClientError), patch.object(
-            parser,
-            "get_responses_from_region_silos",
-            return_value={self.region.name: RegionResult(error=sentinel.error)},
-        ) as mock_response_from_region:
-            response = parser.get_response()
-            assert mock_response_from_region.called
+        # ...even if it returns an error
+        responses.add(
+            responses.POST,
+            "https://us.testserver/extensions/slack/commands/",
+            status=401,
+            body=b"error_response",
+        )
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 401
+        assert response.content == b"error_response"
+        assert len(responses.calls) == 2
+        assert_no_webhook_outboxes()
 
+    @responses.activate
     def test_django_view(self):
         # Retrieve the correct integration
         path = reverse(
@@ -97,19 +100,21 @@ class SlackRequestParserTest(TestCase):
             raise ValueError("Parser could not identify an integration")
         assert parser_integration.id == self.integration.id
 
-        # Forwards to control silo
-        with patch.object(
-            parser, "get_response_from_outbox_creation"
-        ) as get_response_from_outbox_creation, patch.object(
-            parser, "get_response_from_control_silo", return_value="mock_response"
-        ) as mock_response_from_control:
-            response = parser.get_response()
-            assert mock_response_from_control.called
-            assert not get_response_from_outbox_creation.called
-            assert response == mock_response_from_control()
+        # Passes through to control silo
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 200
+        assert response.content == b"passthrough"
+        assert len(responses.calls) == 0
+        assert_no_webhook_outboxes
 
+    @override_regions(region_config)
+    @patch(
+        "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
+        return_value=True,
+    )
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    def test_triggers_async_response(self, mock_slack_task):
+    def test_triggers_async_response(self, mock_slack_task, mock_signing_secret):
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {
             "payload": json.dumps(
