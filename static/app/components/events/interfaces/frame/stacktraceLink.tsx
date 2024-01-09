@@ -15,6 +15,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -173,8 +174,14 @@ function CodecovLink({
 
   return (
     <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
-      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-      {hasStacktraceLinkFeatureFlag ? t('Codecov') : t('Open in Codecov')}
+      <Tooltip
+        title={t('Open in Codecov')}
+        disabled={!hasStacktraceLinkFeatureFlag}
+        skipWrapper
+      >
+        <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+      </Tooltip>
+      {hasStacktraceLinkFeatureFlag ? null : t('Open in Codecov')}
     </OpenInLink>
   );
 }
@@ -290,7 +297,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       <StacktraceLinkWrapper>
         <Placeholder
           height={hasStacktraceLinkFeatureFlag ? '14px' : '24px'}
-          width={hasStacktraceLinkFeatureFlag ? '171px' : '120px'}
+          width={hasStacktraceLinkFeatureFlag ? '40px' : '120px'}
         />
       </StacktraceLinkWrapper>
     );
@@ -309,11 +316,17 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           )}
           openInNewTab
         >
-          <StyledIconWrapper>
-            {getIntegrationIcon(match.config.provider.key, 'sm')}
-          </StyledIconWrapper>
+          <Tooltip
+            disabled={!hasStacktraceLinkFeatureFlag}
+            title={t('Open this line in %s', match.config.provider.name)}
+            skipWrapper
+          >
+            <StyledIconWrapper>
+              {getIntegrationIcon(match.config.provider.key, 'sm')}
+            </StyledIconWrapper>
+          </Tooltip>
           {hasStacktraceLinkFeatureFlag
-            ? match.config.provider.name
+            ? null
             : t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
         {shouldShowCodecovFeatures(organization, match) ? (
