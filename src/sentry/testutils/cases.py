@@ -1401,7 +1401,10 @@ class BaseSpansTestCase(SnubaTestCase):
         metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
         timestamp: datetime = None,
         tags: Mapping[str, Any] = None,
+        sentry_tags: Mapping[str, Any] = None,
         store_only_summary: bool = False,
+        is_segment: int = 0,
+        duration_ms: int = 10,
     ):
         payload = {
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
@@ -1413,9 +1416,10 @@ class BaseSpansTestCase(SnubaTestCase):
             "event_id": transaction_id,
             "profile_id": profile_id,
             "tags": tags,
-            "is_segment": 0,
+            "is_segment": is_segment,
         }
-
+        if sentry_tags:
+            payload["sentry_tags"] = sentry_tags
         if metrics_summary:
             payload["_metrics_summary"] = metrics_summary
 
