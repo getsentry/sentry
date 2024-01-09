@@ -171,3 +171,27 @@ def test_v1_span():
             ],
         },
     }
+
+
+def test_snuba_span_schema():
+    relay_span = {
+        "description": "first server span",
+        "duration_ms": 100001000,
+        "exclusive_time_ms": 10004.0,
+        "is_segment": True,
+        "measurements": {"inp": {"value": 1000.0}},
+        "project_id": 1,
+        "received": 1704746372.235384,
+        "retention_days": 90,
+        "segment_id": "b8670efa82b3781a",
+        "sentry_tags": {"op": "interaction"},
+        "span_id": "b8670efa82b3781a",
+        "start_timestamp_ms": 1702933324389,
+        "tags": {"ui.interaction.finish": "timeout"},
+        "trace_id": "63f25a650da04bb7bb23628c0f7668ad",
+    }
+    payload = json.dumps(relay_span)
+    value = BrokerValue(KafkaPayload(None, payload.encode(), []), None, 0, None)  # type: ignore
+    processed = _process_message(Message(value))
+    assert isinstance(processed, KafkaPayload)
+    assert json.loads(processed.value) == relay_span

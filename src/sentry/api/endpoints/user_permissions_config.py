@@ -12,7 +12,7 @@ from sentry.api.permissions import SuperuserPermission
 @control_silo_endpoint
 class UserPermissionsConfigEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (SuperuserPermission,)
