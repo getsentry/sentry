@@ -15,7 +15,7 @@ from sentry.services.hybrid_cloud.auth.service import auth_service
 @region_silo_endpoint
 class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAuthProviderPermission,)
