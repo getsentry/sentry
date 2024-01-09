@@ -639,8 +639,54 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             statsPeriod="1d",
             metricSpans="true",
         )
-
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
+        assert metric_spans[0]["spanId"] == data[1][0]
+        assert metric_spans[0]["segmentName"] == data[1][1]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            query="transaction:/api/users AND (device:OnePlus OR device:iPhone)",
+            min="50",
+            max="150",
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["spanId"] == data[0][0]
+        assert metric_spans[0]["segmentName"] == data[0][1]
+        assert metric_spans[0]["spanId"] == data[1][0]
+        assert metric_spans[0]["segmentName"] == data[1][1]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            query="transaction:/api/users AND device:iPhone AND device:OnePlus",
+            min="50",
+            max="150",
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 0
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            query="",
+            min="50",
+            max="150",
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["spanId"] == data[0][0]
+        assert metric_spans[0]["segmentName"] == data[0][1]
         assert metric_spans[0]["spanId"] == data[1][0]
         assert metric_spans[0]["segmentName"] == data[1][1]
