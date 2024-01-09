@@ -7,6 +7,7 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -51,6 +52,10 @@ type State = {
   errorType?: string | null;
   hooks?: React.ReactNode[];
 };
+
+const OrganizationHeader = HookOrDefault({
+  hookName: 'component:organization-header',
+});
 
 function getOrganizationSlug(props: Props) {
   return (
@@ -311,6 +316,7 @@ class OrganizationContextContainer extends Component<Props, State> {
         <OrganizationContext.Provider value={this.state.organization}>
           <div className="app">
             {this.state.hooks}
+            <OrganizationHeader organization={this.state.organization} />
             {this.renderSidebar()}
             {this.props.children}
           </div>
