@@ -2895,7 +2895,12 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/snuba:latest",
+            # use whichever image is ready, instead of waiting on the multiarch
+            # image. this makes rollbacks in Snuba faster in case a Snuba
+            # commit breaks Sentry's CI
+            "image": "ghcr.io/getsentry/snuba:amd64-latest"
+            if not APPLE_ARM64
+            else "ghcr.io/getsentry/snuba:arm64-latest",
             "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
             "command": ["devserver"]
             + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
