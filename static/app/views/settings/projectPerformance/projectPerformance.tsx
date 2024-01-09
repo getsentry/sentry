@@ -135,12 +135,22 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    const performanceIssuesEndpoint = [
+    const performanceIssuesEndpoint: ReturnType<
+      DeprecatedAsyncView['getEndpoints']
+    >[number] = [
       'performance_issue_settings',
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
-    ] as [string, string];
+    ];
+
+    const generalSettingsEndpoint: ReturnType<
+      DeprecatedAsyncView['getEndpoints']
+    >[number] = [
+      'general',
+      `/projects/${organization.slug}/${projectId}/performance/configure/`,
+    ];
 
     endpoints.push(performanceIssuesEndpoint);
+    endpoints.push(generalSettingsEndpoint);
 
     return endpoints;
   }
@@ -874,7 +884,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
-                title={t('General')}
+                title={t('Threshold Settings')}
                 fields={this.formFields}
                 disabled={!hasAccess}
                 renderFooter={() => (
