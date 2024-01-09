@@ -173,7 +173,12 @@ function CodecovLink({
     organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
 
   return (
-    <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
+    <OpenInLink
+      href={coverageUrl}
+      openInNewTab
+      onClick={onOpenCodecovLink}
+      aria-label={hasStacktraceLinkFeatureFlag ? t('Open in Codecov') : undefined}
+    >
       <Tooltip
         title={t('Open in Codecov')}
         disabled={!hasStacktraceLinkFeatureFlag}
@@ -315,6 +320,11 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             frame.lineNo
           )}
           openInNewTab
+          aria-label={
+            hasStacktraceLinkFeatureFlag
+              ? t('Open this line in %s', match.config.provider.name)
+              : undefined
+          }
         >
           <Tooltip
             disabled={!hasStacktraceLinkFeatureFlag}
