@@ -630,7 +630,12 @@ class SlackActionEndpoint(Endpoint):
         action_option = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
-        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
+        if action_option in (
+            "sentry_docs_link_clicked",
+            "grace_period_warning",
+            "integration_disabled_slack",
+            "trial_end_warning",
+        ):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:
