@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, PlatformKey, Project} from 'sentry/types';
+import {ExceptionType, Group, Project} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
@@ -40,24 +40,7 @@ export function Exception({
 
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
 
-  function getPlatform(): PlatformKey {
-    const dataValue = data.values?.find(
-      value => !!value.stacktrace?.frames?.some(frame => !!frame.platform)
-    );
-
-    if (dataValue) {
-      const framePlatform = dataValue.stacktrace?.frames?.find(frame => !!frame.platform);
-
-      if (framePlatform?.platform) {
-        return framePlatform.platform;
-      }
-    }
-
-    return event.platform ?? 'other';
-  }
-
   const stackTraceNotFound = !(data.values ?? []).length;
-  const platform = getPlatform();
 
   return (
     <TraceEventDataSection
@@ -67,7 +50,7 @@ export function Exception({
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={!data.hasSystemFrames}
-      platform={platform}
+      platform={event.platform ?? 'other'}
       hasMinified={!!data.values?.some(value => value.rawStacktrace)}
       hasVerboseFunctionNames={
         !!data.values?.some(
@@ -119,7 +102,6 @@ export function Exception({
             projectSlug={projectSlug}
             newestFirst={recentFirst}
             event={event}
-            platform={platform}
             values={data.values}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}

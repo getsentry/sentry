@@ -47,6 +47,12 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.auth.staff import COOKIE_DOMAIN as STAFF_COOKIE_DOMAIN
+from sentry.auth.staff import COOKIE_NAME as STAFF_COOKIE_NAME
+from sentry.auth.staff import COOKIE_PATH as STAFF_COOKIE_PATH
+from sentry.auth.staff import COOKIE_SALT as STAFF_COOKIE_SALT
+from sentry.auth.staff import COOKIE_SECURE as STAFF_COOKIE_SECURE
+from sentry.auth.staff import Staff
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
 from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
@@ -107,7 +113,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
@@ -280,6 +286,7 @@ class BaseTestCase(Fixtures):
         request.user = user or AnonymousUser()
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
+        request.staff = Staff(request)
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
@@ -291,7 +298,13 @@ class BaseTestCase(Fixtures):
     # a lot of tests changing
     @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
-        self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
+        self,
+        user,
+        organization_id=None,
+        organization_ids=None,
+        superuser=False,
+        superuser_sso=True,
+        staff=False,
     ):
         if isinstance(user, OrganizationMember):
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -339,6 +352,22 @@ class BaseTestCase(Fixtures):
                 path=SU_COOKIE_PATH,
                 domain=SU_COOKIE_DOMAIN,
                 secure=SU_COOKIE_SECURE or None,
+                expires=None,
+            )
+        # XXX(schew2381): Same as above, but for staff
+        if not staff:
+            request.staff._set_logged_out()
+        elif request.user.is_staff and staff:
+            request.staff.set_logged_in(request.user)
+            self.save_cookie(
+                name=STAFF_COOKIE_NAME,
+                value=signing.get_cookie_signer(salt=STAFF_COOKIE_NAME + STAFF_COOKIE_SALT).sign(
+                    request.staff.token
+                ),
+                max_age=None,
+                path=STAFF_COOKIE_PATH,
+                domain=STAFF_COOKIE_DOMAIN,
+                secure=STAFF_COOKIE_SECURE or None,
                 expires=None,
             )
         # Save the session values.
@@ -475,8 +504,9 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
                             region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                            mode, region
+                        with (
+                            SingleProcessSiloModeState.exit(),
+                            SingleProcessSiloModeState.enter(mode, region),
                         ):
                             return old_request(**request)
             return old_request(**request)
@@ -1358,6 +1388,50 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+
+
+class BaseSpansTestCase(SnubaTestCase):
+    def store_span(
+        self,
+        project_id: int,
+        span_id: str = "98230207e6e4a6ad",
+        trace_id: str = "b2565c0d-f13c-4c00-a654-d2209e06e4bd",
+        transaction_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+        timestamp: datetime = None,
+        tags: Mapping[str, Any] = None,
+        store_only_summary: bool = False,
+    ):
+        payload = {
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "exclusive_time_ms": 5,
+            "duration_ms": 10,
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "event_id": transaction_id,
+            "profile_id": profile_id,
+            "tags": tags,
+            "is_segment": 0,
+        }
+
+        if metrics_summary:
+            payload["_metrics_summary"] = metrics_summary
+
+        # We want to give the caller the possibility to store only a summary since the database does not deduplicate
+        # on the span_id which makes the assumptions of a unique span_id in the database invalid.
+        if not store_only_summary:
+            self._snuba_insert(payload, "spans")
+
+        if "_metrics_summary" in payload:
+            self._snuba_insert(payload, "metrics_summaries")
+
+    def _snuba_insert(self, payload, entity):
+        response = requests.post(
+            settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert", data=json.dumps([payload])
+        )
+        assert response.status_code == 200
 
 
 class BaseMetricsTestCase(SnubaTestCase):

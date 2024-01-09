@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +11,7 @@ import {DashboardState} from 'sentry/views/dashboards/types';
 
 describe('OrgDashboards', () => {
   const api = new MockApiClient();
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 

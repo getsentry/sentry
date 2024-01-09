@@ -1,6 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {UserFeedback as UserFeedbackFixture} from 'sentry-fixture/userFeedback';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFeedbackFixture} from 'sentry-fixture/userFeedback';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -35,7 +36,7 @@ describe('UserFeedback', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
   });
 
@@ -45,7 +46,7 @@ describe('UserFeedback', function () {
 
   it('renders', function () {
     const params = {
-      organization: Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -67,7 +68,7 @@ describe('UserFeedback', function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
-      organization: Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -87,7 +88,7 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: Organization({
+      organization: OrganizationFixture({
         projects: [ProjectFixture({isMember: true})],
       }),
       params: {
@@ -108,7 +109,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: Organization({
+      organization: OrganizationFixture({
         projects: [ProjectFixture({isMember: true})],
       }),
       location: {
@@ -128,7 +129,7 @@ describe('UserFeedback', function () {
 
   it('renders issue status filter', async function () {
     const params = {
-      organization: Organization({
+      organization: OrganizationFixture({
         projects: [ProjectFixture({isMember: true})],
       }),
       params: {
@@ -162,7 +163,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: Organization({
+      organization: OrganizationFixture({
         projects: [ProjectFixture({isMember: true})],
       }),
       location: {

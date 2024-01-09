@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
@@ -13,7 +13,6 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {IssueAttachment, Organization} from 'sentry/types';
@@ -485,12 +484,8 @@ class EventsTable extends Component<Props, State> {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);
-                  const replayIds = tableData.data.map(row => row.replayId);
                   return (
-                    <ReplayIdCountProvider
-                      organization={organization}
-                      replayIds={replayIds}
-                    >
+                    <Fragment>
                       <VisuallyCompleteWithData
                         id="TransactionEvents-EventsTable"
                         hasData={!!tableData?.data?.length}
@@ -520,7 +515,7 @@ class EventsTable extends Component<Props, State> {
                         caption={paginationCaption}
                         pageLinks={pageLinks}
                       />
-                    </ReplayIdCountProvider>
+                    </Fragment>
                   );
                 }}
               </DiscoverQuery>

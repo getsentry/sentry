@@ -47,11 +47,11 @@ class AccessRequestSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
-    permission_classes = [AccessRequestPermission]
+    permission_classes = (AccessRequestPermission,)
 
     # TODO(dcramer): this should go onto AccessRequestPermission
     def _can_access(self, request: Request, access_request):

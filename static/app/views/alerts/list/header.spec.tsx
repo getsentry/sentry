@@ -1,4 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -30,7 +31,7 @@ describe('AlertHeader', () => {
   });
 
   it('should pass global selection project to create alert button', () => {
-    render(<AlertHeader activeTab="stream" router={TestStubs.router()} />, {
+    render(<AlertHeader activeTab="stream" router={RouterFixture()} />, {
       context: routerContext,
       organization,
     });

@@ -1,6 +1,6 @@
-import {PageFilters} from 'sentry-fixture/pageFilters';
-import {Project} from 'sentry-fixture/project';
-import {ProjectSdkUpdates} from 'sentry-fixture/projectSdkUpdates';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectSdkUpdatesFixture} from 'sentry-fixture/projectSdkUpdates';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -21,7 +21,7 @@ describe('NoDataMessage', () => {
     usePageFilters.mockClear();
 
     ProjectsStore.loadInitialData([
-      Project({
+      ProjectFixture({
         name: 'Awesome API',
         slug: 'awesome-api',
         features: ['span-metrics-extraction'],
@@ -29,7 +29,7 @@ describe('NoDataMessage', () => {
     ]);
 
     usePageFilters.mockImplementation(() => ({
-      selection: PageFilters({projects: [2]}),
+      selection: PageFiltersFixture({projects: [2]}),
       isReady: true,
       shouldPersist: true,
       pinnedFilters: new Set(),
@@ -77,7 +77,7 @@ describe('NoDataMessage', () => {
   it('shows a list of outdated SDKs if there is no data available and SDKs are outdated', async function () {
     const sdkMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
-      body: [ProjectSdkUpdates({projectId: '2'})],
+      body: [ProjectSdkUpdatesFixture({projectId: '2'})],
     });
 
     render(<NoDataMessage isDataAvailable={false} />);
@@ -102,7 +102,7 @@ describe('NoDataMessage', () => {
 
   it('shows a list of denylisted projects if any are are set even if data is available', async function () {
     ProjectsStore.loadInitialData([
-      Project({
+      ProjectFixture({
         name: 'Awful API',
         slug: 'awful-api',
         features: [],

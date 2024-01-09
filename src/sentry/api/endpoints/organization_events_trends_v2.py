@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.utils import detect_breakpoints
 from sentry.snuba import metrics_performance
@@ -358,7 +359,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 else {},
             }
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             stats_data = self.get_event_stats_data(
                 request,
                 organization,

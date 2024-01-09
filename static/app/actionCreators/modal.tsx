@@ -358,3 +358,16 @@ export async function openCreateReleaseIntegration(
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
+
+export type NavigateToExternalLinkModalOptions = {
+  linkText: string;
+};
+
+export async function openNavigateToExternalLinkModal(
+  options: NavigateToExternalLinkModalOptions
+) {
+  const mod = await import('sentry/components/modals/navigateToExternalLinkModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
+}

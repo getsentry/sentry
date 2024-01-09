@@ -1,5 +1,5 @@
-import {InstallWizard} from 'sentry-fixture/installWizard';
-import {Organization} from 'sentry-fixture/organization';
+import {InstallWizardFixture} from 'sentry-fixture/installWizard';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +13,7 @@ describe('App', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
     });
 
     MockApiClient.addMockResponse({
@@ -30,7 +30,7 @@ describe('App', function () {
 
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: InstallWizard(),
+      body: InstallWizardFixture(),
     });
   });
 
@@ -67,6 +67,35 @@ describe('App', function () {
     expect(updatesViaEmail).toBeInTheDocument();
 
     user.flags.newsletter_consent_prompt = false;
+  });
+
+  it('renders PartnershipAgreement', async function () {
+    ConfigStore.set('partnershipAgreementPrompt', {partnerDisplayName: 'Foo', agreements:['standard', 'partner_presence']});
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    expect(
+      await screen.findByText(/This organization is created in partnership with Foo/)
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/and are aware of the partner's presence in the organization as a manager./)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('placeholder content')).not.toBeInTheDocument();
+  });
+
+  it('does not render PartnerAgreement for non-partnered orgs', async function () {
+    ConfigStore.set('partnershipAgreementPrompt', null);
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    expect(screen.getByText('placeholder content')).toBeInTheDocument();
+    expect(await screen.queryByText(/This organization is created in partnership/)).not.toBeInTheDocument();
   });
 
   it('renders InstallWizard', async function () {

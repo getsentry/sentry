@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Sequence, cast
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (
@@ -49,9 +49,9 @@ from sentry.snuba.metrics.utils import (
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
-# This regex allows for a string of words composed of small letters alphabet characters with
+# This regex allows for a string of words composed of small letters alphanumeric characters with
 # allowed the underscore character, optionally separated by a single dot
-MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
+MRI_NAME_REGEX = r"([a-z0-9_]+(?:\.[a-z0-9_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")

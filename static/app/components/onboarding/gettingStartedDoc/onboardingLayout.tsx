@@ -60,7 +60,6 @@ export function OnboardingLayout({
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-
   const {platformOptions} = docsConfig;
 
   const {introduction, steps, nextSteps} = useMemo(() => {
@@ -122,10 +121,7 @@ export function OnboardingLayout({
               platform={platformKey}
             />
           )}
-          {platformOptions &&
-          !['replayOnboardingJsLoader', 'customMetricsOnboarding'].includes(
-            configType
-          ) ? (
+          {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
         </Header>

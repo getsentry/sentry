@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -67,9 +67,9 @@ function SpanSummaryPage({params}: Props) {
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
-  const {data} = useSpanMetrics(
+  const {data} = useSpanMetrics({
     filters,
-    [
+    fields: [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
       SpanMetricsField.SPAN_ACTION,
@@ -81,11 +81,8 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-page-metrics'
-  );
+    referrer: 'api.starfish.span-summary-page-metrics',
+  });
 
   const spanMetrics = data[0] ?? {};
 
@@ -101,16 +98,18 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    filters,
-    ['spm()'],
-    'api.starfish.span-summary-page-metrics-chart'
+    {
+      filters,
+      yAxis: ['spm()'],
+      referrer: 'api.starfish.span-summary-page-metrics-chart',
+    }
   );
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
     filters,
-    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    'api.starfish.span-summary-page-metrics-chart'
-  );
+    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.span-summary-page-metrics-chart',
+  });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 

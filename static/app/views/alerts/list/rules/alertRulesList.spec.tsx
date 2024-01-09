@@ -1,10 +1,10 @@
-import {Incident} from 'sentry-fixture/incident';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {MetricRule} from 'sentry-fixture/metricRule';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
-import {Team} from 'sentry-fixture/team';
+import {IncidentFixture} from 'sentry-fixture/incident';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -26,10 +26,10 @@ import AlertRulesList from './alertRulesList';
 jest.mock('sentry/utils/analytics');
 
 describe('AlertRulesList', () => {
-  const defaultOrg = Organization({
+  const defaultOrg = OrganizationFixture({
     access: ['alerts:write'],
   });
-  TeamStore.loadInitialData([Team()], false, null);
+  TeamStore.loadInitialData([TeamFixture()], false, null);
   let rulesMock!: jest.Mock;
   let projectMock!: jest.Mock;
   const pageLinks =
@@ -41,20 +41,20 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           id: '123',
           name: 'First Issue Alert',
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        MetricRule({
+        MetricRuleFixture({
           id: '345',
           projects: ['earth'],
-          latestIncident: Incident({
+          latestIncident: IncidentFixture({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        MetricRule({
+        MetricRuleFixture({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
@@ -67,7 +67,7 @@ describe('AlertRulesList', () => {
         ProjectFixture({
           slug: 'earth',
           platform: 'javascript',
-          teams: [Team()],
+          teams: [TeamFixture()],
         }),
       ],
     });
@@ -176,7 +176,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRuleFixture({
           id: '123',
           name: deletedRuleName,
           projects: ['earth'],
@@ -341,7 +341,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           name: 'First Issue Alert',
           projects: ['earth'],
           status: 'disabled',
@@ -359,7 +359,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           name: 'First Issue Alert',
           projects: ['earth'],
           // both disabled and muted
@@ -380,7 +380,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        ProjectAlertRule({
+        ProjectAlertRuleFixture({
           name: 'First Issue Alert',
           projects: ['earth'],
           snooze: true,
@@ -398,7 +398,7 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        MetricRule({
+        MetricRuleFixture({
           projects: ['earth'],
           snooze: true,
         }),

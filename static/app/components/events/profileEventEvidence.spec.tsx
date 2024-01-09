@@ -1,4 +1,5 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -20,7 +21,7 @@ describe('ProfileEventEvidence', function () {
         },
       },
     }),
-    group: TestStubs.Group({
+    group: GroupFixture({
       issueCategory: IssueCategory.PROFILE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     }),
