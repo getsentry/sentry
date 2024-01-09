@@ -69,6 +69,7 @@ describe('StacktraceLink', function () {
           file: frame.filename,
           platform,
           lineNo: frame.lineNo,
+          groupId: event.groupID,
         },
       })
     );
