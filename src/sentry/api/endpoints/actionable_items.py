@@ -37,7 +37,7 @@ class SourceMapProcessingResponse(TypedDict):
 @region_silo_endpoint
 class ActionableItemsEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
 
