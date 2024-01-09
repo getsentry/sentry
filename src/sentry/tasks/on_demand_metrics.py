@@ -252,14 +252,7 @@ def _get_widget_on_demand_specs(
 
     widget_specs = convert_widget_query_to_metric(project_for_query, widget_query, True)
 
-    unique_specs = []
-    hashes = set()
-    for hashed_metric_spec in widget_specs:
-        if hashed_metric_spec[0] not in hashes:
-            unique_specs.append(hashed_metric_spec)
-            hashes.add(hashed_metric_spec[0])
-
-    return unique_specs
+    return widget_specs
 
 
 def _set_widget_on_demand_state(
@@ -313,6 +306,7 @@ def _get_widget_query_low_cardinality(
     query_columns = widget_query.columns
 
     if not query_columns:
+
         return None
 
     with sentry_sdk.push_scope() as scope:
