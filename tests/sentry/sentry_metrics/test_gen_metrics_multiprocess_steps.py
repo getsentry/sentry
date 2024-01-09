@@ -46,8 +46,9 @@ BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 
 
 @pytest.fixture(autouse=True)
-def update_sentry_settings(settings):
-    settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
+def allow_all_validation_errors(set_sentry_option):
+    with set_sentry_option("sentry-metrics.indexer.raise-validation-errors", True):
+        yield
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
@@ -441,6 +442,98 @@ invalid_payloads = [
         False,
     ),
 ]
+
+invalid_schema_payloads = [
+    (
+        {
+            "name": "c:transactions/alert@none",
+            "tags": {
+                "environment": "production",
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": [{1}],
+            "org_id": 1,
+            "project_id": 3,
+            "retention_days": 90,
+        },
+        "invalid_schema",
+    ),
+    (
+        {
+            "name": "c:transactions/alert@none",
+            "tags": {
+                "environment": 2,
+                "session.status": "errored",
+            },
+            "timestamp": ts,
+            "type": "s",
+            "value": 3,
+            "org_id": 1,
+            "project_id": 3,
+            "retention_days": 90,
+        },
+        "invalid_schema",
+    ),
+]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("invalid_schema_payload, error_text", invalid_schema_payloads)
+def test_process_messages_invalid_schema_messages(
+    invalid_schema_payload, error_text, caplog
+) -> None:
+    """
+    Specifically checks for message payloads that fail schema validation.
+    Ensure that the message gets dropped, and that the coresponding
+    error gets logged.
+    """
+
+    formatted_payload = json.dumps(invalid_schema_payload).encode("utf-8")
+
+    message_batch = [
+        Message(
+            BrokerValue(
+                KafkaPayload(None, json.dumps(counter_payloads[0]).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                0,
+                BROKER_TIMESTAMP,
+            )
+        ),
+        Message(
+            BrokerValue(
+                KafkaPayload(None, formatted_payload, []),
+                Partition(Topic("topic"), 0),
+                1,
+                BROKER_TIMESTAMP,
+            )
+        ),
+    ]
+    # the outer message uses the last message's partition, offset, and timestamp
+    last = message_batch[-1]
+
+    outer_message = Message(Value(message_batch, last.committable))
+
+    with caplog.at_level(logging.WARNING, logger="sentry"):
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+
+    # we expect just the valid counter_payload msg to be left
+    expected_msg = message_batch[0]
+    expected_new_batch = [
+        Message(
+            Value(
+                KafkaPayload(
+                    None,
+                    json.dumps(__translated_payload(counter_payloads[0])).encode("utf-8"),
+                    [("metric_type", b"c")],
+                ),
+                expected_msg.committable,
+            )
+        )
+    ]
+    compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
+    assert error_text in caplog.text
 
 
 @pytest.mark.django_db
