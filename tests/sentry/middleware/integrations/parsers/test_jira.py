@@ -9,10 +9,10 @@ from django.test import RequestFactory, override_settings
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.models.integrations.integration import Integration
-from sentry.models.outbox import ControlOutbox, OutboxCategory, WebhookProviderIdentifier
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_webhook_outboxes
+from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -30,10 +30,6 @@ class JiraRequestParserTest(TestCase):
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
-
-    def assert_no_outbox_created(self):
-        outboxes = ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).all()
-        assert len(outboxes) == 0, "No outboxes should be created"
 
     def get_integration(self) -> Integration:
         self.organization = self.create_organization(owner=self.user, region="us")
@@ -74,7 +70,7 @@ class JiraRequestParserTest(TestCase):
             assert isinstance(response, HttpResponse)
             assert response.status_code == 200
             assert response.content == b"passthrough"
-            self.assert_no_outbox_created()
+            assert_no_webhook_outboxes()
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -96,7 +92,7 @@ class JiraRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
         assert response.content == b"region response"
-        self.assert_no_outbox_created()
+        assert_no_webhook_outboxes()
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -105,7 +101,7 @@ class JiraRequestParserTest(TestCase):
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
 
-        self.assert_no_outbox_created()
+        assert_no_webhook_outboxes()
         with patch.object(parser, "get_integration_from_request") as method:
             method.return_value = self.get_integration()
             response = parser.get_response()
@@ -137,6 +133,7 @@ class JiraRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
+        assert_no_webhook_outboxes()
 
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -165,4 +162,4 @@ class JiraRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"region response"
         assert len(responses.calls) == 1
-        self.assert_no_outbox_created()
+        assert_no_webhook_outboxes()
