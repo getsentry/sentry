@@ -52,6 +52,13 @@ const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
   overflow: hidden;
+
+  pre,
+  code {
+    margin: 0;
+    padding: 0;
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
 `;
 
 const ContextDataWrapper = styled('div')`
