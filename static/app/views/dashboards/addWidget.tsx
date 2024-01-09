@@ -32,19 +32,6 @@ function AddWidget({onAddWidget}: Props) {
     id: ADD_WIDGET_BUTTON_DRAG_ID,
     transition: null,
   });
-  const organization = useOrganization();
-
-  const datasetChoices = new Map<string, string>();
-  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
-  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
-
-  if (organization.features.includes('dashboards-rh-widget')) {
-    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
-
-  if (hasDDMFeature(organization)) {
-    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
-  }
 
   return (
     <WidgetWrapper
@@ -67,35 +54,54 @@ function AddWidget({onAddWidget}: Props) {
         duration: 0.25,
       }}
     >
-      <InnerWrapper>
-        <CompactSelect
-          options={[...datasetChoices.entries()].map(([value, label]) => ({
-            label,
-            value,
-          }))}
-          trigger={triggerProps => (
-            <DropdownButton
-              {...triggerProps}
-              data-test-id="widget-add"
-              size="sm"
-              icon={<IconAdd isCircled />}
-            >
-              {t('Add Widget')}
-            </DropdownButton>
-          )}
-          onChange={({value: dataset}) => {
-            trackAnalytics('dashboards_views.widget_library.opened', {
-              organization,
-            });
-            onAddWidget(dataset as DataSet);
-          }}
-        />
-      </InnerWrapper>
+      <AddWidgetButton onAddWidget={onAddWidget} />
+      <InnerWrapper />
     </WidgetWrapper>
   );
 }
 
 export default AddWidget;
+
+export function AddWidgetButton({onAddWidget}: Props) {
+  const organization = useOrganization();
+
+  const datasetChoices = new Map<string, string>();
+  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
+  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
+
+  if (organization.features.includes('dashboards-rh-widget')) {
+    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
+  }
+
+  if (hasDDMFeature(organization)) {
+    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
+  }
+
+  return (
+    <CompactSelect
+      options={[...datasetChoices.entries()].map(([value, label]) => ({
+        label,
+        value,
+      }))}
+      trigger={triggerProps => (
+        <DropdownButton
+          {...triggerProps}
+          data-test-id="widget-add"
+          size="sm"
+          icon={<IconAdd isCircled />}
+        >
+          {t('Add Widget')}
+        </DropdownButton>
+      )}
+      onChange={({value: dataset}) => {
+        trackAnalytics('dashboards_views.widget_library.opened', {
+          organization,
+        });
+        onAddWidget(dataset as DataSet);
+      }}
+    />
+  );
+}
 
 const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;

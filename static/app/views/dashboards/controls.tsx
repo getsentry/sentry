@@ -5,17 +5,14 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import Confirm from 'sentry/components/confirm';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
+import {IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
@@ -36,7 +33,6 @@ type Props = {
 };
 
 function Controls({
-  organization,
   dashboardState,
   dashboards,
   hasUnsavedFilters,
@@ -129,18 +125,6 @@ function Controls({
     );
   }
 
-  const datasetChoices = new Map<string, string>();
-  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
-  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
-
-  if (organization.features.includes('dashboards-rh-widget')) {
-    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
-
-  if (hasDDMFeature(organization)) {
-    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
-  }
-
   return (
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
@@ -181,30 +165,7 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                <CompactSelect
-                  options={[...datasetChoices.entries()].map(([value, label]) => ({
-                    label,
-                    value,
-                  }))}
-                  trigger={triggerProps => (
-                    <DropdownButton
-                      {...triggerProps}
-                      data-test-id="add-widget-library"
-                      priority="primary"
-                      size="sm"
-                      disabled={widgetLimitReached}
-                      icon={<IconAdd isCircled />}
-                    >
-                      {t('Add Widget')}
-                    </DropdownButton>
-                  )}
-                  onChange={({value: dataset}) => {
-                    trackAnalytics('dashboards_views.widget_library.opened', {
-                      organization,
-                    });
-                    onAddWidget(dataset as DataSet);
-                  }}
-                />
+                <AddWidgetButton onAddWidget={onAddWidget} />
               </Tooltip>
             ) : null}
           </Fragment>
