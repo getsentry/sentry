@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useState} from 'react';
-import first from 'lodash/first';
 
 import isValidDate from 'sentry/utils/date/isValidDate';
 import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
@@ -137,7 +136,7 @@ async function fromListPageQuery({
     return ZERO_OFFSET;
   }
   try {
-    const firstResult = first(results.clicks)!;
+    const firstResult = results.clicks.at(0)!;
     const firstTimestamp = firstResult!.timestamp;
     const nodeId = firstResult!.node_id;
     const firstTimestmpMs = new Date(firstTimestamp).getTime();

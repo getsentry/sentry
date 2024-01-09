@@ -113,7 +113,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
@@ -504,8 +504,9 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
                             region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                            mode, region
+                        with (
+                            SingleProcessSiloModeState.exit(),
+                            SingleProcessSiloModeState.enter(mode, region),
                         ):
                             return old_request(**request)
             return old_request(**request)
@@ -1398,23 +1399,34 @@ class BaseSpansTestCase(SnubaTestCase):
         transaction_id: Optional[str] = None,
         profile_id: Optional[str] = None,
         metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
-        timestamp: datetime = None,
-        tags: Mapping[str, Any] = None,
+        timestamp: Optional[datetime] = None,
+        tags: Optional[Mapping[str, Any]] = None,
         store_only_summary: bool = False,
+        is_segment: bool = False,
+        duration_ms: int = 10,
+        transaction: Optional[str] = None,
     ):
+        if timestamp is None:
+            timestamp = datetime.now(tz=timezone.utc)
+
         payload = {
-            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "duration_ms": duration_ms,
             "exclusive_time_ms": 5,
-            "duration_ms": 10,
+            "is_segment": is_segment,
             "project_id": project_id,
+            "retention_days": 90,
+            "sentry_tags": {"transaction": transaction or "/hello"},
             "span_id": span_id,
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "trace_id": trace_id,
-            "event_id": transaction_id,
-            "profile_id": profile_id,
-            "tags": tags,
-            "is_segment": 0,
         }
 
+        if tags:
+            payload["tags"] = tags
+        if transaction_id:
+            payload["event_id"] = transaction_id
+        if profile_id:
+            payload["profile_id"] = profile_id
         if metrics_summary:
             payload["_metrics_summary"] = metrics_summary
 

@@ -19,6 +19,8 @@ class MetricSpansSerializer(Serializer):
             "transactionId": span_payload.get("transaction_id"),
             "profileId": span_payload.get("profile_id"),
             "duration": span_payload.get("duration"),
+            "segmentName": span_payload.get("segment_name"),
+            "timestamp": span_payload.get("timestamp"),
         }
 
     def serialize(self, obj, attrs, user):

@@ -42,9 +42,9 @@ function SampleInfo(props: Props) {
     filters['transaction.method'] = transactionMethod;
   }
 
-  const {data, error} = useSpanMetrics(
+  const {data, error} = useSpanMetrics({
     filters,
-    [
+    fields: [
       SPAN_OP,
       'spm()',
       `sum(${SPAN_SELF_TIME})`,
@@ -52,11 +52,8 @@ function SampleInfo(props: Props) {
       'time_spent_percentage()',
       'count()',
     ],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-panel-metrics'
-  );
+    referrer: 'api.starfish.span-summary-panel-metrics',
+  });
 
   const spanMetrics = data[0] ?? {};
 

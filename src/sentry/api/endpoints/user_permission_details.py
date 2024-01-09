@@ -19,9 +19,9 @@ audit_logger = logging.getLogger("sentry.audit.user")
 @control_silo_endpoint
 class UserPermissionDetailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (SuperuserPermission,)
