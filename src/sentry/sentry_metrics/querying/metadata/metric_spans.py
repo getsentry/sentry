@@ -240,7 +240,10 @@ def get_indexed_spans(
     projects: Sequence[Project],
 ):
     """
-    Fetches indexed spans using internal query builders.
+    Fetches top N most recent indexed spans by building a SNQL query directly.
+
+    The choice of not using query builders was deliberate, since we have to access columns that are not exposed via
+    the query builders because they are meant to be internal.
     """
     query = Query(
         match=Entity(EntityKey.Spans.value),
@@ -262,6 +265,7 @@ def get_indexed_spans(
         + (where or []),
         # We want to get the newest spans.
         orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
+        limit=Limit(MAX_NUMBER_OF_SPANS),
     )
 
     request = Request(
