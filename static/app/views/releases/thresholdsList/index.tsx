@@ -40,6 +40,7 @@ function ReleaseThresholdList({}: Props) {
   const organization = useOrganization();
   useEffect(() => {
     const hasV2ReleaseUIEnabled =
+      organization.features.includes('releases-v2-internal') ||
       organization.features.includes('releases-v2') ||
       organization.features.includes('releases-v2-st');
     if (!hasV2ReleaseUIEnabled) {

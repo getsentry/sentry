@@ -1824,8 +1824,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:release-health-drop-sessions": False,
     # Enable new release UI
     "organizations:releases-v2": False,
-    "organizations:releases-v2-st": False,
     "organizations:releases-v2-banner": False,
+    "organizations:releases-v2-internal": False,
+    "organizations:releases-v2-st": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable team member role provisioning through scim
