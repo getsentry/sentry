@@ -395,12 +395,15 @@ class RegressionDetector(ABC):
             if bundle.state is None or bundle.regression_group is None:
                 continue
 
+            # mark the existing regression group as inactive
+            # as we want to create a new one for the escalation
             group = bundle.regression_group
-
             group.active = False
             group.date_resolved = timestamp
             groups_to_escalate.append(group)
 
+            # the escalation will use the current timestamp and
+            # the current moving average as the new regression
             escalated_groups.append(
                 RegressionGroup(
                     type=cls.regression_type.value,
@@ -409,8 +412,8 @@ class RegressionDetector(ABC):
                     active=True,
                     project_id=group.project_id,
                     fingerprint=group.fingerprint,
-                    baseline=group.baseline,
-                    regressed=group.regressed,
+                    baseline=group.regressed,
+                    regressed=bundle.state.get_moving_avg(),
                 )
             )
 
@@ -423,6 +426,7 @@ class RegressionDetector(ABC):
             )
 
         RegressionGroup.objects.bulk_update(groups_to_escalate, ["active", "date_resolved"])
+        RegressionGroup.objects.bulk_create(escalated_groups)
 
         metrics.incr(
             "statistical_detectors.objects.escalated",

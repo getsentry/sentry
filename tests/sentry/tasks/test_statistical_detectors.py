@@ -1067,6 +1067,7 @@ def test_redirect_escalations(
     timestamp,
     django_cache,  # the environment can persist in the cache otherwise
 ):
+    fingerprint = generate_fingerprint(detector_cls.regression_type, object_name)
 
     RegressionGroup.objects.create(
         type=detector_cls.regression_type.value,
@@ -1074,7 +1075,7 @@ def test_redirect_escalations(
         version=1,
         active=True,
         project_id=project.id,
-        fingerprint=generate_fingerprint(detector_cls.regression_type, object_name),
+        fingerprint=fingerprint,
         baseline=baseline,
         regressed=regressed,
     )
@@ -1084,7 +1085,7 @@ def test_redirect_escalations(
         "id": uuid.uuid4().hex,
         "project_id": project.id,
         "event_id": event_id,
-        "fingerprint": [generate_fingerprint(detector_cls.regression_type, object_name)],
+        "fingerprint": [fingerprint],
         "issue_title": issue_type.description,
         "subtitle": "",
         "resource_id": None,
@@ -1145,7 +1146,7 @@ def test_redirect_escalations(
         assert len(list(trends)) == 0
         assert produce_occurrence_to_kafka.called
         status_change = StatusChangeMessage(
-            fingerprint=[generate_fingerprint(detector_cls.regression_type, object_name)],
+            fingerprint=[fingerprint],
             project_id=project.id,
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ESCALATING,
@@ -1153,9 +1154,56 @@ def test_redirect_escalations(
         produce_occurrence_to_kafka.assert_has_calls(
             [mock.call(payload_type=PayloadType.STATUS_CHANGE, status_change=status_change)]
         )
+
+        # version 1 should be inactive now
+        assert (
+            RegressionGroup.objects.get(
+                type=detector_cls.regression_type.value,
+                version=1,
+                project_id=project.id,
+                fingerprint=fingerprint,
+                active=False,
+            )
+            is not None
+        )
+
+        # version 2 should be created and active
+        assert (
+            RegressionGroup.objects.get(
+                type=detector_cls.regression_type.value,
+                version=2,
+                project_id=project.id,
+                fingerprint=fingerprint,
+                active=True,
+            )
+            is not None
+        )
     else:
         assert len(list(trends)) == 0
         assert not produce_occurrence_to_kafka.called
+
+        # version 1 should still be active
+        assert (
+            RegressionGroup.objects.get(
+                type=detector_cls.regression_type.value,
+                version=1,
+                project_id=project.id,
+                fingerprint=fingerprint,
+                active=True,
+            )
+            is not None
+        )
+
+        # version 2 should not exist
+        assert (
+            RegressionGroup.objects.filter(
+                type=detector_cls.regression_type.value,
+                version=2,
+                project_id=project.id,
+                fingerprint=fingerprint,
+            ).first()
+            is None
+        )
 
 
 @region_silo_test
