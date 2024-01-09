@@ -254,9 +254,9 @@ class Mediator:
 
         try:
             yield
-        except Exception as e:
+        except Exception:
             context.log(at="exception", elapsed=self._milliseconds_since(start))
-            raise e
+            raise
 
         context.log(at="finish", elapsed=self._milliseconds_since(start))
 

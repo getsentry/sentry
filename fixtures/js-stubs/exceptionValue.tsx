@@ -1,8 +1,8 @@
-import type {ExceptionValue as ExceptionValueType} from 'sentry/types';
+import type {ExceptionValue} from 'sentry/types';
 
 export function ExceptionValueFixture(
-  props: Partial<ExceptionValueType> = {}
-): ExceptionValueType {
+  props: Partial<ExceptionValue> = {}
+): ExceptionValue {
   return {
     mechanism: null,
     rawStacktrace: null,

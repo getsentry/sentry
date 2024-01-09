@@ -40,6 +40,7 @@ from sentry.api.endpoints.relocations.details import RelocationDetailsEndpoint
 from sentry.api.endpoints.relocations.index import RelocationIndexEndpoint
 from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
 from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
+from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
@@ -271,6 +272,7 @@ from .endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
+from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
 from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
@@ -478,6 +480,9 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
+from .endpoints.project_performance_general_settings import (
+    ProjectPerformanceGeneralSettingsEndpoint,
+)
 from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
@@ -766,6 +771,11 @@ RELOCATION_URLS = [
         r"^(?P<relocation_uuid>[^\/]+)/pause/$",
         RelocationPauseEndpoint.as_view(),
         name="sentry-api-0-relocations-pause",
+    ),
+    re_path(
+        r"^(?P<relocation_uuid>[^\/]+)/retry/$",
+        RelocationRetryEndpoint.as_view(),
+        name="sentry-api-0-relocations-retry",
     ),
     re_path(
         r"^(?P<relocation_uuid>[^\/]+)/unpause/$",
@@ -2477,6 +2487,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectPerformanceIssueSettingsEndpoint.as_view(),
         name="sentry-api-0-project-performance-issue-settings",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance/configure/$",
+        ProjectPerformanceGeneralSettingsEndpoint.as_view(),
+        name="sentry-api-0-project-performance-general-settings",
+    ),
     # Load plugin project urls
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/$",
@@ -2818,6 +2833,11 @@ INTERNAL_URLS = [
         r"^feature-flags/$",
         InternalFeatureFlagsEndpoint.as_view(),
         name="sentry-api-0-internal-feature-flags",
+    ),
+    re_path(
+        r"^feature-flags/ea-feature-flags$",
+        InternalEAFeaturesEndpoint.as_view(),
+        name="sentry-api-0-internal-ea-features",
     ),
 ]
 

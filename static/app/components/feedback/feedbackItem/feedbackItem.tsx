@@ -1,38 +1,23 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/actions/button';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
-import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
+import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
-import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import TextOverflow from 'sentry/components/textOverflow';
-import {IconChevron, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
+import {IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group} from 'sentry/types';
-import {GroupStatus} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   eventData: Event | undefined;
@@ -45,125 +30,22 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
-  const {markAsRead, resolve} = useMutateFeedback({
-    feedbackIds: [feedbackItem.id],
-    organization,
-  });
-
   const url = eventData?.tags.find(tag => tag.key === 'url');
   const replayId = eventData?.contexts?.feedback?.replay_id;
-
-  const mutationOptions = {
-    onError: () => {
-      addErrorMessage(t('An error occurred while updating the feedback.'));
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Updated feedback'));
-    },
-  };
-
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
-  const feedbackUrl =
-    window.location.origin +
-    normalizeUrl(
-      `/organizations/${organization.slug}/feedback/?feedbackSlug=${feedbackItem.project.slug}:${feedbackItem.id}&project=${feedbackItem.project.id}`
-    );
-
-  const {onClick: handleCopyUrl} = useCopyToClipboard({
-    successMessage: t('Copied Feedback URL to clipboard'),
-    text: feedbackUrl,
-  });
-
-  const {onClick: handleCopyShortId} = useCopyToClipboard({
-    successMessage: t('Copied Short-ID to clipboard'),
-    text: feedbackItem.shortId,
-  });
   return (
     <Fragment>
-      <HeaderPanelItem>
-        <Flex gap={space(2)} justify="space-between" wrap="wrap">
-          <Flex column>
-            <Flex align="center" gap={space(0.5)}>
-              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
-            </Flex>
-            <Flex gap={space(0.5)} align="center">
-              <ProjectAvatar
-                project={feedbackItem.project}
-                size={12}
-                title={feedbackItem.project.slug}
-              />
-              <TextOverflow>{feedbackItem.shortId}</TextOverflow>
-              <DropdownMenu
-                triggerProps={{
-                  'aria-label': t('Short-ID copy actions'),
-                  icon: <IconChevron direction="down" size="xs" />,
-                  size: 'zero',
-                  borderless: true,
-                  showChevron: false,
-                }}
-                position="bottom"
-                size="xs"
-                items={[
-                  {
-                    key: 'copy-url',
-                    label: t('Copy Feedback URL'),
-                    onAction: handleCopyUrl,
-                  },
-                  {
-                    key: 'copy-short-id',
-                    label: t('Copy Short-ID'),
-                    onAction: handleCopyShortId,
-                  },
-                ]}
-              />
-            </Flex>
-          </Flex>
-          <Flex gap={space(1)} align="center" wrap="wrap">
-            <ErrorBoundary mini>
-              <FeedbackAssignedTo
-                feedbackIssue={feedbackItem}
-                feedbackEvent={eventData}
-              />
-            </ErrorBoundary>
-            <Button
-              onClick={() => {
-                addLoadingMessage(t('Updating feedback...'));
-                const newStatus =
-                  feedbackItem.status === 'resolved'
-                    ? GroupStatus.UNRESOLVED
-                    : GroupStatus.RESOLVED;
-                resolve(newStatus, mutationOptions);
-              }}
-            >
-              {feedbackItem.status === 'resolved' ? t('Unresolve') : t('Resolve')}
-            </Button>
-            <Button
-              onClick={() => {
-                addLoadingMessage(t('Updating feedback...'));
-                markAsRead(!feedbackItem.hasSeen, mutationOptions);
-              }}
-            >
-              {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
-            </Button>
-          </Flex>
-        </Flex>
-        {eventData && (
-          <RowGapLinks>
-            <ErrorBoundary mini>
-              <IssueTrackingSection
-                group={feedbackItem as unknown as Group}
-                project={feedbackItem.project}
-                event={eventData}
-              />
-            </ErrorBoundary>
-          </RowGapLinks>
-        )}
-      </HeaderPanelItem>
+      <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
       <OverflowPanelItem>
         <Section
           title={t('Description')}
-          contentRight={<FeedbackViewers feedbackItem={feedbackItem} />}
+          contentRight={
+            <Flex gap={space(1)} align="center">
+              <SmallTitle>{t('Viewers')}</SmallTitle>
+              <FeedbackViewers feedbackItem={feedbackItem} />
+            </Flex>
+          }
         >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
@@ -208,12 +90,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   );
 }
 
-const HeaderPanelItem = styled(PanelItem)`
-  display: grid;
-  padding: ${space(1)} ${space(2)};
-  gap: ${space(2)};
-`;
-
 const OverflowPanelItem = styled(PanelItem)`
   overflow: scroll;
 
@@ -222,11 +98,8 @@ const OverflowPanelItem = styled(PanelItem)`
   gap: ${space(4)};
 `;
 
-const RowGapLinks = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  column-gap: ${space(2)};
+const SmallTitle = styled('span')`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
 const Blockquote = styled('blockquote')`

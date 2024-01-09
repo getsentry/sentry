@@ -1,10 +1,8 @@
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {PullRequest as PullRequestType} from 'sentry/types';
+import {PullRequest} from 'sentry/types';
 
-export function PullRequestFixture(
-  params: Partial<PullRequestType> = {}
-): PullRequestType {
+export function PullRequestFixture(params: Partial<PullRequest> = {}): PullRequest {
   return {
     id: '3',
     repository: RepositoryFixture(),

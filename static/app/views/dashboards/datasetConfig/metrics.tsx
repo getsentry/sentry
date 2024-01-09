@@ -15,10 +15,10 @@ import {
   groupByOp,
 } from 'sentry/utils/metrics';
 import {
-  formatMRI,
   formatMRIField,
   getMRI,
   getUseCaseFromMRI,
+  isMRIField,
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
@@ -105,21 +105,25 @@ function getFormattedMRIHeaders(query?: WidgetQuery) {
   }, {});
 }
 
-function getMetricTimeseriesSortOptions(_, widgetQuery) {
-  if (!widgetQuery.columns) {
+function getMetricTimeseriesSortOptions(_, widgetQuery: WidgetQuery) {
+  if (!widgetQuery.fields?.[0]) {
     return [];
   }
 
-  return widgetQuery.columns.reduce((acc, column) => {
+  return widgetQuery.fields.reduce((acc, field) => {
+    if (!isMRIField(field)) {
+      return acc;
+    }
     return {
       ...acc,
-      [column]: {
-        label: column,
+      [`field:${field}`]: {
+        label: formatMRIField(field),
         value: {
-          kind: FieldValueKind.TAG,
+          kind: FieldValueKind.FIELD,
+          value: field,
           meta: {
-            name: column,
-            dataType: 'string',
+            name: field,
+            dataType: 'number',
           },
         },
       },
@@ -127,20 +131,21 @@ function getMetricTimeseriesSortOptions(_, widgetQuery) {
   }, {});
 }
 
-function getMetricTableSortOptions(_, widgetQuery) {
-  if (!widgetQuery.fields[0]) {
+function getMetricTableSortOptions(_, widgetQuery: WidgetQuery) {
+  if (!widgetQuery.fields?.[0]) {
     return [];
   }
 
-  return widgetQuery.fields.map((field, i) => {
-    const mri = getMRI(field);
-    const alias = widgetQuery.fieldAliases?.[i];
+  return widgetQuery.fields
+    .map((field, i) => {
+      const alias = widgetQuery.fieldAliases?.[i];
 
-    return {
-      label: alias ?? formatMRI(mri),
-      value: mri,
-    };
-  });
+      return {
+        label: alias || formatMRIField(field),
+        value: field,
+      };
+    })
+    .filter(option => isMRIField(option.value));
 }
 
 function getFields(
@@ -355,9 +360,7 @@ export function transformMetricsResponseToSeries(
     });
   });
 
-  return results.sort((a, b) => {
-    return a.data[0].value < b.data[0].value ? -1 : 1;
-  });
+  return results;
 }
 
 function getMetricRequest(
@@ -382,7 +385,6 @@ function getMetricRequest(
       },
     ] as any);
   }
-  const per_page = limit && Number(limit) >= 10 ? limit : 10;
 
   const useNewMetricsLayer = organization.features.includes(
     'metrics-api-new-metrics-layer'
@@ -393,10 +395,11 @@ function getMetricRequest(
       field: query.aggregates[0],
       query: query.conditions,
       groupBy: query.columns,
+      orderBy: query.orderby,
     },
     pageFilters,
     {
-      per_page,
+      limit,
       useNewMetricsLayer,
       fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }

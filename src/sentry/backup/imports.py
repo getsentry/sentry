@@ -356,9 +356,9 @@ def _import(
 
                 try:
                     _clear_model_tables_before_import()
-                except DatabaseError as e:
+                except DatabaseError:
                     printer.echo("Database could not be reset before importing")
-                    raise e
+                    raise
             do_writes(pk_map)
     else:
         do_writes(pk_map)

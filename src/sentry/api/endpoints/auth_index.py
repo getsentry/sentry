@@ -18,7 +18,7 @@ from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.superuser import Superuser
+from sentry.auth.superuser import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, Superuser
 from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -29,8 +29,6 @@ from sentry.utils.settings import is_self_hosted
 logger: logging.Logger = logging.getLogger(__name__)
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
-
-DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
