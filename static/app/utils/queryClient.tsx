@@ -251,7 +251,7 @@ type ApiMutationVariables<
   | ['PUT' | 'POST' | 'DELETE', string]
   | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>]
   | [
-      'PUT' | 'POST',
+      'PUT' | 'POST' | 'DELETE',
       string,
       QueryKeyEndpointOptions<Headers, Query>,
       Record<string, unknown>,
