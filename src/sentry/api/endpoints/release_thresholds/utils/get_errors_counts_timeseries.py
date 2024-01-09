@@ -13,6 +13,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
 from sentry.api.bases import FilterParams
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 
@@ -77,9 +78,9 @@ ONE_WEEK = 10080
 TWENTY_FOUR_HOURS = 1440
 
 
-def _get_interval(start: datetime, end: datetime):
+def _get_interval(start: datetime | None, end: datetime | None):
     # NOTE: taken from releaseRequest.tsx
-    min_diff = (end - start).total_seconds() / 60
+    min_diff = (end - start).total_seconds() / 60 if (start and end) else 0
 
     if min_diff >= TWO_WEEKS:
         return "1d"
@@ -93,11 +94,14 @@ def _get_interval(start: datetime, end: datetime):
     return "1h"
 
 
-def fetch_sessions_data(request: Request, organization: Organization, params: FilterParams):
+def fetch_sessions_data(
+    request: Request, organization: Organization | RpcOrganization, params: FilterParams
+):
     # NOTE: implementation derived from organization_sessions GET endpoint
     # TODO: make fetch generic for other session types
     with handle_query_errors():
-        query_params = MultiValueDict(request.GET)
+        request_get: dict[str, Any] = request.GET
+        query_params: MultiValueDict[str, Any] = MultiValueDict(request_get)
         query_params.setlist("groupBy", ["project", "release", "session.status"])
         query_params.setlist("field", ["sum(session)"])  # alternatively count_unique(user)
         query_params["query"] = " OR ".join(

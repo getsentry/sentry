@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, Tuple
 
 from sentry.models.release_threshold.constants import TriggerType
 
-from ..constants import CRASH_SESSIONS_DISPLAY, CRASH_USERS_DISPLAY
+from ..constants import CRASH_USERS_DISPLAY
 
 logger = logging.getLogger("sentry.release_threshold_status")
 
@@ -17,7 +17,7 @@ def get_crash_counts(
     sessions_data: Dict[str, Any],
     release_version: str,
     project_id: int,
-) -> int:
+) -> dict[str, Any]:
     group: dict[str, Any] | None = next(
         x
         for x in sessions_data.get("groups", [])
@@ -25,13 +25,13 @@ def get_crash_counts(
         and x["project"] == project_id
         and x["session.status"] == "crashed"
     )
-    return group.get("totals", {})
+    return (group or {}).get("totals", {})
 
 
 def is_crash_free_rate_healthy(
     ethreshold: EnrichedThreshold,
     sessions_data: Dict[str, Any],
-    display: CRASH_SESSIONS_DISPLAY | CRASH_USERS_DISPLAY,
+    display: str,
 ) -> Tuple[bool, int]:  # (is_healthy, metric_value)
     """
     Derives percent from crash total over total count
@@ -43,14 +43,14 @@ def is_crash_free_rate_healthy(
     field = "count_unique(user)" if display == CRASH_USERS_DISPLAY else "sum(session)"
     crash_counts: dict[str, Any] = get_crash_counts(
         sessions_data=sessions_data,
-        release_version=ethreshold.release_version,
-        project_id=ethreshold.project.id,
+        release_version=ethreshold["release"],
+        project_id=ethreshold["project_id"],
     )
     crashes = crash_counts.get(field, 0)
 
-    totals: dict[str, Any] = filter(
-        lambda x: x["release"] == ethreshold.release_version
-        and x["project"] == ethreshold.project.id,
+    totals: filter[Any] = filter(
+        lambda x: x["release"] == ethreshold["release"]
+        and x["project"] == ethreshold["project_id"],
         sessions_data.get("groups", []),
     )
     total_count = max(sum([t.get(field, 0) for t in totals]), 1)
@@ -58,7 +58,7 @@ def is_crash_free_rate_healthy(
     crash_free_percent = (1 - (crashes / total_count)) * 100
 
     return (
-        crash_free_percent > ethreshold.value
-        if ethreshold.trigger_type == TriggerType.OVER
-        else crash_free_percent < ethreshold.value
+        crash_free_percent > ethreshold["value"]
+        if ethreshold["trigger_type"] == TriggerType.OVER
+        else crash_free_percent < ethreshold["value"]
     ), crash_free_percent

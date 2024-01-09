@@ -128,8 +128,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        start: datetime = filter_params["start"]
-        end: datetime = filter_params["end"]
+        start: datetime | None = filter_params["start"]
+        end: datetime | None = filter_params["end"]
         logger.info(
             "Checking release status health",
             extra={

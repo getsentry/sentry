@@ -1,2 +1,2 @@
-CRASH_SESSIONS_DISPLAY = "sessions"
-CRASH_USERS_DISPLAY = "users"
+CRASH_SESSIONS_DISPLAY: str = "sessions"
+CRASH_USERS_DISPLAY: str = "users"
