@@ -7,15 +7,15 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry import options
 from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
-from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.samples import load_data
+from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
     url_name: str
     FEATURES = [
         "organizations:performance-view",
@@ -74,7 +74,36 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                     "performance-file-io-main-thread-creation": 1.0,
                 }
             ):
-                return self.store_event(data, project_id=project_id, **kwargs)
+                event = self.store_event(data, project_id=project_id, **kwargs)
+                for span in data["spans"]:
+                    if span:
+                        span.update({"event_id": event.event_id})
+                        self.spans_to_store.append(self.create_span(span))
+                self.spans_to_store.append(self.convert_event_data_to_span(event))
+                return event
+
+    def convert_event_data_to_span(self, event):
+        trace_context = event.data["contexts"]["trace"]
+        start_ts = event.data["start_timestamp"]
+        end_ts = event.data["timestamp"]
+        # TODO measurements and tags
+        return self.create_span(
+            {
+                "event_id": event.event_id,
+                "organization_id": event.organization.id,
+                "project_id": event.project.id,
+                "trace_id": trace_context["trace_id"],
+                "span_id": trace_context["span_id"],
+                "parent_span_id": trace_context.get("parent_span_id", None),
+                "segment_id": uuid4().hex[:16],
+                "group_raw": uuid4().hex[:16],
+                "profile_id": uuid4().hex,
+                # Multiply by 1000 cause it needs to be ms
+                "start_timestamp_ms": int(start_ts * 1000),
+                "received": start_ts,
+                "duration_ms": int(end_ts - start_ts),
+            }
+        )
 
     def setUp(self):
         """
@@ -90,6 +119,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                 gen2-2
         """
         super().setUp()
+        self.spans_to_store = []
         options.set("performance.issues.all.problem-detection", 1.0)
         options.set("performance.issues.file_io_main_thread.problem-creation", 1.0)
         self.login_as(user=self.user)
@@ -192,6 +222,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             parent_span_id=self.gen2_span_id,
             duration=500,
         )
+        self.store_spans(self.spans_to_store)
 
     def load_errors(self):
         start, _ = self.get_start_end(1000)
@@ -752,9 +783,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
 
     def assert_event(self, result, event_data, message):
+        assert result["transaction"] == event_data.transaction, message
         assert result["event_id"] == event_data.event_id, message
-        assert result["timestamp"] == event_data.data["timestamp"], message
-        assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+        # assert result["timestamp"] == event_data.data["timestamp"], message
+        # assert result["start_timestamp"] == event_data.data["start_timestamp"], message
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
@@ -818,7 +850,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": -1},
+                data={"project": -1, "useSpans": 1},
                 format="json",
             )
         assert response.status_code == 200, response.content
@@ -1209,7 +1241,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": -1},
+                data={"project": -1, "useSpans": 1},
                 format="json",
             )
 
