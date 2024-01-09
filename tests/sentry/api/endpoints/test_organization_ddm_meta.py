@@ -611,31 +611,36 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             status_code=500,
         )
 
-    def test_get_metric_spans_with_transaction_duration(self):
+    def test_get_metric_spans_with_transaction_duration_with_filters(self):
         mri = TransactionMRI.DURATION.value
 
-        span_id = "98230207e6e4a6ad"
-        transaction = "/api/users"
-        self.store_span(
-            project_id=self.project.id,
-            timestamp=before_now(minutes=5),
-            span_id=span_id,
-            is_segment=1,
-            duration_ms=100,
-            transaction=transaction,
-        )
+        data = [
+            ("98230207e6e4a6ad", "/api/users", "iPhone"),
+            ("98230207e6e4a6ad", "/api/users", "OnePlus"),
+        ]
+        for span_id, transaction, device in data:
+            self.store_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                span_id=span_id,
+                is_segment=1,
+                duration_ms=100,
+                transaction=transaction,
+                tags={"device": device},
+            )
 
         response = self.get_success_response(
             self.organization.slug,
             metric=[mri],
+            query="transaction:/api/users AND device:OnePlus",
+            min="50",
+            max="150",
             project=[self.project.id],
             statsPeriod="1d",
             metricSpans="true",
-            min="50",
-            max="150",
         )
 
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
-        assert metric_spans[0]["spanId"] == span_id
-        assert metric_spans[0]["segmentName"] == transaction
+        assert metric_spans[0]["spanId"] == data[1][0]
+        assert metric_spans[0]["segmentName"] == data[1][1]

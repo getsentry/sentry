@@ -4,13 +4,14 @@ from datetime import datetime
 from typing import Optional, Sequence, Set
 
 from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
-from snuba_sdk.conditions import BooleanCondition, BooleanOp, ConditionGroup
+from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.metadata.utils import (
     get_snuba_conditions_from_query,
+    transform_conditions_with,
     transform_to_tags,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -20,6 +21,18 @@ from sentry.utils.snuba import raw_snql_query
 
 # Maximum number of unique spans returned by the database.
 MAX_NUMBER_OF_SPANS = 10
+# Sentry tag values that are converted to columns in Snuba. The conversion happens here:
+# https://github.com/getsentry/snuba/blob/master/snuba/datasets/processors/spans_processor.py
+SENTRY_TAG_TO_COLUMN_NAME = {
+    "module": "module",
+    "action": "action",
+    "domain": "domain",
+    "group": "group",
+    "system": "platform",
+    "transaction": "segment_name",
+    "op": "op",
+    "transaction.op": "transaction_op",
+}
 
 
 @dataclass(frozen=True)
@@ -194,21 +207,10 @@ class TransactionDurationSpansSource(SpansSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Span]:
-        # TODO: implement transaction.duration handling by looking for:
-        #   is_segment: 1
-        #   duration >= min and duration <= max
-        #   sentry_tags and tags as values from the query string
-        tags_conditions = transform_to_tags(conditions=conditions) or []
-        sentry_tags_conditions = (
-            transform_to_tags(conditions=conditions, tags_field="sentry_tags") or []
+        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_with(
+            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
-
-        extra_conditions = []
-        if tags_conditions or sentry_tags_conditions:
-            # We try to match tags across the board, by looking at `tags` and `sentry_tags`.
-            extra_conditions = BooleanCondition(
-                BooleanOp.OR, tags_conditions + sentry_tags_conditions
-            )
 
         return get_indexed_spans(
             where=[
@@ -216,7 +218,7 @@ class TransactionDurationSpansSource(SpansSource):
                 Condition(Column("duration"), Op.LTE, max_value),
                 Condition(Column("is_segment"), Op.GTE, 1),
             ]
-            + extra_conditions,
+            + (transformed_conditions or []),
             start=start,
             end=end,
             organization=self.organization,
