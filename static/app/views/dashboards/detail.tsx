@@ -46,6 +46,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
 import {generatePerformanceEventView} from '../performance/data';
@@ -478,7 +479,7 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  onAddWidget = () => {
+  onAddWidget = (dataset: DataSet) => {
     const {
       organization,
       dashboard,
@@ -497,6 +498,7 @@ class DashboardDetail extends Component<Props, State> {
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
+            dataset,
           },
         })
       );
@@ -685,7 +687,7 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
-                  isEditingDashboard={false}
+                  isEditing={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}
                 />
@@ -853,7 +855,7 @@ class DashboardDetail extends Component<Props, State> {
                                 filters={(modifiedDashboard ?? dashboard).filters}
                                 location={location}
                                 hasUnsavedChanges={hasUnsavedFilters}
-                                isEditingDashboard={
+                                isEditing={
                                   dashboardState !== DashboardState.CREATE &&
                                   this.isEditing
                                 }

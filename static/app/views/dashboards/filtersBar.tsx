@@ -23,7 +23,7 @@ import {DashboardFilterKeys, DashboardFilters} from './types';
 type FiltersBarProps = {
   filters: DashboardFilters;
   hasUnsavedChanges: boolean;
-  isEditingDashboard: boolean;
+  isEditing: boolean;
   isPreview: boolean;
   location: Location;
   onDashboardFilterChange: (activeFilters: DashboardFilters) => void;
@@ -34,7 +34,7 @@ type FiltersBarProps = {
 export default function FiltersBar({
   filters,
   hasUnsavedChanges,
-  isEditingDashboard,
+  isEditing,
   isPreview,
   location,
   onCancel,
@@ -52,9 +52,9 @@ export default function FiltersBar({
   return (
     <Wrapper>
       <PageFilterBar condensed>
-        <ProjectPageFilter disabled={isEditingDashboard} />
-        <EnvironmentPageFilter disabled={isEditingDashboard} />
-        <DatePageFilter disabled={isEditingDashboard} />
+        <ProjectPageFilter disabled={isEditing} />
+        <EnvironmentPageFilter disabled={isEditing} />
+        <DatePageFilter disabled={isEditing} />
       </PageFilterBar>
       <Fragment>
         <FilterButtons>
@@ -62,11 +62,11 @@ export default function FiltersBar({
             <ReleasesSelectControl
               handleChangeFilter={onDashboardFilterChange}
               selectedReleases={selectedReleases}
-              isDisabled={isEditingDashboard}
+              isDisabled={isEditing}
             />
           </ReleasesProvider>
         </FilterButtons>
-        {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
+        {hasUnsavedChanges && !isEditing && !isPreview && (
           <FilterButtons>
             <Button priority="primary" onClick={onSave}>
               {t('Save')}
