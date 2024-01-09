@@ -611,17 +611,18 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             status_code=500,
         )
 
-    @pytest.mark.skip(reason="transaction.duration is currently not supported")
     def test_get_metric_spans_with_transaction_duration(self):
         mri = TransactionMRI.DURATION.value
 
         span_id = "98230207e6e4a6ad"
+        transaction = "/api/users"
         self.store_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             span_id=span_id,
             is_segment=1,
             duration_ms=100,
+            transaction=transaction,
         )
 
         response = self.get_success_response(
@@ -637,3 +638,4 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
         assert metric_spans[0]["spanId"] == span_id
+        assert metric_spans[0]["segmentName"] == transaction

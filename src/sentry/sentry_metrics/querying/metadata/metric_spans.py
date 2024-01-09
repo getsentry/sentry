@@ -4,12 +4,15 @@ from datetime import datetime
 from typing import Optional, Sequence, Set
 
 from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
-from snuba_sdk.conditions import ConditionGroup
+from snuba_sdk.conditions import BooleanCondition, BooleanOp, ConditionGroup
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
-from sentry.sentry_metrics.querying.metadata.utils import get_snuba_conditions_from_query
+from sentry.sentry_metrics.querying.metadata.utils import (
+    get_snuba_conditions_from_query,
+    transform_to_tags,
+)
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI, is_mri
 from sentry.snuba.referrer import Referrer
@@ -27,6 +30,8 @@ class Span:
     transaction_id: Optional[str]
     profile_id: Optional[str]
     duration: int
+    segment_name: str
+    timestamp: datetime
 
 
 @dataclass(frozen=True)
@@ -157,7 +162,7 @@ class MetricsSummariesSpansSource(SpansSource):
     ) -> Sequence[Span]:
         span_ids = self._get_span_ids_from_metrics_summaries(
             metric_mri=metric_mri,
-            conditions=conditions,
+            conditions=transform_to_tags(conditions),
             start=start,
             end=end,
             min_value=min_value,
@@ -193,7 +198,30 @@ class TransactionDurationSpansSource(SpansSource):
         #   is_segment: 1
         #   duration >= min and duration <= max
         #   sentry_tags and tags as values from the query string
-        return []
+        tags_conditions = transform_to_tags(conditions=conditions) or []
+        sentry_tags_conditions = (
+            transform_to_tags(conditions=conditions, tags_field="sentry_tags") or []
+        )
+
+        extra_conditions = []
+        if tags_conditions or sentry_tags_conditions:
+            # We try to match tags across the board, by looking at `tags` and `sentry_tags`.
+            extra_conditions = BooleanCondition(
+                BooleanOp.OR, tags_conditions + sentry_tags_conditions
+            )
+
+        return get_indexed_spans(
+            where=[
+                Condition(Column("duration"), Op.GTE, min_value),
+                Condition(Column("duration"), Op.LTE, max_value),
+                Condition(Column("is_segment"), Op.GTE, 1),
+            ]
+            + extra_conditions,
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
 
 
 def get_indexed_spans(
@@ -215,6 +243,8 @@ def get_indexed_spans(
             Column("transaction_id"),
             Column("profile_id"),
             Column("duration"),
+            Column("segment_name"),
+            Column("timestamp"),
         ],
         where=[
             Condition(Column("project_id"), Op.IN, [project.id for project in projects]),
@@ -222,6 +252,7 @@ def get_indexed_spans(
             Condition(Column("timestamp"), Op.LT, end),
         ]
         + (where or []),
+        # We want to get the newest spans.
         orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
     )
 
@@ -242,6 +273,8 @@ def get_indexed_spans(
             transaction_id=value["transaction_id"],
             profile_id=value["profile_id"],
             duration=value["duration"],
+            segment_name=value["segment_name"],
+            timestamp=value["timestamp"],
         )
         for value in data
     ]

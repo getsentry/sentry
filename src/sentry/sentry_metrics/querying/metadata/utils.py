@@ -7,7 +7,9 @@ from snuba_sdk.mql.mql import parse_mql
 from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
 
 
-def transform_to_tags(conditions: Optional[ConditionGroup]) -> Optional[ConditionGroup]:
+def transform_to_tags(
+    conditions: Optional[ConditionGroup], tags_field: str = "tags"
+) -> Optional[ConditionGroup]:
     """
     Transforms all the conditions to work on tags, by wrapping each `Column` name with 'tags[x]'.
 
@@ -28,7 +30,7 @@ def transform_to_tags(conditions: Optional[ConditionGroup]) -> Optional[Conditio
         elif isinstance(condition, Condition) and isinstance(condition.lhs, Column):
             # We assume that all incoming conditions are on tags, since we do not allow filtering by project in the
             # query filters.
-            tag_column = f"tags[{condition.lhs.name}]"
+            tag_column = f"{tags_field}[{condition.lhs.name}]"
             transformed_conditions.append(
                 Condition(lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs)
             )
@@ -52,4 +54,4 @@ def get_snuba_conditions_from_query(query: str) -> Optional[ConditionGroup]:
         # For now, we reuse data from `api` but we will soon lift out common components from that file.
         raise InvalidMetricsQueryError("The supplied query is not valid")
 
-    return transform_to_tags(parsed_phantom_query.filters)
+    return parsed_phantom_query.filters
