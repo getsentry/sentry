@@ -271,7 +271,7 @@ class RelocationIndexEndpoint(Endpoint):
         uploading_complete.delay(relocation.uuid)
         analytics.record(
             "relocation.created",
-            user_id=request.user.id,
+            creator_id=request.user.id,
             owner_id=owner.id,
             uuid=str(relocation.uuid),
         )

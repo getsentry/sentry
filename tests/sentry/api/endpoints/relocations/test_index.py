@@ -315,7 +315,7 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            user_id=int(response.data["creatorId"]),
+            creator_id=int(response.data["creatorId"]),
             owner_id=int(response.data["ownerId"]),
             uuid=response.data["uuid"],
         )
@@ -365,7 +365,7 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            user_id=int(response.data["creatorId"]),
+            creator_id=int(response.data["creatorId"]),
             owner_id=int(response.data["ownerId"]),
             uuid=response.data["uuid"],
         )
@@ -414,7 +414,7 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            user_id=int(response.data["creatorId"]),
+            creator_id=int(response.data["creatorId"]),
             owner_id=int(response.data["ownerId"]),
             uuid=response.data["uuid"],
         )
@@ -474,7 +474,7 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            user_id=int(response.data["creatorId"]),
+            creator_id=int(response.data["creatorId"]),
             owner_id=int(response.data["ownerId"]),
             uuid=response.data["uuid"],
         )
@@ -589,7 +589,7 @@ class PostRelocationsTest(APITestCase):
             assert analytics_record_mock.call_count == 1
             analytics_record_mock.assert_called_with(
                 "relocation.created",
-                user_id=int(response.data["creatorId"]),
+                creator_id=int(response.data["creatorId"]),
                 owner_id=int(response.data["ownerId"]),
                 uuid=response.data["uuid"],
             )
@@ -699,7 +699,7 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            user_id=int(response.data["creatorId"]),
+            creator_id=int(response.data["creatorId"]),
             owner_id=int(response.data["ownerId"]),
             uuid=response.data["uuid"],
         )
@@ -976,7 +976,7 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            user_id=int(initial_response.data["creatorId"]),
+            creator_id=int(initial_response.data["creatorId"]),
             owner_id=int(initial_response.data["ownerId"]),
             uuid=initial_response.data["uuid"],
         )
@@ -1045,13 +1045,13 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    user_id=int(initial_response.data["creatorId"]),
+                    creator_id=int(initial_response.data["creatorId"]),
                     owner_id=int(initial_response.data["ownerId"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    user_id=int(throttled_response.data["creatorId"]),
+                    creator_id=int(throttled_response.data["creatorId"]),
                     owner_id=int(throttled_response.data["ownerId"]),
                     uuid=throttled_response.data["uuid"],
                 ),
@@ -1124,13 +1124,13 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    user_id=int(initial_response.data["creatorId"]),
+                    creator_id=int(initial_response.data["creatorId"]),
                     owner_id=int(initial_response.data["ownerId"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    user_id=int(unthrottled_response.data["creatorId"]),
+                    creator_id=int(unthrottled_response.data["creatorId"]),
                     owner_id=int(unthrottled_response.data["ownerId"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
@@ -1206,13 +1206,13 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    user_id=int(initial_response.data["creatorId"]),
+                    creator_id=int(initial_response.data["creatorId"]),
                     owner_id=int(initial_response.data["ownerId"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    user_id=int(unthrottled_response.data["creatorId"]),
+                    creator_id=int(unthrottled_response.data["creatorId"]),
                     owner_id=int(unthrottled_response.data["ownerId"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
