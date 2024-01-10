@@ -16,6 +16,7 @@ from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoin
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
 from sentry.models.integrations import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
@@ -112,10 +113,10 @@ class DiscordRequestParser(BaseRequestParser):
             if self.discord_request.is_ping():
                 return DiscordInteractionsEndpoint.respond_ping()
 
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+        try:
+            regions = self.get_regions_from_organizations()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            return self.get_default_missing_integration_response()
 
         if is_discord_interactions_endpoint and self.discord_request:
             if self.discord_request.is_command():

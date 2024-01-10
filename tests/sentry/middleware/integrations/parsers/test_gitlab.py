@@ -1,5 +1,5 @@
 import responses
-from django.db import router
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
@@ -9,9 +9,13 @@ from sentry.middleware.integrations.classifications import IntegrationClassifica
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, OutboxCategory, WebhookProviderIdentifier
+from sentry.models.outbox import (
+    ControlOutbox,
+    OutboxCategory,
+    WebhookProviderIdentifier,
+    outbox_context,
+)
 from sentry.silo.base import SiloMode
-from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
 from sentry.testutils.region import override_regions
@@ -96,7 +100,7 @@ class GitlabRequestParserTest(TestCase):
         )
 
         integration = self.get_integration()
-        with unguarded_write(using=router.db_for_write(OrganizationIntegration)):
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))):
             # Remove all organizations from integration
             OrganizationIntegration.objects.filter(integration=integration).delete()
 
@@ -104,8 +108,7 @@ class GitlabRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
-        assert response.content == b"passthrough"
+        assert response.status_code == 400
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 

@@ -1,5 +1,5 @@
 import responses
-from django.db import router
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
@@ -7,9 +7,13 @@ from django.urls import reverse
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, OutboxCategory, WebhookProviderIdentifier
+from sentry.models.outbox import (
+    ControlOutbox,
+    OutboxCategory,
+    WebhookProviderIdentifier,
+    outbox_context,
+)
 from sentry.silo.base import SiloMode
-from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
 from sentry.testutils.region import override_regions
@@ -52,34 +56,34 @@ class GithubRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_no_regions(self):
+    def test_routing_no_organization_integration_found(self):
         integration = self.get_integration()
-        with unguarded_write(using=router.db_for_write(OrganizationIntegration)):
+        with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))):
             # Remove all organizations from integration
             OrganizationIntegration.objects.filter(integration=integration).delete()
 
-        request = self.factory.post(self.path, data={}, content_type="application/json")
+        request = self.factory.post(
+            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+        )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
-        assert response.content == b"passthrough"
+        assert response.status_code == 400
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_with_regions(self):
+    def test_routing_no_integration_found(self):
         self.get_integration()
         request = self.factory.post(self.path, data={}, content_type="application/json")
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
-        assert response.content == b"passthrough"
+        assert response.status_code == 400
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
@@ -94,13 +98,14 @@ class GithubRequestParserTest(TestCase):
                 "integration_id": self.integration.id,
             },
         )
-        request = self.factory.post(path, data={}, content_type="application/json")
+        request = self.factory.post(
+            path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+        )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
-        assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
