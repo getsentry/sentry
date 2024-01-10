@@ -1,6 +1,7 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 const ALLOWED_WILDCARD_FIELDS = ['span.description'];
+export const EMPTY_OPTION_VALUE = '(empty)' as const;
 
 export enum TokenType {
   OPERATOR,
@@ -55,7 +56,15 @@ export class MutableSearch {
         return;
       }
 
-      query.addFilterValue(key, value.toString(), !ALLOWED_WILDCARD_FIELDS.includes(key));
+      if (value === EMPTY_OPTION_VALUE) {
+        query.addFilterValue('!has', key);
+      } else {
+        query.addFilterValue(
+          key,
+          value.toString(),
+          !ALLOWED_WILDCARD_FIELDS.includes(key)
+        );
+      }
     });
 
     return query;
