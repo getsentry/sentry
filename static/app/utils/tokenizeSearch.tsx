@@ -36,6 +36,10 @@ function isParen(token: Token, character: '(' | ')') {
 export class MutableSearch {
   tokens: Token[];
 
+  static fromObject(params: {[key: string]: string | number}): MutableSearch {
+    return new MutableSearch([`transaction:${params?.transaction}`]);
+  }
+
   /**
    * Creates a MutableSearch from a string query
    */

@@ -1,6 +1,15 @@
 import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', function () {
+  describe('MutableSearch.fromObject', function () {
+    it.each([[{transaction: '/index'}, 'transaction:/index']])(
+      'converts %s to search string',
+      (params, result) => {
+        expect(MutableSearch.fromObject(params).formatString()).toEqual(result);
+      }
+    );
+  });
+
   describe('new MutableSearch()', function () {
     const cases = [
       {
