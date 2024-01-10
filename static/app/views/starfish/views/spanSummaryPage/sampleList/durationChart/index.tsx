@@ -28,6 +28,7 @@ type Props = {
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  platform?: string;
   query?: string[];
   release?: string;
   spanDescription?: string;
@@ -68,6 +69,7 @@ function DurationChart({
   additionalFields,
   release,
   query,
+  platform,
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageError();
@@ -84,6 +86,10 @@ function DurationChart({
 
   if (release) {
     filters.release = release;
+  }
+
+  if (platform) {
+    filters['os.name'] = platform;
   }
 
   const {
