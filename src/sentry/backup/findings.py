@@ -75,6 +75,12 @@ class ComparatorFindingKind(FindingKind):
     # `None`.
     EmailObfuscatingComparatorExistenceCheck = auto()
 
+    # The fields were both present but unequal.
+    EqualOrRemovedComparator = auto()
+
+    # The left field does not exist.
+    EqualOrRemovedComparatorExistenceCheck = auto()
+
     # Hash equality comparison failed.
     HashObfuscatingComparator = auto()
 

@@ -519,6 +519,58 @@ class RegexComparator(JSONScrubbingComparator, ABC):
         return findings
 
 
+class EqualOrRemovedComparator(JSONScrubbingComparator):
+    """
+    A normal equality comparison, except that it allows the right-side value to be `None` or
+    missing.
+    """
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+            if right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv != rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ("{lv}") of `{f}` was not equal to the right value ("{rv}")""",
+                    )
+                )
+
+        return findings
+
+    def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        """Ensure that all tracked fields on either both models or neither."""
+
+        findings = []
+        for f in self.fields:
+            missing_on_left = f not in left["fields"] or left["fields"][f] is None
+            missing_on_right = f not in right["fields"] or right["fields"][f] is None
+            if missing_on_left and missing_on_right:
+                continue
+            if missing_on_left:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind_existence_check(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"the left `{f}` value was missing",
+                    )
+                )
+        return findings
+
+
 class SecretHexComparator(RegexComparator):
     """Certain 16-byte hexadecimal API keys are regenerated during an import operation."""
 
@@ -712,7 +764,13 @@ def get_default_comparators():
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
-            "sentry.alertrule": [DateUpdatedComparator("date_modified")],
+            "sentry.alertrule": [
+                DateUpdatedComparator("date_modified"),
+                # TODO(hybrid-cloud): actor refactor. Remove this check once we're sure we've
+                # migrated all remaining `owner_id`'s to also have `team_id` or `user_id`, which
+                # seems to not be the case today.
+                EqualOrRemovedComparator("owner", "team", "user_id"),
+            ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
@@ -723,7 +781,10 @@ def get_default_comparators():
             ],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
-            "sentry.organizationmember": [HashObfuscatingComparator("token")],
+            "sentry.organizationmember": [
+                HashObfuscatingComparator("token"),
+                EqualOrRemovedComparator("inviter_id"),
+            ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),
