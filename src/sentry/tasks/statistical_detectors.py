@@ -252,6 +252,8 @@ def detect_transaction_trends(
     if not options.get("statistical_detectors.enable"):
         return
 
+    EndpointRegressionDetector.configure_tags()
+
     projects = get_detector_enabled_projects(
         project_ids,
         feature_name="organizations:performance-statistical-detectors-ema",
@@ -290,6 +292,8 @@ def detect_transaction_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    EndpointRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project
@@ -331,6 +335,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
+    FunctionRegressionDetector.configure_tags()
+
     projects = get_detector_enabled_projects(
         project_ids,
         feature_name="organizations:profiling-statistical-detectors-ema",
@@ -368,6 +374,8 @@ def detect_function_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    FunctionRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project

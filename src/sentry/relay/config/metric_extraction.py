@@ -186,9 +186,12 @@ def _get_alert_metric_specs(
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
     if len(specs) > max_alert_specs:
-        logger.error(
-            "Too many (%s) on demand metric alerts for project %s", len(specs), project.slug
-        )
+        sentry_sdk.set_tag("organization_id", project.organization_id)
+        # Do not log for Sentry
+        if project.organization.id != 1:
+            logger.error(
+                "Too many (%s) on demand metric alerts for project %s", len(specs), project.slug
+            )
         specs = specs[:max_alert_specs]
 
     return specs
@@ -237,9 +240,12 @@ def _get_widget_metric_specs(
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
     if len(specs) > max_widget_specs:
-        logger.error(
-            "Too many (%s) on demand metric widgets for project %s", len(specs), project.slug
-        )
+        sentry_sdk.set_tag("organization_id", project.organization_id)
+        # Do not log for Sentry
+        if project.organization.id != 1:
+            logger.error(
+                "Too many (%s) on demand metric widgets for project %s", len(specs), project.slug
+            )
         specs = specs[:max_widget_specs]
 
     return specs

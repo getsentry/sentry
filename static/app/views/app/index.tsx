@@ -88,6 +88,10 @@ function App({children, params}: Props) {
    * Creates Alerts for any internal health problems
    */
   const checkInternalHealth = useCallback(async () => {
+    // For saas deployments we have more robust ways of checking application health.
+    if (!config.isSelfHosted) {
+      return;
+    }
     let data: any = null;
 
     try {
@@ -102,7 +106,7 @@ function App({children, params}: Props) {
 
       AlertStore.addAlert({id, message, type, url, opaque: true});
     });
-  }, [api]);
+  }, [api, config.isSelfHosted]);
 
   const {sentryUrl} = ConfigStore.get('links');
   const {orgId} = params;
@@ -159,12 +163,12 @@ function App({children, params}: Props) {
     ConfigStore.set('user', {...config.user, flags});
   }
 
-  const needsUpgrade = config.user?.isSuperuser && config.needsUpgrade;
+  const displayInstallWizard = config.user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
   const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
   const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
 
   function renderBody() {
-    if (needsUpgrade) {
+    if (displayInstallWizard) {
       return (
         <Suspense fallback={null}>
           <InstallWizard onConfigured={clearUpgrade} />;
