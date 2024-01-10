@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -253,6 +254,7 @@ async function fetchReplayErrors(
       query: `replayId:[${replayId}]`,
       per_page: limit,
       cursor,
+      project: ALL_ACCESS_PROJECTS,
     },
   });
 }
