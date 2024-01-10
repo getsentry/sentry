@@ -131,11 +131,9 @@ function GroupActivity({group}: Props) {
         <Layout.Main>
           <ActivitySection
             group={group}
-            mutators={{
-              onDelete: handleDelete,
-              onCreate: handleCreate,
-              onUpdate: handleUpdate,
-            }}
+            onDelete={handleDelete}
+            onCreate={handleCreate}
+            onUpdate={handleUpdate}
             placeholderText={t(
               'Add details or updates to this event. \nTag users with @, or teams with #'
             )}

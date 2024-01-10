@@ -107,11 +107,9 @@ function FeedbackActivitySection(props: Props) {
   return (
     <ActivitySection
       group={feedbackItem as unknown as Group}
-      mutators={{
-        onDelete: handleDelete,
-        onCreate: handleCreate,
-        onUpdate: handleUpdate,
-      }}
+      onDelete={handleDelete}
+      onCreate={handleCreate}
+      onUpdate={handleUpdate}
       placeholderText={t(
         'Add details or updates to this feedback. \nTag users with @, or teams with #'
       )}

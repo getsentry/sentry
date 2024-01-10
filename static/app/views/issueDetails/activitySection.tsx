@@ -14,18 +14,15 @@ import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 
 type Props = {
   group: Group;
-  mutators: {
-    onCreate: (n: NoteType, me: User) => void;
-    onDelete: (item: GroupActivity) => void;
-    onUpdate: (item: GroupActivity, n: NoteType) => void;
-  };
+  onCreate: (n: NoteType, me: User) => void;
+  onDelete: (item: GroupActivity) => void;
+  onUpdate: (item: GroupActivity, n: NoteType) => void;
   placeholderText: string;
 };
 
 function ActivitySection(props: Props) {
-  const {group, placeholderText, mutators} = props;
+  const {group, placeholderText, onCreate, onDelete, onUpdate} = props;
   const organization = useOrganization();
-  const {onCreate, onDelete, onUpdate} = mutators;
 
   const [inputId, setInputId] = useState(uniqueId());
 

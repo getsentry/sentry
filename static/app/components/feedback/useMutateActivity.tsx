@@ -74,35 +74,22 @@ export default function useMutateActivity({
     cacheTime: 0,
   });
 
-  const handleUpdate: UpdateCommentCallback = useCallback(
-    (
-      note: NoteType,
-      noteId: string,
-      activity: GroupActivity[],
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
+  const handleUpdate = useCallback<UpdateCommentCallback>(
+    (note, noteId, activity, options) => {
       mutation.mutate([{note, noteId, activity}, 'PUT'], options);
     },
     [mutation]
   );
 
-  const handleCreate: CreateCommentCallback = useCallback(
-    (
-      note: NoteType,
-      activity: GroupActivity[],
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
+  const handleCreate = useCallback<CreateCommentCallback>(
+    (note, activity, options) => {
       mutation.mutate([{note, activity}, 'POST'], options);
     },
     [mutation]
   );
 
-  const handleDelete: DeleteCommentCallback = useCallback(
-    (
-      noteId: string,
-      activity: GroupActivity[],
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
+  const handleDelete = useCallback<DeleteCommentCallback>(
+    (noteId, activity, options) => {
       mutation.mutate([{noteId, activity}, 'DELETE'], options);
     },
     [mutation]
