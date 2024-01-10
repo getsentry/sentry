@@ -292,7 +292,7 @@ class OrganizationEndpoint(Endpoint):
         to fetching projects via project_id list.
         """
         qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-        if project_ids:
+        if project_ids is not None:
             if project_ids == ALL_ACCESS_PROJECTS:
                 # All projects i have access to
                 include_all_accessible = True
