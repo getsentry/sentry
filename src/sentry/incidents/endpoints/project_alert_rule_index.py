@@ -61,8 +61,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectAlertRulePermission,)
 
