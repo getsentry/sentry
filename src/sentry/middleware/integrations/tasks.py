@@ -67,20 +67,27 @@ def convert_to_async_slack_response(
     except Exception:
         pass
 
-    integration_response = (
-        requests.post(response_url, json=response_payload)
-        if response_payload is not None
-        else requests.post(response_url, data=response_body)
-    )
-    logger.info(
-        "slack.async_integration_response",
-        extra={
-            "path": webhook_payload.path,
-            "region": result["region"],
-            "region_status_code": result["response"].status_code,
-            "integration_status_code": integration_response.status_code,
-        },
-    )
+    if response_payload is not None:
+        integration_response = requests.post(response_url, json=response_payload)
+        logger.info(
+            "slack.async_integration_response",
+            extra={
+                "path": webhook_payload.path,
+                "region": result["region"],
+                "region_status_code": result["response"].status_code,
+                "integration_status_code": integration_response.status_code,
+            },
+        )
+    else:
+        logger.error(
+            "slack.async_integration_failure",
+            extra={
+                "path": webhook_payload.path,
+                "region": result["region"],
+                "response_body": response_body,
+                "response_status": result["response"].status_code,
+            },
+        )
 
 
 @instrumented_task(
@@ -147,7 +154,7 @@ def convert_to_async_discord_response(
         "discord.async_integration_response",
         extra={
             "path": webhook_payload.path,
-            "region": result["region"],
+            "region": result["region"].name,
             "region_status_code": result["response"].status_code,
             "integration_status_code": integration_response.status_code,
         },
