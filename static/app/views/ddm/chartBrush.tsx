@@ -209,10 +209,14 @@ function BrushRectOverlay({
       ? `${CHART_HEIGHT}px`
       : `${heightPx.toPrecision(5)}px`;
 
+    // Ensure the focus area rect is always within the chart bounds
+    const left = Math.max(topLeft[0], 0);
+    const width = Math.min(widthPx, chartInstance.getWidth() - left);
+
     setPosition({
-      left: `${topLeft[0].toPrecision(5)}px`,
+      left: `${left.toPrecision(5)}px`,
       top: resultTop,
-      width: `${widthPx.toPrecision(5)}px`,
+      width: `${width.toPrecision(5)}px`,
       height: resultHeight,
     });
   }, [rect, chartInstance, useFullYAxis]);

@@ -3,6 +3,7 @@ import {
   formatMetricsUsingUnitAndOp,
   formatMetricUsingFixedUnit,
   formattingSupportedMetricUnits,
+  getAbsoluteDateTimeRange,
   getDateTimeParams,
   getDDMInterval,
   getMetricsApiRequestQuery,
@@ -218,5 +219,41 @@ describe('stringifyMetricWidget', () => {
     });
 
     expect(result).toEqual('');
+  });
+});
+
+describe('getAbsoluteDateTimeRange', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+  });
+
+  it('should return the correct object with "start" and "end" when period is not provided', () => {
+    const datetime = {
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-01T00:00:00.000Z',
+      period: null,
+      utc: true,
+    };
+    const result = getAbsoluteDateTimeRange(datetime);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-01T00:00:00.000Z',
+    });
+  });
+
+  it('should return the correct object with "start" and "end" when period is provided', () => {
+    const datetime = {start: null, end: null, period: '7d', utc: true};
+    const result = getAbsoluteDateTimeRange(datetime);
+
+    expect(result).toEqual({
+      start: '2023-12-25T00:00:00.000Z',
+      end: '2024-01-01T00:00:00.000Z',
+    });
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
   });
 });

@@ -30,7 +30,7 @@ export function parseStatsPeriod(input: string | IntervalPeriod) {
   const period = result[1];
 
   // default to seconds. this behaviour is based on src/sentry/utils/dates.py
-  const periodLength = result[2] || 's';
+  const periodLength = (result[2] || 's') as StatsPeriodType;
 
   return {period, periodLength};
 }
