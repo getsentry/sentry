@@ -26,7 +26,7 @@ import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme from 'sentry/utils/theme';
 
-import {formatUsageWithUnits, GIGABYTE} from '../utils';
+import {formatUsageWithUnits} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
@@ -73,7 +73,7 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     label: DATA_CATEGORY_INFO.attachment.titleName,
     value: DATA_CATEGORY_INFO.attachment.plural,
     disabled: false,
-    yAxisMinInterval: 0.5 * GIGABYTE,
+    yAxisMinInterval: 0.5 * 1e9,
   },
   {
     label: DATA_CATEGORY_INFO.profile.titleName,
