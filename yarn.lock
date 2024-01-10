@@ -2461,6 +2461,11 @@
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.6.0.tgz#1b214c9ab4645138a02ef255c95d811bd852f996"
   integrity sha512-dlduO37avs5HBP8zRxFHlhRb7ZP6p3SrgMSztPCCnfYr/XAB/rn5yeVn9U2FDYdrgyUzPjFWfYWFvm1eJuEMSg==
 
+"@sentry-internal/rrweb-snapshot@2.8.0":
+  version "2.8.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.8.0.tgz#4db7c10125d53fb20b4ff2a2a61a63b3f3ccaac1"
+  integrity sha512-JTpwdT6sVS4X3zr+qBs6/SsCR2JMLGHMDz4pN48HHDuBmW0QqiXDrM4SD9Tl7vUahHBCO0hG+E/UGFUbCV2b3w==
+
 "@sentry-internal/rrweb-types@2.6.0":
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.6.0.tgz#e526994125db6684ce9402d96f64318f062bebb0"
