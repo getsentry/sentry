@@ -28,6 +28,7 @@ import {formatBytesBase2} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
@@ -655,29 +656,22 @@ export const extractSpanURLString = (span: Span, baseURL?: string): URL | null =
 
   URLString = span?.data?.url;
   if (URLString) {
-    try {
-      let url = span?.data?.url ?? '';
-      const query = span?.data?.['http.query'];
-      if (query) {
-        url += `?${query}`;
-      }
+    let url = span?.data?.url ?? '';
+    const query = span?.data?.['http.query'];
+    if (query) {
+      url += `?${query}`;
+    }
 
-      return new URL(url, baseURL);
-    } catch (e) {
-      // Ignore error
+    const parsedURL = safeURL(url, baseURL);
+    if (parsedURL) {
+      return parsedURL;
     }
   }
 
   const [_method, _url] = (span?.description ?? '').split(' ', 2);
   URLString = _url;
 
-  try {
-    return new URL(_url, baseURL);
-  } catch (e) {
-    // Ignore error
-  }
-
-  return null;
+  return safeURL(_url, baseURL) ?? null;
 };
 
 export function extractQueryParameters(URLs: URL[]): ParameterLookup {
