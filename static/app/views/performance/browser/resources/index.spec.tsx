@@ -79,6 +79,7 @@ describe('ResourcesLandingPage', function () {
           "avg(span.self_time)",
           "spm()",
           "span.group",
+          "span.domain",
           "avg(http.response_content_length)",
           "project.id",
           "time_spent_percentage()",
