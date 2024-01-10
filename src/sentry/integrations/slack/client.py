@@ -155,5 +155,5 @@ class SlackClient(IntegrationProxyClient):
             **kwargs,
         )
         if not raw_response and not response.json.get("ok"):
-            raise ApiError(response.get("error", ""))  # type: ignore
+            raise ApiError(response.get("error", ""))
         return response
