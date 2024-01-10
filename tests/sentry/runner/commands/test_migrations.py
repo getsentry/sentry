@@ -27,13 +27,17 @@ class MigrationsRunTest(TransactionTestCase):
             result = self.invoke("run", "migration_test_app", "0001")
 
             assert result.exit_code == 0, result.output
-            assert "Running post-deployment migration" in result.output
+            assert "Running post-deployment migration for default" in result.output
+            assert "Running post-deployment migration for control" in result.output
             assert "Migration complete" in result.output
 
             queries = [q["sql"] for q in connection.queries]
 
             expected = 'CREATE INDEX CONCURRENTLY "migration_run_test_name_idx" ON "migration_test_app_migrationruntest" ("name")'
             assert expected in queries, queries
+
+            matched = list(filter(lambda sql: "CREATE INDEX CONCURRENTLY" in sql, queries))
+            assert len(matched) == 1
 
             matched = list(
                 filter(lambda sql: 'CREATE INDEX "migration_run_test_name_idx"' in sql, queries)
