@@ -181,7 +181,7 @@ class SuperuserAccessForm extends Component<Props, State> {
 
     return (
       <ThemeAndStyleProvider>
-        {this.props.hasStaff ? // Skip access form if using new new staff
+        {this.props.hasStaff ? // Skip access form if using new staff
           <Form
             submitLabel={t('Authenticate')}
             onSubmit={this.handleStaffSubmit}
