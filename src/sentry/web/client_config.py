@@ -2,13 +2,18 @@ from __future__ import annotations
 
 from functools import cached_property
 from typing import Any, Iterable, List, Mapping, MutableMapping, Tuple
-
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 import sentry_sdk
+from sentry.models.organization import Organization
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.core.cache import cache
 from packaging.version import parse as parse_version
+from django.db.models import Q
+
+from sentry.auth import access
+from sentry.api.serializers import serialize
 
 import sentry
 from sentry import features, options
@@ -30,6 +35,10 @@ from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.settings import is_self_hosted
 from sentry.utils.support import get_support_mail
+
+from sentry.api.serializers.models.organization import (
+    DetailedOrganizationSerializer,
+)
 
 
 def _get_version_info():
@@ -308,7 +317,17 @@ class _ClientConfig:
         return [get_region_by_name(name).api_serialize() for name in unique_regions]
 
     def get_context(self) -> Mapping[str, Any]:
+        queryset = Organization.objects.get_for_user_ids({self.user.id})
+        queryset.filter(Q(slug__icontains=self.last_org_slug))
+
+        org = queryset.first()
+
+        acc = access.from_user(self.user, org)
+        serializer = DetailedOrganizationSerializer()
+        serialized_org = serialize(org, self.user, serializer, access=acc)
+
         return {
+            "organization": serialized_org,
             "initialTrace": self.tracing_data,
             "customerDomain": self.customer_domain,
             "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
