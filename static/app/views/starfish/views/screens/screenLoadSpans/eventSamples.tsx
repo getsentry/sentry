@@ -1,14 +1,19 @@
+import {useMemo} from 'react';
+
 import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
+import {NewQuery, Project} from 'sentry/types';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {DEFAULT_PLATFORM,PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
 import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 const DEFAULT_SORT = {
   kind: 'desc',
@@ -20,6 +25,7 @@ type Props = {
   release: string;
   sortKey: string;
   transaction: string;
+  project?: Project | null;
   showDeviceClassSelector?: boolean;
 };
 
@@ -29,26 +35,42 @@ export function ScreenLoadEventSamples({
   release,
   sortKey,
   showDeviceClassSelector,
+  project,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[cursorName]);
-
-  const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
-    `transaction:${transaction}`,
-    `release:${release}`,
-  ]);
 
   const deviceClass = decodeScalar(location.query['device.class']);
 
-  if (deviceClass) {
-    if (deviceClass === 'Unknown') {
-      searchQuery.addFilterValue('!has', 'device.class');
-    } else {
-      searchQuery.addFilterValue('device.class', deviceClass);
+  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const platform =
+        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+        DEFAULT_PLATFORM;
+
+  const searchQuery = useMemo(() => {
+    const mutableQuery = new MutableSearch([
+      'transaction.op:ui.load',
+      `transaction:${transaction}`,
+      `release:${release}`,
+    ]);
+
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      mutableQuery.addFilterValue('os.name', platform);
     }
-  }
+
+    if (deviceClass) {
+      if (deviceClass === 'Unknown') {
+        mutableQuery.addFilterValue('!has', 'device.class');
+      } else {
+        mutableQuery.addFilterValue('device.class', deviceClass);
+      }
+    }
+
+    return mutableQuery;
+  }, [deviceClass, hasPlatformSelectFeature, platform, project, release, transaction]);
 
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 
