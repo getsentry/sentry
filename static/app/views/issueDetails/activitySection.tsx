@@ -115,6 +115,7 @@ function ActivitySection(props: Props) {
 
                     if (index === -1 || restore === undefined) {
                       addErrorMessage(t('Failed to delete comment'));
+                      return;
                     }
                   }
                   deleteComment(
