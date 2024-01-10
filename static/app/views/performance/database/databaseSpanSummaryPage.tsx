@@ -29,7 +29,6 @@ import {
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanMetricsRibbon} from 'sentry/views/starfish/views/spanSummaryPage/spanMetricsRibbon';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -165,23 +164,18 @@ function SpanSummaryPage({params}: Props) {
             </DescriptionContainer>
           )}
 
-          <BlockContainer>
-            <Block>
-              <ThroughputChart
-                series={throughputData['spm()']}
-                isLoading={isThroughputDataLoading}
-              />
-            </Block>
-
-            <Block>
-              <DurationChart
-                series={
-                  durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
-                }
-                isLoading={isDurationDataLoading}
-              />
-            </Block>
-          </BlockContainer>
+          <ChartContainer>
+            <ThroughputChart
+              series={throughputData['spm()']}
+              isLoading={isThroughputDataLoading}
+            />
+            <DurationChart
+              series={
+                durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
+              }
+              isLoading={isDurationDataLoading}
+            />
+          </ChartContainer>
 
           {span && (
             <SpanTransactionsTable
@@ -210,6 +204,12 @@ const DEFAULT_SORT: Sort = {
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const ChartContainer = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-template-columns: 1fr 1fr;
 `;
 
 const HeaderContainer = styled('div')`
