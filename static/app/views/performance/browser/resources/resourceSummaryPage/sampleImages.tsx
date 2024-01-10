@@ -1,6 +1,7 @@
 import {CSSProperties, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -8,6 +9,7 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -26,12 +28,11 @@ function SampleImages({groupId}: Props) {
   const isImagesEnabled = true; // TODO - this is temporary, this will be controlled by a project setting
   const [showImages, setShowImages] = useState(isImagesEnabled);
 
-  const {data: imageResources, isLoading: isLoadingImagesLoading} =
-    useIndexedResourcesQuery({
-      queryConditions: [`${SPAN_GROUP}:${groupId}`],
-      sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
-      limit: 100,
-    });
+  const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
+    queryConditions: [`${SPAN_GROUP}:${groupId}`],
+    sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
+    limit: 100,
+  });
 
   const uniqueResources = new Set();
 
@@ -46,40 +47,59 @@ function SampleImages({groupId}: Props) {
     })
     .splice(0, 5);
 
-  const hasImages = filteredResources.length > 0;
+  return (
+    <ChartPanel title={showImages ? t('Largest Images') : undefined}>
+      <SampleImagesChartPanelBody
+        onClickShowLinks={() => setShowImages(true)}
+        images={filteredResources}
+        isLoadingImages={isLoadingImages}
+        isImagesEnabled={isImagesEnabled}
+        showImages={showImages}
+      />
+    </ChartPanel>
+  );
+}
 
-  let body: React.ReactNode;
+function SampleImagesChartPanelBody(props: {
+  images: ReturnType<typeof useIndexedResourcesQuery>['data'];
+  isImagesEnabled: boolean;
+  isLoadingImages: boolean;
+  showImages: boolean;
+  onClickShowLinks?: () => void;
+}) {
+  const {onClickShowLinks, images, isLoadingImages, showImages, isImagesEnabled} = props;
+
+  const hasImages = images.length > 0;
 
   if (!showImages) {
-    body = <DisabledImages onClickShowLinks={() => setShowImages(true)} />;
-  } else if (showImages && isLoadingImagesLoading) {
-    body = <LoadingIndicator />;
-  } else if (showImages && !hasImages) {
-    body = (
+    return <DisabledImages onClickShowLinks={onClickShowLinks} />;
+  }
+  if (showImages && isLoadingImages) {
+    return <LoadingIndicator />;
+  }
+  if (showImages && !hasImages) {
+    Sentry.captureException(new Error('No sample images missing'));
+    return (
       <EmptyStateWarning>
-        <p>{t('No results found for your query')}</p>
+        <p>{t('No images detected')}</p>
       </EmptyStateWarning>
-    );
-  } else {
-    body = (
-      <ImageWrapper>
-        {filteredResources.map(resource => {
-          return (
-            <ImageContainer
-              src={resource[SPAN_DESCRIPTION]}
-              showImage={isImagesEnabled}
-              fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
-              size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
-              key={resource[SPAN_DESCRIPTION]}
-            />
-          );
-        })}
-      </ImageWrapper>
     );
   }
 
   return (
-    <ChartPanel title={showImages ? t('Largest Images') : undefined}>{body}</ChartPanel>
+    <ImageWrapper>
+      {images.map(resource => {
+        return (
+          <ImageContainer
+            src={resource[SPAN_DESCRIPTION]}
+            showImage={isImagesEnabled}
+            fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
+            size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
+            key={resource[SPAN_DESCRIPTION]}
+          />
+        );
+      })}
+    </ImageWrapper>
   );
 }
 

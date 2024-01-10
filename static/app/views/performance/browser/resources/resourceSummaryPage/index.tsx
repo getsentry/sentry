@@ -18,6 +18,7 @@ import ResourceSummaryTable from 'sentry/views/performance/browser/resources/res
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -39,7 +40,7 @@ function ResourceSummary() {
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const {
-    query: {transaction, [SPAN_OP]: spanOp},
+    query: {transaction},
   } = useLocation();
   const {data} = useSpanMetrics({
     filters: {
@@ -57,7 +58,7 @@ function ResourceSummary() {
     ],
   });
   const spanMetrics = data[0] ?? {};
-  const isImage = spanOp === 'resource.img';
+  const isImage = filters[SPAN_OP] === ResourceSpanOps.IMAGE;
 
   return (
     <ModulePageProviders

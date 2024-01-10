@@ -8,6 +8,7 @@ import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/performance/browser/resources/shared/constants';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {
   ModuleFilters,
   useResourceModuleFilters,
@@ -156,10 +157,10 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
 };
 
 const SPAN_OP_FILTER = {
-  'resource.script': [`${SPAN_OP}:resource.script`],
-  'resource.css': [`${FILE_EXTENSION}:css`],
-  'resource.font': [`${FILE_EXTENSION}:[${FONT_FILE_EXTENSIONS.join(',')}]`],
-  'resource.img': [
+  [ResourceSpanOps.SCRIPT]: [`${SPAN_OP}:${ResourceSpanOps.SCRIPT}`],
+  [ResourceSpanOps.CSS]: [`${FILE_EXTENSION}:css`],
+  [ResourceSpanOps.FONT]: [`${FILE_EXTENSION}:[${FONT_FILE_EXTENSIONS.join(',')}]`],
+  [ResourceSpanOps.IMAGE]: [
     `${FILE_EXTENSION}:[${IMAGE_FILE_EXTENSIONS.join(',')}]`,
     `${SPAN_OP}:resource.img`,
   ],
