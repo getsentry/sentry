@@ -2,7 +2,6 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import useMutateActivity, {
   TContext,
   TData,
@@ -18,14 +17,11 @@ import {
   GroupActivity as GroupActivityType,
   GroupActivityNote,
   GroupActivityReprocess,
-  Organization,
   User,
 } from 'sentry/types';
 import {NoteType} from 'sentry/types/alerts';
 import {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
 import {
   getGroupMostRecentActivity,
@@ -34,14 +30,11 @@ import {
 } from 'sentry/views/issueDetails/utils';
 
 type Props = {
-  api: Client;
   group: Group;
-  organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
-function GroupActivity(props: Props) {
+function GroupActivity({group}: Props) {
   const organization = useOrganization();
-  const {group} = props;
   const {activity: activities, count, id: groupId} = group;
   const groupCount = Number(count);
   const mostRecentActivity = getGroupMostRecentActivity(activities);
@@ -153,5 +146,4 @@ function GroupActivity(props: Props) {
   );
 }
 
-export {GroupActivity};
-export default withApi(withOrganization(GroupActivity));
+export default GroupActivity;
