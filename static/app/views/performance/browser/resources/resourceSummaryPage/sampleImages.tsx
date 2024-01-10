@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -129,12 +130,13 @@ function ImageContainer(props: {
 }
 
 const getFileNameFromDescription = (description: string) => {
-  try {
-    const url = new URL(description);
-    return url.pathname.split('/').pop() || '';
-  } catch (e) {
+  const url = safeURL(description);
+
+  if (!url) {
     return description;
   }
+
+  return url.pathname.split('/').pop() ?? '';
 };
 
 const ImageWrapper = styled('div')`
