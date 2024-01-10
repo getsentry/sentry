@@ -423,7 +423,7 @@ class RegressionDetector(ABC):
                     project_id=group.project_id,
                     fingerprint=group.fingerprint,
                     baseline=group.regressed,
-                    regressed=bundle.state.get_moving_avg(),
+                    regressed=state.get_moving_avg(),
                 )
             )
 
