@@ -1087,7 +1087,6 @@ def postprocessing(uuid: str) -> None:
                 user_id=relocation.owner_id,
                 role="owner",
             )
-
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
         # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
         # the entire task.
