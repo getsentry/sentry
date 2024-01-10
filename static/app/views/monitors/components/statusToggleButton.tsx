@@ -25,7 +25,7 @@ function SimpleStatusToggle({
   const Icon = isDisabled ? IconPlay : IconPause;
 
   const label = isDisabled
-    ? t('Reactive this monitor')
+    ? t('Enable this monitor')
     : t('Disable this monitor and discard incoming check-ins');
 
   return (
