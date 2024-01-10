@@ -866,7 +866,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": -1, "limit": 200},
+                data={"project": -1, "limit": 200, "useSpans": 1},
                 format="json",
             )
         assert response.status_code == 200, response.content
@@ -1241,7 +1241,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"project": -1, "useSpans": 1},
+                data={"project": -1},
                 format="json",
             )
 

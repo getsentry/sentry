@@ -184,7 +184,7 @@ class TraceEvent:
         self._nodestore_event: Optional[Event] = None
         self.fetched_nodestore: bool = span_serialized
         self.span_serialized = span_serialized
-        if snuba_params is not None:
+        if span_serialized:
             self.fetched_nodestore = True
         self.load_performance_issues(light, snuba_params)
 
@@ -217,7 +217,7 @@ class TraceEvent:
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
-            elif self.event["occurrence_spans"]:
+            elif "occurrence_spans" in self.event:
                 unique_spans: Set[str] = set()
                 for problem in self.event["problems"]:
                     parent_span_ids = problem.evidence_data.get("parent_span_ids")
@@ -494,7 +494,6 @@ def get_parents_from_spans(
     errors: Sequence[SnubaError],
     trace_id: str,
     params: Mapping[str, str],
-    limit: int,
 ) -> Sequence[SnubaTransaction]:
     trace_parent_spans = set()
     transaction_map = {}
@@ -549,7 +548,6 @@ def get_parents_from_spans(
         orderby=["timestamp", "id"],
         limit=10000,
     ).run_query(referrer="get_them_parents")
-    # TODO pair occurrences back to their transactions
     for transaction in transactions:
         for parent in parents_results["data"]:
             if (
@@ -679,7 +677,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         with handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params, limit)
             if use_spans:
-                transactions = get_parents_from_spans(transactions, errors, trace_id, params, limit)
+                transactions = get_parents_from_spans(transactions, errors, trace_id, params)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
