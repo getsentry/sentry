@@ -36,7 +36,14 @@ function isParen(token: Token, character: '(' | ')') {
 export class MutableSearch {
   tokens: Token[];
 
-  static fromObject(params: {[key: string]: string | number}): MutableSearch {
+  /**
+   * Creates a `MutableSearch` from a key-value mapping of field:value.
+   * This construct doesn't support conditions like `OR` and `AND` or
+   * parentheses, so it's only useful for simple queries.
+   * @param params
+   * @returns {MutableSearch}
+   */
+  static fromQueryObject(params: {[key: string]: string | number}): MutableSearch {
     return new MutableSearch([`transaction:${params?.transaction}`]);
   }
 
