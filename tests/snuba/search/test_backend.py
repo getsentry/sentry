@@ -3685,29 +3685,15 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             event_id_1 = uuid.uuid4().hex
             _, group_info = self.process_occurrence(
                 **{
-                    "id": uuid.uuid4().hex,
-                    "project_id": 1,
+                    "project_id": self.project.id,
                     "event_id": event_id_1,
-                    "fingerprint": ["c" * 32],
                     "issue_title": "User Feedback",
-                    "subtitle": "it was bad",
-                    "culprit": "api/123",
-                    "resource_id": "1234",
-                    "evidence_data": {"Test": 123},
-                    "evidence_display": [
-                        {"name": "hi", "value": "bye", "important": True},
-                        {"name": "what", "value": "where", "important": False},
-                    ],
                     "type": FeedbackGroup.type_id,
                     "detection_time": datetime.now().timestamp(),
                     "level": "info",
                 },
                 event_data={
-                    "event_id": event_id_1,
-                    "project_id": self.project.id,
-                    "title": "some problem",
                     "platform": "python",
-                    "tags": {"my_tag": "1"},
                     "timestamp": before_now(minutes=1).isoformat(),
                     "received": before_now(minutes=1).isoformat(),
                 },
@@ -3729,29 +3715,15 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             event_id_1 = uuid.uuid4().hex
             _, group_info = self.process_occurrence(
                 **{
-                    "id": uuid.uuid4().hex,
-                    "project_id": 1,
+                    "project_id": self.project.id,
                     "event_id": event_id_1,
-                    "fingerprint": ["c" * 32],
                     "issue_title": "User Feedback",
-                    "subtitle": "it was bad",
-                    "culprit": "api/123",
-                    "resource_id": "1234",
-                    "evidence_data": {"Test": 123},
-                    "evidence_display": [
-                        {"name": "hi", "value": "bye", "important": True},
-                        {"name": "what", "value": "where", "important": False},
-                    ],
                     "type": FeedbackGroup.type_id,
                     "detection_time": datetime.now().timestamp(),
                     "level": "info",
                 },
                 event_data={
-                    "event_id": event_id_1,
-                    "project_id": self.project.id,
-                    "title": "some problem",
                     "platform": "python",
-                    "tags": {"my_tag": "1"},
                     "timestamp": before_now(minutes=1).isoformat(),
                     "received": before_now(minutes=1).isoformat(),
                 },
