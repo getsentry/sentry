@@ -59,6 +59,39 @@ function mockResponses(organization, project) {
         projects: [parseInt(project.id, 10)],
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [
+        {
+          "id": 970136705,
+          "version": "com.example.vu.android@2.10.5",
+          "dateCreated": "2023-12-19T21:37:53.895495Z",
+        },
+        {
+          "id": 969902997,
+          "version": "com.example.vu.android@2.10.3+42",
+          "dateCreated": "2023-12-19T18:04:06.953025Z",
+        }
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      query: {dataset: "metrics", environment: [], field: ["release", "count()"], per_page: 50, project: ["2"], query: "transaction.op:ui.load release:[\"com.example.vu.android@2.10.5\",\"com.example.vu.android@2.10.3+42\"]", referrer: "api.starfish.mobile-release-selector", statsPeriod: "10d"},
+      body: {
+        meta: {},
+        data: [
+          {
+            "release": "com.example.vu.android@2.10.5",
+            "count()": 9768
+          },
+          {
+            "release": "com.example.vu.android@2.10.3+42",
+            "count()": 826
+          }
+        ],
+      },
+    });
 }
 
 
@@ -76,39 +109,6 @@ describe('Screen Summary', function () {
       mockResponses(organization, project);
       localStorage.clear();
       browserHistory.push = jest.fn();
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/releases/`,
-        body: [
-          {
-            "id": 970136705,
-            "version": "com.example.vu.android@2.10.5",
-            "dateCreated": "2023-12-19T21:37:53.895495Z",
-          },
-          {
-            "id": 969902997,
-            "version": "com.example.vu.android@2.10.3+42",
-            "dateCreated": "2023-12-19T18:04:06.953025Z",
-          }
-        ],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
-        query: {dataset: "metrics", environment: [], field: ["release", "count()"], per_page: 50, project: ["2"], query: "transaction.op:ui.load release:[\"com.example.vu.android@2.10.5\",\"com.example.vu.android@2.10.3+42\"]", referrer: "api.starfish.mobile-release-selector", statsPeriod: "10d"},
-        body: {
-          meta: {},
-          data: [
-            {
-              "release": "com.example.vu.android@2.10.5",
-              "count()": 9768
-            },
-            {
-              "release": "com.example.vu.android@2.10.3+42",
-              "count()": 826
-            }
-          ],
-        },
-      });
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
       });
@@ -185,38 +185,6 @@ describe('Screen Summary', function () {
       mockResponses(organization, project);
       localStorage.clear();
       browserHistory.push = jest.fn();
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/releases/`,
-        body: [
-          {
-            "id": 970136705,
-            "version": "com.example.vu.android@2.10.5",
-            "dateCreated": "2023-12-19T21:37:53.895495Z",
-          },
-          {
-            "id": 969902997,
-            "version": "com.example.vu.android@2.10.3+42",
-            "dateCreated": "2023-12-19T18:04:06.953025Z",
-          }
-        ],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
-        query: {dataset: "metrics", environment: [], field: ["release", "count()"], per_page: 50, project: ["2"], query: "transaction.op:ui.load release:[\"com.example.vu.android@2.10.5\",\"com.example.vu.android@2.10.3+42\"]", referrer: "api.starfish.mobile-release-selector", statsPeriod: "10d"},
-        body: {
-          meta: {},
-          data: [
-            {
-              "release": "com.example.vu.android@2.10.5",
-              "count()": 9768
-            },
-            {
-              "release": "com.example.vu.android@2.10.3+42",
-              "count()": 826
-            }
-          ],
-        },
-      });
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
       });
