@@ -84,6 +84,15 @@ class SuperuserAccessForm extends Component<Props, State> {
     }
   };
 
+  handleStaffSubmit = () => {
+    const {authenticators} = this.state;
+
+    if (!authenticators.length) {
+      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
+    }
+    return;
+  };
+
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     const {api} = this.props;
     let auth_url = '/staff-auth/';
@@ -174,11 +183,24 @@ class SuperuserAccessForm extends Component<Props, State> {
     return (
       <ThemeAndStyleProvider>
         {this.props.hasStaff ? // Skip access form if using new new staff
-            <U2fContainer
-              authenticators={authenticators}
-              displayMode="sudo"
-              onTap={this.handleU2fTap}
-            /> :
+          <Form
+            submitLabel={t('Authenticate With U2F')}
+            onSubmit={this.handleStaffSubmit}
+            resetOnError
+          >
+            {error && (
+              <StyledAlert type="error" showIcon>
+                {errorType}
+              </StyledAlert>
+            )}
+            {
+              <U2fContainer
+                authenticators={authenticators}
+                displayMode="sudo"
+                onTap={this.handleU2fTap}
+              />
+            }
+          </Form> :
         <Form
           submitLabel={t('Continue')}
           onSubmit={this.handleSubmit}
