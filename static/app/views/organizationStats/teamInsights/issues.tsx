@@ -126,7 +126,7 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                statuses={['resolved', 'archive', 'deleted']}
+                statuses={['resolved', 'archived', 'deleted']}
               />
             </DescriptionCard>
 

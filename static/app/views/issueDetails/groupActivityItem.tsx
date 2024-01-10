@@ -100,11 +100,11 @@ function GroupActivityItem({
   const issuesLink = `/organizations/${organization.slug}/issues/`;
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
-    const ignoredOrArchived = t('archived');
+    const archived = t('archived');
     if (data.ignoreDuration) {
       return tct('[author] [action] this issue for [duration]', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         duration: <Duration seconds={data.ignoreDuration * 60} />,
       });
     }
@@ -114,7 +114,7 @@ function GroupActivityItem({
         '[author] [action] this issue until it happens [count] time(s) in [duration]',
         {
           author,
-          action: ignoredOrArchived,
+          action: archived,
           count: data.ignoreCount,
           duration: <Duration seconds={data.ignoreWindow * 60} />,
         }
@@ -124,7 +124,7 @@ function GroupActivityItem({
     if (data.ignoreCount) {
       return tct('[author] [action] this issue until it happens [count] time(s)', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         count: data.ignoreCount,
       });
     }
@@ -134,7 +134,7 @@ function GroupActivityItem({
         '[author] [action] this issue until it affects [count] user(s) in [duration]',
         {
           author,
-          action: ignoredOrArchived,
+          action: archived,
           count: data.ignoreUserCount,
           duration: <Duration seconds={data.ignoreUserWindow * 60} />,
         }
@@ -144,7 +144,7 @@ function GroupActivityItem({
     if (data.ignoreUserCount) {
       return tct('[author] [action] this issue until it affects [count] user(s)', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         count: data.ignoreUserCount,
       });
     }
@@ -152,7 +152,7 @@ function GroupActivityItem({
     if (data.ignoreUntil) {
       return tct('[author] [action] this issue until [date]', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         date: <DateTime date={data.ignoreUntil} />,
       });
     }
@@ -164,7 +164,7 @@ function GroupActivityItem({
 
     return tct('[author] [action] this issue forever', {
       author,
-      action: ignoredOrArchived,
+      action: archived,
     });
   }
 

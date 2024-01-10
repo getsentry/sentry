@@ -6,7 +6,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {IconMute, IconStar} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Group, GroupTombstoneHelper, Level, Organization} from 'sentry/types';
@@ -55,16 +55,10 @@ function EventOrGroupHeader({
   const location = useLocation();
 
   function getTitleChildren() {
-    const {level, status, isBookmarked, hasSeen} = data as Group;
+    const {level, isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
         {!hideLevel && level && <GroupLevel level={level} />}
-        {!hideIcons &&
-          status === 'ignored' && (
-            <IconWrapper>
-              <IconMute color="red400" />
-            </IconWrapper>
-          )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
             <IconStar isSolid color="yellow400" />
@@ -91,10 +85,7 @@ function EventOrGroupHeader({
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-      style:
-        status === 'resolved'
-          ? {textDecoration: 'line-through'}
-          : undefined,
+      style: undefined,
     };
 
     if (isTombstone(data)) {

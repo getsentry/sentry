@@ -359,7 +359,6 @@ export function Actions(props: Props) {
     };
   };
 
-  const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate});
   const {dropdownItems: archiveDropdownItems} = getArchiveActions({
     onUpdate,
   });
@@ -376,25 +375,6 @@ export function Actions(props: Props) {
           size: 'sm',
         }}
         items={[
-          ...(isIgnored
-            ? []
-            : [
-                {
-                  key: 'ignore',
-                  className: 'hidden-sm hidden-md hidden-lg',
-                  label: t('Ignore'),
-                  isSubmenu: true,
-                  disabled,
-                  children: [
-                    {
-                      key: 'ignore-now',
-                      label: t('Ignore Issue'),
-                      onAction: () => onIgnore(),
-                    },
-                    ...dropdownItems,
-                  ],
-                },
-              ]),
           ...(isIgnored
               ? []
               : [

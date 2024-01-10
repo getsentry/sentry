@@ -16,7 +16,7 @@ describe('TeamIssuesBreakdown', () => {
       url: `/teams/${organization.slug}/${team.slug}/issue-breakdown/`,
       body: TeamIssuesBreakdownFixture(),
     });
-    const statuses = ['new', 'regressed', 'unarchived'];
+    const statuses = ['new', 'regressed', 'escalating'];
 
     render(
       <TeamIssuesBreakdown

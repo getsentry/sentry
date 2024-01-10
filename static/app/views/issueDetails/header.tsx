@@ -9,7 +9,6 @@ import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
-import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -265,9 +264,6 @@ function GroupHeader({
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
-              {group.inbox && (
-                <InboxReason inbox={group.inbox} fontSize="md" />
-              )}
               {(
                 <GroupStatusBadge
                   status={group.status}
