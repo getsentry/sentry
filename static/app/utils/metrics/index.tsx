@@ -66,7 +66,30 @@ export enum MetricDisplayType {
   TABLE = 'table',
 }
 
-export const defaultMetricDisplayType = MetricDisplayType.LINE;
+export const metricDisplayTypeOptions = [
+  {
+    value: MetricDisplayType.LINE,
+    label: t('Line'),
+  },
+  {
+    value: MetricDisplayType.AREA,
+    label: t('Area'),
+  },
+  {
+    value: MetricDisplayType.BAR,
+    label: t('Bar'),
+  },
+];
+
+export function getDefaultMetricDisplayType(
+  mri: MetricsQuery['mri'],
+  op: MetricsQuery['op']
+): MetricDisplayType {
+  if (mri?.startsWith('c') || op === 'count') {
+    return MetricDisplayType.BAR;
+  }
+  return MetricDisplayType.LINE;
+}
 
 export const getMetricDisplayType = (displayType: unknown): MetricDisplayType => {
   if (
@@ -629,7 +652,11 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
 }
 
 export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy} = metricWidget;
+  const {mri, op, query, groupBy, title} = metricWidget;
+
+  if (title) {
+    return title;
+  }
 
   if (!op) {
     return '';

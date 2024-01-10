@@ -1,22 +1,18 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Button} from 'sentry/components/button';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   IconCopy,
   IconDashboard,
   IconDelete,
-  IconEdit,
   IconEllipsis,
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {
   isCustomMeasurement,
@@ -39,18 +35,14 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ContextMenuProps = {
   displayType: MetricDisplayType;
-  isEdit: boolean;
   metricsQuery: MetricsQuery;
-  onEdit: () => void;
   widgetIndex: number;
 };
 
-export function MetricWidgetContextMenu({
+export function MetricQueryContextMenu({
   metricsQuery,
   displayType,
   widgetIndex,
-  onEdit,
-  isEdit,
 }: ContextMenuProps) {
   const organization = useOrganization();
   const router = useRouter();
@@ -138,37 +130,18 @@ export function MetricWidgetContextMenu({
   }
 
   return (
-    <Wrapper>
-      {!isEdit && (
-        <Button
-          onClick={onEdit}
-          borderless
-          size="xs"
-          aria-label={t('Edit widget')}
-          icon={<IconEdit />}
-        />
-      )}
-
-      <DropdownMenu
-        items={items}
-        triggerProps={{
-          'aria-label': t('Widget actions'),
-          size: 'xs',
-          borderless: true,
-          showChevron: false,
-          icon: <IconEllipsis direction="down" size="sm" />,
-        }}
-        position="bottom-end"
-      />
-    </Wrapper>
+    <DropdownMenu
+      items={items}
+      triggerProps={{
+        'aria-label': t('Widget actions'),
+        size: 'md',
+        showChevron: false,
+        icon: <IconEllipsis direction="down" size="sm" />,
+      }}
+      position="bottom-end"
+    />
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  margin: ${space(1)} ${space(0.5)} 0 0;
-`;
 
 export function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
   return useMemo(() => {
