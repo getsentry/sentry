@@ -100,6 +100,13 @@ describe('App', function () {
     ConfigStore.set('needsUpgrade', true);
     ConfigStore.set('isSelfHosted', true);
 
+    MockApiClient.addMockResponse({
+      url: '/internal/health/',
+      body: {
+        problems: [],
+      },
+    });
+
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
