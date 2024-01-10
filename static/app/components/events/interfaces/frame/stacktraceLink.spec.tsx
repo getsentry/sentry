@@ -145,11 +145,9 @@ describe('StacktraceLink', function () {
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: RouterContextFixture(),
     });
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://something.io#L233'
-    );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
   it('displays fix modal on error', async function () {
@@ -234,12 +232,14 @@ describe('StacktraceLink', function () {
       organization,
     });
 
-    expect(await screen.findByText('Open in Codecov')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'Open in Codecov'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
-    await userEvent.click(await screen.findByText('Open in Codecov'));
+    await userEvent.click(link);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_codecov_link_clicked',
       expect.anything()
@@ -318,11 +318,12 @@ describe('StacktraceLink', function () {
         context: RouterContextFixture(),
       }
     );
-    expect(await screen.findByRole('link')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
     );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
   });
 
   it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
@@ -349,11 +350,12 @@ describe('StacktraceLink', function () {
         context: RouterContextFixture(),
       }
     );
-    expect(await screen.findByRole('link')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/url/from/code/mapping#L1'
     );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
   });
 
   it('hides stacktrace link if there is no source link for .NET projects', async function () {
@@ -401,7 +403,9 @@ describe('StacktraceLink', function () {
       'https://something.io#L233'
     );
 
-    expect(await screen.getByText('GitHub')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'Open this line in GitHub'})
+    ).toBeInTheDocument();
 
     jest.useRealTimers();
   });
