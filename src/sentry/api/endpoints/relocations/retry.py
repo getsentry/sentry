@@ -123,6 +123,6 @@ class RelocationRetryEndpoint(Endpoint):
             "relocation.created",
             creator_id=request.user.id,
             owner_id=owner.id,
-            uuid=str(relocation.uuid),
+            uuid=str(new_relocation.uuid),
         )
         return Response(serialize(new_relocation), status=status.HTTP_201_CREATED)
