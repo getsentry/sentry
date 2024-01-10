@@ -151,7 +151,7 @@ export function PHPCronQuickStart(props: QuickStartProps) {
 
   const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
   $checkInId = \Sentry\captureCheckIn(
-      slug: '<monitor-slug>',
+      slug: '${slug}',
       status: CheckInStatus::inProgress()
   );
 
@@ -159,14 +159,14 @@ export function PHPCronQuickStart(props: QuickStartProps) {
 
   // 🟢 Notify Sentry your job has completed successfully:
   \Sentry\captureCheckIn(
-      slug: '<monitor-slug>',
+      slug: '${slug}',
       status: CheckInStatus::ok(),
       checkInId: $checkInId,
   );`;
 
   const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
   \Sentry\captureCheckIn(
-      slug: '<monitor-slug>',
+      slug: '${slug}',
       status: CheckInStatus::error()
       checkInId: $checkInId,
   );`;
