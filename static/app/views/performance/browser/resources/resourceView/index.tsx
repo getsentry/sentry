@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -95,7 +96,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
     ...(hasImageView
       ? [
           {
-            value: 'resource.img',
+            value: ResourceSpanOps.IMAGE,
             label: (
               <span>
                 {`${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`}
