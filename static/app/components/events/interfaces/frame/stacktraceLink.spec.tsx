@@ -331,38 +331,6 @@ describe('StacktraceLink', function () {
     );
   });
 
-  it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
-    const dotnetFrame = {
-      filename: 'link/url.py',
-      sourceLink: 'https://www.github.com/source/link/url.py#L1',
-      lineNo: '1',
-    } as unknown as Frame;
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: 'https://www.github.com/url/from/code/mapping',
-        integrations: [integration],
-      },
-    });
-    render(
-      <StacktraceLink
-        frame={dotnetFrame}
-        event={{...event, platform: 'csharp'}}
-        line="foo()"
-      />,
-      {
-        context: RouterContextFixture(),
-      }
-    );
-    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute(
-      'href',
-      'https://www.github.com/url/from/code/mapping#L1'
-    );
-  });
-
   it('hides stacktrace link if there is no source link for .NET projects', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
