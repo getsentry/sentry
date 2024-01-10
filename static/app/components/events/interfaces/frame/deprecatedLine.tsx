@@ -308,6 +308,7 @@ export class DeprecatedLine extends Component<Props, State> {
       lockAddress,
       isSubFrame,
       hiddenFrameCount,
+      event,
     } = this.props;
     const {isHovering, isExpanded} = this.state;
     const organization = this.props.organization;
@@ -343,7 +344,11 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const activeLineNumber = data.lineNo;
     const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
-    const hasStacktraceLink = data.inApp && !!data.filename && (isHovering || isExpanded);
+    // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
+    const hasStacktraceLink =
+      (data.inApp || event.platform === 'csharp') &&
+      !!data.filename &&
+      (isHovering || isExpanded);
     const hasStacktraceLinkInFrameFeatureFlag =
       organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
     const showStacktraceLinkInFrame =
@@ -381,6 +386,24 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
+            {showStacktraceLinkInFrame && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={data}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={this.props.event}
+                />
+              </ErrorBoundary>
+            )}
+            {showSentryAppStacktraceLinkInFrame && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={data.lineNo}
+                  filename={data.filename || ''}
+                  components={this.props.components}
+                />
+              </ErrorBoundary>
+            )}
             {this.renderShowHideToggle()}
             {shouldShowSourceMapDebuggerButton ? (
               <Fragment>
@@ -426,24 +449,6 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {showStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
-              <ErrorBoundary>
-                <StacktraceLink
-                  frame={data}
-                  line={contextLine ? contextLine[1] : ''}
-                  event={this.props.event}
-                />
-              </ErrorBoundary>
-            )}
-            {showSentryAppStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
-              <ErrorBoundary mini>
-                <OpenInContextLine
-                  lineNo={data.lineNo}
-                  filename={data.filename || ''}
-                  components={this.props.components}
-                />
-              </ErrorBoundary>
-            )}
             {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             {this.renderExpander()}
           </DefaultLineTagWrapper>

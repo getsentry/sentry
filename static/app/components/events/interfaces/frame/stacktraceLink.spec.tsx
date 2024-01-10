@@ -29,7 +29,7 @@ describe('StacktraceLink', function () {
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
 
-  const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
+  const frame = {filename: '/sentry/app.py', lineNo: 233, inApp: true} as Frame;
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
   let promptActivity: jest.Mock;
 
@@ -301,8 +301,12 @@ describe('StacktraceLink', function () {
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
       lineNo: '100',
     } as unknown as Frame;
+    const organization = {
+      ...org,
+      features: ['issue-details-stacktrace-link-in-frame'],
+    };
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {
         config,
         integrations: [integration],
@@ -316,45 +320,14 @@ describe('StacktraceLink', function () {
       />,
       {
         context: RouterContextFixture(),
+        organization,
       }
     );
-    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    const link = await screen.findByRole('link', {name: 'GitHub'});
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
-    );
-  });
-
-  it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
-    const dotnetFrame = {
-      filename: 'link/url.py',
-      sourceLink: 'https://www.github.com/source/link/url.py#L1',
-      lineNo: '1',
-    } as unknown as Frame;
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: 'https://www.github.com/url/from/code/mapping',
-        integrations: [integration],
-      },
-    });
-    render(
-      <StacktraceLink
-        frame={dotnetFrame}
-        event={{...event, platform: 'csharp'}}
-        line="foo()"
-      />,
-      {
-        context: RouterContextFixture(),
-      }
-    );
-    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute(
-      'href',
-      'https://www.github.com/url/from/code/mapping#L1'
     );
   });
 
