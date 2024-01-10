@@ -88,10 +88,6 @@ function App({children, params}: Props) {
    * Creates Alerts for any internal health problems
    */
   const checkInternalHealth = useCallback(async () => {
-    // For saas deployments we have more robust ways of checking application health.
-    if (!config.isSelfHosted) {
-      return;
-    }
     let data: any = null;
 
     try {
@@ -106,7 +102,7 @@ function App({children, params}: Props) {
 
       AlertStore.addAlert({id, message, type, url, opaque: true});
     });
-  }, [api, config.isSelfHosted]);
+  }, [api]);
 
   const {sentryUrl} = ConfigStore.get('links');
   const {orgId} = params;

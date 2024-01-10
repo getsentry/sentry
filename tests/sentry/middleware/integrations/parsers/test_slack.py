@@ -15,22 +15,16 @@ from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.models.outbox import ControlOutbox
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.utils import json
 from sentry.utils.signing import sign
 
-region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-region_config = (region,)
 
-
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"))
 class SlackRequestParserTest(TestCase):
     factory = RequestFactory()
     timestamp = "123123123"
 
-    @override_regions(region_config)
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -42,7 +36,6 @@ class SlackRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    @override_regions(region_config)
     def test_webhook(self):
         # Retrieve the correct integration
         data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
@@ -61,7 +54,7 @@ class SlackRequestParserTest(TestCase):
         # Returns response from region
         responses.add(
             responses.POST,
-            "https://us.testserver/extensions/slack/commands/",
+            "http://us.testserver/extensions/slack/commands/",
             status=201,
             body=b"region_response",
         )
@@ -75,7 +68,7 @@ class SlackRequestParserTest(TestCase):
         # ...even if it returns an error
         responses.add(
             responses.POST,
-            "https://us.testserver/extensions/slack/commands/",
+            "http://us.testserver/extensions/slack/commands/",
             status=401,
             body=b"error_response",
         )
@@ -108,7 +101,6 @@ class SlackRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
-    @override_regions(region_config)
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
         return_value=True,
