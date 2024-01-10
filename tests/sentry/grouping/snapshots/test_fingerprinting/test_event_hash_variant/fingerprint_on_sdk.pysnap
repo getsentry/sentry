@@ -2,6 +2,7 @@
 created: '2024-01-09T23:55:15.059223Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
+# Shows that the custom fingerprinting rule is applied when SDK is nextj
 ---
 config:
   rules:

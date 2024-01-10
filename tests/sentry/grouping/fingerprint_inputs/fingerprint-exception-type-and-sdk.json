@@ -2,10 +2,11 @@
   "_fingerprinting_rules": [
     {
       "matchers": [
-        ["sdk", "sentry.javascript.nextjs"],
-        ["type", "ChunkLoadError"]
+        ["sdk", "sentry.java"],
+        ["type", "DatabaseUnavailable"]
       ],
-      "fingerprint": ["chunkloaderror"]
+      "fingerprint": ["database-unavailable"],
+      "__test_description": "Shows that the custom fingerprinting rule is applied when both SDK and type match"
     }
   ],
   "fingerprint": ["my-route", "{{ default }}"],
@@ -16,21 +17,22 @@
           "frames": [
             {
               "function": "main",
-              "abs_path": "foo/bar.tsx",
-              "module": "foo.bar",
-              "filename": "bar.tsx",
+              "abs_path": "Application.java",
+              "module": "io.sentry.example.Application",
+              "filename": "Application.java",
               "lineno": 13,
               "in_app": false
             }
           ]
         },
-        "type": "ChunkLoadError",
-        "value": "ChunkLoadError something something..."
+        "type": "DatabaseUnavailable",
+        "value": "For some reason the database went away"
       }
     ]
   },
-  "platform": "javascript",
+  "platform": "java",
   "sdk": {
-    "name": "sentry.javascript.nextjs"
+    "name": "sentry.java",
+    "version": "1.7.30"
   }
 }

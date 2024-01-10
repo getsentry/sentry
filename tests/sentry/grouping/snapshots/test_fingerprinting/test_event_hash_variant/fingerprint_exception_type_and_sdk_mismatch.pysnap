@@ -1,23 +1,24 @@
 ---
-created: '2024-01-10T00:12:11.862148Z'
+created: '2024-01-10T17:07:19.931277Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
+# Shows that the custom fingerprinting rule is not applied when type matches, but SDK does not
 ---
 config:
   rules:
   - attributes: {}
     fingerprint:
-    - chunkloaderror
+    - database-unavailable
     matchers:
     - - sdk
-      - sentry.javascript.nextjs
+      - sentry.java
     - - type
-      - ChunkLoadError
+      - DatabaseUnavailable
   version: 1
 fingerprint:
 - my-route
 - '{{ default }}'
-title: 'ChunkLoadError: ChunkLoadError something something...'
+title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
   app:
     component:
