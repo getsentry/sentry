@@ -1,20 +1,28 @@
+import os
+
 import click
 
 from sentry.runner.decorators import configuration
 
 
 @click.group()
+@configuration
 def migrations():
-    "Manage migrations."
+    from sentry.runner.initializer import monkeypatch_django_migrations
+
+    # Include our monkeypatches for migrations.
+    monkeypatch_django_migrations()
+
+    # Allow dangerous/postdeploy migrations to be run.
+    os.environ["MIGRATION_SKIP_DANGEROUS"] = "0"
 
 
 @migrations.command()
 @click.argument("app_name")
 @click.argument("migration_name")
-@configuration
 @click.pass_context
 def run(ctx, app_name, migration_name):
-    "Manually run a single data migration. Will error if migration is not data only."
+    "Manually run a single data migration. Will error if migration is not post-deploy/dangerous"
     del ctx  # assertion: unused argument
 
     from django.db import connection, connections
@@ -36,6 +44,9 @@ def run(ctx, app_name, migration_name):
     click.secho("Running post-deployment migration:", fg="cyan")
     click.secho(f"  {migration.name}", bold=True)
     with connection.schema_editor() as schema_editor:
+        # Enable 'safe' migration execution. This enables concurrent mode on index creation
+        setattr(schema_editor, "safe", True)
+
         for op in migration.operations:
             click.echo(f"    * {op.describe()}... ", nl=False)
             new_state = project_state.clone()
