@@ -12,6 +12,12 @@ describe('SettingsLayout', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/internal/health/',
+      body: {
+        problems: [],
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [OrganizationFixture()],
     });
