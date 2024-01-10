@@ -139,21 +139,10 @@ class SlackClient(IntegrationProxyClient):
         params: Optional[Mapping[str, Any]] = None,
         json: bool = False,
         timeout: Optional[int] = None,
-        raw_response: bool = False,
-        *args: Any,
-        **kwargs: Any,
     ) -> BaseApiResponse:
-        response = self._request(
-            method,
-            path,
-            headers=headers,
-            data=data,
-            params=params,
-            json=json,
-            raw_response=raw_response,
-            *args,
-            **kwargs,
+        response: BaseApiResponse = self._request(
+            method, path, headers=headers, data=data, params=params, json=json
         )
-        if not raw_response and not response.json.get("ok"):
-            raise ApiError(response.get("error", ""))
+        if not response.json.get("ok"):
+            raise ApiError(response.get("error", ""))  # type: ignore
         return response
