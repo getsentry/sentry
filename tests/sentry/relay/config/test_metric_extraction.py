@@ -226,6 +226,25 @@ def test_get_metric_extraction_config_multiple_alerts(default_project: Project) 
 
 
 @django_db_all
+@override_options({"on_demand.max_alert_specs": 1})
+def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
+    capfd,
+    default_project: Project,
+) -> None:
+    with Feature(ON_DEMAND_METRICS):
+        create_alert("count()", "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=2000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.split(": ")[-1] == "Too many (2) on demand metric alerts for project bar\n"
+
+
+@django_db_all
 def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project: Project) -> None:
     # alerts with the same query should be deduplicated
     with Feature(ON_DEMAND_METRICS):
@@ -450,6 +469,25 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
                 {"field": "event.environment", "key": "environment"},
             ],
         }
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
+    capfd,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.split(": ")[-1] == "Too many (2) on demand metric widgets for project bar\n"
 
 
 @django_db_all
