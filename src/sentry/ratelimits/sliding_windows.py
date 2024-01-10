@@ -130,7 +130,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         if self._client is None:
             self._client = redis.redis_clusters.get(self.cluster_key)
             assert isinstance(self._client, (StrictRedis, RedisCluster)), self._client
-        return self.client
+        return self._client
 
     @property
     def impl(self):
