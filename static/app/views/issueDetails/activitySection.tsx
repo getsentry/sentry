@@ -20,7 +20,6 @@ import {
   GroupActivity,
   GroupActivityNote,
   GroupActivityType,
-  IssueCategory,
   User,
 } from 'sentry/types';
 import {NoteType} from 'sentry/types/alerts';
@@ -107,7 +106,8 @@ function ActivitySection(props: Props) {
                 dateCreated={item.dateCreated}
                 authorName={authorName}
                 onDelete={() => {
-                  if (group.issueCategory !== IssueCategory.FEEDBACK) {
+                  // @ts-ignore
+                  if (group.issueCategory !== 'feedback') {
                     const restore = group.activity.find(
                       activity => activity.id === item.id
                     );

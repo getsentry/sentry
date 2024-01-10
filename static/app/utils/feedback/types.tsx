@@ -1,11 +1,11 @@
-import type {BaseGroup, Event, GroupStats, IssueCategory} from 'sentry/types';
+import type {BaseGroup, Event, GroupStats} from 'sentry/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 export type FeedbackIssue = Overwrite<
   BaseGroup & GroupStats,
   {
-    issueCategory: IssueCategory.FEEDBACK;
+    issueCategory: 'feedback';
     issueType: 'feedback';
     metadata: {
       contact_email: null | string;
