@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from sentry.backup.dependencies import dependencies, get_model_name
-from sentry.backup.helpers import get_exportable_sentry_models
+from sentry.backup.dependencies import dependencies, get_exportable_sentry_models, get_model_name
 from sentry.backup.scopes import RelocationScope
 from sentry.models.actor import Actor
 from sentry.models.team import Team

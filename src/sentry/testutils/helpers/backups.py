@@ -18,6 +18,12 @@ from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
+from sentry.backup.crypto import (
+    KeyManagementServiceClient,
+    LocalFileDecryptor,
+    LocalFileEncryptor,
+    decrypt_encrypted_tarball,
+)
 from sentry.backup.dependencies import (
     NormalizedModelName,
     get_model,
@@ -31,13 +37,7 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.helpers import (
-    KeyManagementServiceClient,
-    LocalFileDecryptor,
-    LocalFileEncryptor,
-    Printer,
-    decrypt_encrypted_tarball,
-)
+from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
