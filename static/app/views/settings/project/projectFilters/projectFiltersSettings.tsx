@@ -1,7 +1,9 @@
 import {Component, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
+import iconChrome from 'sentry-logos/logo-chrome.svg';
 import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
+import iconFirefox from 'sentry-logos/logo-firefox.svg';
 import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
@@ -71,51 +73,94 @@ const filterDescriptions = {
   },
 };
 
+// const DEPRECATED_LEGACY_BROWSER_SUBFILTERS = {
+//   ie_pre_9: {
+//     icon: iconIe,
+//     helpText: 'Version 8 and lower',
+//     title: 'Internet Explorer',
+//   },
+//   ie9: {
+//     icon: iconIe,
+//     helpText: 'Version 9',
+//     title: 'Internet Explorer',
+//   },
+//   ie10: {
+//     icon: iconIe,
+//     helpText: 'Version 10',
+//     title: 'Internet Explorer',
+//   },
+//   ie11: {
+//     icon: iconIe,
+//     helpText: 'Version 11',
+//     title: 'Internet Explorer',
+//   },
+//   safari_pre_6: {
+//     icon: iconSafari,
+//     helpText: 'Version 5 and lower',
+//     title: 'Safari',
+//   },
+//   opera_pre_15: {
+//     icon: iconOpera,
+//     helpText: 'Version 14 and lower',
+//     title: 'Opera',
+//   },
+//   opera_mini_pre_8: {
+//     icon: iconOpera,
+//     helpText: 'Version 8 and lower',
+//     title: 'Opera Mini',
+//   },
+//   android_pre_4: {
+//     icon: iconAndroid,
+//     helpText: 'Version 3 and lower',
+//     title: 'Android',
+//   },
+//   edge_pre_79: {
+//     icon: iconEdgeLegacy,
+//     helpText: 'Version 18 and lower',
+//     title: 'Edge (Legacy)',
+//   },
+// };
+
 const LEGACY_BROWSER_SUBFILTERS = {
-  ie_pre_9: {
+  ie: {
     icon: iconIe,
-    helpText: 'Version 8 and lower',
     title: 'Internet Explorer',
+    helpText: 'Verison 11 and lower',
   },
-  ie9: {
-    icon: iconIe,
-    helpText: 'Version 9',
-    title: 'Internet Explorer',
-  },
-  ie10: {
-    icon: iconIe,
-    helpText: 'Version 10',
-    title: 'Internet Explorer',
-  },
-  ie11: {
-    icon: iconIe,
-    helpText: 'Version 11',
-    title: 'Internet Explorer',
-  },
-  safari_pre_6: {
+  safari: {
     icon: iconSafari,
-    helpText: 'Version 5 and lower',
     title: 'Safari',
+    helpText: 'Version 11 and lower',
   },
-  opera_pre_15: {
+  opera: {
     icon: iconOpera,
-    helpText: 'Version 14 and lower',
     title: 'Opera',
+    helpText: 'Version 50 and lower',
   },
-  opera_mini_pre_8: {
+  opera_mini: {
     icon: iconOpera,
-    helpText: 'Version 8 and lower',
     title: 'Opera Mini',
+    helpText: 'Version 34 and lower',
   },
-  android_pre_4: {
+  android: {
     icon: iconAndroid,
-    helpText: 'Version 3 and lower',
     title: 'Android',
+    helpText: 'Version 3 and lower',
   },
-  edge_pre_79: {
+  edge: {
     icon: iconEdgeLegacy,
-    helpText: 'Version 18 and lower',
-    title: 'Edge (Legacy)',
+    title: 'Edge',
+    helpText: 'Version 78 and lower',
+  },
+  firefox: {
+    icon: iconFirefox,
+    title: 'Firefox',
+    helpText: 'Version 66 and lower',
+  },
+  chrome: {
+    icon: iconChrome,
+    title: 'Chrome',
+    helpText: 'Version 62 and lower',
   },
 };
 
@@ -144,6 +189,7 @@ type RowState = {
 class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   constructor(props) {
     super(props);
+
     let initialSubfilters;
     if (props.data.active === true) {
       initialSubfilters = new Set(LEGACY_BROWSER_KEYS);
@@ -169,6 +215,8 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
       subfilters = new Set();
     } else if (subfilters.has(subfilter)) {
       subfilters.delete(subfilter);
+    } else if ([...subfilters].some(sf => sf.startsWith(subfilter))) {
+      subfilters = new Set([...subfilters].filter(sub => !sub.startsWith(subfilter)));
     } else {
       subfilters.add(subfilter);
     }
@@ -188,25 +236,30 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     return (
       <div>
         {!disabled && (
-          <BulkFilter>
-            <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
-            <ButtonBar gap={1}>
-              <Button
-                priority="link"
-                borderless
-                onClick={this.handleToggleSubfilters.bind(this, true)}
-              >
-                {t('All')}
-              </Button>
-              <Button
-                priority="link"
-                borderless
-                onClick={this.handleToggleSubfilters.bind(this, false)}
-              >
-                {t('None')}
-              </Button>
-            </ButtonBar>
-          </BulkFilter>
+          <div>
+            <BulkFilter>
+              <BulkFilterLabel>{t('Legacy Browser Filters')}:</BulkFilterLabel>
+              <ButtonBar gap={1}>
+                <Button
+                  priority="link"
+                  borderless
+                  onClick={this.handleToggleSubfilters.bind(this, true)}
+                >
+                  {t('All')}
+                </Button>
+                <Button
+                  priority="link"
+                  borderless
+                  onClick={this.handleToggleSubfilters.bind(this, false)}
+                >
+                  {t('None')}
+                </Button>
+              </ButtonBar>
+            </BulkFilter>
+            <p>
+              The browser versions filtered out will be periodically evaluated and updated
+            </p>
+          </div>
         )}
 
         <FilterGrid>
@@ -221,7 +274,9 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                 </div>
                 <Switch
                   aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                  isActive={this.state.subfilters.has(key)}
+                  isActive={[...this.state.subfilters].some(
+                    sf => sf === key || sf.startsWith(key)
+                  )}
                   isDisabled={disabled}
                   css={{flexShrink: 0, marginLeft: 6}}
                   toggle={this.handleToggleSubfilters.bind(this, key)}
@@ -304,7 +359,7 @@ type Props = {
 };
 
 type Filter = {
-  active: boolean;
+  active: boolean | string[];
   description: string;
   hello: string;
   id: string;
