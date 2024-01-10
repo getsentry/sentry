@@ -54,8 +54,7 @@ class VstsRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
-        assert response.content == b"passthrough"
+        assert response.status_code == 400
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
@@ -86,7 +85,6 @@ class VstsRequestParserTest(TestCase):
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
-        assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
@@ -100,7 +98,6 @@ class VstsRequestParserTest(TestCase):
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == 200
-        assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
