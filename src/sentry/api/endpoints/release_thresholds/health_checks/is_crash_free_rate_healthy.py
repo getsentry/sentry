@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from sentry.models.release_threshold.constants import TriggerType
 
@@ -21,9 +21,9 @@ def get_crash_counts(
     group: dict[str, Any] | None = next(
         x
         for x in sessions_data.get("groups", [])
-        if x["release"] == release_version
-        and x["project"] == project_id
-        and x["session.status"] == "crashed"
+        if x.get("by", {}).get("release") == release_version
+        and x.get("by", {}).get("project") == project_id
+        and x.get("by", {}).get("session.status") == "crashed"
     )
     return (group or {}).get("totals", {})
 
@@ -41,24 +41,31 @@ def is_crash_free_rate_healthy(
     Response (is_healthy, metric_value)
     """
     field = "count_unique(user)" if display == CRASH_USERS_DISPLAY else "sum(session)"
+    release_version = ethreshold["release"]
+    project_id = ethreshold["project_id"]
     crash_counts: dict[str, Any] = get_crash_counts(
         sessions_data=sessions_data,
-        release_version=ethreshold["release"],
-        project_id=ethreshold["project_id"],
+        release_version=release_version,
+        project_id=project_id,
     )
     crashes = crash_counts.get(field, 0)
 
-    totals: filter[Any] = filter(
-        lambda x: x["release"] == ethreshold["release"]
-        and x["project"] == ethreshold["project_id"],
-        sessions_data.get("groups", []),
+    totals: List[dict[str, Any]] = list(
+        filter(
+            lambda x: x.get("by", {}).get("release") == release_version
+            and x.get("by", {}).get("project") == project_id,
+            sessions_data.get("groups", []),
+        )
     )
-    total_count = max(sum([t.get(field, 0) for t in totals]), 1)
+    total_count = max(sum([t.get("totals", {}).get(field, 0) for t in totals]), 1)
 
     crash_free_percent = (1 - (crashes / total_count)) * 100
 
-    return (
-        crash_free_percent > ethreshold["value"]
+    is_healthy = (
+        crash_free_percent
+        < ethreshold["value"]  # we're healthy as long as we're under the threshold
         if ethreshold["trigger_type"] == TriggerType.OVER
-        else crash_free_percent < ethreshold["value"]
-    ), crash_free_percent
+        else crash_free_percent
+        > ethreshold["value"]  # we're healthy as long as we're over the threshold
+    )
+    return is_healthy, crash_free_percent

@@ -156,7 +156,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
             "window_in_seconds": 60,  # NOTE: window_in_seconds used to determine start/end of the data fetch. Not utilized in validation method
             "metric_value": None,
         }
-        is_healthy, metric_count = is_crash_free_rate_healthy(
+        is_healthy, metric_value = is_crash_free_rate_healthy(
             ethreshold=threshold_limit_99,
             sessions_data=sessions_data,
             display=CRASH_SESSIONS_DISPLAY,
@@ -165,7 +165,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
 
         # threshold equal to rate
         data_at_limit = self.create_sessions_data(10)  # 10/1010 = 99%
-        is_healthy, metric_count = is_crash_free_rate_healthy(
+        is_healthy, metric_value = is_crash_free_rate_healthy(
             ethreshold=threshold_limit_99,
             sessions_data=data_at_limit,
             display=CRASH_SESSIONS_DISPLAY,
@@ -174,7 +174,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
 
         # threshold has been triggered
         data_unhealthy = self.create_sessions_data(100)  # 100/1100 = 90%
-        is_healthy, metric_count = is_crash_free_rate_healthy(
+        is_healthy, metrmetric_valueic_count = is_crash_free_rate_healthy(
             ethreshold=threshold_limit_99,
             sessions_data=data_unhealthy,
             display=CRASH_SESSIONS_DISPLAY,
