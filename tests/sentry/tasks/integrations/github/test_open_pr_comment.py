@@ -399,8 +399,10 @@ class TestGetCommentIssues(CreateEventTestCase):
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
         top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id, group_id]
+        assert function_names == ["world", "world"]
 
     def test_not_within_frame_limit(self):
         function_names = ["world"] + ["a" for _ in range(STACKFRAME_COUNT)]
