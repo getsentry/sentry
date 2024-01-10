@@ -102,11 +102,13 @@ def fetch_sessions_data(
     with handle_query_errors():
         request_get: dict[str, Any] = request.GET
         query_params: MultiValueDict[str, Any] = MultiValueDict(request_get)
+        # TODO: group by environment as well
         query_params.setlist("groupBy", ["project", "release", "session.status"])
         query_params.setlist("field", ["sum(session)"])  # alternatively count_unique(user)
         query_params["query"] = " OR ".join(
             [f"release:{version}" for version in query_params.getlist("release")]
         )
+        # TODO: utilize start/end for thresholds - NOT request params
         interval = _get_interval(params["start"], params["end"])
         query_params["interval"] = interval
         # HACK to prevent front-end crash when release health is sessions-based:

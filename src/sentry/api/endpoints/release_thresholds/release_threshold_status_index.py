@@ -372,6 +372,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     params=filter_params,
                 )
                 for ethreshold in category_thresholds:
+                    # TODO: may need to fetch sessions data for each threshold individually
                     is_healthy, rate = is_crash_free_rate_healthy(
                         ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
                     )
