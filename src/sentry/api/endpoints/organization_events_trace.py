@@ -1163,36 +1163,89 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     ) -> Sequence[FullResponse]:
         root_traces: List[TraceEvent] = []
         orphans: List[TraceEvent] = []
+        visited_transactions: Set[str] = set()
+        visited_errors: Set[str] = set()
 
         for root in roots:
+            if root["id"] in visited_transactions:
+                continue
+            visited_transactions.add(root["id"])
             root_event = TraceEvent(root, None, 0, span_serialized=True)
-            self.add_children(root_event, transactions, errors, 1)
+            self.add_children(
+                root_event, transactions, visited_transactions, errors, visited_errors, 1
+            )
             root_traces.append(root_event)
 
-        # TODO errors
+        remaining_transactions = sorted(
+            [
+                transaction
+                for transaction in transactions
+                if transaction["id"] not in visited_transactions
+            ],
+            key=lambda k: -datetime.fromisoformat(k["timestamp"]).timestamp(),
+        )
+        orphan_roots = [
+            orphan
+            for orphan in remaining_transactions
+            if orphan["trace.parent_transaction"] is None
+        ]
+        for orphan_transaction in orphan_roots:
+            # The next orphan may already be added as a child, skip it if this is the case
+            if orphan_transaction["id"] in visited_transactions:
+                continue
+            visited_transactions.add(root["id"])
+            orphan = TraceEvent(orphan_transaction, None, 0, span_serialized=True)
+            self.add_children(
+                orphan, remaining_transactions, visited_transactions, errors, visited_errors, 1
+            )
+            orphans.append(orphan)
+
+        orphan_errors = sorted(
+            [error for error in errors if error["id"] not in visited_errors],
+            key=lambda k: k["timestamp"],
+        )
+
         root_traces.sort(key=child_sort_key)
-        # TODO: pull roots out
         orphans.sort(key=child_sort_key)
 
-        root_event._debug_rep()
+        if root_traces:
+            for root in root_traces:
+                root._debug_rep()
+        if orphans:
+            for orphan in orphans:
+                orphan._debug_rep()
 
         return {
             "transactions": [trace.full_dict(detailed) for trace in root_traces]
             + [orphan.full_dict(detailed) for orphan in orphans],
-            # TODO orphan errors
-            "errors": [],
+            "orphan_errors": [self.serialize_error(error) for error in orphan_errors],
         }
 
-    def add_children(self, parent, transactions, errors, generation):
+    def add_children(
+        self, parent, transactions, visited_transactions, errors, visited_errors, generation
+    ):
         for error in errors:
-            if error["trace.transaction"] == parent.event["id"]:
+            if error["id"] in visited_errors:
+                continue
+            if "trace.transaction" in error and error["trace.transaction"] == parent.event["id"]:
+                visited_errors.add(error["id"])
                 parent.errors.append(error)
         for transaction in transactions:
+            if transaction["id"] in visited_transactions:
+                continue
             if transaction["trace.parent_transaction"] == parent.event["id"]:
+                visited_transactions.add(transaction["id"])
                 new_child = TraceEvent(
                     transaction, parent.event["id"], generation, span_serialized=True
                 )
-                self.add_children(new_child, transactions, errors, generation + 1)
+                self.add_children(
+                    new_child,
+                    transactions,
+                    visited_transactions,
+                    errors,
+                    visited_errors,
+                    generation + 1,
+                )
                 parent.children.append(new_child)
         parent.children.sort(key=child_sort_key)
 
