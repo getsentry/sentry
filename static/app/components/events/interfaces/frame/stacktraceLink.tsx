@@ -340,7 +340,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           openInNewTab
         >
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {hasStacktraceLinkFeatureFlag ? t('GitHub') : t('Open this line in GitHub')}
+          {t('GitHub')}
         </OpenInLink>
       </StacktraceLinkWrapper>
     );
