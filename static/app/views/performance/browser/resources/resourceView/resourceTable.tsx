@@ -55,7 +55,6 @@ type Row = {
   'project.id': number;
   'resource.render_blocking_status': string;
   'span.description': string;
-  'span.domain': string;
   'span.group': string;
   'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'spm()': number;

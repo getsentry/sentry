@@ -88,7 +88,6 @@ export const useResourcesQuery = ({
         `avg(${SPAN_SELF_TIME})`,
         'spm()',
         SPAN_GROUP,
-        SPAN_DOMAIN,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         'project.id',
         `${TIME_SPENT_PERCENTAGE}()`,
@@ -126,11 +125,6 @@ export const useResourcesQuery = ({
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
     [SPAN_GROUP]: row[SPAN_GROUP].toString(),
-    [RESOURCE_RENDER_BLOCKING_STATUS]: row[RESOURCE_RENDER_BLOCKING_STATUS] as
-      | ''
-      | 'non-blocking'
-      | 'blocking',
-    [SPAN_DOMAIN]: row[SPAN_DOMAIN][0]?.toString(),
     [PROJECT_ID]: row[PROJECT_ID] as number,
     [`avg(http.response_content_length)`]: row[
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
