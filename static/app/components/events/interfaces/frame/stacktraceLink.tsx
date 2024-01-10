@@ -1,4 +1,4 @@
-import {MouseEventHandler, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -172,7 +172,7 @@ function CodecovLink({
     return null;
   }
 
-  const onOpenCodecovLink: MouseEventHandler<HTMLAnchorElement> = e => {
+  const onOpenCodecovLink = (e: React.MouseEvent) => {
     e.stopPropagation();
     trackAnalytics('integrations.stacktrace_codecov_link_clicked', {
       view: 'stacktrace_issue_details',
@@ -212,8 +212,15 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const {user} = useLegacyStore(ConfigStore);
   const {projects} = useProjects();
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
-  const [isQueryEnabled, setIsQueryEnabled] = useState(!hasInFrameFeature);
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
+  // TODO: Currently we only support GitHub links. Implement support for other source code providers.
+  // Related comment: https://github.com/getsentry/sentry/pull/62596#discussion_r1443025242
+  const hasGithubSourceLink = (frame.sourceLink || '').startsWith(
+    'https://www.github.com/'
+  );
+  const [isQueryEnabled, setIsQueryEnabled] = useState(
+    hasGithubSourceLink ? false : !frame.inApp ? false : !hasInFrameFeature
+  );
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
@@ -237,14 +244,16 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     if (!validFilePath) {
       return setIsQueryEnabled(false);
     }
-    if (hasInFrameFeature) {
+    // Skip fetching if we already have the Source Link
+    if (hasInFrameFeature && !hasGithubSourceLink && frame.inApp) {
       // Introduce a delay before enabling the query
+
       timer = setTimeout(() => {
         setIsQueryEnabled(true);
       }, 100); // Delay of 100ms
     }
     return () => timer && clearTimeout(timer);
-  }, [hasInFrameFeature, validFilePath]); // Empty dependency array to run only on mount
+  }, [hasInFrameFeature, validFilePath, hasGithubSourceLink, frame]);
 
   const {
     data: match,
@@ -278,15 +287,32 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       : {}
   );
 
-  const onOpenLink: MouseEventHandler<HTMLAnchorElement> = e => {
+  const onOpenLink = (e: React.MouseEvent, sourceLink: Frame['sourceLink'] = null) => {
     e.stopPropagation();
-    const provider = match!.config?.provider;
+    const provider = match?.config?.provider;
     if (provider) {
       trackAnalytics(
         'integrations.stacktrace_link_clicked',
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,
+          organization,
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
+        },
+        {startSession: true}
+      );
+    }
+    if (sourceLink) {
+      const url = new URL(sourceLink);
+      const hostname = url.hostname;
+      const parts = hostname.split('.');
+      const domain = parts.length > 1 ? parts[1] : '';
+      trackAnalytics(
+        'integrations.non_inapp_stacktrace_link_clicked',
+        {
+          view: 'stacktrace_issue_details',
+          provider: domain,
           organization,
           group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
           ...getAnalyticsDataForEvent(event),
@@ -302,6 +328,30 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   if (!validFilePath) {
     return null;
+  }
+
+  // Render the provided `sourceLink` for all the non-inapp frames for `csharp` platform Issues
+  // We skip fetching from the API for these frames.
+  if (
+    !match &&
+    hasGithubSourceLink &&
+    !frame.inApp &&
+    frame.sourceLink &&
+    hasInFrameFeature
+  ) {
+    return (
+      <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
+        <OpenInLink
+          onClick={e => onOpenLink(e, frame.sourceLink)}
+          href={frame.sourceLink}
+          openInNewTab
+          hasInFrameFeature={hasInFrameFeature}
+        >
+          <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+          {t('GitHub')}
+        </OpenInLink>
+      </StacktraceLinkWrapper>
+    );
   }
 
   if (isLoading || !match) {
@@ -369,9 +419,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
     event.platform as PlatformKey
   );
-  const hasGithubSourceLink =
-    event.platform === 'csharp' &&
-    frame.sourceLink?.startsWith('https://www.github.com/');
+
   const hideErrors = isMinifiedJsError || isUnsupportedPlatform;
   // for .NET projects, if there is no match found but there is a GitHub source link, use that
   if (
@@ -545,6 +593,7 @@ const OpenInLink = styled(ExternalLink)<{
       ? css`
           color: ${p.theme.subText};
           animation: ${fadeIn} 0.2s ease-in-out forwards;
+          width: max-content;
           &:hover {
             text-decoration: underline;
             text-decoration-color: ${p.theme.textColor};
