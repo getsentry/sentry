@@ -103,7 +103,6 @@ class SuperuserAccessForm extends Component<Props, State> {
       auth_url = '/auth/';
     }
     try {
-
       await api.requestPromise(auth_url, {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
@@ -184,7 +183,7 @@ class SuperuserAccessForm extends Component<Props, State> {
       <ThemeAndStyleProvider>
         {this.props.hasStaff ? // Skip access form if using new new staff
           <Form
-            submitLabel={t('Authenticate With U2F')}
+            submitLabel={t('Authenticate')}
             onSubmit={this.handleStaffSubmit}
             resetOnError
           >
