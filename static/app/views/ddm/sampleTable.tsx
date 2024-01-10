@@ -22,7 +22,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MetricRange, MetricSpan} from '../../utils/metrics/index';
 
 export type SamplesTableProps = MetricRange & {
-  mri: MRI;
+  mri?: MRI;
 };
 
 type Column = GridColumnHeader<keyof MetricSpan>;
@@ -40,7 +40,7 @@ export function SampleTable({mri, ...range}: SamplesTableProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const {data, isLoading} = useMetricsSpans(mri, range);
+  const {data, isFetching} = useMetricsSpans(mri, range);
 
   const getProjectSlug = useCallback(
     (projectId: number) => {
@@ -137,7 +137,7 @@ export function SampleTable({mri, ...range}: SamplesTableProps) {
 
   return (
     <GridEditable
-      isLoading={isLoading}
+      isLoading={isFetching}
       columnOrder={columnOrder}
       columnSortBy={[]}
       data={rows}
@@ -145,6 +145,7 @@ export function SampleTable({mri, ...range}: SamplesTableProps) {
         renderHeadCell,
         renderBodyCell,
       }}
+      emptyMessage={mri ? t('No samples found') : t('Choose a metric to display data.')}
       location={location}
     />
   );
