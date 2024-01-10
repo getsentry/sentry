@@ -21,13 +21,6 @@ describe('App', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
-
-    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
@@ -107,6 +100,13 @@ describe('App', function () {
     ConfigStore.set('needsUpgrade', true);
     ConfigStore.set('isSelfHosted', true);
 
+    MockApiClient.addMockResponse({
+      url: '/internal/health/',
+      body: {
+        problems: [],
+      },
+    });
+
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
@@ -146,5 +146,29 @@ describe('App', function () {
     expect(sentryUrl).toEqual('https://sentry.io');
     expect(window.location.replace).toHaveBeenCalledWith('https://sentry.io');
     expect(window.location.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds health issues to alertstore', async function () {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/internal/health/',
+      body: {
+        healthy: false,
+        problems: [
+          {id: 'abc123', message: 'Celery workers have not checked in', severity: 'critical'},
+        ],
+      },
+    });
+    const restore = ConfigStore.get('isSelfHosted');
+    ConfigStore.set('isSelfHosted', true);
+
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
+    ConfigStore.config.isSelfHosted = restore;
+
+    expect(getMock).toHaveBeenCalled();
+    expect(await screen.findByText(/Celery workers have not checked in/)).toBeInTheDocument();
   });
 });
