@@ -40,7 +40,7 @@ interface Props {
   speedOptions?: number[];
 }
 
-function ReplayPlayPauseBar() {
+export function ReplayPlayPauseBar() {
   const {
     currentTime,
     isFinished,
@@ -271,7 +271,7 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
+export const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:
@@ -290,7 +290,7 @@ const TimeAndScrubberGrid = styled('div')<{isCompact: boolean}>`
       : ''}
 `;
 
-const Time = styled('span')`
+export const Time = styled('span')`
   font-variant-numeric: tabular-nums;
   padding: 0 ${space(1.5)};
 `;

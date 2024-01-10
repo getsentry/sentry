@@ -51,9 +51,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   dimensions: Dimensions;
 
   /**
-   * Total duration of the replay that should be played, in milliseconds.
-   * This value is the same as the duration of the video, unless a clip window
-   * has been provided.
+   * Total duration of the replay, in milliseconds
    */
   durationMs: number;
 
@@ -134,7 +132,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   speed: number;
 
   /**
-   * The time, in milliseconds, when the video should start
+   *
    */
   startTimeOffsetMs: number;
 

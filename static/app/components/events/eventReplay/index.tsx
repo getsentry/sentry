@@ -35,6 +35,11 @@ function EventReplayContent({
     []
   );
   const replayPreview = useCallback(() => import('./replayPreview'), []);
+  const replayClipPreview = useCallback(() => import('./replayClipPreview'), []);
+
+  const hasReplayClipFeature = organization.features.includes(
+    'issue-details-inline-replay-viewer'
+  );
 
   if (fetching) {
     return null;
@@ -71,21 +76,30 @@ function EventReplayContent({
     <ReplaySectionMinHeight>
       <ErrorBoundary mini>
         <ReactLazyLoad debounce={50} height={448} offset={0} once>
-          <LazyLoad
-            component={replayPreview}
-            replaySlug={replayId}
-            orgSlug={organization.slug}
-            eventTimestampMs={eventTimestampMs}
-            buttonProps={{
-              analyticsEventKey: 'issue_details.open_replay_details_clicked',
-              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-              analyticsParams: {
-                ...getAnalyticsDataForEvent(event),
-                ...getAnalyticsDataForGroup(group),
-                organization,
-              },
-            }}
-          />
+          {!hasReplayClipFeature ? (
+            <LazyLoad
+              component={replayPreview}
+              replaySlug={replayId}
+              orgSlug={organization.slug}
+              eventTimestampMs={eventTimestampMs}
+              buttonProps={{
+                analyticsEventKey: 'issue_details.open_replay_details_clicked',
+                analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+                analyticsParams: {
+                  ...getAnalyticsDataForEvent(event),
+                  ...getAnalyticsDataForGroup(group),
+                  organization,
+                },
+              }}
+            />
+          ) : (
+            <LazyLoad
+              component={replayClipPreview}
+              replaySlug={replayId}
+              orgSlug={organization.slug}
+              eventTimestampMs={eventTimestampMs}
+            />
+          )}
         </ReactLazyLoad>
       </ErrorBoundary>
     </ReplaySectionMinHeight>
