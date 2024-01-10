@@ -50,6 +50,10 @@ import {
 } from 'sentry/utils/metrics/mri';
 import useRouter from 'sentry/utils/useRouter';
 
+import {
+  normalizeDateTimeParams,
+  parseStatsPeriod,
+} from '../../components/organizations/pageFilters/parse';
 import {DateString, PageFilters} from '../../types/core';
 
 export const METRICS_DOCS_URL =
@@ -641,4 +645,31 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
   }
 
   return result;
+}
+
+// TODO: consider moving this to utils/dates.tsx
+export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
+  const {start, end, statsPeriod, utc} = normalizeDateTimeParams(params, {
+    allowAbsoluteDatetime: true,
+  });
+
+  if (start && end) {
+    return {start: moment(start).toISOString(), end: moment(end).toISOString()};
+  }
+
+  const parsedStatusPeriod = parseStatsPeriod(statsPeriod || '24h');
+
+  const now = utc ? moment().utc() : moment();
+
+  if (!parsedStatusPeriod) {
+    // Default to 24h
+    return {start: moment(now).subtract(1, 'day').toISOString(), end: now.toISOString()};
+  }
+
+  const startObj = moment(now).subtract(
+    parsedStatusPeriod.period,
+    parsedStatusPeriod.periodLength
+  );
+
+  return {start: startObj.toISOString(), end: now.toISOString()};
 }
