@@ -407,7 +407,6 @@ function NativeFrame({
             {expandable && (
               <ToggleButton
                 size="zero"
-                title={t('Toggle Context')}
                 aria-label={t('Toggle Context')}
                 tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
                 icon={
