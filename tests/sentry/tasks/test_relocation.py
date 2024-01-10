@@ -1668,6 +1668,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")
 @patch("sentry.tasks.relocation.notifying_users.apply_async")
+@patch("sentry.analytics.record")
 class PostprocessingTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1701,6 +1702,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
     def test_success(
         self,
+        analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
@@ -1731,8 +1733,16 @@ class PostprocessingTest(RelocationTaskTestCase):
             organization_id=self.imported_org_id, user_id=self.owner.id
         ).exists()
 
+        analytics_record_mock.assert_called_with(
+            "organization.imported",
+            organization_id=self.imported_org_id,
+            slug=self.imported_org_slug,
+            owner_id=self.owner.id,
+        )
+
     def test_pause(
         self,
+        analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
@@ -1752,8 +1762,11 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert relocation.scheduled_pause_at_step is None
         assert relocation.latest_task == OrderedTask.POSTPROCESSING.name
 
+        analytics_record_mock.assert_not_called()
+
     def test_retry_if_attempts_left(
         self,
+        analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
@@ -1778,8 +1791,16 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert relocation.latest_notified != Relocation.EmailKind.FAILED.value
         assert not relocation.failure_reason
 
+        analytics_record_mock.assert_called_with(
+            "organization.imported",
+            organization_id=self.imported_org_id,
+            slug=self.imported_org_slug,
+            owner_id=self.owner.id,
+        )
+
     def test_fail_if_no_attempts_left(
         self,
+        analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
@@ -1809,6 +1830,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_POSTPROCESSING_INTERNAL
+        analytics_record_mock.assert_not_called()
 
 
 @region_silo_test

@@ -1088,9 +1088,9 @@ def postprocessing(uuid: str) -> None:
             )
 
             analytics.record(
+                "organization.imported",
                 organization_id=org.id,
                 slug=org.slug,
-                name=org.name,
                 owner_id=relocation.owner_id,
             )
 
