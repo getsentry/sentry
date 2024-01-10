@@ -67,8 +67,10 @@ def schedule_batch(
         for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.name]:
             outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
 
-            lo = outbox_model.objects.all().aggregate(Min("id"))["id__min"] or 0
-            hi = outbox_model.objects.all().aggregate(Max("id"))["id__max"] or -1
+            aggregates = outbox_model.objects.all().aggregate(Min("id"), Max("id"))
+
+            lo = aggregates["id__min"] or 0
+            hi = aggregates["id__max"] or -1
             if hi < lo:
                 continue
 

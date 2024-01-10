@@ -1582,6 +1582,7 @@ register(
     "crons.check-accept-monitor-checkin-slug-overrides",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Turns on and off the running for dynamic sampling collect_orgs.
