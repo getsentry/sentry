@@ -287,55 +287,58 @@ class OrganizationEndpoint(Endpoint):
         :param project_slugs: Project slugs if they were passed via request
         data instead of get params
         :return: A list of Project objects, or raises PermissionDenied.
+
+        NOTE: If both project_ids and project_slugs are passed, we will default
+        to fetching projects via project_id list.
         """
-        if project_ids is None:
+        qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        if project_ids:
+            if project_ids == ALL_ACCESS_PROJECTS:
+                # All projects i have access to
+                include_all_accessible = True
+            elif project_ids:
+                qs.filter(id__in=project_ids)
+            # No project ids === `all projects i am a member of`
+        else:
             slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
             if ALL_ACCESS_PROJECTS_SLUG in slugs:
-                project_ids = ALL_ACCESS_PROJECTS
+                # All projects i have access to
+                include_all_accessible = True
             elif slugs:
-                projects = Project.objects.filter(
-                    organization=organization, slug__in=slugs
-                ).values_list("id", flat=True)
-                project_ids = set(projects)
-
-                # return early to prevent passing empty set of project_ids to _get_projects_by_id
-                # which would return all projects in the organization
-                if not project_ids:
-                    return []
-            else:
-                project_ids = self.get_requested_project_ids_unchecked(request)  # type: ignore
-
-        return self._get_projects_by_id(
-            project_ids,
-            request,
-            organization,
-            force_global_perms,
-            include_all_accessible,
-        )
-
-    def _get_projects_by_id(
-        self,
-        project_ids: set[int],
-        request: HttpRequest,
-        organization: Organization | RpcOrganization,
-        force_global_perms: bool = False,
-        include_all_accessible: bool = False,
-    ) -> list[Project]:
-        qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-        user = getattr(request, "user", None)
-        # A project_id of -1 means 'all projects I have access to'
-        # While no project_ids means 'all projects I am a member of'.
-        if project_ids == ALL_ACCESS_PROJECTS:
-            include_all_accessible = True
-            project_ids = set()
-
-        requested_projects = project_ids.copy()
-        if project_ids:
-            qs = qs.filter(id__in=project_ids)
+                qs.filter(slug__in=slugs)
+                # No project ids === `all projects i am a member of`
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
             span.set_data("Project Count", len(projects))
+        projects = self._filter_projects_by_permissions(
+            projects=projects,
+            request=request,
+            explicitly_requested_projects=bool(project_ids) or bool(project_slugs),
+            force_global_perms=force_global_perms,
+            include_all_accessible=include_all_accessible,
+        )
+
+        fetched_project_ids = {p.id for p in projects}
+        fetched_project_slugs = {p.slug for p in projects}
+
+        if (project_ids and project_ids != fetched_project_ids) or (
+            project_slugs and project_slugs != fetched_project_slugs
+        ):
+            raise PermissionDenied
+
+        return projects
+
+    def _filter_projects_by_permissions(
+        self,
+        projects: list[Project],
+        request: HttpRequest,
+        explicitly_requested_projects: bool = False,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+    ) -> list[Project]:
+        user = getattr(request, "user", None)
+        response = projects
         with sentry_sdk.start_span(op="apply_project_permissions") as span:
             span.set_data("Project Count", len(projects))
             if force_global_perms:
@@ -344,7 +347,7 @@ class OrganizationEndpoint(Endpoint):
                 if (
                     user
                     and is_active_superuser(request)
-                    or requested_projects
+                    or explicitly_requested_projects
                     or include_all_accessible
                 ):
                     span.set_tag("mode", "has_project_access")
@@ -352,14 +355,9 @@ class OrganizationEndpoint(Endpoint):
                 else:
                     span.set_tag("mode", "has_project_membership")
                     func = request.access.has_project_membership
-                projects = [p for p in qs if func(p)]
+                response = [p for p in projects if func(p)]
 
-        project_ids = {p.id for p in projects}
-
-        if requested_projects and project_ids != requested_projects:
-            raise PermissionDenied
-
-        return projects
+        return response
 
     def get_requested_project_ids_unchecked(self, request: Request) -> set[int]:
         """
