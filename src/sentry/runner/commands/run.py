@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import os
 import signal
-import sys
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -232,13 +231,7 @@ def run_worker(**options):
             **options,
         )
         worker.start()
-        try:
-            sys.exit(worker.exitcode)
-        except AttributeError:
-            # `worker.exitcode` was added in a newer version of Celery:
-            # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forward compatible
-            pass
+        raise SystemExit(worker.exitcode)
 
 
 @run.command()
