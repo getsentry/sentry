@@ -22,6 +22,12 @@ describe('Sudo Modal', function () {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/internal/health/',
+      body: {
+        problems: [],
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
