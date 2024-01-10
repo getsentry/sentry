@@ -34,7 +34,7 @@ from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
 
-logger = logging.getLogger("sentry.statistical_detectorst.tasks")
+logger = logging.getLogger("sentry.statistical_detectors.tasks")
 
 
 @dataclass(frozen=True)
@@ -400,10 +400,10 @@ class RegressionDetector(ABC):
         """
 
         for bundle in cls._filter_escalating_groups(candidates, batch_size=batch_size):
-            escalated += 1
-
             if bundle.state is None or bundle.regression_group is None:
                 continue
+
+            escalated += 1
 
             state = bundle.state
             group = bundle.regression_group
