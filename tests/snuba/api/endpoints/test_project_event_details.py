@@ -134,8 +134,6 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-1"],
             event_data={
-                "event_id": prev_event_id,
-                "project_id": self.project.id,
                 "timestamp": four_min_ago,
                 "message_timestamp": four_min_ago,
             },
@@ -147,8 +145,6 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-1"],
             event_data={
-                "event_id": cur_event_id,
-                "project_id": self.project.id,
                 "timestamp": three_min_ago,
                 "message_timestamp": three_min_ago,
             },
@@ -162,8 +158,6 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-1"],
             event_data={
-                "event_id": next_event_id,
-                "project_id": self.project.id,
                 "timestamp": two_min_ago,
                 "message_timestamp": two_min_ago,
                 "tags": {"environment": "production"},
@@ -176,8 +170,6 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
             project_id=self.project.id,
             fingerprint=["group-2"],
             event_data={
-                "event_id": unrelated_event_id,
-                "project_id": self.project.id,
                 "timestamp": one_min_ago,
                 "message_timestamp": one_min_ago,
                 "tags": {"environment": "production"},

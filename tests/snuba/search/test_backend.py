@@ -2981,8 +2981,6 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
             event_id=profile_event_id,
             project_id=self.project.id,
             event_data={
-                "event_id": profile_event_id,
-                "project_id": self.project.id,
                 "title": "some problem",
                 "platform": "python",
                 "tags": {"my_tag": "1"},
@@ -3411,10 +3409,9 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         event_id_1 = uuid.uuid4().hex
         _, group_info = self.process_occurrence(
             event_id=event_id_1,
+            project_id=self.project.id,
             issue_title="File I/O on Main Thread",
             event_data={
-                "event_id": event_id_1,
-                "project_id": self.project.id,
                 "title": "some problem",
                 "platform": "python",
                 "tags": {"my_tag": "1"},
@@ -3428,11 +3425,10 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         event_id_2 = uuid.uuid4().hex
         _, group_info = self.process_occurrence(
             event_id=event_id_2,
+            project_id=self.project.id,
             fingerprint=["put-me-in-group-2"],
             issue_title="File I/O on Main Thread",
             event_data={
-                "event_id": event_id_2,
-                "project_id": self.project.id,
                 "title": "some other problem",
                 "platform": "python",
                 "tags": {"my_tag": "1"},
@@ -3446,10 +3442,9 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         event_id_3 = uuid.uuid4().hex
         self.process_occurrence(
             event_id=event_id_3,
+            project_id=self.project.id,
             fingerprint=["put-me-in-group-3"],
             event_data={
-                "event_id": event_id_3,
-                "project_id": self.project.id,
                 "title": "some other problem",
                 "platform": "python",
                 "tags": {"my_tag": "2"},
@@ -3524,11 +3519,10 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             with self.feature(group_type.build_ingest_feature_name()):
                 _, group_info = self.process_occurrence(
                     event_id=event_id,
+                    project_id=self.project.id,
                     type=group_type.type_id,
                     fingerprint=["some perf issue"],
                     event_data={
-                        "event_id": event_id,
-                        "project_id": self.project.id,
                         "title": "some problem",
                         "platform": "python",
                         "tags": {"my_tag": "2"},
