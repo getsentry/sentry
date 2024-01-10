@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import type {Group, GroupActivity, Organization} from 'sentry/types';
 import {NoteType} from 'sentry/types/alerts';
 import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
@@ -16,18 +15,29 @@ export type TContext = unknown;
 interface Props {
   group: Group;
   organization: Organization;
+  onMutate?: (variables: TVariables) => unknown | undefined;
+  onSettled?:
+    | ((
+        data: unknown,
+        error: unknown,
+        variables: TVariables,
+        context: unknown
+      ) => unknown)
+    | undefined;
 }
 
-export default function useMutateFeedbackActivity({organization, group}: Props) {
+export default function useMutateActivity({
+  organization,
+  group,
+  onMutate,
+  onSettled,
+}: Props) {
   const api = useApi({
     persistInFlight: false,
   });
-  const {updateCached, invalidateCached} = useFeedbackCache();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
-    onMutate: ([{activity}, _method]) => {
-      updateCached([group.id], {activity});
-    },
+    onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {
       const url =
         method === 'PUT' || method === 'DELETE'
@@ -41,9 +51,7 @@ export default function useMutateFeedbackActivity({organization, group}: Props) 
         {text: note?.text, mentions: note?.mentions},
       ]);
     },
-    onSettled: (_resp, _error, _var, _context) => {
-      invalidateCached([group.id]);
-    },
+    onSettled: onSettled ?? undefined,
     cacheTime: 0,
   });
 
