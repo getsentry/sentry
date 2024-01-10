@@ -18,6 +18,9 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_healthy import (
     is_error_count_healthy,
 )
+from sentry.api.endpoints.release_thresholds.health_checks.is_new_issues_count_healthy import (
+    get_new_issue_count_is_healthy,
+)
 from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
 )
@@ -268,6 +271,18 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         threshold_start + timedelta(seconds=threshold.window_in_seconds),
                         query_windows_by_type[threshold.threshold_type]["end"],
                     )
+
+                    threshold_end = threshold_start + timedelta(seconds=threshold.window_in_seconds)
+                    is_healthy: bool = False
+                    if threshold.threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
+                        is_healthy = get_new_issue_count_is_healthy(
+                            project=project,
+                            release=release,
+                            release_threshold=threshold,
+                            start=threshold_start,
+                            end=threshold_end,
+                        )
+
                     # NOTE: enriched threshold is SERIALIZED
                     # meaning project and environment models are dictionaries
                     enriched_threshold: EnrichedThreshold = serialize(threshold)
@@ -276,14 +291,11 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         {
                             "key": self.construct_threshold_key(release=release, project=project),
                             "start": threshold_start,
-                            "end": threshold_start
-                            + timedelta(
-                                seconds=threshold.window_in_seconds
-                            ),  # start + threshold.window
+                            "end": threshold_end,  # start + threshold.window
                             "release": release.version,
                             "project_slug": project.slug,
                             "project_id": project.id,
-                            "is_healthy": False,
+                            "is_healthy": is_healthy,
                         }
                     )
                     thresholds_by_type[threshold.threshold_type]["thresholds"].append(

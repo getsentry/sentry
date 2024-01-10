@@ -7,10 +7,11 @@ from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format
 
 
-class ReleaseThresholdStatusTest(APITestCase):
+class ReleaseThresholdStatusTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-release-threshold-statuses"
     method = "get"
 
@@ -90,10 +91,10 @@ class ReleaseThresholdStatusTest(APITestCase):
             project=self.project1,
             environment=self.canary_environment,
         )
-        ReleaseThreshold.objects.create(
+        self.new_issue_count_release_threshold = ReleaseThreshold.objects.create(
             threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
             trigger_type=1,
-            value=100,
+            value=1,
             window_in_seconds=100,
             project=self.project1,
             environment=self.canary_environment,
@@ -127,6 +128,33 @@ class ReleaseThresholdStatusTest(APITestCase):
         )
 
         self.login_as(user=self.user)
+        self._setup_new_issue_counts()
+
+    def _setup_new_issue_counts(self) -> None:
+        # Make sure the new issue happens after the release
+        time_to_use = iso_format(
+            self.new_issue_count_release_threshold.date_added + timedelta(seconds=10)
+        )
+        self.store_event(
+            project_id=self.new_issue_count_release_threshold.project.id,
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": time_to_use,
+                "user": {"id": self.user.id, "email": self.user.email},
+                "release": self.release1.version,
+                "environment": self.canary_environment.name,
+            },
+        )
+        self.store_event(
+            project_id=self.new_issue_count_release_threshold.project.id,
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": time_to_use,
+                "user": {"id": self.user.id, "email": self.user.email},
+                "release": self.release1.version,
+                "environment": self.canary_environment.name,
+            },
+        )
 
     def test_get_success(self):
         """
@@ -405,3 +433,28 @@ class ReleaseThresholdStatusTest(APITestCase):
         # release2
         r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
         assert len(r2_keys) == 0
+
+    def test_new_issue_count(self) -> None:
+        # Make sure we search for when the new issue count happens, which is after the release
+        now = datetime.now() + timedelta(seconds=50)
+        yesterday = now - timedelta(hours=24)
+        response = self.get_success_response(
+            self.organization.slug, start=str(yesterday), end=str(now)
+        )
+        assert response is not None
+        data = response.data
+        assert data is not None
+
+        expected_thresholds_with_new_issue_count = {"foo-v1": [True], "foo-v2": [False]}
+        for key, expected_is_healthy_values in expected_thresholds_with_new_issue_count.items():
+            assert key in data
+            thresholds = data[key]
+
+            new_issue_thresholds = [
+                threshold
+                for threshold in thresholds
+                if threshold["threshold_type"] == ReleaseThresholdType.NEW_ISSUE_COUNT_STR
+            ]
+            assert len(new_issue_thresholds) == len(expected_is_healthy_values)
+            for i, threshold in enumerate(new_issue_thresholds):
+                assert threshold["is_healthy"] is expected_is_healthy_values[i]
