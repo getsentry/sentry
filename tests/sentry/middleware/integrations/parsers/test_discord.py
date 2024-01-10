@@ -16,17 +16,12 @@ from sentry.models.outbox import ControlOutbox
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.utils import json
 from sentry.utils.signing import sign
 
-region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-region_config = (region,)
 
-
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"))
 class DiscordRequestParserTest(TestCase):
     factory = RequestFactory()
     discord_id = "808"
@@ -34,7 +29,6 @@ class DiscordRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    @override_regions(region_config)
     def setUp(self):
         super().setUp()
         self.integration = self.create_integration(
@@ -101,7 +95,6 @@ class DiscordRequestParserTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @override_regions(region_config)
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
     def test_interactions_endpoint_routing_command(self, mock_verify_signature):
         data = {
@@ -115,7 +108,7 @@ class DiscordRequestParserTest(TestCase):
 
         responses.add(
             responses.POST,
-            "https://us.testserver/extensions/discord/interactions/",
+            "http://us.testserver/extensions/discord/interactions/",
             status=202,
             body=b"region_response",
         )
@@ -145,7 +138,6 @@ class DiscordRequestParserTest(TestCase):
         assert_no_webhook_outboxes()
 
     @responses.activate
-    @override_regions(region_config)
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
     def test_interactions_endpoint_routing_message_component(self, mock_verify_signature):
         data = {
@@ -158,7 +150,7 @@ class DiscordRequestParserTest(TestCase):
 
         responses.add(
             responses.POST,
-            "https://us.testserver/extensions/discord/interactions/",
+            "http://us.testserver/extensions/discord/interactions/",
             status=201,
             body=b"region_response",
         )
@@ -195,7 +187,6 @@ class DiscordRequestParserTest(TestCase):
             assert_no_webhook_outboxes()
 
     @responses.activate
-    @override_regions(region_config)
     @patch("sentry.middleware.integrations.parsers.discord.convert_to_async_discord_response")
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
     def test_triggers_async_response(self, mock_verify_signature, mock_discord_task):
