@@ -1,9 +1,9 @@
-import * as Sentry from '@sentry/react';
-
+import {MRI} from 'sentry/types';
 import {
   getDateTimeParams,
   MetricMetaCodeLocation,
   MetricRange,
+  MetricSpan,
 } from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,7 +18,7 @@ type MetricsDDMMetaOpts = MetricRange & {
   metricSpans?: boolean;
 };
 
-function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts) {
+function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -57,29 +57,27 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
   }
 
   const data = sortCodeLocations(
-    deduplicateCodeLocations(mapToNewResponseShape(queryInfo.data))
+    deduplicateCodeLocations(mapToNewResponseShape(queryInfo.data, mri))
   );
 
   return {...queryInfo, data};
 }
 
-export function useMetricsSpans(mri: string | undefined, options: MetricRange = {}) {
+export function useMetricsSpans(mri: MRI | undefined, options: MetricRange = {}) {
   return useMetricsDDMMeta(mri, {
     ...options,
     metricSpans: true,
-    // TODO: remove this once metric spans starts returning data
-    codeLocations: true,
   });
 }
 
-export function useMetricsCodeLocations(
-  mri: string | undefined,
-  options: MetricRange = {}
-) {
+export function useMetricsCodeLocations(mri: MRI | undefined, options: MetricRange = {}) {
   return useMetricsDDMMeta(mri, {...options, codeLocations: true});
 }
 
-const mapToNewResponseShape = (data: ApiResponse) => {
+const mapToNewResponseShape = (
+  data: ApiResponse & {metricSpans?: MetricSpan[]},
+  mri: MRI | undefined
+) => {
   // If the response is already in the new shape, do nothing
   if (data.metrics) {
     return data;
@@ -91,7 +89,6 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     return {
       mri: codeLocation.mri,
       timestamp: codeLocation.timestamp,
-      // @ts-expect-error metricSpans is defined in the old response shape
       metricSpans: data.metricSpans,
       codeLocations: (codeLocation.frames ?? []).map(frame => {
         return {
@@ -108,9 +105,16 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     };
   });
 
-  // @ts-expect-error metricSpans is defined in the old response shape
-  if (data.metricSpans?.length) {
-    Sentry.captureMessage('Non-empty metric spans response');
+  if (!newData.metrics.length && data.metricSpans?.length && mri) {
+    newData.metrics = data.metricSpans.map(metricSpan => {
+      return {
+        mri,
+        // TODO(ddm): Api has inconsistent timestamp formats between codeLocations and metricSpans
+        timestamp: new Date(metricSpan.timestamp).getTime(),
+        metricSpans: data.metricSpans,
+        codeLocations: [],
+      };
+    });
   }
 
   return newData;
