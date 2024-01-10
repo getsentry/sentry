@@ -63,7 +63,7 @@ function CreateMonitor() {
             apiMethod="POST"
             apiEndpoint={`/organizations/${orgSlug}/monitors/`}
             onSubmitSuccess={onSubmitSuccess}
-            submitLabel={t('Next')}
+            submitLabel={t('Create')}
           />
         </Layout.Main>
       </Layout.Body>

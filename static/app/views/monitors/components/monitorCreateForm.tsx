@@ -93,7 +93,7 @@ export default function MonitorCreateForm() {
         'config.schedule_type': DEFAULT_SCHEDULE_CONFIG.scheduleType,
       }}
       onSubmitSuccess={onCreateMonitor}
-      submitLabel={t('Next')}
+      submitLabel={t('Create')}
     >
       <FieldContainer>
         <MultiColumnInput columns="250px 1fr">
