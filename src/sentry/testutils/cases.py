@@ -1414,6 +1414,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "exclusive_time_ms": 5,
             "is_segment": is_segment,
             "project_id": project_id,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
             "retention_days": 90,
             "sentry_tags": {"transaction": transaction or "/hello"},
             "span_id": span_id,
