@@ -258,7 +258,7 @@ class OrganizationEndpoint(Endpoint):
     def get_projects(
         self,
         request: HttpRequest,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
         project_ids: set[int] | None = None,
@@ -283,6 +283,8 @@ class OrganizationEndpoint(Endpoint):
         allow_joinleave flag into permission checks. We should ideally
         standardize how this is used and remove this parameter.
         :param project_ids: Projects if they were passed via request
+        data instead of get params
+        :param project_slugs: Project slugs if they were passed via request
         data instead of get params
         :return: A list of Project objects, or raises PermissionDenied.
         """
@@ -315,7 +317,7 @@ class OrganizationEndpoint(Endpoint):
         self,
         project_ids: set[int],
         request: HttpRequest,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
@@ -379,9 +381,10 @@ class OrganizationEndpoint(Endpoint):
     def get_filter_params(
         self,
         request: Request,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         date_filter_optional: bool = False,
         project_ids: list[int] | set[int] | None = None,
+        project_slugs: list[str] | set[str] | None = None,
     ) -> FilterParams:
         """
         Extracts common filter parameters from the request and returns them
@@ -430,7 +433,11 @@ class OrganizationEndpoint(Endpoint):
         try:
             if isinstance(project_ids, list):
                 project_ids = set(project_ids)
-            projects = self.get_projects(request, organization, project_ids=project_ids)
+            if isinstance(project_slugs, list):
+                project_slugs = set(project_slugs)
+            projects = self.get_projects(
+                request, organization, project_ids=project_ids, project_slugs=project_slugs
+            )
         except ValueError:
             raise ParseError(detail="Invalid project ids")
 
@@ -497,8 +504,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     def get_projects(  # type: ignore[override]
         self,
         request: Request,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
         include_all_accessible: bool = True,
     ) -> list[Project]:
         """
@@ -531,12 +539,13 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             force_global_perms=has_valid_api_key,
             include_all_accessible=include_all_accessible,
             project_ids=project_ids,
+            project_slug=project_slugs,
         )
 
     def has_release_permission(
         self,
         request: Request,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         release: Optional[Release] = None,
         project_ids: Optional[Set[int]] = None,
     ) -> bool:
