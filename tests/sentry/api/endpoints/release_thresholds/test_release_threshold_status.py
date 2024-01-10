@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
@@ -135,26 +136,17 @@ class ReleaseThresholdStatusTest(APITestCase, SnubaTestCase):
         time_to_use = iso_format(
             self.new_issue_count_release_threshold.date_added + timedelta(seconds=10)
         )
-        self.store_event(
-            project_id=self.new_issue_count_release_threshold.project.id,
-            data={
-                "fingerprint": ["group-1"],
-                "timestamp": time_to_use,
-                "user": {"id": self.user.id, "email": self.user.email},
-                "release": self.release1.version,
-                "environment": self.canary_environment.name,
-            },
-        )
-        self.store_event(
-            project_id=self.new_issue_count_release_threshold.project.id,
-            data={
-                "fingerprint": ["group-1"],
-                "timestamp": time_to_use,
-                "user": {"id": self.user.id, "email": self.user.email},
-                "release": self.release1.version,
-                "environment": self.canary_environment.name,
-            },
-        )
+        for i in range(2):
+            self.store_event(
+                project_id=self.new_issue_count_release_threshold.project.id,
+                data={
+                    "fingerprint": [str(uuid4())],
+                    "timestamp": time_to_use,
+                    "user": {"id": self.user.id, "email": self.user.email},
+                    "release": self.release1.version,
+                    "environment": self.canary_environment.name,
+                },
+            )
 
     def test_get_success(self):
         """
