@@ -158,5 +158,5 @@ class RepositoryMixin:
                     contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
                 except ApiError:
                     continue
-                return {"filepath": filepath, "html_url": html_url, "raw": contents.decode()}
+                return {"filepath": filepath, "html_url": html_url, "raw": contents}
         return None
