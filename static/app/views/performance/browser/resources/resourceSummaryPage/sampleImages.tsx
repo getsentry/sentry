@@ -15,18 +15,20 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {useIndexedResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useIndexedResourceQuery';
+import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-type Props = {groupId: string};
+type Props = {groupId: string; projectId: number};
 
 const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 const imageWidth = '200px';
 const imageHeight = '180px';
 
-function SampleImages({groupId}: Props) {
-  const isImagesEnabled = true; // TODO - this is temporary, this will be controlled by a project setting
-  const [showImages, setShowImages] = useState(isImagesEnabled);
+function SampleImages({groupId, projectId}: Props) {
+  const [showImages, setShowImages] = useState(false);
+  const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
+  const isImagesEnabled = settings?.enable_images ?? false;
 
   const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
