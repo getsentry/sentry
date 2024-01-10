@@ -3,11 +3,23 @@ import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
+import useMutateActivity, {
+  TContext,
+  TData,
+  TError,
+  TVariables,
+} from 'sentry/components/feedback/useMutateActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
-import {Group, GroupActivityReprocess, Organization} from 'sentry/types';
+import GroupStore from 'sentry/stores/groupStore';
+import {
+  Group,
+  GroupActivityNote,
+  GroupActivityReprocess,
+  Organization,
+} from 'sentry/types';
+import {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -36,7 +48,7 @@ function GroupActivity(props: Props) {
     group,
   });
 
-  const deleteMutationOptions = {
+  const deleteMutationOptions: MutateOptions<TData, TError, TVariables, TContext> = {
     onError: () => {
       addErrorMessage(t('Failed to delete comment'));
     },
@@ -45,20 +57,23 @@ function GroupActivity(props: Props) {
     },
   };
 
-  const addMutationOptions = {
+  const addMutationOptions: MutateOptions<TData, TError, TVariables, TContext> = {
     onError: () => {
       addErrorMessage(t('Unable to post comment'));
     },
-    onSuccess: () => {
+    onSuccess: data => {
+      GroupStore.addActivity(group.id, data);
       addSuccessMessage(t('Comment posted'));
     },
   };
 
-  const updateMutationOptions = {
+  const updateMutationOptions: MutateOptions<TData, TError, TVariables, TContext> = {
     onError: () => {
       addErrorMessage(t('Unable to update comment'));
     },
-    onSuccess: () => {
+    onSuccess: data => {
+      const d = data as GroupActivityNote;
+      GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
       addSuccessMessage(t('Comment updated'));
     },
   };
@@ -78,7 +93,6 @@ function GroupActivity(props: Props) {
       <Layout.Body>
         <Layout.Main>
           <ActivitySection
-            issueActivity
             group={group}
             mutators={mutators}
             placeholderText={t(

@@ -6,6 +6,12 @@ import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {
+  TContext,
+  TData,
+  TError,
+  TVariables,
+} from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -14,10 +20,12 @@ import {
   GroupActivity,
   GroupActivityNote,
   GroupActivityType,
+  IssueCategory,
   User,
 } from 'sentry/types';
 import {NoteType} from 'sentry/types/alerts';
 import {uniqueId} from 'sentry/utils/guid';
+import {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 
@@ -34,19 +42,9 @@ type Props = {
     ) => void;
   };
   placeholderText: string;
-  addMutationOptions?: {
-    onError: () => void;
-    onSuccess: () => void;
-  };
-  deleteMutationOptions?: {
-    onError: () => void;
-    onSuccess: () => void;
-  };
-  issueActivity?: boolean;
-  updateMutationOptions?: {
-    onError: () => void;
-    onSuccess: () => void;
-  };
+  addMutationOptions?: MutateOptions<TData, TError, TVariables, TContext>;
+  deleteMutationOptions?: MutateOptions<TData, TError, TVariables, TContext>;
+  updateMutationOptions?: MutateOptions<TData, TError, TVariables, TContext>;
 };
 
 function ActivitySection(props: Props) {
@@ -57,7 +55,6 @@ function ActivitySection(props: Props) {
     updateMutationOptions,
     deleteMutationOptions,
     addMutationOptions,
-    issueActivity,
   } = props;
   const organization = useOrganization();
   const {addComment, updateComment, deleteComment} = mutators;
@@ -82,17 +79,14 @@ function ActivitySection(props: Props) {
           itemKey={group.id}
           onCreate={n => {
             const newActivity: GroupActivityNote = {
-              id: group.activity[0].id + 1, // fix
+              id: uniqueId(), // temporary unique id, for cache use only
               data: n,
               type: GroupActivityType.NOTE,
               dateCreated: new Date().toISOString(),
               project: group.project,
               user: me,
             };
-            // need to get actual note returned from endpoint
-            issueActivity
-              ? GroupStore.addActivity(group.id, newActivity)
-              : addComment(n, [newActivity, ...group.activity], addMutationOptions);
+            addComment(n, [newActivity, ...group.activity], addMutationOptions);
             setInputId(uniqueId());
           }}
           {...noteProps}
@@ -113,12 +107,7 @@ function ActivitySection(props: Props) {
                 dateCreated={item.dateCreated}
                 authorName={authorName}
                 onDelete={() => {
-                  deleteComment(
-                    item.id,
-                    group.activity.filter(a => a.id !== item.id),
-                    deleteMutationOptions
-                  );
-                  if (issueActivity) {
+                  if (group.issueCategory !== IssueCategory.FEEDBACK) {
                     const restore = group.activity.find(
                       activity => activity.id === item.id
                     );
@@ -128,16 +117,15 @@ function ActivitySection(props: Props) {
                       addErrorMessage(t('Failed to delete comment'));
                     }
                   }
+                  deleteComment(
+                    item.id,
+                    group.activity.filter(a => a.id !== item.id),
+                    deleteMutationOptions
+                  );
                 }}
                 onUpdate={n => {
                   item.data.text = n.text;
-                  updateComment(n, item.id, group.activity, {
-                    ...updateMutationOptions,
-                    onMutate: () =>
-                      issueActivity
-                        ? GroupStore.updateActivity(group.id, item.id, {text: n.text})
-                        : undefined,
-                  });
+                  updateComment(n, item.id, group.activity, updateMutationOptions);
                 }}
                 {...noteProps}
               />

@@ -7,7 +7,7 @@ import useApi from 'sentry/utils/useApi';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
-export type TData = unknown;
+export type TData = GroupActivity;
 export type TError = unknown;
 export type TVariables = [TPayload, TMethod];
 export type TContext = unknown;
