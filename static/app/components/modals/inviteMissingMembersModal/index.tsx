@@ -10,8 +10,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   InviteModalHook,
   InviteModalRenderFunc,
-  StatusMessage,
 } from 'sentry/components/modals/inviteMembersModal';
+import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
 import {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import PanelItem from 'sentry/components/panels/panelItem';
