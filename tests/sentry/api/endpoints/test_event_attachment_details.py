@@ -12,7 +12,7 @@ ATTACHMENT_CONTENT = b"File contents here" * 10_000
 
 
 class CreateAttachmentMixin:
-    def create_attachment(self):
+    def create_attachment(self, content: bytes | None = None):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
         min_ago = iso_format(before_now(minutes=1))
@@ -25,8 +25,9 @@ class CreateAttachmentMixin:
             project_id=self.project.id,
         )
 
+        data = content if content is not None else ATTACHMENT_CONTENT
         attachment = CachedAttachment(
-            name="hello.png", content_type="image/png; foo=bar", data=ATTACHMENT_CONTENT
+            name="hello.png", content_type="image/png; foo=bar", data=data
         )
         file = EventAttachment.putfile(
             self.project.id,
@@ -98,6 +99,33 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Length") == str(self.attachment.size)
         assert response.get("Content-Type") == "image/png"
         assert close_streaming_response(response) == ATTACHMENT_CONTENT
+
+    def test_zero_sized_attachment(self):
+        self.login_as(user=self.user)
+
+        self.create_attachment(b"")
+
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.attachment.id)
+        assert response.data["event_id"] == self.event.event_id
+        assert response.data["size"] == 0
+        assert response.data["sha1"] == "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+
+        path = f"{path}?download"
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+        assert response.get("Content-Length") == "0"
+        assert response.get("Content-Type") == "image/png"
+        assert close_streaming_response(response) == b""
 
     def test_delete(self):
         self.login_as(user=self.user)
