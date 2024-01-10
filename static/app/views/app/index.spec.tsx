@@ -8,9 +8,13 @@ import ConfigStore from 'sentry/stores/configStore';
 import App from 'sentry/views/app';
 
 describe('App', function () {
+  const configState = ConfigStore.getState();
   const {routerProps} = initializeOrg();
 
   beforeEach(function () {
+    ConfigStore.init();
+    ConfigStore.loadInitialData(configState);
+
     MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
@@ -98,9 +102,10 @@ describe('App', function () {
     expect(await screen.queryByText(/This organization is created in partnership/)).not.toBeInTheDocument();
   });
 
-  it('renders InstallWizard', async function () {
+  it('renders InstallWizard for self-hosted', async function () {
     ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('needsUpgrade', true);
+    ConfigStore.set('isSelfHosted', true);
 
     render(
       <App {...routerProps}>
@@ -112,6 +117,21 @@ describe('App', function () {
       'Complete setup by filling out the required configuration.'
     );
     expect(completeSetup).toBeInTheDocument();
+  });
+
+  it('does not render InstallWizard for non-self-hosted', function () {
+    ConfigStore.get('user').isSuperuser = true;
+    ConfigStore.set('needsUpgrade', true);
+    ConfigStore.set('isSelfHosted', false);
+
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
+
+    expect(screen.getByText('placeholder content')).toBeInTheDocument();
+    expect(window.location.replace).not.toHaveBeenCalled();
   });
 
   it('redirects to sentryUrl on invalid org slug', function () {

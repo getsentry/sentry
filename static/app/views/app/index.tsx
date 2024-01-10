@@ -159,12 +159,12 @@ function App({children, params}: Props) {
     ConfigStore.set('user', {...config.user, flags});
   }
 
-  const needsUpgrade = config.user?.isSuperuser && config.needsUpgrade;
+  const displayInstallWizard = config.user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
   const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
   const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
 
   function renderBody() {
-    if (needsUpgrade) {
+    if (displayInstallWizard) {
       return (
         <Suspense fallback={null}>
           <InstallWizard onConfigured={clearUpgrade} />;
