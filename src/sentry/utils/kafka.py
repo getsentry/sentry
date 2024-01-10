@@ -1,7 +1,6 @@
 import logging
 import signal
 import time
-from datetime import datetime
 from threading import Thread
 from typing import Optional
 
@@ -21,15 +20,10 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
     fewer "stop the world rebalancing" occurrences and more time
     for the consumer group to stabilize and make progress.
     """
-    now = float(datetime.now().strftime("%S.%f"))
 
-    next_tick, remainder = divmod(now, configured_delay)
-    if remainder > 0:
-        next_tick += 1
+    time_elapsed_in_slot = int(time.time()) % configured_delay
 
-    seconds_sleep = (configured_delay * next_tick) - now
-
-    time.sleep(seconds_sleep)
+    time.sleep(configured_delay - time_elapsed_in_slot)
 
 
 def delay_shutdown(consumer_name, processor) -> None:
