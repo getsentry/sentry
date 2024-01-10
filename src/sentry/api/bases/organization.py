@@ -539,7 +539,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             force_global_perms=has_valid_api_key,
             include_all_accessible=include_all_accessible,
             project_ids=project_ids,
-            get_projects=project_slugs,
+            project_slugs=project_slugs,
         )
 
     def has_release_permission(
