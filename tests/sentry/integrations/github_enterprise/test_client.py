@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
     "html_url": "https://github.example.org/Test-Organization/foo/blob/master/CODEOWNERS",
-    "raw": b"docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
+    "raw": "docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
 }
 
 
@@ -142,7 +142,7 @@ class GitHubAppsClientTest(TestCase):
         responses.add(
             method=responses.GET,
             url=url,
-            body=b"docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
+            body="docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
         )
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
