@@ -2,7 +2,7 @@ import type {Event, Frame, StacktraceLinkResult} from 'sentry/types';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 interface UseStacktraceLinkProps {
-  event: Partial<Pick<Event, 'platform' | 'release' | 'sdk'>>;
+  event: Partial<Pick<Event, 'platform' | 'release' | 'sdk' | 'groupID'>>;
   frame: Partial<
     Pick<Frame, 'absPath' | 'filename' | 'function' | 'module' | 'package' | 'lineNo'>
   >;
@@ -29,6 +29,7 @@ function useStacktraceLink(
     ...(frame.module && {module: frame.module}),
     ...(frame.package && {package: frame.package}),
     lineNo: frame.lineNo,
+    groupId: event.groupID,
   };
 
   return useApiQuery<StacktraceLinkResult>(
