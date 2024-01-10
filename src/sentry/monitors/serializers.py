@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Dict, List, Union
 
 from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
@@ -10,6 +10,17 @@ from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+
+
+class MonitorConfigSerializerResponse(TypedDict):
+    schedule: str
+    schedule_type: str
+    checkin_margin: Union[int, None]
+    max_runtime: Union[int, None]
+    timezone: Union[str, None]
+    failure_issue_threshold: Union[int, None]
+    recovery_threshold: Union[int, None]
+    alert_rule_id: Union[int, None]
 
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
@@ -36,8 +47,18 @@ class MonitorEnvironmentSerializer(Serializer):
         }
 
 
+class MonitorAlertRuleTargetSerializerResponse(TypedDict):
+    targetIdentifier: int
+    targetType: str
+
+
+class MonitorAlertRuleSerializerResponse(TypedDict):
+    targets: List[MonitorAlertRuleTargetSerializerResponse]
+    environment: str
+
+
 class MonitorSerializerResponseOptional(TypedDict, total=False):
-    alertRule: Any  # TODO: Find out what type this is
+    alertRule: MonitorAlertRuleSerializerResponse
 
 
 class MonitorSerializerResponse(MonitorSerializerResponseOptional):
@@ -47,10 +68,10 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     status: str
     isMuted: bool
     type: str
-    config: Any
+    config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
-    environments: MonitorEnvironmentSerializerResponse
+    environments: List[MonitorEnvironmentSerializerResponse]
 
 
 @register(Monitor)
@@ -149,7 +170,7 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     dateCreated: datetime
     attachmentId: str
     expectedTime: datetime
-    monitorConfig: Any
+    monitorConfig: MonitorConfigSerializerResponse
 
 
 @register(MonitorCheckIn)
