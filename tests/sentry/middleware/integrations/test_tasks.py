@@ -120,8 +120,8 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    @patch("sentry.middleware.integrations.tasks.logger.error")
-    def test_failure_to_decode_is_logged(self, mock_logger_error):
+    @patch("sentry.middleware.integrations.tasks.logger.info")
+    def test_empty_request_bdoy(self, mock_logger_info):
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -144,7 +144,7 @@ class AsyncSlackResponseTest(TestCase):
             response_url=self.response_url,
         )
         assert slack_response.call_count == 0
-        mock_logger_error.assert_called
+        mock_logger_info.assert_called
 
 
 @control_silo_test

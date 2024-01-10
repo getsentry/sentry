@@ -60,34 +60,33 @@ def convert_to_async_slack_response(
     if not result["response"]:
         return
 
-    response_payload = None
-    try:
-        response_body = result["response"].content
-        response_payload = json.loads(response_body.decode(encoding="utf-8"))
-    except Exception:
-        pass
-
-    if response_payload is not None:
-        integration_response = requests.post(response_url, json=response_payload)
+    response_body = result["response"].content
+    if response_body == b"":
         logger.info(
-            "slack.async_integration_response",
-            extra={
+            "slack.async_empty_body",
+            {
                 "path": webhook_payload.path,
                 "region": result["region"],
-                "region_status_code": result["response"].status_code,
-                "integration_status_code": integration_response.status_code,
-            },
-        )
-    else:
-        logger.error(
-            "slack.async_integration_failure",
-            extra={
-                "path": webhook_payload.path,
-                "region": result["region"],
-                "response_body": response_body,
                 "response_status": result["response"].status_code,
             },
         )
+        return
+
+    try:
+        response_payload = json.loads(response_body.decode(encoding="utf-8"))
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+
+    integration_response = requests.post(response_url, json=response_payload)
+    logger.info(
+        "slack.async_integration_response",
+        extra={
+            "path": webhook_payload.path,
+            "region": result["region"],
+            "region_status_code": result["response"].status_code,
+            "integration_status_code": integration_response.status_code,
+        },
+    )
 
 
 @instrumented_task(
