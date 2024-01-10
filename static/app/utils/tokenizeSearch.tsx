@@ -43,8 +43,20 @@ export class MutableSearch {
    * @param params
    * @returns {MutableSearch}
    */
-  static fromQueryObject(params: {[key: string]: string | number}): MutableSearch {
-    return new MutableSearch([`transaction:${params?.transaction}`]);
+  static fromQueryObject(params: {
+    [key: string]: string | number | undefined;
+  }): MutableSearch {
+    const query = new MutableSearch('');
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (!value) {
+        return;
+      }
+
+      query.addFilterValue(key, value.toString());
+    });
+
+    return query;
   }
 
   /**

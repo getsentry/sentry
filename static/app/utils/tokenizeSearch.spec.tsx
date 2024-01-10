@@ -2,12 +2,13 @@ import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', function () {
   describe('MutableSearch.fromQueryObject', function () {
-    it.each([[{transaction: '/index'}, 'transaction:/index']])(
-      'converts %s to search string',
-      (query, result) => {
-        expect(MutableSearch.fromQueryObject(query).formatString()).toEqual(result);
-      }
-    );
+    it.each([
+      [{transaction: '/index'}, 'transaction:/index'],
+      [{transaction: '/index', has: 'span.domain'}, 'transaction:/index has:span.domain'],
+      [{transaction: '/index', 'span.domain': undefined}, 'transaction:/index'],
+    ])('converts %s to search string', (query, result) => {
+      expect(MutableSearch.fromQueryObject(query).formatString()).toEqual(result);
+    });
   });
 
   describe('new MutableSearch()', function () {
