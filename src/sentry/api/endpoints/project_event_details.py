@@ -102,7 +102,7 @@ from rest_framework.response import Response
 class EventJsonEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, project, event_id) -> Response:
