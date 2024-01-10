@@ -54,6 +54,7 @@ function ResourceSummary() {
       'spm()',
       SPAN_DESCRIPTION,
       'time_spent_percentage()',
+      'project.id',
     ],
   });
   const spanMetrics = data[0] ?? {};
@@ -118,7 +119,9 @@ function ResourceSummary() {
               timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
             />
           </HeaderContainer>
-          {isImage && <SampleImages groupId={groupId} />}
+          {isImage && (
+            <SampleImages groupId={groupId} projectId={data[0]['project.id']} />
+          )}
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />
           <SampleList

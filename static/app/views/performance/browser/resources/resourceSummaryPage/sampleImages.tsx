@@ -8,6 +8,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {useQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -15,14 +18,15 @@ import {useIndexedResourcesQuery} from 'sentry/views/performance/browser/resourc
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-type Props = {groupId: string};
+type Props = {groupId: string; projectId: number};
 
 const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 const imageWidth = '200px';
 
-function SampleImages({groupId}: Props) {
-  const isImagesEnabled = true; // TODO - this is temporary, this will be controlled by a project setting
-  const [showImages, setShowImages] = useState(isImagesEnabled);
+function SampleImages({groupId, projectId}: Props) {
+  const [showImages, setShowImages] = useState(false);
+  const {data: settings} = useGeneralProjectSettings(projectId);
+  const isImagesEnabled = settings?.enable_images ?? false;
 
   const imageResources = useIndexedResourcesQuery({
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
@@ -126,6 +130,22 @@ function ImageContainer(props: {
       {fileName} ({fileSize})
     </div>
   );
+}
+
+function useGeneralProjectSettings(projectId: number) {
+  const api = useApi();
+  const {projects} = useProjects();
+  const stringProjectId = projectId.toString();
+  const project = projects.find(p => p.id === stringProjectId);
+  const organization = useOrganization();
+
+  return useQuery(['settings', 'general', projectId], {
+    enabled: Boolean(project),
+    queryFn: () =>
+      api.requestPromise(
+        `/api/0/projects/${organization.slug}/${project?.slug}/performance/configure/`
+      ) as Promise<{enable_images: boolean}>,
+  });
 }
 
 const getFileNameFromDescription = (description: string) => {
