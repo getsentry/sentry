@@ -273,6 +273,6 @@ class RelocationIndexEndpoint(Endpoint):
             "relocation.created",
             user_id=request.user.id,
             owner_id=owner.id,
-            uuid=relocation.uuid,
+            uuid=str(relocation.uuid),
         )
         return Response(serialize(relocation), status=status.HTTP_201_CREATED)
