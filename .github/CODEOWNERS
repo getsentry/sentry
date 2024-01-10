@@ -411,8 +411,11 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/models/release_threshold                                    @getsentry/enterprise
 /src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
-src/sentry/api/endpoints/oauth_userinfo.py                              @getsentry/enterprise
-src/sentry/api/endpoints/user_social_identity*                          @getsentry/enterprise
+/src/sentry/api/endpoints/oauth_userinfo.py                             @getsentry/enterprise
+/src/sentry/api/endpoints/user_social_identity*                         @getsentry/enterprise
+/src/sentry/tasks/integrations/github/                                  @getsentry/enterprise
+/tests/sentry/tasks/integrations/github/                                @getsentry/enterprise
+/static/app/views/releases/thresholdsList/                              @getsentry/enterprise
 ## End of Enterprise
 
 
