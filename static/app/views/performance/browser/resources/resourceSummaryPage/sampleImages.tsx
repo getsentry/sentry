@@ -1,4 +1,4 @@
-import {CSSProperties, useState} from 'react';
+import {CSSProperties, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -71,6 +71,12 @@ function SampleImagesChartPanelBody(props: {
 }) {
   const {onClickShowLinks, images, isLoadingImages, showImages, isImagesEnabled} = props;
 
+  useEffect(() => {
+    if (showImages && !isImagesEnabled) {
+      Sentry.captureException(new Error('No sample images found'));
+    }
+  }, [showImages, isImagesEnabled]);
+
   const hasImages = images.length > 0;
 
   if (!showImages) {
@@ -80,7 +86,6 @@ function SampleImagesChartPanelBody(props: {
     return <LoadingIndicator />;
   }
   if (showImages && !hasImages) {
-    Sentry.captureException(new Error('No sample images missing'));
     return (
       <EmptyStateWarning>
         <p>{t('No images detected')}</p>
