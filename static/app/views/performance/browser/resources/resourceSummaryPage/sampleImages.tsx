@@ -71,7 +71,7 @@ function SampleImagesChartPanelBody(props: {
 
   useEffect(() => {
     if (showImages && !isImagesEnabled) {
-      Sentry.captureException(new Error('No sample images missing'));
+      Sentry.captureException(new Error('No sample images found'));
     }
   }, [showImages, isImagesEnabled]);
 
