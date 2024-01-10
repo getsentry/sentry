@@ -40,7 +40,6 @@ import {space} from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {
   FieldDefinition,
   FieldKind,
@@ -318,7 +317,7 @@ type Props = WithRouterProps &
     /**
      * Called when the search input changes
      */
-    onChange?: (value: string, e: React.ChangeEvent) => void;
+    onChange?: (value: string, e: React.ChangeEvent | React.ClipboardEvent) => void;
     /**
      * Called when the user has closed the search dropdown.
      * Occurs on escape, tab, or clicking outside the component.
@@ -828,7 +827,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.searchInput.current!.selectionStart = newCursorPosition;
       this.searchInput.current!.selectionEnd = newCursorPosition;
     });
-    callIfFunction(this.props.onChange, mergedText, evt);
+
+    if (typeof this.props.onChange === 'function') {
+      this.props.onChange(mergedText, evt);
+    }
   };
 
   onInputClick = () => {

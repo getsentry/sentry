@@ -20,7 +20,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
@@ -180,7 +179,11 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    this.unlisteners.forEach(callIfFunction);
+    this.unlisteners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener();
+      }
+    });
   }
 
   unlisteners = [
