@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-const getQuerySymbol = (index: number) => {
+export const getQuerySymbol = (index: number) => {
   let result = '';
   let i = index;
   do {
     result = indexToChar[i % indexToChar.length] + result;
-    i = Math.floor(i / indexToChar.length);
-  } while (i > 0);
+    i = Math.floor(i / indexToChar.length) - 1;
+  } while (i >= 0);
   return result;
 };
 
@@ -21,7 +21,7 @@ const Symbol = styled('div')`
   align-items: center;
   flex-shrink: 0;
   color: ${p => p.theme.black};
-  font-size: 9px;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: 500;
   background: ${p => p.theme.yellow300};
   border-radius: 50%;
