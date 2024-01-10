@@ -49,3 +49,7 @@ class DetectorState(ABC):
     @abstractmethod
     def empty(cls) -> DetectorState:
         ...
+
+    @abstractmethod
+    def get_moving_avg(self) -> float:
+        ...
