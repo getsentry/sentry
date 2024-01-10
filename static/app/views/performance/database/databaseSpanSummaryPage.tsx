@@ -142,8 +142,9 @@ function SpanSummaryPage({params}: Props) {
       </Layout.Header>
 
       <Layout.Body>
-        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
+          <FloatingFeedbackWidget />
+
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
@@ -169,6 +170,7 @@ function SpanSummaryPage({params}: Props) {
               series={throughputData['spm()']}
               isLoading={isThroughputDataLoading}
             />
+
             <DurationChart
               series={
                 durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]

@@ -151,7 +151,9 @@ export function DatabaseLandingPage() {
               isDataAvailable={isAnyCriticalDataAvailable}
             />
           )}
+
           <FloatingFeedbackWidget />
+
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
@@ -170,16 +172,19 @@ export function DatabaseLandingPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                 />
+
                 <DurationChart
                   series={durationData[`${selectedAggregate}(span.self_time)`]}
                   isLoading={isDurationDataLoading}
                 />
               </ChartContainer>
+
               <FilterOptionsContainer>
                 <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
 
                 <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
               </FilterOptionsContainer>
+
               <SearchBarContainer>
                 <SearchBar
                   query={spanDescription}
