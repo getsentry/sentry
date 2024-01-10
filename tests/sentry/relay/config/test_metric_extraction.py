@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import pytest
 
@@ -228,7 +228,7 @@ def test_get_metric_extraction_config_multiple_alerts(default_project: Project) 
 @django_db_all
 @override_options({"on_demand.max_alert_specs": 1})
 def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
-    capfd,
+    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature(ON_DEMAND_METRICS):
@@ -237,6 +237,7 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         # Since we have set a maximum of 1 we will not get 2
         assert len(config["metrics"]) == 1
 
@@ -474,7 +475,7 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1})
 def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
-    capfd,
+    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -483,6 +484,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
 
         config = get_metric_extraction_config(default_project)
 
+        assert config
         # Since we have set a maximum of 1 we will not get 2
         assert len(config["metrics"]) == 1
 
