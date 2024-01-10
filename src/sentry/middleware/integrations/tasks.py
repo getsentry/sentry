@@ -60,11 +60,24 @@ def convert_to_async_slack_response(
     if not result["response"]:
         return
 
+    response_body = result["response"].content
+    if response_body == b"":
+        logger.info(
+            "slack.async_empty_body",
+            {
+                "path": webhook_payload.path,
+                "region": result["region"],
+                "response_status": result["response"].status_code,
+            },
+        )
+        return
+
     try:
-        payload = json.loads(result["response"].content.decode(encoding="utf-8"))
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-    integration_response = requests.post(response_url, json=payload)
+        response_payload = json.loads(response_body.decode(encoding="utf-8"))
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+
+    integration_response = requests.post(response_url, json=response_payload)
     logger.info(
         "slack.async_integration_response",
         extra={
@@ -140,7 +153,7 @@ def convert_to_async_discord_response(
         "discord.async_integration_response",
         extra={
             "path": webhook_payload.path,
-            "region": result["region"],
+            "region": result["region"].name,
             "region_status_code": result["response"].status_code,
             "integration_status_code": integration_response.status_code,
         },
