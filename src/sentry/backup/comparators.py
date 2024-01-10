@@ -759,7 +759,8 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token", "token_last_characters"),
+                HashObfuscatingComparator("refresh_token", "token"),
+                IgnoredComparator("token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
