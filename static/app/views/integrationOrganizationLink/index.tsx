@@ -129,7 +129,8 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     const customerDomain = ConfigStore.get('customerDomain');
     // redirect to the org if it's different than the org being selected
     if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
-      window.location.assign(generateOrgSlugUrl(orgSlug));
+      const urlWithQuery = generateOrgSlugUrl(orgSlug) + this.props.location.search;
+      window.location.assign(urlWithQuery);
       return;
     }
 
