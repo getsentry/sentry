@@ -17,18 +17,31 @@ import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocati
 import {MetricCodeLocationFrame, MetricRange} from '../../utils/metrics/index';
 
 export type CodeLocationsProps = MetricRange & {
-  mri: MRI;
+  mri?: MRI;
 };
 
 export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
-  const {data, isLoading, isError, refetch} = useMetricsCodeLocations(mri, rangeOpts);
+  const {data, isFetching, isError, refetch} = useMetricsCodeLocations(mri, rangeOpts);
 
-  if (isLoading) {
+  if (isFetching) {
     return <LoadingIndicator />;
   }
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!mri) {
+    return (
+      <CenterContent>
+        <EmptyMessage
+          style={{margin: 'auto'}}
+          icon={<IconSearch size="xxl" />}
+          title={t('Nothing to show!')}
+          description={t('Choose a metric to display data.')}
+        />
+      </CenterContent>
+    );
   }
 
   if (!Array.isArray(data?.metrics) || data?.metrics.length === 0) {

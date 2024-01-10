@@ -32,7 +32,7 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
       ? {min: options.min, max: options.max}
       : {};
 
-  const {data, isLoading, isError, refetch} = useApiQuery<ApiResponse>(
+  const queryInfo = useApiQuery<ApiResponse>(
     [
       `/organizations/${organization.slug}/ddm/meta/`,
       {
@@ -52,15 +52,15 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
     }
   );
 
-  if (!data) {
-    return {data, isLoading};
+  if (!queryInfo.data) {
+    return queryInfo;
   }
 
-  mapToNewResponseShape(data);
-  deduplicateCodeLocations(data);
-  sortCodeLocations(data);
+  const data = sortCodeLocations(
+    deduplicateCodeLocations(mapToNewResponseShape(queryInfo.data))
+  );
 
-  return {data, isLoading, isError, refetch};
+  return {...queryInfo, data};
 }
 
 export function useMetricsSpans(mri: string | undefined, options: MetricRange = {}) {
@@ -82,10 +82,12 @@ export function useMetricsCodeLocations(
 const mapToNewResponseShape = (data: ApiResponse) => {
   // If the response is already in the new shape, do nothing
   if (data.metrics) {
-    return;
+    return data;
   }
+
+  const newData = {...data};
   // @ts-expect-error codeLocations is defined in the old response shape
-  data.metrics = (data.codeLocations ?? [])?.map(codeLocation => {
+  newData.metrics = (data.codeLocations ?? [])?.map(codeLocation => {
     return {
       mri: codeLocation.mri,
       timestamp: codeLocation.timestamp,
@@ -110,18 +112,24 @@ const mapToNewResponseShape = (data: ApiResponse) => {
   if (data.metricSpans?.length) {
     Sentry.captureMessage('Non-empty metric spans response');
   }
+
+  return newData;
 };
 
 const sortCodeLocations = (data: ApiResponse) => {
-  data.metrics.sort((a, b) => {
+  const newData = {...data};
+  newData.metrics = [...data.metrics].sort((a, b) => {
     return b.timestamp - a.timestamp;
   });
+  return newData;
 };
 
 const deduplicateCodeLocations = (data: ApiResponse) => {
-  data.metrics = data.metrics.filter((element, index) => {
+  const newData = {...data};
+  newData.metrics = data.metrics.filter((element, index) => {
     return !data.metrics.slice(0, index).some(e => equalCodeLocations(e, element));
   });
+  return newData;
 };
 
 const equalCodeLocations = (a: MetricMetaCodeLocation, b: MetricMetaCodeLocation) => {
