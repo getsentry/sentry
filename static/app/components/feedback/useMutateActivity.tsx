@@ -12,6 +12,25 @@ export type TError = unknown;
 export type TVariables = [TPayload, TMethod];
 export type TContext = unknown;
 
+export type DeleteCommentCallback = (
+  noteId: string,
+  activity: GroupActivity[],
+  options?: MutateOptions<TData, TError, TVariables, TContext>
+) => void;
+
+export type AddCommentCallback = (
+  note: NoteType,
+  activity: GroupActivity[],
+  options?: MutateOptions<TData, TError, TVariables, TContext>
+) => void;
+
+export type UpdateCommentCallback = (
+  note: NoteType,
+  noteId: string,
+  activity: GroupActivity[],
+  options?: MutateOptions<TData, TError, TVariables, TContext>
+) => void;
+
 interface Props {
   group: Group;
   organization: Organization;

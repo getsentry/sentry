@@ -7,22 +7,18 @@ import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
+  AddCommentCallback,
+  DeleteCommentCallback,
   TContext,
   TData,
   TError,
   TVariables,
+  UpdateCommentCallback,
 } from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
-import {
-  Group,
-  GroupActivity,
-  GroupActivityNote,
-  GroupActivityType,
-  User,
-} from 'sentry/types';
-import {NoteType} from 'sentry/types/alerts';
+import {Group, GroupActivityNote, GroupActivityType, User} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,14 +27,9 @@ import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 type Props = {
   group: Group;
   mutators: {
-    addComment: (note: NoteType, activity: GroupActivity[], options?: any) => void;
-    deleteComment: (noteId: string, activity: GroupActivity[], options?: any) => void;
-    updateComment: (
-      note: NoteType,
-      noteId: string,
-      activity: GroupActivity[],
-      options?: any
-    ) => void;
+    addComment: AddCommentCallback;
+    deleteComment: DeleteCommentCallback;
+    updateComment: UpdateCommentCallback;
   };
   placeholderText: string;
   addMutationOptions?: MutateOptions<TData, TError, TVariables, TContext>;
