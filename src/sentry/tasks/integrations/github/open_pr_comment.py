@@ -282,6 +282,28 @@ def get_top_5_issues_by_count_for_file(
     )
     project_ids = [p.id for p in projects]
 
+    stackframe_function_name = lambda i: Function(
+        "arrayElement",
+        (Column("exception_frames.function"), i),
+    )
+    multi_if = []
+    for i in range(-STACKFRAME_COUNT, 0):
+        # if, then conditions
+        multi_if.extend(
+            [
+                Function(
+                    "in",
+                    [
+                        stackframe_function_name(i),
+                        function_names,
+                    ],
+                ),
+                stackframe_function_name(i),
+            ]
+        )
+    # else condition
+    multi_if.append(stackframe_function_name(-1))
+
     request = SnubaRequest(
         dataset=Dataset.Events.value,
         app_id="default",
@@ -293,7 +315,9 @@ def get_top_5_issues_by_count_for_file(
                     Column("group_id"),
                     Function("count", [], "event_count"),
                     Function(
-                        "arrayElement", (Column("exception_frames.function"), -1), "function_name"
+                        "multiIf",
+                        multi_if,
+                        "function_name",
                     ),
                 ]
             )
@@ -326,10 +350,7 @@ def get_top_5_issues_by_count_for_file(
                                         sentry_filenames,
                                     ),
                                     Condition(
-                                        Function(
-                                            "arrayElement",
-                                            (Column("exception_frames.function"), i),
-                                        ),
+                                        stackframe_function_name(i),
                                         Op.IN,
                                         function_names,
                                     ),
