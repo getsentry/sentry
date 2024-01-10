@@ -213,8 +213,13 @@ const PaddedContainer = styled('div')`
 
 const ChartContainer = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  grid-template-columns: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr 1fr;
+    gap: ${space(2)};
+  }
 `;
 
 function AlertBanner(props) {
