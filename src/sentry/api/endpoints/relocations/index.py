@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -269,4 +269,10 @@ class RelocationIndexEndpoint(Endpoint):
             )
 
         uploading_complete.delay(relocation.uuid)
+        analytics.record(
+            "relocation.created",
+            creator_id=request.user.id,
+            owner_id=owner.id,
+            uuid=str(relocation.uuid),
+        )
         return Response(serialize(relocation), status=status.HTTP_201_CREATED)
