@@ -23,7 +23,7 @@ class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
         )
         self.integration.add_organization(self.organization, self.user)

@@ -27,7 +27,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.project_name = "Jira Cloud"
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name=self.project_name,
             metadata={

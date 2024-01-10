@@ -23,7 +23,7 @@ class AbstractServerlessTest(APITestCase):
         super().setUp()
         self.project = self.create_project(organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="aws_lambda",
                 metadata={
                     "region": "us-east-2",

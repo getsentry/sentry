@@ -17,7 +17,7 @@ class SentryManagerTest(TestCase):
     def test_get_groups_by_external_issue(self):
         external_issue_key = "api-123"
         group = self.create_group()
-        integration_model = self.create_raw_integration(
+        integration_model = self.create_provider_integration(
             provider="jira",
             external_id="some_id",
             name="Hello world",

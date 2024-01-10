@@ -25,7 +25,7 @@ class PagerDutyActionHandlerTest(FireTest):
                 "service_name": "hellboi",
             }
         ]
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",

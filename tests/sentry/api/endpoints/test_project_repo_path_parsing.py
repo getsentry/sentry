@@ -30,7 +30,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="github",
                 name="getsentry",
                 external_id="1234",
@@ -74,7 +74,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def test_no_integration(self):
         # create the integration but don't install it
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_raw_integration(
+            self.create_provider_integration(
                 provider="github",
                 name="steve",
                 external_id="345",
@@ -151,7 +151,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
         super().setUp()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="gitlab",
                 name="getsentry",
                 external_id="1234",

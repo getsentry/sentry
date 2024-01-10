@@ -15,7 +15,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="gitlab", name="Gitlab", external_id="gitlab:1"
         )
         self.identity = Identity.objects.create(

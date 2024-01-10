@@ -18,7 +18,7 @@ class ExternalActorSerializerTest(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",

@@ -35,7 +35,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="pagerduty",
                 name="Example",
                 external_id=EXTERNAL_ID,
@@ -235,7 +235,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_name": "Informational",
         }
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(
+            integration = self.create_provider_integration(
                 provider="pagerduty",
                 name="Example 3",
                 external_id="example-3",
@@ -283,7 +283,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_name": "Informational",
         }
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(
+            integration = self.create_provider_integration(
                 provider="pagerduty",
                 name="Example 2",
                 external_id="example-2",

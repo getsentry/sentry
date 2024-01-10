@@ -31,7 +31,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="github", name="Example", external_id="abcd"
             )
             self.org_integration = self.integration.add_organization(self.org, self.user)

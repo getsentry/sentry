@@ -25,7 +25,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
 
     def setUp(self):
-        model = self.create_raw_integration(
+        model = self.create_provider_integration(
             provider="vsts",
             external_id="vsts_external_id",
             name="fabrikam-fiber-inc",

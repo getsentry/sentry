@@ -14,7 +14,7 @@ class ExternalUserTest(APITestCase):
 
         self.org_slug = self.organization.slug  # force creation
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="github", name="GitHub", external_id="github:1"
             )
 

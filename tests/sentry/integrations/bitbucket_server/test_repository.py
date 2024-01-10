@@ -30,7 +30,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
     @cached_property
     def integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(
+            integration = self.create_provider_integration(
                 provider="bitbucket_server",
                 name="Example Bitbucket",
                 metadata={"verify_ssl": False, "base_url": "https://bitbucket.example.com"},

@@ -42,7 +42,7 @@ pytestmark = [requires_snuba]
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(self, provider, external_id=9999):
-        return self.create_raw_integration(
+        return self.create_provider_integration(
             provider=provider,
             name="test",
             external_id=external_id,

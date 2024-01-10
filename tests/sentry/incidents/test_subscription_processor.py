@@ -1523,7 +1523,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1591,7 +1591,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1669,7 +1669,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",

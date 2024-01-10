@@ -17,7 +17,7 @@ class InstallationPushEventWebhookTest(APITestCase):
         url = "/plugins/github/installations/webhook/"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            inst = self.create_raw_integration(
+            inst = self.create_provider_integration(
                 provider="github_apps", external_id="12345", name="dummyorg"
             )
 

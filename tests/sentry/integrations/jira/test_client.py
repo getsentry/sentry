@@ -34,7 +34,7 @@ def mock_authorize_request(prepared_request: PreparedRequest):
 @control_silo_test
 class JiraClientTest(TestCase):
     def setUp(self):
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={

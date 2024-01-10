@@ -19,7 +19,7 @@ class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(
+            integration = self.create_provider_integration(
                 provider="msteams",
                 name="Galactic Empire",
                 external_id="D4r7h_Pl4gu315_th3_w153",

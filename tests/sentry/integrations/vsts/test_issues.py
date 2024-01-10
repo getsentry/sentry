@@ -77,7 +77,7 @@ class VstsIssueBase(TestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            model = self.create_raw_integration(
+            model = self.create_provider_integration(
                 provider="vsts",
                 external_id="vsts_external_id",
                 name="fabrikam-fiber-inc",

@@ -19,7 +19,7 @@ class JiraSentryInstallationViewTestCase(APITestCase):
         self.user.name = "Sentry Admin"
         self.user.save()
 
-        self.integration = self.create_raw_integration(provider="jira", name="Example Jira")
+        self.integration = self.create_provider_integration(provider="jira", name="Example Jira")
 
 
 class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):

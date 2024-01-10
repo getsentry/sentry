@@ -34,7 +34,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         """
         Test that we notify a user with multiple Identities in each place
         """
-        integration2 = self.create_raw_integration(
+        integration2 = self.create_provider_integration(
             provider="slack",
             name="Team B",
             external_id="TXXXXXXX2",
@@ -82,7 +82,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         we're only going to notify them for the relevant org
         """
         org2 = self.create_organization(owner=self.user)
-        integration2 = self.create_raw_integration(
+        integration2 = self.create_provider_integration(
             provider="slack",
             name="Team B",
             external_id="TXXXXXXX2",

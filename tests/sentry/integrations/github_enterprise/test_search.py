@@ -11,7 +11,7 @@ class GithubEnterpriseSearchTest(test_search.GithubSearchTest):
 
     def create_integration(self):
         future = datetime.now() + timedelta(hours=1)
-        return self.create_raw_integration(
+        return self.create_provider_integration(
             provider=self.provider,
             name="test",
             external_id=9999,

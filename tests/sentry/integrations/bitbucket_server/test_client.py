@@ -26,7 +26,7 @@ secret = "hush-hush-im-invisible"
 @control_silo_test
 class BitbucketServerClientTest(TestCase, BaseTestCase):
     def setUp(self):
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="bitbucket_server",
             name="Bitbucket Server",
             metadata={"base_url": "https://bitbucket.example.com", "verify_ssl": True},

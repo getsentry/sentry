@@ -79,11 +79,11 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = install_slack(organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.jira_integration = self.create_raw_integration(
+            self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
             )
             self.jira_integration.add_organization(self.organization, self.user)
-            self.jira_server_integration = self.create_raw_integration(
+            self.jira_server_integration = self.create_provider_integration(
                 provider="jira_server", name="Jira Server", external_id="jira_server:1"
             )
             self.jira_server_integration.add_organization(self.organization, self.user)

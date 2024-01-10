@@ -99,7 +99,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
 
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Fellowship of the Ring",
             external_id="f3ll0wsh1p",

@@ -15,7 +15,7 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
         url = "/plugins/github/installations/webhook/"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(
+            integration = self.create_provider_integration(
                 provider="github_apps", external_id="2", name="octocat"
             )
 
@@ -45,7 +45,7 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
         url = "/plugins/github/installations/webhook/"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(
+            integration = self.create_provider_integration(
                 provider="github_apps", external_id="2", name="octocat"
             )
 

@@ -23,7 +23,7 @@ secret = "hush-hush-im-invisible"
 @control_silo_test
 class JiraServerClientTest(TestCase, BaseTestCase):
     def setUp(self):
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="jira_server",
             name="Jira Server",
             metadata={"base_url": "https://jira.example.com", "verify_ssl": True},

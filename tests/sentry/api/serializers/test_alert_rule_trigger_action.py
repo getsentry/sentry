@@ -49,7 +49,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         )
 
         alert_rule = self.create_alert_rule()
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="discord",
             name="Example Discord",
             external_id="guild_id",
@@ -85,7 +85,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         )
 
         alert_rule = self.create_alert_rule()
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="discord",
             name="Example Discord",
             external_id="guild_id",

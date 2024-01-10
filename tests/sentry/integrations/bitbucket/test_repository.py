@@ -22,7 +22,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="bitbucket",
                 external_id=self.subject,
                 name="MyBitBucket",
@@ -99,7 +99,7 @@ class BitbucketRepositoryProviderTest(TestCase):
 
         organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(
+            integration = self.create_provider_integration(
                 provider="bitbucket",
                 external_id="bitbucket_external_id",
                 name="Hello world",
@@ -149,7 +149,7 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="bitbucket",
                 external_id=self.subject,
                 name="MyBitBucket",

@@ -34,7 +34,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
     @mock.patch.object(JiraIntegration, "create_issue")
     def test_sample_event_does_not_create_external_issue(self, mock_create_issue):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.jira_integration = self.create_raw_integration(
+            self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
             )
             self.jira_integration.add_organization(self.organization, self.user)

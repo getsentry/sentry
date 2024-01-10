@@ -244,7 +244,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
             },
             project_id=self.project.id,
         )
-        integration = self.create_raw_integration(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
             group=event.group,

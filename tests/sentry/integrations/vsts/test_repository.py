@@ -42,7 +42,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             body=COMMIT_DETAILS_EXAMPLE,
         )
 
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
@@ -86,7 +86,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
     @responses.activate
     def test_build_repository_config(self):
         organization = self.create_organization()
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
@@ -132,7 +132,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         super().setUp()
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",

@@ -18,7 +18,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = JiraCreateTicketAction
 
     def setUp(self):
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={

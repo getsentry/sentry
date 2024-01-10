@@ -13,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 class JiraSearchEndpointTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={

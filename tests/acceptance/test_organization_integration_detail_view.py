@@ -52,7 +52,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         )
 
     def test_uninstallation(self):
-        model = self.create_raw_integration(
+        model = self.create_provider_integration(
             provider="slack",
             external_id="some_slack",
             name="Test Slack",

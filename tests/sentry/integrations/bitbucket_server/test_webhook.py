@@ -27,7 +27,7 @@ class WebhookTestBase(APITestCase):
         self.external_id = "{b128e0f6-196a-4dde-b72d-f42abc6dc239}"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider=PROVIDER,
                 external_id=self.subject,
                 name="sentryuser",

@@ -142,7 +142,7 @@ class ProjectDetailsTest(APITestCase):
 
     def test_has_alert_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="msteams")
+            integration = self.create_provider_integration(provider="msteams")
             integration.add_organization(self.organization)
 
         project = self.create_project()
@@ -158,7 +158,7 @@ class ProjectDetailsTest(APITestCase):
 
     def test_no_alert_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="jira")
+            integration = self.create_provider_integration(provider="jira")
             integration.add_organization(self.organization)
 
         project = self.create_project()

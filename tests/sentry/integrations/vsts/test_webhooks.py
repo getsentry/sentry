@@ -32,7 +32,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.instance = "https://instance.visualstudio.com/"
         self.shared_secret = "1234567890"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.model = self.create_raw_integration(
+            self.model = self.create_provider_integration(
                 provider="vsts",
                 external_id=self.account_id,
                 name="vsts_name",

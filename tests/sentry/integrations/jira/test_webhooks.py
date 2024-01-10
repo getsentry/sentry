@@ -26,7 +26,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
             metadata={

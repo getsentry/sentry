@@ -1507,7 +1507,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_raw_integration(**integration_params: Any) -> Integration:
+    def create_provider_integration(**integration_params: Any) -> Integration:
         return Integration.objects.create(**integration_params)
 
     @staticmethod

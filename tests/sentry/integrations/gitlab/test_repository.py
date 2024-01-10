@@ -23,7 +23,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="gitlab",
                 name="Example GitLab",
                 external_id="example.gitlab.com:getsentry",

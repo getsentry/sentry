@@ -72,7 +72,7 @@ class VercelReleasesTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project(organization=self.organization)
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="vercel",
             external_id="cstd1xKmLGVMed0z0f3SHlD2",
             metadata={"access_token": "my_token"},

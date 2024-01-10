@@ -24,7 +24,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
 
         self.login_as(self.user1)
 
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Hogwarts",
             external_id="1_50l3mnly_5w34r",

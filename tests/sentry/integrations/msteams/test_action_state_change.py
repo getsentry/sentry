@@ -36,7 +36,7 @@ class StatusActionTest(APITestCase):
         self.team = self.create_team(organization=self.org, members=[self.user])
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_raw_integration(
+            self.integration = self.create_provider_integration(
                 provider="msteams",
                 name="Fellowship of the Ring",
                 external_id="f3ll0wsh1p",
@@ -280,7 +280,7 @@ class StatusActionTest(APITestCase):
         org2 = self.create_organization(owner=None)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration2 = self.create_raw_integration(
+            integration2 = self.create_provider_integration(
                 provider="msteams",
                 name="Army of Mordor",
                 external_id="54rum4n",

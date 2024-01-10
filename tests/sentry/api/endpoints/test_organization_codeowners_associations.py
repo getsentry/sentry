@@ -133,7 +133,7 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
 
         # Create a codeowners under the "life" provider, and check the query parameter again
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="life", name="Life")
+            integration = self.create_provider_integration(provider="life", name="Life")
             organization_integration = integration.add_organization(self.organization, self.user)
         project_3 = self.create_project(
             organization=self.organization, teams=[self.team_1, self.team_2]

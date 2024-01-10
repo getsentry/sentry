@@ -71,7 +71,7 @@ class ActivityNotificationTest(APITestCase):
     """
 
     def setUp(self):
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",

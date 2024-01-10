@@ -22,7 +22,7 @@ class MigratorTest(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 
-        self.integration = self.create_raw_integration(provider=ExampleIntegrationProvider.key)
+        self.integration = self.create_provider_integration(provider=ExampleIntegrationProvider.key)
 
         self.migrator = Migrator(
             integration=serialize_integration(self.integration),

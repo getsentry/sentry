@@ -262,7 +262,7 @@ class FetchCommitsTest(TestCase):
         org = self.create_organization(owner=self.user, name="baz")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org)
 
         repo = Repository.objects.create(

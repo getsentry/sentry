@@ -14,7 +14,7 @@ class GetChannelIdTest(TestCase):
     def setUp(self):
         responses.reset()
 
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Brute Squad",
             external_id="3x73rna1-id",

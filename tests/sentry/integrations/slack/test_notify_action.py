@@ -95,7 +95,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_valid_bot_channel_selected(self):
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX2",

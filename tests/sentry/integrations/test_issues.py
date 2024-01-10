@@ -20,7 +20,7 @@ class IssueSyncIntegration(TestCase):
         assert group.status == GroupStatus.UNRESOLVED
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="example", external_id="123456")
+            integration = self.create_provider_integration(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
             for oi in OrganizationIntegration.objects.filter(
@@ -73,7 +73,7 @@ class IssueSyncIntegration(TestCase):
         assert group.status == GroupStatus.RESOLVED
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="example", external_id="123456")
+            integration = self.create_provider_integration(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
             for oi in OrganizationIntegration.objects.filter(
@@ -220,7 +220,9 @@ class IssueDefaultTest(TestCase):
 
     def test_store_issue_last_defaults_for_user_multiple_providers(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            other_integration = self.create_raw_integration(provider=AliasedIntegrationProvider.key)
+            other_integration = self.create_provider_integration(
+                provider=AliasedIntegrationProvider.key
+            )
             other_integration.add_organization(self.organization, self.user)
         other_installation = other_integration.get_installation(self.organization.id)
         assert isinstance(other_installation, ExampleIntegration)
@@ -249,7 +251,7 @@ class IssueDefaultTest(TestCase):
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="example", external_id="4444")
+            integration = self.create_provider_integration(provider="example", external_id="4444")
             integration.add_organization(self.group.organization, self.user)
         installation = integration.get_installation(self.group.organization.id)
         assert isinstance(installation, ExampleIntegration)

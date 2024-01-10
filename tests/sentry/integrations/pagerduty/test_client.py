@@ -41,7 +41,7 @@ class PagerDutyProxyClientTest(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider=self.provider,
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
@@ -143,7 +143,7 @@ def assert_proxy_request(request, is_proxy=True):
 class PagerDutyProxyApiClientTest(APITestCase):
     def setUp(self):
         self.login_as(self.user)
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="pagerduty",
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,

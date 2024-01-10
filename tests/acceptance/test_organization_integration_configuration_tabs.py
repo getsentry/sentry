@@ -10,7 +10,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
         super().setUp()
         self.login_as(self.user)
         self.provider = "github"
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider=self.provider,
             external_id="some_github",
             name="Github",

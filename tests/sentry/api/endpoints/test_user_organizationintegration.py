@@ -13,7 +13,7 @@ class UserOrganizationIntegationTest(APITestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        integration = self.create_raw_integration(provider="github")
+        integration = self.create_provider_integration(provider="github")
 
         OrganizationIntegration.objects.create(
             organization_id=self.organization.id, integration_id=integration.id

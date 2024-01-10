@@ -32,7 +32,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.model = self.create_raw_integration(
+            self.model = self.create_provider_integration(
                 provider="github", external_id="github_external_id", name="getsentry"
             )
             self.model.add_organization(self.organization, self.user)

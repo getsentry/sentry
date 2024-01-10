@@ -44,7 +44,7 @@ class JiraIssueHookTest(APITestCase):
         self.issue_key = "APP-123"
         self.path = absolute_uri(f"extensions/jira/issue/{self.issue_key}/") + "?xdm_e=base_url"
 
-        self.integration = self.create_raw_integration(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
             metadata={

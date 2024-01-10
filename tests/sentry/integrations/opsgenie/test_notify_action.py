@@ -26,7 +26,7 @@ class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = OpsgenieNotifyTeamAction
 
     def create_integration(self, name):
-        integration = self.create_raw_integration(
+        integration = self.create_provider_integration(
             provider="opsgenie", name=name, external_id=name, metadata=METADATA
         )
         integration.add_organization(self.organization, self.user)

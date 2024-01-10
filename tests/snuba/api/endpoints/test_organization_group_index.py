@@ -2312,7 +2312,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         org = self.organization
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_raw_integration(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
         event = self.store_event(
             data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
@@ -2368,7 +2368,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         with assume_test_silo_mode(SiloMode.CONTROL):
             org = self.organization
-            integration = self.create_raw_integration(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
             OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id
