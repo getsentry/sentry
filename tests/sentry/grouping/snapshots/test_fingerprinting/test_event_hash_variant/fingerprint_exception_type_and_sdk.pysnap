@@ -1,0 +1,38 @@
+---
+created: '2024-01-10T00:09:15.538545Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - chunkloaderror
+    matchers:
+    - - sdk
+      - sentry.javascript.nextjs
+    - - type
+      - ChunkLoadError
+  version: 1
+fingerprint:
+- chunkloaderror
+title: 'ChunkLoadError: ChunkLoadError something something...'
+variants:
+  app:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    client_values:
+    - my-route
+    - '{{ default }}'
+    matched_rule: sdk:"sentry.javascript.nextjs" type:"ChunkLoadError" -> "chunkloaderror"
+    type: custom-fingerprint
+    values:
+    - chunkloaderror
+  system:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

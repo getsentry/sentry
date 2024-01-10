@@ -1,0 +1,36 @@
+{
+  "_fingerprinting_rules": [
+    {
+      "matchers": [
+        ["sdk", "sentry.javascript.nextjs"],
+        ["type", "ChunkLoadError"]
+      ],
+      "fingerprint": ["chunkloaderror"]
+    }
+  ],
+  "fingerprint": ["my-route", "{{ default }}"],
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "foo/bar.tsx",
+              "module": "foo.bar",
+              "filename": "bar.tsx",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "ChunkLoadError",
+        "value": "ChunkLoadError something something..."
+      }
+    ]
+  },
+  "platform": "javascript",
+  "sdk": {
+    "name": "sentry.javascript.ember"
+  }
+}

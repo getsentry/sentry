@@ -1,0 +1,37 @@
+---
+created: '2024-01-10T00:12:11.862148Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - chunkloaderror
+    matchers:
+    - - sdk
+      - sentry.javascript.nextjs
+    - - type
+      - ChunkLoadError
+  version: 1
+fingerprint:
+- my-route
+- '{{ default }}'
+title: 'ChunkLoadError: ChunkLoadError something something...'
+variants:
+  app:
+    component:
+      contributes: false
+      hint: exception of system takes precedence
+    type: salted-component
+    values:
+    - my-route
+    - '{{ default }}'
+  system:
+    component:
+      contributes: true
+      hint: null
+    type: salted-component
+    values:
+    - my-route
+    - '{{ default }}'
