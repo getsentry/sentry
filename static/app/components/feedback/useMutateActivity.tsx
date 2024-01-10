@@ -18,7 +18,7 @@ export type DeleteCommentCallback = (
   options?: MutateOptions<TData, TError, TVariables, TContext>
 ) => void;
 
-export type AddCommentCallback = (
+export type CreateCommentCallback = (
   note: NoteType,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables, TContext>
@@ -74,7 +74,7 @@ export default function useMutateActivity({
     cacheTime: 0,
   });
 
-  const updateComment = useCallback(
+  const handleUpdate: UpdateCommentCallback = useCallback(
     (
       note: NoteType,
       noteId: string,
@@ -86,7 +86,7 @@ export default function useMutateActivity({
     [mutation]
   );
 
-  const addComment = useCallback(
+  const handleCreate: CreateCommentCallback = useCallback(
     (
       note: NoteType,
       activity: GroupActivity[],
@@ -97,7 +97,7 @@ export default function useMutateActivity({
     [mutation]
   );
 
-  const deleteComment = useCallback(
+  const handleDelete: DeleteCommentCallback = useCallback(
     (
       noteId: string,
       activity: GroupActivity[],
@@ -109,8 +109,8 @@ export default function useMutateActivity({
   );
 
   return {
-    addComment,
-    deleteComment,
-    updateComment,
+    handleUpdate,
+    handleCreate,
+    handleDelete,
   };
 }

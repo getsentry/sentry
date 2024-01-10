@@ -1,53 +1,31 @@
 import {Fragment, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {
-  AddCommentCallback,
-  DeleteCommentCallback,
-  TContext,
-  TData,
-  TError,
-  TVariables,
-  UpdateCommentCallback,
-} from 'sentry/components/feedback/useMutateActivity';
-import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import {Group, GroupActivityNote, GroupActivityType, User} from 'sentry/types';
+import {Group, GroupActivity, GroupActivityType, User} from 'sentry/types';
+import {NoteType} from 'sentry/types/alerts';
 import {uniqueId} from 'sentry/utils/guid';
-import {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 
 type Props = {
   group: Group;
   mutators: {
-    addComment: AddCommentCallback;
-    deleteComment: DeleteCommentCallback;
-    updateComment: UpdateCommentCallback;
+    onCreate: (n: NoteType, me: User) => void;
+    onDelete: (item: GroupActivity) => void;
+    onUpdate: (item: GroupActivity, n: NoteType) => void;
   };
   placeholderText: string;
-  addMutationOptions?: MutateOptions<TData, TError, TVariables, TContext>;
-  deleteMutationOptions?: MutateOptions<TData, TError, TVariables, TContext>;
-  updateMutationOptions?: MutateOptions<TData, TError, TVariables, TContext>;
 };
 
 function ActivitySection(props: Props) {
-  const {
-    group,
-    placeholderText,
-    mutators,
-    updateMutationOptions,
-    deleteMutationOptions,
-    addMutationOptions,
-  } = props;
+  const {group, placeholderText, mutators} = props;
   const organization = useOrganization();
-  const {addComment, updateComment, deleteComment} = mutators;
+  const {onCreate, onDelete, onUpdate} = mutators;
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -68,15 +46,7 @@ function ActivitySection(props: Props) {
           storageKey="groupinput:latest"
           itemKey={group.id}
           onCreate={n => {
-            const newActivity: GroupActivityNote = {
-              id: uniqueId(), // temporary unique id, for cache use only
-              data: n,
-              type: GroupActivityType.NOTE,
-              dateCreated: new Date().toISOString(),
-              project: group.project,
-              user: me,
-            };
-            addComment(n, [newActivity, ...group.activity], addMutationOptions);
+            onCreate(n, me);
             setInputId(uniqueId());
           }}
           {...noteProps}
@@ -96,28 +66,10 @@ function ActivitySection(props: Props) {
                 user={item.user as User}
                 dateCreated={item.dateCreated}
                 authorName={authorName}
-                onDelete={() => {
-                  // @ts-ignore
-                  if (group.issueCategory !== 'feedback') {
-                    const restore = group.activity.find(
-                      activity => activity.id === item.id
-                    );
-                    const index = GroupStore.removeActivity(group.id, item.id);
-
-                    if (index === -1 || restore === undefined) {
-                      addErrorMessage(t('Failed to delete comment'));
-                      return;
-                    }
-                  }
-                  deleteComment(
-                    item.id,
-                    group.activity.filter(a => a.id !== item.id),
-                    deleteMutationOptions
-                  );
-                }}
+                onDelete={() => onDelete(item)}
                 onUpdate={n => {
                   item.data.text = n.text;
-                  updateComment(n, item.id, group.activity, updateMutationOptions);
+                  onUpdate(item, n);
                 }}
                 {...noteProps}
               />
