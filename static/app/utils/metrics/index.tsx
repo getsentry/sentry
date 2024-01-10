@@ -151,6 +151,7 @@ export type MetricSpan = {
   profileId: string;
   projectId: number;
   spanId: string;
+  timestamp: string;
   traceId: string;
   transactionId: string;
   // Not there yet but we will add it
