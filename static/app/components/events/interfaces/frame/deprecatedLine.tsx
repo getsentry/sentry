@@ -16,7 +16,6 @@ import {
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
-import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
@@ -221,7 +220,6 @@ export class DeprecatedLine extends Component<Props, State> {
       return null;
     }
 
-    const {isHoverPreviewed} = this.props;
     const {isExpanded} = this.state;
 
     return (
@@ -229,8 +227,7 @@ export class DeprecatedLine extends Component<Props, State> {
         className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
         size="zero"
-        title={t('Toggle Context')}
-        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        aria-label={t('Toggle Context')}
         onClick={this.toggleContext}
       >
         <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
@@ -429,7 +426,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {showStacktraceLinkInFrame && (
+            {showStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}
@@ -438,7 +435,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 />
               </ErrorBoundary>
             )}
-            {showSentryAppStacktraceLinkInFrame && (
+            {showSentryAppStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
               <ErrorBoundary mini>
                 <OpenInContextLine
                   lineNo={data.lineNo}

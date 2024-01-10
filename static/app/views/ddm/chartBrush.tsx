@@ -5,7 +5,7 @@ import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
-import {IconDelete, IconZoom} from 'sentry/icons';
+import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {MetricRange} from 'sentry/utils/metrics';
@@ -209,10 +209,14 @@ function BrushRectOverlay({
       ? `${CHART_HEIGHT}px`
       : `${heightPx.toPrecision(5)}px`;
 
+    // Ensure the focus area rect is always within the chart bounds
+    const left = Math.max(topLeft[0], 0);
+    const width = Math.min(widthPx, chartInstance.getWidth() - left);
+
     setPosition({
-      left: `${topLeft[0].toPrecision(5)}px`,
+      left: `${left.toPrecision(5)}px`,
       top: resultTop,
-      width: `${widthPx.toPrecision(5)}px`,
+      width: `${width.toPrecision(5)}px`,
       height: resultHeight,
     });
   }, [rect, chartInstance, useFullYAxis]);
@@ -237,12 +241,7 @@ function BrushRectOverlay({
             icon={<IconZoom isZoomIn />}
             aria-label="zoom"
           />
-          <Button
-            size="xs"
-            onClick={onRemove}
-            icon={<IconDelete />}
-            aria-label="remove"
-          />
+          <Button size="xs" onClick={onRemove} icon={<IconClose />} aria-label="remove" />
         </FocusAreaRectActions>
       </FocusAreaRect>
     </FocusAreaWrapper>

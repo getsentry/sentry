@@ -2,6 +2,7 @@ import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {ParntershipAgreementType} from 'sentry/views/partnershipAgreement';
 
 import type {User} from './user';
 
@@ -194,6 +195,10 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  partnershipAgreementPrompt?: {
+    agreements: Array<ParntershipAgreementType>;
+    partnerDisplayName: string;
+  } | null;
   statuspage?: {
     api_host: string;
     id: string;

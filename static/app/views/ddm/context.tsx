@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/react';
 import {MRI} from 'sentry/types';
 import {
   defaultMetricDisplayType,
+  getAbsoluteDateTimeRange,
   MetricDisplayType,
   MetricWidgetQueryParams,
   useInstantRef,
@@ -61,8 +62,8 @@ export function useDDMContext() {
 }
 
 const emptyWidget: MetricWidgetQueryParams = {
-  mri: '' as MRI,
-  op: undefined,
+  mri: 'd:transactions/duration@millisecond' satisfies MRI,
+  op: 'count',
   query: '',
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
@@ -184,12 +185,23 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
+      const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
+      if (!area.range.start || !area.range.end) {
+        Sentry.metrics.increment('ddm.enhance.range-undefined');
+        return;
+      }
+
+      if (area.range.start < dateRange.start || area.range.end > dateRange.end) {
+        Sentry.metrics.increment('ddm.enhance.range-overflow');
+        return;
+      }
+
       Sentry.metrics.increment('ddm.enhance.add');
       setFocusArea(area);
       setSelectedWidgetIndex(area.widgetIndex);
       updateQuery({focusArea: JSON.stringify(area)});
     },
-    [updateQuery]
+    [updateQuery, pageFilters.datetime]
   );
 
   const handleRemoveFocusArea = useCallback(() => {

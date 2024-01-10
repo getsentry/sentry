@@ -364,14 +364,6 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
-# on organization-id.
-register(
-    "replay.storage.direct-storage-sample-rate",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Replay Analyzer service.
 register(
     "replay.analyzer_service_url",
@@ -1590,6 +1582,7 @@ register(
     "crons.check-accept-monitor-checkin-slug-overrides",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Turns on and off the running for dynamic sampling collect_orgs.

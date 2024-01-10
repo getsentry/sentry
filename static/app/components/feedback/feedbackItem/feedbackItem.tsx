@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import ActivitySection from 'sentry/components/feedback/feedbackItem/activitySection';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
@@ -9,11 +10,12 @@ import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackVie
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
+import {IconChat, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event, Group} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +41,12 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
       <OverflowPanelItem>
         <Section
           title={t('Description')}
-          contentRight={<FeedbackViewers feedbackItem={feedbackItem} />}
+          contentRight={
+            <Flex gap={space(1)} align="center">
+              <SmallTitle>{t('Viewers')}</SmallTitle>
+              <FeedbackViewers feedbackItem={feedbackItem} />
+            </Flex>
+          }
         >
           <Blockquote>
             <pre>{feedbackItem.metadata.message}</pre>
@@ -79,6 +86,10 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
           <TagsSection tags={tags} />
         </Section>
+
+        <Section icon={<IconChat size="xs" />} title={t('Activity')}>
+          <ActivitySection group={feedbackItem as unknown as Group} />
+        </Section>
       </OverflowPanelItem>
     </Fragment>
   );
@@ -90,6 +101,10 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(4)};
+`;
+
+const SmallTitle = styled('span')`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
 const Blockquote = styled('blockquote')`
