@@ -60,7 +60,6 @@ class SuperuserAccessForm extends Component<Props, State> {
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
-
     const suReason = superuserReason || data.superuserReason;
 
     if (!authenticators.length && !disableU2FForSUForm) {
@@ -68,29 +67,22 @@ class SuperuserAccessForm extends Component<Props, State> {
       return;
     }
 
+    // Set state to setup for U2F tap
     if (this.state.showAccessForms && !disableU2FForSUForm) {
       this.setState({
         showAccessForms: false,
         superuserAccessCategory: suAccessCategory,
         superuserReason: suReason,
       });
+    // If U2F is disabled, authenticate immediately
     } else {
       try {
-        await api.requestPromise('/auth/', {method: 'PUT', data});
+        await api.requestPromise(this.props.hasStaff ? '/staff-auth/' : '/auth/', {method: 'PUT', data});
         this.handleSuccess();
       } catch (err) {
         this.handleError(err);
       }
     }
-  };
-
-  handleStaffSubmit = () => {
-    const {authenticators} = this.state;
-
-    if (!authenticators.length) {
-      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
-    }
-    return;
   };
 
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
@@ -174,6 +166,7 @@ class SuperuserAccessForm extends Component<Props, State> {
 
   render() {
     const {authenticators, error, errorType, showAccessForms} = this.state;
+    const hasStaff = this.props.hasStaff;
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
@@ -181,35 +174,17 @@ class SuperuserAccessForm extends Component<Props, State> {
 
     return (
       <ThemeAndStyleProvider>
-        {this.props.hasStaff ? // Skip access form if using new staff
-          <Form
-            submitLabel={t('Authenticate')}
-            onSubmit={this.handleStaffSubmit}
-            resetOnError
-          >
-            {error && (
-              <StyledAlert type="error" showIcon>
-                {errorType}
-              </StyledAlert>
-            )}
-            {
-              <U2fContainer
-                authenticators={authenticators}
-                displayMode="sudo"
-                onTap={this.handleU2fTap}
-              />
-            }
-          </Form> :
         <Form
-          submitLabel={t('Continue')}
+          submitLabel={hasStaff ? t('Authenticate') : t('Continue')}
           onSubmit={this.handleSubmit}
           initialData={{isSuperuserModal: true}}
           extraButton={
-            <BackWrapper>
-              <Button type="submit" onClick={this.handleSubmitCOPS}>
-                {t('COPS/CSM')}
-              </Button>
-            </BackWrapper>
+            hasStaff ? null :
+              <BackWrapper>
+                <Button type="submit" onClick={this.handleSubmitCOPS}>
+                  {t('COPS/CSM')}
+                </Button>
+              </BackWrapper>
           }
           resetOnError
         >
@@ -218,7 +193,7 @@ class SuperuserAccessForm extends Component<Props, State> {
               {errorType}
             </StyledAlert>
           )}
-          {showAccessForms && <Hook name="component:superuser-access-category" />}
+          {!hasStaff && showAccessForms && <Hook name="component:superuser-access-category" />}
           {!showAccessForms && (
             <U2fContainer
               authenticators={authenticators}
@@ -227,7 +202,6 @@ class SuperuserAccessForm extends Component<Props, State> {
             />
           )}
         </Form>
-        }
       </ThemeAndStyleProvider>
     );
   }
