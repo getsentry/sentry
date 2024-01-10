@@ -40,7 +40,7 @@ class TimeSeriesValueSerializer(Serializer):
 @region_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(

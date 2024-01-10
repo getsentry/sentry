@@ -57,7 +57,7 @@ class RuleGroupHistorySerializer(Serializer):
 @region_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(

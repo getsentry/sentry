@@ -16,9 +16,9 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
     def get(self, request: Request, project, alert_rule) -> Response:
