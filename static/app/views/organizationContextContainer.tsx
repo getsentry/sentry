@@ -16,12 +16,10 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
@@ -50,7 +48,6 @@ type State = {
   dirty?: boolean;
   error?: RequestError | null;
   errorType?: string | null;
-  hooks?: React.ReactNode[];
 };
 
 const OrganizationHeader = HookOrDefault({
@@ -182,7 +179,11 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    this.unlisteners.forEach(callIfFunction);
+    this.unlisteners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener();
+      }
+    });
   }
 
   unlisteners = [
@@ -229,13 +230,8 @@ class OrganizationContextContainer extends Component<Props, State> {
 
   loadOrganization(orgData: State) {
     const {organization, error} = orgData;
-    const hooks: React.ReactNode[] = [];
 
     if (organization && !error) {
-      HookStore.get('organization:header').forEach(cb => {
-        hooks.push(cb(organization));
-      });
-
       // Configure scope to have organization tag
       Sentry.configureScope(scope => {
         // XXX(dcramer): this is duplicated in sdk.py on the backend
@@ -260,7 +256,7 @@ class OrganizationContextContainer extends Component<Props, State> {
       }
     }
 
-    this.setState({...orgData, hooks}, () => {
+    this.setState({...orgData}, () => {
       // Take a measurement for when organization details are done loading and the new state is applied
       if (organization) {
         metric.measure({
@@ -276,16 +272,12 @@ class OrganizationContextContainer extends Component<Props, State> {
     });
   }
 
-  getTitle() {
-    return this.state.organization?.name ?? 'Sentry';
-  }
-
   renderSidebar(): React.ReactNode {
     if (!this.props.includeSidebar) {
       return null;
     }
 
-    return <Sidebar organization={this.state.organization as Organization} />;
+    return <Sidebar organization={this.state.organization ?? undefined} />;
   }
 
   renderError() {
@@ -311,12 +303,13 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   renderBody() {
+    const {organization} = this.state;
+
     return (
-      <SentryDocumentTitle noSuffix title={this.getTitle()}>
-        <OrganizationContext.Provider value={this.state.organization}>
+      <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
+        <OrganizationContext.Provider value={organization}>
           <div className="app">
-            {this.state.hooks}
-            <OrganizationHeader organization={this.state.organization} />
+            {organization && <OrganizationHeader organization={organization} />}
             {this.renderSidebar()}
             {this.props.children}
           </div>
@@ -348,8 +341,6 @@ class OrganizationContextContainer extends Component<Props, State> {
 export default withApi(
   withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
 );
-
-export {OrganizationContextContainer as OrganizationLegacyContext};
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};

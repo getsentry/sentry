@@ -29,7 +29,7 @@ describe('StacktraceLink', function () {
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
 
-  const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
+  const frame = {filename: '/sentry/app.py', lineNo: 233, inApp: true} as Frame;
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
   let promptActivity: jest.Mock;
 
@@ -69,6 +69,7 @@ describe('StacktraceLink', function () {
           file: frame.filename,
           platform,
           lineNo: frame.lineNo,
+          groupId: event.groupID,
         },
       })
     );
@@ -144,11 +145,9 @@ describe('StacktraceLink', function () {
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: RouterContextFixture(),
     });
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://something.io#L233'
-    );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
   it('displays fix modal on error', async function () {
@@ -233,12 +232,14 @@ describe('StacktraceLink', function () {
       organization,
     });
 
-    expect(await screen.findByText('Open in Codecov')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'Open in Codecov'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
-    await userEvent.click(await screen.findByText('Open in Codecov'));
+    await userEvent.click(link);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_codecov_link_clicked',
       expect.anything()
@@ -300,8 +301,12 @@ describe('StacktraceLink', function () {
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
       lineNo: '100',
     } as unknown as Frame;
+    const organization = {
+      ...org,
+      features: ['issue-details-stacktrace-link-in-frame'],
+    };
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {
         config,
         integrations: [integration],
@@ -315,44 +320,15 @@ describe('StacktraceLink', function () {
       />,
       {
         context: RouterContextFixture(),
+        organization,
       }
     );
-    expect(await screen.findByRole('link')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
     );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
-  });
-
-  it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
-    const dotnetFrame = {
-      filename: 'link/url.py',
-      sourceLink: 'https://www.github.com/source/link/url.py#L1',
-      lineNo: '1',
-    } as unknown as Frame;
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: 'https://www.github.com/url/from/code/mapping',
-        integrations: [integration],
-      },
-    });
-    render(
-      <StacktraceLink
-        frame={dotnetFrame}
-        event={{...event, platform: 'csharp'}}
-        line="foo()"
-      />,
-      {
-        context: RouterContextFixture(),
-      }
-    );
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://www.github.com/url/from/code/mapping#L1'
-    );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
   });
 
   it('hides stacktrace link if there is no source link for .NET projects', async function () {
@@ -400,7 +376,9 @@ describe('StacktraceLink', function () {
       'https://something.io#L233'
     );
 
-    expect(await screen.getByText('GitHub')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'Open this line in GitHub'})
+    ).toBeInTheDocument();
 
     jest.useRealTimers();
   });

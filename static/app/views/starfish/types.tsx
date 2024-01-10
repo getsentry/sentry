@@ -33,6 +33,7 @@ export enum SpanMetricsField {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   FILE_EXTENSION = 'file_extension',
+  OS_NAME = 'os.name',
 }
 
 export type SpanNumberFields =
@@ -51,7 +52,8 @@ export type SpanStringFields =
   | 'span.group'
   | 'transaction'
   | 'transaction.method'
-  | 'release';
+  | 'release'
+  | 'os.name';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;

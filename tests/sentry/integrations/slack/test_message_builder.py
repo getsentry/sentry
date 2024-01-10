@@ -1019,6 +1019,20 @@ class ActionsTest(TestCase):
             res[0],
             expected,
         )
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+
+            self._assert_message_actions_list(
+                res[0],
+                {
+                    "label": "Unresolve",
+                    "name": "unresolved:ongoing",
+                    "type": "button",
+                    "value": "unresolved:ongoing",
+                },
+            )
 
     def test_resolve_unresolved_no_releases(self):
         group = self.create_group(project=self.project)

@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
+import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   MobileCursors,
@@ -117,6 +118,13 @@ function ScreenSummary() {
                     </div>
                   </ErrorBoundary>
                 </EventSamplesContainer>
+                <ErrorBoundary mini>
+                  <SpanOperationTable
+                    transaction={transactionName}
+                    primaryRelease={primaryRelease}
+                    secondaryRelease={secondaryRelease}
+                  />
+                </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
