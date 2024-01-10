@@ -16,7 +16,6 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -50,7 +49,6 @@ type State = {
   dirty?: boolean;
   error?: RequestError | null;
   errorType?: string | null;
-  hooks?: React.ReactNode[];
 };
 
 const OrganizationHeader = HookOrDefault({
@@ -229,13 +227,8 @@ class OrganizationContextContainer extends Component<Props, State> {
 
   loadOrganization(orgData: State) {
     const {organization, error} = orgData;
-    const hooks: React.ReactNode[] = [];
 
     if (organization && !error) {
-      HookStore.get('organization:header').forEach(cb => {
-        hooks.push(cb(organization));
-      });
-
       // Configure scope to have organization tag
       Sentry.configureScope(scope => {
         // XXX(dcramer): this is duplicated in sdk.py on the backend
@@ -260,7 +253,7 @@ class OrganizationContextContainer extends Component<Props, State> {
       }
     }
 
-    this.setState({...orgData, hooks}, () => {
+    this.setState({...orgData}, () => {
       // Take a measurement for when organization details are done loading and the new state is applied
       if (organization) {
         metric.measure({
@@ -313,7 +306,6 @@ class OrganizationContextContainer extends Component<Props, State> {
       <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
         <OrganizationContext.Provider value={organization}>
           <div className="app">
-            {this.state.hooks}
             {organization && <OrganizationHeader organization={organization} />}
             {this.renderSidebar()}
             {this.props.children}
