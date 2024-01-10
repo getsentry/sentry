@@ -1,8 +1,9 @@
-import {object as propTypesObject} from 'prop-types';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+
+import {isObject} from 'sentry/sentryPropTypeValidators';
 
 export function RouterContextFixture([context, childContextTypes] = []) {
   return {
@@ -14,10 +15,10 @@ export function RouterContextFixture([context, childContextTypes] = []) {
       ...context,
     },
     childContextTypes: {
-      router: propTypesObject,
-      location: propTypesObject,
-      organization: propTypesObject,
-      project: propTypesObject,
+      router: isObject,
+      location: isObject,
+      organization: isObject,
+      project: isObject,
       ...childContextTypes,
     },
   };

@@ -1,4 +1,3 @@
-import * as PropTypes from 'prop-types';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
@@ -11,6 +10,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {isObject} from 'sentry/sentryPropTypeValidators';
 import {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
@@ -86,7 +86,7 @@ describe('ProjectKeyDetails', function () {
         project: ProjectFixture(),
       },
       childContextTypes: {
-        project: PropTypes.object,
+        project: isObject,
       },
     };
 

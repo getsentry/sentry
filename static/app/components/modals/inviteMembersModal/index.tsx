@@ -16,7 +16,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
+import * as SentryPropTypes from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,7 +56,7 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
   State
 > {
   static childContextTypes = {
-    organization: SentryTypes.Organization,
+    organization: SentryPropTypes.isOrganization,
   };
 
   get inviteTemplate(): InviteRow {
@@ -343,7 +343,6 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
 
     const disableInputs = sendingInvites || complete;
 
-    // eslint-disable-next-line react/prop-types
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <Fragment>
         <Heading>{t('Invite New Members')}</Heading>

@@ -14,7 +14,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
+import * as SentryPropTypes from 'sentry/sentryPropTypeValidators';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -151,7 +151,7 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   static childContextTypes = {
-    organization: SentryTypes.Organization,
+    organization: SentryPropTypes.isOrganization,
   };
 
   constructor(props: Props) {
