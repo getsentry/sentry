@@ -2172,26 +2172,28 @@ class ProfilesSnubaTestCase(
             profile_context["profile_id"] = uuid4().hex
         profile_id = profile_context.get("profile_id")
 
-        timestamp = transaction["timestamp"]
-
         self.store_event(transaction, project_id=project.id)
 
+        timestamp = transaction["timestamp"]
         functions = [
-            {**function, "fingerprint": self.function_fingerprint(function)}
+            {
+                **function,
+                "self_times_ns": list(map(int, function["self_times_ns"])),
+                "fingerprint": self.function_fingerprint(function),
+            }
             for function in functions
         ]
-
         functions_payload = {
-            "project_id": project.id,
-            "profile_id": profile_id,
-            "transaction_name": transaction["transaction"],
+            "functions": functions,
             # the transaction platform doesn't quite match the
             # profile platform, but should be fine for tests
             "platform": transaction["platform"],
-            "functions": functions,
-            "timestamp": timestamp,
-            # TODO: should reflect the org
+            "profile_id": profile_id,
+            "project_id": project.id,
+            "received": int(datetime.now(tz=timezone.utc).timestamp()),
             "retention_days": 90,
+            "timestamp": int(timestamp),
+            "transaction_name": transaction["transaction"],
         }
 
         if extras is not None:
