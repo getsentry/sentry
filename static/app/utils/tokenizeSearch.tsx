@@ -1,5 +1,7 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
+const ALLOWED_WILDCARD_FIELDS = ['span.description'];
+
 export enum TokenType {
   OPERATOR,
   FILTER,
@@ -53,7 +55,7 @@ export class MutableSearch {
         return;
       }
 
-      query.addFilterValue(key, value.toString());
+      query.addFilterValue(key, value.toString(), !ALLOWED_WILDCARD_FIELDS.includes(key));
     });
 
     return query;
