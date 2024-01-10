@@ -21,6 +21,7 @@ import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {
+  Config,
   Frame,
   Organization,
   PlatformKey,
@@ -29,6 +30,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -47,6 +49,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasStacktraceLinkInFrameFeature,
   isExpandable,
 } from './utils';
 
@@ -59,6 +62,7 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
 ];
 
 export interface DeprecatedLineProps {
+  config: Config;
   data: Frame;
   event: Event;
   registers: Record<string, string>;
@@ -344,10 +348,11 @@ export class DeprecatedLine extends Component<Props, State> {
     const activeLineNumber = data.lineNo;
     const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
     const hasStacktraceLink = data.inApp && !!data.filename && (isHovering || isExpanded);
-    const hasStacktraceLinkInFrameFeatureFlag =
-      organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
-    const showStacktraceLinkInFrame =
-      hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
+    const hasInFrameFeature = hasStacktraceLinkInFrameFeature(
+      organization,
+      this.props.config?.user
+    );
+    const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
     const showSentryAppStacktraceLinkInFrame =
       showStacktraceLinkInFrame && this.props.components.length > 0;
 
@@ -487,8 +492,10 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 }
 
-export default withOrganization(
-  withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
+export default withConfig(
+  withOrganization(
+    withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
+  )
 );
 
 const RepeatedFrames = styled('div')`
