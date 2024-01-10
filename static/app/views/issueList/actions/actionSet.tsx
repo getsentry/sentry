@@ -55,7 +55,6 @@ function ActionSet({
     allInQuerySelected,
     query,
     queryCount,
-    organization,
   });
 
   const label = getLabel(numIssues, allInQuerySelected);
