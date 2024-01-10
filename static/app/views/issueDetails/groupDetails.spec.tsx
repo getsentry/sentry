@@ -280,7 +280,7 @@ describe('groupDetails', () => {
     });
     createWrapper({
       ...defaultInit,
-      organization: {...defaultInit.organization, features: ['escalating-issues']},
+      organization: {...defaultInit.organization},
     });
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });

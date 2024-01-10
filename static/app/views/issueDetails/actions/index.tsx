@@ -15,16 +15,13 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
 import ActionButton from 'sentry/components/actions/button';
-import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {
-  IconCheckmark,
   IconEllipsis,
-  IconMute,
   IconSubscribed,
   IconUnsubscribed,
 } from 'sentry/icons';
@@ -93,7 +90,6 @@ export function Actions(props: Props) {
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = status === 'ignored';
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
@@ -380,7 +376,7 @@ export function Actions(props: Props) {
           size: 'sm',
         }}
         items={[
-          ...(isIgnored || hasEscalatingIssues
+          ...(isIgnored
             ? []
             : [
                 {
@@ -399,8 +395,7 @@ export function Actions(props: Props) {
                   ],
                 },
               ]),
-          ...(hasEscalatingIssues
-            ? isIgnored
+          ...(isIgnored
               ? []
               : [
                   {
@@ -411,8 +406,7 @@ export function Actions(props: Props) {
                     disabled,
                     children: archiveDropdownItems,
                   },
-                ]
-            : []),
+                ]),
           {
             key: 'open-in-discover',
             className: 'hidden-sm hidden-md hidden-lg',
@@ -512,9 +506,6 @@ export function Actions(props: Props) {
               : t('Change status to unresolved')
           }
           size="sm"
-          icon={
-            hasEscalatingIssues ? null : isResolved ? <IconCheckmark /> : <IconMute />
-          }
           disabled={disabled || isAutoResolved}
           onClick={() =>
             onUpdate({
@@ -525,14 +516,12 @@ export function Actions(props: Props) {
           }
         >
           {isIgnored
-            ? hasEscalatingIssues
               ? t('Archived')
-              : t('Ignored')
             : t('Resolved')}
         </ActionButton>
       ) : (
         <Fragment>
-          {hasEscalatingIssues ? (
+          {(
             <GuideAnchor target="issue_details_archive_button" position="bottom">
               <ArchiveActions
                 className="hidden-xs"
@@ -543,14 +532,6 @@ export function Actions(props: Props) {
                 disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
               />
             </GuideAnchor>
-          ) : (
-            <IgnoreActions
-              className="hidden-xs"
-              isIgnored={isIgnored}
-              onUpdate={onUpdate}
-              disabled={disabled}
-              size="sm"
-            />
           )}
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions

@@ -54,9 +54,7 @@ function SubscriptionBox({
 
   const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
     // Swap ignored for archived if the feature is enabled
-    issue: `created, resolved, assigned, ${
-      features.includes('escalating-issues') ? 'archived' : 'ignored'
-    }`,
+    issue: `created, resolved, assigned, ${'archived'}`,
     error: 'created',
     comment: 'created, edited, deleted',
   };

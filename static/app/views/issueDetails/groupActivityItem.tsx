@@ -98,10 +98,9 @@ function GroupActivityItem({
   author,
 }: GroupActivityItemProps) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
-    const ignoredOrArchived = hasEscalatingIssuesUi ? t('archived') : t('ignored');
+    const ignoredOrArchived = t('archived');
     if (data.ignoreDuration) {
       return tct('[author] [action] this issue for [duration]', {
         author,
@@ -157,7 +156,7 @@ function GroupActivityItem({
         date: <DateTime date={data.ignoreUntil} />,
       });
     }
-    if (hasEscalatingIssuesUi && data.ignoreUntilEscalating) {
+    if (data.ignoreUntilEscalating) {
       return tct('[author] archived this issue until it escalates', {
         author,
       });

@@ -169,7 +169,6 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -266,10 +265,10 @@ function GroupHeader({
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
-              {!hasEscalatingIssuesUi && group.inbox && (
+              {group.inbox && (
                 <InboxReason inbox={group.inbox} fontSize="md" />
               )}
-              {hasEscalatingIssuesUi && (
+              {(
                 <GroupStatusBadge
                   status={group.status}
                   substatus={group.substatus}

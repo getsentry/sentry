@@ -60,8 +60,7 @@ function EventOrGroupHeader({
       <Fragment>
         {!hideLevel && level && <GroupLevel level={level} />}
         {!hideIcons &&
-          status === 'ignored' &&
-          !organization.features.includes('escalating-issues') && (
+          status === 'ignored' && (
             <IconWrapper>
               <IconMute color="red400" />
             </IconWrapper>
@@ -89,12 +88,11 @@ function EventOrGroupHeader({
   function getTitle() {
     const {id, status} = data as Group;
     const {eventID: latestEventId, groupID} = data as Event;
-    const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
       style:
-        status === 'resolved' && !hasEscalatingIssues
+        status === 'resolved'
           ? {textDecoration: 'line-through'}
           : undefined,
     };

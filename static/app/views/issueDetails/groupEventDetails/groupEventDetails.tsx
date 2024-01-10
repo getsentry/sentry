@@ -6,10 +6,8 @@ import isEqual from 'lodash/isEqual';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
@@ -41,9 +39,6 @@ import {
   useEnvironmentsFromUrl,
 } from '../utils';
 
-const EscalatingIssuesFeedback = HookOrDefault({
-  hookName: 'component:escalating-issues-banner-feedback',
-});
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
@@ -120,18 +115,15 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   ]);
 
   const renderGroupStatusBanner = () => {
-    const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
     if (group.status === 'ignored') {
       return (
         <GroupStatusBannerWrapper>
-          {hasEscalatingIssuesUi ? (
+          {(
             <ArchivedBox
               substatus={group.substatus}
               statusDetails={group.statusDetails}
               organization={organization}
             />
-          ) : (
-            <MutedBox statusDetails={group.statusDetails} />
           )}
         </GroupStatusBannerWrapper>
       );
@@ -201,10 +193,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   return (
                     <StyledLayoutMain>
                       {renderGroupStatusBanner()}
-                      <EscalatingIssuesFeedback
-                        organization={organization}
-                        group={group}
-                      />
                       <QuickTraceContext.Provider value={results}>
                         {eventWithMeta && issueTypeConfig.stats.enabled && (
                           <GroupEventHeader
