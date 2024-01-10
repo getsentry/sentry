@@ -49,6 +49,7 @@ class IssueSyncIntegration(TestCase):
         )
 
         installation = integration.get_installation(group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
 
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
             installation.sync_status_inbound(
@@ -101,6 +102,7 @@ class IssueSyncIntegration(TestCase):
         )
 
         installation = integration.get_installation(group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
 
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
             installation.sync_status_inbound(
@@ -221,6 +223,7 @@ class IssueDefaultTest(TestCase):
             other_integration = self.create_raw_integration(provider=AliasedIntegrationProvider.key)
             other_integration.add_organization(self.organization, self.user)
         other_installation = other_integration.get_installation(self.organization.id)
+        assert isinstance(other_installation, ExampleIntegration)
 
         self.installation.store_issue_last_defaults(
             self.project, self.user, {"project": "xyz", "reportedBy": "userA"}
@@ -249,5 +252,6 @@ class IssueDefaultTest(TestCase):
             integration = self.create_raw_integration(provider="example", external_id="4444")
             integration.add_organization(self.group.organization, self.user)
         installation = integration.get_installation(self.group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
 
         assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}

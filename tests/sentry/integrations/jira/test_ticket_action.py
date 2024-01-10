@@ -5,7 +5,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
-from sentry.integrations.jira import JiraCreateTicketAction
+from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
@@ -104,6 +104,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             assert external_issue_count == 1
 
             # assert ticket created on jira
+            assert isinstance(self.installation, JiraIntegration)
             data = self.installation.get_issue(key)
             assert event.message in data["description"]
 

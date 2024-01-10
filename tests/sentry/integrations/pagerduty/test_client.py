@@ -199,10 +199,13 @@ class PagerDutyProxyApiClientTest(APITestCase):
             project_id=self.project.id,
         )
 
+        assert self.installation.org_integration is not None
+        org_integration_id = self.installation.org_integration.id
+
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = PagerDutyProxyApiTestClient(
-                org_integration_id=self.installation.org_integration.id,
+                org_integration_id=org_integration_id,
                 integration_key=self.service["integration_key"],
                 keyid=str(self.service["id"]),
             )
@@ -217,7 +220,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             client = PagerDutyProxyApiTestClient(
-                org_integration_id=self.installation.org_integration.id,
+                org_integration_id=org_integration_id,
                 integration_key=self.service["integration_key"],
                 keyid=str(self.service["id"]),
             )
@@ -232,7 +235,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = PagerDutyProxyApiTestClient(
-                org_integration_id=self.installation.org_integration.id,
+                org_integration_id=org_integration_id,
                 integration_key=self.service["integration_key"],
                 keyid=str(self.service["id"]),
             )

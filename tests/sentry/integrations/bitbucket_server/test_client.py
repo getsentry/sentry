@@ -99,11 +99,14 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             json={"ok": True},
         )
 
+        assert self.install.org_integration is not None
+        org_integration_id = self.install.org_integration.id
+
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = BitbucketServerProxyTestClient(
                 integration=self.integration,
                 identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration_id,
             )
             client.get_repos()
             request = responses.calls[0].request
@@ -118,7 +121,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             client = BitbucketServerProxyTestClient(
                 integration=self.integration,
                 identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration_id,
             )
             client.get_repos()
             request = responses.calls[0].request
@@ -134,7 +137,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             client = BitbucketServerProxyTestClient(
                 integration=self.integration,
                 identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration_id,
             )
             client.get_repos()
             request = responses.calls[0].request

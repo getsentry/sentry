@@ -9,6 +9,7 @@ from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations import SentryAppComponent, SentryAppInstallation
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -80,7 +81,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             }
             org_integration.save()
         data = build_action_response(
-            self.opsgenie, integration=integration, organization=self.organization
+            self.opsgenie,
+            integration=serialize_integration(integration),
+            organization=self.organization,
         )
 
         assert data["type"] == "opsgenie"
@@ -104,7 +107,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
             )
 
         data = build_action_response(
-            self.pagerduty, integration=integration, organization=self.organization
+            self.pagerduty,
+            integration=serialize_integration(integration),
+            organization=self.organization,
         )
 
         assert data["type"] == "pagerduty"
@@ -156,7 +161,9 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert build_action_response(self.email) in response.data
         assert (
             build_action_response(
-                self.slack, integration=integration, organization=self.organization
+                self.slack,
+                integration=serialize_integration(integration),
+                organization=self.organization,
             )
             in response.data
         )
@@ -179,13 +186,17 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert build_action_response(self.email) in response.data
         assert (
             build_action_response(
-                self.slack, integration=integration, organization=self.organization
+                self.slack,
+                integration=serialize_integration(integration),
+                organization=self.organization,
             )
             in response.data
         )
         assert (
             build_action_response(
-                self.slack, integration=other_integration, organization=self.organization
+                self.slack,
+                integration=serialize_integration(other_integration),
+                organization=self.organization,
             )
             in response.data
         )

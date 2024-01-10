@@ -10,6 +10,7 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
+from sentry.integrations.jira import JiraIntegration
 from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
@@ -752,6 +753,7 @@ class JiraServerIntegrationTest(APITestCase):
         )
 
         installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraIntegration)
 
         with mock.patch.object(StubJiraApiClient, "transition_issue") as mock_transition_issue:
             with mock.patch.object(installation, "get_client", get_client):
