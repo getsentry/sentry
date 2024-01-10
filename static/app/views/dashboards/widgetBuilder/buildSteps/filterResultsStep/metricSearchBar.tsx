@@ -4,7 +4,7 @@ import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {PageFilters} from 'sentry/types';
 import {getMRI} from 'sentry/utils/metrics/mri';
 import {WidgetQuery} from 'sentry/views/dashboards/types';
-import {MetricSearchBar as DDMSearchBar} from 'sentry/views/ddm/queryBuilder';
+import {MetricSearchBar as DDMSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 interface Props {
   onClose: SearchBarProps['onClose'];
