@@ -1,11 +1,9 @@
-import {Component, Fragment} from 'react';
-import {PlainRoute, RouteComponentProps} from 'react-router';
+import {Component, Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
@@ -16,329 +14,213 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import RequestError from 'sentry/utils/requestError/requestError';
-import withApi from 'sentry/utils/withApi';
-import withOrganizations from 'sentry/utils/withOrganizations';
+import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {OrganizationContext} from './organizationContext';
-
-type Props = RouteComponentProps<{orgId: string}, {}> & {
-  api: Client;
-  includeSidebar: boolean;
-  organizations: Organization[];
-  organizationsLoading: boolean;
-  routes: PlainRoute[];
-  useLastOrganization: boolean;
-  children?: React.ReactNode;
-};
-
-type State = {
-  loading: boolean;
-  organization: Organization | null;
-  prevProps: {
-    location: Props['location'];
-    orgId: string;
-    organizationsLoading: boolean;
-  };
-  dirty?: boolean;
-  error?: RequestError | null;
-  errorType?: string | null;
-};
 
 const OrganizationHeader = HookOrDefault({
   hookName: 'component:organization-header',
 });
 
-function getOrganizationSlug(props: Props) {
-  return (
-    props.params.orgId ||
-    ((props.useLastOrganization &&
-      (ConfigStore.get('lastOrganization') || props.organizations?.[0]?.slug)) as string)
-  );
+interface OrganizationContextContainerProps {
+  /**
+   * Render the sidebar when possible.
+   */
+  includeSidebar: boolean;
+  /**
+   * If no organization is available from any contexts, try using the
+   * lastOrganization from the ConfigStore.
+   */
+  useLastOrganization: boolean;
+  children?: React.ReactNode;
 }
 
-function isOrgChanging(props: Props) {
-  const {organization} = OrganizationStore.get();
-
-  if (!organization) {
-    return false;
-  }
-
-  return organization.slug !== getOrganizationSlug(props);
-}
-
-function isOrgStorePopulatedCorrectly(props: Props) {
-  const {organization, dirty} = OrganizationStore.get();
-
-  return !dirty && organization && !isOrgChanging(props);
-}
-
-class OrganizationContextContainer extends Component<Props, State> {
-  static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
-    const {prevProps} = prevState;
-
-    if (OrganizationContextContainer.shouldRemount(prevProps, props)) {
-      return OrganizationContextContainer.getDefaultState(props);
-    }
-
-    const {organizationsLoading, location, params} = props;
-    const {orgId} = params;
-    return {
-      ...prevState,
-      prevProps: {
-        orgId,
-        organizationsLoading,
-        location,
-      },
-    };
-  }
-
-  static shouldRemount(prevProps: State['prevProps'], props: Props): boolean {
-    const hasOrgIdAndChanged =
-      prevProps.orgId && props.params.orgId && prevProps.orgId !== props.params.orgId;
-
-    const hasOrgId =
-      props.params.orgId ||
-      (props.useLastOrganization && ConfigStore.get('lastOrganization'));
-
-    // protect against the case where we finish fetching org details
-    // and then `OrganizationsStore` finishes loading:
-    // only fetch in the case where we don't have an orgId
-    //
-    // Compare `getOrganizationSlug`  because we may have a last used org from server
-    // if there is no orgId in the URL
-    const organizationLoadingChanged =
-      prevProps.organizationsLoading !== props.organizationsLoading &&
-      props.organizationsLoading === false;
-
-    return (
-      hasOrgIdAndChanged ||
-      (!hasOrgId && organizationLoadingChanged) ||
-      (props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
-    );
-  }
-
-  static getDefaultState(props: Props): State {
-    const prevProps = {
-      orgId: props.params.orgId,
-      organizationsLoading: props.organizationsLoading,
-      location: props.location,
-    };
-
-    if (isOrgStorePopulatedCorrectly(props)) {
-      // retrieve initial state from store
-      return {
-        ...OrganizationStore.get(),
-        prevProps,
-      };
-    }
-
-    return {
-      loading: true,
-      error: null,
-      errorType: null,
-      organization: null,
-      prevProps,
-    };
-  }
-
+/**
+ * There are still a number of places where we consume the lgacy organization
+ * context. So for now we still need a component that provides this.
+ */
+class LegacyOrganizationContextProvider extends Component<{value: Organization | null}> {
   static childContextTypes = {
     organization: SentryTypes.Organization,
   };
 
-  constructor(props: Props) {
-    super(props);
-    this.state = OrganizationContextContainer.getDefaultState(props);
-  }
-
   getChildContext() {
-    return {
-      organization: this.state.organization,
-    };
+    return {organization: this.props.value};
   }
 
-  componentDidMount() {
-    this.fetchData(true);
+  render() {
+    return this.props.children;
   }
+}
 
-  componentDidUpdate(prevProps: Props) {
-    const remountPrevProps: State['prevProps'] = {
-      orgId: prevProps.params.orgId,
-      organizationsLoading: prevProps.organizationsLoading,
-      location: prevProps.location,
-    };
+/**
+ * Responsible for a number of organization related things:
+ *
+ * - Will load the current organization into the OrganizationStore if not
+ *   already present. This will often already be loaded by the
+ *   `preload-data.html` template
+ *
+ * -
+ */
+function OrganizationContextContainer({
+  includeSidebar,
+  useLastOrganization,
+  children,
+}: OrganizationContextContainerProps) {
+  const api = useApi();
+  const configStore = useLegacyStore(ConfigStore);
 
-    if (OrganizationContextContainer.shouldRemount(remountPrevProps, this.props)) {
-      this.remountComponent();
-    }
-  }
+  const {organizations} = useLegacyStore(OrganizationsStore);
+  const {organization, loading, error, errorType} = useLegacyStore(OrganizationStore);
 
-  componentWillUnmount() {
-    this.unlisteners.forEach(callIfFunction);
-  }
+  const hasMadeFirstFetch = useRef(false);
 
-  unlisteners = [
-    OrganizationStore.listen(data => this.loadOrganization(data), undefined),
-  ];
+  const lastOrganization = useLastOrganization
+    ? configStore.lastOrganization ?? organizations[0]?.slug
+    : null;
 
-  remountComponent = () => {
-    this.setState(
-      OrganizationContextContainer.getDefaultState(this.props),
-      this.fetchData
-    );
-  };
+  const routes = useRoutes();
+  const params = useParams<{orgId?: string}>();
 
-  isLoading() {
-    // In the absence of an organization slug, the loading state should be
-    // derived from this.props.organizationsLoading from OrganizationsStore
-    if (!getOrganizationSlug(this.props)) {
-      return this.props.organizationsLoading;
-    }
+  // Detect org slug from the params, lastOrganization, or just use the first
+  // organizaton in the list
+  const orgSlug = params.orgId || lastOrganization;
 
-    return this.state.loading;
-  }
-
-  fetchData(isInitialFetch = false) {
-    const orgSlug = getOrganizationSlug(this.props);
-
+  const handleLoad = useCallback(() => {
     if (!orgSlug) {
       return;
     }
 
-    // fetch from the store, then fetch from the API if necessary
-    if (isOrgStorePopulatedCorrectly(this.props)) {
+    metric.mark({name: 'organization-details-fetch-start'});
+    fetchOrganizationDetails(api, orgSlug, false, hasMadeFirstFetch.current);
+    hasMadeFirstFetch.current = true;
+  }, [api, orgSlug]);
+
+  // If the organization slug differs from what we have in the organization
+  // store reload the store
+  useEffect(() => {
+    // Nothing to do if we already have the organization loaded
+    if (organization && organization.slug === orgSlug) {
       return;
     }
 
-    metric.mark({name: 'organization-details-fetch-start'});
-    fetchOrganizationDetails(
-      this.props.api,
-      orgSlug,
-      !isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
-      isInitialFetch
-    );
-  }
+    handleLoad();
+  }, [orgSlug, organization, handleLoad]);
 
-  loadOrganization(orgData: State) {
-    const {organization, error} = orgData;
+  // Take a measurement for when organization details are done loading and the
+  // new state is applied
+  useEffect(
+    () => {
+      if (organization === null) {
+        return;
+      }
 
-    if (organization && !error) {
-      // Configure scope to have organization tag
-      Sentry.configureScope(scope => {
-        // XXX(dcramer): this is duplicated in sdk.py on the backend
-        scope.setTag('organization', organization.id);
-        scope.setTag('organization.slug', organization.slug);
-        scope.setContext('organization', {id: organization.id, slug: organization.slug});
+      metric.measure({
+        name: 'app.component.perf',
+        start: 'organization-details-fetch-start',
+        data: {
+          name: 'org-details',
+          route: getRouteStringFromRoutes(routes),
+          organization_id: parseInt(organization.id, 10),
+        },
       });
-    } else if (error) {
-      // If user is superuser, open sudo window
-      const user = ConfigStore.get('user');
-      if (!user || !user.isSuperuser || error.status !== 403) {
-        // This `catch` can swallow up errors in development (and tests)
-        // So let's log them. This may create some noise, especially the test case where
-        // we specifically test this branch
-        console.error(error); // eslint-disable-line no-console
-      } else {
-        openSudo({
-          retryRequest: () => Promise.resolve(this.fetchData()),
-          isSuperuser: true,
-          needsReload: true,
-        });
-      }
+    },
+    // Ignore the `routes` dependency for the metrics measurement
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [organization]
+  );
+
+  // Configure sentry SDK scope to have organization tag
+  useEffect(() => {
+    if (organization === null || error) {
+      return;
     }
 
-    this.setState({...orgData}, () => {
-      // Take a measurement for when organization details are done loading and the new state is applied
-      if (organization) {
-        metric.measure({
-          name: 'app.component.perf',
-          start: 'organization-details-fetch-start',
-          data: {
-            name: 'org-details',
-            route: getRouteStringFromRoutes(this.props.routes),
-            organization_id: parseInt(organization.id, 10),
-          },
-        });
-      }
+    Sentry.configureScope(scope => {
+      // XXX(dcramer): this is duplicated in sdk.py on the backend
+      scope.setTag('organization', organization.id);
+      scope.setTag('organization.slug', organization.slug);
+      scope.setContext('organization', {id: organization.id, slug: organization.slug});
     });
-  }
+  }, [organization, error]);
 
-  renderSidebar(): React.ReactNode {
-    if (!this.props.includeSidebar) {
-      return null;
+  const {user} = configStore;
+
+  // If we've had an error it may be possible for the user to use the sudo
+  // modal to load the organization.
+  useEffect(() => {
+    if (!error) {
+      return;
     }
 
-    return <Sidebar organization={this.state.organization ?? undefined} />;
-  }
-
-  renderError() {
-    let errorComponent: React.ReactElement;
-
-    switch (this.state.errorType) {
-      case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS:
-        // We can still render when an org can't be loaded due to 401. The
-        // backend will handle redirects when this is a problem.
-        return this.renderBody();
-      case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
-        errorComponent = (
-          <Alert type="error" data-test-id="org-loading-error">
-            {t('The organization you were looking for was not found.')}
-          </Alert>
-        );
-        break;
-      default:
-        errorComponent = <LoadingError onRetry={this.remountComponent} />;
+    if (user.isSuperuser && error.status === 403) {
+      openSudo({isSuperuser: true, needsReload: true});
     }
 
-    return <ErrorWrapper>{errorComponent}</ErrorWrapper>;
+    // This `catch` can swallow up errors in development (and tests)
+    // So let's log them. This may create some noise, especially the test case where
+    // we specifically test this branch
+    console.error(error); // eslint-disable-line no-console
+  }, [user, error]);
+
+  if (loading) {
+    return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
   }
 
-  renderBody() {
-    const {organization} = this.state;
+  const sidebar = includeSidebar ? (
+    <Sidebar organization={organization ?? undefined} />
+  ) : null;
 
-    return (
-      <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
+  const mainBody = (
+    <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
+      <LegacyOrganizationContextProvider value={organization}>
         <OrganizationContext.Provider value={organization}>
           <div className="app">
             {organization && <OrganizationHeader organization={organization} />}
-            {this.renderSidebar()}
-            {this.props.children}
+            {sidebar}
+            {children}
           </div>
         </OrganizationContext.Provider>
-      </SentryDocumentTitle>
+      </LegacyOrganizationContextProvider>
+    </SentryDocumentTitle>
+  );
+
+  if (error) {
+    const errorBody =
+      errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS ? (
+        // We can still render when an org can't be loaded due to 401. The
+        // backend will handle redirects when this is a problem.
+        mainBody
+      ) : errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND ? (
+        <Alert type="error" data-test-id="org-loading-error">
+          {t('The organization you were looking for was not found.')}
+        </Alert>
+      ) : (
+        <LoadingError onRetry={handleLoad} />
+      );
+
+    return (
+      <Fragment>
+        {sidebar}
+        <ErrorWrapper>{errorBody}</ErrorWrapper>
+      </Fragment>
     );
   }
 
-  render() {
-    if (this.isLoading()) {
-      return (
-        <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>
-      );
-    }
-
-    if (this.state.error) {
-      return (
-        <Fragment>
-          {this.renderSidebar()}
-          {this.renderError()}
-        </Fragment>
-      );
-    }
-
-    return this.renderBody();
-  }
+  return mainBody;
 }
-
-export default withApi(
-  withOrganizations(Sentry.withProfiler(OrganizationContextContainer))
-);
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};
 `;
+
+export default OrganizationContextContainer;
