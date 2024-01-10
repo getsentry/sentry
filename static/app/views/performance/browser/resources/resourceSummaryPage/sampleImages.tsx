@@ -155,12 +155,13 @@ function ImageContainer(props: {
 }
 
 const getFileNameFromDescription = (description: string) => {
-  try {
-    const url = new URL(description);
-    return url.pathname.split('/').pop() || '';
-  } catch (e) {
+  const url = safeURL(description);
+
+  if (!url) {
     return description;
   }
+
+  return url.pathname.split('/').pop() ?? '';
 };
 
 const ImageWrapper = styled('div')`

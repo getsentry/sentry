@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -17,6 +18,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
@@ -26,6 +28,7 @@ import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/starfish/views/screens/constants';
+import {PlatformSelector} from 'sentry/views/starfish/views/screens/platformSelector';
 import {
   ScreenCharts,
   YAxis,
@@ -34,6 +37,7 @@ import {ScreenLoadEventSamples} from 'sentry/views/starfish/views/screens/screen
 import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 type Query = {
   primaryRelease: string;
@@ -49,6 +53,11 @@ function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();
+
+  const {projects} = useProjects();
+  const project = useMemo(() => {
+    return projects.find(p => p.id === location.query.project);
+  }, [location.query.project, projects]);
 
   const screenLoadModule: LocationDescriptor = {
     pathname: `/organizations/${organization.slug}/performance/mobile/screens/`,
@@ -88,7 +97,10 @@ function ScreenLoadSpans() {
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
-              <Layout.Title>{transactionName}</Layout.Title>
+              <HeaderWrapper>
+                <Layout.Title>{transactionName}</Layout.Title>
+                {organization.features.includes('performance-screens-platform-selector') && project && isCrossPlatform(project) && <PlatformSelector />}
+              </HeaderWrapper>
             </Layout.HeaderContent>
           </Layout.Header>
           <Layout.Body>
@@ -113,6 +125,7 @@ function ScreenLoadSpans() {
                   yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
                   additionalFilters={[`transaction:${transactionName}`]}
                   chartHeight={120}
+                  project={project}
                 />
                 <SampleContainer>
                   <SampleContainerItem>
@@ -122,6 +135,7 @@ function ScreenLoadSpans() {
                       cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
                       transaction={transactionName}
                       showDeviceClassSelector
+                      project={project}
                     />
                   </SampleContainerItem>
                   <SampleContainerItem>
@@ -130,6 +144,7 @@ function ScreenLoadSpans() {
                       sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
                       cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
                       transaction={transactionName}
+                      project={project}
                     />
                   </SampleContainerItem>
                 </SampleContainer>
@@ -137,6 +152,7 @@ function ScreenLoadSpans() {
                   transaction={transactionName}
                   primaryRelease={primaryRelease}
                   secondaryRelease={secondaryRelease}
+                  project={project}
                 />
                 {spanGroup && (
                   <ScreenLoadSpanSamples
@@ -194,4 +210,7 @@ const SampleContainer = styled('div')`
 
 const SampleContainerItem = styled('div')`
   flex: 1;
+`;
+const HeaderWrapper = styled('div')`
+  display: flex;
 `;

@@ -1,8 +1,8 @@
-import stripOrigin from 'sentry/utils/url/stripOrigin';
+import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 
-describe('stripOrigin', () => {
+describe('stripURLOrigin', () => {
   it('should preserve the url path, query, and hash', () => {
-    expect(stripOrigin('https://example.com/path/name?query=params#hash')).toEqual(
+    expect(stripURLOrigin('https://example.com/path/name?query=params#hash')).toEqual(
       '/path/name?query=params#hash'
     );
   });
@@ -15,7 +15,7 @@ describe('stripOrigin', () => {
   ])(
     'should return the the same string, when something is not parseable as a url',
     str => {
-      expect(stripOrigin(str)).toEqual(str);
+      expect(stripURLOrigin(str)).toEqual(str);
     }
   );
 });
