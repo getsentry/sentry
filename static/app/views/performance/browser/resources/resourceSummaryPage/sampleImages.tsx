@@ -19,7 +19,7 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-type Props = {groupId: string; projectId: number};
+type Props = {groupId: string; projectId?: number};
 
 const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 const imageWidth = '200px';
