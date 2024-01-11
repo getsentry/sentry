@@ -1587,6 +1587,23 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         assert grandchild["generation"] == 2
         assert grandchild["parent_event_id"] == child_event.event_id
 
+    def test_detailed_trace(self):
+        """Can't use detailed with useSpans, so this should actually just 400"""
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1, "detailed": 1},
+            )
+
+        assert response.status_code == 400, response.content
+
+    @pytest.mark.skip("Can't use the detailed response with useSpans on")
+    def test_detailed_trace_with_bad_tags(self):
+        super().test_detailed_trace_with_bad_tags()
+
+    @pytest.mark.skip("We shouldn't need to prune with events anymore since spans should be faster")
+    def test_pruning_event(self):
+        super().test_purning_event()
+
 
 @region_silo_test
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):

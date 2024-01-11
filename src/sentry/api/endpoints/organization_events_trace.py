@@ -530,6 +530,8 @@ def get_parents_from_spans(
     query_spans = trace_parent_spans.union(error_spans).union(occurrence_spans)
     if "" in query_spans:
         query_spans.remove("")
+    if len(query_spans) == 0:
+        return transactions
     parents_results = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -656,8 +658,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
 
+        # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
         use_spans: bool = request.GET.get("useSpans", "0") == "1"
+        if detailed and use_spans:
+            raise ParseError("Cannot return a detailed response while using spans")
         limit: int = (
             min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 2000)
             if trace_view_load_more_enabled
@@ -1193,7 +1198,25 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             # The next orphan may already be added as a child, skip it if this is the case
             if orphan_transaction["id"] in visited_transactions:
                 continue
-            visited_transactions.add(root["id"])
+            visited_transactions.add(orphan_transaction["id"])
+            orphan = TraceEvent(orphan_transaction, None, 0, span_serialized=True)
+            self.add_children(
+                orphan, remaining_transactions, visited_transactions, errors, visited_errors, 1
+            )
+            orphans.append(orphan)
+        remaining_transactions = sorted(
+            [
+                transaction
+                for transaction in transactions
+                if transaction["id"] not in visited_transactions
+            ],
+            key=lambda k: -datetime.fromisoformat(k["timestamp"]).timestamp(),
+        )
+        for orphan_transaction in remaining_transactions:
+            # The next orphan may already be added as a child, skip it if this is the case
+            if orphan_transaction["id"] in visited_transactions:
+                continue
+            visited_transactions.add(orphan_transaction["id"])
             orphan = TraceEvent(orphan_transaction, None, 0, span_serialized=True)
             self.add_children(
                 orphan, remaining_transactions, visited_transactions, errors, visited_errors, 1
