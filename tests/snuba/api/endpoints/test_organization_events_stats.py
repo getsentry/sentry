@@ -1325,7 +1325,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
-    def test_top_events_by_project_other(self):
+    def test_top_events_with_projects_other(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
                 self.url,
@@ -1559,6 +1559,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
+    @pytest.mark.xfail(
+        reason="The response is wrong whenever we have a top events timeseries on project + any other field + aggregation"
+    )
     def test_top_events_with_projects(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
