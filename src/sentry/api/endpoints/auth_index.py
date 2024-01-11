@@ -18,6 +18,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
+from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models.authenticator import Authenticator
@@ -219,9 +220,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
             try:
                 validator.is_valid(raise_exception=True)
-            except ValidationError as e:
-                err_code = e.detail["non_field_errors"][0].code
-                return Response({"detail": {"code": err_code}}, status=400)
+            except ValidationError:
+                return Response({"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400)
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
@@ -250,9 +250,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                         )
             try:
                 authenticated = self._validate_superuser(validator, request, verify_authenticator)
-            except ValidationError as e:
-                err_code = e.detail["non_field_errors"][0].code
-                return Response({"detail": {"code": err_code}}, status=400)
+            except ValidationError:
+                return Response({"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400)
 
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
