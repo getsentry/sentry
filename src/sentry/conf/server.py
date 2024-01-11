@@ -1532,7 +1532,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables data secrecy mode
     "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
-    "organizations:escalating-issues": False,
+    "organizations:escalating-issues": True,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
