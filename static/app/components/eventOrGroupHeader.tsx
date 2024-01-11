@@ -85,7 +85,6 @@ function EventOrGroupHeader({
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-      style: undefined,
     };
 
     if (isTombstone(data)) {
