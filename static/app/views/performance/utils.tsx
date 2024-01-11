@@ -662,11 +662,11 @@ export function getSelectedTransaction(
   return transactions.length > 0 ? transactions[0] : undefined;
 }
 
-export function usePerformanceGeneralProjectSettings(projectId: number) {
+export function usePerformanceGeneralProjectSettings(projectId?: number) {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const stringProjectId = projectId.toString();
+  const stringProjectId = projectId?.toString();
   const project = projects.find(p => p.id === stringProjectId);
 
   return useQuery(['settings', 'general', projectId], {
