@@ -16,7 +16,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
@@ -292,21 +292,24 @@ class OrganizationEndpoint(Endpoint):
         to fetching projects via project_id list.
         """
         qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-        if project_ids is not None:
-            if project_ids == ALL_ACCESS_PROJECTS:
-                # All projects i have access to
-                include_all_accessible = True
-            elif project_ids:
-                qs.filter(id__in=project_ids)
-            # No project ids === `all projects i am a member of`
-        else:
-            slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
+        slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
+        ids = project_ids or self.get_requested_project_ids_unchecked(request)
+        if project_ids is None and slugs:
+            # If we're querying for project slugs specifically
             if ALL_ACCESS_PROJECTS_SLUG in slugs:
                 # All projects i have access to
                 include_all_accessible = True
-            elif slugs:
-                qs.filter(slug__in=slugs)
-            # No project slugs === `all projects i am a member of`
+            else:
+                qs = qs.filter(slug__in=slugs)
+        else:
+            # If we are explicitly querying for projects via id
+            # Or we're querying for an empty set of ids
+            if ALL_ACCESS_PROJECT_ID in ids:
+                # All projects i have access to
+                include_all_accessible = True
+            elif ids:
+                qs = qs.filter(id__in=ids)
+            # No project ids === `all projects i am a member of`
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
@@ -317,18 +320,21 @@ class OrganizationEndpoint(Endpoint):
         filtered_projects = self._filter_projects_by_permissions(
             projects=projects,
             request=request,
-            explicitly_requested_projects=bool(project_ids) or bool(project_slugs),
+            filter_by_membership=not bool(ids) and not bool(slugs),
             force_global_perms=force_global_perms,
             include_all_accessible=include_all_accessible,
         )
         filtered_project_ids = {p.id for p in filtered_projects}
         filtered_project_slugs = {p.slug for p in filtered_projects}
 
-        if (project_ids is not None and fetched_project_ids != filtered_project_ids) or (
-            project_slugs is not None and fetched_project_slugs != filtered_project_slugs
+        if not include_all_accessible and (
+            (ids and fetched_project_ids != filtered_project_ids)
+            or (slugs and fetched_project_slugs != filtered_project_slugs)
         ):
-            # The filtered projects do not match the explicitly requested projects
-            # Meaning a user has attempted to fetch a project they do not have permission for
+            # If a user requests all projects - they should get back all projects they have permission for
+            # If a user requests specified projects, but they don't have access to them
+            # Then we should raise a permission denied
+            # TODO: instead of raising a PermissionDenied, maybe we should just return the projects they have access to
             raise PermissionDenied
 
         return filtered_projects
@@ -337,12 +343,12 @@ class OrganizationEndpoint(Endpoint):
         self,
         projects: list[Project],
         request: HttpRequest,
-        explicitly_requested_projects: bool = False,
+        filter_by_membership: bool = False,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
         user = getattr(request, "user", None)
-        response = projects
+        filtered = projects
         with sentry_sdk.start_span(op="apply_project_permissions") as span:
             span.set_data("Project Count", len(projects))
             if force_global_perms:
@@ -350,18 +356,19 @@ class OrganizationEndpoint(Endpoint):
             else:
                 if (
                     user
-                    and is_active_superuser(request)
-                    or explicitly_requested_projects
-                    or include_all_accessible
+                    and is_active_superuser(request)  # superuser should fetch all projects
+                    or not filter_by_membership  # explicitly requested projects
+                    or include_all_accessible  # requested $all projects
                 ):
                     span.set_tag("mode", "has_project_access")
                     func = request.access.has_project_access
                 else:
                     span.set_tag("mode", "has_project_membership")
                     func = request.access.has_project_membership
-                response = [p for p in projects if func(p)]
 
-        return response
+                filtered = [p for p in projects if func(p)]
+
+        return filtered
 
     def get_requested_project_ids_unchecked(self, request: Request) -> set[int]:
         """
