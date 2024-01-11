@@ -3,12 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import imageIcon from 'sentry-images/image-icon.svg';
-
 import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {safeURL} from 'sentry/utils/url/safeURL';
@@ -134,6 +133,7 @@ function DisabledImages(props: {onClickShowLinks?: () => void}) {
   return (
     <div>
       <ChartPanelTextContainer>
+        <IconImage />
         <h6>{t('Images not shown')}</h6>
         {t(
           'You know, you can see the actual images that are on your site if you opt into this feature.'
@@ -203,11 +203,8 @@ function MissingImage() {
         position: 'relative',
       }}
     >
-      <img
-        src={imageIcon}
+      <IconImage
         style={{
-          width: '25px',
-          height: '25px',
           position: 'absolute',
           top: 0,
           right: 0,
