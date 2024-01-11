@@ -11,7 +11,6 @@ import {
   SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 interface UseSpanMetricsOptions<Fields> {
   cursor?: string;
@@ -59,19 +58,7 @@ function getEventView(
   sorts: Sort[] = [],
   location: Location
 ) {
-  const query = new MutableSearch('');
-
-  Object.entries(filters).forEach(([key, value]) => {
-    if (!value) {
-      return;
-    }
-
-    if (value === EMPTY_OPTION_VALUE) {
-      query.addFilterValue('!has', key);
-    }
-
-    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
-  });
+  const query = MutableSearch.fromQueryObject(filters);
 
   // TODO: This condition should be enforced everywhere
   // query.addFilterValue('has', 'span.description');
@@ -93,5 +80,3 @@ function getEventView(
 
   return eventView;
 }
-
-const ALLOWED_WILDCARD_FIELDS = ['span.description'];

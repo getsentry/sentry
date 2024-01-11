@@ -13,7 +13,6 @@ import {getIntervalForMetricFunction} from 'sentry/views/performance/database/ge
 import {DEFAULT_INTERVAL} from 'sentry/views/performance/database/settings';
 import {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 export type SpanMetrics = {
   interval: number;
@@ -68,19 +67,7 @@ function getEventView(
   pageFilters: PageFilters,
   yAxis: string[]
 ) {
-  const query = new MutableSearch('');
-
-  Object.entries(filters).forEach(([key, value]) => {
-    if (!value) {
-      return;
-    }
-
-    if (value === EMPTY_OPTION_VALUE) {
-      query.addFilterValue('!has', key);
-    }
-
-    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
-  });
+  const query = MutableSearch.fromQueryObject(filters);
 
   // TODO: This condition should be enforced everywhere
   // query.addFilterValue('has', 'span.description');
@@ -114,5 +101,3 @@ function getEventView(
     pageFilters
   );
 }
-
-const ALLOWED_WILDCARD_FIELDS = ['span.description'];
