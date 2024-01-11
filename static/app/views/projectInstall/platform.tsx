@@ -230,6 +230,7 @@ export function ProjectInstallPlatform({location, params}: Props) {
               pathname: issueStreamLink,
               query: {
                 project: project?.id,
+                statsPeriod: '30d',
               },
               hash: '#welcome',
             }}
