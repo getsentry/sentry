@@ -1639,6 +1639,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issues-similarity-embeddings": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
+    # Enable updated legacy browser settings
+    "organizations:legacy-browser-update": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts
