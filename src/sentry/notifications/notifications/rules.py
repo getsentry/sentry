@@ -180,7 +180,6 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
-            "has_issue_states": True,
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
