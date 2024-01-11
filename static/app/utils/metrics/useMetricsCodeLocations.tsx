@@ -16,6 +16,7 @@ type ApiResponse = {
 type MetricsDDMMetaOpts = MetricRange & {
   codeLocations?: boolean;
   metricSpans?: boolean;
+  query?: string;
 };
 
 function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
@@ -41,6 +42,7 @@ function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
           project: selection.projects,
           codeLocations: options.codeLocations,
           metricSpans: options.metricSpans,
+          query: options.query,
           ...dateTimeParams,
           ...minMaxParams,
         },
@@ -63,14 +65,20 @@ function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
   return {...queryInfo, data};
 }
 
-export function useMetricsSpans(mri: MRI | undefined, options: MetricRange = {}) {
+export function useMetricsSpans(
+  mri: MRI | undefined,
+  options: Omit<MetricsDDMMetaOpts, 'metricSpans'> = {}
+) {
   return useMetricsDDMMeta(mri, {
     ...options,
     metricSpans: true,
   });
 }
 
-export function useMetricsCodeLocations(mri: MRI | undefined, options: MetricRange = {}) {
+export function useMetricsCodeLocations(
+  mri: MRI | undefined,
+  options: Omit<MetricsDDMMetaOpts, 'codeLocations'> = {}
+) {
   return useMetricsDDMMeta(mri, {...options, codeLocations: true});
 }
 

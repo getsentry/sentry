@@ -52,7 +52,11 @@ export function WidgetDetails() {
         <ContentWrapper>
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
-              <SampleTable mri={selectedWidget?.mri} {...focusArea?.range} />
+              <SampleTable
+                mri={selectedWidget?.mri}
+                query={selectedWidget?.query}
+                {...focusArea?.range}
+              />
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
               <CodeLocations mri={selectedWidget?.mri} {...focusArea?.range} />
