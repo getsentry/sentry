@@ -1,7 +1,7 @@
 from typing import Any, Collection, Dict, Mapping, MutableMapping, Sequence
 
 
-def get_frames(filename: str) -> Sequence[MutableMapping[str, Any]]:
+def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
     frames = [
         {
             "function": "dispatchEvent",
