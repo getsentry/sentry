@@ -24,9 +24,13 @@ import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   NormalizedTrendsTransaction,
@@ -656,4 +660,20 @@ export function getSelectedTransaction(
   }
 
   return transactions.length > 0 ? transactions[0] : undefined;
+}
+
+export function usePerformanceGeneralProjectSettings(projectId: number) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const stringProjectId = projectId.toString();
+  const project = projects.find(p => p.id === stringProjectId);
+
+  return useQuery(['settings', 'general', projectId], {
+    enabled: Boolean(project),
+    queryFn: () =>
+      api.requestPromise(
+        `/api/0/projects/${organization.slug}/${project?.slug}/performance/configure/`
+      ) as Promise<{enable_images: boolean}>,
+  });
 }

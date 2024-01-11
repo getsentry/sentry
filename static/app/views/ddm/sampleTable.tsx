@@ -23,6 +23,7 @@ import {MetricRange, MetricSpan} from '../../utils/metrics/index';
 
 export type SamplesTableProps = MetricRange & {
   mri?: MRI;
+  query?: string;
 };
 
 type Column = GridColumnHeader<keyof MetricSpan>;
@@ -35,12 +36,12 @@ const columnOrder: GridColumnOrder<keyof MetricSpan>[] = [
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
 ];
 
-export function SampleTable({mri, ...range}: SamplesTableProps) {
+export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const {data, isFetching} = useMetricsSpans(mri, range);
+  const {data, isFetching} = useMetricsSpans(mri, metricMetaOptions);
 
   const getProjectSlug = useCallback(
     (projectId: number) => {
