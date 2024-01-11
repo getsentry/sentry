@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -35,6 +36,8 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const url = eventData?.tags.find(tag => tag.key === 'url');
   const replayId = eventData?.contexts?.feedback?.replay_id;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
+
+  const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
 
   return (
     <Fragment>
@@ -82,7 +85,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
               />
             </ErrorBoundary>
           </Section>
-        ) : (
+        ) : hasSentOneReplay ? null : (
           <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
             <ReplayInlineCTAPanel />
           </Section>
