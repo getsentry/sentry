@@ -24,6 +24,10 @@ class SlackOptionsLoadRequest(SlackRequest):
     def group_id(self) -> int:
         return int(json.loads(self.data["message"]["blocks"][0]["block_id"])["issue"])
 
+    @property
+    def substring(self) -> str:
+        return str(self.data.get("value"))
+
     def _validate_data(self) -> None:
         super()._validate_data()
 

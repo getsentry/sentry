@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,7 +14,8 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
 from sentry.models.group import Group
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
+from sentry.models.team import Team
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.web.decorators import transaction_start
 
 
@@ -27,20 +29,35 @@ class SlackOptionsLoadEndpoint(Endpoint):
     permission_classes = ()
     slack_request_class = SlackOptionsLoadRequest
 
-    def get_option_groups(self, organization_id: int) -> Sequence[Mapping[str, Any]]:
-        teams = OrganizationMemberTeamReplica.objects.get(organization_id=organization_id)
-        members = OrganizationMember.objects.get(organization_id=organization_id)
+    def get_option_groups(
+        self, organization_id: int, substring: str
+    ) -> Sequence[Mapping[str, Any]]:
+        filtered_teams = Team.objects.filter(
+            Q(name__startswith=substring) | Q(slug__startswith=substring),
+            organization_id=organization_id,
+        )
+        all_members = OrganizationMember.objects.filter(organization_id=organization_id)
+        all_members_as_rpc_users = [RpcUser(id=member.id) for member in all_members]
+        filtered_members = filter(
+            lambda member: any(
+                member.display_name.startswith(substring),
+                member.name.startswith(substring),
+                member.email.startswith(substring),
+                member.username.startswith(substring),
+            ),
+            all_members_as_rpc_users,
+        )
 
         option_groups = []
 
-        if teams:
-            team_options = format_actor_options(teams, True)
+        if filtered_teams:
+            team_options = format_actor_options(filtered_teams, True)
             option_groups.append(
                 {"label": {"type": "plain_text", "text": "Teams"}, "options": team_options}
             )
 
-        if members:
-            member_options = format_actor_options(members, True)
+        if filtered_members:
+            member_options = format_actor_options(filtered_members, True)
             option_groups.append(
                 {"label": {"type": "plain_text", "text": "People"}, "options": member_options}
             )
@@ -61,6 +78,10 @@ class SlackOptionsLoadEndpoint(Endpoint):
             .first()
         )
 
-        payload = {"option_groups": self.get_option_groups(group.project.organization.id)}
+        payload = {
+            "option_groups": self.get_option_groups(
+                group.project.organization.id, slack_request.substring
+            )
+        }
 
         return self.respond(payload)
