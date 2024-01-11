@@ -310,26 +310,28 @@ class OrganizationEndpoint(Endpoint):
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
+            fetched_project_ids = {p.id for p in projects}
+            fetched_project_slugs = {p.slug for p in projects}
             span.set_data("Project Count", len(projects))
-        projects = self._filter_projects_by_permissions(
+
+        filtered_projects = self._filter_projects_by_permissions(
             projects=projects,
             request=request,
             explicitly_requested_projects=bool(project_ids) or bool(project_slugs),
             force_global_perms=force_global_perms,
             include_all_accessible=include_all_accessible,
         )
+        filtered_project_ids = {p.id for p in filtered_projects}
+        filtered_project_slugs = {p.slug for p in filtered_projects}
 
-        fetched_project_ids = {p.id for p in projects}
-        fetched_project_slugs = {p.slug for p in projects}
-
-        if (project_ids and project_ids != fetched_project_ids) or (
-            project_slugs and project_slugs != fetched_project_slugs
+        if (project_ids is not None and fetched_project_ids != filtered_project_ids) or (
+            project_slugs is not None and fetched_project_slugs != filtered_project_slugs
         ):
-            # The fetched projects do not match the explicitly request projects
+            # The filtered projects do not match the explicitly requested projects
             # Meaning a user has attempted to fetch a project they do not have permission for
             raise PermissionDenied
 
-        return projects
+        return filtered_projects
 
     def _filter_projects_by_permissions(
         self,
