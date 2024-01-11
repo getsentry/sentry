@@ -1507,6 +1507,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_provider_integration(**integration_params: Any) -> Integration:
+        return Integration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(
         organization: Organization,
         external_id: str,

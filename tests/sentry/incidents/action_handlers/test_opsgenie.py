@@ -5,7 +5,6 @@ import responses
 from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
@@ -24,7 +23,7 @@ class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
         )
         self.integration.add_organization(self.organization, self.user)

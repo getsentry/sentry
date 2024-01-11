@@ -33,7 +33,6 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
@@ -2313,7 +2312,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         org = self.organization
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
         event = self.store_event(
             data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
@@ -2369,7 +2368,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         with assume_test_silo_mode(SiloMode.CONTROL):
             org = self.organization
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
             OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id

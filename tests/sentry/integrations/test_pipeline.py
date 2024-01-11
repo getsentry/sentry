@@ -53,7 +53,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
         ]
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
         with receivers_raise_on_send(), outbox_runner(), unguarded_write(
@@ -189,7 +189,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_with_expect_exists(self, *args):
-        old_integration = Integration.objects.create(
+        old_integration = self.create_provider_integration(
             provider=self.provider.key, external_id=self.external_id, name="Tester"
         )
         self.pipeline.state.data = {"expect_exists": True, "external_id": self.external_id}
@@ -205,7 +205,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_expect_exists_does_not_update(self, *args):
-        old_integration = Integration.objects.create(
+        old_integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             name="Tester",
@@ -264,7 +264,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
     def test_default_identity_does_update(self, *args):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
@@ -305,7 +305,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # and integration records. Ensure that the new organizationintegration gets
         # a default_auth_id set.
         self.provider.needs_default_identity = True
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
@@ -344,7 +344,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # we need to make sure any other org_integrations have the same
         # identity that we use for the new one
         self.provider.needs_default_identity = True
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
@@ -383,7 +383,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     def test_different_user_same_external_id_no_default_needed(self, *args):
         new_user = self.create_user()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
@@ -451,7 +451,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
     def test_different_user_same_external_id(self, *args):
         new_user = self.create_user()
         self.setUp()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},

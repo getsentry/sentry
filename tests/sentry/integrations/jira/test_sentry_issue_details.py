@@ -10,7 +10,6 @@ from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
@@ -45,7 +44,7 @@ class JiraIssueHookTest(APITestCase):
         self.issue_key = "APP-123"
         self.path = absolute_uri(f"extensions/jira/issue/{self.issue_key}/") + "?xdm_e=base_url"
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
             metadata={

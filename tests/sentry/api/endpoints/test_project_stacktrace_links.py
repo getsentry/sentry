@@ -4,7 +4,6 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
@@ -20,7 +19,7 @@ class ProjectStacktraceLinksTest(APITestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration = self.create_provider_integration(provider="example", name="Example")
             self.integration.add_organization(self.organization, self.user)
             self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 

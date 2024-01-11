@@ -8,7 +8,6 @@ from sentry.integrations.bitbucket_server.client import (
     BitbucketServerAPIPath,
     BitbucketServerClient,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import BaseTestCase, TestCase
@@ -27,7 +26,7 @@ secret = "hush-hush-im-invisible"
 @control_silo_test
 class BitbucketServerClientTest(TestCase, BaseTestCase):
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="bitbucket_server",
             name="Bitbucket Server",
             metadata={"base_url": "https://bitbucket.example.com", "verify_ssl": True},
@@ -100,11 +99,14 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             json={"ok": True},
         )
 
+        assert self.install.org_integration is not None
+        org_integration_id = self.install.org_integration.id
+
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = BitbucketServerProxyTestClient(
                 integration=self.integration,
                 identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration_id,
             )
             client.get_repos()
             request = responses.calls[0].request
@@ -119,7 +121,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             client = BitbucketServerProxyTestClient(
                 integration=self.integration,
                 identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration_id,
             )
             client.get_repos()
             request = responses.calls[0].request
@@ -135,7 +137,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             client = BitbucketServerProxyTestClient(
                 integration=self.integration,
                 identity_id=self.identity.id,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration_id,
             )
             client.get_repos()
             request = responses.calls[0].request

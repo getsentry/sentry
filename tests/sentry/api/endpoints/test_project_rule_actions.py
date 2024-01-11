@@ -2,7 +2,6 @@ from unittest import mock
 
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -35,7 +34,7 @@ class ProjectRuleActionsEndpointTest(APITestCase):
     @mock.patch.object(JiraIntegration, "create_issue")
     def test_sample_event_does_not_create_external_issue(self, mock_create_issue):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.jira_integration = Integration.objects.create(
+            self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
             )
             self.jira_integration.add_organization(self.organization, self.user)

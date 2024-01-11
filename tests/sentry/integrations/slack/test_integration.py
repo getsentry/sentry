@@ -238,7 +238,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
             role="manager",
             teams=[self.team],
         )
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -353,7 +353,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
 @control_silo_test
 class SlackIntegrationConfigTest(TestCase):
     def setUp(self):
-        self.integration = Integration.objects.create(provider="slack", name="Slack", metadata={})
+        self.integration = self.create_provider_integration(
+            provider="slack", name="Slack", metadata={}
+        )
         self.installation = SlackIntegration(self.integration, self.organization.id)
 
     def test_config_data_workspace_app(self):

@@ -22,7 +22,6 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.integrations.integration import Integration
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
@@ -770,7 +769,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="msteams")
+            integration = self.create_provider_integration(provider="msteams")
             integration.add_organization(organization)
 
         with self.tasks():

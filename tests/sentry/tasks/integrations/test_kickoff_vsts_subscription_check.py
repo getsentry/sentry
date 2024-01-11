@@ -71,7 +71,7 @@ class VstsSubscriptionCheckTest(TestCase):
     @responses.activate
     def test_kickoff_subscription(self):
         integration3_check_time = time()
-        integration1 = Integration.objects.create(
+        integration1 = self.create_provider_integration(
             provider=PROVIDER,
             name="vsts1",
             external_id="vsts1",
@@ -80,10 +80,10 @@ class VstsSubscriptionCheckTest(TestCase):
                 "subscription": {"id": "subscription1"},
             },
         )
-        integration2 = Integration.objects.create(
+        integration2 = self.create_provider_integration(
             provider=PROVIDER, name="vsts2", external_id="vsts2", metadata={}
         )
-        integration3 = Integration.objects.create(
+        integration3 = self.create_provider_integration(
             provider=PROVIDER,
             name="vsts3",
             external_id="vsts3",
@@ -108,7 +108,7 @@ class VstsSubscriptionCheckTest(TestCase):
 
     @responses.activate
     def test_kickoff_subscription_no_default_identity(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=PROVIDER,
             name="vsts1",
             external_id="vsts1",

@@ -6,7 +6,6 @@ import responses
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -24,7 +23,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="gitlab",
                 name="Example GitLab",
                 external_id="example.gitlab.com:getsentry",

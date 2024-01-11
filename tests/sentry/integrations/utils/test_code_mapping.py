@@ -15,7 +15,6 @@ from sentry.integrations.utils.code_mapping import (
     should_include,
     stacktrace_buckets,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -333,7 +332,7 @@ class TestGetSortedCodeMappingConfigs(TestCase):
     def setUp(self):
         super()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration = self.create_provider_integration(provider="example", name="Example")
             self.integration.add_organization(self.organization, self.user)
             self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 

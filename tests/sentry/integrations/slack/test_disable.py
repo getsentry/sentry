@@ -36,7 +36,7 @@ class SlackClientDisable(TestCase):
 
         self.organization = self.create_organization(owner=self.user)
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX1",

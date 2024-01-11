@@ -20,7 +20,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         organization_integration = integration.add_organization(org, self.user)
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -42,7 +42,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
     def test_skip_on_undelete(self):
         org = self.create_organization()
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         organization_integration = integration.add_organization(org, self.user)
 
         ScheduledDeletion.schedule(instance=organization_integration, days=0)
@@ -55,7 +55,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
     def test_repository_and_identity(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         provider = self.create_identity_provider(integration)
         identity = self.create_identity(
             user=self.user, identity_provider=provider, external_id="abc123"
@@ -89,7 +89,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
     def test_codeowner_links(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         repository = self.create_repo(
             project=project, name="testrepo", provider="gitlab", integration_id=integration.id
         )

@@ -5,7 +5,6 @@ from unittest import mock
 import responses
 
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.skips import requires_snuba
@@ -20,7 +19,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def setUp(self):
         event = self.get_event()
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Galactic Empire",
             external_id="D4r7h_Pl4gu315_th3_w153",

@@ -229,7 +229,7 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -248,7 +248,7 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("time.time")
     def test_invalid_silo_member_removed(self, mock_time, mock_decode):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
 
@@ -271,7 +271,7 @@ class MsTeamsWebhookTest(APITestCase):
         different_member_removed = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)
         different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -567,7 +567,7 @@ class MsTeamsWebhookTest(APITestCase):
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
             CARD_ACTION_RESPONSE = {
                 "type": "message",
                 "from": {"id": "user_id"},

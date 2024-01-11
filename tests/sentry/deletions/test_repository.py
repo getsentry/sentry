@@ -7,7 +7,6 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import PluginError
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -81,7 +80,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
     def test_codeowners(self):
         org = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="github", name="Example", external_id="abcd"
             )
             org_integration = self.integration.add_organization(org, self.user)
