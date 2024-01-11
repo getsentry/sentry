@@ -64,6 +64,8 @@ from .quick_trace_connected_services import *  # noqa: F401,F403
 from .release_created import *  # noqa: F401,F403
 from .release_get_previous_commits import *  # noqa: F401,F403
 from .release_set_commits import *  # noqa: F401,F403
+from .relocation_created import *  # noqa: F401,F403
+from .relocation_organization_imported import *  # noqa: F401,F403
 from .repo_linked import *  # noqa: F401,F403
 from .rule_disable_opt_out import *  # noqa: F401,F403
 from .rule_reenable import *  # noqa: F401,F403
