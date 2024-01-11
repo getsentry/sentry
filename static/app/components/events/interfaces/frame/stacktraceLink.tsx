@@ -10,7 +10,10 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
-import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
+import {
+  hasFileExtension,
+  hasStacktraceLinkInFrameFeature,
+} from 'sentry/components/events/interfaces/frame/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -18,6 +21,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -37,7 +42,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
@@ -58,11 +62,17 @@ const supportedStacktracePlatforms: PlatformKey[] = [
 
 interface StacktraceLinkSetupProps {
   event: Event;
+  hasInFrameFeature: boolean;
   organization: Organization;
   project?: Project;
 }
 
-function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetupProps) {
+function StacktraceLinkSetup({
+  organization,
+  project,
+  event,
+  hasInFrameFeature,
+}: StacktraceLinkSetupProps) {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -100,7 +110,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
   };
 
   return (
-    <StacktraceLinkWrapper>
+    <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
       <StyledLink to={`/settings/${organization.slug}/integrations/`}>
         <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
         {t('Add the GitHub or GitLab integration to jump straight to your source code')}
@@ -136,6 +146,7 @@ function shouldShowCodecovPrompt(
 
 interface CodecovLinkProps {
   event: Event;
+  hasInFrameFeature: boolean;
   organization: Organization;
   coverageUrl?: string;
   status?: CodecovStatusCode;
@@ -146,6 +157,7 @@ function CodecovLink({
   status = CodecovStatusCode.COVERAGE_EXISTS,
   organization,
   event,
+  hasInFrameFeature,
 }: CodecovLinkProps) {
   if (status === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
@@ -160,7 +172,7 @@ function CodecovLink({
     return null;
   }
 
-  const onOpenCodecovLink = e => {
+  const onOpenCodecovLink = (e: React.MouseEvent) => {
     e.stopPropagation();
     trackAnalytics('integrations.stacktrace_codecov_link_clicked', {
       view: 'stacktrace_issue_details',
@@ -169,24 +181,19 @@ function CodecovLink({
       ...getAnalyticsDataForEvent(event),
     });
   };
-  const hasStacktraceLinkFeatureFlag =
-    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
 
   return (
     <OpenInLink
       href={coverageUrl}
       openInNewTab
       onClick={onOpenCodecovLink}
-      aria-label={hasStacktraceLinkFeatureFlag ? t('Open in Codecov') : undefined}
+      aria-label={hasInFrameFeature ? t('Open in Codecov') : undefined}
+      hasInFrameFeature={hasInFrameFeature}
     >
-      <Tooltip
-        title={t('Open in Codecov')}
-        disabled={!hasStacktraceLinkFeatureFlag}
-        skipWrapper
-      >
+      <Tooltip title={t('Open in Codecov')} disabled={!hasInFrameFeature} skipWrapper>
         <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       </Tooltip>
-      {hasStacktraceLinkFeatureFlag ? null : t('Open in Codecov')}
+      {hasInFrameFeature ? null : t('Open in Codecov')}
     </OpenInLink>
   );
 }
@@ -202,9 +209,9 @@ interface StacktraceLinkProps {
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
+  const {user} = useLegacyStore(ConfigStore);
   const {projects} = useProjects();
-  const hasStacktraceLinkFeatureFlag =
-    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
   // TODO: Currently we only support GitHub links. Implement support for other source code providers.
   // Related comment: https://github.com/getsentry/sentry/pull/62596#discussion_r1443025242
@@ -212,7 +219,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     'https://www.github.com/'
   );
   const [isQueryEnabled, setIsQueryEnabled] = useState(
-    hasGithubSourceLink ? false : !frame.inApp ? false : !hasStacktraceLinkFeatureFlag
+    hasGithubSourceLink ? false : !frame.inApp ? false : !hasInFrameFeature
   );
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -233,12 +240,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       : false;
 
   useEffect(() => {
-    let timer;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (!validFilePath) {
       return setIsQueryEnabled(false);
     }
     // Skip fetching if we already have the Source Link
-    if (hasStacktraceLinkFeatureFlag && !hasGithubSourceLink && frame.inApp) {
+    if (hasInFrameFeature && !hasGithubSourceLink && frame.inApp) {
       // Introduce a delay before enabling the query
 
       timer = setTimeout(() => {
@@ -246,7 +253,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       }, 100); // Delay of 100ms
     }
     return () => timer && clearTimeout(timer);
-  }, [hasStacktraceLinkFeatureFlag, validFilePath, hasGithubSourceLink, frame]);
+  }, [hasInFrameFeature, validFilePath, hasGithubSourceLink, frame]);
 
   const {
     data: match,
@@ -330,14 +337,15 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     hasGithubSourceLink &&
     !frame.inApp &&
     frame.sourceLink &&
-    hasStacktraceLinkFeatureFlag
+    hasInFrameFeature
   ) {
     return (
-      <StacktraceLinkWrapper>
+      <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
         <OpenInLink
           onClick={e => onOpenLink(e, frame.sourceLink)}
           href={frame.sourceLink}
           openInNewTab
+          hasInFrameFeature={hasInFrameFeature}
         >
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
           {t('GitHub')}
@@ -348,10 +356,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   if (isLoading || !match) {
     return (
-      <StacktraceLinkWrapper>
+      <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
         <Placeholder
-          height={hasStacktraceLinkFeatureFlag ? '14px' : '24px'}
-          width={hasStacktraceLinkFeatureFlag ? '40px' : '120px'}
+          height={hasInFrameFeature ? '14px' : '24px'}
+          width={hasInFrameFeature ? '40px' : '120px'}
         />
       </StacktraceLinkWrapper>
     );
@@ -360,7 +368,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   // Match found - display link to source
   if (match.config && match.sourceUrl) {
     return (
-      <StacktraceLinkWrapper>
+      <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
         <OpenInLink
           onClick={onOpenLink}
           href={getIntegrationSourceUrl(
@@ -370,13 +378,14 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           )}
           openInNewTab
           aria-label={
-            hasStacktraceLinkFeatureFlag
+            hasInFrameFeature
               ? t('Open this line in %s', match.config.provider.name)
               : undefined
           }
+          hasInFrameFeature={hasInFrameFeature}
         >
           <Tooltip
-            disabled={!hasStacktraceLinkFeatureFlag}
+            disabled={!hasInFrameFeature}
             title={t('Open this line in %s', match.config.provider.name)}
             skipWrapper
           >
@@ -384,7 +393,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               {getIntegrationIcon(match.config.provider.key, 'sm')}
             </StyledIconWrapper>
           </Tooltip>
-          {hasStacktraceLinkFeatureFlag
+          {hasInFrameFeature
             ? null
             : t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
@@ -394,6 +403,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             status={match.codecov?.status}
             organization={organization}
             event={event}
+            hasInFrameFeature={hasInFrameFeature}
           />
         ) : shouldShowCodecovPrompt(organization, match) ? (
           <HookCodecovStacktraceLink organization={organization} />
@@ -418,10 +428,15 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     (match.error || match.integrations.length > 0)
   ) {
     return (
-      <StacktraceLinkWrapper>
-        <OpenInLink onClick={onOpenLink} href={frame.sourceLink} openInNewTab>
+      <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
+        <OpenInLink
+          onClick={onOpenLink}
+          href={frame.sourceLink}
+          openInNewTab
+          hasInFrameFeature={hasInFrameFeature}
+        >
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {hasStacktraceLinkFeatureFlag ? t('GitHub') : t('Open this line in GitHub')}
+          {hasInFrameFeature ? t('GitHub') : t('Open this line in GitHub')}
         </OpenInLink>
         {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
@@ -429,6 +444,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             status={match.codecov?.status}
             organization={organization}
             event={event}
+            hasInFrameFeature={hasInFrameFeature}
           />
         ) : shouldShowCodecovPrompt(organization, match) ? (
           <HookCodecovStacktraceLink organization={organization} />
@@ -448,9 +464,10 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       ['github', 'gitlab'].includes(integration.provider?.key)
     );
     return (
-      <StacktraceLinkWrapper>
+      <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
         <FixMappingButton
           priority="link"
+          hasInFrameFeature={hasInFrameFeature}
           icon={
             sourceCodeProviders.length === 1
               ? getIntegrationIcon(sourceCodeProviders[0].provider.key, 'sm')
@@ -494,7 +511,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
 
   // No integrations
   return (
-    <StacktraceLinkSetup event={event} project={project} organization={organization} />
+    <StacktraceLinkSetup
+      event={event}
+      project={project}
+      organization={organization}
+      hasInFrameFeature={hasInFrameFeature}
+    />
   );
 }
 
@@ -503,8 +525,8 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-const StacktraceLinkWrapper = withOrganization(styled('div')<{
-  organization: Organization;
+const StacktraceLinkWrapper = styled('div')<{
+  hasInFrameFeature: boolean;
 }>`
   display: flex;
   gap: ${space(2)};
@@ -513,7 +535,7 @@ const StacktraceLinkWrapper = withOrganization(styled('div')<{
   font-family: ${p => p.theme.text.family};
 
   ${p =>
-    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
+    p.hasInFrameFeature
       ? `
       padding: ${space(0)} ${space(1)};
       flex-wrap: wrap;
@@ -527,13 +549,15 @@ const StacktraceLinkWrapper = withOrganization(styled('div')<{
       min-height: 28px;
 
       `}
-`);
+`;
 
-const FixMappingButton = withOrganization(styled(Button)<{organization: Organization}>`
+const FixMappingButton = styled(Button)<{
+  hasInFrameFeature: boolean;
+}>`
   color: ${p => p.theme.subText};
 
   ${p =>
-    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
+    p.hasInFrameFeature
       ? `
       &:hover {
         color: ${p.theme.subText};
@@ -543,7 +567,7 @@ const FixMappingButton = withOrganization(styled(Button)<{organization: Organiza
       }
     `
       : ``}
-`);
+`;
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
@@ -560,10 +584,12 @@ const LinkStyles = css`
   gap: ${space(0.75)};
 `;
 
-const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organization}>`
+const OpenInLink = styled(ExternalLink)<{
+  hasInFrameFeature: boolean;
+}>`
   ${LinkStyles}
   ${p =>
-    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
+    p.hasInFrameFeature
       ? css`
           color: ${p.theme.subText};
           animation: ${fadeIn} 0.2s ease-in-out forwards;
@@ -578,7 +604,7 @@ const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organiza
       : css`
           color: ${p.theme.gray300};
         `}
-`);
+`;
 
 const StyledLink = styled(Link)`
   ${LinkStyles}

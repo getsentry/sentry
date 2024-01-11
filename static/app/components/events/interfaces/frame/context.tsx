@@ -7,8 +7,11 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
+import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -84,16 +87,16 @@ function Context({
   frameMeta,
   registersMeta,
 }: Props) {
+  const {user} = useLegacyStore(ConfigStore);
   const hasSyntaxHighlighting =
     organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
     false;
 
-  const hasStacktraceLinkInFrameFeatureFlag =
-    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
 
   // This is the old design. Only show if the feature flag is not enabled for this organization.
   const hasStacktraceLink =
-    frame.inApp && !!frame.filename && isExpanded && !hasStacktraceLinkInFrameFeatureFlag;
+    frame.inApp && !!frame.filename && isExpanded && !hasInFrameFeature;
 
   const {projects} = useProjects();
   const project = useMemo(

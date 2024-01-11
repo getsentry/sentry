@@ -213,7 +213,7 @@ function Content({
         (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
         hiddenFrameIndices.includes(frameIndex)
       ) {
-        const frameProps: DeprecatedLineProps = {
+        const frameProps: Omit<DeprecatedLineProps, 'config'> = {
           event,
           data: frame,
           isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
