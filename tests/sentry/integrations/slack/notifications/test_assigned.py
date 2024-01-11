@@ -5,7 +5,6 @@ import responses
 
 from sentry.models.activity import Activity
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
@@ -35,7 +34,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         """
         Test that we notify a user with multiple Identities in each place
         """
-        integration2 = Integration.objects.create(
+        integration2 = self.create_provider_integration(
             provider="slack",
             name="Team B",
             external_id="TXXXXXXX2",
@@ -83,7 +82,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         we're only going to notify them for the relevant org
         """
         org2 = self.create_organization(owner=self.user)
-        integration2 = Integration.objects.create(
+        integration2 = self.create_provider_integration(
             provider="slack",
             name="Team B",
             external_id="TXXXXXXX2",
