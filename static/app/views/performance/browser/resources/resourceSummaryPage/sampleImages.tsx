@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {safeURL} from 'sentry/utils/url/safeURL';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -28,8 +29,8 @@ const imageWidth = '200px';
 const imageHeight = '180px';
 
 function SampleImages({groupId, projectId}: Props) {
-  const showLinks = localStorage.getItem(LOCAL_STORAGE_SHOW_LINKS);
-  const [showImages, setShowImages] = useState(showLinks === 'true');
+  const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
+  const [showImages, setShowImages] = useState(showLinks);
   const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
@@ -53,7 +54,7 @@ function SampleImages({groupId, projectId}: Props) {
     .splice(0, 5);
 
   const handleClickOnlyShowLinks = () => {
-    localStorage.setItem(LOCAL_STORAGE_SHOW_LINKS, 'true');
+    setShowLinks(true);
     setShowImages(true);
   };
 
