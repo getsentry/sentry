@@ -408,9 +408,3 @@ def detect_synthetic_exception(event_data, grouping_config):
             exception_type = exception.get("type")
             if exception_type and _synthetic_exception_type_re.match(exception_type):
                 mechanism["synthetic"] = True
-        mechanism = get_path(exception, "mechanism")
-        # Only detect if undecided:
-        if mechanism is not None and mechanism.get("synthetic") is None:
-            exception_type = exception.get("type")
-            if exception_type and _synthetic_exception_type_re.match(exception_type):
-                mechanism["synthetic"] = True
