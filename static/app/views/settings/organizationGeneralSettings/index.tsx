@@ -24,6 +24,7 @@ import withProjects from 'sentry/utils/withProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
@@ -103,11 +104,18 @@ function OrganizationGeneralSettings(props: Props) {
     });
   };
 
+  const organizationRegionInfo = OrganizationRegionAction({
+    organization,
+  });
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader title={t('Organization Settings')} />
+        <SettingsPageHeader
+          title={t('Organization Settings')}
+          action={organizationRegionInfo}
+        />
         <PermissionAlert />
 
         <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
