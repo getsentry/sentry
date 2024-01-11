@@ -126,9 +126,8 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
             self.organization.slug, self.project.slug, "amazon-sqs", status_code=403
         )
 
-    @with_feature({"organizations:integrations-chat-unfurl": False})
-    def test_disallow_integration_with_feature_disabled(self):
-        self.get_error_response(self.organization.slug, self.project.slug, "slack", status_code=403)
+    def test_allow_session_replay_plugin(self):
+        self.get_success_response(self.organization.slug, self.project.slug, "sessionstack")
 
 
 @region_silo_test

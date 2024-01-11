@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, integrations
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -90,31 +90,19 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         if not plugin.can_disable:
             return Response({"detail": ERR_ALWAYS_ENABLED}, status=400)
 
-        if integrations.exists(plugin_id):
-            for feature in integrations.get(plugin_id).features:
-                feature_flag_name = "organizations:integrations-%s" % feature.value
-                if feature_flag_name in settings.SENTRY_FEATURES and not features.has(
-                    feature_flag_name, project.organization
-                ):
-                    return Response(
-                        {"detail": ERR_FEATURE_REQUIRED % feature_flag_name}, status=403
-                    )
-        else:  # assume it is a plugin
-            for feature_description in plugin.feature_descriptions:
-                if feature_description.featureGate == IntegrationFeatures.SESSION_REPLAY:
-                    # NOTE: there is a clash between Sentry native "organizations:session-replay" which is False by default
-                    # (see server.py) and "organizations:session-replay" which is supposed to be a plugin-related feature,
-                    # according to current logic: https://github.com/getsentry/sentry/pull/16825
-                    # We can allow this action unconditionally because there is no restriction on the SessionStack plugin.
-                    continue
-                feature_flag_name = "organizations:%s" % feature_description.featureGate.value
-                # Check only for features that exist in SENTRY_FEATURES. Currently this only applies to "data-forwarding".
-                if feature_flag_name in settings.SENTRY_FEATURES and not features.has(
-                    feature_flag_name, project.organization
-                ):
-                    return Response(
-                        {"detail": ERR_FEATURE_REQUIRED % feature_flag_name}, status=403
-                    )
+        for feature_description in plugin.feature_descriptions:
+            if feature_description.featureGate == IntegrationFeatures.SESSION_REPLAY:
+                # NOTE: there is a clash between Sentry native "organizations:session-replay" which is False by default
+                # (see server.py) and "organizations:session-replay" which is supposed to be a plugin-related feature,
+                # according to current logic: https://github.com/getsentry/sentry/pull/16825
+                # We can allow this action unconditionally because there is no restriction on the SessionStack plugin.
+                continue
+            feature_flag_name = "organizations:%s" % feature_description.featureGate.value
+            # Check only for features that exist in SENTRY_FEATURES. Currently this only applies to "data-forwarding".
+            if feature_flag_name in settings.SENTRY_FEATURES and not features.has(
+                feature_flag_name, project.organization
+            ):
+                return Response({"detail": ERR_FEATURE_REQUIRED % feature_flag_name}, status=403)
 
         plugin.enable(project)
 
