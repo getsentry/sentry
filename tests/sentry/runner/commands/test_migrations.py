@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 from unittest.mock import patch
 
 from click.testing import CliRunner
-from django.db import connection, router
+from django.db import connections, router
 from django.test import override_settings
 
 from sentry.runner.commands.migrations import migrations
 from sentry.testutils.cases import TransactionTestCase
+
+
+def filter_queries(needle: str, queries: list) -> list[str]:
+    return list(filter(lambda sql: needle in sql, queries))
 
 
 class MigrationsRunTest(TransactionTestCase):
@@ -31,18 +37,29 @@ class MigrationsRunTest(TransactionTestCase):
             assert "Running post-deployment migration for control" in result.output
             assert "Migration complete" in result.output
 
+            connection = connections["default"]
             queries = [q["sql"] for q in connection.queries]
 
             expected = 'CREATE INDEX CONCURRENTLY "migration_run_test_name_idx" ON "migration_test_app_migrationruntest" ("name")'
             assert expected in queries, queries
 
-            matched = list(filter(lambda sql: "CREATE INDEX CONCURRENTLY" in sql, queries))
+            matched = filter_queries("CREATE INDEX CONCURRENTLY", queries)
             assert len(matched) == 1
 
-            matched = list(
-                filter(lambda sql: 'CREATE INDEX "migration_run_test_name_idx"' in sql, queries)
-            )
+            matched = filter_queries('CREATE INDEX "migration_run_test_name_idx"', queries)
             assert len(matched) == 0
+
+            for conn_name in connections:
+                connection = connections[conn_name]
+                if connection.alias == "default":
+                    continue
+                queries = [q["sql"] for q in connection.queries]
+
+                matched = filter_queries("CREATE TABLE", queries)
+                assert len(matched) == 0
+
+                matched = filter_queries("CREATE INDEX", queries)
+                assert len(matched) == 0
 
     def test_migration_skipped_by_router(self):
         with override_settings(
@@ -55,10 +72,12 @@ class MigrationsRunTest(TransactionTestCase):
             assert result.exit_code == 0, result.output
             assert "Migration complete" in result.output
 
-            queries = [q["sql"] for q in connection.queries]
+            for conn_name in connections:
+                connection = connections[conn_name]
+                queries = [q["sql"] for q in connection.queries]
 
-            matched = list(filter(lambda sql: "CREATE INDEX" in sql, queries))
-            assert len(matched) == 0
+                matched = filter_queries("CREATE TABLE", queries)
+                assert len(matched) == 0
 
-            matched = list(filter(lambda sql: "CREATE TABLE" in sql, queries))
-            assert len(matched) == 0
+                matched = filter_queries("CREATE INDEX", queries)
+                assert len(matched) == 0
