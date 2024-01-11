@@ -195,7 +195,7 @@ def test_event_hash_variant(insta_snapshot, input):
 
 @pytest.fixture
 def default_bases():
-    return ["nextjs@2023-12-22"]
+    return ["sentry.javascript.nextjs@2023-12-22"]
 
 
 def test_default_bases(default_bases):
@@ -204,14 +204,14 @@ def test_default_bases(default_bases):
     assert {
         k: [r._to_config_structure() for r in rs] for k, rs in FINGERPRINTING_BASES.items()
     } == {
-        "nextjs@2023-12-22": [
+        "sentry.javascript.nextjs@2023-12-22": [
             {
-                "matchers": [["type", "ChunkLoadError"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
             {
-                "matchers": [["value", "ChunkLoadError*"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
@@ -226,12 +226,12 @@ def test_built_in_chunkload_rules(default_bases):
     assert rules._to_config_structure(include_builtin=True) == {
         "rules": [
             {
-                "matchers": [["type", "ChunkLoadError"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
             {
-                "matchers": [["value", "ChunkLoadError*"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
@@ -247,12 +247,12 @@ def test_built_in_chunkload_rules_from_empty_config_string(default_bases):
     assert rules._to_config_structure(include_builtin=True) == {
         "rules": [
             {
-                "matchers": [["type", "ChunkLoadError"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
             {
-                "matchers": [["value", "ChunkLoadError*"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
@@ -279,12 +279,12 @@ def test_built_in_chunkload_rules_from_config_string_with_custom(default_bases):
     assert rules._to_config_structure(include_builtin=True) == {
         "rules": [
             {
-                "matchers": [["type", "ChunkLoadError"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
             {
-                "matchers": [["value", "ChunkLoadError*"]],
+                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },

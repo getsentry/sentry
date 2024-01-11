@@ -213,8 +213,8 @@ class FingerprintingRules:
 
         return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
 
-    def to_json(self, bases=None):
-        return self._to_config_structure(bases=bases)
+    def to_json(self, include_builtin=False):
+        return self._to_config_structure(include_builtin=include_builtin)
 
     @classmethod
     def from_json(cls, value, bases=None):
