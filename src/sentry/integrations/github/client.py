@@ -168,8 +168,10 @@ class GithubProxyClient(IntegrationProxyClient):
             )
             return prepared_request
 
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
         prepared_request.headers["Authorization"] = f"Bearer {token}"
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
+            prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
         return prepared_request
 
@@ -615,16 +617,27 @@ class GitHubClientMixin(GithubProxyClient):
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> str:
+    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
         """
         from base64 import b64decode
 
-        contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
-        encoded_content = contents["content"]
-        return b64decode(encoded_content).decode("utf-8")
+        headers = {"Content-Type": "application/raw; charset=utf-8"} if codeowners else {}
+        contents = self.get(
+            path=f"/repos/{repo.name}/contents/{path}",
+            params={"ref": ref},
+            raw_response=True if codeowners else False,
+            headers=headers,
+        )
+
+        result = (
+            contents.content.decode()
+            if codeowners
+            else b64decode(contents["content"]).decode("utf-8")
+        )
+        return result
 
     def get_blame_for_file(
         self, repo: Repository, path: str, ref: str, lineno: int

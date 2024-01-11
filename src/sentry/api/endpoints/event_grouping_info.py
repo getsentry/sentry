@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class EventGroupingInfoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: HttpRequest, project, event_id) -> HttpResponse:

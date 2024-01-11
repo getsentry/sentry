@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Optional, Sequence, Tuple
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -118,12 +120,23 @@ class SlidingWindowRateLimiter(Service):
 
 class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     def __init__(self, **options: Any) -> None:
-        cluster_key = options.get("cluster", "default")
-        client = redis.redis_clusters.get(cluster_key)
-        assert isinstance(client, (StrictRedis, RedisCluster)), client
-        self.client = client
-        self.impl = RedisSlidingWindowRateLimiterImpl(self.client)
+        self.cluster_key = options.get("cluster", "default")
+        self._client: RedisCluster | StrictRedis | None = None
+        self._impl: RedisSlidingWindowRateLimiterImpl | None = None
         super().__init__(**options)
+
+    @property
+    def client(self) -> StrictRedis | RedisCluster:
+        if self._client is None:
+            self._client = redis.redis_clusters.get(self.cluster_key)
+            assert isinstance(self._client, (StrictRedis, RedisCluster)), self._client
+        return self._client
+
+    @property
+    def impl(self):
+        if self._impl is None:
+            self._impl = RedisSlidingWindowRateLimiterImpl(self.client)
+        return self._impl
 
     def validate(self) -> None:
         try:

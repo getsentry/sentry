@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
@@ -70,6 +71,13 @@ export default function ReplayComparisonModal({
             }
           )}
         </StyledParagraph>
+        {leftBody && rightBody && leftBody === rightBody && (
+          <Alert type="warning" showIcon>
+            {t(
+              "Sentry wasn't able to identify the correct event to display a diff for this hydration error."
+            )}
+          </Alert>
+        )}
         <Flex gap={space(1)} column>
           <TabList
             selectedKey={activeTab}

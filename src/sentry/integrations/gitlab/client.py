@@ -326,7 +326,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
                 raise
             return None
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> str:
+    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
@@ -338,10 +338,22 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         project_id = repo.config["project_id"]
         encoded_path = quote(path, safe="")
         request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-        contents = self.get(request_path, params={"ref": ref})
+        headers = (
+            {
+                "Accept": "application/vnd.github.raw",
+                "Content-Type": "application/raw; charset=utf-8",
+            }
+            if codeowners
+            else {}
+        )
+        contents = self.get(request_path, params={"ref": ref}, raw_response=True, headers=headers)
 
-        encoded_content = contents["content"]
-        return b64decode(encoded_content).decode("utf-8")
+        result = (
+            contents.content.decode()
+            if codeowners
+            else b64decode(contents["content"]).decode("utf-8")
+        )
+        return result
 
     def get_blame_for_file(
         self, repo: Repository, path: str, ref: str, lineno: int

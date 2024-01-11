@@ -4,6 +4,7 @@ import dataclasses
 import logging
 from typing import Sequence
 
+import sentry_sdk
 from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
@@ -24,6 +25,7 @@ from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
@@ -126,10 +128,17 @@ class SlackRequestParser(BaseRequestParser):
         if data and is_event_challenge(data):
             return self.get_response_from_control_silo()
 
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+        try:
+            regions = self.get_regions_from_organizations()
+        except Integration.DoesNotExist:
+            # Alert, as there may be a misconfiguration issue
+            sentry_sdk.capture_exception()
+            return self.get_default_missing_integration_response()
+        except OrganizationIntegration.DoesNotExist:
+            # Swallow this exception, as this is likely due to a user removing
+            # their org's slack integration, and slack will continue to retry
+            # this request until it succeeds.
+            return HttpResponse(status=202)
 
         if self.view_class == SlackActionEndpoint:
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
