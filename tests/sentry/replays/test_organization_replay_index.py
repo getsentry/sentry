@@ -1986,3 +1986,43 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response_data = response.json()
             assert response_data["data"][0]["count_warnings"] == 1
+
+    def test_non_empty_string_scalar(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=0, dist="")
+        )
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=0, dist="1")
+        )
+
+        # "dist" is used as a placeholder to test the "NonEmptyStringScalar" class. Empty
+        # strings should be ignored when performing negation queries.
+        with self.feature(REPLAYS_FEATURES):
+            # dist should be findable if any of its filled values match the query.
+            queries = [
+                "dist:1",
+                "dist:[1]",
+                "dist:*1*",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            # If we explicitly negate dist's filled value we should also ignore empty
+            # values.
+            queries = [
+                "!dist:1",
+                "!dist:[1]",
+                "!dist:*1*",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query

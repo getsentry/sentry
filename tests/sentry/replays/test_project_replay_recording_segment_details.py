@@ -101,7 +101,7 @@ class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnuba
         self.store_replays(
             mock_replay(
                 datetime.datetime.now() - datetime.timedelta(seconds=22),
-                str(metadata.project_id),
+                metadata.project_id,
                 metadata.replay_id,
                 segment_id=metadata.segment_id,
                 retention_days=metadata.retention_days,
