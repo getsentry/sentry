@@ -128,6 +128,11 @@ class IntegrationControlMiddlewareTest(TestCase):
         assert result != response
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_handles_missing_integration(self):
+        response = self.middleware(self.factory.post("/extensions/jira/issue-updated/"))
+        assert response.status_code == 404
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(PluginRequestParser, "get_response")
     def test_returns_parser_get_response_plugin(self, mock_parser_get_response):
         result = HttpResponse(status=204)
