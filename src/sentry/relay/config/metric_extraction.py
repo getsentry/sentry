@@ -226,11 +226,12 @@ def _get_widget_metric_specs(
             widget_specs = convert_widget_query_to_metric(project, widget, prefilling)
             specs.extend(widget_specs)
 
-            can_widget_use_stateful_extraction = _can_widget_use_stateful_extraction(
+            can_widget_query_use_stateful_extraction = _can_widget_query_use_stateful_extraction(
                 widget, widget_specs
             )
             if options.get("on_demand_metrics.widgets.use_stateful_extraction"):
-                if not can_widget_use_stateful_extraction:
+                if not can_widget_query_use_stateful_extraction:
+                    # Return no specs if any extraction is blocked for a widget that should have specs.
                     return []
 
             # TODO: Remove this cardinality check after above option is enabled permanently.
@@ -343,19 +344,22 @@ def convert_widget_query_to_metric(
     return metrics_specs
 
 
-def _can_widget_use_stateful_extraction(
+def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
     if not metrics_specs:
-        return False
+        # If no specs then it can be ignored for on-demand, we want to not skip the entire widget.
+        return True
     spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 
     if len(on_demand_entries) != 1:
         # There should only be one on demand entry
-        sentry_sdk.capture_message(
-            f"Wrong number of relations ({len(on_demand_entries)}) for widget_query: {widget_query.id}"
-        )
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("widget_query", widget_query.id)
+            sentry_sdk.capture_message(
+                f"Wrong number of relations ({len(on_demand_entries)}) for widget_query: {widget_query.id}"
+            )
         metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_relations", sample_rate=1.0)
         return False
 
