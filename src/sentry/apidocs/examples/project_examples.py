@@ -1,6 +1,6 @@
 from drf_spectacular.utils import OpenApiExample
 
-key_rate_limit = {
+KEY_RATE_LIMIT = {
     "id": "60120449b6b1d5e45f75561e6dabd80b",
     "name": "Liked Pegasus",
     "label": "Liked Pegasus",
@@ -29,8 +29,8 @@ key_rate_limit = {
     },
 }
 
-key_no_rate_limit = {
-    **key_rate_limit,
+KEY_NO_RATE_LIMIT = {
+    **KEY_RATE_LIMIT,
     "id": "da8d69cb17e80677b76e08fde4656b93",
     "name": "Bold Oarfish",
     "label": "Bold Oarfish",
@@ -39,7 +39,7 @@ key_no_rate_limit = {
     "rateLimit": None,
 }
 
-base_project = {
+BASE_PROJECT = {
     "id": "4505321021243392",
     "slug": "the-spoiled-yoghurt",
     "name": "The Spoiled Yoghurt",
@@ -94,8 +94,8 @@ base_project = {
     "status": "active",
 }
 
-detailed_project = {
-    **base_project,
+DETAILED_PROJECT = {
+    **BASE_PROJECT,
     "id": "4505278496",
     "slug": "pump-station",
     "name": "Pump Station",
@@ -409,7 +409,7 @@ def project_with_team(extra_team: bool = False):
         },
     ]
     return {
-        **base_project,
+        **BASE_PROJECT,
         "id": "6758470122493650",
         "slug": "The Spoiled Yoghurt",
         "name": "the-spoiled-yoghurt",
@@ -429,7 +429,7 @@ class ProjectExamples:
     BASE_KEY = [
         OpenApiExample(
             "Client key with rate limiting",
-            value=key_rate_limit,
+            value=KEY_RATE_LIMIT,
             status_codes=["200", "201"],
             response_only=True,
         ),
@@ -438,7 +438,7 @@ class ProjectExamples:
     DETAILED_PROJECT = [
         OpenApiExample(
             "Get detailed view about a Project",
-            value=detailed_project,
+            value=DETAILED_PROJECT,
             status_codes=["200"],
             response_only=True,
         ),
@@ -447,7 +447,7 @@ class ProjectExamples:
     CREATE_PROJECT = [
         OpenApiExample(
             "Project successfully created",
-            value=base_project,
+            value=BASE_PROJECT,
             status_codes=["201"],
             response_only=True,
         ),
@@ -457,8 +457,8 @@ class ProjectExamples:
         OpenApiExample(
             "List Client Keys for a Project",
             value=[
-                key_rate_limit,
-                key_no_rate_limit,
+                KEY_RATE_LIMIT,
+                KEY_NO_RATE_LIMIT,
             ],
             status_codes=["200"],
             response_only=True,
@@ -468,7 +468,7 @@ class ProjectExamples:
     RETREVE_CLIENT_KEY = [
         OpenApiExample(
             "Retrieve an Existing Client Key",
-            value=key_no_rate_limit,
+            value=KEY_NO_RATE_LIMIT,
             status_codes=["200"],
             response_only=True,
         ),

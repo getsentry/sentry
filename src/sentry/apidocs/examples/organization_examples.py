@@ -7,6 +7,8 @@ class OrganizationExamples:
             "List an organization's projects",
             value=[
                 {
+                    "slug": "prime-mover",
+                    "name": "Prime Mover",
                     "dateCreated": "2018-11-06T21:19:58.536Z",
                     "firstEvent": None,
                     "access": [],
@@ -14,10 +16,8 @@ class OrganizationExamples:
                     "id": "3",
                     "isBookmarked": False,
                     "isMember": True,
-                    "name": "Prime Mover",
                     "platform": "",
                     "platforms": [],
-                    "slug": "prime-mover",
                     "team": {
                         "id": "2",
                         "name": "Powerful Abolitionist",

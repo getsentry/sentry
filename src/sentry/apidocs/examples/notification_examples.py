@@ -1,6 +1,6 @@
 from drf_spectacular.utils import OpenApiExample
 
-notification_action_one = {
+NOTIFICATION_ACTION_ONE = {
     "id": "836501735",
     "organizationId": "62848264",
     "serviceType": "sentry_notification",
@@ -11,7 +11,7 @@ notification_action_one = {
     "projects": [4505321021243392],
 }
 
-notification_action_two = {
+NOTIFICATION_ACTION_TWO = {
     "id": "73847650",
     "organizationId": "62848264",
     "serviceType": "sentry_notification",
@@ -27,7 +27,7 @@ class NotificationActionExamples:
     CREATE_NOTIFICATION_ACTION = [
         OpenApiExample(
             "Create a new email spike protection notification action for a project",
-            value=notification_action_one,
+            value=NOTIFICATION_ACTION_ONE,
             status_codes=["201"],
             response_only=True,
         )
@@ -36,7 +36,7 @@ class NotificationActionExamples:
     GET_NOTIFICATION_ACTION = [
         OpenApiExample(
             "Retrieve a spike protection notification action created for a project",
-            value=notification_action_one,
+            value=NOTIFICATION_ACTION_ONE,
             status_codes=["200"],
             response_only=True,
         )
@@ -45,7 +45,7 @@ class NotificationActionExamples:
     LIST_NOTIFICATION_ACTIONS = [
         OpenApiExample(
             "List all spike protection notification actions for an organization",
-            value=[notification_action_one, notification_action_two],
+            value=[NOTIFICATION_ACTION_ONE, NOTIFICATION_ACTION_TWO],
             status_codes=["201"],
             response_only=True,
         )
@@ -54,7 +54,7 @@ class NotificationActionExamples:
     UPDATE_NOTIFICATION_ACTION = [
         OpenApiExample(
             "Update a spike protection notification action created for a project to use sentry_notification as notification service.",
-            value=notification_action_one,
+            value=NOTIFICATION_ACTION_ONE,
             status_codes=["202"],
             response_only=True,
         )
