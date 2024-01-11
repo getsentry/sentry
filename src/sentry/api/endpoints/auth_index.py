@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,12 +19,12 @@ from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.superuser import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, Superuser
+from sentry.auth.superuser import Superuser
 from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
-from sentry.utils.auth import has_completed_sso, initiate_login
+from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -139,8 +140,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
-        # TODO Look at AuthVerifyValidator
-        validator.is_valid()
+        if not validator.is_valid():
+            raise NotAuthenticated(detail="Missing password or U2F")
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
@@ -149,10 +150,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         )
 
         if Superuser.org_id:
-            if (
-                not has_completed_sso(request, Superuser.org_id)
-                and not DISABLE_SSO_CHECK_FOR_LOCAL_DEV
-            ):
+            if not has_completed_sso(request, Superuser.org_id):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
 
@@ -221,7 +219,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
             if not validator.is_valid():
-                return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+                raise NotAuthenticated(detail="Missing password or U2F")
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
@@ -245,13 +243,11 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                     if not Authenticator.objects.filter(
                         user_id=request.user.id, type=U2fInterface.type
                     ).exists():
-                        return Response(
-                            {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
-                        )
+                        return Response({"detail": "no_u2f"}, status=status.HTTP_403_FORBIDDEN)
             authenticated = self._validate_superuser(validator, request, verify_authenticator)
 
         if not authenticated:
-            return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "ignore"}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             # Must use the httprequest object instead of request

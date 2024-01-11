@@ -105,13 +105,17 @@ class SuperuserAccessForm extends Component<Props, State> {
   handleError = err => {
     let errorType = '';
     if (err.status === 403) {
-      if (err.responseJSON.detail.code === 'no_u2f') {
+      if (err.responseJSON.detail === 'no_u2f') {
         errorType = ErrorCodes.NO_AUTHENTICATOR;
       } else {
         errorType = ErrorCodes.INVALID_PASSWORD;
       }
     } else if (err.status === 401) {
-      errorType = ErrorCodes.INVALID_SSO_SESSION;
+      if (err.responseJSON.detail === 'Missing password or U2F') {
+        errorType = ErrorCodes.MISSING_PASSWORD_OR_U2F;
+      } else {
+        errorType = ErrorCodes.INVALID_SSO_SESSION;
+      }
     } else if (err.status === 400) {
       errorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
     } else if (err === ErrorCodes.NO_AUTHENTICATOR) {
