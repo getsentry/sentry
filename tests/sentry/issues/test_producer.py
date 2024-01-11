@@ -54,6 +54,25 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert stored_occurrence
         assert occurrence.event_id == stored_occurrence.event_id
 
+    def test_without_payload_type(self) -> None:
+        # Ensure the occurrence is processes without a payload_type too.
+        occurrence = self.build_occurrence(project_id=self.project.id)
+        produce_occurrence_to_kafka(
+            occurrence=occurrence,
+            event_data={
+                "event_id": occurrence.event_id,
+                "project_id": self.project.id,
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "2"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
+        assert stored_occurrence
+        assert occurrence.event_id == stored_occurrence.event_id
+
     def test_with_only_occurrence(self) -> None:
         event = self.store_event(data=load_data("transaction"), project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id, project_id=self.project.id)
