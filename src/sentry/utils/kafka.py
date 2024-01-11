@@ -31,9 +31,9 @@ def delay_shutdown(consumer_name, processor) -> None:
         "sentry-metrics.synchronize-kafka-rebalances"
     ):
         configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
-        logger.info("Starting delay in shutdown step")
+        logger.info("Started delay in consumer shutdown step")
         delay_kafka_rebalance(configured_delay)
-        logger.info("Finished delay in shutdown step")
+        logger.info("Finished delay in consumer shutdown step")
     processor.signal_shutdown()
 
 
