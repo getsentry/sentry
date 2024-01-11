@@ -32,6 +32,7 @@ type ChartProps = {
   removeFocusArea: () => void;
   series: Series[];
   widgetIndex: number;
+  height?: number;
   operation?: string;
 };
 
@@ -50,6 +51,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       addFocusArea,
       focusArea,
       removeFocusArea,
+      height = 300,
     },
     forwardedRef
   ) => {
@@ -120,7 +122,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         series: seriesToShow,
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
-        height: 300,
+        height,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 20, bottom: 20, left: 15, right: 25},
         tooltip: {
@@ -166,10 +168,15 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       operation,
       seriesToShow,
       unit,
+      height,
     ]);
 
     return (
-      <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
+      <ChartWrapper
+        {...hoverProps}
+        height={height}
+        onMouseDownCapture={focusAreaBrush.startBrush}
+      >
         {focusAreaBrush.overlay}
         {displayType === MetricDisplayType.LINE ? (
           <LineChart {...chartProps} />
@@ -179,7 +186,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
           <BarChart stacked animation={false} {...chartProps} />
         )}
         {displayFogOfWar && (
-          <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
+          <FogOfWar
+            bucketSize={bucketSize}
+            seriesLength={seriesLength}
+            chartHeight={height}
+          />
         )}
       </ChartWrapper>
     );
@@ -189,7 +200,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 function FogOfWar({
   bucketSize,
   seriesLength,
+  chartHeight,
 }: {
+  chartHeight: number;
   bucketSize?: number;
   seriesLength?: number;
 }) {
@@ -209,7 +222,7 @@ function FogOfWar({
 
   const width = (fogOfWarWidth / seriesWidth) * 100;
 
-  return <FogOfWarOverlay width={width ?? 0} />;
+  return <FogOfWarOverlay width={width ?? 0} height={chartHeight - 56} />;
 }
 
 function getWidthFactor(bucketSize: number) {
@@ -228,13 +241,13 @@ function getWidthFactor(bucketSize: number) {
   return 2;
 }
 
-const ChartWrapper = styled('div')`
+const ChartWrapper = styled('div')<{height: number}>`
   position: relative;
-  height: 300px;
+  height: ${p => p.height}px;
 `;
 
-const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: 244px;
+const FogOfWarOverlay = styled('div')<{height: number; width?: number}>`
+  height: ${p => p.height}px;
   width: ${p => p.width}%;
   position: absolute;
   right: 21px;
