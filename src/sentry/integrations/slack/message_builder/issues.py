@@ -434,7 +434,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             ):
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
-                actions.append(self.get_static_action(action))
+                actions.append(self.get_external_select_action(action))
 
         if actions:
             action_block = {"type": "actions", "elements": [action for action in actions]}

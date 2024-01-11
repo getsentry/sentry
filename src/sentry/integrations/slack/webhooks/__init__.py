@@ -8,4 +8,5 @@ __all__ = (
     "SlackCommandsEndpoint",
     "SlackDMEndpoint",
     "SlackEventEndpoint",
+    "SlackOptionsLoadEndpoint",
 )

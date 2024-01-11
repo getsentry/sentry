@@ -1,5 +1,7 @@
 from django.urls import re_path
 
+from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
+
 from .views.link_identity import SlackLinkIdentityView
 from .views.link_team import SlackLinkTeamView
 from .views.unlink_identity import SlackUnlinkIdentityView
@@ -23,6 +25,11 @@ urlpatterns = [
         r"^event/$",
         SlackEventEndpoint.as_view(),
         name="sentry-integration-slack-event",
+    ),
+    re_path(
+        r"^options-load/$",
+        SlackOptionsLoadEndpoint.as_view(),
+        name="sentry-integration-slack-options-load",
     ),
     re_path(
         r"^link-identity/(?P<signed_params>[^\/]+)/$",
