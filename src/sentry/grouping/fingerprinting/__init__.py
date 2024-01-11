@@ -523,6 +523,10 @@ def _load_configs():
             "Failed to load Fingerprinting Configs, invalid _config_dir: %s",
             CONFIGS_DIR,
         )
+        if settings.DEBUG:
+            raise Exception(
+                f"Failed to load Fingerprinting Configs, invalid _config_dir: '{CONFIGS_DIR}'"
+            )
 
     configs = {}
 
