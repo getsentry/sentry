@@ -181,12 +181,12 @@ class FingerprintingRules:
         self.bases = bases or []
 
     def iter_rules(self, include_builtin=True):
+        if self.rules:
+            yield from self.rules
         if include_builtin:
             for base in self.bases:
                 base_rules = FINGERPRINTING_BASES.get(base, [])
                 yield from base_rules
-        if self.rules:
-            yield from self.rules
 
     def get_fingerprint_values_for_event(self, event):
         if not (self.bases or self.rules):
@@ -519,7 +519,7 @@ class FingerprintingVisitor(NodeVisitor):
 
 def _load_configs():
     if not CONFIGS_DIR.exists():
-        logger.warning(
+        logger.error(
             "Failed to load Fingerprinting Configs, invalid _config_dir: %s",
             CONFIGS_DIR,
         )
@@ -534,19 +534,17 @@ def _load_configs():
             with open(config_file_path) as config_file:
                 str_conf = config_file.read().rstrip()
                 configs[config_name].extend(FingerprintingRules.from_config_string(str_conf).rules)
-        except InvalidFingerprintingConfig as ex:
-            logger.warning(
-                "Fingerprinting Config %s Invalid: %s",
+        except InvalidFingerprintingConfig:
+            logger.exception(
+                "Fingerprinting Config %s Invalid",
                 config_file_path,
-                ex,
             )
             if settings.DEBUG:
                 raise
-        except Exception as ex:
-            logger.warning(
-                "Failed to load Fingerprinting Config %s: %s",
+        except Exception:
+            logger.exception(
+                "Failed to load Fingerprinting Config %s",
                 config_file_path,
-                ex,
             )
             if settings.DEBUG:
                 raise
