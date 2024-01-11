@@ -174,7 +174,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         {displayType === MetricDisplayType.LINE ? (
           <LineChart {...chartProps} />
         ) : displayType === MetricDisplayType.AREA ? (
-          <AreaChart {...chartProps} />
+          <AreaChart stacked {...chartProps} />
         ) : (
           <BarChart stacked animation={false} {...chartProps} />
         )}
