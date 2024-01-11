@@ -25,9 +25,8 @@ export default function ReplayInlineCTAPanel() {
           <OnboardingCTAButton />
           <Button
             priority="primary"
-            analyticsEventName="Clicked Replay Onboarding Backend CTA Button in Issue Details"
-            analyticsEventKey="issue_details.replay-onboarding-backend-cta-button-clicked"
-            analyticsParams={{button: 'Set Up Now'}}
+            analyticsEventName="Clicked Replay Onboarding CTA Button in User Feedback"
+            analyticsEventKey="feedback.replay-onboarding-cta-button-clicked"
             onClick={activateSidebar}
           >
             {t('Set Up Now')}
