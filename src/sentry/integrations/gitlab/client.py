@@ -349,7 +349,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         contents = self.get(request_path, params={"ref": ref}, raw_response=True, headers=headers)
 
         result = (
-            contents.content.decode()
+            contents.content.decode("utf-8")
             if codeowners
             else b64decode(contents["content"]).decode("utf-8")
         )
