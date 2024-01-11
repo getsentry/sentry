@@ -23,7 +23,7 @@ def query_profiles_data(
         params=params,
         query=query,
         selected_columns=selected_columns,
-        limit=100,
+        limit=200,
     )
 
     builder.add_conditions(
