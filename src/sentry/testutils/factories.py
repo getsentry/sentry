@@ -1528,7 +1528,9 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity_provider(
-        integration: Integration | None = None, **kwargs: Any
+        integration: Integration | None = None,
+        config: Mapping[str, Any] | None = None,
+        **kwargs: Any,
     ) -> IdentityProvider:
         if integration is not None:
             integration_values = dict(
@@ -1542,9 +1544,7 @@ class Factories:
                 )
             kwargs.update(integration_values)
 
-        config = kwargs.pop("config", {})
-
-        return IdentityProvider.objects.create(config=config, **kwargs)
+        return IdentityProvider.objects.create(config=config or {}, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
