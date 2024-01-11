@@ -659,11 +659,7 @@ describe('Performance > TransactionSummary', function () {
           router={router}
           location={router.location}
         />,
-        {
-          context: routerContext,
-          organization,
-          projects: projects.map(project => project.id),
-        }
+        {context: routerContext, organization}
       );
 
       renderGlobalModal();
