@@ -47,7 +47,10 @@ export function MetricQueryContextMenu({
   const organization = useOrganization();
   const router = useRouter();
   const {removeWidget, duplicateWidget, widgets} = useDDMContext();
-  const createAlert = useCreateAlert(organization, metricsQuery);
+  const createAlert = useMemo(
+    () => getCreateAlert(organization, metricsQuery),
+    [metricsQuery, organization]
+  );
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
@@ -143,24 +146,22 @@ export function MetricQueryContextMenu({
   );
 }
 
-export function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
-  return useMemo(() => {
-    if (
-      !metricsQuery.mri ||
-      !metricsQuery.op ||
-      isCustomMeasurement(metricsQuery) ||
-      !organization.access.includes('alerts:write')
-    ) {
-      return undefined;
-    }
-    return function () {
-      return openModal(deps => (
-        <OrganizationContext.Provider value={organization}>
-          <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
-        </OrganizationContext.Provider>
-      ));
-    };
-  }, [metricsQuery, organization]);
+export function getCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
+  if (
+    !metricsQuery.mri ||
+    !metricsQuery.op ||
+    isCustomMeasurement(metricsQuery) ||
+    !organization.access.includes('alerts:write')
+  ) {
+    return undefined;
+  }
+  return function () {
+    return openModal(deps => (
+      <OrganizationContext.Provider value={organization}>
+        <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
+      </OrganizationContext.Provider>
+    ));
+  };
 }
 
 export function useCreateDashboardWidget(

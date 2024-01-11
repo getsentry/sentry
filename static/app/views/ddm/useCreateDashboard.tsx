@@ -14,9 +14,9 @@ export function useCreateDashboard() {
   const {selection} = usePageFilters();
 
   return useMemo(() => {
-    return function (scratchpad?: {name: string}) {
+    return function () {
       const newDashboard = {
-        title: scratchpad?.name || 'Metrics Dashboard',
+        title: 'Metrics Dashboard',
         description: '',
         widgets: widgets
           .filter(widget => !!widget.mri)
