@@ -264,11 +264,10 @@ class BaseQueryBuilder:
         self.tag_to_prefixed_map: Dict[str, str] = {}
 
         self.requires_other_aggregates = False
+        self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
         self.turbo = turbo
         self.sample_rate = sample_rate
-        self.start: Optional[datetime] = None
-        self.end: Optional[datetime] = None
 
         (
             self.field_alias_converter,
@@ -277,15 +276,17 @@ class BaseQueryBuilder:
             self.orderby_converter,
         ) = self.load_config()
 
+        self.limitby = self.resolve_limitby(limitby)
+        self.array_join = None if array_join is None else [self.resolve_column(array_join)]
+
+        self.start: Optional[datetime] = None
+        self.end: Optional[datetime] = None
         self.resolve_query(
             query=query,
             selected_columns=selected_columns,
             groupby_columns=groupby_columns,
             equations=equations,
             orderby=orderby,
-            limit=limit,
-            limitby=limitby,
-            array_join=array_join,
         )
 
     def are_columns_resolved(self) -> bool:
@@ -322,15 +323,7 @@ class BaseQueryBuilder:
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: list[str] | str | None = None,
-        limit: Optional[int] = 50,
-        limitby: Optional[Tuple[str, int]] = None,
-        array_join: Optional[str] = None,
     ) -> None:
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_limits"):
-            self.limit = self.resolve_limit(limit)
-            self.limitby = self.resolve_limitby(limitby)
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_array_join"):
-            self.array_join = None if array_join is None else [self.resolve_column(array_join)]
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
             # Has to be done early, since other conditions depend on start and end
             self.resolve_time_conditions()
@@ -1609,8 +1602,11 @@ class QueryBuilder(BaseQueryBuilder):
 class UnresolvedQuery(QueryBuilder):
     def resolve_query(
         self,
-        *args,
-        **kwargs,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: list[str] | str | None = None,
     ) -> None:
         pass
 
@@ -1642,6 +1638,8 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         self.interval = interval
         self.granularity = Granularity(interval)
 
+        self.limit = None if limit is None else Limit(limit)
+
         # This is a timeseries, the groupby will always be time
         self.groupby = [self.time_column]
 
@@ -1656,11 +1654,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: list[str] | str | None = None,
-        limit: Optional[int] = 50,
-        limitby: Optional[Tuple[str, int]] = None,
-        array_join: Optional[str] = None,
     ) -> None:
-        self.limit = self.resolve_limit(limit)
         self.resolve_time_conditions()
         self.where, self.having = self.resolve_conditions(query)
 
