@@ -1811,6 +1811,10 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 if other:
                     projects = list(set(self.params.project_ids) - set(projects))
 
+                    # if there are no more projects, we search on project id 0 to guarantee no results
+                    if not projects:
+                        projects = [0]
+
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
                 continue
 
