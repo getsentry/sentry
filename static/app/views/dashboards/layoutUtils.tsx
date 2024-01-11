@@ -133,8 +133,7 @@ export function calculateColumnDepths(
  */
 export function getNextAvailablePosition(
   initialColumnDepths: number[],
-  height: number,
-  width: number = DEFAULT_WIDGET_WIDTH
+  height: number
 ): NextPosition {
   const columnDepths = [...initialColumnDepths];
   const maxColumnDepth = Math.max(...columnDepths);
@@ -152,7 +151,7 @@ export function getNextAvailablePosition(
       // If all of the columns from start to end (the size of the widget)
       // have at most the current depth, then we've found a valid positioning
       // No other widgets extend into the space we need
-      const end = start + width;
+      const end = start + DEFAULT_WIDGET_WIDTH;
       if (columnDepths.slice(start, end).every(val => val <= currDepth)) {
         for (let col = start; col < start + DEFAULT_WIDGET_WIDTH; col++) {
           columnDepths[col] = currDepth + height;
