@@ -18,14 +18,6 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectio
 sdk_configs = [SDKCrashDetectionConfig(sdk_name=SdkName.Cocoa, project_id=1234, sample_rate=1.0)]
 
 
-@pytest.fixture
-def store_event(default_project, factories):
-    def inner(data):
-        return factories.store_event(data=data, project_id=default_project.id)
-
-    return inner
-
-
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def create_event(self, data, project_id, assert_no_errors=True):
