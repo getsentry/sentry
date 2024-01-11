@@ -9,7 +9,7 @@ import {t, tct} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type OrganizationProps = {
   organization: Organization;
@@ -17,8 +17,6 @@ type OrganizationProps = {
 
 type BodyProps = {
   children?: React.ReactNode;
-  // Organization can be null in account settings
-  organization?: Organization;
 };
 
 function DeletionInProgress({organization}: OrganizationProps) {
@@ -103,7 +101,10 @@ function DeletionPending({organization}: OrganizationProps) {
   );
 }
 
-function OrganizationDetailsBody({children, organization}: BodyProps) {
+function OrganizationDetailsBody({children}: BodyProps) {
+  // Organization may be null in account settings
+  const organization = useOrganization({allowNull: true});
+
   const status = organization?.status?.id;
 
   if (organization && status === 'pending_deletion') {
@@ -122,4 +123,4 @@ function OrganizationDetailsBody({children, organization}: BodyProps) {
   );
 }
 
-export default withOrganization(OrganizationDetailsBody);
+export default OrganizationDetailsBody;
