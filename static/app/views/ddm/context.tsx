@@ -10,8 +10,8 @@ import * as Sentry from '@sentry/react';
 
 import {MRI} from 'sentry/types';
 import {
-  defaultMetricDisplayType,
   getAbsoluteDateTimeRange,
+  getDefaultMetricDisplayType,
   MetricDisplayType,
   MetricWidgetQueryParams,
   useInstantRef,
@@ -63,7 +63,7 @@ export function useDDMContext() {
 
 const emptyWidget: MetricWidgetQueryParams = {
   mri: 'd:transactions/duration@millisecond' satisfies MRI,
-  op: 'count',
+  op: 'avg',
   query: '',
   groupBy: [],
   sort: DEFAULT_SORT_STATE,
@@ -87,7 +87,8 @@ export function useMetricWidgets() {
           op: widget.op,
           query: widget.query,
           groupBy: decodeList(widget.groupBy),
-          displayType: widget.displayType ?? defaultMetricDisplayType,
+          displayType:
+            widget.displayType ?? getDefaultMetricDisplayType(widget.mri, widget.op),
           focusedSeries: widget.focusedSeries,
           showSummaryTable: widget.showSummaryTable ?? true, // temporary default
           powerUserMode: widget.powerUserMode,
