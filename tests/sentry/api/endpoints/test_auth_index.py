@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 from django.test import override_settings
 
-from sentry.api.endpoints.auth_index import MISSING_AUTH_ERROR_MESSAGE
+from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.superuser import COOKIE_NAME, Superuser
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
@@ -112,8 +112,8 @@ class AuthVerifyEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={})
-        assert response.status_code == 401
-        assert response.data["detail"] == MISSING_AUTH_ERROR_MESSAGE
+        assert response.status_code == 400
+        assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
@@ -329,8 +329,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "superuserReason": "for testing",
                 },
             )
-            assert response.status_code == 401
-            assert response.data["detail"] == MISSING_AUTH_ERROR_MESSAGE
+            assert response.status_code == 400
+            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
     @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
@@ -417,8 +417,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 401
-            assert response.data["detail"] == MISSING_AUTH_ERROR_MESSAGE
+            assert response.status_code == 400
+            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
     # su form is disabled by overriding local dev setting which skip checks
     @mock.patch("sentry.api.endpoints.auth_index.DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True)
@@ -455,8 +455,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 401
-            assert response.data["detail"] == MISSING_AUTH_ERROR_MESSAGE
+            assert response.status_code == 400
+            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
     @override_settings(SENTRY_SELF_HOSTED=True)
     @with_feature("organizations:u2f-superuser-form")
@@ -491,8 +491,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 401
-            assert response.data["detail"] == MISSING_AUTH_ERROR_MESSAGE
+            assert response.status_code == 400
+            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
     @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_with_referrer(self):

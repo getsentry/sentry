@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.exceptions import NotAuthenticated
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,8 +34,6 @@ PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
 )
-
-MISSING_AUTH_ERROR_MESSAGE = "Missing password or U2F"
 
 
 @control_silo_endpoint
@@ -142,8 +140,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
-        if not validator.is_valid():
-            raise NotAuthenticated(detail=MISSING_AUTH_ERROR_MESSAGE)
+        validator.is_valid(raise_exception=True)
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
@@ -220,8 +217,11 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         validator = AuthVerifyValidator(data=request.data)
 
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
-            if not validator.is_valid():
-                raise NotAuthenticated(detail=MISSING_AUTH_ERROR_MESSAGE)
+            try:
+                validator.is_valid(raise_exception=True)
+            except ValidationError as e:
+                err_code = e.detail["non_field_errors"][0].code
+                return Response({"detail": {"code": err_code}}, status=400)
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
@@ -248,7 +248,11 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                         return Response(
                             {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
                         )
-            authenticated = self._validate_superuser(validator, request, verify_authenticator)
+            try:
+                authenticated = self._validate_superuser(validator, request, verify_authenticator)
+            except ValidationError as e:
+                err_code = e.detail["non_field_errors"][0].code
+                return Response({"detail": {"code": err_code}}, status=400)
 
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
