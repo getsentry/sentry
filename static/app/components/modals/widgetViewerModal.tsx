@@ -751,7 +751,7 @@ function WidgetViewerModal(props: Props) {
                 <CodeLocations mri={parsedField.mri} />
               </TabPanels.Item>
               <TabPanels.Item key="samples">
-                <SampleTable mri={parsedField.mri} />
+                <SampleTable mri={parsedField.mri} query={widget.queries[0].conditions} />
               </TabPanels.Item>
             </TabPanels>
           </MetricWidgetTabContent>
