@@ -21,12 +21,15 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 type Props = {groupId: string; projectId?: number};
 
+export const LOCAL_STORAGE_SHOW_LINKS = 'showLinks';
+
 const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 const imageWidth = '200px';
 const imageHeight = '180px';
 
 function SampleImages({groupId, projectId}: Props) {
-  const [showImages, setShowImages] = useState(false);
+  const showLinks = localStorage.getItem(LOCAL_STORAGE_SHOW_LINKS);
+  const [showImages, setShowImages] = useState(showLinks === 'true');
   const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
@@ -49,10 +52,15 @@ function SampleImages({groupId, projectId}: Props) {
     })
     .splice(0, 5);
 
+  const handleClickOnlyShowLinks = () => {
+    localStorage.setItem(LOCAL_STORAGE_SHOW_LINKS, 'true');
+    setShowImages(true);
+  };
+
   return (
     <ChartPanel title={showImages ? t('Largest Images') : undefined}>
       <SampleImagesChartPanelBody
-        onClickShowLinks={() => setShowImages(true)}
+        onClickShowLinks={handleClickOnlyShowLinks}
         images={filteredResources}
         isLoadingImages={isLoadingImages}
         isImagesEnabled={isImagesEnabled}
