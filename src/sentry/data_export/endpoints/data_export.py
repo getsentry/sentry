@@ -150,8 +150,8 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             data=request.data,
             context={
                 "organization": organization,
-                "get_projects_by_id": lambda project_query: self._get_projects_by_id(
-                    project_query, request, organization
+                "get_projects_by_id": lambda project_query: self.get_projects(
+                    request=request, organization=organization, project_ids=project_query
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
             },
