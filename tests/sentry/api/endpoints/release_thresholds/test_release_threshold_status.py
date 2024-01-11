@@ -1,18 +1,18 @@
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.cases import APITestCase
 
 
-class ReleaseThresholdStatusTest(APITestCase, SnubaTestCase):
+class ReleaseThresholdStatusTest(APITestCase):
     endpoint = "sentry-api-0-organization-release-threshold-statuses"
     method = "get"
 
@@ -129,23 +129,19 @@ class ReleaseThresholdStatusTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        self._setup_new_issue_counts()
+        self._create_new_issues_for_release_threshold()
 
-    def _setup_new_issue_counts(self) -> None:
-        # Make sure the new issue happens after the release
-        time_to_use = iso_format(
-            self.new_issue_count_release_threshold.date_added + timedelta(seconds=10)
-        )
-        for i in range(2):
-            self.store_event(
-                project_id=self.new_issue_count_release_threshold.project.id,
-                data={
-                    "fingerprint": [str(uuid4())],
-                    "timestamp": time_to_use,
-                    "user": {"id": self.user.id, "email": self.user.email},
-                    "release": self.release1.version,
-                    "environment": self.canary_environment.name,
-                },
+    def _create_new_issues_for_release_threshold(self) -> None:
+        new_issue_time = self.new_issue_count_release_threshold.date_added + timedelta(seconds=10)
+        for _ in range(2):
+            grouped_issue = Group.objects.create(
+                project=self.project1,
+            )
+            GroupEnvironment.objects.create(
+                group=grouped_issue,
+                environment=self.canary_environment,
+                first_release=self.release1,
+                first_seen=new_issue_time,
             )
 
     def test_get_success(self):

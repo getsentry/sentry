@@ -19,7 +19,7 @@ from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_health
     is_error_count_healthy,
 )
 from sentry.api.endpoints.release_thresholds.health_checks.is_new_issues_count_healthy import (
-    get_new_issue_count_is_healthy,
+    is_new_issues_count_healthy,
 )
 from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
@@ -275,7 +275,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     threshold_end = threshold_start + timedelta(seconds=threshold.window_in_seconds)
                     is_healthy: bool = False
                     if threshold.threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
-                        is_healthy = get_new_issue_count_is_healthy(
+                        is_healthy = is_new_issues_count_healthy(
                             project=project,
                             release=release,
                             release_threshold=threshold,

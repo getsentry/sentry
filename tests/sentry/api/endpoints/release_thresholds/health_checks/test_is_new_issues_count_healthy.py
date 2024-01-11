@@ -1,20 +1,20 @@
 from datetime import timedelta
-from uuid import uuid4
 
 from sentry.api.endpoints.release_thresholds.health_checks.is_new_issues_count_healthy import (
-    get_new_issue_count_is_healthy,
+    is_new_issues_count_healthy,
 )
 from sentry.models.environment import Environment
+from sentry.models.group import Group
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.cases import TestCase
 
 
-class TestGetNewIssueCountIsHealthy(TestCase, SnubaTestCase):
+class TestGetNewIssueCountIsHealthy(TestCase):
     def setUp(self):
         super().setUp()
 
@@ -83,6 +83,13 @@ class TestGetNewIssueCountIsHealthy(TestCase, SnubaTestCase):
             project=self.project1,
             environment=self.canary_environment,
         )
+        self.new_issue_count_release_threshold_without_env = ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
+            trigger_type=1,
+            value=1,
+            window_in_seconds=100,
+            project=self.project2,
+        )
         self._create_new_issues_for_release_threshold()
 
     def _create_new_issues_for_release_threshold(self) -> None:
@@ -90,21 +97,24 @@ class TestGetNewIssueCountIsHealthy(TestCase, SnubaTestCase):
             seconds=10
         )
         for _ in range(2):
-            self.store_event(
-                project_id=self.new_issue_count_release_threshold.project.id,
-                data={
-                    "fingerprint": [str(uuid4())],
-                    "timestamp": iso_format(self.new_issue_time),
-                    "user": {"id": self.user.id, "email": self.user.email},
-                    "release": self.release1.version,
-                    "environment": self.canary_environment.name,
-                },
+            grouped_issue = Group.objects.create(
+                project=self.project1,
+            )
+            GroupEnvironment.objects.create(
+                group=grouped_issue,
+                environment=self.canary_environment,
+                first_release=self.release1,
+                first_seen=self.new_issue_time,
             )
 
-    def test_returns_true(self) -> None:
+            Group.objects.create(
+                project=self.project2, first_release=self.release1, first_seen=self.new_issue_time
+            )
+
+    def test_returns_true_when_is_healthy(self) -> None:
         start_time = self.new_issue_time - timedelta(seconds=10)
         end_time = self.new_issue_time + timedelta(seconds=10)
-        is_healthy = get_new_issue_count_is_healthy(
+        is_healthy = is_new_issues_count_healthy(
             project=self.project1,
             release=self.release1,
             release_threshold=self.new_issue_count_release_threshold,
@@ -113,11 +123,11 @@ class TestGetNewIssueCountIsHealthy(TestCase, SnubaTestCase):
         )
         assert is_healthy is True
 
-    def test_returns_false(self) -> None:
+    def test_returns_false_when_is_not_healthy(self) -> None:
         # Get a time range when no issues are there
         start_time = self.new_issue_time + timedelta(hours=1)
         end_time = self.new_issue_time + timedelta(hours=2)
-        is_healthy = get_new_issue_count_is_healthy(
+        is_healthy = is_new_issues_count_healthy(
             project=self.project1,
             release=self.release1,
             release_threshold=self.new_issue_count_release_threshold,
@@ -126,14 +136,26 @@ class TestGetNewIssueCountIsHealthy(TestCase, SnubaTestCase):
         )
         assert is_healthy is False
 
-    def test_returns_false_when_no_issues_found(self) -> None:
+    def test_returns_false_when_no_issues_exist(self) -> None:
         start_time = self.new_issue_time - timedelta(seconds=10)
         end_time = self.new_issue_time + timedelta(seconds=10)
-        is_healthy = get_new_issue_count_is_healthy(
-            project=self.project2,
-            release=self.release1,
+        is_healthy = is_new_issues_count_healthy(
+            project=self.project1,
+            release=self.release2,
             release_threshold=self.new_issue_count_release_threshold,
             start=start_time,
             end=end_time,
         )
         assert is_healthy is False
+
+    def test_when_release_threshold_does_not_have_env(self) -> None:
+        start_time = self.new_issue_time - timedelta(seconds=10)
+        end_time = self.new_issue_time + timedelta(seconds=10)
+        is_healthy = is_new_issues_count_healthy(
+            project=self.project2,
+            release=self.release1,
+            release_threshold=self.new_issue_count_release_threshold_without_env,
+            start=start_time,
+            end=end_time,
+        )
+        assert is_healthy is True
