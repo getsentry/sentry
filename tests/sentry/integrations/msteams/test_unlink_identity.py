@@ -3,7 +3,7 @@ import time
 import responses
 
 from sentry.integrations.msteams.unlink_identity import build_unlinking_url
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -35,7 +35,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
             organization_id=self.org.id, integration=self.integration
         )
 
-        self.idp = IdentityProvider.objects.create(
+        self.idp = self.create_identity_provider(
             type="msteams", external_id="1_50l3mnly_5w34r", config={}
         )
         self.conversation_id = "my_conversation_id"

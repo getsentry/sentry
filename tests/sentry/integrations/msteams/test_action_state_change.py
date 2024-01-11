@@ -14,7 +14,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
@@ -50,7 +50,7 @@ class StatusActionTest(APITestCase):
                 organization_id=self.org.id, integration=self.integration
             )
 
-            self.idp = IdentityProvider.objects.create(
+            self.idp = self.create_identity_provider(
                 type="msteams", external_id="f3ll0wsh1p", config={}
             )
             self.identity = Identity.objects.create(
@@ -294,7 +294,7 @@ class StatusActionTest(APITestCase):
                 organization_id=org2.id, integration=integration2
             )
 
-            idp2 = IdentityProvider.objects.create(type="msteams", external_id="54rum4n", config={})
+            idp2 = self.create_identity_provider(type="msteams", external_id="54rum4n", config={})
             Identity.objects.create(
                 external_id="7h3_gr3y",
                 idp=idp2,
