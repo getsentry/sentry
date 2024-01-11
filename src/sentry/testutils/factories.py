@@ -1537,11 +1537,9 @@ class Factories:
                 type=integration.provider,
                 external_id=integration.external_id,
             )
-            if any((key in kwargs) for key in integration_values):
-                raise ValueError(
-                    "Values from integration should not be in kwargs: "
-                    + repr(integration_values.keys())
-                )
+            for (key, value) in integration_values.items():
+                if (key in kwargs) and kwargs[key] != value:
+                    raise ValueError(f"Keyword contradicts integration value: {key!r}")
             kwargs.update(integration_values)
 
         return IdentityProvider.objects.create(config=config or {}, **kwargs)
