@@ -17,7 +17,7 @@ import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inv
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import * as SentryPropTypes from 'sentry/sentryPropTypeValidators';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -57,7 +57,7 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
   State
 > {
   static childContextTypes = {
-    organization: SentryPropTypes.isOrganization,
+    organization: SentryPropTypeValidators.isOrganization,
   };
 
   get inviteTemplate(): InviteRow {

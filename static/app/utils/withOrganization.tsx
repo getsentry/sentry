@@ -1,6 +1,6 @@
 import {Component} from 'react';
 
-import * as SentryPropTypes from 'sentry/sentryPropTypeValidators';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {Organization} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
@@ -16,7 +16,7 @@ const withOrganization = <P extends InjectedOrganizationProps>(
   > {
     static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
     static contextTypes = {
-      organization: SentryPropTypes.isOrganization,
+      organization: SentryPropTypeValidators.isOrganization,
     };
 
     render() {

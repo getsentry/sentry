@@ -11,7 +11,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import * as SentryPropTypes from 'sentry/sentryPropTypeValidators';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -32,7 +32,7 @@ type State = {
 
 class SharedGroupDetails extends Component<Props, State> {
   static childContextTypes = {
-    group: SentryPropTypes.isGroup,
+    group: SentryPropTypeValidators.isGroup,
   };
 
   state: State = this.getInitialState();

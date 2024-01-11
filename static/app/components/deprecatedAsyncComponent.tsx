@@ -8,7 +8,7 @@ import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInp
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {isObject} from 'sentry/sentryPropTypeValidators';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
@@ -70,7 +70,7 @@ class DeprecatedAsyncComponent<
   S extends AsyncComponentState = AsyncComponentState,
 > extends Component<P, S> {
   static contextTypes = {
-    router: isObject,
+    router: SentryPropTypeValidators.isObject,
   };
 
   constructor(props: P, context: any) {

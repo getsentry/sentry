@@ -66,17 +66,6 @@ function isEmailShape(email: unknown): null | Error {
 /**
  * @deprecated
  */
-export function isArrayShape(prop: unknown): null | Error {
-  if (!Array.isArray(prop)) {
-    return new Error('prop is not of array shape');
-  }
-
-  return null;
-}
-
-/**
- * @deprecated
- */
 const USER_STRING_KEYS: (keyof User)[] = [
   'avatarUrl',
   'dateJoined',
@@ -195,6 +184,9 @@ const GROUP_STRING_KEYS: (keyof Group)[] = [
   'title',
 ];
 
+/**
+ * @deprecated
+ */
 export function isGroup(
   props: unknown,
   propName: string,
@@ -417,3 +409,12 @@ export function isObject(
 
   return null;
 }
+/**
+ * @deprecated
+ */
+export const SentryPropTypeValidators = {
+  isGroup,
+  isProject,
+  isOrganization,
+  isObject,
+};

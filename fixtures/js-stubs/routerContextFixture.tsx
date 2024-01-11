@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {isObject} from 'sentry/sentryPropTypeValidators';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 
 export function RouterContextFixture([context, childContextTypes] = []) {
   return {
@@ -15,10 +15,10 @@ export function RouterContextFixture([context, childContextTypes] = []) {
       ...context,
     },
     childContextTypes: {
-      router: isObject,
-      location: isObject,
-      organization: isObject,
-      project: isObject,
+      router: SentryPropTypeValidators.isObject,
+      location: SentryPropTypeValidators.isObject,
+      organization: SentryPropTypeValidators.isObject,
+      project: SentryPropTypeValidators.isObject,
       ...childContextTypes,
     },
   };
