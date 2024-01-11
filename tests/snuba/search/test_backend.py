@@ -3683,7 +3683,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             ["organizations:issue-platform", FeedbackGroup.build_visible_feature_name()]
         ):
             event_id_1 = uuid.uuid4().hex
-            _, group_info = self.process_occurrence(
+            self.process_occurrence(
                 **{
                     "project_id": self.project.id,
                     "event_id": event_id_1,
