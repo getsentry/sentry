@@ -14,7 +14,7 @@ sdk_configs = [
 ]
 
 
-def test_decorators(func):
+def decorators(func):
     @wraps(func)
     @django_db_all
     @pytest.mark.snuba
@@ -26,7 +26,7 @@ def test_decorators(func):
     return wrapper
 
 
-@test_decorators
+@decorators
 def test_sdk_crash_is_reported(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(data=get_crash_event())
 
@@ -46,7 +46,7 @@ def test_sdk_crash_is_reported(mock_sdk_crash_reporter, mock_random, store_event
     assert stripped_frames[3]["function"] == "ReactNativeClient#nativeCrash"
 
 
-@test_decorators
+@decorators
 def test_sdk_crash_sample_app_not_reported(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(
         data=get_crash_event(
@@ -59,7 +59,7 @@ def test_sdk_crash_sample_app_not_reported(mock_sdk_crash_reporter, mock_random,
     assert mock_sdk_crash_reporter.report.call_count == 0
 
 
-@test_decorators
+@decorators
 def test_sdk_crash_react_natives_not_reported(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(
         data=get_crash_event(
@@ -72,7 +72,7 @@ def test_sdk_crash_react_natives_not_reported(mock_sdk_crash_reporter, mock_rand
     assert mock_sdk_crash_reporter.report.call_count == 0
 
 
-@test_decorators
+@decorators
 def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event):
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="4.1.0-beta.0")
@@ -83,7 +83,7 @@ def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_e
     assert mock_sdk_crash_reporter.report.call_count == 1
 
 
-@test_decorators
+@decorators
 def test_too_low_min_sdk_version_not_detected(mock_sdk_crash_reporter, mock_random, store_event):
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="3.9.9")
