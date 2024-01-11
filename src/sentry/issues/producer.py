@@ -22,6 +22,13 @@ logger = logging.getLogger(__name__)
 
 
 class PayloadType(ValueEqualityEnum):
+    """
+    Defines the type of payload that is being sent to Kafka.
+
+    Messages without PayloadTypes default to OCCURRENCE.
+    When adding new types, existing tests must pass without modifying the payload_type or the payload for backwards compatibility.
+    """
+
     OCCURRENCE = "occurrence"
     STATUS_CHANGE = "status_change"
 
