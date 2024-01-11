@@ -11,7 +11,7 @@ type Props = {
   onSubmitSuccess?: () => void;
 };
 
-export default function PartnershipAgreement({partnerDisplayName, agreements, onSubmitSuccess}: Props) {
+export default function PartnershipAgreementDEPRECATED({partnerDisplayName, agreements, onSubmitSuccess}: Props) {
   const tos = <ExternalLink href='https://sentry.io/terms/'>terms of service</ExternalLink>;
   const privacyPolicy = <ExternalLink href='https://sentry.io/privacy/'>privacy policy</ExternalLink>;
   // TODO @athena: Add API call to the form
