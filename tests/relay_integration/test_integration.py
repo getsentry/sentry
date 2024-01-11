@@ -141,17 +141,18 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         ):
             self.post_and_retrieve_attachment(event_id2, files)
 
-        # Finally, fetch the updated attachment and compare the group id
         attachments = EventAttachment.objects.filter(project_id=self.project.id)
         assert len(attachments) == 2
 
-        with attachments[0].getfile() as blob:
+        attachment1 = EventAttachment.objects.get(event_id=event_id1)
+        with attachment1.getfile() as blob:
             assert blob.read() == b"Hello World! default"
-        assert attachments[0].file_id is not None
+        assert attachment1.file_id is not None
 
-        with attachments[1].getfile() as blob:
+        attachment2 = EventAttachment.objects.get(event_id=event_id2)
+        with attachment2.getfile() as blob:
             assert blob.read() == b"Hello World! direct"
-        assert attachments[1].blob_path is not None
+        assert attachment2.blob_path is not None
 
     def test_transaction(self):
         event_data = {
