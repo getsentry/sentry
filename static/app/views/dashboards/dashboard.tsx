@@ -256,7 +256,7 @@ class Dashboard extends Component<Props, State> {
     const widgetCopy = cloneDeep(
       assignTempId({
         // TODO(ddm): extract to constantr
-        layout: {...widgetLayout, minH: 2, h: 2},
+        layout: {...widgetLayout, minH: 2, h: 2, w: 3},
         ...defaultMetricWidget(selection),
         widgetType: WidgetType.METRICS,
       })
@@ -421,7 +421,7 @@ class Dashboard extends Component<Props, State> {
 
     const key = constructGridItemKey(widget);
     return (
-      <div key={key}>
+      <div key={key} data-grid={widget.layout}>
         <SortableWidget
           {...widgetProps}
           isMobile={isMobile}
