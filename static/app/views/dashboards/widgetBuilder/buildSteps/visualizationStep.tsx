@@ -114,7 +114,7 @@ export function VisualizationStep({
           selection={pageFilters}
           widget={debouncedWidget}
           dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
-          isEditing={false}
+          isEditingDashboard={false}
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>
             typeof errorMessage === 'string' && (

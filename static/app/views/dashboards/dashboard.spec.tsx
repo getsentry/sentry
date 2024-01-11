@@ -128,7 +128,7 @@ describe('Dashboards > Dashboard', () => {
         router={initialData.router}
         location={initialData.router.location}
         widgetLimitReached={false}
-        isEditing={false}
+        isEditingDashboard={false}
       />,
       {context: initialData.routerContext}
     );
@@ -143,7 +143,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -167,7 +167,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -187,7 +187,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -210,7 +210,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -238,7 +238,7 @@ describe('Dashboards > Dashboard', () => {
               paramDashboardId="1"
               dashboard={dashboard}
               organization={mockedOrg}
-              isEditing={false}
+              isEditingDashboard={false}
               onUpdate={() => undefined}
               handleUpdateWidgetList={() => undefined}
               handleAddCustomWidget={() => undefined}
@@ -290,7 +290,7 @@ describe('Dashboards > Dashboard', () => {
               paramDashboardId="1"
               dashboard={dashboard}
               organization={mockedOrg}
-              isEditing
+              isEditingDashboard
               onUpdate={newWidgets => {
                 widgets.splice(0, widgets.length, ...newWidgets);
               }}

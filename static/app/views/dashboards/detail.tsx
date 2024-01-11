@@ -234,7 +234,7 @@ class DashboardDetail extends Component<Props, State> {
     return DashboardState.PREVIEW === dashboardState;
   }
 
-  get isEditing() {
+  get isEditingDashboard() {
     const {dashboardState} = this.state;
     return [
       DashboardState.EDIT,
@@ -443,7 +443,7 @@ class DashboardDetail extends Component<Props, State> {
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
-    if (this.isEditing || this.isPreview) {
+    if (this.isEditingDashboard || this.isPreview) {
       return;
     }
     updateDashboard(api, organization.slug, newModifiedDashboard).then(
@@ -636,7 +636,9 @@ class DashboardDetail extends Component<Props, State> {
     return isValidElement(children)
       ? cloneElement<any>(children, {
           dashboard: modifiedDashboard ?? dashboard,
-          onSave: this.isEditing ? this.onUpdateWidget : this.handleUpdateWidgetList,
+          onSave: this.isEditingDashboard
+            ? this.onUpdateWidget
+            : this.handleUpdateWidgetList,
         })
       : children;
   }
@@ -667,7 +669,7 @@ class DashboardDetail extends Component<Props, State> {
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
                       onUpdate={this.setModifiedDashboard}
-                      isEditing={this.isEditing}
+                      isEditingDashboard={this.isEditingDashboard}
                     />
                   </Layout.Title>
                   <Controls
@@ -687,7 +689,7 @@ class DashboardDetail extends Component<Props, State> {
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
-                  isEditing={false}
+                  isEditingDashboard={false}
                   isPreview={false}
                   onDashboardFilterChange={this.handleChangeFilter}
                 />
@@ -709,7 +711,7 @@ class DashboardDetail extends Component<Props, State> {
                           paramDashboardId={dashboardId}
                           dashboard={modifiedDashboard ?? dashboard}
                           organization={organization}
-                          isEditing={this.isEditing}
+                          isEditingDashboard={this.isEditingDashboard}
                           widgetLimitReached={widgetLimitReached}
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
@@ -805,7 +807,7 @@ class DashboardDetail extends Component<Props, State> {
                         <DashboardTitle
                           dashboard={modifiedDashboard ?? dashboard}
                           onUpdate={this.setModifiedDashboard}
-                          isEditing={this.isEditing}
+                          isEditingDashboard={this.isEditingDashboard}
                         />
                       </Layout.Title>
                     </Layout.HeaderContent>
@@ -855,9 +857,9 @@ class DashboardDetail extends Component<Props, State> {
                                 filters={(modifiedDashboard ?? dashboard).filters}
                                 location={location}
                                 hasUnsavedChanges={hasUnsavedFilters}
-                                isEditing={
+                                isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
-                                  this.isEditing
+                                  this.isEditingDashboard
                                 }
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
@@ -912,7 +914,7 @@ class DashboardDetail extends Component<Props, State> {
                                   paramDashboardId={dashboardId}
                                   dashboard={modifiedDashboard ?? dashboard}
                                   organization={organization}
-                                  isEditing={this.isEditing}
+                                  isEditingDashboard={this.isEditingDashboard}
                                   widgetLimitReached={widgetLimitReached}
                                   onUpdate={this.onUpdateWidget}
                                   handleUpdateWidgetList={this.handleUpdateWidgetList}

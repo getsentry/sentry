@@ -10,7 +10,7 @@ const TABLE_ITEM_LIMIT = 20;
 
 type Props = {
   index: string;
-  isEditing: boolean;
+  isEditingDashboard: boolean;
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
@@ -25,7 +25,7 @@ type Props = {
 function SortableWidget(props: Props) {
   const {
     widget,
-    isEditing,
+    isEditingDashboard,
     widgetLimitReached,
     onDelete,
     onEdit,
@@ -39,7 +39,7 @@ function SortableWidget(props: Props) {
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
-    isEditing,
+    isEditingDashboard,
     widgetLimitReached,
     onDelete,
     onEdit,

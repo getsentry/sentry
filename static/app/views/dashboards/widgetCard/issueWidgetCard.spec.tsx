@@ -85,7 +85,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -115,7 +115,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -144,7 +144,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -168,7 +168,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -200,7 +200,7 @@ describe('Dashboards > IssueWidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
