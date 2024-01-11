@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event import (
+from fixtures.sdk_crash_detection.crash_event_cocoa import (
     IN_APP_FRAME,
     get_crash_event,
     get_crash_event_with_frames,
