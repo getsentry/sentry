@@ -1,4 +1,4 @@
-import {CSSProperties, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -163,13 +163,6 @@ function ImageContainer(props: {
 
   const {fileName, size, src, showImage = true} = props;
 
-  const commonStyles: CSSProperties = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    objectPosition: 'center',
-  };
-
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
       {showImage && !hasError ? (
@@ -179,7 +172,16 @@ function ImageContainer(props: {
             height: imageHeight,
           }}
         >
-          <img onError={() => setHasError(true)} src={src} style={commonStyles} />
+          <img
+            onError={() => setHasError(true)}
+            src={src}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center',
+            }}
+          />
         </div>
       ) : (
         <MissingImage />
