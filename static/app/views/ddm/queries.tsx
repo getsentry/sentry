@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as echarts from 'echarts/core';
@@ -19,7 +19,7 @@ import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 
 export function Queries() {
   const organization = useOrganization();
-  const {widgets, updateWidget, addWidget} = useDDMContext();
+  const {widgets, updateWidget, addWidget, setSelectedWidgetIndex} = useDDMContext();
   const {selection} = usePageFilters();
 
   const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
@@ -39,7 +39,7 @@ export function Queries() {
   return (
     <Wrapper>
       {widgets.map((widget, index) => (
-        <Fragment key={index}>
+        <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
           <StyledQuerySymbol index={index} />
           <QueryBuilder
             onChange={data => handleChange(index, data)}
@@ -67,7 +67,7 @@ export function Queries() {
               title: widget.title,
             }}
           />
-        </Fragment>
+        </Row>
       ))}
       {/* placeholder for first grid column */}
       <div />
@@ -99,4 +99,8 @@ const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: min-content 1fr max-content;
   gap: ${space(1)};
+`;
+
+const Row = styled('div')`
+  display: contents;
 `;
