@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import type {Group, GroupActivity, Organization} from 'sentry/types';
 import {NoteType} from 'sentry/types/alerts';
 import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
@@ -8,26 +7,56 @@ import useApi from 'sentry/utils/useApi';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
-export type TData = unknown;
+export type TData = GroupActivity;
 export type TError = unknown;
 export type TVariables = [TPayload, TMethod];
 export type TContext = unknown;
 
+export type DeleteCommentCallback = (
+  noteId: string,
+  activity: GroupActivity[],
+  options?: MutateOptions<TData, TError, TVariables, TContext>
+) => void;
+
+export type CreateCommentCallback = (
+  note: NoteType,
+  activity: GroupActivity[],
+  options?: MutateOptions<TData, TError, TVariables, TContext>
+) => void;
+
+export type UpdateCommentCallback = (
+  note: NoteType,
+  noteId: string,
+  activity: GroupActivity[],
+  options?: MutateOptions<TData, TError, TVariables, TContext>
+) => void;
+
 interface Props {
   group: Group;
   organization: Organization;
+  onMutate?: (variables: TVariables) => unknown | undefined;
+  onSettled?:
+    | ((
+        data: unknown,
+        error: unknown,
+        variables: TVariables,
+        context: unknown
+      ) => unknown)
+    | undefined;
 }
 
-export default function useMutateFeedbackActivity({organization, group}: Props) {
+export default function useMutateActivity({
+  organization,
+  group,
+  onMutate,
+  onSettled,
+}: Props) {
   const api = useApi({
     persistInFlight: false,
   });
-  const {updateCached, invalidateCached} = useFeedbackCache();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
-    onMutate: ([{activity}, _method]) => {
-      updateCached([group.id], {activity});
-    },
+    onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {
       const url =
         method === 'PUT' || method === 'DELETE'
@@ -41,49 +70,34 @@ export default function useMutateFeedbackActivity({organization, group}: Props) 
         {text: note?.text, mentions: note?.mentions},
       ]);
     },
-    onSettled: (_resp, _error, _var, _context) => {
-      invalidateCached([group.id]);
-    },
+    onSettled: onSettled ?? undefined,
     cacheTime: 0,
   });
 
-  const updateComment = useCallback(
-    (
-      note: NoteType,
-      noteId: string,
-      activity: GroupActivity[],
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
+  const handleUpdate = useCallback<UpdateCommentCallback>(
+    (note, noteId, activity, options) => {
       mutation.mutate([{note, noteId, activity}, 'PUT'], options);
     },
     [mutation]
   );
 
-  const addComment = useCallback(
-    (
-      note: NoteType,
-      activity: GroupActivity[],
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
+  const handleCreate = useCallback<CreateCommentCallback>(
+    (note, activity, options) => {
       mutation.mutate([{note, activity}, 'POST'], options);
     },
     [mutation]
   );
 
-  const deleteComment = useCallback(
-    (
-      noteId: string,
-      activity: GroupActivity[],
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
+  const handleDelete = useCallback<DeleteCommentCallback>(
+    (noteId, activity, options) => {
       mutation.mutate([{noteId, activity}, 'DELETE'], options);
     },
     [mutation]
   );
 
   return {
-    addComment,
-    deleteComment,
-    updateComment,
+    handleUpdate,
+    handleCreate,
+    handleDelete,
   };
 }
