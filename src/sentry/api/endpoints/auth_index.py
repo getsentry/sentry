@@ -245,11 +245,13 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                     if not Authenticator.objects.filter(
                         user_id=request.user.id, type=U2fInterface.type
                     ).exists():
-                        return Response({"detail": "no_u2f"}, status=status.HTTP_403_FORBIDDEN)
+                        return Response(
+                            {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
+                        )
             authenticated = self._validate_superuser(validator, request, verify_authenticator)
 
         if not authenticated:
-            return Response({"detail": "ignore"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             # Must use the httprequest object instead of request
