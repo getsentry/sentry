@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
+
 const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export const getQuerySymbol = (index: number) => {
@@ -20,11 +22,11 @@ const Symbol = styled('div')`
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
-  color: ${p => p.theme.black};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 500;
-  background: ${p => p.theme.yellow300};
   border-radius: 50%;
+  font-weight: 500;
+  color: ${p => p.theme.black};
+  font-size: 10px;
+  background: ${p => p.theme.yellow300};
 `;
 
 export function QuerySymbol({
