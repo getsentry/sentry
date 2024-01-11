@@ -187,7 +187,7 @@ const GROUP_STRING_KEYS: (keyof Group)[] = [
 /**
  * @deprecated
  */
-export function isGroup(
+function isGroup(
   props: unknown,
   propName: string,
   _componentName: unknown
@@ -299,7 +299,7 @@ function isTeamShape(team: unknown) {
 /**
  * @deprecated
  */
-export function isProject(
+function isProject(
   props: unknown,
   propName: string,
   _componentName: unknown
@@ -354,7 +354,7 @@ export function isProject(
 /**
  * @deprecated
  */
-export function isOrganization(
+function isOrganization(
   props: unknown,
   propName: string,
   _componentName: unknown
@@ -386,7 +386,7 @@ export function isOrganization(
 /**
  * @deprecated
  */
-export function isObject(
+function isObject(
   props: unknown,
   propName: string,
   _componentName: unknown
