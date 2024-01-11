@@ -3687,6 +3687,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 **{
                     "project_id": self.project.id,
                     "event_id": event_id_1,
+                    "fingerprint": ["c" * 32],
                     "issue_title": "User Feedback",
                     "type": FeedbackGroup.type_id,
                     "detection_time": datetime.now().timestamp(),
@@ -3717,6 +3718,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 **{
                     "project_id": self.project.id,
                     "event_id": event_id_1,
+                    "fingerprint": ["c" * 32],
                     "issue_title": "User Feedback",
                     "type": FeedbackGroup.type_id,
                     "detection_time": datetime.now().timestamp(),
