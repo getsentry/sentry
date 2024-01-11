@@ -71,7 +71,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
 
     def test_share_discover_links_unlinked_user(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1", config={})
+            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
             data = self.share_discover_links()
 
@@ -90,7 +90,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
     @responses.activate
     def test_share_discover_links_unlinked_user_no_channel(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1", config={})
+            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
             responses.add(
                 responses.POST, "https://slack.com/api/chat.postEphemeral", json={"ok": True}
@@ -103,7 +103,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
 
     def test_share_discover_links_linked_user(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1", config={})
+            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
             Identity.objects.create(
                 external_id="Uxxxxxxx",
                 idp=idp,

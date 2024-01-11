@@ -495,7 +495,7 @@ class MsTeamsWebhookTest(APITestCase):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="msteams", external_id=team_id, config={})
+            idp = self.create_identity_provider(type="msteams", external_id=team_id)
             Identity.objects.create(
                 external_id=other_command["from"]["id"], idp=idp, user=self.user
             )

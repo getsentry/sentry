@@ -16,7 +16,7 @@ class UserIdentityConfigSerializerTest(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
 
-        self.idp = self.create_identity_provider(type="github", external_id="c3r1zyq9", config={})
+        self.idp = self.create_identity_provider(type="github", external_id="c3r1zyq9")
 
     def test_user_social_auth(self):
         identity = UserSocialAuth.objects.create(user=self.user, provider="github", uid="uf4romdj")
@@ -112,9 +112,7 @@ class UserIdentityConfigSerializerTest(TestCase):
         }
 
     def test_global_identity_with_integration_provider(self):
-        integration_provider = self.create_identity_provider(
-            type="msteams", external_id="ao645i51", config={}
-        )
+        integration_provider = self.create_identity_provider(type="msteams", external_id="ao645i51")
         identity = Identity.objects.create(
             idp=integration_provider, user=self.user, external_id="5ppj2dip"
         )

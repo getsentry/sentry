@@ -474,9 +474,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -569,9 +567,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -743,9 +739,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -838,9 +832,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -921,9 +913,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -1008,9 +998,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,

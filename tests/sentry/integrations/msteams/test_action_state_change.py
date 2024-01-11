@@ -50,9 +50,7 @@ class StatusActionTest(APITestCase):
                 organization_id=self.org.id, integration=self.integration
             )
 
-            self.idp = self.create_identity_provider(
-                type="msteams", external_id="f3ll0wsh1p", config={}
-            )
+            self.idp = self.create_identity_provider(type="msteams", external_id="f3ll0wsh1p")
             self.identity = Identity.objects.create(
                 external_id="g4nd4lf",
                 idp=self.idp,
@@ -294,7 +292,7 @@ class StatusActionTest(APITestCase):
                 organization_id=org2.id, integration=integration2
             )
 
-            idp2 = self.create_identity_provider(type="msteams", external_id="54rum4n", config={})
+            idp2 = self.create_identity_provider(type="msteams", external_id="54rum4n")
             Identity.objects.create(
                 external_id="7h3_gr3y",
                 idp=idp2,

@@ -44,7 +44,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             },
         )
         integration2.add_organization(self.organization, self.user)
-        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2", config={})
+        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
         identity2 = Identity.objects.create(
             external_id="UXXXXXXX2",
             idp=idp2,
@@ -92,7 +92,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             },
         )
         integration2.add_organization(org2, self.user)
-        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2", config={})
+        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
         Identity.objects.create(
             external_id="UXXXXXXX2",
             idp=idp2,

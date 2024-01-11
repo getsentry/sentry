@@ -81,7 +81,7 @@ class ActivityNotificationTest(APITestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
-        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1", config={})
+        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
             idp=self.idp,

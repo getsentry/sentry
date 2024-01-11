@@ -12,9 +12,9 @@ class UserIdentityConfigTest(APITestCase):
     def setUp(self):
         super().setUp()
 
-        self.slack_idp = self.create_identity_provider(type="slack", external_id="A", config={})
-        self.github_idp = self.create_identity_provider(type="github", external_id="B", config={})
-        self.google_idp = self.create_identity_provider(type="google", external_id="C", config={})
+        self.slack_idp = self.create_identity_provider(type="slack", external_id="A")
+        self.github_idp = self.create_identity_provider(type="github", external_id="B")
+        self.google_idp = self.create_identity_provider(type="google", external_id="C")
 
         self.org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"

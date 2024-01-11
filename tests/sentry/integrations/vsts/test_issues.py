@@ -87,7 +87,7 @@ class VstsIssueBase(TestCase):
                 },
             )
             identity = Identity.objects.create(
-                idp=self.create_identity_provider(type="vsts", config={}),
+                idp=self.create_identity_provider(type="vsts"),
                 user=self.user,
                 external_id="vsts",
                 data={"access_token": "123456789", "expires": time() + 1234567},

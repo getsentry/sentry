@@ -49,7 +49,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             metadata={"domain_name": self.base_url},
         )
         default_auth = Identity.objects.create(
-            idp=self.create_identity_provider(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="123",
             data={
@@ -139,7 +139,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
             metadata={"domain_name": self.base_url},
         )
         default_auth = Identity.objects.create(
-            idp=self.create_identity_provider(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="123",
             data={

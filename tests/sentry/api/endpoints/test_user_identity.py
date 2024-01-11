@@ -13,7 +13,7 @@ class UserIdentityTest(APITestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1", config={})
+        idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         Identity.objects.create(
             external_id="UXXXXXXX1",
             idp=idp,

@@ -40,7 +40,7 @@ class WebhookTestBase(APITestCase):
             )
 
             self.identity = Identity.objects.create(
-                idp=self.create_identity_provider(type=PROVIDER, config={}),
+                idp=self.create_identity_provider(type=PROVIDER),
                 user=self.user,
                 external_id="user_identity",
                 data={"access_token": "vsts-access-token", "expires": time() + 50000},

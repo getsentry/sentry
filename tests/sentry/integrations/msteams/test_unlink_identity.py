@@ -35,9 +35,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
             organization_id=self.org.id, integration=self.integration
         )
 
-        self.idp = self.create_identity_provider(
-            type="msteams", external_id="1_50l3mnly_5w34r", config={}
-        )
+        self.idp = self.create_identity_provider(type="msteams", external_id="1_50l3mnly_5w34r")
         self.conversation_id = "my_conversation_id"
 
         access_json = {"expires_in": 86399, "access_token": "3ld3rw4nd"}

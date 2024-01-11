@@ -62,7 +62,7 @@ class VstsSubscriptionCheckTest(TestCase):
             json={"status": "enabled"},
         )
         self.identity = Identity.objects.create(
-            idp=self.create_identity_provider(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="user_identity",
             data={"access_token": "vsts-access-token", "expires": time() + 50000},
