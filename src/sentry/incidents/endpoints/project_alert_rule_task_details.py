@@ -15,7 +15,7 @@ from sentry.integrations.slack.utils import RedisRuleStatus
 class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectSettingPermission,)
 

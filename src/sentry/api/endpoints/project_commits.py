@@ -14,7 +14,7 @@ from sentry.models.commit import Commit
 class ProjectCommitsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (ProjectReleasePermission,)

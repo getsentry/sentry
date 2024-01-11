@@ -17,7 +17,7 @@ from sentry.web.decorators import transaction_start
 @region_silo_endpoint
 class ProjectRuleActionsEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
 

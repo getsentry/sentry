@@ -171,7 +171,7 @@ def set_tags(scope: Scope, result: JSONData) -> None:
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """
     Returns valid links for source code providers so that

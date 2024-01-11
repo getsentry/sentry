@@ -13,7 +13,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Retrieve available grouping configs with project-specific information
 

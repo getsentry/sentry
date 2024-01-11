@@ -21,7 +21,7 @@ from sentry.web.decorators import transaction_start
 class ProjectRulePreviewEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (ProjectAlertRulePermission,)
