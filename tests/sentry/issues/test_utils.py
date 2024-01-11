@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -10,6 +12,7 @@ from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
@@ -61,6 +64,21 @@ class OccurrenceTestMixin:
             ]
 
         return IssueOccurrence.from_dict(self.build_occurrence_data(**overrides))
+
+    def process_occurrence(
+        self, event_data: dict[str, Any] | None = None, **overrides
+    ) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+        """
+        Testutil to build and process occurrence data instead of going through Kafka.
+        This ensures the occurrence data is well-formed.
+        """
+        occurrence_data = self.build_occurrence_data(**overrides)
+        if event_data:
+            if "event_id" not in event_data:
+                event_data["event_id"] = occurrence_data["event_id"]
+            if "project_id" not in event_data:
+                event_data["project_id"] = occurrence_data["project_id"]
+        return process_event_and_issue_occurrence(occurrence_data, event_data)
 
 
 class SearchIssueTestMixin(OccurrenceTestMixin):

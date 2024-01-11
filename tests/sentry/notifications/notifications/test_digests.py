@@ -11,7 +11,6 @@ import sentry
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
@@ -34,14 +33,10 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             event = self.create_performance_issue()
         elif event_type == "generic":
             event_id = uuid.uuid4().hex
-            occurrence_data = self.build_occurrence_data(
-                event_id=event_id, project_id=self.project.id
-            )
-            occurrence, group_info = process_event_and_issue_occurrence(
-                occurrence_data,
-                {
-                    "event_id": event_id,
-                    "project_id": self.project.id,
+            _, group_info = self.process_occurrence(
+                event_id=event_id,
+                project_id=self.project.id,
+                event_data={
                     "timestamp": before_now(minutes=1).isoformat(),
                 },
             )
