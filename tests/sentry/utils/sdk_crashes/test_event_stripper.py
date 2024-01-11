@@ -2,7 +2,7 @@ import copy
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event import (
+from fixtures.sdk_crash_detection.crash_event_cocoa import (
     get_crash_event,
     get_crash_event_with_frames,
     get_frames,
