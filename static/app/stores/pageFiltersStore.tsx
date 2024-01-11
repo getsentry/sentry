@@ -1,11 +1,53 @@
-import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
-import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
 
 import {CommonStoreDefinition} from './types';
+
+function datetimeHasSameValue(
+  a: PageFilters['datetime'],
+  b: PageFilters['datetime']
+): boolean {
+  if (Object.keys(a).length !== Object.keys(b).length) {
+    return false;
+  }
+
+  for (const key in a) {
+    if (a[key] !== b[key]) {
+      return false;
+    }
+
+    if (a[key] instanceof Date && b[key] instanceof Date) {
+      // This will fail on invalid dates as NaN !== NaN,
+      // but thats fine since we don't want invalid dates to be equal
+      if (a[key].getTime() !== b[key].getTime()) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function arrayIsEqual(
+  a: string[] | number[] | null,
+  b: string[] | number[] | null
+): boolean {
+  if (a === null && b === null) {
+    return true;
+  }
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) {
+      return false;
+    }
+
+    return a.every((value, index) => value === b[index]);
+  }
+
+  return a === b;
+}
 
 interface CommonState {
   /**
@@ -123,7 +165,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   updateProjects(projects = [], environments = null) {
-    if (isEqual(this.selection.projects, projects)) {
+    if (arrayIsEqual(this.selection.projects, projects)) {
       return;
     }
 
@@ -141,8 +183,8 @@ const storeConfig: PageFiltersStoreDefinition = {
     this.trigger(this.getState());
   },
 
-  updateDateTime(datetime) {
-    if (isEqualWithDates(this.selection.datetime, datetime)) {
+  updateDateTime(newDateTime) {
+    if (datetimeHasSameValue(this.selection.datetime, newDateTime)) {
       return;
     }
 
@@ -154,13 +196,13 @@ const storeConfig: PageFiltersStoreDefinition = {
 
     this.selection = {
       ...this.selection,
-      datetime,
+      datetime: newDateTime,
     };
     this.trigger(this.getState());
   },
 
   updateEnvironments(environments) {
-    if (isEqual(this.selection.environments, environments)) {
+    if (arrayIsEqual(this.selection.environments, environments)) {
       return;
     }
 
