@@ -130,6 +130,8 @@ def mock_replay(
 ) -> dict[str, Any]:
     tags = kwargs.pop("tags", {})
     tags.update({"transaction": kwargs.pop("title", "Title")})
+    tags = [[key, value] for key, value in tags.items()]
+
     return {
         "type": "replay_event",
         "start_time": sec(timestamp),
@@ -146,7 +148,7 @@ def mock_replay(
                         "segment_id": kwargs.pop("segment_id", 0),
                         "tags": tags,
                         "urls": kwargs.pop("urls", []),
-                        "is_archived": kwargs.pop("is_archived", None),
+                        "is_archived": kwargs.pop("is_archived", False),
                         "error_ids": kwargs.pop(
                             "error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]
                         ),
@@ -237,8 +239,8 @@ def mock_replay_click(
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
-                                "is_dead": kwargs.pop("is_dead", 0),
-                                "is_rage": kwargs.pop("is_rage", 0),
+                                "is_dead": int(kwargs.pop("is_dead", 0)),
+                                "is_rage": int(kwargs.pop("is_rage", 0)),
                                 "event_hash": str(uuid.uuid4()),
                                 "timestamp": sec(timestamp),
                             }
