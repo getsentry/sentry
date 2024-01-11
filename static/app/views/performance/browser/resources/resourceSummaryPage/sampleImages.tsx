@@ -19,7 +19,7 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-type Props = {groupId: string; projectId: number};
+type Props = {groupId: string; projectId?: number};
 
 const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 const imageWidth = '200px';
@@ -28,7 +28,7 @@ const imageHeight = '180px';
 function SampleImages({groupId, projectId}: Props) {
   const [showImages, setShowImages] = useState(false);
   const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
-  const isImagesEnabled = settings?.enable_images ?? false;
+  const isImagesEnabled = !settings?.enable_images ?? false;
 
   const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
