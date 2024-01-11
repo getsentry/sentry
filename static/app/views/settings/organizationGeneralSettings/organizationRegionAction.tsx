@@ -35,7 +35,10 @@ export function OrganizationRegionAction({organization, ...props}: Props) {
         {`${regionData.displayName} `}
         <OrganizationFlag>{regionData.flag}</OrganizationFlag>
       </div>
-      <FieldHelp>{t("Your organization's data storage location.")}</FieldHelp>
+      <FieldHelp>
+        {t("Your organization's data storage location.")}
+        <a href="https://docs.sentry.io/product/accounts/choose-your-data-center">{t('Learn More')}</a>
+      </FieldHelp>
     </OrganizationRegionInformationWrapper>
   );
 }
