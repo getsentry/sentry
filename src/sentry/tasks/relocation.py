@@ -15,7 +15,9 @@ from cryptography.fernet import Fernet
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
+from sentry_sdk import capture_exception
 
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.dependencies import NormalizedModelName, get_model
 from sentry.backup.exports import export_in_config_scope, export_in_user_scope
@@ -1085,13 +1087,24 @@ def postprocessing(uuid: str) -> None:
                 user_id=relocation.owner_id,
                 role="owner",
             )
-
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
         # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
         # the entire task.
         for _, result in relocated.send_robust(sender=postprocessing, relocation_uuid=uuid):
             if isinstance(result, Exception):
                 raise result
+
+        for org in imported_orgs:
+            try:
+                analytics.record(
+                    "relocation.organization_imported",
+                    organization_id=org.id,
+                    relocation_uuid=str(relocation.uuid),
+                    slug=org.slug,
+                    owner_id=relocation.owner_id,
+                )
+            except Exception as e:
+                capture_exception(e)
 
     notifying_users.apply_async(args=[uuid])
 

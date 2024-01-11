@@ -5,6 +5,7 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 import responses
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
@@ -12,25 +13,20 @@ from rest_framework import status
 
 from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.models.outbox import ControlOutbox
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_outboxes
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
 from sentry.utils import json
 from sentry.utils.signing import sign
 
-region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-region_config = (region,)
 
-
-@control_silo_test
+@control_silo_test(regions=create_test_regions("us"))
 class SlackRequestParserTest(TestCase):
     factory = RequestFactory()
     timestamp = "123123123"
 
-    @override_regions(region_config)
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -42,7 +38,6 @@ class SlackRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    @override_regions(region_config)
     def test_webhook(self):
         # Retrieve the correct integration
         data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
@@ -61,7 +56,7 @@ class SlackRequestParserTest(TestCase):
         # Returns response from region
         responses.add(
             responses.POST,
-            "https://us.testserver/extensions/slack/commands/",
+            "http://us.testserver/extensions/slack/commands/",
             status=201,
             body=b"region_response",
         )
@@ -75,7 +70,7 @@ class SlackRequestParserTest(TestCase):
         # ...even if it returns an error
         responses.add(
             responses.POST,
-            "https://us.testserver/extensions/slack/commands/",
+            "http://us.testserver/extensions/slack/commands/",
             status=401,
             body=b"error_response",
         )
@@ -108,7 +103,6 @@ class SlackRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_outboxes()
 
-    @override_regions(region_config)
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
         return_value=True,
@@ -134,3 +128,28 @@ class SlackRequestParserTest(TestCase):
             }
         )
         assert response.status_code == status.HTTP_202_ACCEPTED
+
+    @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
+    @patch.object(
+        SlackRequestParser,
+        "get_regions_from_organizations",
+        side_effect=OrganizationIntegration.DoesNotExist(),
+    )
+    def test_skips_async_response_if_org_integration_missing(
+        self, mock_slack_task, mock_get_regions
+    ):
+        response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
+        data = {
+            "payload": json.dumps(
+                {"team_id": self.integration.external_id, "response_url": response_url}
+            )
+        }
+        with assume_test_silo_mode_of(OrganizationIntegration), outbox_context(
+            transaction.atomic(using=router.db_for_write(OrganizationIntegration))
+        ):
+            OrganizationIntegration.objects.filter(organization_id=self.organization.id).delete()
+        request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
+        parser = SlackRequestParser(request, self.get_response)
+        response = parser.get_response()
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert mock_slack_task.apply_async.call_count == 0
