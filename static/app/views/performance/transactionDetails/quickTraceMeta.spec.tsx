@@ -1,6 +1,6 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 

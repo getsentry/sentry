@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,8 +13,8 @@ describe('SwitchOrganization', function () {
       <SwitchOrganization
         canCreateOrganization={false}
         organizations={[
-          Organization({name: 'Organization 1'}),
-          Organization({name: 'Organization 2', slug: 'org2'}),
+          OrganizationFixture({name: 'Organization 1'}),
+          OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
         ]}
       />,
       {context: RouterContextFixture()}
@@ -46,8 +46,8 @@ describe('SwitchOrganization', function () {
       <SwitchOrganization
         canCreateOrganization={false}
         organizations={[
-          Organization({name: 'Organization 1', slug: 'org1'}),
-          Organization({
+          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+          OrganizationFixture({
             name: 'Organization 2',
             slug: 'org2',
             links: {
@@ -85,8 +85,8 @@ describe('SwitchOrganization', function () {
       <SwitchOrganization
         canCreateOrganization={false}
         organizations={[
-          Organization({name: 'Organization 1', slug: 'org1'}),
-          Organization({
+          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+          OrganizationFixture({
             name: 'Organization 2',
             slug: 'org2',
             links: {
@@ -117,7 +117,7 @@ describe('SwitchOrganization', function () {
 
   it('uses sentryUrl when current org has customer domain enabled', async function () {
     jest.useFakeTimers();
-    const currentOrg = Organization({
+    const currentOrg = OrganizationFixture({
       name: 'Organization 2',
       slug: 'org2',
       links: {
@@ -129,7 +129,10 @@ describe('SwitchOrganization', function () {
     render(
       <SwitchOrganization
         canCreateOrganization={false}
-        organizations={[Organization({name: 'Organization 1', slug: 'org1'}), currentOrg]}
+        organizations={[
+          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+          currentOrg,
+        ]}
       />,
       {organization: currentOrg}
     );
@@ -159,7 +162,7 @@ describe('SwitchOrganization', function () {
 
   it('does not use sentryUrl when current org does not have customer domain feature', async function () {
     jest.useFakeTimers();
-    const currentOrg = Organization({
+    const currentOrg = OrganizationFixture({
       name: 'Organization 2',
       slug: 'org2',
       links: {
@@ -172,8 +175,8 @@ describe('SwitchOrganization', function () {
       <SwitchOrganization
         canCreateOrganization={false}
         organizations={[
-          Organization({name: 'Organization 1', slug: 'org1'}),
-          Organization({
+          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+          OrganizationFixture({
             name: 'Organization 3',
             slug: 'org3',
             links: {
@@ -234,7 +237,7 @@ describe('SwitchOrganization', function () {
   });
 
   it('uses sentry URL for "Create an Org"', async function () {
-    const currentOrg = Organization({
+    const currentOrg = OrganizationFixture({
       name: 'Organization',
       slug: 'org',
       links: {
@@ -261,7 +264,7 @@ describe('SwitchOrganization', function () {
   });
 
   it('shows orgs pending deletion with a special icon', async function () {
-    const orgPendingDeletion = Organization({
+    const orgPendingDeletion = OrganizationFixture({
       slug: 'org-2',
       status: {id: 'pending_deletion', name: 'pending_deletion'},
     });
@@ -270,7 +273,7 @@ describe('SwitchOrganization', function () {
     render(
       <SwitchOrganization
         canCreateOrganization
-        organizations={[Organization(), orgPendingDeletion]}
+        organizations={[OrganizationFixture(), orgPendingDeletion]}
       />
     );
 
@@ -288,8 +291,8 @@ describe('SwitchOrganization', function () {
       <SwitchOrganization
         canCreateOrganization={false}
         organizations={[
-          Organization({name: 'Organization 1'}),
-          Organization({name: 'Organization 2', slug: 'org2'}),
+          OrganizationFixture({name: 'Organization 1'}),
+          OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
         ]}
       />
     );

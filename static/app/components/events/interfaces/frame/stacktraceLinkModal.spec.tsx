@@ -1,8 +1,9 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {
   act,
@@ -19,12 +20,12 @@ import * as analytics from 'sentry/utils/analytics';
 jest.mock('sentry/utils/analytics');
 
 describe('StacktraceLinkModal', () => {
-  const org = Organization();
+  const org = OrganizationFixture();
   const project = ProjectFixture();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = GitHubIntegrationFixture();
   const filename = '/sentry/app.py';
-  const repo = Repository({integrationId: integration.id});
-  const config = RepositoryProjectPathConfig({project, repo, integration});
+  const repo = RepositoryFixture({integrationId: integration.id});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
   const sourceUrl = 'https://github.com/getsentry/sentry/blob/master/src/sentry/app.py';
   const configData = {
     stackRoot: '',

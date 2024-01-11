@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class RelocationUnpauseEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,

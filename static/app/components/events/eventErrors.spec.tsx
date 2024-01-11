@@ -1,5 +1,5 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';

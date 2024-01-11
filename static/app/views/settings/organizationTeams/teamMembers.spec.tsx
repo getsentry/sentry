@@ -1,7 +1,8 @@
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Members} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {MemberFixture} from 'sentry-fixture/member';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -20,17 +21,17 @@ jest.mock('sentry/actionCreators/modal', () => ({
 describe('TeamMembers', function () {
   let createMock;
 
-  const organization = Organization();
-  const team = Team();
-  const managerTeam = Team({orgRole: 'manager'});
-  const members = Members();
+  const organization = OrganizationFixture();
+  const team = TeamFixture();
+  const managerTeam = TeamFixture({orgRole: 'manager'});
+  const members = MembersFixture();
   const member = MemberFixture({
     id: '9',
     email: 'sentry9@test.com',
     name: 'Sentry 9 Name',
   });
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   const routerProps = {
     router,
@@ -71,7 +72,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with open membership', async function () {
-    const org = Organization({access: [], openMembership: true});
+    const org = OrganizationFixture({access: [], openMembership: true});
     render(
       <TeamMembers
         {...routerProps}
@@ -90,7 +91,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add multiple members with one click on dropdown', async function () {
-    const org = Organization({access: [], openMembership: true});
+    const org = OrganizationFixture({access: [], openMembership: true});
     render(
       <TeamMembers
         {...routerProps}
@@ -110,7 +111,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with team:admin permission', async function () {
-    const org = Organization({access: ['team:admin'], openMembership: false});
+    const org = OrganizationFixture({access: ['team:admin'], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -129,7 +130,7 @@ describe('TeamMembers', function () {
   });
 
   it('can add member to team with org:write permission', async function () {
-    const org = Organization({access: ['org:write'], openMembership: false});
+    const org = OrganizationFixture({access: ['org:write'], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -148,7 +149,7 @@ describe('TeamMembers', function () {
   });
 
   it('can request access to add member to team without permission', async function () {
-    const org = Organization({access: [], openMembership: false});
+    const org = OrganizationFixture({access: [], openMembership: false});
     render(
       <TeamMembers
         {...routerProps}
@@ -168,7 +169,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: Organization({
+      organization: OrganizationFixture({
         access: ['team:admin'],
         openMembership: false,
       }),
@@ -193,7 +194,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: Organization({
+      organization: OrganizationFixture({
         access: ['team:admin'],
         openMembership: true,
       }),
@@ -218,7 +219,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` enabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: Organization({access: [], openMembership: true}),
+      organization: OrganizationFixture({access: [], openMembership: true}),
     });
     render(
       <TeamMembers
@@ -240,7 +241,7 @@ describe('TeamMembers', function () {
 
   it('can invite member from team dropdown without access and `Open Membership` disabled', async function () {
     const {organization: org, routerContext} = initializeOrg({
-      organization: Organization({access: [], openMembership: false}),
+      organization: OrganizationFixture({access: [], openMembership: false}),
     });
     render(
       <TeamMembers
@@ -297,7 +298,7 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${me.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    const organizationMember = Organization({access: []});
+    const organizationMember = OrganizationFixture({access: []});
 
     render(
       <TeamMembers
@@ -363,7 +364,7 @@ describe('TeamMembers', function () {
       body: [...members, manager],
     });
 
-    const orgWithTeamRoles = Organization({features: ['team-roles']});
+    const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
 
     await render(
       <TeamMembers
@@ -386,7 +387,7 @@ describe('TeamMembers', function () {
       method: 'GET',
       body: [],
     });
-    const orgWithTeamRoles = Organization({features: ['team-roles']});
+    const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
     render(
       <TeamMembers
         {...routerProps}
@@ -406,7 +407,7 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members if team is idp:provisioned', function () {
-    const team2 = Team({
+    const team2 = TeamFixture({
       flags: {
         'idp:provisioned': true,
       },
@@ -459,7 +460,7 @@ describe('TeamMembers', function () {
   });
 
   it('cannot add or remove members or leave if team has org role and no access', function () {
-    const team2 = Team({orgRole: 'manager'});
+    const team2 = TeamFixture({orgRole: 'manager'});
 
     const me = MemberFixture({
       id: '123',

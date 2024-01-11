@@ -3,7 +3,7 @@
 
 import type {MetricsApiResponse} from 'sentry/types';
 
-export function MetricsField(
+export function MetricsFieldFixture(
   field: string,
   params: Partial<MetricsApiResponse> = {}
 ): MetricsApiResponse {
@@ -208,7 +208,7 @@ export function MetricsTotalCountByReleaseIn24h(): MetricsApiResponse {
   };
 }
 
-export function MetricsSessionUserCountByStatusByRelease(): MetricsApiResponse {
+export function MetricsSessionUserCountByStatusByReleaseFixture(): MetricsApiResponse {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',

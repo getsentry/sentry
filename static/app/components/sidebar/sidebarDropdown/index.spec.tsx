@@ -1,7 +1,7 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,9 +9,9 @@ import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 
 function renderDropdown(props: any = {}) {
-  const user = User();
+  const user = UserFixture();
   const config = ConfigFixture();
-  const organization = Organization({orgRole: 'member'});
+  const organization = OrganizationFixture({orgRole: 'member'});
   const routerContext = RouterContextFixture([
     {
       organization,

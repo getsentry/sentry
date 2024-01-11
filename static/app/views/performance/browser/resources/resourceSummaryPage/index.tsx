@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -41,11 +41,11 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data} = useSpanMetrics(
-    {
+  const {data} = useSpanMetrics({
+    filters: {
       'span.group': groupId,
     },
-    [
+    fields: [
       `avg(${SPAN_SELF_TIME})`,
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
       `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
@@ -54,8 +54,8 @@ function ResourceSummary() {
       'spm()',
       SPAN_DESCRIPTION,
       'time_spent_percentage()',
-    ]
-  );
+    ],
+  });
   const spanMetrics = data[0] ?? {};
 
   const isImage = IMAGE_FILE_EXTENSIONS.includes(

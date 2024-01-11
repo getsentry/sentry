@@ -29,13 +29,17 @@ export enum BreadcrumbType {
   INIT = 'init',
 }
 
+export enum BreadcrumbMessageFormat {
+  SQL = 'sql',
+}
+
 interface BreadcrumbTypeBase {
   level: BreadcrumbLevelType;
   // it's recommended
   category?: string | null;
   event_id?: string | null;
   message?: string;
-  messageFormat?: 'sql';
+  messageFormat?: BreadcrumbMessageFormat.SQL;
   messageRaw?: string;
   timestamp?: string;
 }

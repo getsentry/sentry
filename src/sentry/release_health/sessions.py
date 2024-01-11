@@ -80,9 +80,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
             project_releases=project_releases, environments=environments, now=now
         )
 
-    def sessions_query_config(
-        self, organization: Organization, start: datetime
-    ) -> SessionsQueryConfig:
+    def sessions_query_config(self, organization: Organization) -> SessionsQueryConfig:
         if features.has(
             "organizations:minute-resolution-sessions",
             organization,

@@ -44,9 +44,10 @@ from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import OrganizationSerializerResponse, SCIMMeta
+    from sentry.api.serializers import SCIMMeta
     from sentry.api.serializers.models.external_actor import ExternalActorResponse
     from sentry.api.serializers.models.project import ProjectSerializerResponse
+    from sentry.api.serializers.types import OrganizationSerializerResponse
 
 
 def _get_team_memberships(
@@ -360,7 +361,6 @@ class TeamWithProjectsSerializer(TeamSerializer):
 def get_scim_teams_members(
     team_list: Sequence[Team],
 ) -> MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]]:
-    # TODO(hybridcloud) Another cross silo join
     members = RangeQuerySetWrapper(
         OrganizationMember.objects.filter(teams__in=team_list)
         .prefetch_related("teams")

@@ -67,6 +67,7 @@ export const backend: PlatformKey[] = [
   'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java',
   'java-appengine',
   'java-log4j',
@@ -299,16 +300,19 @@ export const releaseHealth: PlatformKey[] = [
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
-const replayBackendPlatforms: readonly PlatformKey[] = [
+export const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'elixir',
   'go-echo',
   'go-fasthttp',
+  'go',
   'go-gin',
+  'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java-spring',
   'java-spring-boot',
   'node',
@@ -376,8 +380,8 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'php',
   'php-laravel',
-  'php-monolog',
-  'php-symfony',
+  // TODO: Enable once metrics are available for Symfony
+  // 'php-symfony',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -442,8 +446,6 @@ export const customMetricOnboardingPlatforms = new Set(
         'javascript-electron',
         'python-pylons',
         'python-tryton',
-      ].includes(p) &&
-      // TODO: Remove this once we have onboarding instructions for these platforms
-      !p.includes('php')
+      ].includes(p)
   )
 );

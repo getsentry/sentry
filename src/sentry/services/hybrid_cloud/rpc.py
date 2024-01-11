@@ -16,6 +16,7 @@ from typing import (
     Dict,
     Iterator,
     Mapping,
+    MutableMapping,
     NoReturn,
     Sequence,
     Tuple,
@@ -34,7 +35,7 @@ from typing_extensions import Self
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
@@ -555,17 +556,24 @@ class _RemoteSiloCall:
         else:
             target_mode = SiloMode.CONTROL
 
-        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-            target_mode, self.region
+        with (
+            SingleProcessSiloModeState.exit(),
+            SingleProcessSiloModeState.enter(target_mode, self.region),
         ):
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
             }
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
-    def _fire_request(self, headers: Mapping[str, str], data: bytes) -> requests.Response:
+    def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
+
+        # Add tracing continuation headers as the SDK doesn't monkeypatch requests.
+        if traceparent := sentry_sdk.get_traceparent():
+            headers["Sentry-Trace"] = traceparent
+        if baggage := sentry_sdk.get_baggage():
+            headers["Baggage"] = baggage
         try:
             return requests.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
         except requests.Timeout as e:

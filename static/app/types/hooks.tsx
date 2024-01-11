@@ -10,6 +10,7 @@ import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItem
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
@@ -109,6 +110,14 @@ type ProfilingAM1OrMMXUpgradeProps = {
   organization: Organization;
 };
 
+type CronsBillingBannerProps = {
+  organization: Organization;
+};
+
+type OrganizationHeaderProps = {
+  organization: Organization;
+};
+
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
   'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
@@ -142,6 +151,8 @@ type QualitativeIssueFeedbackProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type MonitorCreatedCallback = (organization: Organization) => void;
+
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
@@ -152,6 +163,7 @@ export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -165,7 +177,9 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
@@ -178,6 +192,7 @@ export type ComponentHooks = {
   'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-warning': React.ComponentType<any>;
 };
 
 /**
@@ -251,7 +266,6 @@ export type FeatureDisabledHooks = {
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
@@ -309,6 +323,7 @@ export type ReactHooks = {
  */
 type CallbackHooks = {
   'callback:on-guide-update': GuideUpdateCallback;
+  'callback:on-monitor-created': MonitorCreatedCallback;
 };
 
 /**
@@ -332,11 +347,6 @@ type GenericOrganizationComponentHook = (opts: {
  * Receives a project object and should return a React node.
  */
 type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
-
-// TODO(ts): We should correct the organization header hook to conform to the
-// GenericOrganizationComponentHook, passing org as a prop object, not direct
-// as the only argument.
-type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.

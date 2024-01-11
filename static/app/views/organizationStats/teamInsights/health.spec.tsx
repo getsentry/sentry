@@ -1,9 +1,9 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import {Team} from 'sentry-fixture/team';
-import {TeamAlertsTriggered} from 'sentry-fixture/teamAlertsTriggered';
-import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {TeamFixture} from 'sentry-fixture/team';
+import {TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
+import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -23,21 +23,21 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 describe('TeamStatsHealth', () => {
   const project1 = ProjectFixture({id: '2', name: 'js', slug: 'js'});
   const project2 = ProjectFixture({id: '3', name: 'py', slug: 'py'});
-  const team1 = Team({
+  const team1 = TeamFixture({
     id: '2',
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
     isMember: true,
   });
-  const team2 = Team({
+  const team2 = TeamFixture({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
     isMember: true,
   });
-  const team3 = Team({
+  const team3 = TeamFixture({
     id: '4',
     slug: 'internal',
     name: 'internal',
@@ -122,7 +122,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
-      body: TeamAlertsTriggered(),
+      body: TeamAlertsTriggeredFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
@@ -130,7 +130,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
-      body: TeamResolutionTime(),
+      body: TeamResolutionTimeFixture(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -139,7 +139,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
-      body: TeamAlertsTriggered(),
+      body: TeamAlertsTriggeredFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -147,7 +147,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
-      body: TeamResolutionTime(),
+      body: TeamResolutionTimeFixture(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -171,7 +171,7 @@ describe('TeamStatsHealth', () => {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = Organization({
+    const organization = OrganizationFixture({
       teams,
       projects,
     });

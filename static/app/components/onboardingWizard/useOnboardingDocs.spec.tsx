@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +8,7 @@ import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/performanceOnboarding/utils';
-import {PlatformIntegration} from 'sentry/types';
+import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useOnboardingDocs', function () {
@@ -22,10 +24,10 @@ describe('useOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const apiMocks: any = {};
 
@@ -76,10 +78,10 @@ describe('useOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'javascript-angular',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const apiMocks: any = {};
 
@@ -125,10 +127,10 @@ describe('useOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = ProjectFixture({
       platform: 'elixir',
       firstTransactionEvent: false,
-    });
+    }) as Project & {platform: PlatformKey};
 
     const apiMocks: any = {};
 

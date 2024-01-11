@@ -1,7 +1,4 @@
 import {Query} from 'history';
-import isArray from 'lodash/isArray';
-import isObject from 'lodash/isObject';
-import isString from 'lodash/isString';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
@@ -31,11 +28,14 @@ export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean 
   if (value === other) {
     return true;
   }
-  if (isArray(value) || isArray(other)) {
+  if (Array.isArray(value) || Array.isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (isObject(value) || isObject(other)) {
+  } else if (
+    (value && typeof value === 'object') ||
+    (other && typeof other === 'object')
+  ) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
@@ -135,8 +135,7 @@ export function nl2br(str: string): string {
  */
 export function isUrl(str: any): boolean {
   return (
-    !!str &&
-    isString(str) &&
+    typeof str === 'string' &&
     (str.indexOf('http://') === 0 || str.indexOf('https://') === 0)
   );
 }

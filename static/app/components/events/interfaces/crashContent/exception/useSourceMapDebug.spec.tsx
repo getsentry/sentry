@@ -1,5 +1,5 @@
 import cloneDeep from 'lodash/cloneDeep';
-import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 
 import {EntryException, Event} from 'sentry/types';
 

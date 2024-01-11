@@ -41,7 +41,7 @@ def get_direct_hit_response(
             )
             for evt in results["data"]
         ]
-        eventstore.bind_nodes(results)
+        eventstore.backend.bind_nodes(results)
 
         if len(results) == 1:
             response = Response(serialize(results, request.user))

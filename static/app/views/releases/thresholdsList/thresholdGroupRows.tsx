@@ -15,7 +15,16 @@ import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {NEW_THRESHOLD_PREFIX} from '../utils/constants';
+import {
+  CRASH_FREE_SESSION_RATE_STR,
+  CRASH_FREE_USER_RATE_STR as _CRASH_FREE_USER_RATE_STR,
+  FAILURE_RATE_STR as _FAILURE_RATE_STR,
+  NEW_ISSUE_COUNT_STR as _NEW_ISSUE_COUNT_STR,
+  NEW_THRESHOLD_PREFIX,
+  REGRESSED_ISSUE_COUNT_STR as _REGRESSED_ISSUE_COUNT_STR,
+  TOTAL_ERROR_COUNT_STR,
+  UNHANDLED_ISSUE_COUNT_STR as _UNHANDLED_ISSUE_COUNT_STR,
+} from '../utils/constants';
 import {EditingThreshold, Threshold} from '../utils/types';
 
 type Props = {
@@ -71,6 +80,27 @@ export function ThresholdGroupRows({
     }
     return new Set([...initial, ...Object.keys(editingThresholds)]);
   }, [initialThreshold, editingThresholds]);
+
+  const thresholdTypeList = useMemo(() => {
+    const isInternal = organization.features?.includes('releases-v2-internal');
+    const list = [
+      {
+        value: TOTAL_ERROR_COUNT_STR,
+        textValue: 'Errors',
+        label: 'Error Count',
+      },
+    ];
+    if (isInternal) {
+      list.push(
+        {
+          value: CRASH_FREE_SESSION_RATE_STR,
+          textValue: 'Crash Free Sessions',
+          label: 'Crash Free Sessions',
+        },
+      );
+    }
+    return list;
+  }, [organization]);
 
   const initializeNewThreshold = (
     environmentName: string | undefined = undefined,
@@ -302,13 +332,7 @@ export function ThresholdGroupRows({
                         selectedOption.value
                       )
                     }
-                    options={[
-                      {
-                        value: 'total_error_count',
-                        textValue: 'Errors',
-                        label: 'Error Count',
-                      },
-                    ]}
+                    options={thresholdTypeList}
                   />
                   {threshold.trigger_type === 'over' ? (
                     <Button

@@ -1,6 +1,6 @@
 import {ComponentProps, Fragment} from 'react';
-import {Organization} from 'sentry-fixture/organization';
-import {Search} from 'sentry-fixture/search';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SearchFixture} from 'sentry-fixture/search';
 
 import {
   render,
@@ -18,9 +18,9 @@ import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 describe('SavedIssueSearches', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
-  const recommendedSearch = Search({
+  const recommendedSearch = SearchFixture({
     id: 'global-search',
     isGlobal: true,
     name: 'Assigned to Me',
@@ -28,7 +28,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const userSearch = Search({
+  const userSearch = SearchFixture({
     id: 'user-search',
     isGlobal: false,
     name: 'Just Firefox',
@@ -36,7 +36,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.OWNER,
   });
 
-  const orgSearch = Search({
+  const orgSearch = SearchFixture({
     id: 'org-search',
     isGlobal: false,
     name: 'Last 4 Hours',
@@ -44,7 +44,7 @@ describe('SavedIssueSearches', function () {
     visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const pinnedSearch = Search({
+  const pinnedSearch = SearchFixture({
     id: 'pinned-search',
     isGlobal: false,
     isPinned: true,
@@ -62,7 +62,7 @@ describe('SavedIssueSearches', function () {
   beforeEach(() => {
     localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   it('displays saved searches with correct text and in correct sections', async function () {
