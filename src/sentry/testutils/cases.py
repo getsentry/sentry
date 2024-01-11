@@ -2818,9 +2818,7 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             name="Personal Installation",
             provider="msteams",
         )
-        self.idp = self.create_identity_provider(
-            integration=self.integration, type="msteams", external_id=self.tenant_id, config={}
-        )
+        self.idp = self.create_identity_provider(integration=self.integration)
         self.user_id_1 = "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
         self.user_1 = self.user
         self.identity_1 = self.create_identity(
