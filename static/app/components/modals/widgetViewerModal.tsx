@@ -1214,7 +1214,7 @@ function OpenButton({
       path = getWidgetReleasesUrl(widget, selection, organization);
       break;
     case WidgetType.METRICS:
-      openLabel = t('Open in DDM');
+      openLabel = t('Open in Metrics');
       path = getWidgetDDMUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:

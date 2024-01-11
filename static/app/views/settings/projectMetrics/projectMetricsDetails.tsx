@@ -101,7 +101,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
             })}
             size="sm"
           >
-            {t('Open in DDM')}
+            {t('Open in Metrics')}
           </LinkButton>
         }
       />

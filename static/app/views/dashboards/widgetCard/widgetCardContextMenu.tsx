@@ -202,7 +202,7 @@ function WidgetCardContextMenu({
 
     menuOptions.push({
       key: 'open-in-ddm',
-      label: t('Open in DDM'),
+      label: t('Open in Metrics'),
       to: ddmLocation,
     });
   }

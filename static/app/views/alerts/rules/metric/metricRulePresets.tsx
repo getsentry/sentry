@@ -50,7 +50,7 @@ export function makeDefaultCta({
   if (isCustomMetricField(rule.aggregate)) {
     const {mri, op} = parseField(rule.aggregate) ?? {};
     return {
-      buttonText: t('Open in DDM'),
+      buttonText: t('Open in Metrics'),
       to: getDdmUrl(orgSlug, {
         start: timePeriod.start,
         end: timePeriod.end,
