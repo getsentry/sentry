@@ -300,7 +300,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         db_table = "sentry_project"
         unique_together = (("organization", "slug"),)
 
-    __repr__ = sane_repr("team_id", "name", "slug")
+    __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
     _rename_fields_on_pending_delete = frozenset(["slug"])
 
