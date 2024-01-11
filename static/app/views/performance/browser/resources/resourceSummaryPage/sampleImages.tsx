@@ -1,7 +1,9 @@
 import {CSSProperties, useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
+// import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+
+import imageIcon from 'sentry-images/image-icon.svg';
 
 import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -148,7 +150,7 @@ function ImageContainer(props: {
   size: number;
   src: string;
 }) {
-  const theme = useTheme();
+  // const theme = useTheme();
   const [hasError, setHasError] = useState(false);
 
   const {fileName, size, src, showImage = true} = props;
@@ -172,9 +174,10 @@ function ImageContainer(props: {
           <img onError={() => setHasError(true)} src={src} style={commonStyles} />
         </div>
       ) : (
-        <div
-          style={{width: imageWidth, height: imageHeight, backgroundColor: theme.gray100}}
-        />
+        <img src={imageIcon} />
+        // <div
+        //   style={{width: imageWidth, height: imageHeight, backgroundColor: theme.gray100}}
+        // />
       )}
       {fileName} (<ResourceSize bytes={size} />)
     </div>
