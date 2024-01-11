@@ -1,4 +1,5 @@
 import {CSSProperties, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -181,9 +182,38 @@ function ImageContainer(props: {
           <img onError={() => setHasError(true)} src={src} style={commonStyles} />
         </div>
       ) : (
-        <img src={imageIcon} style={{...commonStyles}} />
+        <MissingImage />
       )}
       {fileName} (<ResourceSize bytes={size} />)
+    </div>
+  );
+}
+
+function MissingImage() {
+  const theme = useTheme();
+
+  return (
+    <div
+      style={{
+        background: theme.gray100,
+        width: imageWidth,
+        height: imageHeight,
+        position: 'relative',
+      }}
+    >
+      <img
+        src={imageIcon}
+        style={{
+          width: '25px',
+          height: '25px',
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          margin: 'auto',
+        }}
+      />
     </div>
   );
 }
