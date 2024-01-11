@@ -35,6 +35,8 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
 )
 
+MISSING_AUTH_ERROR_MESSAGE = "Missing password or U2F"
+
 
 @control_silo_endpoint
 class BaseAuthIndexEndpoint(Endpoint):
@@ -141,7 +143,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         """
         if not validator.is_valid():
-            raise NotAuthenticated(detail="Missing password or U2F")
+            raise NotAuthenticated(detail=MISSING_AUTH_ERROR_MESSAGE)
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
@@ -219,7 +221,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
             if not validator.is_valid():
-                raise NotAuthenticated(detail="Missing password or U2F")
+                raise NotAuthenticated(detail=MISSING_AUTH_ERROR_MESSAGE)
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
