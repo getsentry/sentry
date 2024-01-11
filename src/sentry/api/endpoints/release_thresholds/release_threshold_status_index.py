@@ -272,30 +272,23 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         query_windows_by_type[threshold.threshold_type]["end"],
                     )
 
-                    threshold_end = threshold_start + timedelta(seconds=threshold.window_in_seconds)
-                    is_healthy: bool = False
-                    if threshold.threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
-                        is_healthy = is_new_issues_count_healthy(
-                            project=project,
-                            release=release,
-                            release_threshold=threshold,
-                            start=threshold_start,
-                            end=threshold_end,
-                        )
-
                     # NOTE: enriched threshold is SERIALIZED
                     # meaning project and environment models are dictionaries
                     enriched_threshold: EnrichedThreshold = serialize(threshold)
-                    # NOTE: start/end for a threshold are different than start/end for querying data
+                    # NOTE: start/end for a threshold are different from start/end for querying data
                     enriched_threshold.update(
                         {
                             "key": self.construct_threshold_key(release=release, project=project),
                             "start": threshold_start,
-                            "end": threshold_end,  # start + threshold.window
+                            "end": threshold_start
+                            + timedelta(
+                                seconds=threshold.window_in_seconds
+                            ),  # start + threshold.window
                             "release": release.version,
                             "project_slug": project.slug,
                             "project_id": project.id,
-                            "is_healthy": is_healthy,
+                            "is_healthy": False,
+                            "release_id": release.id,
                         }
                     )
                     thresholds_by_type[threshold.threshold_type]["thresholds"].append(
@@ -351,6 +344,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
                 metrics.incr("release.threshold_health_status.check.new_issue_count")
                 for ethreshold in category_thresholds:
+                    is_healthy = is_new_issues_count_healthy(ethreshold)
+                    ethreshold.update({"is_healthy": is_healthy})
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key

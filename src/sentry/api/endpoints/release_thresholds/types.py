@@ -21,3 +21,4 @@ class EnrichedThreshold(SerializedThreshold):
     project_id: int
     start: datetime
     metric_value: int | None
+    release_id: int

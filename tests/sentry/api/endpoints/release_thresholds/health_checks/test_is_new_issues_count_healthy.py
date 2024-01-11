@@ -3,6 +3,7 @@ from datetime import timedelta
 from sentry.api.endpoints.release_thresholds.health_checks.is_new_issues_count_healthy import (
     is_new_issues_count_healthy,
 )
+from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
@@ -112,50 +113,66 @@ class TestGetNewIssueCountIsHealthy(TestCase):
             )
 
     def test_returns_true_when_is_healthy(self) -> None:
+        enriched_threshold = serialize(self.new_issue_count_release_threshold)
         start_time = self.new_issue_time - timedelta(seconds=10)
         end_time = self.new_issue_time + timedelta(seconds=10)
-        is_healthy = is_new_issues_count_healthy(
-            project=self.project1,
-            release=self.release1,
-            release_threshold=self.new_issue_count_release_threshold,
-            start=start_time,
-            end=end_time,
+        enriched_threshold.update(
+            {
+                "start": start_time,
+                "end": end_time,
+                "project_id": self.project1.id,
+                "release_id": self.release1.id,
+            }
         )
+
+        is_healthy = is_new_issues_count_healthy(enriched_threshold)
         assert is_healthy is True
 
     def test_returns_false_when_is_not_healthy(self) -> None:
+        enriched_threshold = serialize(self.new_issue_count_release_threshold)
         # Get a time range when no issues are there
         start_time = self.new_issue_time + timedelta(hours=1)
         end_time = self.new_issue_time + timedelta(hours=2)
-        is_healthy = is_new_issues_count_healthy(
-            project=self.project1,
-            release=self.release1,
-            release_threshold=self.new_issue_count_release_threshold,
-            start=start_time,
-            end=end_time,
+        enriched_threshold.update(
+            {
+                "start": start_time,
+                "end": end_time,
+                "project_id": self.project1.id,
+                "release_id": self.release1.id,
+            }
         )
+
+        is_healthy = is_new_issues_count_healthy(enriched_threshold)
         assert is_healthy is False
 
     def test_returns_false_when_no_issues_exist(self) -> None:
+        enriched_threshold = serialize(self.new_issue_count_release_threshold)
         start_time = self.new_issue_time - timedelta(seconds=10)
         end_time = self.new_issue_time + timedelta(seconds=10)
-        is_healthy = is_new_issues_count_healthy(
-            project=self.project1,
-            release=self.release2,
-            release_threshold=self.new_issue_count_release_threshold,
-            start=start_time,
-            end=end_time,
+        enriched_threshold.update(
+            {
+                "start": start_time,
+                "end": end_time,
+                "project_id": self.project1.id,
+                "release_id": self.release2.id,
+            }
         )
+
+        is_healthy = is_new_issues_count_healthy(enriched_threshold)
         assert is_healthy is False
 
     def test_when_release_threshold_does_not_have_env(self) -> None:
+        enriched_threshold = serialize(self.new_issue_count_release_threshold_without_env)
         start_time = self.new_issue_time - timedelta(seconds=10)
         end_time = self.new_issue_time + timedelta(seconds=10)
-        is_healthy = is_new_issues_count_healthy(
-            project=self.project2,
-            release=self.release1,
-            release_threshold=self.new_issue_count_release_threshold_without_env,
-            start=start_time,
-            end=end_time,
+        enriched_threshold.update(
+            {
+                "start": start_time,
+                "end": end_time,
+                "project_id": self.project2.id,
+                "release_id": self.release1.id,
+            }
         )
+
+        is_healthy = is_new_issues_count_healthy(enriched_threshold)
         assert is_healthy is True
