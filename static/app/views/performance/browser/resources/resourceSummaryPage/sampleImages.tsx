@@ -21,7 +21,7 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 type Props = {groupId: string; projectId?: number};
 
-export const LOCAL_STORAGE_SHOW_LINKS = 'showLinks';
+export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 
 const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 const imageWidth = '200px';
