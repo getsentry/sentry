@@ -1555,7 +1555,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
@@ -1636,7 +1635,6 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
@@ -1759,7 +1757,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
     def test_forecast_in_activity(self, mock_is_escalating):
         """
@@ -1786,7 +1783,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         ).exists()
 
     @with_feature("projects:first-event-severity-new-escalation")
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.issues.escalating.is_escalating")
     def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
         """
