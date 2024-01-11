@@ -93,7 +93,9 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         if integrations.exists(plugin_id):
             for feature in integrations.get(plugin_id).features:
                 feature_flag_name = "organizations:integrations-%s" % feature.value
-                if feature_flag_name in settings.SENTRY_FEATURES and not features.has(feature_flag_name, project.organization):
+                if feature_flag_name in settings.SENTRY_FEATURES and not features.has(
+                    feature_flag_name, project.organization
+                ):
                     return Response(
                         {"detail": ERR_FEATURE_REQUIRED % feature_flag_name}, status=403
                     )
