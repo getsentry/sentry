@@ -1,5 +1,4 @@
 from django import forms
-from django.conf import settings
 from django.http.response import Http404
 from django.urls import reverse
 from rest_framework import serializers
@@ -90,19 +89,17 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         if not plugin.can_disable:
             return Response({"detail": ERR_ALWAYS_ENABLED}, status=400)
 
-        for feature_description in plugin.feature_descriptions:
-            if feature_description.featureGate == IntegrationFeatures.SESSION_REPLAY:
-                # NOTE: there is a clash between Sentry native "organizations:session-replay" which is False by default
-                # (see server.py) and "organizations:session-replay" which is supposed to be a plugin-related feature,
-                # according to current logic: https://github.com/getsentry/sentry/pull/16825
-                # We can allow this action unconditionally because there is no restriction on the SessionStack plugin.
-                continue
-            feature_flag_name = "organizations:%s" % feature_description.featureGate.value
-            # Check only for features that exist in SENTRY_FEATURES. Currently this only applies to "data-forwarding".
-            if feature_flag_name in settings.SENTRY_FEATURES and not features.has(
-                feature_flag_name, project.organization
-            ):
-                return Response({"detail": ERR_FEATURE_REQUIRED % feature_flag_name}, status=403)
+        # Currently, only data forwarding plugins need feature check. If there will be plugins with other feature gates,
+        # we will need to add the relevant check. However, this is unlikely to happen.
+        if any(
+            [
+                fd.featureGate == IntegrationFeatures.DATA_FORWARDING
+                for fd in plugin.feature_descriptions
+            ]
+        ) and not features.has("organizations:data-forwarding", project.organization):
+            return Response(
+                {"detail": ERR_FEATURE_REQUIRED % "organizations:data-forwarding"}, status=403
+            )
 
         plugin.enable(project)
 

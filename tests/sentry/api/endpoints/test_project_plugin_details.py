@@ -126,9 +126,6 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
             self.organization.slug, self.project.slug, "amazon-sqs", status_code=403
         )
 
-    def test_allow_session_replay_plugin(self):
-        self.get_success_response(self.organization.slug, self.project.slug, "sessionstack")
-
 
 @region_silo_test
 class DisableProjectPluginTest(ProjectPluginDetailsTestBase):
