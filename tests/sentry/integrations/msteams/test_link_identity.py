@@ -5,7 +5,6 @@ import responses
 
 from sentry.integrations.msteams.link_identity import build_linking_url
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -25,7 +24,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
 
         self.login_as(self.user1)
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Hogwarts",
             external_id="1_50l3mnly_5w34r",

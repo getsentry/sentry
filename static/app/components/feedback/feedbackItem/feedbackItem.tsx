@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ActivitySection from 'sentry/components/feedback/feedbackItem/activitySection';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
+import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
@@ -15,7 +15,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconChat, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -88,7 +88,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         </Section>
 
         <Section icon={<IconChat size="xs" />} title={t('Activity')}>
-          <ActivitySection group={feedbackItem as unknown as Group} />
+          <FeedbackActivitySection feedbackItem={feedbackItem} />
         </Section>
       </OverflowPanelItem>
     </Fragment>

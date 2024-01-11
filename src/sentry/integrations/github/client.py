@@ -632,7 +632,11 @@ class GitHubClientMixin(GithubProxyClient):
             headers=headers,
         )
 
-        result = contents.content if codeowners else b64decode(contents["content"]).decode("utf-8")
+        result = (
+            contents.content.decode("utf-8")
+            if codeowners
+            else b64decode(contents["content"]).decode("utf-8")
+        )
         return result
 
     def get_blame_for_file(
