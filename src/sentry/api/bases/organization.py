@@ -306,7 +306,7 @@ class OrganizationEndpoint(Endpoint):
                 include_all_accessible = True
             elif slugs:
                 qs.filter(slug__in=slugs)
-                # No project ids === `all projects i am a member of`
+            # No project slugs === `all projects i am a member of`
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
