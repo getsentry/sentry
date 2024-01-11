@@ -26,11 +26,6 @@ describe('App', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: InstallWizardFixture(),
     });
@@ -72,10 +67,7 @@ describe('App', function () {
   });
 
   it('renders PartnershipAgreement', async function () {
-    ConfigStore.set('partnershipAgreementPrompt', {
-      partnerDisplayName: 'Foo',
-      agreements: ['standard', 'partner_presence'],
-    });
+    ConfigStore.set('partnershipAgreementPrompt', {partnerDisplayName: 'Foo', agreements:['standard', 'partner_presence']});
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
@@ -86,9 +78,7 @@ describe('App', function () {
       await screen.findByText(/This organization is created in partnership with Foo/)
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        /and are aware of the partner's presence in the organization as a manager./
-      )
+      await screen.findByText(/and are aware of the partner's presence in the organization as a manager./)
     ).toBeInTheDocument();
     expect(screen.queryByText('placeholder content')).not.toBeInTheDocument();
   });
@@ -102,9 +92,7 @@ describe('App', function () {
     );
 
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
-    expect(
-      await screen.queryByText(/This organization is created in partnership/)
-    ).not.toBeInTheDocument();
+    expect(await screen.queryByText(/This organization is created in partnership/)).not.toBeInTheDocument();
   });
 
   it('renders InstallWizard for self-hosted', async function () {
@@ -159,11 +147,7 @@ describe('App', function () {
       body: {
         healthy: false,
         problems: [
-          {
-            id: 'abc123',
-            message: 'Celery workers have not checked in',
-            severity: 'critical',
-          },
+          {id: 'abc123', message: 'Celery workers have not checked in', severity: 'critical'},
         ],
       },
     });
@@ -178,8 +162,6 @@ describe('App', function () {
     ConfigStore.config.isSelfHosted = restore;
 
     expect(getMock).toHaveBeenCalled();
-    expect(
-      await screen.findByText(/Celery workers have not checked in/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Celery workers have not checked in/)).toBeInTheDocument();
   });
 });
