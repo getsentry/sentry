@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import options
@@ -66,10 +67,11 @@ class SystemOptionsTest(APITestCase):
         response = self.client.put(self.url, {"auth.allow-registration": 1})
         assert response.status_code == 403
 
-    def test_put_superuser_access_allowed(self):
-        self.login_as(user=self.user, superuser=True)
-        response = self.client.put(self.url, {"auth.allow-registration": 1})
-        assert response.status_code == 200
+    def test_put_self_hosted_superuser_access_allowed(self):
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            self.login_as(user=self.user, superuser=True)
+            response = self.client.put(self.url, {"auth.allow-registration": 1})
+            assert response.status_code == 200
 
     def test_put_int_for_boolean(self):
         self.login_as(user=self.user, superuser=True)
