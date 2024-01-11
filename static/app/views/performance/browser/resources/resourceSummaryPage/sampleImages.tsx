@@ -65,7 +65,7 @@ function SampleImages({groupId, projectId}: Props) {
         images={filteredResources}
         isLoadingImages={isLoadingImages}
         isImagesEnabled={isImagesEnabled}
-        showImages={showImages}
+        showImages={showImages || isImagesEnabled}
       />
     </ChartPanel>
   );
