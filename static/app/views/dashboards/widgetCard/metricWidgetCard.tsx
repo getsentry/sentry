@@ -19,7 +19,6 @@ import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
-  defaultMetricDisplayType,
   getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
@@ -392,7 +391,7 @@ export const QueryBuilder = memo(function QueryBuilder({
                 : availableOps?.[0];
               Sentry.metrics.increment('ddm.widget.metric', 1, {
                 tags: {
-                  display: displayType ?? defaultMetricDisplayType,
+                  display: displayType,
                   type: readableType,
                   operation: selectedOp,
                   isGrouped: !!metricsQuery.groupBy?.length,
@@ -422,7 +421,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             onChange={option => {
               Sentry.metrics.increment('ddm.widget.operation', 1, {
                 tags: {
-                  display: displayType ?? defaultMetricDisplayType,
+                  display: displayType,
                   type: readableType,
                   operation: option.value,
                   isGrouped: !!metricsQuery.groupBy?.length,
@@ -452,7 +451,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             onChange={options => {
               Sentry.metrics.increment('ddm.widget.group', 1, {
                 tags: {
-                  display: displayType ?? defaultMetricDisplayType,
+                  display: displayType,
                   type: readableType,
                   operation: metricsQuery.op,
                   isGrouped: !!metricsQuery.groupBy?.length,
@@ -467,7 +466,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           />
           <CompactSelect
             triggerProps={{prefix: t('Display'), size}}
-            value={displayType ?? defaultMetricDisplayType}
+            value={displayType}
             options={[
               {
                 value: MetricDisplayType.LINE,
@@ -507,7 +506,7 @@ export const QueryBuilder = memo(function QueryBuilder({
           onChange={query => {
             Sentry.metrics.increment('ddm.widget.filter', 1, {
               tags: {
-                display: displayType ?? defaultMetricDisplayType,
+                display: displayType,
                 type: readableType,
                 operation: metricsQuery.op,
                 isGrouped: !!metricsQuery.groupBy?.length,
