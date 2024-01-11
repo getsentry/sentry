@@ -2,16 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
-
-import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -39,19 +35,6 @@ import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
-
-function DisabledMonitorCreationPanel() {
-  return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
-      <h3>{t('Monitor Your Cron Jobs')}</h3>
-      <Alert type="warning" showIcon>
-        {t(
-          'The Crons beta is over. Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete. Please try again after January 11th, 2024.'
-        )}
-      </Alert>
-    </OnboardingPanel>
-  );
-}
 
 const CronsListPageHeader = HookOrDefault({
   hookName: 'component:crons-list-page-header',
@@ -86,9 +69,6 @@ export default function Monitors() {
     });
   };
 
-  const disableNewMonitors =
-    organization.features.includes('crons-disable-new-projects') &&
-    (isLoading || monitorList?.length === 0);
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
   return (
@@ -112,17 +92,7 @@ export default function Monitors() {
             <ButtonBar gap={1}>
               <FeedbackWidgetButton />
               {showAddMonitor && (
-                <NewMonitorButton
-                  size="sm"
-                  icon={<IconAdd isCircled />}
-                  disabled={disableNewMonitors}
-                  title={
-                    disableNewMonitors &&
-                    t(
-                      'Adding new monitors for projects without existing ones is temporarily disabled until our launch preparations are complete.'
-                    )
-                  }
-                >
+                <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
                   {t('Add Monitor')}
                 </NewMonitorButton>
               )}
@@ -149,8 +119,6 @@ export default function Monitors() {
                 <OverviewTimeline monitorList={monitorList} />
                 {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
               </Fragment>
-            ) : disableNewMonitors ? (
-              <DisabledMonitorCreationPanel />
             ) : (
               <CronsLandingPanel />
             )}
