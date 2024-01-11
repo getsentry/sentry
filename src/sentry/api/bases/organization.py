@@ -313,28 +313,29 @@ class OrganizationEndpoint(Endpoint):
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
-            fetched_project_ids = {p.id for p in projects}
-            fetched_project_slugs = {p.slug for p in projects}
             span.set_data("Project Count", len(projects))
 
+        filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
             projects=projects,
             request=request,
-            filter_by_membership=not bool(ids) and not bool(slugs),
+            filter_by_membership=filter_by_membership,
             force_global_perms=force_global_perms,
             include_all_accessible=include_all_accessible,
         )
         filtered_project_ids = {p.id for p in filtered_projects}
         filtered_project_slugs = {p.slug for p in filtered_projects}
 
-        if not include_all_accessible and (
-            (ids and fetched_project_ids != filtered_project_ids)
-            or (slugs and fetched_project_slugs != filtered_project_slugs)
+        if (
+            not include_all_accessible
+            and not filter_by_membership
+            and (
+                (ids and ids != filtered_project_ids) or (slugs and slugs != filtered_project_slugs)
+            )
         ):
             # If a user requests all projects - they should get back all projects they have permission for
             # If a user requests specified projects, but they don't have access to them
             # Then we should raise a permission denied
-            # TODO: instead of raising a PermissionDenied, maybe we should just return the projects they have access to
             raise PermissionDenied
 
         return filtered_projects
