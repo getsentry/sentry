@@ -344,35 +344,3 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert assign_monitor_seat.called
         assert response.data["status"] == "disabled"
         assert monitor.status == ObjectStatus.DISABLED
-
-    def test_disabled_creating_new_monitor(self):
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "slug": "my-monitor",
-            "type": "cron_job",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-        }
-        with self.feature("organizations:crons-disable-new-projects"):
-            response = self.get_error_response(self.organization.slug, **data, status_code=400)
-
-        assert (
-            response.data
-            == "Creating monitors in projects without pre-existing monitors is temporarily disabled"
-        )
-
-    def test_disabled_creating_with_existing_monitors(self):
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "slug": "my-monitor",
-            "type": "cron_job",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-        }
-        self.project.flags.has_cron_monitors = True
-        self.project.save()
-
-        with self.feature("organizations:crons-disable-new-projects"):
-            response = self.get_success_response(self.organization.slug, **data)
-
-        assert response.data["slug"] == "my-monitor"
