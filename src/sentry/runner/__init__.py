@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import sys
@@ -8,10 +7,6 @@ import sentry_sdk
 
 import sentry
 from sentry.utils.imports import import_string
-
-# We need to run this here because of a concurrency bug in Python's locale
-# with the lazy initialization.
-datetime.datetime.strptime("", "")
 
 # Parse out a pretty version for use with --version
 version_string = sentry.__semantic_version__
