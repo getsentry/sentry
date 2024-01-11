@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -38,6 +39,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
   const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
+  const [isHidden, setIsHidden] = useState(true);
 
   return (
     <Fragment>
@@ -91,8 +93,16 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Section>
         )}
 
-        <Section icon={<IconTag size="xs" />} title={t('Tags')}>
-          <TagsSection tags={tags} />
+        <Section
+          icon={<IconTag size="xs" />}
+          title={t('Tags')}
+          contentRight={
+            <Button borderless onClick={() => setIsHidden(!isHidden)}>
+              {isHidden ? t('Expand Tags') : t('Collapse Tags')}
+            </Button>
+          }
+        >
+          {isHidden ? <TagsSection tags={tags} collapsed /> : <TagsSection tags={tags} />}
         </Section>
 
         <Section icon={<IconChat size="xs" />} title={t('Activity')}>
@@ -109,6 +119,7 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(4)};
+  padding: ${space(2)} ${space(3)} 50px ${space(3)};
 `;
 
 const SmallTitle = styled('span')`
