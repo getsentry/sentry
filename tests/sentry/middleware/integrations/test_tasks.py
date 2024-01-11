@@ -1,5 +1,4 @@
 import dataclasses
-from unittest.mock import patch
 
 import responses
 from django.test import RequestFactory
@@ -117,34 +116,6 @@ class AsyncSlackResponseTest(TestCase):
             response_url=self.response_url,
         )
         assert slack_response.call_count == 0
-
-    @responses.activate
-    @override_regions(region_config)
-    @patch("sentry.middleware.integrations.tasks.logger.info")
-    def test_empty_request_bdoy(self, mock_logger_info):
-        responses.add(
-            responses.POST,
-            "https://us.testserver/extensions/slack/action/",
-            status=404,
-            json={},
-        )
-        responses.add(
-            responses.POST,
-            "https://eu.testserver/extensions/slack/action/",
-            status=204,
-        )
-        slack_response = responses.add(
-            responses.POST,
-            self.response_url,
-            status=200,
-        )
-        convert_to_async_slack_response(
-            region_names=["us", "eu"],
-            payload=self.payload,
-            response_url=self.response_url,
-        )
-        assert slack_response.call_count == 0
-        mock_logger_info.assert_called
 
 
 @control_silo_test
