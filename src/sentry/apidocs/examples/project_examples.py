@@ -369,7 +369,7 @@ DETAILED_PROJECT = {
     "symbolSources": "[]",
 }
 
-symbol_sources = [
+SYMBOL_SOURCES = [
     {
         "id": "honk",
         "name": "honk source",
@@ -495,7 +495,7 @@ class ProjectExamples:
     GET_SYMBOL_SOURCES = [
         OpenApiExample(
             "List custom symbol sources configured for a project.",
-            value=symbol_sources,
+            value=SYMBOL_SOURCES,
             status_codes=["200"],
             response_only=True,
         ),
@@ -504,7 +504,7 @@ class ProjectExamples:
     ADD_SYMBOL_SOURCE = [
         OpenApiExample(
             "List custom symbol sources configured for a project.",
-            value=symbol_sources[0],
+            value=SYMBOL_SOURCES[0],
             status_codes=["201"],
             response_only=True,
         ),
@@ -513,7 +513,7 @@ class ProjectExamples:
     ADD_SYMBOL_SOURCE = [
         OpenApiExample(
             "Add a custom symbol source to a project.",
-            value=symbol_sources[0],
+            value=SYMBOL_SOURCES[0],
             status_codes=["201"],
             response_only=True,
         ),
@@ -522,7 +522,7 @@ class ProjectExamples:
     UPDATE_SYMBOL_SOURCE = [
         OpenApiExample(
             "Update a custom symbol source in a project.",
-            value=symbol_sources[0],
+            value=SYMBOL_SOURCES[0],
             status_codes=["200"],
             response_only=True,
         ),
