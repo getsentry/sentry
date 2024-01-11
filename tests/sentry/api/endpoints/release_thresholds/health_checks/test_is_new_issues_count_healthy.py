@@ -182,14 +182,14 @@ class TestGetNewIssueCountIsHealthy(TestCase):
         "sentry.api.endpoints.release_thresholds.health_checks.is_new_issues_count_healthy.logger"
     )
     def test_returns_false_when_error_in_query(self, logger) -> None:
-        enriched_threshold = serialize(self.new_issue_count_release_threshold_without_env)
+        enriched_threshold = serialize(self.new_issue_count_release_threshold)
         start_time = self.new_issue_time - timedelta(seconds=10)
         end_time = self.new_issue_time + timedelta(seconds=10)
         enriched_threshold.update(
             {
                 "start": start_time,
                 "end": end_time,
-                "project_id": self.project2.id,
+                "project_id": self.project1.id,
                 "release_id": self.release1.id,
             }
         )
