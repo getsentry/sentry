@@ -170,14 +170,11 @@ export function getNextAvailablePosition(
 
 export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layout'>>(
   widgets: T[],
-  initialColumnDepths: number[],
-  editingWidgetIndex?: number
+  initialColumnDepths: number[]
 ): T[] {
   let columnDepths = [...initialColumnDepths];
-  const newWidgets = widgets.map((widget, index) => {
-    const isEditingWidget = index === editingWidgetIndex;
-
-    if (defined(widget.layout) && !isEditingWidget) {
+  const newWidgets = widgets.map(widget => {
+    if (defined(widget.layout)) {
       return widget;
     }
     const height = getDefaultWidgetHeight(widget.displayType);
@@ -191,10 +188,9 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
       ...widget,
       layout: {
         ...nextPosition,
-        x: isEditingWidget ? 0 : nextPosition.x,
         h: height,
         minH: height,
-        w: isEditingWidget ? MAX_DEFAULT_WIDGET_WIDTH : DEFAULT_WIDGET_WIDTH,
+        w: DEFAULT_WIDGET_WIDTH,
       },
     };
   });

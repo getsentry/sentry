@@ -42,13 +42,13 @@ import {
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   formatMRI,
-  formatMRIField,
   getUseCaseFromMRI,
   MRIToField,
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import useRouter from 'sentry/utils/useRouter';
+import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 
 import {
   normalizeDateTimeParams,
@@ -186,6 +186,16 @@ export type MetricRange = {
   max?: number;
   min?: number;
   start?: DateString;
+};
+
+export const emptyWidget: MetricWidgetQueryParams = {
+  mri: 'd:transactions/duration@millisecond' satisfies MRI,
+  op: 'avg',
+  query: '',
+  groupBy: [],
+  sort: DEFAULT_SORT_STATE,
+  displayType: MetricDisplayType.LINE,
+  title: undefined,
 };
 
 export function getDdmUrl(
@@ -618,11 +628,11 @@ export function isCustomMetric({mri}: {mri: MRI}) {
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
-  if (isCustomMetric(metricsQuery)) {
-    return MRIToField(metricsQuery.mri, metricsQuery.op!);
-  }
+  // if (isCustomMetric(metricsQuery)) {
+  return MRIToField(metricsQuery.mri, metricsQuery.op!);
+  // }
 
-  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
+  // return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
 // TODO(ddm): remove this and all of its usages once backend sends mri fields

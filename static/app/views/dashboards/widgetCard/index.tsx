@@ -305,6 +305,8 @@ class WidgetCard extends Component<Props, State> {
             isEditingWidget={this.props.isEditingWidget}
             onEdit={this.props.onEdit}
             onUpdate={this.props.onUpdate}
+            onDelete={this.props.onDelete}
+            onDuplicate={this.props.onDuplicate}
             router={this.props.router}
             location={this.props.location}
             organization={organization}

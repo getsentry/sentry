@@ -29,6 +29,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
+import {defaultMetricWidget} from './widgetCard/metricWidgetCard';
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
@@ -246,7 +247,30 @@ class Dashboard extends Component<Props, State> {
     return;
   };
 
-  handleAddMetricsWidget() {}
+  handleAddMetricsWidget() {
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList, selection} =
+      this.props;
+
+    const widgetLayout = this.addWidgetLayout;
+
+    const widgetCopy = cloneDeep(
+      assignTempId({
+        // TODO(ddm): extract to constantr
+        layout: {...widgetLayout, minH: 2, h: 2},
+        ...defaultMetricWidget(selection),
+        widgetType: WidgetType.METRICS,
+      })
+    );
+
+    let nextList = [...dashboard.widgets];
+    nextList.splice(nextList.length - 1, 0, widgetCopy);
+    nextList = generateWidgetsAfterCompaction(nextList);
+
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  }
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
@@ -343,7 +367,6 @@ class Dashboard extends Component<Props, State> {
 
   handleStartEditMetricWidget = (index: number) => {
     this.props.onStartEditMetricWidget?.(index);
-    this.handleLayoutChange(null, this.state.layouts);
   };
 
   onUpdate = (widget: Widget, index: number) => (newWidget: Widget) => {
@@ -511,13 +534,7 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {
-      isEditingDashboard,
-      dashboard,
-      widgetLimitReached,
-      organization,
-      editingWidgetIndex,
-    } = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, organization} = this.props;
     let {widgets} = dashboard;
     // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
@@ -529,11 +546,7 @@ class Dashboard extends Component<Props, State> {
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
 
-    const widgetsWithLayout = assignDefaultLayout(
-      widgets,
-      columnDepths,
-      editingWidgetIndex
-    );
+    const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditingDashboard;
 

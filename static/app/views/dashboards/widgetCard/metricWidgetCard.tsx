@@ -19,6 +19,7 @@ import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
+  emptyWidget,
   getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
@@ -69,6 +70,8 @@ type Props = Pick<
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => void;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
   onEdit?: (index: string) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -82,6 +85,10 @@ type Props = Pick<
   tableItemLimit?: number;
   windowWidth?: number;
 };
+
+export function defaultMetricWidget(selection) {
+  return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
+}
 
 export function MetricWidgetCardAdapter({
   // api,
@@ -100,12 +107,13 @@ export function MetricWidgetCardAdapter({
   isEditingWidget,
   onEdit,
   onUpdate,
+  onDelete,
+  onDuplicate,
   location,
   router,
   index,
 }: Props) {
   // const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
-
   const query = widget.queries[0];
 
   const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
@@ -141,6 +149,10 @@ export function MetricWidgetCardAdapter({
     onUpdate?.(updatedWidget);
   }, [metricWidgetQueryParams, onUpdate, widget, selection]);
 
+  const handleCancel = useCallback(() => {
+    onUpdate?.(widget);
+  }, [onUpdate, widget]);
+
   if (!parsed) {
     return (
       <ErrorPanel height="200px">
@@ -169,6 +181,7 @@ export function MetricWidgetCardAdapter({
                 powerUserMode={false}
                 onChange={handleChange}
                 onSubmit={handleSubmit}
+                onCancel={handleCancel}
               />
               {/* <WidgetTitle>a</WidgetTitle> */}
             </WidgetTitleRow>
@@ -184,6 +197,8 @@ export function MetricWidgetCardAdapter({
               onEdit={() => index && onEdit?.(index)}
               router={router}
               location={location}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
               // index={index}
               // seriesData={seriesData}
               // seriesResultsType={seriesResultsType}
@@ -275,6 +290,7 @@ type QueryBuilderProps = {
   isEdit: boolean;
   // TODO(ddm): move display type out of the query builder
   metricsQuery: MetricsQuerySubject;
+  onCancel: () => void;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   onSubmit: () => void;
   projects: number[];
@@ -294,6 +310,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   projects,
   displayType,
   onChange,
+  onCancel,
   onSubmit,
   isEdit,
   size = 'sm',
@@ -341,185 +358,192 @@ export const QueryBuilder = memo(function QueryBuilder({
 
   return (
     <QueryBuilderWrapper>
-      <QueryBuilderRow>
-        <WrapPageFilterBar>
-          <CompactSelect
-            searchable
-            sizeLimit={100}
-            triggerProps={{prefix: t('Metric'), size}}
-            options={displayedMetrics.map(metric => ({
-              label: formatMRI(metric.mri),
-              // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-              textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
-              value: metric.mri,
-              size,
-              trailingItems: ({isFocused}) => (
-                <Fragment>
-                  {isFocused && isCustomMetric({mri: metric.mri}) && (
-                    <Button
-                      borderless
-                      size="zero"
-                      icon={<IconSettings />}
-                      aria-label={t('Metric Settings')}
-                      onPointerDown={() => {
-                        // not using onClick to beat the dropdown listener
-                        navigateTo(
-                          `/settings/projects/:projectId/metrics/${encodeURIComponent(
-                            metric.mri
-                          )}`,
-                          router
-                        );
-                      }}
-                    />
-                  )}
+      <QueryBuilderRowsWrapper>
+        <QueryBuilderRow>
+          <WrapPageFilterBar>
+            <CompactSelect
+              searchable
+              sizeLimit={100}
+              triggerProps={{prefix: t('Metric'), size}}
+              options={displayedMetrics.map(metric => ({
+                label: formatMRI(metric.mri),
+                // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+                textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
+                value: metric.mri,
+                size,
+                trailingItems: ({isFocused}) => (
+                  <Fragment>
+                    {isFocused && isCustomMetric({mri: metric.mri}) && (
+                      <Button
+                        borderless
+                        size="zero"
+                        icon={<IconSettings />}
+                        aria-label={t('Metric Settings')}
+                        onPointerDown={() => {
+                          // not using onClick to beat the dropdown listener
+                          navigateTo(
+                            `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                              metric.mri
+                            )}`,
+                            router
+                          );
+                        }}
+                      />
+                    )}
 
-                  <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
-                  <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                </Fragment>
-              ),
-            }))}
-            value={metricsQuery.mri}
-            onChange={option => {
-              const availableOps =
-                meta
-                  .find(metric => metric.mri === option.value)
-                  ?.operations.filter(isAllowedOp) ?? [];
+                    <Tag tooltipText={t('Type')}>
+                      {getReadableMetricType(metric.type)}
+                    </Tag>
+                    <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+                  </Fragment>
+                ),
+              }))}
+              value={metricsQuery.mri}
+              onChange={option => {
+                const availableOps =
+                  meta
+                    .find(metric => metric.mri === option.value)
+                    ?.operations.filter(isAllowedOp) ?? [];
 
-              // @ts-expect-error .op is an operation
-              const selectedOp = availableOps.includes(metricsQuery.op ?? '')
-                ? metricsQuery.op
-                : availableOps?.[0];
-              Sentry.metrics.increment('ddm.widget.metric', 1, {
-                tags: {
-                  display: displayType,
-                  type: readableType,
-                  operation: selectedOp,
-                  isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
+                // @ts-expect-error .op is an operation
+                const selectedOp = availableOps.includes(metricsQuery.op ?? '')
+                  ? metricsQuery.op
+                  : availableOps?.[0];
+                Sentry.metrics.increment('ddm.widget.metric', 1, {
+                  tags: {
+                    display: displayType,
+                    type: readableType,
+                    operation: selectedOp,
+                    isGrouped: !!metricsQuery.groupBy?.length,
+                    isFiltered: !!metricsQuery.query,
+                  },
+                });
+                onChange({
+                  mri: option.value,
+                  op: selectedOp,
+                  groupBy: undefined,
+                  focusedSeries: undefined,
+                  displayType: getWidgetDisplayType(option.value, selectedOp),
+                });
+              }}
+            />
+            <CompactSelect
+              size={size}
+              triggerProps={{prefix: t('Op'), size}}
+              options={
+                selectedMeta?.operations.filter(isAllowedOp).map(op => ({
+                  label: op,
+                  value: op,
+                })) ?? []
+              }
+              disabled={!metricsQuery.mri}
+              value={metricsQuery.op}
+              onChange={option => {
+                Sentry.metrics.increment('ddm.widget.operation', 1, {
+                  tags: {
+                    display: displayType,
+                    type: readableType,
+                    operation: option.value,
+                    isGrouped: !!metricsQuery.groupBy?.length,
+                    isFiltered: !!metricsQuery.query,
+                  },
+                });
+                onChange({
+                  op: option.value,
+                });
+              }}
+            />
+            <CompactSelect
+              multiple
+              triggerProps={{prefix: t('Group by'), size}}
+              options={tags.map(tag => ({
+                label: tag.key,
+                value: tag.key,
+                trailingItems: (
+                  <Fragment>
+                    {tag.key === 'release' && <IconReleases size="xs" />}
+                    {tag.key === 'transaction' && <IconLightning size="xs" />}
+                  </Fragment>
+                ),
+              }))}
+              disabled={!metricsQuery.mri}
+              value={metricsQuery.groupBy}
+              onChange={options => {
+                Sentry.metrics.increment('ddm.widget.group', 1, {
+                  tags: {
+                    display: displayType,
+                    type: readableType,
+                    operation: metricsQuery.op,
+                    isGrouped: !!metricsQuery.groupBy?.length,
+                    isFiltered: !!metricsQuery.query,
+                  },
+                });
+                onChange({
+                  groupBy: options.map(o => o.value),
+                  focusedSeries: undefined,
+                });
+              }}
+            />
+            <CompactSelect
+              triggerProps={{prefix: t('Display'), size}}
+              value={displayType}
+              options={[
+                {
+                  value: MetricDisplayType.LINE,
+                  label: t('Line'),
                 },
-              });
-              onChange({
-                mri: option.value,
-                op: selectedOp,
-                groupBy: undefined,
-                focusedSeries: undefined,
-                displayType: getWidgetDisplayType(option.value, selectedOp),
-              });
-            }}
-          />
-          <CompactSelect
-            size={size}
-            triggerProps={{prefix: t('Op'), size}}
-            options={
-              selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                label: op,
-                value: op,
-              })) ?? []
-            }
-            disabled={!metricsQuery.mri}
-            value={metricsQuery.op}
-            onChange={option => {
-              Sentry.metrics.increment('ddm.widget.operation', 1, {
-                tags: {
-                  display: displayType,
-                  type: readableType,
-                  operation: option.value,
-                  isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
+                {
+                  value: MetricDisplayType.AREA,
+                  label: t('Area'),
                 },
-              });
-              onChange({
-                op: option.value,
-              });
-            }}
-          />
-          <CompactSelect
-            multiple
-            triggerProps={{prefix: t('Group by'), size}}
-            options={tags.map(tag => ({
-              label: tag.key,
-              value: tag.key,
-              trailingItems: (
-                <Fragment>
-                  {tag.key === 'release' && <IconReleases size="xs" />}
-                  {tag.key === 'transaction' && <IconLightning size="xs" />}
-                </Fragment>
-              ),
-            }))}
+                {
+                  value: MetricDisplayType.BAR,
+                  label: t('Bar'),
+                },
+              ]}
+              onChange={({value}) => {
+                Sentry.metrics.increment('ddm.widget.display', 1, {
+                  tags: {
+                    display: value,
+                    type: readableType,
+                    operation: metricsQuery.op,
+                    isGrouped: !!metricsQuery.groupBy?.length,
+                    isFiltered: !!metricsQuery.query,
+                  },
+                });
+                onChange({displayType: value});
+              }}
+            />
+          </WrapPageFilterBar>
+        </QueryBuilderRow>
+        {/* Stop propagation so widget does not get selected immediately */}
+        <QueryBuilderRow onClick={stopPropagation}>
+          <MetricSearchBar
+            // TODO(aknaus): clean up projectId type in ddm
+            projectIds={projects.map(id => id.toString())}
+            mri={metricsQuery.mri}
             disabled={!metricsQuery.mri}
-            value={metricsQuery.groupBy}
-            onChange={options => {
-              Sentry.metrics.increment('ddm.widget.group', 1, {
+            onChange={query => {
+              Sentry.metrics.increment('ddm.widget.filter', 1, {
                 tags: {
                   display: displayType,
                   type: readableType,
                   operation: metricsQuery.op,
                   isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
+                  isFiltered: !!query,
                 },
               });
-              onChange({
-                groupBy: options.map(o => o.value),
-                focusedSeries: undefined,
-              });
+              onChange({query});
             }}
+            query={metricsQuery.query}
           />
-          <CompactSelect
-            triggerProps={{prefix: t('Display'), size}}
-            value={displayType}
-            options={[
-              {
-                value: MetricDisplayType.LINE,
-                label: t('Line'),
-              },
-              {
-                value: MetricDisplayType.AREA,
-                label: t('Area'),
-              },
-              {
-                value: MetricDisplayType.BAR,
-                label: t('Bar'),
-              },
-            ]}
-            onChange={({value}) => {
-              Sentry.metrics.increment('ddm.widget.display', 1, {
-                tags: {
-                  display: value,
-                  type: readableType,
-                  operation: metricsQuery.op,
-                  isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
-                },
-              });
-              onChange({displayType: value});
-            }}
-          />
-        </WrapPageFilterBar>
-      </QueryBuilderRow>
-      {/* Stop propagation so widget does not get selected immediately */}
-      <QueryBuilderRow onClick={stopPropagation}>
-        <MetricSearchBar
-          // TODO(aknaus): clean up projectId type in ddm
-          projectIds={projects.map(id => id.toString())}
-          mri={metricsQuery.mri}
-          disabled={!metricsQuery.mri}
-          onChange={query => {
-            Sentry.metrics.increment('ddm.widget.filter', 1, {
-              tags: {
-                display: displayType,
-                type: readableType,
-                operation: metricsQuery.op,
-                isGrouped: !!metricsQuery.groupBy?.length,
-                isFiltered: !!query,
-              },
-            });
-            onChange({query});
-          }}
-          query={metricsQuery.query}
-        />
-      </QueryBuilderRow>
+        </QueryBuilderRow>
+      </QueryBuilderRowsWrapper>
       <Button size="sm" priority="primary" onClick={onSubmit}>
         {t('Apply')}
+      </Button>
+      <Button size="sm" onClick={onCancel}>
+        {t('Cancel')}
       </Button>
     </QueryBuilderWrapper>
   );
@@ -642,11 +666,21 @@ function getWidgetDisplayType(
 const QueryBuilderWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
+  flex-direction: row;
+  padding: ${space(1)};
+  gap: ${space(1)};
+  background: ${p => p.theme.background};
+  z-index: 1;
+`;
+
+const QueryBuilderRowsWrapper = styled('div')`
+  display: flex;
+  flex-grow: 1;
   flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const QueryBuilderRow = styled('div')`
-  padding: ${space(1)};
   padding-bottom: 0;
 `;
 
@@ -662,7 +696,7 @@ const WrapPageFilterBar = styled(PageFilterBar)`
 `;
 
 const WidgetTitleQB = styled(HeaderTitle)`
-  padding-left: ${space(2)};
-  padding-top: ${space(2)};
+  padding-left: ${space(1)};
+  padding-top: ${space(1)};
   padding-right: ${space(1)};
 `;
