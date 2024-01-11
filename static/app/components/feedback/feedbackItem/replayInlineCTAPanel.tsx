@@ -33,13 +33,9 @@ export default function ReplayInlineCTAPanel() {
           </Button>
         </ButtonBar>
       }
-      description={
-        <DescriptionText>
-          {t(
-            "Don't fully understand the feedback message? Install Session Replay to see what the user was doing leading up to the feedback submission."
-          )}
-        </DescriptionText>
-      }
+      description={t(
+        "Don't fully understand the feedback message? Install Session Replay to see what the user was doing leading up to the feedback submission."
+      )}
       heading={t('Set Up Session Replay')}
       icon={<IconBroadcast size="sm" color="purple300" />}
       image={replaysInlineOnboarding}
@@ -51,8 +47,4 @@ export default function ReplayInlineCTAPanel() {
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
   font-weight: bold;
-`;
-
-const DescriptionText = styled('span')`
-  line-height: 1.5em;
 `;
