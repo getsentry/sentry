@@ -1144,7 +1144,6 @@ def test_redirect_escalations(
 
     assert len(list(trends)) == 0
 
-    """
     if should_escalate:
         assert produce_occurrence_to_kafka.called
         status_change = StatusChangeMessage(
@@ -1205,7 +1204,6 @@ def test_redirect_escalations(
             ).first()
             is None
         )
-    """
 
 
 @region_silo_test
