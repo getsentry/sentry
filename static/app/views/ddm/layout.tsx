@@ -26,6 +26,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useDashboardImport} from 'sentry/views/ddm/dashboardImportModal';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
+import {Queries} from 'sentry/views/ddm/queries';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import ShareButton from 'sentry/views/ddm/shareButton';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
@@ -105,6 +106,7 @@ export const DDMLayout = memo(() => {
             <LoadingIndicator />
           ) : hasMetrics ? (
             <Fragment>
+              <Queries />
               <MetricScratchpad />
               <WidgetDetails />
             </Fragment>

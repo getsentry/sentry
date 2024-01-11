@@ -1,34 +1,30 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
-import {HeaderTitle} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import Tag from 'sentry/components/tag';
-import TextOverflow from 'sentry/components/textOverflow';
 import {IconLightning, IconReleases, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricMeta, MRI} from 'sentry/types';
+import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {
-  defaultMetricDisplayType,
+  getDefaultMetricDisplayType,
   getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
   isTransactionDuration,
   MetricDisplayType,
-  MetricsQuery,
   MetricsQuerySubject,
   MetricWidgetQueryParams,
-  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI} from 'sentry/utils/metrics/mri';
+import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
+import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
@@ -36,7 +32,6 @@ import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 type QueryBuilderProps = {
   displayType: MetricDisplayType;
   isEdit: boolean;
-  // TODO(ddm): move display type out of the query builder
   metricsQuery: MetricsQuerySubject;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
@@ -46,8 +41,8 @@ type QueryBuilderProps = {
 const isShownByDefault = (metric: MetricMeta) =>
   isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
 
-function stopPropagation(e: React.MouseEvent) {
-  e.stopPropagation();
+function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
+  return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
 }
 
 export const QueryBuilder = memo(function QueryBuilder({
@@ -56,7 +51,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   displayType,
   powerUserMode,
   onChange,
-  isEdit,
 }: QueryBuilderProps) {
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
   const router = useRouter();
@@ -98,93 +92,104 @@ export const QueryBuilder = memo(function QueryBuilder({
     }
   }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
-  const stringifiedMetricWidget = stringifyMetricWidget(metricsQuery);
+  const incrementQueryMetric = useIncrementQueryMetric({
+    displayType,
+    op: metricsQuery.op,
+    groupBy: metricsQuery.groupBy,
+    query: metricsQuery.query,
+    mri: metricsQuery.mri,
+  });
 
-  const readableType = getReadableMetricType(parseMRI(metricsQuery.mri)?.type);
+  const handleMRIChange = ({value}: SelectOption<MRI>) => {
+    const availableOps = getOpsForMRI(value, meta);
+    const selectedOp = availableOps.includes((metricsQuery.op ?? '') as MetricsOperation)
+      ? metricsQuery.op
+      : availableOps?.[0];
 
-  if (!isEdit) {
-    return (
-      <QueryBuilderWrapper>
-        <WidgetTitle>
-          <TextOverflow>{metricsQuery.title || stringifiedMetricWidget}</TextOverflow>
-        </WidgetTitle>
-      </QueryBuilderWrapper>
-    );
-  }
+    const queryChanges = {
+      mri: value,
+      op: selectedOp,
+      groupBy: undefined,
+      displayType: getDefaultMetricDisplayType(value, selectedOp),
+    };
+
+    incrementQueryMetric('ddm.widget.metric', queryChanges);
+    onChange({
+      ...queryChanges,
+      focusedSeries: undefined,
+    });
+  };
+
+  const handleOpChange = ({value}: SelectOption<MetricsOperation>) => {
+    incrementQueryMetric('ddm.widget.operation', {op: value});
+    onChange({
+      op: value,
+    });
+  };
+
+  const handleGroupByChange = (options: SelectOption<string>[]) => {
+    incrementQueryMetric('ddm.widget.group', {
+      groupBy: options.map(o => o.value),
+    });
+    onChange({
+      groupBy: options.map(o => o.value),
+      focusedSeries: undefined,
+    });
+  };
+
+  const mriOptions = useMemo(
+    () =>
+      displayedMetrics.map<SelectOption<MRI>>(metric => ({
+        label: mriMode ? metric.mri : formatMRI(metric.mri),
+        // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+        textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
+        value: metric.mri,
+        trailingItems: mriMode
+          ? undefined
+          : ({isFocused}) => (
+              <Fragment>
+                {isFocused && isCustomMetric({mri: metric.mri}) && (
+                  <Button
+                    borderless
+                    size="zero"
+                    icon={<IconSettings />}
+                    aria-label={t('Metric Settings')}
+                    onPointerDown={() => {
+                      // not using onClick to beat the dropdown listener
+                      navigateTo(
+                        `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                          metric.mri
+                        )}`,
+                        router
+                      );
+                    }}
+                  />
+                )}
+
+                <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
+                <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+              </Fragment>
+            ),
+      })),
+    [displayedMetrics, mriMode, router]
+  );
 
   return (
     <QueryBuilderWrapper>
-      <QueryBuilderRow>
-        <WrapPageFilterBar>
+      <FlexBlock>
+        <CompactSelect
+          searchable
+          sizeLimit={100}
+          size="md"
+          triggerLabel={middleEllipsis(formatMRI(metricsQuery.mri) ?? '', 35, /\.|-|_/)}
+          options={mriOptions}
+          value={metricsQuery.mri}
+          onChange={handleMRIChange}
+        />
+        <FlexBlock>
           <CompactSelect
-            searchable
-            sizeLimit={100}
-            triggerProps={{prefix: t('Metric'), size: 'sm'}}
-            options={displayedMetrics.map(metric => ({
-              label: mriMode ? metric.mri : formatMRI(metric.mri),
-              // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-              textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
-              value: metric.mri,
-              trailingItems: mriMode
-                ? undefined
-                : ({isFocused}) => (
-                    <Fragment>
-                      {isFocused && isCustomMetric({mri: metric.mri}) && (
-                        <Button
-                          borderless
-                          size="zero"
-                          icon={<IconSettings />}
-                          aria-label={t('Metric Settings')}
-                          onPointerDown={() => {
-                            // not using onClick to beat the dropdown listener
-                            navigateTo(
-                              `/settings/projects/:projectId/metrics/${encodeURIComponent(
-                                metric.mri
-                              )}`,
-                              router
-                            );
-                          }}
-                        />
-                      )}
-
-                      <Tag tooltipText={t('Type')}>
-                        {getReadableMetricType(metric.type)}
-                      </Tag>
-                      <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                    </Fragment>
-                  ),
-            }))}
-            value={metricsQuery.mri}
-            onChange={option => {
-              const availableOps =
-                meta
-                  .find(metric => metric.mri === option.value)
-                  ?.operations.filter(isAllowedOp) ?? [];
-
-              // @ts-expect-error .op is an operation
-              const selectedOp = availableOps.includes(metricsQuery.op ?? '')
-                ? metricsQuery.op
-                : availableOps?.[0];
-              Sentry.metrics.increment('ddm.widget.metric', 1, {
-                tags: {
-                  display: displayType ?? defaultMetricDisplayType,
-                  type: readableType,
-                  operation: selectedOp,
-                  isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
-                },
-              });
-              onChange({
-                mri: option.value,
-                op: selectedOp,
-                groupBy: undefined,
-                focusedSeries: undefined,
-                displayType: getWidgetDisplayType(option.value, selectedOp),
-              });
-            }}
-          />
-          <CompactSelect
-            triggerProps={{prefix: t('Op'), size: 'sm'}}
+            size="md"
+            triggerProps={{prefix: t('Op')}}
             options={
               selectedMeta?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
@@ -192,25 +197,13 @@ export const QueryBuilder = memo(function QueryBuilder({
               })) ?? []
             }
             disabled={!metricsQuery.mri}
-            value={metricsQuery.op}
-            onChange={option => {
-              Sentry.metrics.increment('ddm.widget.operation', 1, {
-                tags: {
-                  display: displayType ?? defaultMetricDisplayType,
-                  type: readableType,
-                  operation: option.value,
-                  isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
-                },
-              });
-              onChange({
-                op: option.value,
-              });
-            }}
+            value={metricsQuery.op as MetricsOperation}
+            onChange={handleOpChange}
           />
           <CompactSelect
             multiple
-            triggerProps={{prefix: t('Group by'), size: 'sm'}}
+            size="md"
+            triggerProps={{prefix: t('Group by')}}
             options={tags.map(tag => ({
               label: tag.key,
               value: tag.key,
@@ -223,109 +216,41 @@ export const QueryBuilder = memo(function QueryBuilder({
             }))}
             disabled={!metricsQuery.mri}
             value={metricsQuery.groupBy}
-            onChange={options => {
-              Sentry.metrics.increment('ddm.widget.group', 1, {
-                tags: {
-                  display: displayType ?? defaultMetricDisplayType,
-                  type: readableType,
-                  operation: metricsQuery.op,
-                  isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
-                },
-              });
-              onChange({
-                groupBy: options.map(o => o.value),
-                focusedSeries: undefined,
-              });
-            }}
+            onChange={handleGroupByChange}
           />
-          <CompactSelect
-            triggerProps={{prefix: t('Display'), size: 'sm'}}
-            value={displayType ?? defaultMetricDisplayType}
-            options={[
-              {
-                value: MetricDisplayType.LINE,
-                label: t('Line'),
-              },
-              {
-                value: MetricDisplayType.AREA,
-                label: t('Area'),
-              },
-              {
-                value: MetricDisplayType.BAR,
-                label: t('Bar'),
-              },
-            ]}
-            onChange={({value}) => {
-              Sentry.metrics.increment('ddm.widget.display', 1, {
-                tags: {
-                  display: value,
-                  type: readableType,
-                  operation: metricsQuery.op,
-                  isGrouped: !!metricsQuery.groupBy?.length,
-                  isFiltered: !!metricsQuery.query,
-                },
-              });
-              onChange({displayType: value});
-            }}
-          />
-        </WrapPageFilterBar>
-      </QueryBuilderRow>
-      {/* Stop propagation so widget does not get selected immediately */}
-      <QueryBuilderRow onClick={stopPropagation}>
+        </FlexBlock>
+      </FlexBlock>
+      <SearchBarWrapper>
         <MetricSearchBar
           // TODO(aknaus): clean up projectId type in ddm
           projectIds={projects.map(id => id.toString())}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
           onChange={query => {
-            Sentry.metrics.increment('ddm.widget.filter', 1, {
-              tags: {
-                display: displayType ?? defaultMetricDisplayType,
-                type: readableType,
-                operation: metricsQuery.op,
-                isGrouped: !!metricsQuery.groupBy?.length,
-                isFiltered: !!query,
-              },
-            });
+            incrementQueryMetric('ddm.widget.filter', {query});
             onChange({query});
           }}
           query={metricsQuery.query}
         />
-      </QueryBuilderRow>
+      </SearchBarWrapper>
     </QueryBuilderWrapper>
   );
 });
 
-function getWidgetDisplayType(
-  mri: MetricsQuery['mri'],
-  op: MetricsQuery['op']
-): MetricDisplayType {
-  if (mri?.startsWith('c') || op === 'count') {
-    return MetricDisplayType.BAR;
-  }
-  return MetricDisplayType.LINE;
-}
-
 const QueryBuilderWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
-  flex-direction: column;
-`;
-
-const QueryBuilderRow = styled('div')`
-  padding: ${space(1)};
-  padding-bottom: 0;
-`;
-
-const WrapPageFilterBar = styled(PageFilterBar)`
-  max-width: max-content;
-  height: auto;
+  gap: ${space(1)};
   flex-wrap: wrap;
 `;
 
-const WidgetTitle = styled(HeaderTitle)`
-  padding-left: ${space(2)};
-  padding-top: ${space(1.5)};
-  padding-right: ${space(1)};
+const FlexBlock = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const SearchBarWrapper = styled('div')`
+  flex: 1;
+  min-width: 300px;
 `;
