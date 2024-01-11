@@ -5,10 +5,16 @@ from django.utils.functional import cached_property
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
+from sentry.grouping.api import (
+    apply_server_fingerprinting,
+    get_fingerprinting_config_for_project,
+    load_grouping_config,
+)
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import Feature
 from sentry.utils import json
 
 _grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_inputs")
@@ -63,20 +69,27 @@ _fingerprint_fixture_path = os.path.join(os.path.dirname(__file__), "fingerprint
 
 
 class FingerprintInput:
-    def __init__(self, filename):
+    FIXTURE_PATH = _fingerprint_fixture_path
+
+    def __init__(self, filename, builtin_enabled=None):
         self.filename = filename
+        self.builtin_enabled = builtin_enabled
 
     @cached_property
     def data(self):
-        with open(os.path.join(_fingerprint_fixture_path, self.filename)) as f:
+        with open(os.path.join(self.FIXTURE_PATH, self.filename)) as f:
             return json.load(f)
+
+    @cached_property
+    def config(self):
+        return FingerprintingRules.from_json(
+            {"rules": self.data.pop("_fingerprinting_rules"), "version": 1}
+        )
 
     def create_event(self, grouping_config=None):
         input = dict(self.data)
 
-        config = FingerprintingRules.from_json(
-            {"rules": input.pop("_fingerprinting_rules"), "version": 1}
-        )
+        config = self.config
         mgr = EventManager(data=input, grouping_config=grouping_config)
         mgr.normalize()
         data = mgr.get_data()
@@ -91,9 +104,27 @@ class FingerprintInput:
         return config, evt
 
 
+class FingerprintInputForBuiltin(FingerprintInput):
+    FIXTURE_PATH = os.path.join(_fingerprint_fixture_path, "for-built-in")
+
+    @cached_property
+    def config(self):
+        organization = Factories.create_organization()
+        project = Factories.create_project(organization=organization)
+        # TODO: make project options configurable
+        with Feature({"organizations:grouping-built-in-fingerprint-rules": True}):
+            return get_fingerprinting_config_for_project(project=project)
+
+
 fingerprint_input = list(
     FingerprintInput(filename)
     for filename in os.listdir(_fingerprint_fixture_path)
+    if filename.endswith(".json")
+)
+
+fingerprint_input_for_built_in = list(
+    FingerprintInputForBuiltin(filename)
+    for filename in os.listdir(FingerprintInputForBuiltin.FIXTURE_PATH)
     if filename.endswith(".json")
 )
 
@@ -101,4 +132,12 @@ fingerprint_input = list(
 def with_fingerprint_input(name):
     return pytest.mark.parametrize(
         name, fingerprint_input, ids=lambda x: x.filename[:-5].replace("-", "_")
+    )
+
+
+def with_fingerprint_input_for_built_in(name):
+    return pytest.mark.parametrize(
+        name,
+        fingerprint_input_for_built_in,
+        ids=lambda x: x.filename[:-5].replace("-", "_"),
     )

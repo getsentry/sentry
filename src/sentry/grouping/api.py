@@ -216,6 +216,7 @@ def get_fingerprinting_config_for_project(
         bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
     else:
         bases = []
+    # breakpoint()
     rules = project.get_option("sentry:fingerprinting_rules")
     if not rules:
         return FingerprintingRules([], bases=bases)

@@ -9,7 +9,8 @@ from sentry.grouping.fingerprinting import (
     InvalidFingerprintingConfig,
     _load_configs,
 )
-from tests.sentry.grouping import with_fingerprint_input
+from sentry.testutils.pytest.fixtures import django_db_all
+from tests.sentry.grouping import with_fingerprint_input, with_fingerprint_input_for_built_in
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
@@ -166,6 +167,36 @@ app:true                                        -> {{ default }}
 
 @with_fingerprint_input("input")
 def test_event_hash_variant(insta_snapshot, input):
+    config, evt = input.create_event()
+
+    def dump_variant(v):
+        rv = v.as_dict()
+
+        for key in "hash", "description", "config":
+            rv.pop(key, None)
+
+        if "component" in rv:
+            for key in "id", "name", "values":
+                rv["component"].pop(key, None)
+
+        return rv
+
+    insta_snapshot(
+        {
+            "config": config.to_json(),
+            "fingerprint": evt.data["fingerprint"],
+            "title": evt.data["title"],
+            "variants": {
+                k: dump_variant(v)
+                for (k, v) in evt.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+            },
+        }
+    )
+
+
+@django_db_all
+@with_fingerprint_input_for_built_in("input")
+def test_event_hash_variant_for_built_in(insta_snapshot, input):
     config, evt = input.create_event()
 
     def dump_variant(v):
