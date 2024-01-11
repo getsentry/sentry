@@ -10,7 +10,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {isObject} from 'sentry/sentryPropTypeValidators';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
@@ -86,7 +86,7 @@ describe('ProjectKeyDetails', function () {
         project: ProjectFixture(),
       },
       childContextTypes: {
-        project: isObject,
+        project: SentryPropTypeValidators.isObject,
       },
     };
 
