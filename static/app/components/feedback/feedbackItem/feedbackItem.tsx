@@ -7,6 +7,7 @@ import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/fee
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -71,7 +72,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Section>
         )}
 
-        {hasReplayId && replayId && (
+        {hasReplayId && replayId ? (
           <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
             <ErrorBoundary mini>
               <ReplaySection
@@ -80,6 +81,10 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 replayId={replayId}
               />
             </ErrorBoundary>
+          </Section>
+        ) : (
+          <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+            <ReplayInlineCTAPanel />
           </Section>
         )}
 
