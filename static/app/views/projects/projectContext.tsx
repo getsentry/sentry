@@ -11,7 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
@@ -60,7 +60,7 @@ type State = {
  */
 class ProjectContext extends Component<Props, State> {
   static childContextTypes = {
-    project: SentryTypes.Project,
+    project: SentryPropTypeValidators.isProject,
   };
 
   state = this.getInitialState();

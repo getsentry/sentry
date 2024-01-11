@@ -46,7 +46,6 @@ function InviteRequestRow({
   const {access} = organization;
   const canApprove = access.includes('member:admin');
 
-  // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
       <div>

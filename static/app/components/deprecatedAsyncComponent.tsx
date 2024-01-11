@@ -2,13 +2,13 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import * as PropTypes from 'prop-types';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
@@ -70,7 +70,7 @@ class DeprecatedAsyncComponent<
   S extends AsyncComponentState = AsyncComponentState,
 > extends Component<P, S> {
   static contextTypes = {
-    router: PropTypes.object,
+    router: SentryPropTypeValidators.isObject,
   };
 
   constructor(props: P, context: any) {

@@ -292,7 +292,6 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     // Only admins/owners can remove members
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
-    // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
       <SearchWrapperWithFilter>
         <MembersFilter

@@ -4,7 +4,6 @@ import {findDOMNode, render} from 'react-dom';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
-import * as PropTypes from 'prop-types';
 import * as Reflux from 'reflux';
 
 import plugins from 'sentry/plugins';
@@ -12,7 +11,6 @@ import plugins from 'sentry/plugins';
 const globals = {
   // The following globals are used in sentry-plugins webpack externals
   // configuration.
-  PropTypes,
   React,
   Reflux,
   Sentry,
