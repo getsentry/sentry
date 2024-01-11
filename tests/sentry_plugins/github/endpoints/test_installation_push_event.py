@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from sentry.models.commit import Commit
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -18,7 +17,7 @@ class InstallationPushEventWebhookTest(APITestCase):
         url = "/plugins/github/installations/webhook/"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            inst = Integration.objects.create(
+            inst = self.create_provider_integration(
                 provider="github_apps", external_id="12345", name="dummyorg"
             )
 

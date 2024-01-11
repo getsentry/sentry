@@ -20,7 +20,6 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -78,7 +77,7 @@ class VstsIssueBase(TestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            model = Integration.objects.create(
+            model = self.create_provider_integration(
                 provider="vsts",
                 external_id="vsts_external_id",
                 name="fabrikam-fiber-inc",
