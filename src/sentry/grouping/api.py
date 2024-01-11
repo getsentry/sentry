@@ -168,6 +168,7 @@ def get_projects_default_fingerprinting_bases(
 
     config_id = (
         config_id
+        # TODO: add fingerprinting config to GroupingConfigLoader and use that here
         or PrimaryGroupingConfigLoader()._get_config_id(project)
         or DEFAULT_GROUPING_CONFIG
     )
