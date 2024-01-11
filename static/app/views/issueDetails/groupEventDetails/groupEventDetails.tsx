@@ -39,6 +39,9 @@ import {
   useEnvironmentsFromUrl,
 } from '../utils';
 
+const EscalatingIssuesFeedback = HookOrDefault({
+  hookName: 'component:escalating-issues-banner-feedback',
+});
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
@@ -193,6 +196,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   return (
                     <StyledLayoutMain>
                       {renderGroupStatusBanner()}
+                      <EscalatingIssuesFeedback
+                        organization={organization}
+                        group={group}
+                      />
                       <QuickTraceContext.Provider value={results}>
                         {eventWithMeta && issueTypeConfig.stats.enabled && (
                           <GroupEventHeader
