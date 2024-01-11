@@ -11,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {safeURL} from 'sentry/utils/url/safeURL';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -22,12 +23,15 @@ import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 type Props = {groupId: string; projectId?: number};
 
+export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
+
 const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
 const imageWidth = '200px';
 const imageHeight = '180px';
 
 function SampleImages({groupId, projectId}: Props) {
-  const [showImages, setShowImages] = useState(false);
+  const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
+  const [showImages, setShowImages] = useState(showLinks);
   const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
@@ -50,14 +54,19 @@ function SampleImages({groupId, projectId}: Props) {
     })
     .splice(0, 5);
 
+  const handleClickOnlyShowLinks = () => {
+    setShowLinks(true);
+    setShowImages(true);
+  };
+
   return (
     <ChartPanel title={showImages ? t('Largest Images') : undefined}>
       <SampleImagesChartPanelBody
-        onClickShowLinks={() => setShowImages(true)}
+        onClickShowLinks={handleClickOnlyShowLinks}
         images={filteredResources}
         isLoadingImages={isLoadingImages}
         isImagesEnabled={isImagesEnabled}
-        showImages={showImages}
+        showImages={showImages || isImagesEnabled}
       />
     </ChartPanel>
   );

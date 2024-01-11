@@ -12,6 +12,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasStacktraceLinkInFrameFeature,
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
@@ -27,7 +28,9 @@ import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   Frame,
@@ -100,6 +103,7 @@ function NativeFrame({
   isHoverPreviewed = false,
 }: Props) {
   const organization = useOrganization();
+  const {user} = useLegacyStore(ConfigStore);
 
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
@@ -149,10 +153,8 @@ function NativeFrame({
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
   const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
-  const hasStacktraceLinkInFrameFeatureFlag =
-    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
-  const showStacktraceLinkInFrame =
-    hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
   const showSentryAppStacktraceLinkInFrame =
     showStacktraceLinkInFrame && components.length > 0;
 
