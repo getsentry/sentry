@@ -325,6 +325,8 @@ class OrganizationEndpoint(Endpoint):
         if (project_ids and project_ids != fetched_project_ids) or (
             project_slugs and project_slugs != fetched_project_slugs
         ):
+            # The fetched projects do not match the explicitly request projects
+            # Meaning a user has attempted to fetch a project they do not have permission for
             raise PermissionDenied
 
         return projects
