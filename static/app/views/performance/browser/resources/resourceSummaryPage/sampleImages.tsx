@@ -28,7 +28,7 @@ const imageHeight = '180px';
 function SampleImages({groupId, projectId}: Props) {
   const [showImages, setShowImages] = useState(false);
   const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
-  const isImagesEnabled = !settings?.enable_images ?? false;
+  const isImagesEnabled = settings?.enable_images ?? false;
 
   const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
