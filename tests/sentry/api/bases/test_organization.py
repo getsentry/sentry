@@ -458,7 +458,8 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         project_slugs = ["hello"]
         request = self.build_request(projectSlug=project_slugs)
 
-        assert not self.endpoint.get_projects(request, self.org)
+        with pytest.raises(PermissionDenied):
+            self.endpoint.get_projects(request, self.org)
 
 
 @region_silo_test
