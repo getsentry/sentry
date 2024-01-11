@@ -633,7 +633,7 @@ class GitHubClientMixin(GithubProxyClient):
         )
 
         result = (
-            contents.content.decode()
+            contents.content.decode("utf-8")
             if codeowners
             else b64decode(contents["content"]).decode("utf-8")
         )
