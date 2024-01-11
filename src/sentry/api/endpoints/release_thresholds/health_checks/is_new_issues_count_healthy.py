@@ -7,7 +7,7 @@ from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.release_threshold.constants import TriggerType
 
-logger = getLogger("sentry.releases.servicer")
+logger = getLogger("sentry.release_threshold.health_checks.is_new_issues_count_healthy")
 
 
 def is_new_issues_count_healthy(release_threshold: EnrichedThreshold) -> bool:
