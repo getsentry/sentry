@@ -1807,6 +1807,10 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     )
                 else:
                     projects = list({event["project.id"] for event in top_events})
+
+                if other:
+                    projects = list(set(self.params.project_ids) - set(projects))
+
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
                 continue
 
