@@ -371,7 +371,7 @@ class OrganizationEndpoint(Endpoint):
 
         return filtered
 
-    def get_requested_project_ids_unchecked(self, request: Request) -> set[int]:
+    def get_requested_project_ids_unchecked(self, request: Request | HttpRequest) -> set[int]:
         """
         Returns the project ids that were requested by the request.
 
