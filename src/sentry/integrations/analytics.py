@@ -119,6 +119,7 @@ class IntegrationStacktraceLinkEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("filepath"),
         analytics.Attribute("status"),
+        analytics.Attribute("link_fetch_iterations"),
     )
 
 

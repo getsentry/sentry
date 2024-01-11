@@ -34,7 +34,7 @@ from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
 
-logger = logging.getLogger("sentry.statistical_detectorst.tasks")
+logger = logging.getLogger("sentry.statistical_detectors.tasks")
 
 
 @dataclass(frozen=True)
@@ -394,33 +394,18 @@ class RegressionDetector(ABC):
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
-        """
         escalated_groups = []
         groups_to_escalate = []
-        """
 
         for bundle in cls._filter_escalating_groups(candidates, batch_size=batch_size):
-            escalated += 1
-
-            if bundle.state is None or bundle.regression_group is None:
-                continue
-
             state = bundle.state
             group = bundle.regression_group
 
-            logger.info(
-                "statistical_detectors.detection.escalation",
-                extra={
-                    "project": group.project_id,
-                    "fingerprint": group.fingerprint,
-                    "version": group.version,
-                    "baseline": group.baseline,
-                    "regressed": group.regressed,
-                    "escalated": state.get_moving_avg(),
-                },
-            )
+            if state is None or group is None:
+                continue
 
-            """
+            escalated += 1
+
             # mark the existing regression group as inactive
             # as we want to create a new one for the escalation
             group.active = False
@@ -438,7 +423,7 @@ class RegressionDetector(ABC):
                     project_id=group.project_id,
                     fingerprint=group.fingerprint,
                     baseline=group.regressed,
-                    regressed=bundle.state.get_moving_avg(),
+                    regressed=state.get_moving_avg(),
                 )
             )
 
@@ -449,12 +434,9 @@ class RegressionDetector(ABC):
                 payload_type=PayloadType.STATUS_CHANGE,
                 status_change=status_change,
             )
-            """
 
-        """
         RegressionGroup.objects.bulk_update(groups_to_escalate, ["active", "date_resolved"])
         RegressionGroup.objects.bulk_create(escalated_groups)
-        """
 
         metrics.incr(
             "statistical_detectors.objects.escalated",

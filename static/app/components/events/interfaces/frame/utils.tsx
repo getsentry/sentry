@@ -1,6 +1,13 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, EventOrGroupType, Frame, PlatformKey} from 'sentry/types';
+import {
+  Event,
+  EventOrGroupType,
+  Frame,
+  Organization,
+  PlatformKey,
+  User,
+} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
@@ -145,4 +152,16 @@ export function hasFileExtension(filepath: string) {
 
   // Check if the filepath matches the pattern
   return fileExtensionPattern.test(filepath);
+}
+
+export function hasStacktraceLinkInFrameFeature(
+  organization?: Organization | null,
+  user?: User
+): boolean {
+  const newIssueExperienceEnabled = user?.options?.issueDetailsNewExperienceQ42023;
+  const hasFeature = organization?.features?.includes(
+    'issue-details-stacktrace-link-in-frame'
+  );
+
+  return !!(newIssueExperienceEnabled && hasFeature);
 }

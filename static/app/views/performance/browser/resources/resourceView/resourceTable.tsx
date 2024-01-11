@@ -53,9 +53,7 @@ type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'project.id': number;
-  'resource.render_blocking_status': string;
   'span.description': string;
-  'span.domain': string;
   'span.group': string;
   'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'spm()': number;
