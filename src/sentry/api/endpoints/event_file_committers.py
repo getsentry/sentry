@@ -17,7 +17,7 @@ from sentry.utils.committers import get_serialized_event_file_committers
 class EventFileCommittersEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, event_id) -> Response:
