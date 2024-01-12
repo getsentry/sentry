@@ -74,8 +74,6 @@ function TeamIssuesBreakdown({
     {staleTime: 5000}
   );
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues');
-
   const allReviewedByDay: Record<string, Record<string, number>> = {};
   // Total statuses & total reviewed keyed by project ID
   const projectTotals: Record<string, StatusCounts> = {};
@@ -157,7 +155,7 @@ function TeamIssuesBreakdown({
                 t('Project'),
                 ...statuses
                   .map(action =>
-                    hasEscalatingIssues ? action.replace('ignore', 'archive') : action
+                    action.replace('ignore', 'archive')
                   )
                   .map(action => <AlignRight key={action}>{action}</AlignRight>),
                 <AlignRight key="total">
