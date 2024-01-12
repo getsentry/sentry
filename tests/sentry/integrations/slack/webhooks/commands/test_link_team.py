@@ -8,7 +8,6 @@ from sentry.integrations.slack.webhooks.command import (
     LINK_USER_FIRST_MESSAGE,
     TEAM_NOT_LINKED_MESSAGE,
 )
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -183,7 +182,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=organization2.id, integration=self.integration
             )
         self.link_team(team2)

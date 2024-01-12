@@ -15,7 +15,6 @@ from fixtures.vercel import (
     SIGNATURE_NEW,
 )
 from sentry import VERSION
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -78,7 +77,7 @@ class VercelReleasesTest(APITestCase):
             metadata={"access_token": "my_token"},
         )
 
-        self.org_integration = OrganizationIntegration.objects.create(
+        self.org_integration = self.create_organization_integration(
             organization_id=self.organization.id,
             integration=self.integration,
             config={

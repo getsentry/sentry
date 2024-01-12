@@ -4,7 +4,6 @@ import responses
 
 from sentry.integrations.msteams.unlink_identity import build_unlinking_url
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import unsign
@@ -31,7 +30,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(
+        self.create_organization_integration(
             organization_id=self.org.id, integration=self.integration
         )
 

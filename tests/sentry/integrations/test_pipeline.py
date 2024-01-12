@@ -269,7 +269,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        OrganizationIntegration.objects.create(
+        self.create_organization_integration(
             organization_id=self.organization.id,
             integration=integration,
             default_auth_id=old_identity_id,

@@ -9,7 +9,6 @@ from rest_framework import status
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
@@ -219,7 +218,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=organization2.id, integration=self.integration
             )
 
@@ -375,7 +374,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=organization2.id, integration=self.integration
             )
         self.link_team(team2)
