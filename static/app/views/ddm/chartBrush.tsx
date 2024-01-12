@@ -36,10 +36,10 @@ type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 export function useFocusAreaBrush(
   chartRef: RefObject<ReactEchartsRef>,
   focusArea: FocusArea | null,
-  onAdd: (area: FocusArea) => void,
-  onRemove: () => void,
-  onZoom: (range: DateTimeObject) => void,
-  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaBrushOptions
+  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaBrushOptions,
+  onAdd: (area: FocusArea) => void = () => {},
+  onRemove: () => void = () => {},
+  onZoom: (range: DateTimeObject) => void = () => {}
 ) {
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
