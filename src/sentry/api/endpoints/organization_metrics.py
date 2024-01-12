@@ -178,7 +178,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             try:
                 limit = int(limit)
             except ValueError:
-                return Response(status=400, data={"detail": "The provided `limit` is invalid"})
+                return Response(
+                    status=400,
+                    data={"detail": "The provided `limit` is invalid, an integer is required"},
+                )
 
         try:
             results = run_metrics_query(
