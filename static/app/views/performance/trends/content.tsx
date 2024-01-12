@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -317,7 +317,7 @@ class TrendsContent extends Component<Props, State> {
                   )}
                 />
               </ListContainer>
-              <Feature features={['organizations:performance-trendsv2-dev-only']}>
+              <Feature features="organizations:performance-trendsv2-dev-only">
                 <ListContainer>
                   <ChangedTransactions
                     trendChangeType={TrendChangeType.IMPROVED}

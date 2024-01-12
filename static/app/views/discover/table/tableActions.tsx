@@ -30,6 +30,7 @@ type Props = {
   showTags: boolean;
   tableData: TableData | null | undefined;
   title: string;
+  supportsInvestigationRule?: boolean;
 };
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
@@ -43,7 +44,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
   const {tableData} = props;
   return (
     <Feature
-      features={['organizations:discover-query']}
+      features="organizations:discover-query"
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
       {tableData?.data && tableData.data.length < 50
@@ -64,7 +65,7 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
       disabled={disabled}
       onClick={onClick}
       data-test-id="grid-download-csv"
-      icon={<IconDownload size="xs" />}
+      icon={<IconDownload />}
       title={t(
         "There aren't that many results, start your export and it'll download immediately."
       )}
@@ -84,7 +85,7 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
         queryInfo: eventView.getEventsAPIPayload(location),
       }}
       disabled={disabled}
-      icon={<IconDownload size="xs" />}
+      icon={<IconDownload />}
     >
       {t('Export All')}
     </DataExport>
@@ -102,7 +103,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
         disabled={!canEdit}
         onClick={onClick}
         data-test-id="grid-edit-enable"
-        icon={<IconSliders size="xs" />}
+        icon={<IconSliders />}
       >
         {t('Columns')}
       </Button>
@@ -114,7 +115,7 @@ function renderEditButton(canEdit: boolean, props: Props) {
 
 function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   return (
-    <Button size="sm" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
+    <Button size="sm" onClick={onChangeShowTags} icon={<IconTag />}>
       {showTags ? t('Hide Tags') : t('Show Tags')}
     </Button>
   );
@@ -161,12 +162,14 @@ function TableActions(props: Props) {
   const totalNumSamples = numSamples === null ? null : numSamples + cursorOffset;
   return (
     <Fragment>
-      <InvestigationRuleCreation
-        {...props}
-        buttonProps={{size: 'sm'}}
-        numSamples={totalNumSamples}
-        key="investigationRuleCreation"
-      />
+      {props.supportsInvestigationRule && (
+        <InvestigationRuleCreation
+          {...props}
+          buttonProps={{size: 'sm'}}
+          numSamples={totalNumSamples}
+          key="investigationRuleCreation"
+        />
+      )}
       <FeatureWrapper {...props} key="edit">
         {renderEditButton}
       </FeatureWrapper>

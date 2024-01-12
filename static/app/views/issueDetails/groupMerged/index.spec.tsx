@@ -1,4 +1,4 @@
-import {DetailedEvents} from 'sentry-fixture/events';
+import {DetailedEventsFixture} from 'sentry-fixture/events';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +9,7 @@ import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 jest.mock('sentry/api');
 
 describe('Issues -> Merged View', function () {
-  const events = DetailedEvents();
+  const events = DetailedEventsFixture();
   const mockData = {
     merged: [
       {

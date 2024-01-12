@@ -1,4 +1,3 @@
-import base64
 import re
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
@@ -28,6 +27,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 from sentry.utils.cache import cache
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -217,12 +217,15 @@ class GitHubAppsClientTest(TestCase):
         responses.add(
             method=responses.GET,
             url=f"https://api.github.com/repos/{self.repo.name}/contents/CODEOWNERS?ref=master",
-            json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
-
+        assert (
+            responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert responses.calls[1].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITHUB_CODEOWNERS
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -608,10 +611,17 @@ class GithubProxyClientTest(TestCase):
                 if is_proxy:
                     assert request.headers[PROXY_OI_HEADER] is not None
 
-        responses.add(
+        expected_proxy_path = "repos/test-repo/issues"
+        control_proxy_responses = add_control_silo_proxy_response(
             method=responses.GET,
-            # Use regex to create responses both from proxy and GitHub
-            url=re.compile(r"\S+repos/test-repo/issues$"),
+            path=expected_proxy_path,
+            json={"ok": True},
+            status=200,
+        )
+
+        github_responses = responses.add(
+            method=responses.GET,
+            url=re.compile(rf"\S+{expected_proxy_path}$"),
             json={"ok": True},
             status=200,
         )
@@ -621,6 +631,7 @@ class GithubProxyClientTest(TestCase):
             client.get_issues("test-repo")
             request = responses.calls[0].request
 
+            assert github_responses.call_count == 1
             assert "/repos/test-repo/issues" in request.url
             assert client.base_url in request.url
             client.assert_proxy_request(request, is_proxy=False)
@@ -631,17 +642,19 @@ class GithubProxyClientTest(TestCase):
             client.get_issues("test-repo")
             request = responses.calls[0].request
 
+            assert github_responses.call_count == 2
             assert "/repos/test-repo/issues" in request.url
             assert client.base_url in request.url
             client.assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
+        assert control_proxy_responses.call_count == 0
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = GithubProxyTestClient(integration=self.integration)
             client.get_issues("test-repo")
             request = responses.calls[0].request
 
-            assert "/repos/test-repo/issues" in request.url
+            assert control_proxy_responses.call_count == 1
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)
 
@@ -1152,6 +1165,60 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
         assert json.loads(responses.calls[2].request.body)["query"] == query
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_trim_file_path_for_query(self, get_jwt):
+        """
+        When file path has hanging forward slashes, trims them for the request.
+        The GitHub GraphQL API will return empty responses otherwise.
+        """
+        file1 = SourceLineInfo(
+            path="/src/sentry/integrations/github/client.py/",
+            lineno=10,
+            ref="master",
+            repo=self.repo_1,
+            code_mapping=None,  # type:ignore
+        )
+
+        query = """query {
+    repository0: repository(name: "foo", owner: "Test-Organization") {
+        ref0: ref(qualifiedName: "master") {
+            target {
+                ... on Commit {
+                    blame0: blame(path: "src/sentry/integrations/github/client.py") {
+                        ranges {
+                            commit {
+                                oid
+                                author {
+                                    name
+                                    email
+                                }
+                                message
+                                committedDate
+                            }
+                            startingLine
+                            endingLine
+                            age
+                        }
+                    }
+                }
+            }
+        }
+    }
+}"""
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "query": query,
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        self.github_client.get_blame_for_files([file1], extra={})
+        assert json.loads(responses.calls[2].request.body)["query"] == query
+
 
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
     """
@@ -1624,3 +1691,33 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
                 "organization_integration_id": self.github_client.org_integration_id,
             },
         )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_no_rate_limiting(self, get_jwt):
+        """
+        Tests that no error is thrown when GitHub isn't enforcing rate limits
+        """
+        responses.reset()
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            status=404,
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        assert self.github_client.get_blame_for_files([self.file], extra={}) == []

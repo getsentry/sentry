@@ -1,5 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {SentryApp} from 'sentry-fixture/sentryApp';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -134,7 +136,7 @@ describe('Avatar', function () {
     });
 
     it('can display a team Avatar', function () {
-      const team = TestStubs.Team({slug: 'test-team_test'});
+      const team = TeamFixture({slug: 'test-team_test'});
 
       render(<AvatarComponent team={team} />);
 
@@ -143,7 +145,7 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar', function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         slug: 'test-organization',
         avatar: {avatarType: 'letter_avatar', avatarUuid: ''},
       });
@@ -155,7 +157,7 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar upload', function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         slug: 'test-organization',
         avatar: {
           avatarType: 'upload',
@@ -173,8 +175,7 @@ describe('Avatar', function () {
     });
 
     it('displays platform list icons for project Avatar', function () {
-      const project = TestStubs.Project({
-        platforms: ['python', 'javascript'],
+      const project = ProjectFixture({
         platform: 'java',
       });
 
@@ -189,7 +190,7 @@ describe('Avatar', function () {
     });
 
     it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function () {
-      const project = TestStubs.Project({platform: 'java'});
+      const project = ProjectFixture({platform: 'java'});
 
       render(<AvatarComponent project={project} />);
 
@@ -202,7 +203,7 @@ describe('Avatar', function () {
     });
 
     it('uses onboarding project when platforms is an empty array', function () {
-      const project = TestStubs.Project({platforms: [], platform: 'java'});
+      const project = ProjectFixture({platform: 'java'});
 
       render(<AvatarComponent project={project} />);
 
@@ -228,7 +229,7 @@ describe('Avatar', function () {
         color: false,
       };
 
-      const sentryApp = SentryApp({
+      const sentryApp = SentryAppFixture({
         avatars: [colorAvatar, simpleAvatar],
       });
 
@@ -257,7 +258,7 @@ describe('Avatar', function () {
         avatarUrl: 'https://sentry.io/sentry-app-avatar/abc/',
         color: true,
       };
-      const sentryApp = SentryApp({avatars: []});
+      const sentryApp = SentryAppFixture({avatars: []});
 
       // No existing avatars
       const avatar1 = render(<AvatarComponent sentryApp={sentryApp} isColor />);

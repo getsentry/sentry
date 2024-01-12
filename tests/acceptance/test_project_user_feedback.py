@@ -4,7 +4,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectUserFeedbackTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -19,10 +19,8 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
         self.project.update(first_event=timezone.now())
 
     def test(self):
-        group = self.create_group(project=self.project, message="Foo bar")
         self.create_userreport(
             date_added=timezone.now(),
-            group=group,
             project=self.project,
             event_id=self.event.event_id,
         )

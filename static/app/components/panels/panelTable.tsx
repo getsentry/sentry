@@ -1,3 +1,4 @@
+import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -63,25 +64,30 @@ export type PanelTableProps = {
  *       with `headers`. Then we can get rid of that gross `> *` selector
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
-function PanelTable({
-  headers,
-  children,
-  isLoading,
-  isEmpty,
-  disablePadding,
-  className,
-  emptyMessage = t('There are no items to display'),
-  emptyAction,
-  loader,
-  stickyHeaders = false,
-  ...props
-}: PanelTableProps) {
+
+const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTable(
+  {
+    headers,
+    children,
+    isLoading,
+    isEmpty,
+    disablePadding,
+    className,
+    emptyMessage = t('There are no items to display'),
+    emptyAction,
+    loader,
+    stickyHeaders = false,
+    ...props
+  }: PanelTableProps,
+  ref: React.Ref<HTMLDivElement>
+) {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
 
   return (
     <Wrapper
+      ref={ref}
       columns={headers.length}
       disablePadding={disablePadding}
       className={className}
@@ -108,7 +114,7 @@ function PanelTable({
       {shouldShowContent && getContent(children)}
     </Wrapper>
   );
-}
+});
 
 function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {

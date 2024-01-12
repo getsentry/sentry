@@ -80,7 +80,9 @@ class AbstractFileBlob(Model):
             storage = get_storage(cls._storage_config())
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
-            metrics.timing("filestore.blob-size", size, tags={"function": "from_files"})
+            metrics.distribution(
+                "filestore.blob-size", size, tags={"function": "from_files"}, unit="byte"
+            )
             logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.end",
                 extra={"checksum": checksum, "path": blob.path},
@@ -209,7 +211,7 @@ class AbstractFileBlob(Model):
                 blob = cls.objects.get(checksum=checksum)
                 storage.delete(saved_path)
 
-        metrics.timing("filestore.blob-size", size)
+        metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
         return blob
 

@@ -1,4 +1,5 @@
-import {Plugins} from 'sentry-fixture/plugins';
+import {PluginsFixture} from 'sentry-fixture/plugins';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -25,7 +26,7 @@ describe('ProjectReleaseTracking', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
-      body: Plugins(),
+      body: PluginsFixture(),
     });
     MockApiClient.addMockResponse({
       url,
@@ -47,7 +48,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTracking
         organization={org}
         project={project}
-        plugins={{loading: false, plugins: Plugins()}}
+        plugins={{loading: false, plugins: PluginsFixture()}}
         {...routerProps}
       />
     );
@@ -60,7 +61,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTracking
         organization={org}
         project={project}
-        plugins={{loading: false, plugins: Plugins()}}
+        plugins={{loading: false, plugins: PluginsFixture()}}
         {...routerProps}
       />
     );
@@ -96,7 +97,7 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('fetches new plugins when project changes', function () {
-    const newProject = TestStubs.Project({slug: 'new-project'});
+    const newProject = ProjectFixture({slug: 'new-project'});
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${newProject.slug}/releases/token/`,
       method: 'GET',

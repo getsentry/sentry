@@ -8,7 +8,7 @@ from sentry.types.activity import ActivityType
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationActivityTest(APITestCase):
     endpoint = "sentry-api-0-organization-activity"
 

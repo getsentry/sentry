@@ -1,24 +1,16 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
 import {ReactElement} from 'react';
-import type {InjectedRouter, RouteComponentProps} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import type {Location} from 'history';
 import MockDate from 'mockdate';
-import {object as propTypesObject} from 'prop-types';
-import {stringify} from 'query-string';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
+import {ConfigFixture} from 'sentry-fixture/config';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
-
-import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -115,7 +107,7 @@ jest.mock('@sentry/react', function sentryReact() {
     captureMessage: jest.fn(),
     captureException: jest.fn(),
     showReportDialog: jest.fn(),
-    startSpan: jest.fn(),
+    startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
@@ -124,6 +116,13 @@ jest.mock('@sentry/react', function sentryReact() {
     Scope: SentryReact.Scope,
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    metrics: {
+      MetricsAggregator: jest.fn().mockReturnValue({}),
+      increment: jest.fn(),
+      gauge: jest.fn(),
+      set: jest.fn(),
+      distribution: jest.fn(),
+    },
     BrowserTracing: jest.fn().mockReturnValue({}),
     BrowserProfilingIntegration: jest.fn().mockReturnValue({}),
     addGlobalEventProcessor: jest.fn(),
@@ -142,105 +141,12 @@ jest.mock('@sentry/react', function sentryReact() {
   };
 });
 
-const routerFixtures = {
-  router: (params = {}): InjectedRouter => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    go: jest.fn(),
-    goBack: jest.fn(),
-    goForward: jest.fn(),
-    setRouteLeaveHook: jest.fn(),
-    isActive: jest.fn(),
-    createHref: jest.fn().mockImplementation(to => {
-      if (typeof to === 'string') {
-        return to;
-      }
-
-      if (typeof to === 'object') {
-        if (!to.query) {
-          return to.pathname;
-        }
-
-        return `${to.pathname}?${stringify(to.query)}`;
-      }
-
-      return '';
-    }),
-    location: routerFixtures.location(),
-    createPath: jest.fn(),
-    routes: [],
-    params: {},
-    ...params,
-  }),
-
-  location: (params: Partial<Location> = {}): Location => ({
-    key: '',
-    search: '',
-    hash: '',
-    action: 'PUSH',
-    state: null,
-    query: {},
-    pathname: '/mock-pathname/',
-    ...params,
-  }),
-
-  routerProps: (params = {}) => ({
-    location: routerFixtures.location(),
-    params: {},
-    routes: [],
-    stepBack: () => {},
-    ...params,
-  }),
-
-  routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
-    params: Partial<RouteComponentProps<RouteParams, {}>> = {}
-  ): RouteComponentProps<RouteParams, {}> => {
-    const router = routerFixtures.router(params);
-    return {
-      location: router.location,
-      params: router.params as RouteParams & {},
-      routes: router.routes,
-      route: router.routes[0],
-      routeParams: router.params,
-      router,
-    };
-  },
-
-  routerContext: ([context, childContextTypes] = []) => ({
-    context: {
-      location: routerFixtures.location(),
-      router: routerFixtures.router(),
-      organization: Organization(),
-      project: Project(),
-      ...context,
-    },
-    childContextTypes: {
-      router: propTypesObject,
-      location: propTypesObject,
-      organization: propTypesObject,
-      project: propTypesObject,
-      ...childContextTypes,
-    },
-  }),
-};
-
-const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
-const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
-
-ConfigStore.loadInitialData(fixtures.Config());
+ConfigStore.loadInitialData(ConfigFixture());
 
 /**
  * Test Globals
  */
 declare global {
-  /**
-   * Test stubs are automatically loaded from the fixtures/js-stubs
-   * directory. Use these for setting up test data.
-   *
-   * @deprecated Please import test stubs directly and do not use this global.
-   */
-  // eslint-disable-next-line no-var
-  var TestStubs: typeof fixtures;
   /**
    * Generates a promise that resolves on the next macro-task
    */
@@ -256,8 +162,6 @@ declare global {
 // needed by cbor-web for webauthn
 window.TextEncoder = TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
-
-window.TestStubs = fixtures;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));

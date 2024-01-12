@@ -5,6 +5,7 @@ from sentry.options import register
 from sentry.options.manager import (
     FLAG_ALLOW_EMPTY,
     FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_BOOL,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
     FLAG_MODIFIABLE_BOOL,
@@ -12,8 +13,9 @@ from sentry.options.manager import (
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
+    FLAG_SCALAR,
 )
-from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
+from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -270,19 +272,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "api.prevent-numeric-slugs",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 
 # Filestore (default)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
+register(
+    "filestore.relocation", default={"location": "/tmp/sentry-relocation-files"}, flags=FLAG_NOSTORE
+)
 
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
@@ -366,25 +364,16 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
-# on organization-id.
-register(
-    "replay.storage.direct-storage-sample-rate",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# The sample rate at which to allow dom-click-search.
-register(
-    "replay.ingest.dom-click-search",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Replay Analyzer service.
 register(
     "replay.analyzer_service_url",
     default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "organizations:session-replay-accessibility-issues-enabled",
+    type=Bool,
+    default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -507,6 +496,7 @@ register("snuba.search.max-chunk-size", default=2000, flags=FLAG_AUTOMATOR_MODIF
 register("snuba.search.max-total-chunk-time-seconds", default=30.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("snuba.use-mql-endpoint", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -701,6 +691,9 @@ register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODI
 # A rate to apply to any events denoted as experimental to be sent to an experimental dsn.
 register("store.use-experimental-dsn-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# A rate that enables statsd item sending (DDM data) to s4s
+register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Mock out integrations and services for tests
 register("mocks.jira", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -742,6 +735,20 @@ register(
     "processing.severity-backlog-test.error",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.high-priority-alerts-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.severity.new-escalation-projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -817,6 +824,14 @@ register(
     "processing.use-release-archives-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )  # unused
 
+# Whether to use `zstd` instead of `zlib` for the attachment cache.
+register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Set of projects that will always store `EventAttachment` blobs directly.
+register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Percentage sample rate for `EventAttachment`s that should use direct blob storage.
+register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -856,7 +871,7 @@ register(
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# BEGIN PROJECT ABUSE QUOTAS
+# BEGIN ABUSE QUOTAS
 
 # Example:
 # >>> org = Organization.objects.get(slug='foo')
@@ -937,7 +952,15 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# END PROJECT ABUSE QUOTAS
+
+register(
+    "organization-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# END ABUSE QUOTAS
 
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
@@ -1020,6 +1043,15 @@ register(
 register(
     "sentry-metrics.indexer.release-health.schema-validation-rules",
     default={},  # empty dict means validate schema for all use cases
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Option to control whether or not we raise ValidationErrors in the indexer
+# (Temporary) raising the error would mean we skip the processing or DLQing of these
+# invalid messages
+register(
+    "sentry-metrics.indexer.raise-validation-errors",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1207,6 +1239,18 @@ register(
 register(
     "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.synchronize-kafka-rebalances",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.synchronized-rebalance-delay",
+    default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1473,6 +1517,7 @@ register(
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1533,6 +1578,24 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Globally enables the check_accept_monitor_checkin method to be run during
+# monitor check-ins. This is temporarily in support of billing in getsentry.
+register(
+    "crons.check-accept-monitor-checkin-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# A list of monitor slugs that should have the check_accept_monitor_checkin
+# method run, even when check-accept-monitor-checkin-enabled is False.
+register(
+    "crons.check-accept-monitor-checkin-slug-overrides",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
@@ -1670,6 +1733,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "delightful_metrics.enable_code_locations",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.metrics_summary_sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # SDK Crash Detection
 #
 # The project ID belongs to the sentry organization: https://sentry.sentry.io/projects/cocoa-sdk-crashes/?project=4505469596663808.
@@ -1698,3 +1773,111 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # END: SDK Crash Detection
+
+register(
+    # Lists the shared resource ids we want to account usage for.
+    "shared_resources_accounting_enabled",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "releases_v2.single-tenant",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# sample rate for using v2 of deobfuscation that
+# uses function params when line info is missing
+register(
+    "profiling.android.deobfuscation_v2_sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# org IDs that will be using v2 of deobfuscation
+# regardless of the sample rate defined by:
+# "profiling.android.deobfuscation_v2_sample_rate"
+register(
+    "profiling.android.deobfuscation_v2_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The flag disables the file io on main thread detector
+register(
+    "performance_issues.file_io_main_thread.disabled",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables on-demand metric extraction for Dashboard Widgets.
+register(
+    "on_demand_metrics.check_widgets.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Rollout % for easing out rollout based on the dashboard widget query id
+register(
+    "on_demand_metrics.check_widgets.rollout",
+    default=0.0,
+    type=Float,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of DashboardWidgetQuery to be checked at once.
+register(
+    "on_demand_metrics.check_widgets.query.batch_size",
+    type=Int,
+    default=50,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of chunks to split queries across.
+register(
+    "on_demand_metrics.check_widgets.query.total_batches",
+    default=100,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Use database backed stateful extraction state
+register(
+    "on_demand_metrics.widgets.use_stateful_extraction",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: whether or not the self-serve API for the feature is enabled.
+register(
+    "relocation.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new relocations should be autopaused, requiring admin approval
+# before continuing.
+register(
+    "relocation.autopause",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: globally limits the number of small (<=10MB) relocations allowed per silo per day.
+register(
+    "relocation.daily-limit.small",
+    default=0,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: globally limits the number of medium (>10MB && <=100MB) relocations allowed per silo
+# per day.
+register(
+    "relocation.daily-limit.medium",
+    default=0,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: globally limits the number of large (>100MB) relocations allowed per silo per day.
+register(
+    "relocation.daily-limit.large",
+    default=0,
+    flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)

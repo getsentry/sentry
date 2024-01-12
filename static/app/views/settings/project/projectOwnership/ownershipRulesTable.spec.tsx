@@ -1,3 +1,6 @@
+import {CodeOwnerFixture} from 'sentry-fixture/codeOwner';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -7,8 +10,8 @@ import type {Actor, ParsedOwnershipRule} from 'sentry/types';
 import {OwnershipRulesTable} from './ownershipRulesTable';
 
 describe('OwnershipRulesTable', () => {
-  const user1 = TestStubs.User();
-  const user2 = TestStubs.User({id: '2', name: 'Jane Doe'});
+  const user1 = UserFixture();
+  const user2 = UserFixture({id: '2', name: 'Jane Doe'});
 
   beforeEach(() => {
     ConfigStore.init();
@@ -53,7 +56,7 @@ describe('OwnershipRulesTable', () => {
     render(
       <OwnershipRulesTable
         projectRules={[]}
-        codeowners={[TestStubs.CodeOwner({schema: {rules}})]}
+        codeowners={[CodeOwnerFixture({schema: {rules, version: 1}})]}
       />
     );
 

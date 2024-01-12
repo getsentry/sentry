@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {WidgetQuery} from 'sentry/views/dashboards/types';
 
-import {DataSet} from '../../utils';
+import {DataSet, useGroupByOptions} from '../../utils';
 import {DATA_SET_TO_WIDGET_TYPE} from '../../widgetBuilder';
 import {BuildStep} from '../buildStep';
 
@@ -14,6 +14,7 @@ interface Props {
   dataSet: DataSet;
   onGroupByChange: (newFields: QueryFieldValue[]) => void;
   organization: Organization;
+  queries: WidgetQuery[];
   tags: TagCollection;
 }
 
@@ -23,8 +24,11 @@ export function GroupByStep({
   onGroupByChange,
   organization,
   tags,
+  queries,
 }: Props) {
-  const datasetConfig = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet]);
+  const widgetType = DATA_SET_TO_WIDGET_TYPE[dataSet];
+  const groupByOptions = useGroupByOptions(organization, tags, widgetType, queries);
+
   return (
     <BuildStep
       title={t('Group your results')}
@@ -32,11 +36,7 @@ export function GroupByStep({
     >
       <GroupBySelector
         columns={columns}
-        fieldOptions={
-          datasetConfig.getGroupByFieldOptions
-            ? datasetConfig.getGroupByFieldOptions(organization, tags)
-            : {}
-        }
+        fieldOptions={groupByOptions}
         onChange={onGroupByChange}
       />
     </BuildStep>

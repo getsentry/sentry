@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -27,14 +29,13 @@ export const runtimeMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       runtime: runtimeMetaMockData,
     },
   },
-};
+});
 
 describe('runtime event context', function () {
   it('display redacted data', async function () {

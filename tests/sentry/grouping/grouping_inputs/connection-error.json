@@ -116,10 +116,7 @@
               ],
               "module": "sentry.utils.redis",
               "filename": "sentry/utils/redis.py",
-              "post_context": [
-                "",
-                "    return call_script"
-              ],
+              "post_context": ["", "    return call_script"],
               "in_app": true,
               "context_line": "        return script(keys, args, client)",
               "lineno": 239
@@ -274,18 +271,13 @@
       }
     ]
   },
-  "hashes": [
-    "8abb6be15864dac05d46e61bfe1dd6d3",
-    "6391c18be56c7e7c95e58be4b3eaf0bd"
-  ],
+  "hashes": ["8abb6be15864dac05d46e61bfe1dd6d3", "6391c18be56c7e7c95e58be4b3eaf0bd"],
   "key_id": "96623",
   "level": "error",
   "location": "sentry/utils/redis.py",
   "logentry": {
     "message": "%s.process_error",
-    "params": [
-      "<lambda>"
-    ],
+    "params": ["<lambda>"],
     "formatted": "<lambda>.process_error"
   },
   "logger": "sentry.safe.function",

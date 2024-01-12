@@ -23,6 +23,7 @@ export function AggregateFlamegraphTreeContextMenu(
     () => props.contextMenu.setOpen(false),
     [props.contextMenu]
   );
+
   return props.contextMenu.open ? (
     <Fragment>
       <ProfilingContextMenuLayer onClick={closeContextMenu} />

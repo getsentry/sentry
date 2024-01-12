@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from dataclasses import asdict
 from datetime import datetime, timezone
 from unittest import mock
@@ -47,7 +46,7 @@ class GitLabClientTest(GitLabTestCase):
         self.gitlab_id = 123
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitlabRefreshAuthTest(GitLabClientTest):
     get_user_should_succeed = True
 
@@ -207,12 +206,16 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
-            json={"content": base64.b64encode(GITLAB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
 
+        assert (
+            responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert responses.calls[0].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITLAB_CODEOWNERS
 
     @responses.activate
@@ -274,7 +277,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert not rate_limit_info
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitLabBlameForFilesTest(GitLabClientTest):
     def setUp(self):
         super().setUp()
@@ -361,7 +364,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     def make_blame_request(self, file: SourceLineInfo) -> str:
-        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
+        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path.strip('/'), safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
     def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
         return [
@@ -382,7 +385,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     @responses.activate
     def test_success_single_file(self):
         self.set_up_success_responses()
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == [self.blame_1]
 
@@ -390,30 +393,34 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     def test_success_single_file_cached(self):
         self.set_up_success_responses()
         assert cache.get(self.cache_key) is None
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
         assert resp == [self.blame_1]
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
 
         # Nothing changes if we call it again
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
 
         # Calling again after the cache has been cleared should still work
         cache.delete(self.cache_key)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
 
     @responses.activate
     def test_success_multiple_files(self):
         self.set_up_success_responses()
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
         assert resp == [self.blame_1, self.blame_2, self.blame_3]
 
     @responses.activate
     def test_success_multiple_files_cached(self):
         self.set_up_success_responses()
         assert cache.get(self.cache_key) is None
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
 
         assert resp == [self.blame_1, self.blame_2, self.blame_3]
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
@@ -421,34 +428,44 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
         # Nothing changes if we call it again
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
         assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
         assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
         # Calling again after the cache has been cleared should still work
         cache.delete(self.cache_key)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2, self.file_3])
+        resp = self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
         assert cache.get(self.cache_key) == self.make_blame_response(id="1")
         assert cache.get(self.cache_key2) == self.make_blame_response(id="2")
         assert cache.get(self.cache_key3) == self.make_blame_response(id="3")
 
-        assert resp != self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+        assert resp != self.gitlab_client.get_blame_for_files(
+            files=[self.file_1, self.file_2], extra={}
+        )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_404(self, mock_logger_exception):
-        responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
+    def test_failure_404(self, mock_logger_warning):
+        responses.add(
+            responses.GET, self.make_blame_request(self.file_1), status=404, body="No file found"
+        )
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == []
-        mock_logger_exception.assert_called_with(
+        mock_logger_warning.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
                 "provider": "gitlab",
                 "org_integration_id": self.gitlab_client.org_integration_id,
+                "code": 404,
+                "error_message": "No file found",
                 "repo_name": self.repo.name,
                 "file_path": self.file_1.path,
                 "branch_name": self.file_1.ref,
@@ -456,32 +473,18 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             },
         )
 
-    @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
-    )
     @responses.activate
-    def test_failure_response_type(self, mock_logger_exception):
+    def test_failure_response_type(self):
         responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1])
 
-        assert resp == []
-        mock_logger_exception.assert_called_with(
-            "get_blame_for_files.api_error",
-            extra={
-                "provider": "gitlab",
-                "org_integration_id": self.gitlab_client.org_integration_id,
-                "repo_name": self.repo.name,
-                "file_path": self.file_1.path,
-                "branch_name": self.file_1.ref,
-                "file_lineno": self.file_1.lineno,
-            },
-        )
+        with pytest.raises(ApiError):
+            self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.error",
     )
     @responses.activate
-    def test_failure_approaching_rate_limit(self, mock_logger_exception):
+    def test_failure_approaching_rate_limit(self, mock_logger_error):
         """
         If there aren't enough requests left to stay above the minimum request
         limit, should raise a ApiRateLimitedError.
@@ -500,10 +503,10 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
         with pytest.raises(ApiRateLimitedError) as excinfo:
-            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         assert excinfo.value.text == "Approaching GitLab API rate limit"
-        mock_logger_exception.assert_called_with(
+        mock_logger_error.assert_called_with(
             "get_blame_for_files.rate_limit_too_low",
             extra={
                 "provider": "gitlab",
@@ -516,10 +519,10 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_partial(self, mock_logger_exception):
+    def test_failure_partial_expected(self, mock_logger_warning):
         """
         Tests that blames are still returned when some succeed
         and others fail.
@@ -532,16 +535,18 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             json=self.make_blame_response(id="2"),
             status=200,
         )
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2])
+        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         # Should return the successful response
         assert resp == [self.blame_2]
 
         # Should log the unsuccessful one
-        mock_logger_exception.assert_called_once()
-        mock_logger_exception.assert_called_with(
+        mock_logger_warning.assert_called_once()
+        mock_logger_warning.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
+                "code": 404,
+                "error_message": "",
                 "provider": "gitlab",
                 "org_integration_id": self.gitlab_client.org_integration_id,
                 "repo_name": self.repo.name,
@@ -550,6 +555,17 @@ class GitLabBlameForFilesTest(GitLabClientTest):
                 "file_lineno": self.file_1.lineno,
             },
         )
+
+    @responses.activate
+    def test_failure_partial_fatal(self):
+        """
+        Tests that the function is aborted when a fatal response is returned
+        """
+        # First file returns a 500
+        responses.add(responses.GET, self.make_blame_request(self.file_1), status=500)
+
+        with pytest.raises(ApiError):
+            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
     @responses.activate
     def test_invalid_commits(self):
@@ -577,11 +593,11 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         responses.add(
             responses.GET,
             url=self.make_blame_request(self.file_4),
-            json={"lines": [], "commit": None},
+            json=[{"lines": [], "commit": None}],
             status=200,
         )
         resp = self.gitlab_client.get_blame_for_files(
-            files=[self.file_1, self.file_2, self.file_3, self.file_4]
+            files=[self.file_1, self.file_2, self.file_3, self.file_4], extra={}
         )
 
         assert resp == []

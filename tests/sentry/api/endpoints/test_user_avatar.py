@@ -2,7 +2,6 @@ from base64 import b64encode
 from io import BytesIO
 from unittest import mock
 
-import pytest
 from django.test import override_settings
 from django.urls import reverse
 
@@ -11,11 +10,10 @@ from sentry.models.avatars.user_avatar import UserAvatar, UserAvatarType
 from sentry.models.files import ControlFile, File
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserAvatarTest(APITestCase):
     def test_get_letter_avatar(self):
         user = self.create_user(email="a@example.com")
@@ -163,53 +161,6 @@ class UserAvatarTest(APITestCase):
         assert avatar.control_file_id
         assert isinstance(avatar.get_file(), ControlFile)
         assert ControlFile.objects.filter(id=avatar.control_file_id).exists()
-
-    @pytest.mark.skipif(use_split_dbs(), reason="requires single/monolith db mode")
-    @mock.patch("sentry.tasks.files.copy_file_to_control_and_update_model.apply_async")
-    def test_get_upload_use_control_during_update(self, mock_task):
-        user = self.create_user(email="a@example.com")
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            photo = File.objects.create(name="test.png", type="avatar.file")
-            photo.putfile(BytesIO(b"test"))
-        avatar = UserAvatar.objects.create(
-            user=user, file_id=photo.id, avatar_type=UserAvatarType.UPLOAD
-        )
-        assert avatar
-        assert avatar.get_file_id()
-        assert avatar.file_id
-        assert not avatar.control_file_id
-        with assume_test_silo_mode(SiloMode.REGION):
-            assert isinstance(avatar.get_file(), File)
-
-        self.login_as(user=user)
-
-        url = reverse("sentry-api-0-user-avatar", kwargs={"user_id": "me"})
-
-        mock_task.reset_mock()
-        # Run in monolith as this transitional operation can only occur there.
-        with assume_test_silo_mode(SiloMode.MONOLITH):
-            response = self.client.put(
-                url,
-                data={
-                    "avatar_type": "upload",
-                    "avatar_photo": b64encode(self.load_fixture("avatar.jpg")),
-                },
-                format="json",
-            )
-
-        assert response.status_code == 200, response.content
-        assert response.data["id"] == str(user.id)
-        assert response.data["avatar"]["avatarType"] == "upload"
-        assert response.data["avatar"]["avatarUuid"]
-        assert mock_task.call_count == 1
-
-        avatar = UserAvatar.objects.get(user=user)
-        assert avatar
-        assert avatar.get_file_id()
-        assert avatar.file_id is None, "non-control file relation be removed."
-        assert avatar.control_file_id
-        assert isinstance(avatar.get_file(), ControlFile)
 
     @mock.patch("sentry.tasks.files.copy_file_to_control_and_update_model.apply_async")
     def test_do_not_copy_file_to_control(self, mock_task):

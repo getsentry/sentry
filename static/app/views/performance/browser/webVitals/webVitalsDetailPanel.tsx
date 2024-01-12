@@ -24,15 +24,18 @@ import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/compo
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {calculateOpportunity} from 'sentry/views/performance/browser/webVitals/utils/calculateOpportunity';
-import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import {
   Row,
-  RowWithScore,
+  RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionWebVitalsQuery';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type Column = GridColumnHeader;
@@ -58,49 +61,81 @@ export function WebVitalsDetailPanel({
 }) {
   const organization = useOrganization();
   const location = useLocation();
-  const transaction = location.query.transaction
-    ? Array.isArray(location.query.transaction)
-      ? location.query.transaction[0]
-      : location.query.transaction
-    : undefined;
+  const shouldUseStoredScores = useStoredScoresSetting();
 
-  const {data: projectData} = useProjectWebVitalsQuery({transaction});
-
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
+  const {data: projectData} = useProjectRawWebVitalsQuery({});
+  const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
+    enabled: shouldUseStoredScores,
+    weightWebVital: webVital ?? 'total',
   });
 
+  const projectScore = shouldUseStoredScores
+    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
+    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+
   const {data, isLoading} = useTransactionWebVitalsQuery({
-    transaction,
-    orderBy: webVital,
     limit: 100,
+    opportunityWebVital: webVital ?? 'total',
+    ...(webVital
+      ? shouldUseStoredScores
+        ? {
+            query: `count_scores(measurements.score.${webVital}):>0`,
+            defaultSort: {
+              field: `opportunity_score(measurements.score.${webVital})`,
+              kind: 'desc',
+            },
+          }
+        : {
+            query: `count_web_vitals(measurements.${webVital},any):>0`,
+          }
+      : {}),
+    enabled: webVital !== null,
   });
 
   const dataByOpportunity = useMemo(() => {
     if (!data) {
       return [];
     }
-    const count = projectData?.data[0]['count()'] as number;
+    const count = projectData?.data?.[0]?.['count()'] as number;
+    const sumWeights = projectScoresData?.data?.[0]?.[
+      `sum(measurements.score.weight.${webVital})`
+    ] as number;
     return data
       .map(row => ({
         ...row,
-        opportunity: calculateOpportunity(
-          projectScore[`${webVital}Score`],
-          count,
-          row[`${webVital}Score`],
-          row['count()']
-        ),
+        opportunity: shouldUseStoredScores
+          ? Math.round(
+              (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
+                sumWeights
+            ) / 100
+          : calculateOpportunity(
+              projectScore[`${webVital}Score`],
+              count,
+              row[`${webVital}Score`],
+              row['count()']
+            ),
       }))
-      .sort((a, b) => b.opportunity - a.opportunity)
+      .sort((a, b) => {
+        if (a.opportunity === undefined) {
+          return 1;
+        }
+        if (b.opportunity === undefined) {
+          return -1;
+        }
+        return b.opportunity - a.opportunity;
+      })
       .slice(0, MAX_ROWS);
-  }, [data, projectData?.data, projectScore, webVital]);
+  }, [
+    data,
+    projectData?.data,
+    projectScore,
+    projectScoresData?.data,
+    shouldUseStoredScores,
+    webVital,
+  ]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+    useProjectRawWebVitalsValuesTimeseriesQuery({});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -156,7 +191,7 @@ export function WebVitalsDetailPanel({
     return getDuration(value / 1000, 2, true);
   };
 
-  const renderBodyCell = (col: Column, row: RowWithScore) => {
+  const renderBodyCell = (col: Column, row: RowWithScoreAndOpportunity) => {
     const {key} = col;
     if (key === 'score') {
       return (
@@ -191,7 +226,6 @@ export function WebVitalsDetailPanel({
                 webVital,
               },
             }}
-            onClick={onClose}
           >
             {row.transaction}
           </Link>
@@ -201,31 +235,34 @@ export function WebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  const webVitalScore = projectScore[`${webVital}Score`];
+
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
-        {webVital && (
+        {webVital && webVitalScore !== undefined && (
           <WebVitalDescription
             value={
               webVital !== 'cls'
                 ? getDuration(
-                    (projectData?.data[0][mapWebVitalToColumn(webVital)] as number) /
+                    (projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number) /
                       1000,
                     2,
                     true
                   )
-                : (projectData?.data[0][mapWebVitalToColumn(webVital)] as number).toFixed(
-                    2
-                  )
+                : (
+                    projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
+                  )?.toFixed(2)
             }
             webVital={webVital}
-            score={projectScore[`${webVital}Score`]}
+            score={webVitalScore}
           />
         )}
         <ChartContainer>
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
-        {!transaction && (
+
+        <TableContainer>
           <GridEditable
             data={dataByOpportunity}
             isLoading={isLoading}
@@ -237,7 +274,7 @@ export function WebVitalsDetailPanel({
             }}
             location={location}
           />
-        )}
+        </TableContainer>
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>
@@ -284,4 +321,8 @@ const AlignCenter = styled('span')`
 
 const OpportunityHeader = styled('span')`
   ${p => p.theme.tooltipUnderline()};
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
 `;

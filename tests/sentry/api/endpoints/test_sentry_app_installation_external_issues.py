@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)

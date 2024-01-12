@@ -10,16 +10,22 @@ from typing import Callable, Dict, List, Type
 from dateutil import parser
 from django.db import models
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    PrimaryKeyMap,
+    dependencies,
+    get_exportable_sentry_models,
+    get_model_name,
+)
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
-from sentry.backup.helpers import Side, get_exportable_sentry_models
+from sentry.backup.helpers import Side
 from sentry.utils.json import JSONData
 
 UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
 
 
 class ScrubbedData:
-    """A singleton class used to indicate data has been scrubbed, without indicating what that data is. A unit type indicating "scrubbing was successful" only."""
+    """A singleton class used to indicate data has been scrubbed, without indicating what that data
+    is. A unit type indicating "scrubbing was successful" only."""
 
     instance: ScrubbedData
 
@@ -70,9 +76,11 @@ class JSONScrubbingComparator(ABC):
 
         findings = []
         for f in self.fields:
-            if f not in left["fields"] and f not in right["fields"]:
+            missing_on_left = f not in left["fields"] or left["fields"][f] is None
+            missing_on_right = f not in right["fields"] or right["fields"][f] is None
+            if missing_on_left and missing_on_right:
                 continue
-            if f not in left["fields"]:
+            if missing_on_left:
                 findings.append(
                     ComparatorFinding(
                         kind=self.get_kind_existence_check(),
@@ -82,7 +90,7 @@ class JSONScrubbingComparator(ABC):
                         reason=f"the left `{f}` value was missing",
                     )
                 )
-            if f not in right["fields"]:
+            if missing_on_right:
                 findings.append(
                     ComparatorFinding(
                         kind=self.get_kind_existence_check(),
@@ -461,10 +469,17 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
 class IgnoredComparator(JSONScrubbingComparator):
     """Ensures that two fields are tested for mutual existence, and nothing else.
 
-    Using this class means that you are foregoing comparing the relevant field(s), so please make sure you are validating them some other way!"""
+    Using this class means that you are foregoing comparing the relevant field(s), so please make
+    sure you are validating them some other way!
+    """
 
-    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+    def compare(self, _o: InstanceID, _l: JSONData, _r: JSONData) -> list[ComparatorFinding]:
         """Noop - there is nothing to compare once we've checked for existence."""
+
+        return []
+
+    def existence(self, _o: InstanceID, _l: JSONData, _r: JSONData) -> list[ComparatorFinding]:
+        """Noop - never compare existence for ignored fields, they're ignored after all."""
 
         return []
 
@@ -509,6 +524,58 @@ class RegexComparator(JSONScrubbingComparator, ABC):
         return findings
 
 
+class EqualOrRemovedComparator(JSONScrubbingComparator):
+    """
+    A normal equality comparison, except that it allows the right-side value to be `None` or
+    missing.
+    """
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+            if right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv != rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ("{lv}") of `{f}` was not equal to the right value ("{rv}")""",
+                    )
+                )
+
+        return findings
+
+    def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        """Ensure that all tracked fields on either both models or neither."""
+
+        findings = []
+        for f in self.fields:
+            missing_on_left = f not in left["fields"] or left["fields"][f] is None
+            missing_on_right = f not in right["fields"] or right["fields"][f] is None
+            if missing_on_left and missing_on_right:
+                continue
+            if missing_on_left:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind_existence_check(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"the left `{f}` value was missing",
+                    )
+                )
+        return findings
+
+
 class SecretHexComparator(RegexComparator):
     """Certain 16-byte hexadecimal API keys are regenerated during an import operation."""
 
@@ -517,7 +584,8 @@ class SecretHexComparator(RegexComparator):
 
 
 class SubscriptionIDComparator(RegexComparator):
-    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a numeric prefix. Ensure that the two values are NOT equivalent."""
+    """Compare the basic format of `QuerySubscription` IDs, which is basically a UUID1 with a
+    numeric prefix. Ensure that the two values are NOT equivalent."""
 
     def __init__(self, *fields: str):
         super().__init__(re.compile("^\\d+/[0-9a-f]{32}$"), *fields)
@@ -549,11 +617,38 @@ class SubscriptionIDComparator(RegexComparator):
         return findings
 
 
+class UnorderedListComparator(JSONScrubbingComparator):
+    """Comparator for fields that are lists of unordered elements, which simply orders them before
+    doing the comparison."""
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f] or []
+            rv = right["fields"][f] or []
+            if sorted(lv) != sorted(rv):
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ({lv}) of the unordered list field `{f}` was not equal to the right value ({rv})""",
+                    )
+                )
+        return findings
+
+
 # Note: we could also use the `uuid` Python uuid module for this, but it is finicky and accepts some
 # weird syntactic variations that are not very common and may cause weird failures when they are
 # rejected elsewhere.
 class UUID4Comparator(RegexComparator):
-    """UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator ensures that they retain their validity, but are not equivalent."""
+    """UUIDs must be regenerated on import (otherwise they would not be unique...). This comparator
+    ensures that they retain their validity, but are not equivalent."""
 
     def __init__(self, *fields: str):
         super().__init__(
@@ -590,7 +685,8 @@ class UUID4Comparator(RegexComparator):
 
 
 def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
-    """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already claimed by the `DateUpdatedComparator`."""
+    """Automatically assigns the DateAddedComparator to any `DateTimeField` that is not already
+    claimed by the `DateUpdatedComparator`."""
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
@@ -616,7 +712,8 @@ def auto_assign_datetime_equality_comparators(comps: ComparatorMap) -> None:
 
 
 def auto_assign_email_obfuscating_comparators(comps: ComparatorMap) -> None:
-    """Automatically assigns the EmailObfuscatingComparator to any field that is an `EmailField` or has a foreign key into the `sentry.User` table."""
+    """Automatically assigns the EmailObfuscatingComparator to any field that is an `EmailField` or
+    has a foreign key into the `sentry.User` table."""
 
     exportable = get_exportable_sentry_models()
     for e in exportable:
@@ -667,11 +764,18 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token", "token_last_characters")
+                HashObfuscatingComparator("refresh_token", "token", "token_last_characters"),
+                UnorderedListComparator("scope_list"),
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
-            "sentry.alertrule": [DateUpdatedComparator("date_modified")],
+            "sentry.alertrule": [
+                DateUpdatedComparator("date_modified"),
+                # TODO(hybrid-cloud): actor refactor. Remove this check once we're sure we've
+                # migrated all remaining `owner_id`'s to also have `team_id` or `user_id`, which
+                # seems to not be the case today.
+                EqualOrRemovedComparator("owner", "team", "user_id"),
+            ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
@@ -682,7 +786,10 @@ def get_default_comparators():
             ],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
-            "sentry.organizationmember": [HashObfuscatingComparator("token")],
+            "sentry.organizationmember": [
+                HashObfuscatingComparator("token"),
+                EqualOrRemovedComparator("inviter_id"),
+            ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),
@@ -716,7 +823,13 @@ def get_default_comparators():
                 DateUpdatedComparator("date_hash_added"),
                 IgnoredComparator("validation_hash", "is_verified"),
             ],
-            "sentry.userip": [DateUpdatedComparator("first_seen", "last_seen")],
+            "sentry.userip": [
+                DateUpdatedComparator("first_seen", "last_seen"),
+                # Incorrect country and region codes may be updated during an import, so we don't
+                # want to compare them explicitly. This update is pulled from the geo IP service, so
+                # we only really want to compare the IP address itself.
+                IgnoredComparator("country_code", "region_code"),
+            ],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
         },

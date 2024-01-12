@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache import cache
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.db.models.manager import BaseManager
@@ -29,7 +29,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FetchForOrganizationTest(TestCase):
     def test_empty(self):
         incidents = Incident.objects.fetch_for_organization(self.organization, [self.project])
@@ -328,12 +328,8 @@ class IncidentCreationTest(TestCase):
                         alert_rule=alert_rule,
                     )
                 assert incident.identifier == kwargs["identifier"]
-                try:
-                    create_method(*args, **kwargs)
-                except IntegrityError:
-                    raise
-                else:
-                    self.fail("Expected an integrity error")
+                create_method(*args, **kwargs)
+                self.fail("Expected an integrity error")
             else:
                 call_count[0] += 1
 
@@ -393,7 +389,7 @@ class IncidentCurrentEndDateTest(unittest.TestCase):
         assert incident.current_end_date == timezone.now() - timedelta(minutes=10)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleFetchForOrganizationTest(TestCase):
     def test_empty(self):
         alert_rule = AlertRule.objects.fetch_for_organization(self.organization)

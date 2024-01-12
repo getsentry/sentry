@@ -14,7 +14,7 @@ from sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases 
 )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetSuspectResolutionsReleasesTest(TestCase):
     @mock.patch("sentry.analytics.record")
     def test_get_suspect_resolutions_releases(self, record):

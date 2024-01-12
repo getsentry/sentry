@@ -15,7 +15,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time("2023-03-15 00:00:00")
 class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_with_multiple_bundles(self):

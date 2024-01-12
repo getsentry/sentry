@@ -52,7 +52,7 @@ class ExportTestCase(BackupTestCase):
         return export_to_encrypted_tarball(tmp_path, scope=scope, filter_by=filter_by)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.

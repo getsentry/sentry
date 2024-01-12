@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import os
 import signal
-import sys
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -232,13 +231,7 @@ def run_worker(**options):
             **options,
         )
         worker.start()
-        try:
-            sys.exit(worker.exitcode)
-        except AttributeError:
-            # `worker.exitcode` was added in a newer version of Celery:
-            # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forward compatible
-            pass
+        raise SystemExit(worker.exitcode)
 
 
 @run.command()
@@ -468,94 +461,6 @@ def ingest_consumer(consumer_type, **options):
     run_processor_with_signals(consumer)
 
 
-@run.command("occurrences-ingest-consumer")
-@kafka_options(
-    "occurrence-consumer",
-    include_batching_options=True,
-    allow_force_cluster=False,
-    default_max_batch_size=20,
-)
-@strict_offset_reset_option()
-@configuration
-@click.option(
-    "--processes",
-    "num_processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-def occurrences_ingest_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-occurrences", options["group_id"])
-    from django.conf import settings
-
-    from sentry.utils import metrics
-
-    consumer_type = settings.KAFKA_INGEST_OCCURRENCES
-
-    # Our batcher expects the time in seconds
-    options["max_batch_time"] = int(options["max_batch_time"] / 1000)
-
-    from sentry.issues.run import get_occurrences_ingest_consumer
-
-    with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
-        consumer = get_occurrences_ingest_consumer(consumer_type, **options)
-        run_processor_with_signals(consumer)
-
-
-@run.command("ingest-metrics-parallel-consumer")
-@log_options()
-@kafka_options("ingest-metrics-consumer", allow_force_cluster=False)
-@strict_offset_reset_option()
-@configuration
-@click.option(
-    "--processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--ingest-profile", required=True)
-@click.option("--indexer-db", default="postgres")
-@click.option("max_msg_batch_size", "--max-msg-batch-size", type=int, default=50)
-@click.option("max_msg_batch_time", "--max-msg-batch-time-ms", type=int, default=10000)
-@click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
-@click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
-@click.option("--group-instance-id", type=str, default=None)
-def metrics_parallel_consumer(**options):
-    from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
-
-    streamer = get_parallel_metrics_consumer(**options)
-
-    from arroyo import configure_metrics
-
-    from sentry.utils.arroyo import MetricsWrapper
-    from sentry.utils.metrics import backend
-
-    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
-
-    run_processor_with_signals(streamer)
-
-
-@run.command("ingest-profiles")
-@log_options()
-@click.option("--topic", default="profiles", help="Topic to get profiles data from.")
-@kafka_options("ingest-profiles")
-@strict_offset_reset_option()
-@configuration
-def profiles_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-profiles", options["group_id"])
-    from sentry.profiles.consumers import get_profiles_process_consumer
-
-    consumer = get_profiles_process_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
 @run.command("consumer")
 @log_options()
 @click.argument(
@@ -650,7 +555,7 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
     initialize_arroyo_main()
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
-    run_processor_with_signals(processor)
+    run_processor_with_signals(processor, consumer_name)
 
 
 @run.command("dev-consumer")
@@ -700,61 +605,6 @@ def dev_consumer(consumer_names):
     while True:
         for processor in processors:
             processor._run_once()
-
-
-@run.command("ingest-replay-recordings")
-@log_options()
-@configuration
-@kafka_options("ingest-replay-recordings")
-@click.option(
-    "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
-)
-def replays_recordings_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-replay-recordings", options["group_id"])
-    from sentry.replays.consumers import get_replays_recordings_consumer
-
-    consumer = get_replays_recordings_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
-@run.command("ingest-monitors")
-@log_options()
-@click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")
-@kafka_options("ingest-monitors")
-@strict_offset_reset_option()
-@configuration
-def monitors_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-monitors", options["group_id"])
-    from sentry.monitors.consumers import get_monitor_check_ins_consumer
-
-    consumer = get_monitor_check_ins_consumer(**options)
-    run_processor_with_signals(consumer)
-
-
-@run.command("indexer-last-seen-updater")
-@log_options()
-@configuration
-@kafka_options(
-    "indexer-last-seen-updater-consumer",
-    allow_force_cluster=False,
-    include_batching_options=True,
-    default_max_batch_size=100,
-)
-@strict_offset_reset_option()
-@click.option("--ingest-profile", required=True)
-@click.option("--indexer-db", default="postgres")
-def last_seen_updater(**options):
-    from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
-    from sentry.utils.metrics import global_tags
-
-    config, consumer = get_last_seen_updater(**options)
-
-    with global_tags(_all_threads=True, pipeline=config.internal_metrics_tag):
-        run_processor_with_signals(consumer)
 
 
 @run.command("backpressure-monitor")

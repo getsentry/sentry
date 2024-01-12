@@ -3,6 +3,7 @@ import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
@@ -10,6 +11,7 @@ import {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {
+  BooleanOperator,
   FilterType,
   InvalidReason,
   ParseResult,
@@ -38,8 +40,6 @@ import {space} from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
   FieldDefinition,
   FieldKind,
@@ -74,7 +74,6 @@ import {
   generateOperatorEntryMap,
   getAutoCompleteGroupForInvalidWildcard,
   getDateTagAutocompleteGroups,
-  getSearchConfigFromCustomPerformanceMetrics,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
   getValidOps,
@@ -105,6 +104,42 @@ const generateOpAutocompleteGroup = (
     tagName: '',
     type: ItemType.TAG_OPERATOR,
   };
+};
+
+const pickParserOptions = (props: Props) => {
+  const {
+    booleanKeys,
+    dateKeys,
+    durationKeys,
+    numericKeys,
+    percentageKeys,
+    sizeKeys,
+    textOperatorKeys,
+    getFilterWarning,
+    supportedTags,
+    highlightUnsupportedTags,
+    disallowedLogicalOperators,
+    disallowWildcard,
+    disallowFreeText,
+    invalidMessages,
+  } = props;
+
+  return {
+    booleanKeys,
+    dateKeys,
+    durationKeys,
+    numericKeys,
+    percentageKeys,
+    sizeKeys,
+    textOperatorKeys,
+    getFilterTokenWarning: getFilterWarning,
+    supportedTags,
+    validateKeys: highlightUnsupportedTags,
+    disallowedLogicalOperators,
+    disallowWildcard,
+    disallowFreeText,
+    invalidMessages,
+  } satisfies Partial<SearchConfig>;
 };
 
 export type ActionProps = {
@@ -184,15 +219,20 @@ type Props = WithRouterProps &
      * Additional components to render as actions on the right of the search bar
      */
     actionBarItems?: ActionBarItem[];
+    /**
+     * Keys that have boolean values
+     */
+    booleanKeys?: Set<string>;
     className?: string;
     /**
      * A function that provides the current search item and can return a custom invalid tag error message for the drop-down.
      */
     customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
+
     /**
-     * Custom Performance Metrics for query string unit parsing
+     * Keys that have date values
      */
-    customPerformanceMetrics?: CustomMeasurementCollection;
+    dateKeys?: Set<string>;
     /**
      * The default search group to show when there is no query
      */
@@ -202,10 +242,22 @@ type Props = WithRouterProps &
      */
     disabled?: boolean;
     /**
+     * Disables free text searches
+     */
+    disallowFreeText?: boolean;
+    /**
      * Disables wildcard searches (in freeText and in the value of key:value searches mode)
      */
     disallowWildcard?: boolean;
+    /**
+     * Disables specified boolean operators
+     */
+    disallowedLogicalOperators?: Set<BooleanOperator>;
     dropdownClassName?: string;
+    /**
+     * Keys that have duration values
+     */
+    durationKeys?: Set<string>;
     /**
      * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
      * because we don't want to treat environment as a tag in some places such
@@ -253,6 +305,10 @@ type Props = WithRouterProps &
      */
     mergeSearchGroupWith?: Record<string, SearchItem>;
     /**
+     * Keys that have numeric values
+     */
+    numericKeys?: Set<string>;
+    /**
      * Called when the search input is blurred.
      * Note that the input may be blurred when the user selects an autocomplete
      * value - if you don't want that, onClose may be a better option.
@@ -261,7 +317,7 @@ type Props = WithRouterProps &
     /**
      * Called when the search input changes
      */
-    onChange?: (value: string, e: React.ChangeEvent) => void;
+    onChange?: (value: string, e: React.ChangeEvent | React.ClipboardEvent) => void;
     /**
      * Called when the user has closed the search dropdown.
      * Occurs on escape, tab, or clicking outside the component.
@@ -284,6 +340,10 @@ type Props = WithRouterProps &
      */
     onSavedRecentSearch?: (query: string) => void;
     /**
+     * Keys that have percentage values
+     */
+    percentageKeys?: Set<string>;
+    /**
      * Prepare query value before filtering dropdown items
      */
     prepareQuery?: (query: string) => string;
@@ -292,9 +352,17 @@ type Props = WithRouterProps &
      */
     searchSource?: string;
     /**
+     * Keys that have size values
+     */
+    sizeKeys?: Set<string>;
+    /**
      * Type of supported tags
      */
     supportedTagType?: ItemType;
+    /**
+     * Keys with text values that also allow additional operation like ">=" / "<=" / ">" / "<" / "=" / "!="
+     */
+    textOperatorKeys?: Set<string>;
   };
 
 type State = {
@@ -361,14 +429,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   state: State = {
     query: this.initialQuery,
     showDropdown: false,
-    parsedQuery: parseSearch(this.initialQuery, {
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
-      getFilterTokenWarning: this.props.getFilterWarning,
-      supportedTags: this.props.supportedTags,
-      validateKeys: this.props.highlightUnsupportedTags,
-      disallowWildcard: this.props.disallowWildcard,
-      invalidMessages: this.props.invalidMessages,
-    }),
+    parsedQuery: parseSearch(this.initialQuery, pickParserOptions(this.props)),
     searchTerm: '',
     searchGroups: [],
     flatSearchItems: [],
@@ -393,21 +454,15 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {query, customPerformanceMetrics, actionBarItems, disallowWildcard} =
-      this.props;
-    const {
-      query: lastQuery,
-      customPerformanceMetrics: lastCustomPerformanceMetrics,
-      actionBarItems: lastAcionBarItems,
-      disallowWildcard: lastDisallowWildcard,
-    } = prevProps;
+    const {query, actionBarItems} = this.props;
+    const parserOptions = pickParserOptions(this.props);
 
-    if (
-      (query !== lastQuery && (defined(query) || defined(lastQuery))) ||
-      customPerformanceMetrics !== lastCustomPerformanceMetrics
-    ) {
+    const {query: lastQuery, actionBarItems: lastAcionBarItems} = prevProps;
+    const prevParserOptions = pickParserOptions(prevProps);
+
+    if (query !== lastQuery && (defined(query) || defined(lastQuery))) {
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
-    } else if (disallowWildcard !== lastDisallowWildcard) {
+    } else if (!isEqual(parserOptions, prevParserOptions)) {
       // Re-parse query to apply new options (without resetting it to the query prop value)
       this.setState(this.makeQueryState(this.state.query));
     }
@@ -419,6 +474,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
   componentWillUnmount() {
     this.inputResizeObserver?.disconnect();
+    this.updateAutoCompleteItems.cancel();
     document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
@@ -428,14 +484,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   }
 
   makeQueryState(query: string) {
-    const additionalConfig: Partial<SearchConfig> = {
-      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
-      getFilterTokenWarning: this.props.getFilterWarning,
-      supportedTags: this.props.supportedTags,
-      validateKeys: this.props.highlightUnsupportedTags,
-      disallowWildcard: this.props.disallowWildcard,
-      invalidMessages: this.props.invalidMessages,
-    };
+    const additionalConfig: Partial<SearchConfig> = pickParserOptions(this.props);
     return {
       query,
       parsedQuery: parseSearch(query, additionalConfig),
@@ -778,7 +827,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.searchInput.current!.selectionStart = newCursorPosition;
       this.searchInput.current!.selectionEnd = newCursorPosition;
     });
-    callIfFunction(this.props.onChange, mergedText, evt);
+
+    if (typeof this.props.onChange === 'function') {
+      this.props.onChange(mergedText, evt);
+    }
   };
 
   onInputClick = () => {
@@ -944,7 +996,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       tree: parsedQuery,
       noResultValue: true,
       visitorTest: ({token, returnResult, skipToken}) => {
-        return token.type !== Token.FILTER && token.type !== Token.FREE_TEXT
+        return token.type !== Token.FILTER &&
+          token.type !== Token.FREE_TEXT &&
+          token.type !== Token.LOGIC_BOOLEAN
           ? null
           : token.invalid
           ? returnResult(false)
@@ -1163,56 +1217,52 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues = debounce(
-    async (tag: Tag, query: string): Promise<SearchItem[]> => {
-      // Strip double quotes if there are any
-      query = query.replace(/"/g, '').trim();
+  getTagValues = async (tag: Tag, query: string): Promise<SearchItem[]> => {
+    // Strip double quotes if there are any
+    query = query.replace(/"/g, '').trim();
 
-      if (!this.props.onGetTagValues) {
-        return [];
-      }
+    if (!this.props.onGetTagValues) {
+      return [];
+    }
 
-      if (
-        this.state.noValueQuery !== undefined &&
-        query.startsWith(this.state.noValueQuery)
-      ) {
-        return [];
-      }
+    if (
+      this.state.noValueQuery !== undefined &&
+      query.startsWith(this.state.noValueQuery)
+    ) {
+      return [];
+    }
 
-      const {location} = this.props;
-      const endpointParams = normalizeDateTimeParams(location.query);
+    const {location} = this.props;
+    const endpointParams = normalizeDateTimeParams(location.query);
 
-      this.setState({loading: true});
-      let values: string[] = [];
+    this.setState({loading: true});
+    let values: string[] = [];
 
-      try {
-        values = await this.props.onGetTagValues(tag, query, endpointParams);
-        this.setState({loading: false});
-      } catch (err) {
-        this.setState({loading: false});
-        Sentry.captureException(err);
-        return [];
-      }
+    try {
+      values = await this.props.onGetTagValues(tag, query, endpointParams);
+      this.setState({loading: false});
+    } catch (err) {
+      this.setState({loading: false});
+      Sentry.captureException(err);
+      return [];
+    }
 
-      if (tag.key === 'release:' && !values.includes('latest')) {
-        values.unshift('latest');
-      }
+    if (tag.key === 'release:' && !values.includes('latest')) {
+      values.unshift('latest');
+    }
 
-      const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
-      this.setState({noValueQuery});
+    const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
+    this.setState({noValueQuery});
 
-      return values.map(value => {
-        const escapedValue = escapeTagValue(value);
-        return {
-          value: escapedValue,
-          desc: escapedValue,
-          type: ItemType.TAG_VALUE,
-        };
-      });
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
+    return values.map(value => {
+      const escapedValue = escapeTagValue(value);
+      return {
+        value: escapedValue,
+        desc: escapedValue,
+        type: ItemType.TAG_VALUE,
+      };
+    });
+  };
 
   /**
    * Returns array of tag values that substring match `query`; invokes `callback`
@@ -1253,21 +1303,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   /**
    * Get recent searches
    */
-  getRecentSearches = debounce(
-    async () => {
-      const {savedSearchType, hasRecentSearches, onGetRecentSearches} = this.props;
+  getRecentSearches = async () => {
+    const {savedSearchType, hasRecentSearches, onGetRecentSearches} = this.props;
 
-      // `savedSearchType` can be 0
-      if (!defined(savedSearchType) || !hasRecentSearches) {
-        return [];
-      }
+    // `savedSearchType` can be 0
+    if (!defined(savedSearchType) || !hasRecentSearches) {
+      return [];
+    }
 
-      const fetchFn = onGetRecentSearches || this.fetchRecentSearches;
-      return await fetchFn(this.state.query);
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
+    const fetchFn = onGetRecentSearches || this.fetchRecentSearches;
+    return await fetchFn(this.state.query);
+  };
 
   fetchRecentSearches = async (fullQuery: string): Promise<SearchItem[]> => {
     const {api, organization, savedSearchType} = this.props;
@@ -1295,28 +1341,24 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   };
 
-  getReleases = debounce(
-    async (tag: Tag, query: string) => {
-      const releasePromise = this.fetchReleases(query);
+  getReleases = async (tag: Tag, query: string) => {
+    const releasePromise = this.fetchReleases(query);
 
-      const tags = this.getPredefinedTagValues(tag, query);
-      const tagValues = tags.map<SearchItem>(v => ({
-        ...v,
-        type: ItemType.FIRST_RELEASE,
-      }));
+    const tags = this.getPredefinedTagValues(tag, query);
+    const tagValues = tags.map<SearchItem>(v => ({
+      ...v,
+      type: ItemType.FIRST_RELEASE,
+    }));
 
-      const releases = await releasePromise;
-      const releaseValues = releases.map<SearchItem>((r: any) => ({
-        value: r.shortVersion,
-        desc: r.shortVersion,
-        type: ItemType.FIRST_RELEASE,
-      }));
+    const releases = await releasePromise;
+    const releaseValues = releases.map<SearchItem>((r: any) => ({
+      value: r.shortVersion,
+      desc: r.shortVersion,
+      type: ItemType.FIRST_RELEASE,
+    }));
 
-      return [...tagValues, ...releaseValues];
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
+    return [...tagValues, ...releaseValues];
+  };
 
   /**
    * Fetches latest releases from a organization/project. Returns an empty array
@@ -1571,9 +1613,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   };
 
-  updateAutoCompleteItems = () => {
-    this.updateAutoCompleteFromAst();
-  };
+  updateAutoCompleteItems = debounce(
+    () => {
+      this.updateAutoCompleteFromAst();
+    },
+    DEFAULT_DEBOUNCE_DURATION,
+    {leading: true}
+  );
 
   /**
    * Updates autocomplete dropdown items and autocomplete index state
@@ -1860,7 +1906,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxQueryLength,
       maxMenuHeight,
       name,
-      customPerformanceMetrics,
       supportedTags,
     } = this.props;
 
@@ -1980,7 +2025,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
                   {...props}
                   size="sm"
                   aria-label={t('Show more')}
-                  icon={<VerticalEllipsisIcon size="xs" />}
+                  icon={<VerticalEllipsisIcon />}
                 />
               )}
               triggerLabel={t('Show more')}
@@ -2010,12 +2055,20 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             runShortcut={this.runShortcutOnClick}
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
-            customPerformanceMetrics={customPerformanceMetrics}
             supportedTags={supportedTags}
             customInvalidTagMessage={this.props.customInvalidTagMessage}
             mergeItemsWith={this.props.mergeSearchGroupWith}
-            disallowWildcard={this.props.disallowWildcard}
             invalidMessages={this.props.invalidMessages}
+            disallowWildcard={this.props.disallowWildcard}
+            disallowedLogicalOperators={this.props.disallowedLogicalOperators}
+            disallowFreeText={this.props.disallowFreeText}
+            booleanKeys={this.props.booleanKeys}
+            dateKeys={this.props.dateKeys}
+            durationKeys={this.props.durationKeys}
+            numericKeys={this.props.numericKeys}
+            percentageKeys={this.props.percentageKeys}
+            sizeKeys={this.props.sizeKeys}
+            textOperatorKeys={this.props.textOperatorKeys}
           />
         )}
       </Container>

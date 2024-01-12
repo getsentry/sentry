@@ -57,9 +57,8 @@ def add_notification_setting_provider(
 
 
 # The tests below are intended to check behavior with the new
-# NotificationSettingOption and NotificationSettingProvider tables,
-# which will be enabled with the "organization:notification-settings-v2" flag.
-@control_silo_test(stable=True)
+# NotificationSettingOption and NotificationSettingProvider tables
+@control_silo_test
 class NotificationControllerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -638,7 +637,6 @@ class NotificationControllerTest(TestCase):
             }
         }
 
-    @with_feature("organizations:notification-settings-v2")
     @with_feature("organizations:team-workflow-notifications")
     def test_get_team_workflow_participants(self):
         rpc_user = RpcActor.from_object(self.team)
@@ -657,7 +655,6 @@ class NotificationControllerTest(TestCase):
             }
         }
 
-    @with_feature("organizations:notification-settings-v2")
     @with_feature("organizations:team-workflow-notifications")
     def test_get_team_issue_alert_participants(self):
         rpc_user = RpcActor.from_object(self.team)

@@ -1,6 +1,9 @@
-import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
-import {Members} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,14 +12,14 @@ import ConfigStore from 'sentry/stores/configStore';
 import ProjectOwnershipModal from './modal';
 
 describe('Project Ownership', () => {
-  const org = Organization();
-  const project = TestStubs.Project();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
   const issueId = '1234';
-  const stacktrace = EventEntryStacktrace();
-  const event = TestStubs.Event({
+  const stacktrace = EventEntryStacktraceFixture();
+  const event = EventFixture({
     entries: [stacktrace],
   });
-  const user = TestStubs.User();
+  const user = UserFixture();
 
   beforeEach(() => {
     ConfigStore.set('user', user);
@@ -52,7 +55,7 @@ describe('Project Ownership', () => {
     stacktrace.data.frames![0].inApp = true;
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
-      body: Members(),
+      body: MembersFixture(),
     });
   });
 

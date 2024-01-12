@@ -16,14 +16,13 @@ from typing import (
     cast,
 )
 
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
-from sentry.api.base import PreventNumericSlugMixin
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -96,22 +95,17 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin):
+class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
 
-    # The slug pattern consists of the following:
-    # [a-zA-Z0-9]   - The slug must start with a letter or number
-    # [a-zA-Z0-9-]* - The slug can contain letters, numbers, and dashes
-    # (?<!-)        - Negative lookbehind to ensure the slug does not end with a dash
-    slug = serializers.RegexField(
-        r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$",
+    # XXX: Sentry org slugs are different from other resource slugs. See
+    # SentrySlugField for the full regex pattern. In short, they differ b/c
+    # 1. cannot contain underscores
+    # 2. must start with a number or letter
+    # 3. cannot end with a dash
+    slug = SentrySerializerSlugField(
+        org_slug=True,
         max_length=50,
-        error_messages={
-            "invalid": _(
-                "Enter a valid slug consisting of lowercase letters, numbers, or hyphens. "
-                "It cannot be entirely numeric or start/end with a hyphen."
-            )
-        },
     )
 
     def validate_slug(self, value: str) -> str:
@@ -136,7 +130,6 @@ class BaseOrganizationSerializer(serializers.Serializer, PreventNumericSlugMixin
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
             )
-        value = super().validate_slug(value)
         return value
 
 

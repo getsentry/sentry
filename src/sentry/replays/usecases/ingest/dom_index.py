@@ -27,6 +27,7 @@ ReplayActionsEventPayloadClick = TypedDict(
         "event_hash": str,
         "id": str,
         "node_id": int,
+        "component_name": str,
         "role": str,
         "tag": str,
         "testid": str,
@@ -63,8 +64,12 @@ def parse_and_emit_replay_actions(
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
         message = parse_replay_actions(project_id, replay_id, retention_days, segment_data)
         if message is not None:
-            publisher = _initialize_publisher()
-            publisher.publish("ingest-replay-events", json.dumps(message))
+            emit_replay_actions(message)
+
+
+def emit_replay_actions(action: ReplayActionsEvent) -> None:
+    publisher = _initialize_publisher()
+    publisher.publish("ingest-replay-events", json.dumps(action))
 
 
 def parse_replay_actions(
@@ -107,6 +112,30 @@ def create_replay_actions_payload(
         "replay_id": replay_id,
         "clicks": clicks,
     }
+
+
+def log_canvas_size(
+    org_id: int,
+    project_id: int,
+    replay_id: str,
+    events: list[dict[str, Any]],
+) -> None:
+    for event in events:
+        if event.get("type") == 3 and event.get("data", {}).get("source") == 9:
+            logger.info(
+                # Logging to the sentry.replays.slow_click namespace because
+                # its the only one configured to use BigQuery at the moment.
+                #
+                # NOTE: Needs an ops request to create a new dataset.
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "canvas_size",
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "replay_id": replay_id,
+                    "size": len(json.dumps(event)),
+                },
+            )
 
 
 def get_user_actions(
@@ -194,26 +223,30 @@ def get_user_actions(
 
                 # these first two cover SDKs 7.44 and 7.45
                 if event_payload_data.get("requestBodySize"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.request_body_size",
                         event_payload_data["requestBodySize"],
+                        unit="byte",
                     )
                 if event_payload_data.get("responseBodySize"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["responseBodySize"],
+                        unit="byte",
                     )
 
                 # what the most recent SDKs send:
                 if event_payload_data.get("request", {}).get("size"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.request_body_size",
                         event_payload_data["request"]["size"],
+                        unit="byte",
                     )
                 if event_payload_data.get("response", {}).get("size"):
-                    metrics.timing(
+                    metrics.distribution(
                         "replays.usecases.ingest.response_body_size",
                         event_payload_data["response"]["size"],
+                        unit="byte",
                     )
         # log the SDK options sent from the SDK 1/500 times
         if (
@@ -292,6 +325,7 @@ def create_click_event(
         "testid": _get_testid(attributes)[:64],
         "aria_label": attributes.get("aria-label", "")[:64],
         "title": attributes.get("title", "")[:64],
+        "component_name": attributes.get("data-sentry-component", "")[:64],
         "is_dead": int(is_dead),
         "is_rage": int(is_rage),
         "timestamp": int(payload["timestamp"]),

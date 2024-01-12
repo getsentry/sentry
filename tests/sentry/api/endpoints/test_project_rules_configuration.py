@@ -11,7 +11,7 @@ APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
@@ -197,4 +197,19 @@ class ProjectRuleConfigurationTest(APITestCase):
             response = self.get_success_response(self.organization.slug, self.project.slug)
             assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" in [
                 filter["id"] for filter in response.data["filters"]
+            ]
+
+    def test_high_priority_issue_condition_feature(self):
+        # Hide the high priority issue condition when high-priority-alerts is off
+        with self.feature({"projects:high-priority-alerts": False}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" not in [
+                filter["id"] for filter in response.data["conditions"]
+            ]
+
+        # Show the high priority issue condition when high-priority-alerts is on
+        with self.feature({"projects:high-priority-alerts": True}):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" in [
+                filter["id"] for filter in response.data["conditions"]
             ]

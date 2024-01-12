@@ -107,13 +107,13 @@ export function ProfilesSummaryChart({
       series,
       grid: [
         {
-          top: '8px',
+          top: '16px',
           left: '16px',
           right: '8px',
           bottom: '16px',
         },
         {
-          top: '8px',
+          top: '16px',
           left: '8px',
           right: '16px',
           bottom: '8px',
@@ -121,7 +121,7 @@ export function ProfilesSummaryChart({
       ],
       legend: {
         right: 16,
-        top: 12,
+        top: 0,
         data: seriesOrder.slice(),
       },
       tooltip: {

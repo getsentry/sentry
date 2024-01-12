@@ -9,7 +9,7 @@ event_time = before_now(days=3).replace(tzinfo=timezone.utc)
 current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

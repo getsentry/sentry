@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 JAVA_BASE_TYPES = {
     "Z": "boolean",
@@ -53,7 +53,10 @@ def parse_obfuscated_signature(signature: str) -> Tuple[List[str], str]:
 
 
 # format_signature formats the types into a human-readable signature
-def format_signature(parameter_java_types: List[str], return_java_type: str) -> str:
+def format_signature(types: Optional[Tuple[List[str], str]]) -> str:
+    if types is None:
+        return ""
+    parameter_java_types, return_java_type = types
     signature = f"({', '.join(parameter_java_types)})"
     if return_java_type and return_java_type != "void":
         signature += f": {return_java_type}"
@@ -83,15 +86,16 @@ def byte_code_type_to_java_type(byte_code_type: str, mapper=None) -> str:
         return byte_code_type
 
 
-# map_obfucated_signature will parse then deobfuscated a signature and
-# format it appropriately
-def deobfuscate_signature(signature: str, mapper=None) -> str:
+# deobfuscate_signature will parse and deobfuscate a signature
+# returns a tuple where the first element is the list of the function
+# parameters and the second one is the return type
+def deobfuscate_signature(signature: str, mapper=None) -> Optional[Tuple[List[str], str]]:
     if not signature:
-        return ""
+        return None
 
     parameter_types, return_type = parse_obfuscated_signature(signature)
     if not (parameter_types or return_type):
-        return ""
+        return None
 
     parameter_java_types = []
     for parameter_type in parameter_types:
@@ -99,4 +103,4 @@ def deobfuscate_signature(signature: str, mapper=None) -> str:
         parameter_java_types.append(new_class)
 
     return_java_type = byte_code_type_to_java_type(return_type, mapper)
-    return format_signature(parameter_java_types, return_java_type)
+    return parameter_java_types, return_java_type

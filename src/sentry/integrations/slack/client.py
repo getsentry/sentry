@@ -128,7 +128,7 @@ class SlackClient(IntegrationProxyClient):
             "error": str(error)[:256] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info(f"{self.integration_type}.http_response", extra=extra)
+        self.logger.info("%s.http_response", self.integration_type, extra=extra)
 
     def request(
         self,

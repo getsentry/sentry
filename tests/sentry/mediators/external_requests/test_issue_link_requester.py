@@ -11,7 +11,7 @@ from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestIssueLinkRequester(TestCase):
     def setUp(self):
         super().setUp()

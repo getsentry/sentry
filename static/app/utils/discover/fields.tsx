@@ -1,8 +1,9 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import {MetricType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
+import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
@@ -53,7 +54,7 @@ type ValidateColumnValueFunction = (data: {
 
 export type ValidateColumnTypes =
   | ColumnType[]
-  | MetricsType[]
+  | MetricType[]
   | ValidateColumnValueFunction;
 
 export type AggregateParameter =
@@ -135,6 +136,12 @@ export const RATE_UNIT_LABELS = {
   [RateUnits.PER_SECOND]: '/s',
   [RateUnits.PER_MINUTE]: '/min',
   [RateUnits.PER_HOUR]: '/hr',
+};
+
+export const RATE_UNIT_TITLE = {
+  [RateUnits.PER_SECOND]: 'Per Second',
+  [RateUnits.PER_MINUTE]: 'Per Minute',
+  [RateUnits.PER_HOUR]: 'Per Hour',
 };
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
@@ -390,6 +397,19 @@ export const AGGREGATIONS = {
   },
   [AggregationKey.P75]: {
     ...getDocsAndOutputType(AggregationKey.P75),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
+  [AggregationKey.P90]: {
+    ...getDocsAndOutputType(AggregationKey.P90),
     parameters: [
       {
         kind: 'column',
@@ -1198,6 +1218,7 @@ const alignedTypes: ColumnValueType[] = [
   'percentage',
   'percent_change',
   'rate',
+  'size',
 ];
 
 export function fieldAlignment(
@@ -1206,6 +1227,9 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
+  if (isMRIField(columnName)) {
+    return 'right';
+  }
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1223,7 +1247,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricsType) {
+export function isLegalYAxisType(match: ColumnType | MetricType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 

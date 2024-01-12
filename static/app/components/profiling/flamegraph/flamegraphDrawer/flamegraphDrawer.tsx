@@ -82,7 +82,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
     setTab('bottom up');
   }, [setTab]);
 
-  const onCallOrderClick = useCallback(() => {
+  const onTopDownClick = useCallback(() => {
     setTab('top down');
   }, [setTab]);
 
@@ -131,7 +131,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
             data-title={t('Top Down')}
             priority="link"
             size="zero"
-            onClick={onCallOrderClick}
+            onClick={onTopDownClick}
           >
             {t('Top Down')}
           </Button>
@@ -241,6 +241,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       <FlamegraphTreeTable
         {...props}
         expanded={tab === 'top down'}
+        onTopDownClick={onTopDownClick}
+        onBottomUpClick={onBottomUpClick}
         recursion={recursion}
         flamegraph={props.flamegraph}
         referenceNode={props.referenceNode}
@@ -407,39 +409,6 @@ const StyledButton = styled(Button)<{active: boolean}>`
 const LayoutSelectionContainer = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
-export const FrameCallersTableCell = styled('div')<{
-  bordered?: boolean;
-  isSelected?: boolean;
-  noPadding?: boolean;
-  textAlign?: React.CSSProperties['textAlign'];
-}>`
-  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
-  position: relative;
-  white-space: nowrap;
-  flex-shrink: 0;
-  padding: 0 ${p => (p.noPadding ? 0 : space(1))} 0 0;
-  text-align: ${p => p.textAlign ?? 'initial'};
-
-  &:first-child,
-  &:nth-child(2) {
-    position: sticky;
-    z-index: 1;
-    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.background)};
-  }
-
-  &:first-child {
-    left: 0;
-  }
-  &:nth-child(2) {
-    left: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
-  }
-
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.border};
-  }
 `;
 
 export {FlamegraphDrawer};

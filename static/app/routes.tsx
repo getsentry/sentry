@@ -255,6 +255,16 @@ function buildRoutes() {
       />
       {usingCustomerDomain && (
         <Route
+          path="/restore/"
+          component={make(() => import('sentry/views/organizationRestore'))}
+        />
+      )}
+      <Route
+        path="/organizations/:orgId/restore/"
+        component={make(() => import('sentry/views/organizationRestore'))}
+      />
+      {usingCustomerDomain && (
+        <Route
           path="/join-request/"
           component={withDomainRequired(
             make(() => import('sentry/views/organizationJoinRequest'))
@@ -269,6 +279,19 @@ function buildRoutes() {
         )}
         key="org-join-request"
       />
+      <Route
+        path="/relocation/"
+        component={
+          make(() => import('sentry/views/relocation'))
+        }
+        key="orgless-relocation"
+      >
+        <IndexRedirect to="get-started/" />
+        <Route
+          path=":step/"
+          component={make(() => import('sentry/views/relocation'))}
+        />
+      </Route>
       {usingCustomerDomain && (
         <Route
           path="/onboarding/"
@@ -544,6 +567,19 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
+      <Route path="metrics/" name={t('Metrics')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
+        />
+        <Route
+          name={t('Metrics Details')}
+          path=":mri/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
+          )}
+        />
+      </Route>
+
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -992,6 +1028,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route
+        path="early-features/"
+        name={t('Early Features')}
+        component={make(() => import('sentry/views/settings/earlyFeatures'))}
+      />
     </Route>
   );
 
@@ -1698,6 +1739,21 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+      <Route path="mobile/">
+        <Route path="screens/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/starfish/modules/mobile/pageload')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+            )}
+          />
+        </Route>
+      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1819,21 +1875,16 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="database/" to="/performance/database" />
-      <Route path="initialization/">
+      <Route path="appStartup/">
         <IndexRoute
           component={make(
-            () => import('sentry/views/starfish/modules/mobile/initialization')
+            () => import('sentry/views/starfish/modules/mobile/appStartup')
           )}
-        />
-      </Route>
-      <Route path="pageload/">
-        <IndexRoute
-          component={make(() => import('sentry/views/starfish/modules/mobile/pageload'))}
         />
         <Route
           path="spans/"
           component={make(
-            () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+            () => import('sentry/views/starfish/views/appStartup/screenSummary')
           )}
         />
       </Route>
@@ -2182,14 +2233,13 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
+        path="profile/:projectId/differential-flamegraph/"
+        component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
+      />
+      <Route
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
-        {/* @TODO Remove flamechart route name */}
-        <Route
-          path="flamechart/"
-          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
         <Route
           path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}

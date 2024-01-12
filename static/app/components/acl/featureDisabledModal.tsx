@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 
 type Props = ModalRenderProps & {
   featureName: string;
-  features: string[];
+  features: string | string[];
   message?: string;
 };
 
@@ -33,7 +33,7 @@ export function FeatureDisabledModal({
         />
       </Body>
       <Footer>
-        <Button size="md" priority="primary" onClick={closeModal}>
+        <Button priority="primary" onClick={closeModal}>
           {t('Got it')}
         </Button>
       </Footer>

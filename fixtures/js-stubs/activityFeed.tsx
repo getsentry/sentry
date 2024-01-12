@@ -1,6 +1,6 @@
-import {Event} from 'sentry-fixture/event';
-import {Project} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   type Activity,
@@ -10,11 +10,11 @@ import {
   IssueType,
 } from 'sentry/types';
 
-export function ActivityFeed(params: Partial<Activity> = {}): Activity {
+export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
   return {
     data: {text: 'Very interesting comment'},
     dateCreated: '2019-04-29T21:43:32.280Z',
-    project: Project({
+    project: ProjectFixture({
       features: [
         'releases',
         'sample-events',
@@ -35,7 +35,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
       firstEvent: '2019-03-09T06:56:15Z',
       isMember: true,
     }),
-    user: User({
+    user: UserFixture({
       username: 'billy@sentry.io',
       lastLogin: '2019-04-23T00:10:19.787Z',
       isSuperuser: true,
@@ -58,6 +58,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
         language: 'en',
         stacktraceOrder: -1,
         timezone: 'America/Los_Angeles',
+        issueDetailsNewExperienceQ42023: false,
       },
       flags: {newsletter_consent_prompt: false},
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
@@ -81,7 +82,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
       issueCategory: IssueCategory.ERROR,
       issueType: IssueType.ERROR,
       participants: [],
-      latestEvent: Event(),
+      latestEvent: EventFixture(),
       isUnhandled: true,
       pluginActions: [],
       pluginContexts: [],
@@ -109,7 +110,7 @@ export function ActivityFeed(params: Partial<Activity> = {}): Activity {
       level: 'error',
       isSubscribed: true,
       isBookmarked: false,
-      project: Project({
+      project: ProjectFixture({
         platform: undefined,
         slug: 'internal',
         id: '1',

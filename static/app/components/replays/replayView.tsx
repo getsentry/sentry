@@ -2,13 +2,14 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
@@ -19,10 +20,9 @@ type Props = {
 };
 
 function ReplayView({toggleFullscreen}: Props) {
-  const organization = useOrganization();
-  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const {isFetching, replay} = useReplayContext();
 
   return (
     <Fragment>
@@ -41,9 +41,13 @@ function ReplayView({toggleFullscreen}: Props) {
               </Button>
             ) : null}
           </ContextContainer>
-          <Panel>
-            <ReplayPlayer />
-          </Panel>
+          {!isFetching && replay?.hasProcessingErrors() ? (
+            <ReplayProcessingError processingErrors={replay.processingErrors()} />
+          ) : (
+            <Panel>
+              <ReplayPlayer />
+            </Panel>
+          )}
         </PlayerContainer>
         {isFullscreen && isSidebarOpen ? (
           <BreadcrumbContainer>
@@ -51,9 +55,7 @@ function ReplayView({toggleFullscreen}: Props) {
           </BreadcrumbContainer>
         ) : null}
       </PlayerBreadcrumbContainer>
-      {isFullscreen || !hasNewTimeline ? (
-        <ReplayController toggleFullscreen={toggleFullscreen} />
-      ) : null}
+      {isFullscreen ? <ReplayController toggleFullscreen={toggleFullscreen} /> : null}
     </Fragment>
   );
 }

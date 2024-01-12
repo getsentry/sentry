@@ -5,6 +5,7 @@ from django.utils.functional import cached_property
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -53,6 +54,7 @@ class ArtifactBundleSource:
 
 @region_silo_endpoint
 class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.WEB_FRONTEND_SDKS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -134,8 +136,6 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 max_offset=MAX_ARTIFACT_BUNDLE_FILES_OFFSET,
                 on_results=serialize_results,
             )
-        except Exception as exc:
-            raise exc
         finally:
             # We must close the archive before returning the value, otherwise we will get an error.
             archive.close()

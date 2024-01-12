@@ -1,7 +1,8 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
-import {MissingMembers} from 'sentry-fixture/missingMembers';
-import {Organization} from 'sentry-fixture/organization';
+import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -27,11 +28,15 @@ const roles = [
   },
 ] as OrgRole[];
 
+const mockRefObject = {
+  current: document.body as HTMLDivElement,
+};
+
 describe('InviteMissingMembersModal', function () {
-  const team = TestStubs.Team();
-  const org = Organization({access: ['member:write'], teams: [team]});
+  const team = TeamFixture();
+  const org = OrganizationFixture({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
-  const missingMembers = {integration: 'github', users: MissingMembers()};
+  const missingMembers = MissingMembersFixture();
 
   const styledWrapper = styled(c => c.children);
   const modalProps: InviteMissingMembersModalProps = {
@@ -40,9 +45,10 @@ describe('InviteMissingMembersModal', function () {
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
-    organization: Organization(),
-    missingMembers: {integration: 'github', users: []},
+    organization: OrganizationFixture(),
+    missingMembers: [],
     allowedRoles: [],
+    modalContainerRef: mockRefObject,
   };
 
   beforeEach(function () {
@@ -63,7 +69,7 @@ describe('InviteMissingMembersModal', function () {
   });
 
   it('does not render without org:write', function () {
-    const organization = Organization({access: []});
+    const organization = OrganizationFixture({access: []});
     render(<InviteMissingMembersModal {...modalProps} organization={organization} />);
 
     expect(
@@ -125,7 +131,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={Organization({defaultRole: 'member'})}
+        organization={OrganizationFixture({defaultRole: 'member'})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />
@@ -146,7 +152,7 @@ describe('InviteMissingMembersModal', function () {
     // Verify data sent to the backend
     expect(createMemberMock).toHaveBeenCalledTimes(5);
 
-    missingMembers.users.forEach((member, i) => {
+    missingMembers.forEach((member, i) => {
       expect(createMemberMock).toHaveBeenNthCalledWith(
         i + 1,
         `/organizations/${org.slug}/members/?referrer=github_nudge_invite`,
@@ -161,7 +167,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={Organization({defaultRole: 'member', teams: [team]})}
+        organization={OrganizationFixture({defaultRole: 'member', teams: [team]})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />
@@ -183,10 +189,14 @@ describe('InviteMissingMembersModal', function () {
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
 
     await userEvent.click(screen.getByLabelText('Select hello@sentry.io'));
-    await selectEvent.select(roleInputs[0], 'Admin');
+    await selectEvent.select(roleInputs[0], 'Admin', {
+      container: document.body,
+    });
 
     await userEvent.click(screen.getByLabelText('Select abcd@sentry.io'));
-    await selectEvent.select(teamInputs[1], '#team-slug');
+    await selectEvent.select(teamInputs[1], '#team-slug', {
+      container: document.body,
+    });
 
     await userEvent.click(screen.getByLabelText('Send Invites'));
 

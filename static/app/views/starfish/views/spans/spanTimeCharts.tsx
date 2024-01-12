@@ -8,6 +8,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {RateUnits} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
+import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -24,29 +25,43 @@ import {
 import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
 const CHART_HEIGHT = 140;
 
 type Props = {
   appliedFilters: ModuleFilters;
   moduleName: ModuleName;
+  eventView?: EventView;
+  extraQuery?: string[];
   spanCategory?: string;
+  throughputUnit?: RateUnits;
 };
 
 type ChartProps = {
   filters: ModuleFilters;
   moduleName: ModuleName;
+  throughputUnit: RateUnits;
+  extraQuery?: string[];
 };
 
 function getSegmentLabel(moduleName: ModuleName) {
   return moduleName === ModuleName.DB ? 'Queries' : 'Requests';
 }
 
-export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
+export function SpanTimeCharts({
+  moduleName,
+  appliedFilters,
+  spanCategory,
+  throughputUnit = RateUnits.PER_MINUTE,
+  extraQuery,
+}: Props) {
   const {selection} = usePageFilters();
 
   const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -61,10 +76,11 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
     {Comp: (props: ChartProps) => JSX.Element; title: string}[]
   > = {
     [ModuleName.ALL]: [
-      {title: getThroughputChartTitle(moduleName), Comp: ThroughputChart},
+      {title: getThroughputChartTitle(moduleName, throughputUnit), Comp: ThroughputChart},
       {title: getDurationChartTitle(moduleName), Comp: DurationChart},
     ],
     [ModuleName.DB]: [],
+    [ModuleName.RESOURCE]: [],
     [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
     [ModuleName.OTHER]: [],
   };
@@ -79,7 +95,12 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
       {charts.map(({title, Comp}) => (
         <ChartsContainerItem key={title}>
           <ChartPanel title={title}>
-            <Comp moduleName={moduleName} filters={appliedFilters} />
+            <Comp
+              moduleName={moduleName}
+              filters={appliedFilters}
+              throughputUnit={throughputUnit}
+              extraQuery={extraQuery}
+            />
           </ChartPanel>
         </ChartsContainerItem>
       ))}
@@ -87,9 +108,17 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
   );
 }
 
-function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
+function ThroughputChart({
+  moduleName,
+  filters,
+  throughputUnit,
+  extraQuery,
+}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery<
@@ -108,10 +137,17 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
+    let throughputMultiplier = 1; // We're fetching per minute, so default is 1
+    if (throughputUnit === RateUnits.PER_SECOND) {
+      throughputMultiplier = 1 / 60;
+    } else if (throughputUnit === RateUnits.PER_HOUR) {
+      throughputMultiplier = 60;
+    }
+
     return {
       seriesName: label ?? 'Throughput',
       data: (groupData ?? []).map(datum => ({
-        value: datum['spm()'],
+        value: datum['spm()'] * throughputMultiplier,
         name: datum.interval,
       })),
     };
@@ -122,7 +158,6 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       height={CHART_HEIGHT}
       data={throughputTimeSeries}
       loading={isLoading}
-      utc={false}
       grid={{
         left: '0',
         right: '0',
@@ -131,20 +166,23 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       }}
       definedAxisTicks={4}
       aggregateOutputFormat="rate"
-      rateUnit={RateUnits.PER_MINUTE}
+      rateUnit={throughputUnit}
       stacked
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
       tooltipFormatterOptions={{
-        valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
+        valueFormatter: value => formatRate(value, throughputUnit),
       }}
     />
   );
 }
 
-function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
+function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  if (extraQuery) {
+    eventView.query += ` ${extraQuery.join(' ')}`;
+  }
 
   const label = `avg(${SPAN_SELF_TIME})`;
 
@@ -178,7 +216,6 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       height={CHART_HEIGHT}
       data={[...avgSeries]}
       loading={isLoading}
-      utc={false}
       grid={{
         left: '0',
         right: '0',
@@ -212,7 +249,6 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       height={CHART_HEIGHT}
       data={[errorRateSeries]}
       loading={isLoading}
-      utc={false}
       grid={{
         left: '0',
         right: '0',
@@ -227,7 +263,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
   );
 }
 
-const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
+const SPAN_FILTER_KEYS = ['span_operation', SPAN_DOMAIN, 'action'];
 
 const getEventView = (
   moduleName: ModuleName,
@@ -260,7 +296,11 @@ const buildDiscoverQueryConditions = (
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(appliedFilters[key]))
     .map(key => {
-      return `${key}:${appliedFilters[key]}`;
+      const value = appliedFilters[key];
+      if (key === SPAN_DOMAIN && value === EMPTY_OPTION_VALUE) {
+        return [`!has:${SPAN_DOMAIN}`];
+      }
+      return `${key}:${value}`;
     });
 
   result.push(`has:${SPAN_DESCRIPTION}`);

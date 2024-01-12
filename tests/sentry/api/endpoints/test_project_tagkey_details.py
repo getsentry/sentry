@@ -12,7 +12,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
@@ -46,7 +46,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["uniqueValues"] == 16
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectTagKeyDeleteTest(APITestCase):
     @mock.patch("sentry.eventstream.backend")
     def test_simple(self, mock_eventstream):

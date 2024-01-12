@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -14,10 +14,9 @@ import {
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -29,58 +28,27 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
   const organization = useOrganization();
   const api = useApi();
   const project = feedbackIssue.project;
-  const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const {data} = useCommitters(
-    {
-      eventId: feedbackEvent?.id ?? '',
-      projectSlug: project.slug,
-    },
-    {
-      notifyOnChangeProps: ['data'],
-      enabled: defined(feedbackEvent?.id),
-    }
-  );
 
   useEffect(() => {
-    // TODO: We should check if this is already loaded
     fetchOrgMembers(api, organization.slug, [project.id]);
   }, [api, organization, project]);
 
-  useEffect(() => {
-    if (!feedbackEvent) {
-      return () => {};
+  const {data: eventOwners} = useApiQuery<EventOwners>(
+    [
+      `/projects/${organization.slug}/${project.slug}/events/${feedbackEvent?.id}/owners/`,
+    ],
+    {
+      staleTime: 0,
+      enabled: Boolean(feedbackEvent),
     }
-
-    let unmounted = false;
-
-    api
-      .requestPromise(
-        `/projects/${organization.slug}/${project.slug}/events/${feedbackEvent.id}/owners/`
-      )
-      .then(response => {
-        if (unmounted) {
-          return;
-        }
-
-        setEventOwners(response);
-      });
-
-    return () => {
-      unmounted = true;
-      api.clear();
-    };
-  }, [api, feedbackEvent, organization, project.slug]);
+  );
 
   const {assign} = useMutateFeedback({
     feedbackIds: [feedbackIssue.id],
     organization,
   });
 
-  const owners = getOwnerList(
-    data?.committers ?? [],
-    eventOwners,
-    feedbackIssue.assignedTo
-  );
+  const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);
 
   const dropdown = (
     <AssigneeSelectorDropdown
@@ -95,6 +63,8 @@ export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props
         assign(null);
       }}
       owners={owners}
+      group={feedbackIssue}
+      alignMenu="left"
     >
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>

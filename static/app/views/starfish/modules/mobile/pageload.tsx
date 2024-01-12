@@ -1,5 +1,8 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -7,30 +10,50 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import Onboarding from 'sentry/views/performance/onboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {PlatformSelector} from 'sentry/views/starfish/views/screens/platformSelector';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 export default function PageloadModule() {
   const organization = useOrganization();
+  const onboardingProject = useOnboardingProject();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  const project = useMemo(() => {
+    if (selection.projects.length !== 1) {
+      return null;
+    }
+    return projects.find(p => p.id === String(selection.projects));
+  }, [projects, selection.projects]);
 
   return (
-    <SentryDocumentTitle title={ROUTE_NAMES.pageload} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
       <Layout.Page>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{ROUTE_NAMES.pageload}</Layout.Title>
+              <HeaderWrapper>
+                <Layout.Title>{t('Mobile')}</Layout.Title>
+                {organization.features.includes('performance-screens-platform-selector') && project && isCrossPlatform(project) && <PlatformSelector />}
+              </HeaderWrapper>
             </Layout.HeaderContent>
           </Layout.Header>
 
           <Layout.Body>
+            <FloatingFeedbackWidget />
             <Layout.Main fullWidth>
               <PageErrorAlert />
               <PageFiltersContainer>
@@ -42,7 +65,19 @@ export default function PageloadModule() {
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
-                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} />
+                <ErrorBoundary mini>
+                  {onboardingProject && (
+                    <OnboardingContainer>
+                      <Onboarding
+                        organization={organization}
+                        project={onboardingProject}
+                      />
+                    </OnboardingContainer>
+                  )}
+                  {!onboardingProject && (
+                    <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} project={project} />
+                  )}
+                </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
@@ -62,4 +97,12 @@ const Container = styled('div')`
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
+`;
+
+const OnboardingContainer = styled('div')`
+  margin-top: ${space(2)};
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
 `;

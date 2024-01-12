@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 from uuid import uuid4
 
@@ -9,6 +9,7 @@ import jsonschema
 import pytz
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -29,11 +30,13 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
+from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -60,8 +63,6 @@ MONITOR_CONFIG = {
     "additionalProperties": False,
 }
 
-MAX_SLUG_LENGTH = 50
-
 
 class MonitorLimitsExceeded(Exception):
     pass
@@ -75,28 +76,6 @@ class MonitorEnvironmentValidationFailed(Exception):
     pass
 
 
-class MonitorObjectStatus:
-    ACTIVE = 0
-    DISABLED = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
-
-    WAITING = 4
-    """
-    Active but does not have a seat assigned yet
-    """
-
-    @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
-        return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-            (cls.WAITING, "waiting"),
-        )
-
-
 class MonitorStatus:
     """
     The monitor status is an extension of the ObjectStatus constants. In this
@@ -104,7 +83,7 @@ class MonitorStatus:
     represented.
 
     [!!]: This is NOT used for the status of the Monitor model itself. That is
-          a MonitorObjectStatus.
+          a ObjectStatus.
     """
 
     ACTIVE = 0
@@ -210,29 +189,37 @@ class Monitor(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True)
 
+    # TODO(epurkhiser): Muted is moving to its own boolean column, this should
+    # become object status again
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
+    """
+    Active status of the monitor. This is similar to most other ObjectStatus's
+    within the app. Used to mark monitors as disabled and pending deletions
+    """
+
     guid = UUIDField(unique=True, auto_add=True)
     """
     Globally unique identifier for the monitor. Mostly legacy, used in legacy
     API endpoints.
     """
 
-    slug = models.SlugField()
+    slug = SentrySlugField()
     """
     Organization unique slug of the monitor. Used to identify the monitor in
     check-in payloads. The slug can be changed.
     """
 
-    name = models.CharField(max_length=128)
+    is_muted = models.BooleanField(default=False)
     """
-    Human readible name of the monitor. Used for display purposes.
+    Monitor is operating normally but will not produce incidents or produce
+    occurrences into the issues platform.
     """
 
-    status = BoundedPositiveIntegerField(
-        default=MonitorObjectStatus.ACTIVE, choices=MonitorObjectStatus.as_choices()
-    )
+    name = models.CharField(max_length=128)
     """
-    Active status of the monitor. This is similar to most other ObjectStatus's
-    within the app. Used to mark monitors as disabled and pending deletions
+    Human readable name of the monitor. Used for display purposes.
     """
 
     type = BoundedPositiveIntegerField(
@@ -305,11 +292,10 @@ class Monitor(Model):
         most recent checkin time. This is determined by the user-configured
         margin.
         """
+        from sentry.monitors.utils import get_checkin_margin
+
         next_checkin = self.get_next_expected_checkin(last_checkin)
-        # TODO(epurkhiser): We should probably just set this value as a
-        # `default` in the validator for the config instead of having the magic
-        # default number here
-        return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 1))
+        return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
         monitor_config = self.config
@@ -328,7 +314,7 @@ class Monitor(Model):
             jsonschema.validate(self.config, MONITOR_CONFIG)
             return self.config
         except jsonschema.ValidationError:
-            logging.exception(f"Monitor: {self.id} invalid config: {self.config}", exc_info=True)
+            logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
 
     def get_alert_rule(self):
         alert_rule_id = self.config.get("alert_rule_id")
@@ -481,11 +467,23 @@ class MonitorCheckIn(Model):
         indexes = [
             # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest in monitor consumer
+            # used for latest on api endpoints
+            models.Index(
+                fields=["monitor", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="api_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            # used for latest on api endpoints
+            # used for latest in monitor consumer
+            models.Index(
+                fields=["monitor_environment", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="consumer_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
@@ -572,6 +570,12 @@ class MonitorEnvironment(Model):
     The MonitorStatus of the monitor. This is denormalized from the check-ins
     list, since it would be possible to determine this by looking at recent
     check-ins. It is denormalized for simplicity.
+    """
+
+    is_muted = models.BooleanField(default=False)
+    """
+    Monitor environment is operating normally but will not produce incidents or produce
+    occurrences into the issues platform.
     """
 
     next_checkin = models.DateTimeField(null=True)

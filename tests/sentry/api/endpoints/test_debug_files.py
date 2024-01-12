@@ -24,7 +24,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DebugFilesUploadTest(APITestCase):
     def _upload_proguard(self, url, uuid):
         out = BytesIO()

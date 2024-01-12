@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserPermissionTest(TestCase):
     def test_for_user(self):
         user = self.create_user(email="a@example.com")

@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
@@ -56,7 +57,6 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
 
 
 class OrganizationTeamMemberPermission(OrganizationPermission):
-
     scope_map = {
         "GET": [
             "org:read",
@@ -101,6 +101,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationTeamMemberPermission,)
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
@@ -114,9 +115,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         access = request.access
 
         # When open membership is disabled, we need to check if the token has elevated permissions
-        # in order to ensure org tokens with only "org:read" scope cannot add members. This check
-        # comes first because access.has_global_access is True for all org tokens
-        if access.is_org_auth_token and not access.has_open_membership:
+        # in order to ensure integration tokens with only "org:read" scope cannot add members. This check
+        # comes first because access.has_global_access is True for all integration tokens
+        if access.is_integration_token and not access.has_open_membership:
             return _has_elevated_scope(access)
         return access.has_global_access or can_admin_team(access, team)
 

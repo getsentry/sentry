@@ -24,7 +24,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
@@ -37,7 +37,7 @@ class ResolveGroupResolutionsTest(TestCase):
         mock_delay.assert_called_once_with(release_id=release.id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ResolvedInCommitTest(TestCase):
     def assertResolvedFromCommit(self, group, commit):
         assert GroupLink.objects.filter(
@@ -229,7 +229,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectHasReleasesReceiverTest(TestCase):
     @receivers_raise_on_send()
     def test(self):

@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, EnvironmentMixin, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -12,6 +13,7 @@ from sentry.models.group import Group
 
 @region_silo_endpoint
 class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -32,6 +34,9 @@ class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
         specifically for sharing.
 
         """
+        if share_id is None:
+            raise ResourceDoesNotExist
+
         try:
             group = Group.objects.from_share_id(share_id)
         except Group.DoesNotExist:

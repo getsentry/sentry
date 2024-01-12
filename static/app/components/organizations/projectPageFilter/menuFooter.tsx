@@ -31,7 +31,7 @@ function ProjectPageFilterMenuFooter({
     <Fragment>
       <Feature
         organization={organization}
-        features={['organizations:global-views']}
+        features="organizations:global-views"
         hookName="feature-disabled:project-selector-all-projects"
         renderDisabled={false}
       >
@@ -51,7 +51,7 @@ function ProjectPageFilterMenuFooter({
         size="xs"
         aria-label={t('Add Project')}
         to={`/organizations/${organization.slug}/projects/new/`}
-        icon={<IconAdd size="xs" isCircled />}
+        icon={<IconAdd isCircled />}
       >
         {t('Project')}
       </Button>

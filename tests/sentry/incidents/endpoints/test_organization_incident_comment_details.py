@@ -64,7 +64,7 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTest):
     method = "put"
 
@@ -113,7 +113,7 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
         assert activity.comment == edited_comment
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTest):
     method = "delete"
 

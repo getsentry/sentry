@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
     @cached_property
     def path(self):
@@ -243,7 +243,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert authorization.get_scopes() == grant.get_scopes()
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
     @cached_property
     def path(self):

@@ -25,6 +25,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {getMRI} from 'sentry/utils/metrics/mri';
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import withApi from 'sentry/utils/withApi';
@@ -36,6 +38,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 import {getProjectOptions} from '../utils';
 
@@ -56,6 +59,7 @@ const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
 };
 
 type Props = {
+  aggregate: string;
   alertType: AlertType;
   api: Client;
   comparisonType: AlertRuleComparisonType;
@@ -73,8 +77,9 @@ type Props = {
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
   disableProjectSelector?: boolean;
+  isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
-  isMigration?: boolean;
+  isTransactionMigration?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -150,14 +155,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       case Dataset.METRICS:
       case Dataset.SESSIONS:
         return t('Filter sessions by release version\u2026');
-      case Dataset.TRANSACTIONS:
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
   }
 
   renderEventTypeFilter() {
-    const {organization, disabled, alertType} = this.props;
+    const {organization, disabled, alertType, isErrorMigration} = this.props;
 
     const dataSourceOptions = [
       {
@@ -179,7 +183,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       },
     ];
 
-    if (organization.features.includes('performance-view') && alertType === 'custom') {
+    if (
+      organization.features.includes('performance-view') &&
+      (alertType === 'custom_transactions' || alertType === 'custom_metrics')
+    ) {
       dataSourceOptions.push({
         label: t('Transactions'),
         options: [
@@ -224,18 +231,19 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   value === Datasource.TRANSACTION
                     ? DEFAULT_TRANSACTION_AGGREGATE
                     : DEFAULT_AGGREGATE;
-                if (alertType === 'custom' && aggregate !== newAggregate) {
+                if (alertType === 'custom_transactions' && aggregate !== newAggregate) {
                   model.setValue('aggregate', newAggregate);
                 }
 
                 // set the value of the dataset and event type from data source
                 const {dataset: datasetFromDataSource, eventTypes} =
                   DATA_SOURCE_TO_SET_AND_EVENT_TYPES[value] ?? {};
+
                 model.setValue('dataset', datasetFromDataSource);
                 model.setValue('eventTypes', eventTypes);
               }}
               options={dataSourceOptions}
-              isDisabled={disabled}
+              isDisabled={disabled || isErrorMigration}
             />
           );
         }}
@@ -316,7 +324,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, disabled, alertType, timeWindow, onTimeWindowChange} =
+    const {organization, disabled, alertType, timeWindow, onTimeWindowChange, project} =
       this.props;
 
     return (
@@ -332,6 +340,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
             help={null}
             organization={organization}
             disabled={disabled}
+            project={project}
             style={{
               ...this.formElemBaseStyle,
               flex: 1,
@@ -370,14 +379,19 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   render() {
     const {
+      alertType,
       organization,
       disabled,
       onFilterSearch,
       allowChangeEventTypes,
       dataset,
       isExtrapolatedChartData,
-      isMigration,
+      isTransactionMigration,
+      isErrorMigration,
+      aggregate,
+      project,
     } = this.props;
+
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] = [
@@ -394,7 +408,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
-        {isMigration ? (
+        {isTransactionMigration ? (
           <Fragment>
             <Spacer />
             <HiddenListItem />
@@ -409,7 +423,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 )}
               />
             )}
-            {this.renderInterval()}
+            {!isErrorMigration && this.renderInterval()}
             <StyledListItem>{t('Filter events')}</StyledListItem>
             <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
               {this.renderProjectSelector()}
@@ -430,7 +444,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   }),
                 }}
                 options={environmentOptions}
-                isDisabled={disabled || this.state.environments === null}
+                isDisabled={
+                  disabled || this.state.environments === null || isErrorMigration
+                }
                 isClearable
                 inline={false}
                 flexibleControlStateSize
@@ -448,21 +464,38 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 flexibleControlStateSize
               >
                 {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return (
+                  return hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
+                    <MetricSearchBar
+                      mri={getMRI(aggregate)}
+                      projectIds={[project.id]}
+                      placeholder={this.searchPlaceholder}
+                      query={initialData.query}
+                      defaultQuery={initialData?.query ?? ''}
+                      useFormWrapper={false}
+                      searchSource="alert_builder"
+                      onChange={query => {
+                        onFilterSearch(query, true);
+                        onChange(query, {});
+                      }}
+                    />
+                  ) : (
                     <SearchContainer>
                       <StyledSearchBar
                         disallowWildcard={dataset === Dataset.SESSIONS}
+                        disallowFreeText={[
+                          Dataset.GENERIC_METRICS,
+                          Dataset.TRANSACTIONS,
+                        ].includes(dataset)}
                         invalidMessages={{
                           [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                             'The wildcard operator is not supported here.'
                           ),
+                          [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                          ),
                         }}
                         customInvalidTagMessage={item => {
-                          if (
-                            ![Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
-                              dataset
-                            )
-                          ) {
+                          if (dataset !== Dataset.GENERIC_METRICS) {
                             return null;
                           }
                           return (
@@ -481,7 +514,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         defaultQuery={initialData?.query ?? ''}
                         {...getSupportedAndOmittedTags(dataset, organization)}
                         includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                        disabled={disabled}
+                        disabled={disabled || isErrorMigration}
                         useFormWrapper={false}
                         organization={organization}
                         placeholder={this.searchPlaceholder}
@@ -493,9 +526,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           (hasOnDemandMetricAlertFeature(organization) &&
                             isOnDemandQueryString(initialData.query))
                             ? false
-                            : [Dataset.GENERIC_METRICS, Dataset.TRANSACTIONS].includes(
-                                dataset
-                              )
+                            : dataset === Dataset.GENERIC_METRICS
                         }
                         onKeyDown={e => {
                           /**
@@ -557,7 +588,7 @@ const StyledListTitle = styled('div')`
 `;
 
 // This is a temporary hacky solution to hide list items without changing the numbering of the rest of the list
-// TODO(telemetry-experience): Remove this once the migration is complete
+// TODO(issues): Remove this once the migration is complete
 const HiddenListItem = styled(ListItem)`
   position: absolute;
   width: 0px;

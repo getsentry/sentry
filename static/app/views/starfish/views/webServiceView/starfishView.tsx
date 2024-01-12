@@ -143,7 +143,6 @@ export function StarfishView(props: BaseStarfishViewProps) {
               height={142}
               data={seriesByName[yAxis[2]]}
               loading={loading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -166,7 +165,6 @@ export function StarfishView(props: BaseStarfishViewProps) {
               height={142}
               data={seriesByName[yAxis[0]]}
               loading={loading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -192,7 +190,6 @@ export function StarfishView(props: BaseStarfishViewProps) {
               height={142}
               data={seriesByName[yAxis[1]]}
               loading={loading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',

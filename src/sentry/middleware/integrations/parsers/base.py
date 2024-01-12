@@ -6,17 +6,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
-from sentry.silo.client import RegionSiloClient
+from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, get_region_for_organization
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -24,7 +27,11 @@ if TYPE_CHECKING:
 
 
 class RegionResult:
-    def __init__(self, response: Optional[HttpResponse] = None, error: Optional[Exception] = None):
+    def __init__(
+        self,
+        response: Optional[HttpResponseBase] = None,
+        error: Optional[Exception] = None,
+    ):
         self.response = response
         self.error = error
 
@@ -63,20 +70,27 @@ class BaseRequestParser(abc.ABC):
             )
 
     def is_json_request(self) -> bool:
-        return "application/json" in (self.request.headers or {}).get("Content-Type", "")
+        if not self.request.headers:
+            return False
+        return "application/json" in self.request.headers.get("Content-Type", "")
 
     #  Silo Response Helpers
 
-    def get_response_from_control_silo(self) -> HttpResponse:
+    def get_response_from_control_silo(self) -> HttpResponseBase:
         """
         Used to handle the request directly on the control silo.
         """
         self.ensure_control_silo()
         return self.response_handler(self.request)
 
-    def get_response_from_region_silo(self, region: Region) -> HttpResponse:
-        region_client = RegionSiloClient(region)
-        return region_client.proxy_request(incoming_request=self.request)
+    def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
+        with metrics.timer(
+            "integration_proxy.control.get_response_from_region_silo",
+            tags={"destination_region": region.name},
+            sample_rate=1.0,
+        ):
+            region_client = RegionSiloClient(region)
+            return region_client.proxy_request(incoming_request=self.request)
 
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]
@@ -100,7 +114,9 @@ class BaseRequestParser(abc.ABC):
                     region_response = future.result()
                 # This will capture errors from this silo and any 4xx/5xx responses from others
                 except Exception as e:
-                    logger.error("region_proxy_error", extra={"region": region.name, "error": e})
+                    logger.exception(
+                        "region_proxy_error", extra={"region": region.name, "error": e}
+                    )
                     region_to_response_map[region.name] = RegionResult(error=e)
                 else:
                     region_to_response_map[region.name] = RegionResult(response=region_response)
@@ -110,7 +126,7 @@ class BaseRequestParser(abc.ABC):
                 "region_no_response",
                 extra={"path": self.request.path, "regions": [region.name for region in regions]},
             )
-            return self.response_handler(self.request)
+            return region_to_response_map
 
         return region_to_response_map
 
@@ -129,9 +145,31 @@ class BaseRequestParser(abc.ABC):
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
+    def get_response_from_first_region(self):
+        regions = self.get_regions_from_organizations()
+        first_region = regions[0]
+        response_map = self.get_responses_from_region_silos(regions=[first_region])
+        region_result = response_map[first_region.name]
+        if region_result.error is not None:
+            # We want to fail loudly so that devs know this error happened on the region silo (for now)
+            error = SiloClientError(region_result.error)
+            raise SiloClientError(error)
+        return region_result.response
+
+    def get_response_from_all_regions(self):
+        regions = self.get_regions_from_organizations()
+        response_map = self.get_responses_from_region_silos(regions=regions)
+        successful_responses = [
+            result for result in response_map.values() if result.response is not None
+        ]
+        if len(successful_responses) == 0:
+            error_map = {region: result.error for region, result in response_map.items()}
+            raise SiloClientError("No successful region responses", error_map)
+        return successful_responses[0].response
+
     # Required Overrides
 
-    def get_response(self) -> HttpResponse:
+    def get_response(self) -> HttpResponseBase:
         """
         Used to surface a response as part of the middleware.
         Should be overwritten by implementation.
@@ -149,7 +187,7 @@ class BaseRequestParser(abc.ABC):
     # Optional Overrides
 
     def get_organizations_from_integration(
-        self, integration: Optional[Integration] = None
+        self, integration: Optional[Integration | RpcIntegration] = None
     ) -> Sequence[RpcOrganizationSummary]:
         """
         Use the get_integration_from_request() method to identify organizations associated with
@@ -158,11 +196,17 @@ class BaseRequestParser(abc.ABC):
         if not integration:
             integration = self.get_integration_from_request()
         if not integration:
-            logger.info(f"{self.provider}.no_integration", extra={"path": self.request.path})
-            return []
+            logger.info("%s.no_integration", self.provider, extra={"path": self.request.path})
+            raise Integration.DoesNotExist()
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration.id
         )
+
+        if organization_integrations.count() == 0:
+            logger.info(
+                "%s.no_organization_integrations", self.provider, extra={"path": self.request.path}
+            )
+            raise OrganizationIntegration.DoesNotExist()
         organization_ids = [oi.organization_id for oi in organization_integrations]
         return organization_mapping_service.get_many(organization_ids=organization_ids)
 
@@ -174,8 +218,8 @@ class BaseRequestParser(abc.ABC):
         """
         if not organizations:
             organizations = self.get_organizations_from_integration()
-        if not organizations:
-            logger.info(f"{self.provider}.no_organizations", extra={"path": self.request.path})
-            return []
 
         return [get_region_for_organization(organization.slug) for organization in organizations]
+
+    def get_default_missing_integration_response(self) -> HttpResponse:
+        return HttpResponse(status=400)

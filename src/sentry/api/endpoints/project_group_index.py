@@ -4,17 +4,18 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
-    ValidationError,
     delete_groups,
     get_by_short_id,
     prep_search,
     track_slo_response,
     update_groups,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models.environment import Environment
@@ -29,10 +30,11 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 
 @region_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True

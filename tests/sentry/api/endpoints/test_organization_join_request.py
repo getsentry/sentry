@@ -18,7 +18,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"
@@ -53,7 +53,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         self.get_error_response(self.organization.slug, status_code=403)
 
     @patch(
-        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
+        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.backend.is_limited",
         return_value=True,
     )
     def test_ratelimit(self, is_limited):

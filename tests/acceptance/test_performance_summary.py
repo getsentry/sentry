@@ -18,7 +18,7 @@ def make_event(event_data):
     return event_data
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

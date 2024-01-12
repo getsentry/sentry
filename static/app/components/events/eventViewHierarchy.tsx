@@ -37,7 +37,7 @@ function EventViewHierarchyContent({event, project}: Props) {
   const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
 
   // There should be only one view hierarchy
-  const {isLoading, data} = useApiQuery<string>(
+  const {isLoading, data} = useApiQuery<string | ViewHierarchyData>(
     [
       defined(hierarchyMeta)
         ? getAttachmentUrl({
@@ -63,6 +63,10 @@ function EventViewHierarchyContent({event, project}: Props) {
       return null;
     }
 
+    if (data && typeof data !== 'string') {
+      return data;
+    }
+
     try {
       return JSON.parse(data);
     } catch (err) {
@@ -75,7 +79,6 @@ function EventViewHierarchyContent({event, project}: Props) {
     return null;
   }
 
-  // TODO(nar): This loading behaviour is subject to change
   if (isLoading || !data) {
     return <LoadingIndicator />;
   }

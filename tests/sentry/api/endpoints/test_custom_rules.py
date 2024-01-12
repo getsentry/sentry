@@ -10,7 +10,7 @@ from sentry.api.endpoints.custom_rules import (
     CustomRulesInputSerializer,
     UnsupportedSearchQuery,
     UnsupportedSearchQueryReason,
-    get_condition,
+    get_rule_condition,
 )
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
@@ -18,7 +18,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CustomRulesGetEndpoint(APITestCase):
     """
     Tests the GET endpoint
@@ -41,7 +41,7 @@ class CustomRulesGetEndpoint(APITestCase):
             "op": "and",
             "inner": [
                 {"op": "eq", "name": "event.environment", "value": "prod"},
-                {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+                {"op": "eq", "name": "event.transaction", "value": "/hello"},
             ],
         }
         start = now - timedelta(hours=2)
@@ -55,7 +55,7 @@ class CustomRulesGetEndpoint(APITestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
-            query="event.type:transaction, environment:prod",
+            query="environment:prod transaction:/hello",
         )
 
         # create an org rule
@@ -63,7 +63,7 @@ class CustomRulesGetEndpoint(APITestCase):
         self.org_condition = {
             "op": "and",
             "inner": [
-                {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+                {"op": "eq", "name": "event.transaction", "value": "/hello"},
                 {"op": "eq", "name": "event.environment", "value": "dev"},
             ],
         }
@@ -77,7 +77,7 @@ class CustomRulesGetEndpoint(APITestCase):
             organization_id=self.organization.id,
             num_samples=100,
             sample_rate=1.0,
-            query="event.type:transaction, environment:dev",
+            query="transaction:/hello environment:dev",
         )
 
     def test_finds_project_rule(self):
@@ -87,13 +87,12 @@ class CustomRulesGetEndpoint(APITestCase):
 
         test with the original test being a project level rule
         """
-
         # call the endpoint
         with Feature({"organizations:investigation-bias": True}):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:prod event.type:transaction",
+                    "query": "event.type:transaction environment:prod transaction:/hello",
                     "project": [proj.id for proj in self.known_projects[1:3]],
                 },
             )
@@ -109,13 +108,12 @@ class CustomRulesGetEndpoint(APITestCase):
         """
         A request for org will find an org rule ( if condition matches)
         """
-
         # finds projects in the org rule
         with Feature({"organizations:investigation-bias": True}):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:dev event.type:transaction",
+                    "query": "event.type:transaction transaction:/hello environment:dev",
                     "project": [],
                 },
             )
@@ -126,7 +124,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:dev event.type:transaction",
+                    "query": "event.type:transaction transaction:/hello environment:dev",
                     "project": [],
                 },
             )
@@ -140,7 +138,7 @@ class CustomRulesGetEndpoint(APITestCase):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:integration event.type:transaction",
+                    "query": "event.type:transaction environment:integration",
                     "project": [self.known_projects[1].id],
                 },
             )
@@ -150,30 +148,30 @@ class CustomRulesGetEndpoint(APITestCase):
         """
         Querying for a condition that doesn't match any rule returns 204
         """
-
         # it finds it when the project matches
         with Feature({"organizations:investigation-bias": True}):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:prod event.type:transaction",
+                    "query": "event.type:transaction environment:prod transaction:/hello",
                     "project": [project.id for project in self.known_projects[1:3]],
                 },
             )
         assert resp.status_code == 200
+
         # but it doesn't when the project doesn't match
         with Feature({"organizations:investigation-bias": True}):
             resp = self.get_response(
                 self.organization.slug,
                 qs_params={
-                    "query": "environment:prod event.type:transaction",
+                    "query": "event.type:transaction environment:prod transaction:/hello",
                     "project": [self.known_projects[0].id],
                 },
             )
         assert resp.status_code == 204
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CustomRulesEndpoint(APITestCase):
     """
     Tests that calling the endpoint converts the query to a rule returns it and saves it in the db
@@ -187,9 +185,9 @@ class CustomRulesEndpoint(APITestCase):
         self.login_as(user=self.user)
         self.second_project = self.create_project(organization=self.organization)
 
-    def test_simple(self):
+    def test_create(self):
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id],
             "period": "1h",
         }
@@ -269,7 +267,7 @@ class CustomRulesEndpoint(APITestCase):
         Checks request fails without the feature
         """
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id],
             "period": "1h",
         }
@@ -285,7 +283,7 @@ class CustomRulesEndpoint(APITestCase):
         passed projects
         """
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [self.project.id, self.second_project.id],
             "period": "1h",
         }
@@ -309,7 +307,7 @@ class CustomRulesEndpoint(APITestCase):
         in the organisation
         """
         request_data = {
-            "query": "event.type:transaction",
+            "query": "event.type:transaction http.method:POST",
             "projects": [],
             "period": "1h",
         }
@@ -429,26 +427,18 @@ class TestCustomRuleSerializerWithProjects(TestCase):
     [
         (
             "event.type:transaction",
-            {"name": "event.tags.event.type", "op": "eq", "value": "transaction"},
+            {"inner": [], "op": "and"},
         ),
         (
             "environment:prod event.type:transaction",
-            {
-                "op": "and",
-                "inner": [
-                    {"op": "eq", "name": "event.environment", "value": "prod"},
-                    {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
-                ],
-            },
+            {"op": "eq", "name": "event.environment", "value": "prod"},
         ),
         (
             "hello world event.type:transaction",
             {
-                "op": "and",
-                "inner": [
-                    {"op": "eq", "name": "event.transaction", "value": "hello world"},
-                    {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
-                ],
+                "op": "glob",
+                "name": "event.transaction",
+                "value": ["*hello world*"],
             },
         ),
         (
@@ -457,8 +447,7 @@ class TestCustomRuleSerializerWithProjects(TestCase):
                 "op": "and",
                 "inner": [
                     {"op": "eq", "name": "event.environment", "value": "prod"},
-                    {"op": "eq", "name": "event.transaction", "value": "hello world"},
-                    {"op": "eq", "name": "event.tags.event.type", "value": "transaction"},
+                    {"op": "glob", "name": "event.transaction", "value": ["*hello world*"]},
                 ],
             },
         ),
@@ -468,7 +457,7 @@ def test_get_condition(query, condition):
     """
     Test that the get_condition function works as expected
     """
-    actual_condition = get_condition(query)
+    actual_condition = get_rule_condition(query)
     assert actual_condition == condition
 
 
@@ -480,11 +469,13 @@ def test_get_condition(query, condition):
         "event.type:error environment:production",
         "",
         "hello world",
+        "http.status_code:GET AND (transaction.duration:>10 AND event.type:error)",
     ],
 )
 def test_get_condition_not_supported(query):
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
-        get_condition(query)
+        get_rule_condition(query)
+
     assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value
 
 
@@ -497,5 +488,6 @@ def test_get_condition_non_transaction_rule(query):
     Test that the get_condition function raises UnsupportedSearchQuery when event.type is not transaction
     """
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
-        get_condition(query)
+        get_rule_condition(query)
+
     assert excinfo.value.error_code == UnsupportedSearchQueryReason.NOT_TRANSACTION_QUERY.value

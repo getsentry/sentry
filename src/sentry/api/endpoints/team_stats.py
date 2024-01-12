@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
@@ -16,6 +17,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
+    owner = ApiOwner.ENTERPRISE
 
     def get(self, request: Request, team) -> Response:
         """

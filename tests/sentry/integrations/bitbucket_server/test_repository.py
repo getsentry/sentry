@@ -18,7 +18,6 @@ from fixtures.bitbucket_server import (
 )
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
@@ -26,12 +25,12 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class BitbucketServerRepositoryProviderTest(APITestCase):
     @cached_property
     def integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_provider_integration(
                 provider="bitbucket_server",
                 name="Example Bitbucket",
                 metadata={"verify_ssl": False, "base_url": "https://bitbucket.example.com"},

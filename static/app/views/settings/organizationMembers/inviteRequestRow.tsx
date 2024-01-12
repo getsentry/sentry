@@ -46,7 +46,6 @@ function InviteRequestRow({
   const {access} = organization;
   const canApprove = access.includes('member:admin');
 
-  // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
       <div>
@@ -90,7 +89,7 @@ function InviteRequestRow({
       {canApprove ? (
         <TeamSelectControl
           name="teams"
-          placeholder={t('Add to teams\u2026')}
+          placeholder={t('None')}
           onChange={teams => onUpdate({teams: (teams || []).map(team => team.value)})}
           value={inviteRequest.teams}
           clearable

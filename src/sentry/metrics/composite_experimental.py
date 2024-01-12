@@ -16,7 +16,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self._initialize_backends(
             kwargs.pop("primary_backend", None), kwargs.pop("primary_backend_args", {})
         )
-        self._allow_list = set(kwargs.pop("allow_list", set()))
+        self._deny_prefixes = tuple(kwargs.pop("deny_prefixes", []))
 
     def _initialize_backends(
         self, primary_backend: Optional[str], primary_backend_args: Dict[str, Any]
@@ -28,10 +28,10 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
             cls: Type[MetricsBackend] = import_string(primary_backend)
             self._primary_backend = cls(**primary_backend_args)
 
-        self._minimetrics: MetricsBackend = MiniMetricsMetricsBackend()
+        self._minimetrics: MiniMetricsMetricsBackend = MiniMetricsMetricsBackend()
 
-    def _is_allowed(self, key: str):
-        return key in self._allow_list
+    def _is_denied(self, key: str) -> bool:
+        return key.startswith(self._deny_prefixes)
 
     @staticmethod
     def _minimetrics_sample_rate() -> float:
@@ -49,11 +49,18 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         self._primary_backend.incr(key, instance, tags, amount, sample_rate, unit)
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_incr"):
+        if not self._is_denied(key):
             self._minimetrics.incr(
-                key, instance, tags, amount, self._minimetrics_sample_rate(), unit
+                key,
+                instance,
+                tags,
+                amount,
+                self._minimetrics_sample_rate(),
+                unit,
+                stacklevel=stacklevel + 1,
             )
 
     def timing(
@@ -63,10 +70,18 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        stacklevel: int = 0,
     ) -> None:
         self._primary_backend.timing(key, value, instance, tags, sample_rate)
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_timing"):
-            self._minimetrics.timing(key, value, instance, tags, self._minimetrics_sample_rate())
+        if not self._is_denied(key):
+            self._minimetrics.timing(
+                key,
+                value,
+                instance,
+                tags,
+                self._minimetrics_sample_rate(),
+                stacklevel=stacklevel + 1,
+            )
 
     def gauge(
         self,
@@ -76,11 +91,18 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         self._primary_backend.gauge(key, value, instance, tags, sample_rate, unit)
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_gauge"):
+        if not self._is_denied(key):
             self._minimetrics.gauge(
-                key, value, instance, tags, self._minimetrics_sample_rate(), unit
+                key,
+                value,
+                instance,
+                tags,
+                self._minimetrics_sample_rate(),
+                unit,
+                stacklevel=stacklevel + 1,
             )
 
     def distribution(
@@ -91,11 +113,18 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         self._primary_backend.distribution(key, value, instance, tags, sample_rate, unit)
         # We share the same option between timing and distribution, since they are both distribution
         # metrics.
-        if self._is_allowed(key) or options.get("delightful_metrics.allow_all_timing"):
+        if not self._is_denied(key):
             self._minimetrics.distribution(
-                key, value, instance, tags, self._minimetrics_sample_rate(), unit
+                key,
+                value,
+                instance,
+                tags,
+                self._minimetrics_sample_rate(),
+                unit,
+                stacklevel=stacklevel + 1,
             )

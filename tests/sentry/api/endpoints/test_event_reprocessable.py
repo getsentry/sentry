@@ -21,7 +21,7 @@ def auto_login(settings, client, default_user):
 
 
 @django_db_all
-@region_silo_test(stable=True)
+@region_silo_test
 def test_simple(client, factories, default_project):
     min_ago = iso_format(before_now(minutes=1))
     event1 = factories.store_event(

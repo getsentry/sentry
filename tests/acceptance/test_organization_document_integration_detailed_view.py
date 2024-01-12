@@ -2,7 +2,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
     """
     As a developer, I can view an document-based integration, and learn more about it with the linked resources.

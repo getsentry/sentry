@@ -26,7 +26,7 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -625,7 +625,7 @@ class ReleaseDetailsTest(APITestCase):
         assert "adoptionStages" in response.data
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     def test_simple(self, mock_fetch_commits):
@@ -1094,7 +1094,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.ref == "master"
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1222,7 +1222,7 @@ class ReleaseDeleteTest(APITestCase):
         assert response.json() == {"commits": {"id": ["This field is required."]}}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ReleaseSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()

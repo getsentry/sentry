@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from django.db.models import QuerySet
 
@@ -67,6 +67,27 @@ class DatabaseBackedAppService(AppService):
             return None
         return serialize_sentry_app(sentry_app)
 
+    def get_installation_by_id(self, *, id: int) -> Optional[RpcSentryAppInstallation]:
+        try:
+            install = SentryAppInstallation.objects.select_related("sentry_app").get(
+                id=id, status=SentryAppInstallationStatus.INSTALLED
+            )
+            return serialize_sentry_app_installation(install)
+        except SentryAppInstallation.DoesNotExist:
+            return None
+
+    def get_installation(
+        self, *, sentry_app_id: int, organization_id: int
+    ) -> Optional[RpcSentryAppInstallation]:
+        try:
+            install = SentryAppInstallation.objects.get(
+                organization_id=organization_id,
+                sentry_app_id=sentry_app_id,
+            )
+            return serialize_sentry_app_installation(install)
+        except SentryAppInstallation.DoesNotExist:
+            return None
+
     def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)
@@ -90,7 +111,7 @@ class DatabaseBackedAppService(AppService):
             is_alertable=True,
             installations__status=SentryAppInstallationStatus.INSTALLED,
             installations__date_deleted=None,
-        ).distinct():
+        ).distinct("id"):
             if SentryAppComponent.objects.filter(
                 sentry_app_id=app.id, type="alert-rule-action"
             ).exists():
@@ -235,6 +256,7 @@ class DatabaseBackedAppService(AppService):
         integration_name: str,
         integration_scopes: List[str],
         integration_creator_id,
+        metadata: Dict[str, Any] | None = None,
     ) -> RpcSentryAppInstallation:
         admin_user = User.objects.get(id=integration_creator_id)
 
@@ -251,11 +273,12 @@ class DatabaseBackedAppService(AppService):
         else:
             sentry_app = SentryAppCreator(
                 name=integration_name,
-                author="test",
+                author=admin_user.username,
                 organization_id=organization_id,
                 is_internal=True,
                 scopes=integration_scopes,
                 verify_install=False,
+                metadata=metadata,
             ).run(user=admin_user)
             installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
 
@@ -269,3 +292,10 @@ class DatabaseBackedAppService(AppService):
         installation = SentryAppInstallation.objects.get(id=installation_id)
         component = prepare_sentry_app_components(installation, component_type, project_slug)
         return serialize_sentry_app_component(component) if component else None
+
+    def disable_sentryapp(self, *, id: int) -> None:
+        try:
+            sentryapp = SentryApp.objects.get(id=id)
+        except SentryApp.DoesNotExist:
+            return
+        sentryapp._disable()

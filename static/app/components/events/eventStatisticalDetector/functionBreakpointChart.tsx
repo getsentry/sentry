@@ -10,6 +10,8 @@ import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateT
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
+import {RELATIVE_DAYS_WINDOW} from './consts';
+
 type EventFunctionBreakpointChartProps = {
   event: Event;
 };
@@ -53,7 +55,7 @@ type EventFunctionBreakpointChartInnerProps = {
   fingerprint: number;
 };
 
-const SERIES = ['p95()', 'count()'];
+const SERIES = ['p95()'];
 
 function EventFunctionBreakpointChartInner({
   breakpoint,
@@ -62,7 +64,7 @@ function EventFunctionBreakpointChartInner({
 }: EventFunctionBreakpointChartInnerProps) {
   const datetime = useRelativeDateTime({
     anchor: breakpoint,
-    relativeDays: 14,
+    relativeDays: RELATIVE_DAYS_WINDOW,
   });
 
   const functionStats = useProfileEventsStats({
@@ -81,43 +83,8 @@ function EventFunctionBreakpointChartInner({
     }
     return transformEventStats(
       timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]),
-      'p95()'
+      'p95(function.duration)'
     );
-  }, [functionStats]);
-
-  const throughputSeries = useMemo(() => {
-    const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'count()');
-    const timestamps = functionStats?.data?.timestamps ?? [];
-
-    const bucketSize = 12 * 60 * 60;
-
-    const bucketedData = timestamps.reduce((acc, timestamp, idx) => {
-      const bucket = Math.floor(timestamp / bucketSize) * bucketSize;
-      const prev = acc[acc.length - 1];
-      const value = rawData.values[idx];
-
-      if (prev?.bucket === bucket) {
-        prev.value += value;
-        prev.end = timestamp;
-        prev.count += 1;
-      } else {
-        acc.push({bucket, value, start: timestamp, end: timestamp, count: 1});
-      }
-      return acc;
-    }, []);
-
-    return transformEventStats(
-      bucketedData.map(data => [
-        data.bucket,
-        [
-          {
-            count:
-              data.value / (((data.end - data.start) / (data.count - 1)) * data.count),
-          },
-        ],
-      ]),
-      'throughput()'
-    )[0];
   }, [functionStats]);
 
   const normalizedOccurrenceEvent = {
@@ -130,10 +97,8 @@ function EventFunctionBreakpointChartInner({
     <DataSection>
       <Chart
         percentileSeries={p95Series}
-        throughputSeries={throughputSeries}
         evidenceData={normalizedOccurrenceEvent}
-        start={(datetime.start as Date).toISOString()}
-        end={(datetime.end as Date).toISOString()}
+        datetime={datetime}
       />
     </DataSection>
   );

@@ -1,3 +1,5 @@
+from dataclasses import asdict
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
@@ -9,7 +11,9 @@ from isodate import parse_datetime
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
+from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
+from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -20,9 +24,10 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitlabIntegrationTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {
@@ -458,6 +463,67 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert commit_context == commit_context_expected
 
     @responses.activate
+    def test_get_commit_context_all_frames(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Get Sentry / Example Repo",
+                external_id=f"{instance}:{external_id}",
+                url="https://gitlab.example.com/getsentry/projects/example-repo",
+                config={"project_id": external_id, "path": "getsentry/example-repo"},
+                provider="integrations:gitlab",
+                integration_id=integration.id,
+            )
+        installation = integration.get_installation(self.organization.id)
+
+        file = SourceLineInfo(
+            path="src/gitlab.py",
+            lineno=10,
+            ref="master",
+            repo=repo,
+            code_mapping=None,  # type: ignore
+        )
+
+        responses.add(
+            responses.GET,
+            url=f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}",
+            json=[
+                GitLabFileBlameResponseItem(
+                    lines=[],
+                    commit=GitLabCommitResponse(
+                        id="1",
+                        message="test message",
+                        committed_date="2023-01-01T00:00:00.000Z",
+                        author_name="Marvin",
+                        author_email="marvin@place.com",
+                        committer_email=None,
+                        committer_name=None,
+                    ),
+                )
+            ],
+            status=200,
+        )
+
+        response = installation.get_commit_context_all_frames([file], extra={})
+
+        assert response == [
+            FileBlameInfo(
+                **asdict(file),
+                commit=CommitInfo(
+                    commitId="1",
+                    commitMessage="test message",
+                    committedDate=datetime(2023, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                    commitAuthorEmail="marvin@place.com",
+                    commitAuthorName="Marvin",
+                ),
+            )
+        ]
+
+    @responses.activate
     def test_source_url_matches(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -535,7 +601,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitlabIntegrationInstanceTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {
@@ -736,14 +802,15 @@ class GitlabProxyApiClientTest(GitLabTestCase):
     def test_integration_proxy_is_active(self):
         gitlab_id = 123
         commit = "a" * 40
-        responses.add(
+        gitlab_response = responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
             json=json.loads(GET_COMMIT_RESPONSE),
         )
-        responses.add(
+
+        control_proxy_response = add_control_silo_proxy_response(
             method=responses.GET,
-            url=f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
+            path=f"api/v4/projects/{gitlab_id}/repository/commits/{commit}",
             json=json.loads(GET_COMMIT_RESPONSE),
         )
 
@@ -760,6 +827,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
                 == request.url
             )
             assert client.base_url in request.url
+            assert gitlab_response.call_count == 1
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -774,6 +842,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
                 == request.url
             )
             assert client.base_url in request.url
+            assert gitlab_response.call_count == 2
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -783,9 +852,6 @@ class GitlabProxyApiClientTest(GitLabTestCase):
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 
-            assert (
-                f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
-                == request.url
-            )
+            assert control_proxy_response.call_count == 1
             assert client.base_url not in request.url
             assert_proxy_request(request, is_proxy=True)

@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -42,7 +44,7 @@ describe('OrganizationGeneralSettings', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegrationFixture()],
     });
   });
 
@@ -66,7 +68,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "codecov access"', async function () {
-    const organizationWithCodecovFeature = Organization({
+    const organizationWithCodecovFeature = OrganizationFixture({
       features: ['codecov-integration'],
       codecovAccess: false,
     });
@@ -123,7 +125,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = Organization({features: ['customer-domains']});
+    const org = OrganizationFixture({features: ['customer-domains']});
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -155,7 +157,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('disables the entire form if user does not have write access', function () {
-    const readOnlyOrg = Organization({access: ['org:read']});
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
     render(<OrganizationGeneralSettings {...defaultProps} organization={readOnlyOrg} />, {
       organization: readOnlyOrg,
@@ -182,7 +184,7 @@ describe('OrganizationGeneralSettings', function () {
     render(
       <OrganizationGeneralSettings
         {...defaultProps}
-        organization={Organization({
+        organization={OrganizationFixture({
           access: ['org:write'],
         })}
       />
@@ -194,12 +196,12 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
     render(
       <OrganizationGeneralSettings
         {...defaultProps}
-        organization={Organization({access: ['org:admin']})}
+        organization={OrganizationFixture({access: ['org:admin']})}
       />
     );
     renderGlobalModal();

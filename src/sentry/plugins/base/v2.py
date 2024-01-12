@@ -131,7 +131,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
         return get_option(self._get_option_key(key), project, user)
 
-    def set_option(self, key, value, project=None, user=None):
+    def set_option(self, key, value, project=None, user=None) -> None:
         """
         Updates the value of an option in your plugins keyspace.
 
@@ -141,9 +141,9 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import set_option
 
-        return set_option(self._get_option_key(key), value, project, user)
+        set_option(self._get_option_key(key), value, project, user)
 
-    def unset_option(self, key, project=None, user=None):
+    def unset_option(self, key, project=None, user=None) -> None:
         """
         Removes an option in your plugins keyspace.
 
@@ -153,7 +153,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import unset_option
 
-        return unset_option(self._get_option_key(key), project, user)
+        unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""

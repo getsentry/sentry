@@ -25,7 +25,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     middleware = RatelimitMiddleware(lambda request: sentinel.response)
@@ -108,6 +108,22 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
+
+    @patch("sentry.middleware.ratelimit.get_rate_limit_value")
+    def test_positive_rate_limit_response_headers(self, default_rate_limit_mock):
+        request = self.factory.get("/")
+
+        with freeze_time("2000-01-01"), patch.object(
+            RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True
+        ):
+            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            response = self.middleware.process_view(request, self._test_endpoint, [], {})
+            assert request.will_be_rate_limited
+            assert response
+            assert response["Access-Control-Allow-Methods"] == "GET"
+            assert response["Access-Control-Allow-Origin"] == "*"
+            assert response["Access-Control-Allow-Headers"]
+            assert response["Access-Control-Expose-Headers"]
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_negative_rate_limit_check(self, default_rate_limit_mock):

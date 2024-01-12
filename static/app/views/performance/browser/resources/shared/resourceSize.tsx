@@ -3,12 +3,12 @@ import {Fragment} from 'react';
 import FileSize from 'sentry/components/fileSize';
 
 type Props = {
-  bytes: number;
+  bytes?: number;
 };
 
 function ResourceSize(props: Props) {
   const {bytes} = props;
-  if (bytes === 0) {
+  if (!bytes) {
     return <Fragment>--</Fragment>;
   }
 

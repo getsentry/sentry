@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {
   getMemoryInfoKnownDataDetails,
   memoryInfoKnownDataValues,
@@ -13,7 +15,7 @@ describe('getMemoryInfoKnownDataDetails', function () {
       const memoryInfoKnownData = getMemoryInfoKnownDataDetails({
         type: memoryInfoKnownDataValues[type],
         data: memoryInfoMockData,
-        event: TestStubs.Event(),
+        event: EventFixture(),
       });
 
       if (!memoryInfoKnownData) {

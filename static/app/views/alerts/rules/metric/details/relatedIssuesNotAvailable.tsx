@@ -23,7 +23,7 @@ export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
       type="info"
       showIcon
       trailingItems={
-        <Feature features={['discover-basic']}>
+        <Feature features="discover-basic">
           <Button priority="default" size="xs" to={buttonTo}>
             {buttonText}
           </Button>

@@ -4,6 +4,7 @@ import logging
 import random
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
+from sentry import features
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
@@ -83,6 +84,9 @@ class IntegrationNudgeNotification(BaseNotification):
         return [
             MessageAction(
                 name="Turn on personal notifications",
+                label="Turn on personal notifications"
+                if features.has("organizations:slack-block-kit", self.organization)
+                else None,
                 action_id="enable_notifications",
                 value="all_slack",
             )
@@ -108,9 +112,6 @@ class IntegrationNudgeNotification(BaseNotification):
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         return ""
-
-    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
-        pass
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         return {"seed": self.seed, **super().get_log_params(recipient)}

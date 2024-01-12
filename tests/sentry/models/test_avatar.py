@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserAvatarTestCase(TestCase):
     def test_set_null(self):
         with self.options(
@@ -50,7 +50,7 @@ class AvatarMigrationTestCase(TestCase):
             assert isinstance(avatar.get_file(), ControlFile)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAvatarTestCase(TestCase):
     def test_set_null(self):
         org = self.create_organization()

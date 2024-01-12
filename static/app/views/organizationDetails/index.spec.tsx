@@ -1,4 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -39,18 +41,18 @@ describe('OrganizationDetails', function () {
     });
     getTeamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team()],
+      body: [TeamFixture()],
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project()],
+      body: [ProjectFixture()],
     });
   });
 
   it('can fetch projects and teams', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
-      body: Organization({
+      body: OrganizationFixture({
         slug: 'org-slug',
       }),
     });
@@ -73,7 +75,7 @@ describe('OrganizationDetails', function () {
     it('should render a restoration prompt', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
-        body: Organization({
+        body: OrganizationFixture({
           slug: 'org-slug',
           status: {
             id: 'pending_deletion',
@@ -100,7 +102,7 @@ describe('OrganizationDetails', function () {
     it('should render a restoration prompt without action for members', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
-        body: Organization({
+        body: OrganizationFixture({
           slug: 'org-slug',
           access: [],
           status: {
@@ -130,7 +132,7 @@ describe('OrganizationDetails', function () {
   it('should render a deletion in progress prompt', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
-      body: Organization({
+      body: OrganizationFixture({
         slug: 'org-slug',
         status: {
           id: 'deletion_in_progress',
@@ -155,7 +157,7 @@ describe('OrganizationDetails', function () {
   });
 
   it('should switch organization', async function () {
-    const body = Organization({slug: 'org-slug'});
+    const body = OrganizationFixture({slug: 'org-slug'});
     MockApiClient.addMockResponse({url: '/organizations/org-slug/', body});
     MockApiClient.addMockResponse({url: '/organizations/other-org/', body});
     MockApiClient.addMockResponse({url: '/organizations/other-org/teams/', body: []});

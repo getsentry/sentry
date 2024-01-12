@@ -53,7 +53,7 @@ def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
     new_status: IncidentStatus,
-    metric_value: str | None = None,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     """

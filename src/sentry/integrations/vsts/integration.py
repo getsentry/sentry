@@ -7,7 +7,8 @@ from typing import Any, Collection, Mapping, MutableMapping, Sequence
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext as _
 
 from sentry import features, http
@@ -517,7 +518,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Please ensure third-party app access via OAuth is enabled \n"
                     "in the organization's security policy."
                 )
-            raise e
+            raise
 
         subscription_id = subscription["id"]
         return subscription_id, shared_secret
@@ -561,7 +562,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
 
 class AccountConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         account_id = request.POST.get("account")
         if account_id is not None:
             state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(

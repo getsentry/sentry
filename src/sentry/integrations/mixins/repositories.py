@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Collection, Mapping, Sequence
+from typing import Any, Collection, Mapping, Sequence
 
+import sentry_sdk
 from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
@@ -50,6 +51,7 @@ class RepositoryMixin:
         try:
             client = self.get_client()
         except (Identity.DoesNotExist, IntegrationError):
+            sentry_sdk.capture_exception()
             return None
         try:
             response = client.check_file(repo, filepath, branch)
@@ -59,7 +61,9 @@ class RepositoryMixin:
             return None
         except ApiError as e:
             if e.code != 404:
+                sentry_sdk.capture_exception()
                 raise
+
             return None
 
         return self.format_source_url(repo, filepath, branch)
@@ -90,7 +94,7 @@ class RepositoryMixin:
 
         return source_url
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Repository]:
+    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
@@ -151,7 +155,7 @@ class RepositoryMixin:
             html_url = self.check_file(repo, filepath, ref)
             if html_url:
                 try:
-                    contents = self.get_client().get_file(repo, filepath, ref)
+                    contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
                 except ApiError:
                     continue
                 return {"filepath": filepath, "html_url": html_url, "raw": contents}

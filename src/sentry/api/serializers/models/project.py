@@ -17,7 +17,6 @@ from typing import (
 )
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.db.models.aggregates import Count
@@ -50,19 +49,7 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
-from sentry.notifications.helpers import (
-    get_most_specific_notification_setting_value,
-    should_use_notifications_v2,
-    transform_to_notification_settings_by_scope,
-)
-from sentry.notifications.types import (
-    NotificationSettingEnum,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
 from sentry.roles import organization_roles
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
@@ -118,6 +105,7 @@ def get_access_by_project(
     prefetch_related_objects(projects, "organization")
 
     result = {}
+    has_team_roles_cache = {}
     for project in projects:
         parent_teams = [t.id for t in project_team_map.get(project.id, [])]
         member_teams = [m for m in team_memberships if m.team_id in parent_teams]
@@ -132,19 +120,24 @@ def get_access_by_project(
         )
 
         team_scopes = set()
-        if has_access:
-            # Project can be the child of several Teams, and the User can join
-            # several Teams and receive roles at each of them,
-            team_scopes = team_scopes.union(*[m.get_scopes() for m in member_teams])
+        with sentry_sdk.start_span(
+            op="project.check-team-access", description=f"project={project.id}"
+        ) as span:
+            span.set_tag("project.member_count", len(member_teams))
+            if has_access:
+                # Project can be the child of several Teams, and the User can join
+                # several Teams and receive roles at each of them,
+                for member in member_teams:
+                    team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
 
-            # User may have elevated team-roles from their org-role
-            top_org_role = org_roles[0] if org_roles else None
-            if is_superuser:
-                top_org_role = organization_roles.get_top_dog().id
+                # User may have elevated team-roles from their org-role
+                top_org_role = org_roles[0] if org_roles else None
+                if is_superuser:
+                    top_org_role = organization_roles.get_top_dog().id
 
-            if top_org_role:
-                minimum_team_role = roles.get_minimum_team_role(top_org_role)
-                team_scopes = team_scopes.union(minimum_team_role.scopes)
+                if top_org_role:
+                    minimum_team_role = roles.get_minimum_team_role(top_org_role)
+                    team_scopes = team_scopes.union(minimum_team_role.scopes)
 
         result[project] = {
             "is_member": is_member,
@@ -251,6 +244,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: List[str]
     hasAccess: bool
+    hasCustomMetrics: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasProfiles: bool
@@ -315,10 +309,6 @@ class ProjectSerializer(Serializer):
             span.set_data("Object Count", len(item_list))
             return span
 
-        use_notifications_v2 = should_use_notifications_v2(item_list[0].organization)
-        skip_subscriptions = features.has(
-            "organizations:cleanup-project-serializer", item_list[0].organization
-        )
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
             if user.is_authenticated and item_list:
@@ -327,31 +317,8 @@ class ProjectSerializer(Serializer):
                         user_id=user.id, project_id__in=project_ids
                     ).values_list("project_id", flat=True)
                 )
-
-                if not skip_subscriptions:
-                    if use_notifications_v2:
-                        subscriptions = notifications_service.get_subscriptions_for_projects(
-                            user_id=user.id,
-                            project_ids=project_ids,
-                            type=NotificationSettingEnum.ISSUE_ALERTS,
-                        )
-                    else:
-                        notification_settings_by_scope = (
-                            transform_to_notification_settings_by_scope(
-                                notifications_service.get_settings_for_user_by_projects(
-                                    type=NotificationSettingTypes.ISSUE_ALERTS,
-                                    user_id=user.id,
-                                    parent_ids=project_ids,
-                                )
-                            )
-                        )
             else:
                 bookmarks = set()
-                if not skip_subscriptions:
-                    if use_notifications_v2:
-                        subscriptions = {}
-                    else:
-                        notification_settings_by_scope = {}
 
         with measure_span("stats"):
             stats = None
@@ -388,32 +355,7 @@ class ProjectSerializer(Serializer):
                 serialized["features"] = features_by_project[project]
 
         with measure_span("other"):
-            # Avoid duplicate queries for actors.
-            if isinstance(user, AnonymousUser):
-                recipient_actor = user
-            else:
-                recipient_actor = RpcActor.from_object(user)
             for project, serialized in result.items():
-                if not skip_subscriptions:
-                    is_subscribed = False
-                    if use_notifications_v2:
-                        if project.id in subscriptions:
-                            (_, has_enabled_subscriptions, _) = subscriptions[project.id]
-                            is_subscribed = has_enabled_subscriptions
-                        else:
-                            # If there are no settings, default to the EMAIL default
-                            # setting, which is ALWAYS.
-                            is_subscribed = True
-                    else:
-                        value = get_most_specific_notification_setting_value(
-                            notification_settings_by_scope,
-                            recipient=recipient_actor,
-                            parent_id=project.id,
-                            type=NotificationSettingTypes.ISSUE_ALERTS,
-                        )
-                        is_subscribed = value == NotificationSettingOptionValues.ALWAYS
-                        serialized["isSubscribed"] = is_subscribed
-
                 serialized.update(
                     {
                         "is_bookmarked": project.id in bookmarks,
@@ -474,7 +416,7 @@ class ProjectSerializer(Serializer):
         current_interval_start = now - (segments * interval)
         previous_interval_start = now - (2 * segments * interval)
 
-        project_health_data_dict = release_health.get_current_and_previous_crash_free_rates(
+        project_health_data_dict = release_health.backend.get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,
@@ -502,7 +444,7 @@ class ProjectSerializer(Serializer):
         # call -> check_has_data with those ids and then update our `project_health_data_dict`
         # accordingly
         if check_has_health_data_ids:
-            projects_with_health_data = release_health.check_has_health_data(
+            projects_with_health_data = release_health.backend.check_has_health_data(
                 check_has_health_data_ids
             )
             for project_id in projects_with_health_data:
@@ -545,11 +487,13 @@ class ProjectSerializer(Serializer):
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "access": attrs["access"],
             "hasAccess": attrs["has_access"],
+            "hasCustomMetrics": bool(obj.flags.has_custom_metrics),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
             "hasFeedbacks": bool(obj.flags.has_feedbacks),
+            "hasNewFeedbacks": bool(obj.flags.has_new_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
@@ -781,6 +725,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasProfiles=bool(obj.flags.has_profiles),
             hasReplays=bool(obj.flags.has_replays),
             hasFeedbacks=bool(obj.flags.has_feedbacks),
+            hasNewFeedbacks=bool(obj.flags.has_new_feedbacks),
+            hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,

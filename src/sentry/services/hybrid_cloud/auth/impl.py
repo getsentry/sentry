@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from typing import Any, List, Mapping, Optional
 
 from django.db import router, transaction
@@ -214,13 +213,6 @@ class FakeRequestDict:
             return self[key]
         except KeyError:
             return default
-
-
-def _unwrap_b64(input: str | None) -> bytes | None:
-    if input is None:
-        return None
-
-    return base64.b64decode(input.encode("utf8"))
 
 
 def promote_request_rpc_user(request: Any) -> User:

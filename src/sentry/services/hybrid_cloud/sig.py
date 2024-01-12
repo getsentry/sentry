@@ -5,6 +5,7 @@ import itertools
 from typing import Any, Callable, Iterable, Sequence, Tuple, Type
 
 import pydantic
+from django.utils.functional import LazyObject
 
 from sentry.services.hybrid_cloud import ArgumentDict
 
@@ -100,7 +101,27 @@ class SerializableFunctionSignature:
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(model_name, **field_definitions)  # type: ignore[call-overload]
 
+    @staticmethod
+    def _unwrap_lazy_django_object(arg: Any) -> Any:
+        """Unwrap any lazy objects before attempting to serialize.
+
+        It's possible to receive a SimpleLazyObject initialized by the Django
+        framework and pass it to an RPC (typically `request.user` as an RpcUser
+        argument). These objects are supposed to behave seamlessly like the
+        underlying type, but don't play nice with the reflection that Pydantic uses
+        to serialize. So, we manually check and force them to unwrap.
+        """
+
+        if isinstance(arg, LazyObject):
+            return getattr(arg, "_wrapped")
+        else:
+            return arg
+
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
+        raw_arguments = {
+            key: self._unwrap_lazy_django_object(arg) for (key, arg) in raw_arguments.items()
+        }
+
         try:
             model_instance = self._parameter_model(**raw_arguments)
         except Exception as e:

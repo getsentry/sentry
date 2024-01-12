@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.mixins import IssueSyncMixin
@@ -24,15 +25,14 @@ logger = logging.getLogger("sentry.integrations")
 PROVIDER_KEY = "vsts"
 
 
-class VstsWebhookMixin:
-    def get_external_id(self, request: Request) -> str:
-        data = request.data
-        external_id = data["resourceContainers"]["collection"]["id"]
-        return str(external_id)
+def get_vsts_external_id(data: Mapping[str, Any]) -> str:
+    external_id = data["resourceContainers"]["collection"]["id"]
+    return str(external_id)
 
 
 @region_silo_endpoint
-class WorkItemWebhook(Endpoint, VstsWebhookMixin):
+class WorkItemWebhook(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
@@ -43,14 +43,13 @@ class WorkItemWebhook(Endpoint, VstsWebhookMixin):
         try:
             data = request.data
             event_type = data["eventType"]
-            external_id = self.get_external_id(request=request)
+            external_id = get_vsts_external_id(data=request.data)
         except Exception as e:
             logger.info("vsts.invalid-webhook-payload", extra={"error": str(e)})
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
         # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
         if event_type == "workitem.updated":
-
             integration = integration_service.get_integration(
                 provider=PROVIDER_KEY, external_id=external_id
             )

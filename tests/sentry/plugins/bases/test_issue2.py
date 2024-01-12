@@ -27,7 +27,7 @@ class PluginWithoutFields(IssueTrackingPlugin2):
     issue_fields = None
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IssueTrackingPlugin2Test(TestCase):
     def test_issue_label_as_dict(self):
         plugin = PluginWithFields()
@@ -54,7 +54,7 @@ class IssueTrackingPlugin2Test(TestCase):
         assert result == {"id": "test-plugin-without-fields:tid"}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
         user = mock.Mock(spec=User(id=1))
@@ -80,7 +80,7 @@ class GetAuthForUserTest(TestCase):
         self.assertEqual(p.get_auth_for_user(user).id, auth.id)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class IssuePlugin2GroupActionTest(TestCase):
     def setUp(self):
         super().setUp()

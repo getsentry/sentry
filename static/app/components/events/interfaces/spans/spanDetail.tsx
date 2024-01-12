@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import DateTime from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
+import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -74,6 +75,7 @@ const SIZE_DATA_KEYS = [
   'Encoded Body Size',
   'Decoded Body Size',
   'Transfer Size',
+  'http.request_content_length',
   'http.response_content_length',
   'http.decoded_response_content_length',
   'http.response_transfer_size',
@@ -254,7 +256,7 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function renderViewSimilarSpansButton() {
+  function renderSpanDetailActions() {
     const {span, organization, event} = props;
 
     if (isGapSpan(span) || !span.op || !span.hash) {
@@ -263,18 +265,22 @@ function SpanDetail(props: Props) {
 
     const transactionName = event.title;
 
-    const target = spanDetailsRouteWithQuery({
-      orgSlug: organization.slug,
-      transaction: transactionName,
-      query: location.query,
-      spanSlug: {op: span.op, group: span.hash},
-      projectID: event.projectID,
-    });
-
     return (
-      <StyledButton size="xs" to={target}>
-        {t('View Similar Spans')}
-      </StyledButton>
+      <ButtonGroup>
+        <SpanSummaryButton event={event} organization={organization} span={span} />
+        <StyledButton
+          size="xs"
+          to={spanDetailsRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            query: location.query,
+            spanSlug: {op: span.op, group: span.hash},
+            projectID: event.projectID,
+          })}
+        >
+          {t('View Similar Spans')}
+        </StyledButton>
+      </ButtonGroup>
     );
   }
 
@@ -318,9 +324,12 @@ function SpanDetail(props: Props) {
             relatedErrors.length
           )}
         </ErrorMessageTitle>
-        <ErrorMessageContent>
+        <Fragment>
           {visibleErrors.map(error => (
-            <Fragment key={error.event_id}>
+            <ErrorMessageContent
+              key={error.event_id}
+              excludeLevel={isErrorPerformanceError(error)}
+            >
               {isErrorPerformanceError(error) ? (
                 <ErrorDot level="error" />
               ) : (
@@ -335,9 +344,9 @@ function SpanDetail(props: Props) {
                   {error.title}
                 </Link>
               </ErrorTitle>
-            </Fragment>
+            </ErrorMessageContent>
           ))}
-        </ErrorMessageContent>
+        </Fragment>
         {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
           <ErrorToggle size="xs" onClick={toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
@@ -347,10 +356,17 @@ function SpanDetail(props: Props) {
     );
   }
 
-  function partitionSizes(data) {
+  function partitionSizes(data): {
+    nonSizeKeys: {[key: string]: unknown};
+    sizeKeys: {[key: string]: number};
+  } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data.hasOwnProperty(key)) {
-        keys[key] = data[key];
+      if (data.hasOwnProperty(key) && defined(data[key])) {
+        try {
+          keys[key] = parseInt(data[key], 10);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
       return keys;
     }, {});
@@ -465,6 +481,7 @@ function SpanDetail(props: Props) {
                   title="Profile ID"
                   extra={
                     <TransactionToProfileButton
+                      event={event}
                       size="xs"
                       projectSlug={project.slug}
                       query={{
@@ -478,7 +495,7 @@ function SpanDetail(props: Props) {
                   {profileId}
                 </Row>
               )}
-              <Row title="Description" extra={renderViewSimilarSpansButton()}>
+              <Row title="Description" extra={renderSpanDetailActions()}>
                 {span?.description ?? ''}
               </Row>
               <Row title="Status">{span.status || ''}</Row>

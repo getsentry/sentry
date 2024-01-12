@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry_plugins.github.testutils import INSTALLATION_EVENT_EXAMPLE
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InstallationInstallEventWebhookTest(APITestCase):
     def test_simple(self):
         url = "/plugins/github/installations/webhook/"

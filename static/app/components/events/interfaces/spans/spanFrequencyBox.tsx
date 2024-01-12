@@ -49,15 +49,15 @@ export function SpanFrequencyBox({span}: Props) {
 function getBoxColors(theme: Theme, frequency?: number) {
   if (!frequency || frequency >= 0.9) {
     return `
-      background: ${theme.white};
-      color: ${theme.black};
+      background: ${purples[3]};
+      color: ${theme.white};
     `;
   }
 
   if (frequency >= 0.7) {
     return `
-      background: ${purples[0]};
-      color: ${theme.black};
+      background: ${purples[2]};
+      color: ${theme.white};
     `;
   }
 
@@ -70,14 +70,14 @@ function getBoxColors(theme: Theme, frequency?: number) {
 
   if (frequency >= 0.3) {
     return `
-      background: ${purples[2]};
-      color: ${theme.white};
+      background: ${purples[0]};
+      color: ${theme.black};
     `;
   }
 
   return `
-      background: ${purples[3]};
-      color: ${theme.white};
+      background: ${theme.white};
+      color: ${theme.black};
     `;
 }
 

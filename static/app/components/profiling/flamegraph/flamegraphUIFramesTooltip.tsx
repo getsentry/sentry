@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {toRGBAString} from 'sentry/utils/profiling/colors/utils';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 

@@ -1,4 +1,4 @@
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -18,6 +18,7 @@ function MonitorHeader({monitor, orgId, onUpdate}: Props) {
     {
       label: t('Crons'),
       to: `/organizations/${orgId}/crons/`,
+      preservePageFilters: true,
     },
     {
       label: t('Cron Monitor Details'),

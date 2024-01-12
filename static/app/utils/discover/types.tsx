@@ -14,6 +14,7 @@ export enum DisplayModes {
 
 export enum DiscoverDatasets {
   DISCOVER = 'discover',
+  ERRORS = 'errors',
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
   ISSUE_PLATFORM = 'issuePlatform',

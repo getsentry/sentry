@@ -11,7 +11,7 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectTransactionNamesClusterTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

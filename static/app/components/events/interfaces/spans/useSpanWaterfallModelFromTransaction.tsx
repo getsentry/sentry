@@ -72,6 +72,17 @@ export function useSpanWaterfallModelFromTransaction(
 
   const [parentSpan, ...flattenedSpans] = spanList;
 
+  const hiddenSpans = useMemo(() => {
+    const hiddenSpans_ = new Set(
+      spanList
+        .filter(span => {
+          return span.frequency < 0.3;
+        })
+        .map(span => span.span_id)
+    );
+    return hiddenSpans_;
+  }, [spanList]);
+
   const event: AggregateEventTransaction = useMemo(() => {
     return {
       contexts: {
@@ -94,6 +105,9 @@ export function useSpanWaterfallModelFromTransaction(
       total: parentSpan?.total ?? 0,
     };
   }, [parentSpan, flattenedSpans]);
-  const waterfallModel = useMemo(() => new WaterfallModel(event, undefined), [event]);
+  const waterfallModel = useMemo(
+    () => new WaterfallModel(event, undefined, undefined, hiddenSpans),
+    [event, hiddenSpans]
+  );
   return {waterfallModel, event, isLoading};
 }

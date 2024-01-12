@@ -22,9 +22,13 @@ from sentry.debug_files.artifact_bundle_indexing import (
     mark_bundle_for_flat_file_indexing,
     update_artifact_bundle_index,
 )
-from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
-from sentry.models.artifactbundle import (
+from sentry.debug_files.artifact_bundles import (
     INDEXING_THRESHOLD,
+    get_bundles_indexing_state,
+    index_artifact_bundles_for_release,
+)
+from sentry.debug_files.tasks import backfill_artifact_bundle_db_indexing
+from sentry.models.artifactbundle import (
     NULL_STRING,
     ArtifactBundle,
     ArtifactBundleArchive,
@@ -276,7 +280,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             ChunkFileState.ERROR,
             detail="internal server error",
         )
-        logger.error("failed to assemble dif", exc_info=True)
+        logger.exception("failed to assemble dif")
     else:
         set_assemble_status(
             AssembleTask.DIF, project_id, checksum, ChunkFileState.OK, detail=serialize(dif)
@@ -394,8 +398,8 @@ class ReleaseBundlePostAssembler(PostAssembler[ReleaseArchive]):
                 )
                 metrics.incr("sourcemaps.upload.release_bundle")
                 saved_as_archive = True
-            except Exception as exc:
-                logger.error("Unable to update artifact index", exc_info=exc)
+            except Exception:
+                logger.exception("Unable to update artifact index")
 
         if not saved_as_archive:
             meta = {
@@ -623,14 +627,13 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
         # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
         # not support them, some files were not injected...).
-        if self.release:
+        if created and self.release:
             # After we committed the transaction we want to try and run indexing by passing non-null release and
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
             self._index_bundle_if_needed(
                 artifact_bundle,
                 release=self.release,
                 dist=(self.dist or NULL_STRING),
-                date_snapshot=date_snapshot,
             )
 
         if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
@@ -714,36 +717,16 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
     @sentry_sdk.tracing.trace
-    def _index_bundle_if_needed(
-        self, artifact_bundle: ArtifactBundle, release: str, dist: str, date_snapshot: datetime
-    ):
+    def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
-        # We get the number of associations by upper bounding the query to the "date_snapshot", which is done to
-        # prevent the case in which concurrent updates on the database will lead to problems. For example if we have
-        # a threshold of 1, and we have two uploads happening concurrently and the database will contain two
-        # associations even when the assembling of the first upload is running this query, we will have the first
-        # upload task see 2 associations , thus it will trigger the indexing. The same will also happen for the
-        # second upload but in reality we just want the second upload to perform indexing.
-        #
-        # This date implementation might still lead to issues, more specifically in the case in which the
-        # "date_last_modified" is the same but the probability of that happening is so low that it's a negligible
-        # detail for now, as long as the indexing is idempotent.
-        associated_bundles = list(
-            ArtifactBundle.objects.filter(
-                releaseartifactbundle__organization_id=self.organization.id,
-                releaseartifactbundle__release_name=release,
-                releaseartifactbundle__dist_name=dist,
-                # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this
-                # async job, we want to use the `<=` condition for time, effectively saying give me all the bundles that
-                # were created now or in the past.
-                date_last_modified__lte=date_snapshot,
-            )
+        (total_bundles, indexed_bundles) = get_bundles_indexing_state(
+            self.organization, release, dist
         )
 
         # In case we didn't surpass the threshold, indexing will not happen.
-        if len(associated_bundles) <= INDEXING_THRESHOLD:
+        if total_bundles < INDEXING_THRESHOLD:
             return
 
         # We collect how many times we run indexing.
@@ -751,36 +734,15 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
 
         # We want to measure how much time it takes to perform indexing.
         with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
-            # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
-            # async if we see a performance degradation of assembling.
-            try:
-                # We only want to get the bundles that are not indexed. Keep in mind that this query is concurrency
-                # unsafe since in the meanwhile the bundles might be modified and the modification will not be
-                # reflected in the objects that we are iterating here.
-                #
-                # In case of concurrency issues, we might do extra work but due to the idempotency of the indexing
-                # function no consistency issues should arise.
-                bundles_to_index = [
-                    (
-                        associated_bundle,
-                        self.archive if associated_bundle.id == artifact_bundle.id else None,
-                    )
-                    for associated_bundle in associated_bundles
-                    if associated_bundle.indexing_state
-                    == ArtifactBundleIndexingState.NOT_INDEXED.value
-                ]
+            # NOTE: this is doing a try/catch internally
+            index_artifact_bundles_for_release(
+                organization_id=self.organization.id,
+                artifact_bundles=[(artifact_bundle, self.archive)],
+            )
 
-                # We want to index only if we have bundles to index.
-                if len(bundles_to_index) > 0:
-                    index_artifact_bundles_for_release(
-                        organization_id=self.organization.id,
-                        artifact_bundles=bundles_to_index,
-                    )
-            except Exception as e:
-                # We want to capture any exception happening during indexing, since it's crucial to understand if
-                # the system is behaving well because the database can easily end up in an inconsistent state.
-                metrics.incr("tasks.assemble.artifact_bundle.index_artifact_bundles_error")
-                sentry_sdk.capture_exception(e)
+        # Backfill older bundles we did not index yet if any are missing
+        if indexed_bundles + 1 < total_bundles:
+            backfill_artifact_bundle_db_indexing.delay(self.organization.id, release, dist)
 
     @sentry_sdk.tracing.trace
     def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
@@ -901,7 +863,7 @@ def assemble_artifacts(
     except AssembleArtifactsError as e:
         set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
     except Exception as e:
-        logger.error("failed to assemble bundle", exc_info=True)
+        logger.exception("failed to assemble bundle")
         sentry_sdk.capture_exception(e)
         set_assemble_status(
             assemble_task,

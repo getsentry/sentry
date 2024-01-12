@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk.api import capture_exception
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -22,8 +23,9 @@ from sentry.utils.outcomes import Outcome
 @region_silo_endpoint
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -75,9 +77,11 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         # Initialize the response results.
         response = []
         for time_string in results["intervals"]:
+            ts = parse_timestamp(time_string)
+            assert ts is not None
             response.append(
                 {
-                    "ts": int(parse_timestamp(time_string).timestamp()),
+                    "ts": int(ts.timestamp()),
                     "total": 0,
                     "dropped": 0,
                     "accepted": 0,

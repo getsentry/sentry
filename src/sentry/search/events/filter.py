@@ -947,5 +947,5 @@ def format_search_filter(term, params):
 
 
 # Not a part of search.events.types to avoid a circular loop
-ParsedTerm = Union[SearchFilter, AggregateFilter]
+ParsedTerm = Union[SearchFilter, AggregateFilter, ParenExpression]
 ParsedTerms = Sequence[ParsedTerm]

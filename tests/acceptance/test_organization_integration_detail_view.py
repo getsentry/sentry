@@ -9,7 +9,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationIntegrationDetailView(AcceptanceTestCase):
     """
     As a developer, I can create an integration, install it, and uninstall it
@@ -52,7 +52,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         )
 
     def test_uninstallation(self):
-        model = Integration.objects.create(
+        model = self.create_provider_integration(
             provider="slack",
             external_id="some_slack",
             name="Test Slack",

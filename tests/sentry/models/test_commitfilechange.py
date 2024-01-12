@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CommitFileChangeTest(TestCase):
     def test_get_count_for_commits(self):
         group = self.create_group()

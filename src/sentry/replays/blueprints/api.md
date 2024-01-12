@@ -53,20 +53,21 @@ This document is structured by resource with each resource having actions that c
 
     Additionally, you can filter by these hidden fields.
 
-    | Field             | Type          | Description                                                    |
-    | ----------------- | ------------- | -------------------------------------------------------------- |
-    | click.alt         | string        | The alt attribute of the HTML element.                         |
-    | click.class       | array[string] | An array of HTML element classes.                              |
-    | click.id          | string        | The ID of an HTML element.                                     |
-    | click.label       | string        | The aria-label attribute of an HTML element.                   |
-    | click.role        | string        | The role of an HTML element.                                   |
-    | click.tag         | string        | Valid HTML5 tag name.                                          |
-    | click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-    | click.textContent | string        | The text-content of an HTML element.                           |
-    | click.title       | string        | The title attribute of an HTML element.                        |
-    | click.selector    | string        | A valid CSS selector.                                          |
-    | dead.selector     | string        | A valid CSS selector.                                          |
-    | rage.selector     | string        | A valid CSS selector.                                          |
+    | Field                | Type          | Description                                                    |
+    | -------------------- | ------------- | -------------------------------------------------------------- |
+    | click.alt            | string        | The alt attribute of the HTML element.                         |
+    | click.class          | array[string] | An array of HTML element classes.                              |
+    | click.id             | string        | The ID of an HTML element.                                     |
+    | click.label          | string        | The aria-label attribute of an HTML element.                   |
+    | click.component_name | string        | The value of the data-sentry-component attribute.              |
+    | click.role           | string        | The role of an HTML element.                                   |
+    | click.tag            | string        | Valid HTML5 tag name.                                          |
+    | click.testid         | string        | The data-testid of an HTML element. (omitted from public docs) |
+    | click.textContent    | string        | The text-content of an HTML element.                           |
+    | click.title          | string        | The title attribute of an HTML element.                        |
+    | click.selector       | string        | A valid CSS selector.                                          |
+    | dead.selector        | string        | A valid CSS selector.                                          |
+    | rage.selector        | string        | A valid CSS selector.                                          |
 
 ### Browse Replays [GET]
 
@@ -245,6 +246,10 @@ Deletes a replay instance.
 This resource does not accept any URI parameters and is not paginated. Responses are ingested whole.
 
 ### Fetch Replay Accessibility Issues [GET]
+
+- Parameters
+
+  - timestamp (optional, number) - A UNIX timestamp (seconds since epoch) marking the last moment to render a replay for accessibility analysis.
 
 Retrieve a collection of accessibility issues.
 
@@ -549,18 +554,19 @@ Parameters:
 
 Queryable fields:
 
-| Field             | Type          | Description                                                    |
-| ----------------- | ------------- | -------------------------------------------------------------- |
-| click.alt         | string        | The alt attribute of the HTML element.                         |
-| click.class       | array[string] | An array of HTML element classes.                              |
-| click.id          | string        | The ID of an HTML element.                                     |
-| click.label       | string        | The aria-label attribute of an HTML element.                   |
-| click.role        | string        | The role of an HTML element.                                   |
-| click.selector    | string        | A valid CSS selector.                                          |
-| click.tag         | string        | Valid HTML5 tag name.                                          |
-| click.testid      | string        | The data-testid of an HTML element. (omitted from public docs) |
-| click.textContent | string        | The text-content of an HTML element.                           |
-| click.title       | string        | The title attribute of an HTML element.                        |
+| Field                | Type          | Description                                                    |
+| -------------------- | ------------- | -------------------------------------------------------------- |
+| click.alt            | string        | The alt attribute of the HTML element.                         |
+| click.class          | array[string] | An array of HTML element classes.                              |
+| click.id             | string        | The ID of an HTML element.                                     |
+| click.label          | string        | The aria-label attribute of an HTML element.                   |
+| click.component_name | string        | The value of the data-sentry-component attribute.              |
+| click.role           | string        | The role of an HTML element.                                   |
+| click.selector       | string        | A valid CSS selector.                                          |
+| click.tag            | string        | Valid HTML5 tag name.                                          |
+| click.testid         | string        | The data-testid of an HTML element. (omitted from public docs) |
+| click.textContent    | string        | The text-content of an HTML element.                           |
+| click.title          | string        | The title attribute of an HTML element.                        |
 
 Queryable fields for rage and dead clicks:
 

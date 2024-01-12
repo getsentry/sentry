@@ -8,7 +8,7 @@ from sentry.testutils.silo import no_silo_test
 FEATURE_NAME = ["organizations:session-replay"]
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ReplayListTest(ReplaysAcceptanceTestCase):
     def setUp(self):
         super().setUp()

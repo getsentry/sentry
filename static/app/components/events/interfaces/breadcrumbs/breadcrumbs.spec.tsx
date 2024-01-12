@@ -1,4 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -26,7 +28,7 @@ describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
 
   beforeEach(() => {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     jest.mocked(useProjects).mockReturnValue({
       fetchError: null,
@@ -39,8 +41,8 @@ describe('Breadcrumbs', () => {
     });
 
     props = {
-      organization: Organization(),
-      event: TestStubs.Event({entries: [], projectID: project.id}),
+      organization: OrganizationFixture(),
+      event: EventFixture({entries: [], projectID: project.id}),
       data: {
         values: [
           {

@@ -315,8 +315,10 @@ class SymbolicatorSession:
                     json = response.json()
 
                     if json["status"] != "pending":
-                        metrics.timing(
-                            "events.symbolicator.response.completed.size", len(response.content)
+                        metrics.distribution(
+                            "events.symbolicator.response.completed.size",
+                            len(response.content),
+                            unit="byte",
                         )
                 else:
                     with sentry_sdk.push_scope():
@@ -341,7 +343,7 @@ class SymbolicatorSession:
                 #
                 # This can happen for any network failure.
                 if attempts > MAX_ATTEMPTS:
-                    logger.error("Failed to contact symbolicator", exc_info=True)
+                    logger.exception("Failed to contact symbolicator")
                     raise
 
                 time.sleep(wait)

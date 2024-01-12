@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()

@@ -1,41 +1,47 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
-import {AVAILABLE_DURATION_AGGREGATE_OPTIONS} from 'sentry/views/performance/database/settings';
+import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 
-interface Props {
-  aggregate: string;
-}
+export function DurationAggregateSelector() {
+  const availableAggregates = useAvailableDurationAggregates();
+  const [selectedAggregate, setSelectedAggregate] = useSelectedDurationAggregate();
 
-export function DurationAggregateSelector({aggregate}: Props) {
-  const location = useLocation();
+  // If only one aggregate is available, render a plain string
+  if (availableAggregates.length === 1) {
+    return DURATION_AGGREGATE_LABELS[selectedAggregate];
+  }
 
-  const handleDurationFunctionChange = option => {
-    browserHistory.push({
-      ...location,
-      query: {
-        ...location.query,
-        aggregate: option.value,
-      },
-    });
-  };
-
+  // If multiple aggregates are available, render a dropdown list
   return (
     <StyledCompactSelect
       size="md"
-      options={AVAILABLE_DURATION_AGGREGATE_OPTIONS}
-      value={aggregate}
-      onChange={handleDurationFunctionChange}
+      options={availableAggregates.map(availableAggregate => ({
+        value: availableAggregate,
+        label: DURATION_AGGREGATE_LABELS[availableAggregate],
+      }))}
+      value={selectedAggregate}
+      onChange={option => {
+        setSelectedAggregate(option.value);
+      }}
       triggerProps={{borderless: true, size: 'zero'}}
     />
   );
 }
 
-// TODO: Talk to UI folks about making this a built-in dropdown size if we end
-// up using this element
+const DURATION_AGGREGATE_LABELS = {
+  avg: t('Average Duration'),
+  max: t('Max Duration'),
+  p50: t('Duration p50'),
+  p75: t('Duration p75'),
+  p95: t('Duration p95'),
+  p99: t('Duration p99'),
+};
+
+// TODO: Talk to UI folks about making this a built-in dropdown size, we use this in a few places
 const StyledCompactSelect = styled(CompactSelect)`
   text-align: left;
   font-weight: normal;

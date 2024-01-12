@@ -1,21 +1,19 @@
 from __future__ import annotations
 
 import functools
+import importlib.resources
 import logging
-import posixpath
 from copy import deepcopy
 from threading import Lock
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
-from pkg_resources import resource_string
 from redis.client import Script
 from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import RedisCluster
 from rediscluster.exceptions import ClusterError
-from sentry_redis_tools import clients
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
@@ -157,16 +155,26 @@ class _RedisCluster:
         return "Redis Cluster"
 
 
-T = TypeVar("T")
+TCluster = TypeVar("TCluster", rb.Cluster, RedisCluster)
 
 
-class ClusterManager(Generic[T]):
+class ClusterManager(Generic[TCluster]):
+    @overload
+    def __init__(self: ClusterManager[rb.Cluster], options_manager) -> None:
+        ...
+
+    @overload
+    def __init__(
+        self: ClusterManager[RedisCluster], options_manager, cluster_type: type[Any]
+    ) -> None:
+        ...
+
     def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
         self.__cluster_type = cluster_type()
 
-    def get(self, key) -> T:
+    def get(self, key) -> TCluster:
         cluster = self.__clusters.get(key)
 
         # Do not access attributes of the `cluster` object to prevent
@@ -190,8 +198,8 @@ class ClusterManager(Generic[T]):
 # TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
-clusters = ClusterManager(options.default_manager)
-redis_clusters: ClusterManager[clients.RedisCluster | clients.StrictRedis] = ClusterManager(
+clusters: ClusterManager[rb.Cluster] = ClusterManager(options.default_manager)
+redis_clusters: ClusterManager[RedisCluster] = ClusterManager(
     options.default_manager, _RedisCluster
 )
 
@@ -295,7 +303,10 @@ def load_script(path):
             # XXX: Script is a list here. We're doing this to work around the lack of
             # `nonlocal` in python 3, so that we only instantiate the script once.
             script.append(
-                Script(client, resource_string("sentry", posixpath.join("scripts", path)))
+                Script(
+                    client,
+                    importlib.resources.files("sentry").joinpath("scripts", path).read_bytes(),
+                )
             )
             # Unset the client here to keep things as close to how they worked before
             # as possible. It will always be overridden on `__call__` anyway.

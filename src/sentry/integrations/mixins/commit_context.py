@@ -8,7 +8,6 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.models.identity import Identity
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
 
 
 @dataclass
@@ -75,8 +74,6 @@ class CommitContextMixin(GetClient):
             response = client.get_blame_for_file(repo, filepath, ref, lineno)
         except IdentityNotValid:
             return None
-        except ApiError as e:
-            raise e
 
         return response
 
@@ -96,8 +93,6 @@ class CommitContextMixin(GetClient):
             response = client.get_blame_for_files(files, extra)
         except IdentityNotValid:
             return []
-        except ApiError as e:
-            raise e
 
         return response
 
@@ -107,10 +102,10 @@ class CommitContextMixin(GetClient):
         """
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
         """
-        raise NotImplementedError
+        return self.get_blame_for_files(files, extra)
 
     def get_commit_context(
         self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
+    ) -> Mapping[str, Any] | None:
         """Formats the source code url used for stack trace linking."""
         raise NotImplementedError

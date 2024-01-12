@@ -1,10 +1,7 @@
-import styled from '@emotion/styled';
-
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
-import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
@@ -33,6 +30,7 @@ export function Default({
   transactionEvents,
 }: Props) {
   const {message, data} = breadcrumb;
+
   return (
     <Summary kvData={data} meta={meta}>
       {meta?.message?.[''] ? (
@@ -78,8 +76,8 @@ function FormatMessage({
   const isSentryTransaction =
     breadcrumb.category === 'sentry.transaction' && isEventId(message);
 
-  const {projects, fetching: loadingProjects} = useProjects();
-  const maybeProject = !loadingProjects
+  const {projects, fetching: fetchingProjects} = useProjects();
+  const maybeProject = !fetchingProjects
     ? projects.find(project => {
         return event && project.id === event.projectID;
       })
@@ -110,18 +108,6 @@ function FormatMessage({
 
     return description;
   }
-  switch (breadcrumb.messageFormat) {
-    case 'sql':
-      return <FormattedCode>{content}</FormattedCode>;
-    default:
-      return content;
-  }
-}
 
-const FormattedCode = styled('div')`
-  padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow-x: auto;
-  white-space: pre;
-`;
+  return content;
+}

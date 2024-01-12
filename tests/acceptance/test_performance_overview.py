@@ -16,7 +16,7 @@ FEATURE_NAMES = (
 )
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

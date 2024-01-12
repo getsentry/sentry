@@ -35,17 +35,41 @@ class Referrer(Enum):
     API_DASHBOARDS_WIDGET_AREA_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.area-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.area-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_AREA_CHART = "api.dashboards.widget.area-chart"
     API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN = "api.dashboards.widget.bar-chart.find-topn"
     API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.bar-chart.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_BAR_CHART = "api.dashboards.widget.bar-chart"
     API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN = "api.dashboards.widget.line-chart.find-topn"
     API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.line-chart.metrics-enhanced"
     )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced"
+    )
+    API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN_METRICS_ENHANCED_PRIMARY = (
+        "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
+    )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
+
+    # DDM
+    API_DDM_FETCH_SPANS = "api.ddm.fetch.spans"
+    API_DDM_FETCH_METRICS_SUMMARIES = "api.ddm.fetch.metrics_summaries"
+    API_DDM_METRICS_DATA = "api.ddm.metrics.data"
+
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
@@ -392,6 +416,22 @@ class Referrer(Enum):
     API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
     API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
 
+    # Mobile Starfish
+    API_STARFISH_MOBILE_SCREEN_METRICS_SERIES = "api.starfish.mobile-screen-series"
+    API_STARFISH_MOBILE_SCREEN_TABLE = "api.starfish.mobile-screen-table"
+    API_STARFISH_MOBILE_SCREEN_BAR_CHART = "api.starfish.mobile-screen-bar-chart"
+    API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
+    API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
+    API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
+    API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
+    API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
+    API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"
+    API_STARFISH_MOBILE_STARTUP_BAR_CHART = "api.starfish.mobile-startup-bar-chart"
+    API_STARFISH_MOBILE_STARTUP_SERIES = "api.starfish.mobile-startup-series"
+    API_STARFISH_MOBILE_STARTUP_EVENT_SAMPLES = "api.starfish.mobile-startup-event-samples"
+    API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
+    API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -457,6 +497,9 @@ class Referrer(Enum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
+    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
+        "dynamic_sampling.tasks.custom_rule_notifications"
+    )
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
@@ -621,6 +664,9 @@ class Referrer(Enum):
         "statistical_detectors.distributions.fetch_transaction_timeseries"
     )
     SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY = "subscription_processor.comparison_query"
+    SUBSCRIPTION_PROCESSOR_COMPARISON_QUERY_PRIMARY = (
+        "subscription_processor.comparison_query.primary"
+    )
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore.__get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
@@ -677,6 +723,7 @@ class Referrer(Enum):
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_4_alert_event_frequency = "tsdb-modelid:4.alert_event_frequency"
     TSDB_MODELID_4_alert_event_frequency_percent = "tsdb-modelid:4.alert_event_frequency_percent"
+    TSDB_MODELID_20_alert_event_frequency = "tsdb-modelid:20.alert_event_frequency"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
     TSDB_MODELID_300_alert_event_uniq_user_frequency = (
         "tsdb-modelid:300.alert_event_uniq_user_frequency"

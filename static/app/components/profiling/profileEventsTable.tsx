@@ -450,7 +450,7 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   },
   'p75()': {
     key: 'p75()',
-    name: t('P75'),
+    name: t('P75()'),
     width: COL_WIDTH_UNDEFINED,
   },
   'p95()': {

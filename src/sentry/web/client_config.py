@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Any, Iterable, List, Mapping, MutableMapping, Tuple
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
@@ -113,21 +114,25 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org(session, user):
-    last_org_slug = session["activeorg"] if session and "activeorg" in session else None
-    if not last_org_slug:
-        return None
-    if user is not None and not isinstance(user, AnonymousUser):
-        org_context = organization_service.get_organization_by_slug(
-            slug=last_org_slug, only_visible=False, user_id=user.id
-        )
-        if org_context and org_context.member:
-            return org_context.organization
+def _resolve_last_org(session, user, org_context=None):
+    if org_context is None:
+        last_org_slug = session["activeorg"] if session and "activeorg" in session else None
+        if not last_org_slug:
+            return None
+
+        if user is not None and not isinstance(user, AnonymousUser):
+            org_context = organization_service.get_organization_by_slug(
+                slug=last_org_slug, only_visible=False, user_id=user.id
+            )
+
+    if org_context and org_context.member:
+        return org_context.organization
+
     return None
 
 
 class _ClientConfig:
-    def __init__(self, request=None) -> None:
+    def __init__(self, request=None, org_context=None) -> None:
         self.request = request
         if request is not None:
             self.user = getattr(request, "user", None) or AnonymousUser()
@@ -136,7 +141,7 @@ class _ClientConfig:
             self.user = None
             self.session = None
 
-        self.last_org = _resolve_last_org(self.session, self.user)
+        self.last_org = _resolve_last_org(self.session, self.user, org_context)
 
     @property
     def last_org_slug(self) -> str | None:
@@ -154,17 +159,29 @@ class _ClientConfig:
             "sentryUrl": options.get("system.url-prefix"),
         }
 
+    @cached_property
+    def tracing_data(self) -> Mapping[str, str]:
+        return {
+            "sentry_trace": sentry_sdk.get_traceparent() or "",
+            "baggage": sentry_sdk.get_baggage() or "",
+        }
+
     @property
     def enabled_features(self) -> Iterable[str]:
         if features.has("organizations:create", actor=self.user):
             yield "organizations:create"
         if auth.has_user_registration():
             yield "auth:register"
+        if features.has("relocation:enabled", actor=self.user):
+            yield "relocation:enabled"
         if self.customer_domain or (
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
-        if options.get("hybrid_cloud.multi-region-selector"):
+        # TODO (Gabe): Remove selector option check once GetSentry side lands
+        if options.get("hybrid_cloud.multi-region-selector") or features.has(
+            "organizations:multi-region-selector", actor=self.user
+        ):
             yield "organizations:multi-region-selector"
 
     @property
@@ -292,6 +309,7 @@ class _ClientConfig:
 
     def get_context(self) -> Mapping[str, Any]:
         return {
+            "initialTrace": self.tracing_data,
             "customerDomain": self.customer_domain,
             "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
             "supportEmail": get_support_mail(),
@@ -347,12 +365,12 @@ class _ClientConfig:
         }
 
 
-def get_client_config(request=None) -> MutableMapping[str, Any]:
+def get_client_config(request=None, org_context=None) -> MutableMapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """
 
-    config = _ClientConfig(request)
+    config = _ClientConfig(request, org_context)
     if request is not None and config.last_org is None:
         _delete_activeorg(config.session)
     return config.get_context()

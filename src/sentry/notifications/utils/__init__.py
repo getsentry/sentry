@@ -47,7 +47,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.notifications.notify import notify
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import region_silo_function
@@ -421,6 +420,8 @@ def get_notification_group_title(
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
+    from sentry.notifications.notify import notify
+
     participants_by_provider = notification.get_participants_with_group_subscription_reason()
     if participants_by_provider.is_empty():
         return

@@ -5,7 +5,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupIntegrationsTest(APITestCase):
     def test_simple_get(self):
         self.login_as(user=self.user)

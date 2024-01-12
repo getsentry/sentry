@@ -21,7 +21,7 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
+from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -74,7 +74,7 @@ class OrganizationPermissionBase(TestCase):
         return result_with_obj
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationPermissionTest(OrganizationPermissionBase):
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -237,7 +237,7 @@ class BaseOrganizationEndpointTest(TestCase):
         return request
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)
@@ -359,16 +359,26 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.create_team_membership(user=self.user, team=self.team_1)
         self.run_test([self.project_1, self.project_2], project_ids=[-1])
 
-    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
+    @mock.patch(
+        "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
+    )
     @mock.patch(
         "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
     )
     def test_get_projects_no_slug_fallsback_to_ids(
-        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
+        self, mock_get_project_ids_unchecked, mock__filter_projects_by_permissions
     ):
         project_slugs = [""]
         request = self.build_request(projectSlug=project_slugs)
-        mock_get_project_ids_unchecked.return_value = set()
+        mock_get_project_ids_unchecked.return_value = {self.project_1.id}
+
+        def side_effect(
+            projects,
+            **kwargs,
+        ):
+            return projects
+
+        mock__filter_projects_by_permissions.side_effect = side_effect
 
         self.endpoint.get_projects(
             request,
@@ -376,70 +386,81 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         )
 
         mock_get_project_ids_unchecked.assert_called_with(request)
-        mock__get_projects_by_id.assert_called_with(
-            set(),
-            request,
-            self.org,
-            False,
-            False,
+        mock__filter_projects_by_permissions.assert_called_with(
+            projects=[self.project_1],
+            request=request,
+            filter_by_membership=False,
+            force_global_perms=False,
+            include_all_accessible=False,
         )
 
-    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
     @mock.patch(
-        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+        "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    def test_get_projects_by_slugs_grabs_project_ids(
-        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
-    ):
+    def test_get_projects_by_slugs(self, mock__filter_projects_by_permissions):
         project_slugs = [self.project_1.slug]
         request = self.build_request(projectSlug=project_slugs)
 
+        def side_effect(
+            projects,
+            **kwargs,
+        ):
+            return projects
+
+        mock__filter_projects_by_permissions.side_effect = side_effect
         self.endpoint.get_projects(
             request,
             self.org,
         )
 
-        assert not mock_get_project_ids_unchecked.called
-        mock__get_projects_by_id.assert_called_with(
-            set({self.project_1.id}),
-            request,
-            self.org,
-            False,
-            False,
+        mock__filter_projects_by_permissions.assert_called_with(
+            projects=[self.project_1],
+            request=request,
+            filter_by_membership=False,
+            force_global_perms=False,
+            include_all_accessible=False,
         )
 
-    @mock.patch("sentry.api.bases.organization.OrganizationEndpoint._get_projects_by_id")
     @mock.patch(
-        "sentry.api.bases.organization.OrganizationEndpoint.get_requested_project_ids_unchecked"
+        "sentry.api.bases.organization.OrganizationEndpoint._filter_projects_by_permissions"
     )
-    def test_get_projects_by_slugs_all(
-        self, mock_get_project_ids_unchecked, mock__get_projects_by_id
-    ):
+    def test_get_projects_by_slugs_all(self, mock__filter_projects_by_permissions):
         project_slugs = ALL_ACCESS_PROJECTS_SLUG
         request = self.build_request(projectSlug=project_slugs)
 
-        self.endpoint.get_projects(
+        def side_effect(
+            projects,
+            **kwargs,
+        ):
+            return projects
+
+        mock__filter_projects_by_permissions.side_effect = side_effect
+
+        response = self.endpoint.get_projects(
             request,
             self.org,
         )
 
-        assert not mock_get_project_ids_unchecked.called
-        mock__get_projects_by_id.assert_called_with(
-            ALL_ACCESS_PROJECTS,
-            request,
-            self.org,
-            False,
-            False,
+        mock__filter_projects_by_permissions.assert_called_with(
+            projects=[self.project_1, self.project_2],
+            request=request,
+            filter_by_membership=False,
+            force_global_perms=False,
+            include_all_accessible=True,
         )
+        assert len(response) == 2
+        assert self.project_1 in response
+        assert self.project_2 in response
 
     def test_get_projects_by_slugs_no_projects_with_slug(self):
         project_slugs = ["hello"]
         request = self.build_request(projectSlug=project_slugs)
 
-        assert not self.endpoint.get_projects(request, self.org)
+        with pytest.raises(PermissionDenied):
+            self.endpoint.get_projects(request, self.org)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.project = self.create_project(organization=self.org)
@@ -467,7 +488,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
             self.run_test([self.env_1, self.env_2], ["fake", self.env_2.name])
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GetFilterParamsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)

@@ -13,7 +13,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -52,7 +51,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return manager.save(self.project.id)
 
     def __produce_event(self, *insert_args, **insert_kwargs):
-
         event_type = self.kafka_eventstream._get_event_type(insert_kwargs["event"])
 
         # pass arguments on to Kafka EventManager
@@ -87,7 +85,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         )
 
     def __produce_payload(self, *insert_args, **insert_kwargs):
-
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
@@ -220,12 +217,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         logger.error.assert_called_with(
             "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
             "associated with an `IssueOccurrence`",
-            exc_info=True,
         )
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
-
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
@@ -378,15 +373,18 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         profile_message = load_data("generic-event-profiling")
         geo_interface = {"city": "San Francisco", "country_code": "US", "region": "California"}
-        event_data = profile_message["event"]
-        event_data["user"] = {"geo": geo_interface}
+        event_data = {
+            **profile_message["event"],
+            "user": {"geo": geo_interface},
+            "timestamp": datetime.utcnow().isoformat(),
+        }
 
         project_id = event_data.get("project_id", self.project.id)
-        event_data["timestamp"] = datetime.utcnow().isoformat()
 
-        occurrence, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_data["event_id"], project_id=project_id),
-            event_data,
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
         )
         assert group_info is not None
 

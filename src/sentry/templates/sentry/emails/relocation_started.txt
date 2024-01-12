@@ -1,0 +1,9 @@
+Your relocation request has been accepted. You requested that the following organizations be moved to sentry.io:
+
+{% for org in orgs %}
+* {{ org }}
+{% endfor %}
+
+Relocations usually complete in 24 hours or less. If you do not hear from us in that time frame, please contact support at https://help.sentry.io.
+
+ID: {{ uuid }}

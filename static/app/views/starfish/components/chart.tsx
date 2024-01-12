@@ -62,12 +62,20 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsField.SPAN_SELF_TIME]: {
     outputType: 'duration',
   },
+  [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: {
+    outputType: 'size',
+  },
+  [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
+    outputType: 'size',
+  },
+  [SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH]: {
+    outputType: 'size',
+  },
 };
 
 type Props = {
   data: Series[];
   loading: boolean;
-  utc: boolean;
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
@@ -96,6 +104,7 @@ type Props = {
   }>;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
+  preserveIncompletePoints?: boolean;
   previousData?: Series[];
   rateUnit?: RateUnits;
   scatterPlot?: Series[];
@@ -149,7 +158,6 @@ function Chart({
   data,
   dataMax,
   previousData,
-  utc,
   loading,
   height,
   grid,
@@ -178,16 +186,17 @@ function Chart({
   onLegendSelectChanged,
   onDataZoom,
   legendFormatter,
+  preserveIncompletePoints,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
   const pageFilters = usePageFilters();
-  const {start, end, period} = pageFilters.selection.datetime;
+  const {start, end, period, utc} = pageFilters.selection.datetime;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
 
-  const echartsInstance = chartRef?.current?.getEchartsInstance();
+  const echartsInstance = chartRef?.current?.getEchartsInstance?.();
   if (echartsInstance && !echartsInstance.group) {
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
@@ -285,7 +294,7 @@ function Chart({
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
-        utc,
+        utc: utc ?? false,
         valueFormatter: (value, seriesName) => {
           return tooltipFormatter(
             value,
@@ -343,7 +352,7 @@ function Chart({
 
   // Trims off the last data point because it's incomplete
   const trimmedSeries =
-    period && !start && !end
+    !preserveIncompletePoints && period && !start && !end
       ? series.map(serie => {
           return {
             ...serie,
@@ -398,7 +407,9 @@ function Chart({
                 tooltip={areaChartProps.tooltip}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 10} : undefined}
+                legend={
+                  showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
+                }
                 onClick={onClick}
                 onMouseOut={onMouseOut}
                 onMouseOver={onMouseOver}
@@ -483,7 +494,7 @@ export function useSynchronizeCharts(deps: boolean[] = []) {
   const [synchronized, setSynchronized] = useState<boolean>(false);
   useEffect(() => {
     if (deps.every(Boolean)) {
-      echarts.connect(STARFISH_CHART_GROUP);
+      echarts?.connect?.(STARFISH_CHART_GROUP);
       setSynchronized(true);
     }
   }, [deps, synchronized]);

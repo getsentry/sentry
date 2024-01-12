@@ -173,30 +173,6 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     this.setState(state => ({invited: {...state.invited, [id]: 'success'}}));
   };
 
-  handleInviteMissingMember = async (email: string) => {
-    const {organization} = this.props;
-
-    try {
-      await this.api.requestPromise(
-        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
-        {
-          method: 'POST',
-          data: {email},
-        }
-      );
-      addSuccessMessage(tct('Sent invite to [email]', {email}));
-      this.fetchMembersList();
-      this.setState(state => ({
-        missingMembers: state.missingMembers.map(integrationMissingMembers => ({
-          ...integrationMissingMembers,
-          users: integrationMissingMembers.users.filter(member => member.email !== email),
-        })),
-      }));
-    } catch {
-      addErrorMessage(t('Error sending invite'));
-    }
-  };
-
   fetchMembersList = async () => {
     const {organization} = this.props;
 
@@ -300,13 +276,7 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {
-      membersPageLinks,
-      members,
-      member: currentMember,
-      inviteRequests,
-      missingMembers,
-    } = this.state;
+    const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
     const {access} = organization;
 
     const canAddMembers = access.includes('member:write');
@@ -322,7 +292,6 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
     // Only admins/owners can remove members
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
-    // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
       <SearchWrapperWithFilter>
         <MembersFilter
@@ -334,15 +303,10 @@ class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
       </SearchWrapperWithFilter>
     );
 
-    const githubMissingMembers = missingMembers?.filter(
-      integrationMissingMembers => integrationMissingMembers.integration === 'github'
-    )[0];
-
     return (
       <Fragment>
         <InviteBanner
-          missingMembers={githubMissingMembers}
-          onSendInvite={this.handleInviteMissingMember}
+          onSendInvite={this.fetchMembersList}
           onModalClose={this.fetchData}
           allowedRoles={currentMember ? currentMember.roles : ORG_ROLES}
         />

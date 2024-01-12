@@ -125,13 +125,16 @@ class MiddlewareWrapper(MetricsBackend):
         amount: Union[float, int] = 1,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.incr(key, instance, current_tags, amount, sample_rate, unit)
+        return self.inner.incr(
+            key, instance, current_tags, amount, sample_rate, unit, stacklevel + 1
+        )
 
     def timing(
         self,
@@ -140,13 +143,14 @@ class MiddlewareWrapper(MetricsBackend):
         instance: Optional[str] = None,
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
+        stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.timing(key, value, instance, current_tags, sample_rate)
+        return self.inner.timing(key, value, instance, current_tags, sample_rate, stacklevel + 1)
 
     def gauge(
         self,
@@ -156,13 +160,16 @@ class MiddlewareWrapper(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.gauge(key, value, instance, current_tags, sample_rate, unit)
+        return self.inner.gauge(
+            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
+        )
 
     def distribution(
         self,
@@ -172,10 +179,13 @@ class MiddlewareWrapper(MetricsBackend):
         tags: Optional[Tags] = None,
         sample_rate: float = 1,
         unit: Optional[str] = None,
+        stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
             current_tags.update(tags)
         current_tags = _filter_tags(key, current_tags)
 
-        return self.inner.distribution(key, value, instance, current_tags, sample_rate, unit)
+        return self.inner.distribution(
+            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
+        )

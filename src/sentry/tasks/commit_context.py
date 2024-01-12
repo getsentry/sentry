@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
+from typing import Any, Mapping
 
 import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
@@ -213,7 +216,7 @@ def process_commit_context(
             if munged:
                 frames = munged[1]
 
-            in_app_frames = [f for f in frames if f.get("in_app", False)][::-1]
+            in_app_frames = [f for f in frames if f and f.get("in_app", False)][::-1]
             # First frame in the stacktrace that is "in_app"
             frame = next(iter(in_app_frames), None)
 
@@ -258,6 +261,7 @@ def process_commit_context(
                 return
 
             if features.has("organizations:suspect-commits-all-frames", project.organization):
+                metrics.incr("tasks.process_commit_context_all_frames.start")
                 blame = None
                 installation = None
                 try:
@@ -270,10 +274,10 @@ def process_commit_context(
                     )
                 except ApiError:
                     logger.info(
-                        "process_commit_context.retry",
+                        "process_commit_context_all_frames.retry",
                         extra={**basic_logging_details, "retry_count": self.request.retries},
                     )
-                    metrics.incr("tasks.process_commit_context.retry")
+                    metrics.incr("tasks.process_commit_context_all_frames.retry")
                     self.retry()
 
                 if not blame or not installation:
@@ -342,6 +346,7 @@ def process_commit_context(
                             repository_id=code_mapping.repository_id,
                             key=commit_context.get("commitId"),
                         )
+                        assert commit is not None
                         if commit.message == "":
                             commit.message = commit_context.get("commitMessage")
                             commit.save()
@@ -403,13 +408,15 @@ def process_commit_context(
                             },
                         )
 
+            assert isinstance(commit, Commit)
             authors = list(CommitAuthor.objects.get_many_from_cache([commit.author_id]))
             author_to_user = get_users_for_authors(commit.organization_id, authors)
+            user_dct: Mapping[str, Any] = author_to_user.get(str(commit.author_id), {})
 
             group_owner, created = GroupOwner.objects.update_or_create(
                 group_id=group_id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user_id=author_to_user.get(str(commit.author_id), {}).get("id"),
+                user_id=user_dct.get("id"),
                 project=project,
                 organization_id=project.organization_id,
                 context={"commitId": commit.id},

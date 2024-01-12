@@ -129,12 +129,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                           date={checkIn.dateCreated}
                           forcedTimezone={monitor.config.timezone ?? 'UTC'}
                           timeZone
-                          timeOnly
                           seconds
                         />
                       }
                     >
-                      {<DateTime date={checkIn.dateCreated} timeZone timeOnly seconds />}
+                      {<DateTime date={checkIn.dateCreated} timeZone seconds />}
                     </Tooltip>
                   </div>
                 ) : (
@@ -180,7 +179,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                   <div>
                     <Button
                       size="xs"
-                      icon={<IconDownload size="xs" />}
+                      icon={<IconDownload />}
                       href={generateDownloadUrl(checkIn)}
                     >
                       {t('Attachment')}

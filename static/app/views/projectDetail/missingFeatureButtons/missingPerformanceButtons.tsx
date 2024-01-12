@@ -37,7 +37,7 @@ function MissingPerformanceButtons({organization}: Props) {
   return (
     <Feature
       hookName="feature-disabled:project-performance-score-card"
-      features={['performance-view']}
+      features="performance-view"
       organization={organization}
     >
       <ButtonBar gap={1}>

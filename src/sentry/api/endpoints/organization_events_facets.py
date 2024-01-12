@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba import discover
 
@@ -16,7 +17,7 @@ from sentry.snuba import discover
 @region_silo_endpoint
 class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -30,7 +31,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
-                with self.handle_query_errors():
+                with handle_query_errors():
                     facets = discover.get_facets(
                         query=request.GET.get("query"),
                         params=params,
@@ -46,10 +47,10 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:
                     values = resp[row.key]
-                    values["key"] = tagstore.get_standardized_key(row.key)
+                    values["key"] = tagstore.backend.get_standardized_key(row.key)
                     values["topValues"].append(
                         {
-                            "name": tagstore.get_tag_value_label(row.key, row.value),
+                            "name": tagstore.backend.get_tag_value_label(row.key, row.value),
                             "value": row.value,
                             "count": row.count,
                         }

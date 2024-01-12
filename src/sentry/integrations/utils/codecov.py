@@ -169,6 +169,6 @@ def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
         message = f"{error}. Continuing execution."
 
     if message:
-        logger.exception(message)
+        logger.error(message)
 
     return data

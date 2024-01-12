@@ -20,6 +20,7 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
+from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
@@ -86,8 +87,8 @@ class ReleaseFilesMixin:
             try:
                 # Only Read from artifact index if it has a positive artifact count
                 artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
-            except Exception as exc:
-                logger.error("Failed to read artifact index", exc_info=exc)
+            except Exception:
+                logger.exception("Failed to read artifact index")
                 artifact_index = None
 
             if artifact_index is not None:
@@ -157,6 +158,8 @@ class ReleaseFilesMixin:
 
         file = File.objects.create(name=name, type="release.file", headers=headers)
         file.putfile(fileobj, logger=logger)
+
+        metrics.incr("sourcemaps.upload.single_release_file")
 
         try:
             with atomic_transaction(using=router.db_for_write(ReleaseFile)):

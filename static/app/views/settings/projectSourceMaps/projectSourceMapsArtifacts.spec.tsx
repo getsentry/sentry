@@ -1,6 +1,7 @@
-import {SourceMapArchive} from 'sentry-fixture/sourceMapArchive';
-import {SourceMapArtifact} from 'sentry-fixture/sourceMapArtifact';
-import {SourceMapsDebugIDBundlesArtifacts} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SourceMapArchiveFixture} from 'sentry-fixture/sourceMapArchive';
+import {SourceMapArtifactFixture} from 'sentry-fixture/sourceMapArtifact';
+import {SourceMapsDebugIDBundlesArtifactsFixture} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,6 +14,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {ProjectSourceMapsArtifacts} from 'sentry/views/settings/projectSourceMaps/projectSourceMapsArtifacts';
 
 function renderReleaseBundlesMockRequests({
@@ -29,8 +31,8 @@ function renderReleaseBundlesMockRequests({
     body: empty
       ? []
       : [
-          SourceMapArchive(),
-          SourceMapArchive({
+          SourceMapArchiveFixture(),
+          SourceMapArchiveFixture({
             id: 2,
             name: 'abc',
             fileCount: 3,
@@ -41,7 +43,7 @@ function renderReleaseBundlesMockRequests({
 
   const sourceMapsFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/releases/bea7335dfaebc0ca6e65a057/files/`,
-    body: empty ? [] : [SourceMapArtifact()],
+    body: empty ? [] : [SourceMapArtifactFixture()],
   });
 
   return {sourceMaps, sourceMapsFiles};
@@ -58,7 +60,7 @@ function renderDebugIdBundlesMockRequests({
 }) {
   const artifactBundlesFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/`,
-    body: SourceMapsDebugIDBundlesArtifacts(
+    body: SourceMapsDebugIDBundlesArtifactsFixture(
       empty
         ? {
             fileCount: 0,
@@ -78,9 +80,16 @@ function renderDebugIdBundlesMockRequests({
 }
 
 describe('ProjectSourceMapsArtifacts', function () {
+  beforeEach(function () {
+    OrganizationStore.init();
+  });
+
   describe('Release Bundles', function () {
     it('renders default state', async function () {
       const {organization, routerContext, project, routerProps} = initializeOrg({
+        organization: OrganizationFixture({
+          access: ['org:superuser'],
+        }),
         router: {
           location: {
             query: {},
@@ -88,6 +97,8 @@ describe('ProjectSourceMapsArtifacts', function () {
           params: {},
         },
       });
+
+      OrganizationStore.onUpdate(organization, {replace: true});
 
       ConfigStore.config = {
         ...ConfigStore.config,
@@ -174,6 +185,9 @@ describe('ProjectSourceMapsArtifacts', function () {
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
       const {organization, project, routerProps, routerContext} = initializeOrg({
+        organization: OrganizationFixture({
+          access: ['org:superuser', 'project:releases'],
+        }),
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -184,6 +198,8 @@ describe('ProjectSourceMapsArtifacts', function () {
           params: {},
         },
       });
+
+      OrganizationStore.onUpdate(organization, {replace: true});
 
       ConfigStore.config = {
         ...ConfigStore.config,

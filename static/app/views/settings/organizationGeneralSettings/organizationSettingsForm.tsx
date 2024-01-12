@@ -74,7 +74,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                   </Tag>
                 </Hovercard>
               )}
-              features={['organizations:codecov-integration']}
+              features="organizations:codecov-integration"
             >
               {() => null}
             </Feature>

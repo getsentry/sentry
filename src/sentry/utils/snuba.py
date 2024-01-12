@@ -50,6 +50,10 @@ from sentry.utils.dates import outside_retention_with_modified_start, to_timesta
 
 logger = logging.getLogger(__name__)
 
+# Sentinels
+ROUND_UP = object()
+ROUND_DOWN = object()
+
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
@@ -113,7 +117,6 @@ SPAN_COLUMN_MAP = {
     "span.domain": "domain",
     "span.duration": "duration",
     "span.group": "group",
-    "span.group_raw": "group_raw",
     "span.module": "module",
     "span.op": "op",
     "span.self_time": "exclusive_time",
@@ -126,6 +129,10 @@ SPAN_COLUMN_MAP = {
     "user": "user",
     "profile_id": "profile_id",
 }
+
+SPAN_COLUMN_MAP.update(
+    {col.value.alias: col.value.spans_name for col in Columns if col.value.spans_name is not None}
+)
 
 SESSIONS_FIELD_LIST = [
     "release",
@@ -791,29 +798,37 @@ def raw_snql_query(
     referrer: Optional[str] = None,
     use_cache: bool = False,
 ) -> Mapping[str, Any]:
+    """
+    Alias for `bulk_snuba_queries`, kept for backwards compatibility.
+    """
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
-    metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
-    if "consistent" in OVERRIDE_OPTIONS:
-        request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
-
-    if referrer:
-        request.tenant_ids = request.tenant_ids or dict()
-        request.tenant_ids["referrer"] = referrer
-
-    params: SnubaQueryBody = (request, lambda x: x, lambda x: x)
-    return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
+    return bulk_snuba_queries([request], referrer, use_cache)[0]
 
 
 def bulk_snql_query(
     requests: List[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
-) -> Mapping[str, Any]:
-    # XXX (evanh): This function does none of the extra processing that the
-    # other functions do here. It does not add any automatic conditions, format
-    # results, nothing. Use at your own risk.
+) -> ResultSet:
+    """
+    Alias for `bulk_snuba_queries`, kept for backwards compatibility.
+    """
+    return bulk_snuba_queries(requests, referrer, use_cache)
+
+
+def bulk_snuba_queries(
+    requests: List[Request],
+    referrer: Optional[str] = None,
+    use_cache: bool = False,
+    use_mql: bool = False,
+) -> ResultSet:
+    """
+    The main entrypoint to running queries in Snuba. This function accepts
+    Requests for either MQL or SnQL queries and runs them on the appropriate endpoint.
+    """
+
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
     if "consistent" in OVERRIDE_OPTIONS:
         for request in requests:
@@ -825,6 +840,23 @@ def bulk_snql_query(
             request.tenant_ids["referrer"] = referrer
 
     params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
+    return _apply_cache_and_build_results(
+        params, referrer=referrer, use_cache=use_cache, use_mql=use_mql
+    )
+
+
+# TODO: This is the endpoint that accepts legacy (non-SnQL/MQL queries)
+# It should eventually be removed
+def bulk_raw_query(
+    snuba_param_list: Sequence[SnubaQueryParams],
+    referrer: Optional[str] = None,
+    use_cache: Optional[bool] = False,
+) -> ResultSet:
+    """
+    Used to make queries using the (very) old JSON format for Snuba queries. Queries submitted here
+    will be converted to SnQL queries before being sent to Snuba.
+    """
+    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -838,19 +870,11 @@ def get_cache_key(query: SnubaQuery) -> str:
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
 
 
-def bulk_raw_query(
-    snuba_param_list: Sequence[SnubaQueryParams],
-    referrer: Optional[str] = None,
-    use_cache: Optional[bool] = False,
-) -> ResultSet:
-    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
-    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
-
-
 def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
+    use_mql: bool = False,
 ) -> ResultSet:
     headers = {}
     validate_referrer(referrer)
@@ -878,7 +902,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
+        query_results = _bulk_snuba_query([item[1] for item in to_query], headers, use_mql=use_mql)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -893,6 +917,7 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
+    use_mql: bool = False,
 ) -> ResultSet:
     query_referrer = headers.get("referer", "<unknown>")
 
@@ -907,10 +932,10 @@ def _bulk_snuba_query(
         sentry_sdk.set_tag("query.referrer", query_referrer)
         # This is confusing because this function is overloaded right now with two cases:
         # 1. A SnQL query of a legacy query (_legacy_snql_query)
-        # 2. A direct SnQL query using the new SDK (_snql_query)
+        # 2. A direct SnQL query using the new SDK (_snuba_query)
         query_fn = _legacy_snql_query
         if isinstance(snuba_param_list[0][0], Request):
-            query_fn = _snql_query
+            query_fn = _snuba_query
 
         parent_api: str = "<missing>"
         with sentry_sdk.configure_scope() as scope:
@@ -922,14 +947,16 @@ def _bulk_snuba_query(
                 _query_thread_pool.map(
                     query_fn,
                     [
-                        (params, Hub(Hub.current), headers, parent_api)
+                        (params, Hub(Hub.current), headers, parent_api, use_mql)
                         for params in snuba_param_list
                     ],
                 )
             )
         else:
             # No need to submit to the thread pool if we're just performing a single query
-            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api))]
+            query_results = [
+                query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api, use_mql))
+            ]
 
     results = []
     for response, _, reverse in query_results:
@@ -984,21 +1011,46 @@ def _snql_query(
         tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]], Hub, Mapping[str, str], str
     ]
 ) -> RawResult:
+    # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
+    return _snuba_query(tuple([*params, False]))
+
+
+def _snuba_query(
+    params: tuple[
+        tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]],
+        Hub,
+        Mapping[str, str],
+        str,
+        bool,
+    ],
+) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
-    query_data, thread_hub, headers, parent_api = params
+    query_data, thread_hub, headers, parent_api, use_mql = params
     request, forward, reverse = query_data
     request.parent_api = parent_api
     assert isinstance(request, Request)
     try:
+        referrer = headers.get("referer", "unknown")
+        if SNUBA_INFO:
+            import pprint
+
+            print(  # NOQA: only prints when an env variable is set
+                f"{referrer}.body:\n {pprint.pformat(request.to_dict(mql=use_mql))}"
+            )
+            request.flags.debug = True
+
+        if use_mql:
+            return _raw_mql_query(request, thread_hub, headers), forward, reverse
+
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
 
 
-def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawResult:
+def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str, bool]) -> RawResult:
     # Convert the JSON query to SnQL and run it
-    query_data, thread_hub, headers, parent_api = params
+    query_data, thread_hub, headers, parent_api, _ = params
     query_params, forward, reverse = query_data
 
     try:
@@ -1012,20 +1064,30 @@ def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -
     return result, forward, reverse
 
 
+def _raw_mql_query(
+    request: Request, thread_hub: Hub, headers: Mapping[str, str]
+) -> urllib3.response.HTTPResponse:
+    # Enter hub such that http spans are properly nested
+    with thread_hub, timer("mql_query"):
+        referrer = headers.get("referer", "unknown")
+        with thread_hub.start_span(op="snuba_mql.validation", description=referrer) as span:
+            span.set_tag("snuba.referrer", referrer)
+            # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
+            body = request.serialize_mql()
+
+        with thread_hub.start_span(op="snuba_mql.run", description=str(request)) as span:
+            span.set_tag("snuba.referrer", referrer)
+            return _snuba_pool.urlopen(
+                "POST", f"/{request.dataset}/mql", body=body, headers=headers
+            )
+
+
 def _raw_snql_query(
     request: Request, thread_hub: Hub, headers: Mapping[str, str]
 ) -> urllib3.response.HTTPResponse:
     # Enter hub such that http spans are properly nested
     with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
-        if SNUBA_INFO:
-            import pprint
-
-            print(  # NOQA: only prints when an env variable is set
-                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
-            )
-            request.flags.debug = True
-
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = request.serialize()
@@ -1050,7 +1112,6 @@ def query(
     use_cache=False,
     **kwargs,
 ):
-
     aggregations = aggregations or [["count()", "", "aggregate"]]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
@@ -1190,7 +1251,7 @@ def resolve_condition(cond, column_resolver):
             return cond
 
         func_args = cond[index + 1]
-        for (i, arg) in enumerate(func_args):
+        for i, arg in enumerate(func_args):
             # Nested function
             try:
                 if isinstance(arg, (list, tuple)):
@@ -1274,7 +1335,7 @@ def aliased_query_params(
     derived_columns = []
     resolve_func = resolve_column(dataset)
     if selected_columns:
-        for (i, col) in enumerate(selected_columns):
+        for i, col in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
@@ -1298,7 +1359,7 @@ def aliased_query_params(
     if orderby:
         # Don't mutate in case we have a default order passed.
         updated_order = []
-        for (i, order) in enumerate(orderby):
+        for i, order in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
                 order_field = resolve_func(order_field)
@@ -1531,7 +1592,7 @@ def naiveify_datetime(dt):
     return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-def quantize_time(time, key_hash, duration=300):
+def quantize_time(time, key_hash, duration=300, rounding=ROUND_DOWN):
     """Adds jitter based on the key_hash around start/end times for caching snuba queries
 
     Given a time and a key_hash this should result in a timestamp that remains the same for a duration
@@ -1555,6 +1616,10 @@ def quantize_time(time, key_hash, duration=300):
     # Otherwise we're in the previous time window, subtract duration to give us the previous timewindows start
     else:
         seconds_past_hour = time_window_start - duration
+
+    if rounding == ROUND_UP:
+        seconds_past_hour += duration
+
     return (
         # Since we're adding seconds past the hour, we want time but without minutes or seconds
         time.replace(minute=0, second=0, microsecond=0)

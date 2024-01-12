@@ -4,6 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.fields.actor import ActorField
@@ -148,7 +149,7 @@ def remove_alert_rule(request: Request, organization, alert_rule):
 
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     aggregate = serializers.CharField(
         help_text="A string representing the aggregate function used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See **Metric Alert Rule Types** under [Create a Metric Alert Rule](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types) for valid configurations."
     )
@@ -255,6 +256,7 @@ Metric alert rule trigger actions follow the following structure:
 @extend_schema(tags=["Alerts"])
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,

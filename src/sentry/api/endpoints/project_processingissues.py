@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -12,8 +13,9 @@ from sentry.reprocessing import trigger_reprocessing
 
 @region_silo_endpoint
 class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
 
     def delete(self, request: Request, project) -> Response:
@@ -26,9 +28,10 @@ class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project) -> Response:

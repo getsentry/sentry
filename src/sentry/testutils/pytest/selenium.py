@@ -115,8 +115,8 @@ class Browser:
             self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
     @contextmanager
-    def full_viewport(self, width=None, height=None):
-        return self.set_viewport(width, height, fit_content=True)
+    def full_viewport(self, width=None, height=None, fit_content=True):
+        return self.set_viewport(width, height, fit_content)
 
     @contextmanager
     def mobile_viewport(self, width=375, height=812):
@@ -205,12 +205,11 @@ class Browser:
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -219,16 +218,15 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
         elif xpath:
-            condition = expected_conditions.presence_of_element_located((By.XPATH, xpath))
+            wait.until(expected_conditions.presence_of_element_located((By.XPATH, xpath)))
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until(expected_conditions.title_is(title))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -240,34 +238,39 @@ class Browser:
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until_not(
+                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            )
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until_not(expected_conditions.title_is(title))
         else:
             raise
 
-        WebDriverWait(self.driver, timeout).until_not(condition)
+        return self
+
+    def wait_until_script_execution(self, script, timeout=10):
+        """
+        Waits until ``script`` executes and evaluates truthy,
+        or until ``timeout`` is hit, whichever happens first.
+        """
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(lambda driver: driver.execute_script(script))
 
         return self
 
     def wait_for_images_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script(
-                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
-            )
+        return self.wait_until_script_execution(
+            """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
+            timeout,
         )
-
-        return self
 
     def wait_for_fonts_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        return self.wait_until_script_execution(
+            """return document.fonts.status === 'loaded'""",
+            timeout,
         )
-
-        return self
 
     @property
     def switch_to(self):
@@ -331,7 +334,7 @@ class Browser:
             self.get("/")
 
         # TODO(dcramer): this should be escaped, but idgaf
-        logger.info(f"selenium.set-cookie.{name}", extra={"value": value})
+        logger.info("selenium.set-cookie.%s", name, extra={"value": value})
         # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
         # an invalid kwarg
         del cookie["secure"]
@@ -359,7 +362,6 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-
     if hasattr(config, "workerinput"):
         return  # xdist worker
 

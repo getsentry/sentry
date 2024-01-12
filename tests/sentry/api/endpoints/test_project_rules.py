@@ -14,8 +14,9 @@ from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
 from sentry.silo import SiloMode
+from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -54,7 +55,7 @@ class ProjectRuleBaseTestCase(APITestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -65,7 +66,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
 
@@ -620,7 +621,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         "sentry.integrations.slack.actions.notification.get_channel_id",
         return_value=("#", None, True),
     )
-    @patch("sentry.tasks.integrations.slack.find_channel_id_for_rule.apply_async")
+    @patch.object(find_channel_id_for_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self,
@@ -762,6 +763,41 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == "Select a valid choice. bad data is not one of the available choices."
         )
 
+    @with_feature("organizations:latest-adopted-release-filter")
+    def test_latest_adopted_release_filter_validation(self):
+        filter = {
+            "id": "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
+            "oldest_or_newest": "oldest",
+            "older_or_newer": "newer",
+            "environment": self.environment.name + "fake",
+        }
+        response = self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            name="hello world",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            filters=[filter],
+            frequency=30,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            str(response.data["filters"][0])
+            == "environment does not exist or is not associated with this organization"
+        )
+        filter["environment"] = self.environment.name
+        self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            name="hello world",
+            actionMatch="any",
+            filterMatch="any",
+            actions=self.notify_event_action,
+            filters=[filter],
+            frequency=30,
+        )
+
     @responses.activate
     def test_create_sentry_app_action_success(self):
         responses.add(
@@ -836,3 +872,35 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
+
+    def test_post_rule_256_char_name(self):
+        char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name=char_256_name,
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=self.notify_issue_owners_action,
+            conditions=self.first_seen_condition,
+        )
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.label == char_256_name
+
+    def test_post_rule_over_256_char_name(self):
+        char_257_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFOK"
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name=char_257_name,
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            conditions=self.first_seen_condition,
+            actions=self.notify_issue_owners_action,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."

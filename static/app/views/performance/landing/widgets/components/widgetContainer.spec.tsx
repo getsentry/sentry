@@ -890,7 +890,50 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Highest opportunity pages widget', async function () {
+  it('Most time consuming resources widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES}
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Time Consuming Resources'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: [
+            'span.description',
+            'span.op',
+            'project.id',
+            'span.group',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query:
+            '!span.description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] ) transaction.op:pageload',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Best Page Opportunities widget', async function () {
     const data = initializeData();
 
     wrapper = render(
@@ -903,32 +946,57 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Highest Opportunity Pages'
+      'Best Page Opportunities'
     );
-    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'metrics',
-          environment: ['prod'],
           field: [
-            'transaction',
-            'transaction.op',
-            'project.id',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.fid)',
+            'p75(transaction.duration)',
+            'count_web_vitals(measurements.lcp, any)',
+            'count_web_vitals(measurements.fcp, any)',
+            'count_web_vitals(measurements.cls, any)',
+            'count_web_vitals(measurements.fid, any)',
+            'count_web_vitals(measurements.ttfb, any)',
             'count()',
           ],
-          per_page: QUERY_LIMIT_PARAM,
-          project: ['-42'],
+          query: 'transaction.op:pageload',
+        }),
+      })
+    );
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+          field: [
+            'transaction',
+            'transaction.op',
+            'p75(measurements.lcp)',
+            'p75(measurements.fcp)',
+            'p75(measurements.cls)',
+            'p75(measurements.ttfb)',
+            'p75(measurements.fid)',
+            'count_web_vitals(measurements.lcp, any)',
+            'count_web_vitals(measurements.fcp, any)',
+            'count_web_vitals(measurements.cls, any)',
+            'count_web_vitals(measurements.ttfb, any)',
+            'count_web_vitals(measurements.fid, any)',
+            'count()',
+          ],
+          per_page: 4,
           query: 'transaction.op:pageload',
           sort: '-count()',
-          statsPeriod: '7d',
         }),
       })
     );

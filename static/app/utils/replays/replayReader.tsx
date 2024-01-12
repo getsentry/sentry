@@ -3,6 +3,7 @@ import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrwe
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
+import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import hydrateBreadcrumbs, {
@@ -58,6 +59,10 @@ interface ReplayReaderParams {
   replayRecord: ReplayRecord | undefined;
 }
 
+interface Options {
+  showHydrationErrors?: boolean;
+}
+
 type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
@@ -91,13 +96,16 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
+  static factory(
+    {attachments, errors, replayRecord}: ReplayReaderParams,
+    options: Options
+  ) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord});
+      return new ReplayReader({attachments, errors, replayRecord}, options);
     } catch (err) {
       Sentry.captureException(err);
 
@@ -105,19 +113,22 @@ export default class ReplayReader {
       // array or errors array to blame (it's probably attachments though).
       // Either way we can use the replayRecord to show some metadata, and then
       // put an error message below it.
-      return new ReplayReader({
-        attachments: [],
-        errors: [],
-        replayRecord,
-      });
+      return new ReplayReader(
+        {
+          attachments: [],
+          errors: [],
+          replayRecord,
+        },
+        options
+      );
     }
   }
 
-  private constructor({
-    attachments,
-    errors,
-    replayRecord,
-  }: RequiredNotNull<ReplayReaderParams>) {
+  private constructor(
+    {attachments, errors, replayRecord}: RequiredNotNull<ReplayReaderParams>,
+    options: Options
+  ) {
+    this._options = options;
     this._cacheKey = domId('replayReader-');
 
     if (replayRecord.is_archived) {
@@ -170,7 +181,8 @@ export default class ReplayReader {
     // few seconds later.
     this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
       replayRecord,
-      breadcrumbFrames
+      breadcrumbFrames,
+      this._sortedRRWebEvents
     ).sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
     // can have an easier time to render.
@@ -185,6 +197,7 @@ export default class ReplayReader {
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
+  private _options: Options;
   private _cacheKey: string;
   private _errors: ErrorFrame[] = [];
   private _optionFrame: undefined | OptionFrame;
@@ -194,6 +207,21 @@ export default class ReplayReader {
   private _sortedSpanFrames: SpanFrame[] = [];
 
   toJSON = () => this._cacheKey;
+
+  processingErrors = memoize(() => {
+    return [
+      this.getRRWebFrames().length < 2
+        ? `Replay has ${this.getRRWebFrames().length} frames`
+        : null,
+      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+        ? 'Missing Meta Frame'
+        : null,
+    ].filter(defined);
+  });
+
+  hasProcessingErrors = () => {
+    return this.processingErrors().length;
+  };
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -264,12 +292,20 @@ export default class ReplayReader {
   getChapterFrames = memoize(() =>
     [
       ...this.getPerfFrames(),
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'replay.mutations'].includes(frame.category)
+      ...this._sortedBreadcrumbFrames.filter(
+        frame =>
+          ['replay.init', 'replay.mutations'].includes(frame.category) ||
+          (this._options.showHydrationErrors && frame.category === 'replay.hydrate-error')
       ),
       ...this._errors,
     ].sort(sortFrames)
   );
+
+  // TODO(session-replay-show-hydration-errors): remove this on GA
+  getHydrationFrames = () =>
+    this._sortedBreadcrumbFrames.filter(
+      frame => frame.category === 'replay.hydrate-error'
+    );
 
   getPerfFrames = memoize(() =>
     [

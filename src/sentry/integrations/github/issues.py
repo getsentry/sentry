@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from operator import attrgetter
 from typing import Any, Dict, List, Mapping, Sequence
 
@@ -7,6 +8,7 @@ from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization
@@ -25,6 +27,26 @@ class GitHubIssueBasic(IssueBasicMixin):
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
+    def get_feedback_issue_body(self, event: GroupEvent) -> str:
+        messages = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name == "message"
+        ]
+        others = [
+            evidence for evidence in event.occurrence.evidence_display if evidence.name != "message"
+        ]
+
+        body = ""
+        for message in messages:
+            body += message.value
+            body += "\n\n"
+
+        body += "|  |  |\n"
+        body += "| ------------- | --------------- |\n"
+        for evidence in sorted(others, key=attrgetter("important"), reverse=True):
+            body += f"| **{evidence.name}** | {evidence.value} |\n"
+
+        return body.rstrip("\n")  # remove the last new line
+
     def get_generic_issue_body(self, event: GroupEvent) -> str:
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
@@ -39,7 +61,11 @@ class GitHubIssueBasic(IssueBasicMixin):
         output = self.get_group_link(group, **kwargs)
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
-            body = self.get_generic_issue_body(event)
+            body = ""
+            if group.issue_category == GroupCategory.FEEDBACK:
+                body = self.get_feedback_issue_body(event)
+            else:
+                body = self.get_generic_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
@@ -264,9 +290,14 @@ class GitHubIssueBasic(IssueBasicMixin):
         except Exception as e:
             self.raise_error(e)
 
+        def natural_sort_pair(pair: tuple[str, str]) -> str | int:
+            return [
+                int(text) if text.isdecimal() else text for text in re.split("([0-9]+)", pair[0])
+            ]
+
         # sort alphabetically
         labels = tuple(
-            sorted([(label["name"], label["name"]) for label in response], key=lambda pair: pair[0])
+            sorted([(label["name"], label["name"]) for label in response], key=natural_sort_pair)
         )
 
         return labels

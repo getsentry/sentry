@@ -6,7 +6,6 @@ import responses
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -17,14 +16,14 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="gitlab",
                 name="Example GitLab",
                 external_id="example.gitlab.com:getsentry",

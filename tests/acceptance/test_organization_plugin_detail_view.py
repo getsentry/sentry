@@ -8,7 +8,7 @@ from sentry.testutils.silo import no_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationPluginDetailedView(AcceptanceTestCase):
     @cached_property
     def plugin(self):

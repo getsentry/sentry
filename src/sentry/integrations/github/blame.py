@@ -9,7 +9,6 @@ from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
 
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
-from sentry.utils import json
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -114,16 +113,13 @@ def extract_commits_from_blame_response(
     back to the correct file.
     """
     file_blames: list[FileBlameInfo] = []
-    logger.info(
-        "get_blame_for_files.extract_commits_from_blame.missing_repository",
-        extra={**extra, "response": json.dumps(response)},
-    )
+    logger.info("get_blame_for_files.extract_commits_from_blame.missing_repository", extra=extra)
     for repo_index, (full_repo_name, ref_mapping) in enumerate(file_path_mapping.items()):
         repo_mapping: Optional[GitHubRepositoryResponse] = response.get("data", {}).get(
             f"repository{repo_index}"
         )
         if not repo_mapping:
-            logger.error(
+            logger.warning(
                 "get_blame_for_files.extract_commits_from_blame.missing_repository",
                 extra={**extra, "repo": full_repo_name},
             )
@@ -131,7 +127,7 @@ def extract_commits_from_blame_response(
         for ref_index, (ref_name, file_paths) in enumerate(ref_mapping.items()):
             ref: Optional[GitHubRefResponse] = repo_mapping.get(f"ref{ref_index}")
             if not isinstance(ref, dict):
-                logger.error(
+                logger.warning(
                     "get_blame_for_files.extract_commits_from_blame.missing_branch",
                     extra={**extra, "repo": full_repo_name, "branch": ref_name},
                 )
@@ -189,7 +185,7 @@ def _get_matching_file_blame(
         None,
     )
     if not matching_blame_range:
-        logger.error(
+        logger.warning(
             "get_blame_for_files.extract_commits_from_blame.no_matching_blame_range",
             extra=extra,
         )
@@ -267,7 +263,7 @@ def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
 
 def _make_blame_query(path: str, index: int) -> str:
     return f"""
-                    blame{index}: blame(path: "{path}") {{
+                    blame{index}: blame(path: "{path.strip('/')}") {{
                         ranges {{
                             commit {{
                                 oid

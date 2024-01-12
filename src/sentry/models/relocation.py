@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-import logging
 from enum import Enum, unique
 from uuid import uuid4
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_only_model
+from sentry.db.models import BoundedBigIntegerField, region_silo_only_model
 from sentry.db.models.base import DefaultFieldsModel, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.uuid import UUIDField
-
-logger = logging.getLogger(__name__)
 
 
 def default_guid():
@@ -28,6 +24,7 @@ class Relocation(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Excluded
+    __relocation_dependencies__ = {"sentry.User"}
 
     # The last stage this relocation reached. If the `Status` is `IN_PROGRESS`, the relocation is
     # still active; otherwise, this can be considered the terminal stage.
@@ -54,10 +51,30 @@ class Relocation(DefaultFieldsModel):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
+        # Like `get_choices` above, except it excludes the final `COMPLETED` step.
+        @classmethod
+        def get_in_progress_choices(cls) -> list[tuple[int, str]]:
+            return [(key.value, key.name) for key in cls if key.name != "COMPLETED"]
+
+        @classmethod
+        def max_value(cls):
+            return max(item.value for item in cls)
+
     class Status(Enum):
         IN_PROGRESS = 0
         FAILURE = 1
         SUCCESS = 2
+        PAUSE = 3
+
+        # TODO(getsentry/team-ospo#190): Could we dedup this with a mixin in the future?
+        @classmethod
+        def get_choices(cls) -> list[tuple[int, str]]:
+            return [(key.value, key.name) for key in cls]
+
+    class EmailKind(Enum):
+        STARTED = 0
+        FAILED = 1
+        SUCCEEDED = 2
 
         # TODO(getsentry/team-ospo#190): Could we dedup this with a mixin in the future?
         @classmethod
@@ -66,22 +83,14 @@ class Relocation(DefaultFieldsModel):
 
     # The user that requested this relocation - if the request was made by an admin on behalf of a
     # user, this will be different from `owner`. Otherwise, they are identical.
-    #
-    # This is left NULL because we want to retain the ability to audit and rollback a `Relocation`
-    # even in the (unlikely) event of an admin account being deleted, but that `NULL` should never
-    # be set at creation time.
-    creator = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    creator_id = BoundedBigIntegerField()
 
     # The user that will be marked as the `owner` of this relocation. This is subtly different from
     # the `creator` - anyone with superuser privileges can create a new relocation, but it must
     # always be assigned to some user who will be responsible for it (ex: will become a global admin
     # for all newly imported orgs, will receive emails with status updates as the relocation
     # progresses, etc) over its lifetime and once it is completed.
-    #
-    # This is left NULL because we want to retain the ability to audit and rollback a `Relocation`
-    # even in the event of the owner's account being deleted, but that `NULL` should never be set at
-    # creation time.
-    owner = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    owner_id = BoundedBigIntegerField()
 
     # Unique ID for this import attempt. All assembled files in the remote filestore will be in a
     # directory named after this UUID.
@@ -93,6 +102,18 @@ class Relocation(DefaultFieldsModel):
     # Possible values are in the the Status enum.
     status = models.SmallIntegerField(
         choices=Status.get_choices(), default=Status.IN_PROGRESS.value
+    )
+
+    # Schedules a pause prior to some step that has not yet occurred. Useful to perform an orderly
+    # halting of the relocation. When unpausing, the unpausing process is responsible for scheduling
+    # the correct celery task so that the relocation may continue.
+    scheduled_pause_at_step = models.SmallIntegerField(
+        choices=Step.get_in_progress_choices(), null=True, default=None
+    )
+
+    # Schedules the termination of this relocation prior to some step that has not yet occurred.
+    scheduled_cancel_at_step = models.SmallIntegerField(
+        choices=Step.get_in_progress_choices(), null=True, default=None
     )
 
     # Organizations, identified by slug, which this relocation seeks to import, specified by the
@@ -107,7 +128,12 @@ class Relocation(DefaultFieldsModel):
 
     # The last status for which we have notified the user. It is `None` by default, to indicate that
     # we have not yet sent the user a "your relocation is in progress" email.
-    latest_notified = models.SmallIntegerField(choices=Step.get_choices(), null=True, default=None)
+    latest_notified = models.SmallIntegerField(
+        choices=EmailKind.get_choices(), null=True, default=None
+    )
+
+    # The last time we've sent the "claim your account" email blast to all unclaimed users.
+    latest_unclaimed_emails_sent_at = models.DateTimeField(null=True, default=None)
 
     # The last task started by this relocation. Because tasks for a given relocation are always
     # attempted sequentially, and never in concurrently (that is, there is always at most one task
@@ -125,6 +151,18 @@ class Relocation(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_relocation"
+        constraints = [
+            models.CheckConstraint(
+                name="scheduled_pause_at_step_greater_than_current_step",
+                check=models.Q(scheduled_pause_at_step__gt=models.F("step"))
+                | models.Q(scheduled_pause_at_step__isnull=True),
+            ),
+            models.CheckConstraint(
+                name="scheduled_cancel_at_step_greater_than_current_step",
+                check=models.Q(scheduled_cancel_at_step__gt=models.F("step"))
+                | models.Q(scheduled_cancel_at_step__isnull=True),
+            ),
+        ]
 
 
 @region_silo_only_model
@@ -146,14 +184,20 @@ class RelocationFile(DefaultFieldsModel):
         RAW_USER_DATA = 1
         # A normalized version of the user data.
         #
-        # TODO(getsentry/team-ospo#203): Add a normalization step to the relocation flow
+        # TODO(getsentry/team-ospo#216): Add a normalization step to the relocation flow
         NORMALIZED_USER_DATA = 2
-        # The global configuration we're going to validate against - pulled from the live Sentry
-        # instance, not supplied by the user.
+        # (Deprecated) The global configuration we're going to validate against - pulled from the
+        # live Sentry instance, not supplied by the user.
+        #
+        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
+        # Remove in the future.
         BASELINE_CONFIG_VALIDATION_DATA = 3
-        # The colliding users we're going to validate against - pulled from the live Sentry
-        # instance, not supplied by the user. However, to determine what is a "colliding user", we
-        # must inspect the user-provided data.
+        # (Deprecated) The colliding users we're going to validate against - pulled from the live
+        # Sentry instance, not supplied by the user. However, to determine what is a "colliding
+        # user", we must inspect the user-provided data.
+        #
+        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
+        # Remove in the future.
         COLLIDING_USERS_VALIDATION_DATA = 4
 
         # TODO(getsentry/team-ospo#190): Could we dedup this with a mixin in the future?

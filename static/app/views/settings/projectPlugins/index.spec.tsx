@@ -1,4 +1,8 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PluginFixture} from 'sentry-fixture/plugin';
+import {PluginsFixture} from 'sentry-fixture/plugins';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -19,16 +23,16 @@ describe('ProjectPluginsContainer', function () {
     params: {projectId: string};
 
   beforeEach(function () {
-    org = Organization();
-    project = TestStubs.Project();
-    plugins = TestStubs.Plugins([
-      {
+    org = OrganizationFixture();
+    project = ProjectFixture();
+    plugins = PluginsFixture([
+      PluginFixture({
         enabled: true,
         id: 'disableable plugin',
         name: 'Disableable Plugin',
         slug: 'disableable plugin',
         canDisable: true,
-      },
+      }),
     ]);
     params = {
       projectId: project.slug,
@@ -59,7 +63,7 @@ describe('ProjectPluginsContainer', function () {
     });
     render(
       <ProjectPluginsContainer
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         plugins={{plugins, loading: false, error: undefined}}
         params={params}
         organization={org}

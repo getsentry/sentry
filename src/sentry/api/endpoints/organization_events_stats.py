@@ -14,12 +14,14 @@ from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
 from sentry.snuba import (
     discover,
+    errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
     spans_indexed,
     spans_metrics,
 )
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
 
@@ -62,6 +64,7 @@ METRICS_ENHANCED_REFERRERS: Set[str] = {
     Referrer.API_STARFISH_SPAN_SUMMARY_PAGE_CHART.value,
     Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS_CHART.value,
     Referrer.API_STARFISH_SPAN_TIME_CHARTS.value,
+    Referrer.API_STARFISH_MOBILE_SCREEN_METRICS_SERIES.value,
 }
 
 
@@ -105,6 +108,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:use-metrics-layer",
             "organizations:starfish-view",
             "organizations:on-demand-metrics-extraction",
+            "organizations:on-demand-metrics-extraction-widgets",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -186,6 +190,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if dataset
                     in [
                         discover,
+                        errors,
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
@@ -200,7 +205,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
+        try:
+            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
+        except ValueError:
+            metric_type_values = [e.value for e in MetricSpecType]
+            metric_types = ",".join(metric_type_values)
+            return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
+
+        force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
 
         def get_event_stats(
             query_columns: Sequence[str],
@@ -224,8 +236,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
+                    on_demand_metrics_enabled=use_on_demand_metrics,
+                    on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                 )
+
             return dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
@@ -236,9 +251,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=use_metrics,
-                use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
+                # We want to allow people to force use the new metrics layer in the query builder. We decided to go for
+                # this approach so that we can have only a subset of parts of sentry that use the new metrics layer for
+                # their queries since right now the metrics layer has not full feature parity with the query builder.
+                use_metrics_layer=force_metrics_layer
+                or batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=use_on_demand_metrics
-                and batch_features.get("organizations:on-demand-metrics-extraction", False),
+                and (
+                    batch_features.get("organizations:on-demand-metrics-extraction", False)
+                    or batch_features.get(
+                        "organizations:on-demand-metrics-extraction-widgets", False
+                    )
+                ),
+                on_demand_metrics_type=on_demand_metrics_type,
             )
 
         try:

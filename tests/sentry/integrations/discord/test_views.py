@@ -24,7 +24,7 @@ class DiscordIntegrationLinkIdentityTestBase(TestCase):
         self.provider = self.create_identity_provider(integration=self.discord_integration)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase):
     def test_basic_flow(self):
         url = build_linking_url(self.discord_integration, self.discord_user_id)  # type: ignore
@@ -51,7 +51,7 @@ class DiscordIntegrationLinkIdentityTest(DiscordIntegrationLinkIdentityTestBase)
         self.assertTemplateUsed(response, "sentry/integrations/discord/expired-link.html")
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class DiscordIntegrationUnlinkIdentityTest(DiscordIntegrationLinkIdentityTestBase):
     def setUp(self):
         super().setUp()

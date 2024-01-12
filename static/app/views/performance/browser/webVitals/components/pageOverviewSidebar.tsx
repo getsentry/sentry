@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -15,8 +16,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
@@ -24,15 +25,26 @@ const CHART_HEIGHTS = 100;
 type Props = {
   transaction: string;
   projectScore?: ProjectScore;
+  projectScoreIsLoading?: boolean;
   search?: string;
 };
 
-export function PageOverviewSidebar({projectScore, transaction}: Props) {
+export function PageOverviewSidebar({
+  projectScore,
+  transaction,
+  projectScoreIsLoading,
+}: Props) {
   const theme = useTheme();
   const router = useRouter();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
-  const doubledPeriod = getPeriod({period, start, end}, {shouldDoublePeriod: true});
+  const shouldDoublePeriod = shouldFetchPreviousPeriod({
+    includePrevious: true,
+    period,
+    start,
+    end,
+  });
+  const doubledPeriod = getPeriod({period, start, end}, {shouldDoublePeriod});
   const doubledDatetime: PageFilters['datetime'] = {
     period: doubledPeriod.statsPeriod ?? null,
     start: doubledPeriod.start ?? null,
@@ -40,7 +52,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
     utc,
   };
 
-  const {data, isLoading: isLoading} = useProjectWebVitalsValuesTimeseriesQuery({
+  const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
     datetime: doubledDatetime,
   });
@@ -57,7 +69,9 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
     seriesData = seriesData.slice(0, -1);
   }
   const dataMiddleIndex = Math.floor(seriesData.length / 2);
-  const currentSeries = seriesData.slice(dataMiddleIndex);
+  const currentSeries = shouldDoublePeriod
+    ? seriesData.slice(dataMiddleIndex)
+    : seriesData;
   const previousSeries = seriesData.slice(0, dataMiddleIndex);
 
   const initialCount = !isLoading
@@ -100,6 +114,17 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
+  // Gets weights to dynamically size the performance score ring segments
+  const weights = projectScore
+    ? {
+        cls: projectScore.clsWeight,
+        fcp: projectScore.fcpWeight,
+        fid: projectScore.fidWeight,
+        lcp: projectScore.lcpWeight,
+        ttfb: projectScore.ttfbWeight,
+      }
+    : undefined;
+
   return (
     <Fragment>
       <SectionHeading>
@@ -119,29 +144,33 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
         />
       </SectionHeading>
       <SidebarPerformanceScoreRingContainer>
-        {projectScore && (
+        {!projectScoreIsLoading && projectScore && (
           <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
             text={projectScore.totalScore}
             width={220}
-            height={160}
+            height={180}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
+            weights={weights}
           />
         )}
+        {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
       <SidebarSpacer />
       <SectionHeading>
         {t('Page Loads')}
         <QuestionTooltip
           size="sm"
-          title={t('The total number of times that users have loaded this page.')}
+          title={t(
+            'The total number of times that users have loaded this page. This number does not include any page navigations beyond initial page loads.'
+          )}
         />
       </SectionHeading>
       <ChartValue>
         {currentCount ? formatAbbreviatedNumber(currentCount) : null}
       </ChartValue>
-      {initialCount && currentCount && countDiff && (
+      {initialCount && currentCount && countDiff && shouldDoublePeriod ? (
         <ChartSubText color={diffToColor(countDiff)}>
           {getChartSubText(
             countDiff,
@@ -149,7 +178,7 @@ export function PageOverviewSidebar({projectScore, transaction}: Props) {
             formatAbbreviatedNumber(currentCount)
           )}
         </ChartSubText>
-      )}
+      ) : null}
       <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => (
           <LineChart
@@ -235,4 +264,9 @@ const SectionHeading = styled('h4')`
 const MiniAggregateWaterfallContainer = styled('div')`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
+`;
+
+const ProjectScoreEmptyLoadingElement = styled('div')`
+  width: 220px;
+  height: 160px;
 `;

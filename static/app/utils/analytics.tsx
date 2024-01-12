@@ -3,6 +3,7 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
+import {ddmEventMap, DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 
 import {
   aiSuggestedSolutionEventMap,
@@ -25,6 +26,10 @@ import {
   ecosystemEventMap,
   EcosystemEventParameters,
 } from './analytics/ecosystemAnalyticsEvents';
+import {
+  feedbackEventMap,
+  FeedbackEventParameters,
+} from './analytics/feedbackAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './analytics/growthAnalyticsEvents';
 import {integrationEventMap, IntegrationEventParameters} from './analytics/integrations';
 import {issueEventMap, IssueEventParameters} from './analytics/issueAnalyticsEvents';
@@ -77,7 +82,9 @@ interface EventParameters
   extends GrowthEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
+    DDMEventParameters,
     DiscoverEventParameters,
+    FeedbackEventParameters,
     IssueEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
@@ -100,7 +107,9 @@ interface EventParameters
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
   ...dashboardsEventMap,
+  ...ddmEventMap,
   ...discoverEventMap,
+  ...feedbackEventMap,
   ...growthEventMap,
   ...issueEventMap,
   ...monitorsEventMap,

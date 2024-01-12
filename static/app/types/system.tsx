@@ -2,6 +2,7 @@ import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {ParntershipAgreementType} from 'sentry/types/hooks';
 
 import type {User} from './user';
 
@@ -119,7 +120,7 @@ declare global {
   }
 }
 
-interface Region {
+export interface Region {
   name: string;
   url: string;
 }
@@ -139,6 +140,10 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
+  initialTrace: {
+    baggage: string;
+    sentry_trace: string;
+  };
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
@@ -166,6 +171,7 @@ export interface Config {
     dsn: string;
     release: string;
     tracePropagationTargets: string[];
+    environment?: string;
     profilesSampleRate?: number;
   };
   singleOrganization: boolean;
@@ -189,6 +195,10 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  partnershipAgreementPrompt?: {
+    agreements: Array<ParntershipAgreementType>;
+    partnerDisplayName: string;
+  } | null;
   statuspage?: {
     api_host: string;
     id: string;

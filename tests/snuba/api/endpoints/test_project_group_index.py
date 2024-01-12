@@ -24,7 +24,6 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
@@ -37,7 +36,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -355,7 +354,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -440,7 +439,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         org = self.organization
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -498,7 +497,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         org = self.organization
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
             OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id
@@ -1353,7 +1352,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group1.id).exists()
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @cached_property
     def path(self):

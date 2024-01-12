@@ -15,9 +15,9 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
+from sentry.exceptions import InvalidParams
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 
@@ -34,9 +34,9 @@ class KeyTransactionPermission(OrganizationPermission):
 @region_silo_endpoint
 class KeyTransactionEndpoint(KeyTransactionBase):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (KeyTransactionPermission,)
 
@@ -146,7 +146,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 @region_silo_endpoint
 class KeyTransactionListEndpoint(KeyTransactionBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (KeyTransactionPermission,)
 

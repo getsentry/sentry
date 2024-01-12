@@ -33,7 +33,7 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.incidents.utils.types import SubscriptionUpdate
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -177,7 +177,7 @@ class SubscriptionProcessor:
         return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: SubscriptionUpdate, aggregation_value: float
+        self, subscription_update: QuerySubscriptionUpdate, aggregation_value: float
     ) -> Optional[float]:
         # For comparison alerts run a query over the comparison period and use it to calculate the
         # % change.
@@ -227,7 +227,7 @@ class SubscriptionProcessor:
         return result
 
     def get_crash_rate_alert_aggregation_value(
-        self, subscription_update: SubscriptionUpdate
+        self, subscription_update: QuerySubscriptionUpdate
     ) -> Optional[float]:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values.
@@ -279,7 +279,7 @@ class SubscriptionProcessor:
         return aggregation_value_result
 
     def get_crash_rate_alert_metrics_aggregation_value(
-        self, subscription_update: SubscriptionUpdate
+        self, subscription_update: QuerySubscriptionUpdate
     ) -> Optional[float]:
         """Handle both update formats. Once all subscriptions have been updated
         to v2, we can remove v1 and replace this function with current v2.
@@ -300,7 +300,7 @@ class SubscriptionProcessor:
         return result
 
     def _get_crash_rate_alert_metrics_aggregation_value_v1(
-        self, subscription_update: SubscriptionUpdate
+        self, subscription_update: QuerySubscriptionUpdate
     ) -> Optional[float]:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
@@ -349,7 +349,7 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def _get_crash_rate_alert_metrics_aggregation_value_v2(
-        self, subscription_update: SubscriptionUpdate
+        self, subscription_update: QuerySubscriptionUpdate
     ) -> Optional[float]:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
@@ -386,7 +386,9 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
-    def get_aggregation_value(self, subscription_update: SubscriptionUpdate) -> Optional[float]:
+    def get_aggregation_value(
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> Optional[float]:
         if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
         elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
@@ -408,7 +410,7 @@ class SubscriptionProcessor:
                 )
         return aggregation_value
 
-    def process_update(self, subscription_update: SubscriptionUpdate) -> None:
+    def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
@@ -552,38 +554,35 @@ class SubscriptionProcessor:
         """
         self.trigger_alert_counts[trigger.id] += 1
 
-        if features.has(
-            "organizations:metric-alert-rate-limiting", self.subscription.project.organization
+        # If an incident was created for this rule, trigger type, and subscription
+        # within the last 10 minutes, don't make another one
+        last_it = (
+            IncidentTrigger.objects.filter(alert_rule_trigger=trigger)
+            .order_by("-incident_id")
+            .select_related("incident")
+            .first()
+        )
+        last_incident: Incident | None = last_it.incident if last_it else None
+        last_incident_projects = (
+            [project.id for project in last_incident.projects.all()] if last_incident else []
+        )
+        minutes_since_last_incident = (
+            (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
+        )
+        if (
+            last_incident
+            and self.subscription.project.id in last_incident_projects
+            and minutes_since_last_incident <= 10
         ):
-            # If an incident was created for this rule, trigger type, and subscription
-            # within the last 10 minutes, don't make another one
-            last_it = (
-                IncidentTrigger.objects.filter(alert_rule_trigger=trigger)
-                .order_by("-incident_id")
-                .select_related("incident")
-                .first()
+            metrics.incr(
+                "incidents.alert_rules.hit_rate_limit",
+                tags={
+                    "last_incident_id": last_incident.id,
+                    "project_id": self.subscription.project.id,
+                    "trigger_id": trigger.id,
+                },
             )
-            last_incident: Incident | None = last_it.incident if last_it else None
-            last_incident_projects = (
-                [project.id for project in last_incident.projects.all()] if last_incident else []
-            )
-            minutes_since_last_incident = (
-                (timezone.now() - last_incident.date_added).seconds / 60 if last_incident else None
-            )
-            if (
-                last_incident
-                and self.subscription.project.id in last_incident_projects
-                and minutes_since_last_incident <= 10
-            ):
-                metrics.incr(
-                    "incidents.alert_rules.hit_rate_limit",
-                    tags={
-                        "last_incident_id": last_incident.id,
-                        "project_id": self.subscription.project.id,
-                        "trigger_id": trigger.id,
-                    },
-                )
-                return None
+            return None
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
 

@@ -13,7 +13,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -31,7 +31,9 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -44,6 +46,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
 import {generatePerformanceEventView} from '../performance/data';
@@ -231,7 +234,7 @@ class DashboardDetail extends Component<Props, State> {
     return DashboardState.PREVIEW === dashboardState;
   }
 
-  get isEditing() {
+  get isEditingDashboard() {
     const {dashboardState} = this.state;
     return [
       DashboardState.EDIT,
@@ -440,7 +443,7 @@ class DashboardDetail extends Component<Props, State> {
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
-    if (this.isEditing || this.isPreview) {
+    if (this.isEditingDashboard || this.isPreview) {
       return;
     }
     updateDashboard(api, organization.slug, newModifiedDashboard).then(
@@ -476,7 +479,7 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  onAddWidget = () => {
+  onAddWidget = (dataset: DataSet) => {
     const {
       organization,
       dashboard,
@@ -495,6 +498,7 @@ class DashboardDetail extends Component<Props, State> {
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
+            dataset,
           },
         })
       );
@@ -632,7 +636,9 @@ class DashboardDetail extends Component<Props, State> {
     return isValidElement(children)
       ? cloneElement<any>(children, {
           dashboard: modifiedDashboard ?? dashboard,
-          onSave: this.isEditing ? this.onUpdateWidget : this.handleUpdateWidgetList,
+          onSave: this.isEditingDashboard
+            ? this.onUpdateWidget
+            : this.handleUpdateWidgetList,
         })
       : children;
   }
@@ -644,8 +650,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <PageFiltersContainer
-        desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
-        hideDesyncRevertButton
         disablePersistence
         defaultSelection={{
           datetime: {
@@ -657,65 +661,72 @@ class DashboardDetail extends Component<Props, State> {
         }}
       >
         <Layout.Page withPadding>
-          <NoProjectMessage organization={organization}>
-            <StyledPageHeader>
-              <Layout.Title>
-                <DashboardTitle
-                  dashboard={modifiedDashboard ?? dashboard}
-                  onUpdate={this.setModifiedDashboard}
-                  isEditing={this.isEditing}
-                />
-              </Layout.Title>
-              <Controls
-                organization={organization}
-                dashboards={dashboards}
-                onEdit={this.onEdit}
-                onCancel={this.onCancel}
-                onCommit={this.onCommit}
-                onAddWidget={this.onAddWidget}
-                onDelete={this.onDelete(dashboard)}
-                dashboardState={dashboardState}
-                widgetLimitReached={widgetLimitReached}
-              />
-            </StyledPageHeader>
-            <HookHeader organization={organization} />
-            <FiltersBar
-              filters={{}} // Default Dashboards don't have filters set
-              location={location}
-              hasUnsavedChanges={false}
-              isEditingDashboard={false}
-              isPreview={false}
-              onDashboardFilterChange={this.handleChangeFilter}
-            />
-            <MetricsCardinalityProvider organization={organization} location={location}>
-              <MetricsDataSwitcher
-                organization={organization}
-                eventView={EventView.fromLocation(location)}
-                location={location}
-              >
-                {metricsDataSide => (
-                  <MEPSettingProvider
-                    location={location}
-                    forceTransactions={metricsDataSide.forceTransactionsOnly}
-                  >
-                    <Dashboard
-                      paramDashboardId={dashboardId}
+          <OnDemandControlProvider location={location}>
+            <MetricsResultsMetaProvider>
+              <NoProjectMessage organization={organization}>
+                <StyledPageHeader>
+                  <Layout.Title>
+                    <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
-                      organization={organization}
-                      isEditing={this.isEditing}
-                      widgetLimitReached={widgetLimitReached}
-                      onUpdate={this.onUpdateWidget}
-                      handleUpdateWidgetList={this.handleUpdateWidgetList}
-                      handleAddCustomWidget={this.handleAddCustomWidget}
-                      isPreview={this.isPreview}
-                      router={router}
-                      location={location}
+                      onUpdate={this.setModifiedDashboard}
+                      isEditingDashboard={this.isEditingDashboard}
                     />
-                  </MEPSettingProvider>
-                )}
-              </MetricsDataSwitcher>
-            </MetricsCardinalityProvider>
-          </NoProjectMessage>
+                  </Layout.Title>
+                  <Controls
+                    organization={organization}
+                    dashboards={dashboards}
+                    onEdit={this.onEdit}
+                    onCancel={this.onCancel}
+                    onCommit={this.onCommit}
+                    onAddWidget={this.onAddWidget}
+                    onDelete={this.onDelete(dashboard)}
+                    dashboardState={dashboardState}
+                    widgetLimitReached={widgetLimitReached}
+                  />
+                </StyledPageHeader>
+                <HookHeader organization={organization} />
+                <FiltersBar
+                  filters={{}} // Default Dashboards don't have filters set
+                  location={location}
+                  hasUnsavedChanges={false}
+                  isEditingDashboard={false}
+                  isPreview={false}
+                  onDashboardFilterChange={this.handleChangeFilter}
+                />
+                <MetricsCardinalityProvider
+                  organization={organization}
+                  location={location}
+                >
+                  <MetricsDataSwitcher
+                    organization={organization}
+                    eventView={EventView.fromLocation(location)}
+                    location={location}
+                  >
+                    {metricsDataSide => (
+                      <MEPSettingProvider
+                        location={location}
+                        forceTransactions={metricsDataSide.forceTransactionsOnly}
+                      >
+                        <Dashboard
+                          paramDashboardId={dashboardId}
+                          dashboard={modifiedDashboard ?? dashboard}
+                          organization={organization}
+                          isEditingDashboard={this.isEditingDashboard}
+                          widgetLimitReached={widgetLimitReached}
+                          onUpdate={this.onUpdateWidget}
+                          handleUpdateWidgetList={this.handleUpdateWidgetList}
+                          handleAddCustomWidget={this.handleAddCustomWidget}
+                          isPreview={this.isPreview}
+                          router={router}
+                          location={location}
+                        />
+                      </MEPSettingProvider>
+                    )}
+                  </MetricsDataSwitcher>
+                </MetricsCardinalityProvider>
+              </NoProjectMessage>
+            </MetricsResultsMetaProvider>
+          </OnDemandControlProvider>
         </Layout.Page>
       </PageFiltersContainer>
     );
@@ -765,8 +776,6 @@ class DashboardDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
-          desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
-          hideDesyncRevertButton
           disablePersistence
           defaultSelection={{
             datetime: {
@@ -778,149 +787,154 @@ class DashboardDetail extends Component<Props, State> {
           }}
         >
           <Layout.Page>
-            <NoProjectMessage organization={organization}>
-              <Layout.Header>
-                <Layout.HeaderContent>
-                  <Breadcrumbs
-                    crumbs={[
-                      {
-                        label: t('Dashboards'),
-                        to: `/organizations/${organization.slug}/dashboards/`,
-                      },
-                      {
-                        label: this.getBreadcrumbLabel(),
-                      },
-                    ]}
-                  />
-                  <Layout.Title>
-                    <DashboardTitle
-                      dashboard={modifiedDashboard ?? dashboard}
-                      onUpdate={this.setModifiedDashboard}
-                      isEditing={this.isEditing}
-                    />
-                  </Layout.Title>
-                </Layout.HeaderContent>
-                <Layout.HeaderActions>
-                  <Controls
-                    organization={organization}
-                    dashboards={dashboards}
-                    hasUnsavedFilters={hasUnsavedFilters}
-                    onEdit={this.onEdit}
-                    onCancel={this.onCancel}
-                    onCommit={this.onCommit}
-                    onAddWidget={this.onAddWidget}
-                    onDelete={this.onDelete(dashboard)}
-                    dashboardState={dashboardState}
-                    widgetLimitReached={widgetLimitReached}
-                  />
-                </Layout.HeaderActions>
-              </Layout.Header>
-              <Layout.Body>
-                <Layout.Main fullWidth>
-                  <MetricsCardinalityProvider
-                    organization={organization}
-                    location={location}
-                  >
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                    >
-                      {metricsDataSide => (
-                        <MEPSettingProvider
+            <OnDemandControlProvider location={location}>
+              <MetricsResultsMetaProvider>
+                <NoProjectMessage organization={organization}>
+                  <Layout.Header>
+                    <Layout.HeaderContent>
+                      <Breadcrumbs
+                        crumbs={[
+                          {
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
+                          },
+                          {
+                            label: this.getBreadcrumbLabel(),
+                          },
+                        ]}
+                      />
+                      <Layout.Title>
+                        <DashboardTitle
+                          dashboard={modifiedDashboard ?? dashboard}
+                          onUpdate={this.setModifiedDashboard}
+                          isEditingDashboard={this.isEditingDashboard}
+                        />
+                      </Layout.Title>
+                    </Layout.HeaderContent>
+                    <Layout.HeaderActions>
+                      <Controls
+                        organization={organization}
+                        dashboards={dashboards}
+                        hasUnsavedFilters={hasUnsavedFilters}
+                        onEdit={this.onEdit}
+                        onCancel={this.onCancel}
+                        onCommit={this.onCommit}
+                        onAddWidget={this.onAddWidget}
+                        onDelete={this.onDelete(dashboard)}
+                        dashboardState={dashboardState}
+                        widgetLimitReached={widgetLimitReached}
+                      />
+                    </Layout.HeaderActions>
+                  </Layout.Header>
+                  <Layout.Body>
+                    <Layout.Main fullWidth>
+                      <MetricsCardinalityProvider
+                        organization={organization}
+                        location={location}
+                      >
+                        <MetricsDataSwitcher
+                          organization={organization}
+                          eventView={eventView}
                           location={location}
-                          forceTransactions={metricsDataSide.forceTransactionsOnly}
                         >
-                          {isDashboardUsingTransaction ? (
-                            <MetricsDataSwitcherAlert
-                              organization={organization}
-                              eventView={eventView}
-                              projects={projects}
+                          {metricsDataSide => (
+                            <MEPSettingProvider
                               location={location}
-                              router={router}
-                              source={DiscoverQueryPageSource.DISCOVER}
-                              {...metricsDataSide}
-                            />
-                          ) : null}
-                          <FiltersBar
-                            filters={(modifiedDashboard ?? dashboard).filters}
-                            location={location}
-                            hasUnsavedChanges={hasUnsavedFilters}
-                            isEditingDashboard={
-                              dashboardState !== DashboardState.CREATE && this.isEditing
-                            }
-                            isPreview={this.isPreview}
-                            onDashboardFilterChange={this.handleChangeFilter}
-                            onCancel={() => {
-                              resetPageFilters(dashboard, location);
-                              this.setState({
-                                modifiedDashboard: {
-                                  ...(modifiedDashboard ?? dashboard),
-                                  filters: dashboard.filters,
-                                },
-                              });
-                            }}
-                            onSave={() => {
-                              const newModifiedDashboard = {
-                                ...cloneDashboard(modifiedDashboard ?? dashboard),
-                                ...getCurrentPageFilters(location),
-                                filters:
-                                  getDashboardFiltersFromURL(location) ??
-                                  (modifiedDashboard ?? dashboard).filters,
-                              };
-                              updateDashboard(
-                                api,
-                                organization.slug,
-                                newModifiedDashboard
-                              ).then(
-                                (newDashboard: DashboardDetails) => {
-                                  if (onDashboardUpdate) {
-                                    onDashboardUpdate(newDashboard);
-                                    this.setState({
-                                      modifiedDashboard: null,
-                                    });
-                                  }
-                                  addSuccessMessage(t('Dashboard filters updated'));
-                                  browserHistory.replace(
-                                    normalizeUrl({
-                                      pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                      query: omit(
-                                        location.query,
-                                        Object.values(DashboardFilterKeys)
-                                      ),
-                                    })
+                              forceTransactions={metricsDataSide.forceTransactionsOnly}
+                            >
+                              {isDashboardUsingTransaction ? (
+                                <MetricsDataSwitcherAlert
+                                  organization={organization}
+                                  eventView={eventView}
+                                  projects={projects}
+                                  location={location}
+                                  router={router}
+                                  source={DiscoverQueryPageSource.DISCOVER}
+                                  {...metricsDataSide}
+                                />
+                              ) : null}
+                              <FiltersBar
+                                filters={(modifiedDashboard ?? dashboard).filters}
+                                location={location}
+                                hasUnsavedChanges={hasUnsavedFilters}
+                                isEditingDashboard={
+                                  dashboardState !== DashboardState.CREATE &&
+                                  this.isEditingDashboard
+                                }
+                                isPreview={this.isPreview}
+                                onDashboardFilterChange={this.handleChangeFilter}
+                                onCancel={() => {
+                                  resetPageFilters(dashboard, location);
+                                  this.setState({
+                                    modifiedDashboard: {
+                                      ...(modifiedDashboard ?? dashboard),
+                                      filters: dashboard.filters,
+                                    },
+                                  });
+                                }}
+                                onSave={() => {
+                                  const newModifiedDashboard = {
+                                    ...cloneDashboard(modifiedDashboard ?? dashboard),
+                                    ...getCurrentPageFilters(location),
+                                    filters:
+                                      getDashboardFiltersFromURL(location) ??
+                                      (modifiedDashboard ?? dashboard).filters,
+                                  };
+                                  updateDashboard(
+                                    api,
+                                    organization.slug,
+                                    newModifiedDashboard
+                                  ).then(
+                                    (newDashboard: DashboardDetails) => {
+                                      if (onDashboardUpdate) {
+                                        onDashboardUpdate(newDashboard);
+                                        this.setState({
+                                          modifiedDashboard: null,
+                                        });
+                                      }
+                                      addSuccessMessage(t('Dashboard filters updated'));
+                                      browserHistory.replace(
+                                        normalizeUrl({
+                                          pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                          query: omit(
+                                            location.query,
+                                            Object.values(DashboardFilterKeys)
+                                          ),
+                                        })
+                                      );
+                                    },
+                                    // `updateDashboard` does its own error handling
+                                    () => undefined
                                   );
-                                },
-                                // `updateDashboard` does its own error handling
-                                () => undefined
-                              );
-                            }}
-                          />
+                                }}
+                              />
 
-                          <WidgetViewerContext.Provider value={{seriesData, setData}}>
-                            <Dashboard
-                              paramDashboardId={dashboardId}
-                              dashboard={modifiedDashboard ?? dashboard}
-                              organization={organization}
-                              isEditing={this.isEditing}
-                              widgetLimitReached={widgetLimitReached}
-                              onUpdate={this.onUpdateWidget}
-                              handleUpdateWidgetList={this.handleUpdateWidgetList}
-                              handleAddCustomWidget={this.handleAddCustomWidget}
-                              router={router}
-                              location={location}
-                              newWidget={newWidget}
-                              onSetNewWidget={onSetNewWidget}
-                              isPreview={this.isPreview}
-                            />
-                          </WidgetViewerContext.Provider>
-                        </MEPSettingProvider>
-                      )}
-                    </MetricsDataSwitcher>
-                  </MetricsCardinalityProvider>
-                </Layout.Main>
-              </Layout.Body>
-            </NoProjectMessage>
+                              <WidgetViewerContext.Provider value={{seriesData, setData}}>
+                                <Dashboard
+                                  paramDashboardId={dashboardId}
+                                  dashboard={modifiedDashboard ?? dashboard}
+                                  organization={organization}
+                                  isEditingDashboard={this.isEditingDashboard}
+                                  widgetLimitReached={widgetLimitReached}
+                                  onUpdate={this.onUpdateWidget}
+                                  handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                  handleAddCustomWidget={this.handleAddCustomWidget}
+                                  router={router}
+                                  location={location}
+                                  newWidget={newWidget}
+                                  onSetNewWidget={onSetNewWidget}
+                                  isPreview={this.isPreview}
+                                />
+                              </WidgetViewerContext.Provider>
+                            </MEPSettingProvider>
+                          )}
+                        </MetricsDataSwitcher>
+                      </MetricsCardinalityProvider>
+                    </Layout.Main>
+                  </Layout.Body>
+                </NoProjectMessage>
+              </MetricsResultsMetaProvider>
+            </OnDemandControlProvider>
           </Layout.Page>
         </PageFiltersContainer>
       </SentryDocumentTitle>

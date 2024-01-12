@@ -24,6 +24,7 @@ from sentry.tasks.integrations import migrate_opsgenie_plugin
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient
+from .utils import get_team
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -59,6 +60,11 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/opsgenie",
     aspects={},
 )
+
+OPSGENIE_BASE_URL_TO_DOMAIN_NAME = {
+    "https://api.opsgenie.com/": "app.opsgenie.com",
+    "https://api.eu.opsgenie.com/": "app.eu.opsgenie.com",
+}
 
 
 class InstallationForm(forms.Form):
@@ -106,13 +112,21 @@ class InstallationConfigView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_client(self, integration_key: str) -> Any:  # type: ignore
-        org_integration_id = self.org_integration.id if self.org_integration else None
+    def get_keyring_client(self, keyid: str) -> OpsgenieClient:
+        org_integration = self.org_integration
+        assert org_integration, "OrganizationIntegration is required"
+        team = get_team(keyid, org_integration)
+        assert team, "Cannot get client for unknown team"
+
         return OpsgenieClient(
             integration=self.model,
-            integration_key=integration_key,
-            org_integration_id=org_integration_id,
+            integration_key=team["integration_key"],
+            org_integration_id=org_integration.id,
+            keyid=keyid,
         )
+
+    def get_client(self) -> Any:  # type: ignore
+        raise NotImplementedError("Use get_keyring_client instead.")
 
     def get_organization_config(self) -> Sequence[Any]:
         fields = [
@@ -178,7 +192,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
             "metadata": {
                 "api_key": api_key,
                 "base_url": base_url,
-                "domain_name": f"{name}.app.opsgenie.com",
+                "domain_name": f"{name}.{OPSGENIE_BASE_URL_TO_DOMAIN_NAME[base_url]}",
             },
         }
 

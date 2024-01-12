@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SharedGroupDetailsTest(TestCase):
     def setUp(self):
         self.group = self.create_group(project=self.project)

@@ -22,6 +22,9 @@ export enum AlertRuleComparisonType {
 }
 
 export enum Dataset {
+  /**
+   * Events include errors and transactions
+   */
   ERRORS = 'events',
   TRANSACTIONS = 'transactions',
   /** Also used for performance alerts **/
@@ -122,8 +125,10 @@ export enum TimePeriod {
   SIX_HOURS = '6h',
   ONE_DAY = '1d',
   THREE_DAYS = '3d',
-  // Seven days is actually 10080m but we have a max of 10000 events
-  SEVEN_DAYS = '10000m',
+  // Seven days is actually 10080m but Snuba can only return up to 10000 entries, for this
+  // we approximate to 9999m which prevents rounding errors due to the minutes granularity
+  // limitations.
+  SEVEN_DAYS = '9999m',
   FOURTEEN_DAYS = '14d',
 }
 

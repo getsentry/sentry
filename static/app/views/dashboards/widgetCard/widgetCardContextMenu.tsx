@@ -20,7 +20,11 @@ import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboards/utils';
+import {
+  getWidgetDDMUrl,
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+} from 'sentry/views/dashboards/utils';
 
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
@@ -126,7 +130,7 @@ function WidgetCardContextMenu({
                   aria-label={t('Open Widget Viewer')}
                   borderless
                   size="xs"
-                  icon={<IconExpand size="xs" />}
+                  icon={<IconExpand />}
                   onClick={() => {
                     (seriesData || tableData) &&
                       setData({
@@ -190,6 +194,16 @@ function WidgetCardContextMenu({
       key: 'open-in-issues',
       label: t('Open in Issues'),
       to: issuesLocation,
+    });
+  }
+
+  if (widget.widgetType === WidgetType.METRICS) {
+    const ddmLocation = getWidgetDDMUrl(widget, selection, organization);
+
+    menuOptions.push({
+      key: 'open-in-ddm',
+      label: t('Open in Metrics'),
+      to: ddmLocation,
     });
   }
 
@@ -258,7 +272,7 @@ function WidgetCardContextMenu({
                 aria-label={t('Open Widget Viewer')}
                 borderless
                 size="xs"
-                icon={<IconExpand size="xs" />}
+                icon={<IconExpand />}
                 onClick={() => {
                   setData({
                     seriesData,

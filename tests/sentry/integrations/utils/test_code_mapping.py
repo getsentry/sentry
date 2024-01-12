@@ -15,7 +15,6 @@ from sentry.integrations.utils.code_mapping import (
     should_include,
     stacktrace_buckets,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -233,7 +232,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
-        logger.warning.assert_called_with("More than one repo matched sentry/web/urls.py")
+        logger.warning.assert_called_with("More than one repo matched %s", "sentry/web/urls.py")
 
     def test_list_file_matches_single(self):
         frame_filename = FrameFilename("sentry_plugins/slack/client.py")
@@ -333,7 +332,7 @@ class TestGetSortedCodeMappingConfigs(TestCase):
     def setUp(self):
         super()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration = self.create_provider_integration(provider="example", name="Example")
             self.integration.add_organization(self.organization, self.user)
             self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 

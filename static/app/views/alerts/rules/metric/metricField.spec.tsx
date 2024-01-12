@@ -55,10 +55,9 @@ describe('MetricField', function () {
     );
     await openSelectMenu('(Required)');
 
-    // 10 error aggregate configs
+    // 9 error aggregate configs
     [
       'avg(…)',
-      'percentile(…)',
       'p50(…)',
       'p75(…)',
       'p95(…)',

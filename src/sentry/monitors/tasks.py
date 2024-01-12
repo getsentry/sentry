@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Mapping
 
@@ -11,8 +11,8 @@ from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from confluent_kafka.admin import AdminClient, PartitionMetadata
 from django.conf import settings
-from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.schedule import get_prev_schedule
 from sentry.monitors.types import ClockPulseMessage
@@ -26,14 +26,7 @@ from sentry.utils.kafka_config import (
     get_topic_definition,
 )
 
-from .models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorObjectStatus,
-    MonitorStatus,
-    MonitorType,
-)
+from .models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus, MonitorType
 
 logger = logging.getLogger("sentry")
 
@@ -147,7 +140,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     # The scenario where the slowest_part_ts is older may happen when our
     # MONITOR_TASKS_PARTITION_CLOCKS set did not know about every partition the
     # topic is responsible for. Older check-ins may be processed after newer
-    # ones in diferent topics. This should only happen if redis loses state.
+    # ones in different topics. This should only happen if redis loses state.
     if precheck_last_ts is not None and precheck_last_ts >= slowest_part_ts:
         return
 
@@ -168,7 +161,7 @@ def try_monitor_tasks_trigger(ts: datetime, partition: int):
     total_delay = datetime.now().timestamp() - slowest_part_ts
 
     # Keep tick datetime objects timezone aware
-    tick = timezone.utc.localize(datetime.fromtimestamp(slowest_part_ts))
+    tick = datetime.fromtimestamp(slowest_part_ts, tz=timezone.utc)
 
     logger.info("monitors.consumer.clock_tick", extra={"reference_datetime": str(tick)})
     metrics.gauge("monitors.task.clock_delay", total_delay, sample_rate=1.0)
@@ -192,7 +185,7 @@ def clock_pulse(current_datetime=None):
     topic that can drive all partition clocks, which dispatch monitor tasks.
     """
     if current_datetime is None:
-        current_datetime = timezone.now()
+        current_datetime = datetime.now(tz=timezone.utc)
 
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
@@ -245,10 +238,16 @@ def check_missing(current_datetime: datetime):
         )
         .exclude(
             monitor__status__in=[
-                MonitorObjectStatus.DISABLED,
-                MonitorObjectStatus.PENDING_DELETION,
-                MonitorObjectStatus.DELETION_IN_PROGRESS,
-            ]
+                ObjectStatus.DISABLED,
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
+            ],
+        )
+        .exclude(
+            monitor__is_muted=True,  # Temporary fix until we can move out of celery or reduce load
+        )
+        .exclude(
+            is_muted=True,  # Temporary fix until we can move out of celery or reduce load
         )[:MONITOR_LIMIT]
     )
 
@@ -293,7 +292,7 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     # happen. This takes advantage of the fact that the current reference time
     # will always be at least a minute after the last expected check-in.
     #
-    # Typically `expected_time` and this calculate time should be the same, but
+    # Typically `expected_time` and this calculated time should be the same, but
     # there are cases where it may not be:
     #
     #  1. We are guarding against a task having not run for every minute.
@@ -338,15 +337,7 @@ def check_timeout(current_datetime: datetime):
     metrics.gauge("sentry.monitors.tasks.check_timeout.count", qs.count(), sample_rate=1)
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
-        # used for temporary debugging
-        kwargs = {
-            "monitor_id": checkin.monitor.id,
-            "monitor_environment_id": checkin.monitor_environment.id,
-            "status": checkin.status,
-            "date_added": checkin.date_added,
-            "timeout_at": checkin.timeout_at,
-        }
-        mark_checkin_timeout.delay(checkin.id, current_datetime, **kwargs)
+        mark_checkin_timeout.delay(checkin.id, current_datetime)
 
 
 @instrumented_task(

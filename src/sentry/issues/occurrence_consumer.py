@@ -100,7 +100,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     try:
         with metrics.timer("occurrence_ingest.duration", instance="_get_kwargs"):
-            metrics.timing("occurrence.ingest.size.data", len(payload))
+            metrics.distribution("occurrence.ingest.size.data", len(payload), unit="byte")
 
             occurrence_data = {
                 "id": UUID(payload["id"]).hex,
@@ -266,7 +266,7 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            # Assume messaged without a payload type are of type OCCURRENCE
+            # Messages without payload_type default to an OCCURRENCE payload
             payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
             if payload_type == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, txn)

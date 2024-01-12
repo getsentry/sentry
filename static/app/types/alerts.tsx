@@ -39,12 +39,14 @@ export const enum IssueAlertConditionType {
   EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
   EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
+  HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition',
 }
 
 export const enum IssueAlertFilterType {
   AGE_COMPARISON = 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
   ISSUE_OCCURRENCES = 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
   ASSIGNED_TO = 'sentry.rules.filters.assigned_to.AssignedToFilter',
+  LATEST_ADOPTED_RELEASE = 'sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter',
   LATEST_RELEASE = 'sentry.rules.filters.latest_release.LatestReleaseFilter',
   ISSUE_CATEGORY = 'sentry.rules.filters.issue_category.IssueCategoryFilter',
   EVENT_ATTRIBUTE = 'sentry.rules.filters.event_attribute.EventAttributeFilter',

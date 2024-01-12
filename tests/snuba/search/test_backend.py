@@ -14,13 +14,13 @@ from sentry.api.issue_search import convert_query_values, issue_search_config, p
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import (
     ErrorGroupType,
+    FeedbackGroup,
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -29,7 +29,6 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.integration import Integration
 from sentry.search.snuba.backend import (
     CdcEventsDatasetSnubaSearchBackend,
     EventsDatasetSnubaSearchBackend,
@@ -244,7 +243,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
             },
             project_id=self.project.id,
         )
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
             group=event.group,
@@ -1965,7 +1964,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert set(results) == {group_2}
 
     def test_first_release(self):
-
         # expect no groups within the results since there are no releases
 
         results = self.make_query(search_filter_query="first_release:%s" % "fake")
@@ -2411,7 +2409,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
                 self.fail(f"Query {query} errored. Error info: {e}")  # type:ignore[attr-defined]
 
         for key in SENTRY_SNUBA_MAP:
-            if key in ["project.id", "issue.id", "performance.issue_ids"]:
+            if key in ["project.id", "issue.id", "performance.issue_ids", "status"]:
                 continue
             test_query("has:%s" % key)
             test_query("!has:%s" % key)
@@ -2978,11 +2976,10 @@ class EventsPriorityTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
         error_group = error_event.group
 
         profile_event_id = uuid.uuid4().hex
-        _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=profile_event_id),
-            {
-                "event_id": profile_event_id,
-                "project_id": self.project.id,
+        _, group_info = self.process_occurrence(
+            event_id=profile_event_id,
+            project_id=self.project.id,
+            event_data={
                 "title": "some problem",
                 "platform": "python",
                 "tags": {"my_tag": "1"},
@@ -3409,11 +3406,11 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=timezone.utc)
 
         event_id_1 = uuid.uuid4().hex
-        _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_1, issue_title="File I/O on Main Thread"),
-            {
-                "event_id": event_id_1,
-                "project_id": self.project.id,
+        _, group_info = self.process_occurrence(
+            event_id=event_id_1,
+            project_id=self.project.id,
+            issue_title="File I/O on Main Thread",
+            event_data={
                 "title": "some problem",
                 "platform": "python",
                 "tags": {"my_tag": "1"},
@@ -3425,15 +3422,12 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         self.profile_group_1 = group_info.group
 
         event_id_2 = uuid.uuid4().hex
-        _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=event_id_2,
-                fingerprint=["put-me-in-group-2"],
-                issue_title="File I/O on Main Thread",
-            ),
-            {
-                "event_id": event_id_2,
-                "project_id": self.project.id,
+        _, group_info = self.process_occurrence(
+            event_id=event_id_2,
+            project_id=self.project.id,
+            fingerprint=["put-me-in-group-2"],
+            issue_title="File I/O on Main Thread",
+            event_data={
                 "title": "some other problem",
                 "platform": "python",
                 "tags": {"my_tag": "1"},
@@ -3445,11 +3439,11 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         self.profile_group_2 = group_info.group
 
         event_id_3 = uuid.uuid4().hex
-        process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_3, fingerprint=["put-me-in-group-3"]),
-            {
-                "event_id": event_id_3,
-                "project_id": self.project.id,
+        self.process_occurrence(
+            event_id=event_id_3,
+            project_id=self.project.id,
+            fingerprint=["put-me-in-group-3"],
+            event_data={
                 "title": "some other problem",
                 "platform": "python",
                 "tags": {"my_tag": "2"},
@@ -3522,13 +3516,12 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
         ):
             with self.feature(group_type.build_ingest_feature_name()):
-                _, group_info = process_event_and_issue_occurrence(
-                    self.build_occurrence_data(
-                        event_id=event_id, type=group_type.type_id, fingerprint=["some perf issue"]
-                    ),
-                    {
-                        "event_id": event_id,
-                        "project_id": self.project.id,
+                _, group_info = self.process_occurrence(
+                    event_id=event_id,
+                    project_id=self.project.id,
+                    type=group_type.type_id,
+                    fingerprint=["some perf issue"],
+                    event_data={
                         "title": "some problem",
                         "platform": "python",
                         "tags": {"my_tag": "2"},
@@ -3683,6 +3676,66 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
                 == list(results6)
                 == []
             )
+
+    def test_feedback_category_hidden_default(self):
+        with self.feature(
+            ["organizations:issue-platform", FeedbackGroup.build_visible_feature_name()]
+        ):
+            event_id_1 = uuid.uuid4().hex
+            self.process_occurrence(
+                **{
+                    "project_id": self.project.id,
+                    "event_id": event_id_1,
+                    "fingerprint": ["c" * 32],
+                    "issue_title": "User Feedback",
+                    "type": FeedbackGroup.type_id,
+                    "detection_time": datetime.now().timestamp(),
+                    "level": "info",
+                },
+                event_data={
+                    "platform": "python",
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+            results = self.make_query(
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
+            )
+            assert set(results) == set()
+
+    def test_feedback_category_show_when_filtered_on(self):
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                FeedbackGroup.build_visible_feature_name(),
+                FeedbackGroup.build_ingest_feature_name(),
+            ]
+        ):
+            event_id_1 = uuid.uuid4().hex
+            _, group_info = self.process_occurrence(
+                **{
+                    "project_id": self.project.id,
+                    "event_id": event_id_1,
+                    "fingerprint": ["c" * 32],
+                    "issue_title": "User Feedback",
+                    "type": FeedbackGroup.type_id,
+                    "detection_time": datetime.now().timestamp(),
+                    "level": "info",
+                },
+                event_data={
+                    "platform": "python",
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+            results = self.make_query(
+                search_filter_query="issue.category:feedback",
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
+            )
+            assert group_info is not None
+            assert list(results) == [group_info.group]
 
 
 class CdcEventsSnubaSearchTest(TestCase, SharedSnubaMixin):

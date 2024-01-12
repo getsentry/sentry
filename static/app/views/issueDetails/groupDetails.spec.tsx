@@ -1,3 +1,12 @@
+import {ConfigFixture} from 'sentry-fixture/config';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -15,9 +24,9 @@ const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 describe('groupDetails', () => {
-  const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
-  const event = TestStubs.Event();
-  const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const group = GroupFixture({issueCategory: IssueCategory.ERROR});
+  const event = EventFixture();
+  const project = ProjectFixture({teams: [TeamFixture()]});
 
   const routes = [
     {path: '/', childRoutes: []},
@@ -47,18 +56,21 @@ describe('groupDetails', () => {
     router: initRouter,
   });
 
-  const recommendedUser = TestStubs.User({
+  const recommendedUser = UserFixture({
     options: {
+      ...UserFixture().options,
       defaultIssueEvent: 'recommended',
     },
   });
-  const latestUser = TestStubs.User({
+  const latestUser = UserFixture({
     options: {
+      ...UserFixture().options,
       defaultIssueEvent: 'latest',
     },
   });
-  const oldestUser = TestStubs.User({
+  const oldestUser = UserFixture({
     options: {
+      ...UserFixture().options,
       defaultIssueEvent: 'oldest',
     },
   });
@@ -135,11 +147,15 @@ describe('groupDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/environments/`,
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
     });
   });
 
@@ -212,7 +228,7 @@ describe('groupDetails', () => {
     const init = initializeOrg({
       router: {
         ...initRouter,
-        location: TestStubs.location({
+        location: LocationFixture({
           ...initRouter.location,
           query: {environment: 'staging'},
         }),
@@ -310,7 +326,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /latest endpoint when default is set to latest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: latestUser}));
+    ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
     const latestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
       statusCode: 200,
@@ -323,7 +339,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /oldest endpoint when default is set to oldest', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: oldestUser}));
+    ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
     const oldestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
       statusCode: 200,
@@ -336,7 +352,7 @@ describe('groupDetails', () => {
   });
 
   it('uses /recommended endpoint when default is set to recommended', async function () {
-    ConfigStore.loadInitialData(TestStubs.Config({user: recommendedUser}));
+    ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,

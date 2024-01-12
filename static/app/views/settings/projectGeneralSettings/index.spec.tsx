@@ -1,7 +1,11 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
-import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
-import {Organization} from 'sentry-fixture/organization';
+import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   act,
@@ -27,8 +31,8 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = Organization();
-  const project = TestStubs.Project({
+  const org = OrganizationFixture();
+  const project = ProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
     allowedDomains: ['example.com', 'https://example.com'],
@@ -37,13 +41,13 @@ describe('projectGeneralSettings', function () {
     securityTokenHeader: 'x-security-header',
     verifySSL: true,
   });
-  const groupingConfigs = GroupingConfigs();
+  const groupingConfigs = GroupingConfigsFixture();
   let routerContext;
   let putMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
-    location: TestStubs.location(),
+    location: LocationFixture(),
     routes: router.routes,
     route: router.routes[0],
     router,
@@ -52,9 +56,9 @@ describe('projectGeneralSettings', function () {
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
-    routerContext = TestStubs.routerContext([
+    routerContext = RouterContextFixture([
       {
-        router: TestStubs.router({
+        router: RouterFixture({
           params: {
             projectId: project.slug,
           },
@@ -225,7 +229,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = Organization({access: ['org:read']});
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
     routerContext.context.organization = readOnlyOrg;
 
     render(
@@ -273,7 +277,7 @@ describe('projectGeneralSettings', function () {
     expect(putMock).toHaveBeenCalled();
 
     // updates ProjectsStore
-    expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
+    expect(ProjectsStore.getById('2')!.platform).toBe('javascript');
   });
 
   it('changing name updates ProjectsStore', async function () {
@@ -314,7 +318,7 @@ describe('projectGeneralSettings', function () {
 
     // Redirects the user
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
-    expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
+    expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 
   describe('Non-"save on blur" Field', function () {

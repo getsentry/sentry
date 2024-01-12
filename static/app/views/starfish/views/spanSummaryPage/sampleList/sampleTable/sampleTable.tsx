@@ -13,13 +13,10 @@ import {
   SamplesTableColumnHeader,
   SpanSamplesTable,
 } from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {
-  SpanSummaryQueryFilters,
-  useSpanMetrics,
-} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -30,10 +27,12 @@ const SpanSamplesTableContainer = styled('div')`
 type Props = {
   groupId: string;
   transactionName: string;
+  additionalFields?: string[];
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  query?: string[];
   release?: string;
   transactionMethod?: string;
 };
@@ -47,9 +46,12 @@ function SampleTable({
   transactionMethod,
   columnOrder,
   release,
+  query,
+  additionalFields,
 }: Props) {
-  const filters: SpanSummaryQueryFilters = {
-    transactionName,
+  const filters: SpanMetricsQueryFilters = {
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
@@ -60,12 +62,14 @@ function SampleTable({
     filters.release = release;
   }
 
-  const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
-    groupId,
+  const {data, isFetching: isFetchingSpanMetrics} = useSpanMetrics({
     filters,
-    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    'api.starfish.span-summary-panel-samples-table-avg'
-  );
+    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
+  });
+
+  const spanMetrics = data[0] ?? {};
+
   const organization = useOrganization();
 
   const {setPageError} = usePageError();
@@ -81,6 +85,8 @@ function SampleTable({
     transactionName,
     transactionMethod,
     release,
+    query,
+    additionalFields,
   });
 
   const {

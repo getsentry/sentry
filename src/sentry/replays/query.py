@@ -106,7 +106,11 @@ def query_replays_count(
         query=Query(
             match=Entity("replays"),
             select=[
-                _strip_uuid_dashes("replay_id", Column("replay_id")),
+                # The expression is explicitly aliased as "rid" to prevent the default
+                # alias "replay_id" from shadowing the replay_id column. When the column
+                # is shadowed our index is disabled in the WHERE and we waste a lot of
+                # compute parsing UUIDs we don't care about.
+                _strip_uuid_dashes("replay_id", Column("replay_id"), alias="rid"),
                 Function(
                     "ifNull",
                     parameters=[
@@ -284,7 +288,6 @@ replay_url_parser_config = SearchConfig(
         "count_dead_clicks",
         "count_rage_clicks",
         "activity",
-        "new_count_errors",
         "count_warnings",
         "count_infos",
     },
@@ -424,7 +427,7 @@ def _collect_new_errors():
                 ],
             ),
         ],
-        alias="new_error_ids",
+        alias="errorIds",
     )
 
 
@@ -517,6 +520,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "click.testid": ["click.testid"],
     "click.textContent": ["click.text"],
     "click.title": ["click.title"],
+    "click.component_name": ["click.component_name"],
     "click.selector": [
         "click.alt",
         "click.aria_label",
@@ -538,14 +542,12 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
         "click.testid",
         "click.text",
         "click.title",
+        "click.component_name",
     ],
-    "new_error_id": ["new_error_ids"],
     "warning_id": ["warning_ids"],
     "info_id": ["info_ids"],
-    "new_error_ids": ["new_error_ids"],
     "warning_ids": ["warning_ids"],
     "info_ids": ["info_ids"],
-    "new_count_errors": ["new_count_errors"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
 }
@@ -571,17 +573,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         ],
         alias="traceIds",
     ),
-    "error_ids": Function(
-        "arrayMap",
-        parameters=[
-            Lambda(["id"], _strip_uuid_dashes("id", Identifier("id"))),
-            Function(
-                "groupUniqArrayArray",
-                parameters=[Column("error_ids")],
-            ),
-        ],
-        alias="errorIds",
-    ),
     "started_at": Function(
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
@@ -599,11 +590,6 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="agg_urls",
     ),
     "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
-    "count_errors": Function(
-        "sum",
-        parameters=[Function("length", parameters=[Column("error_ids")])],
-        alias="count_errors",
-    ),
     "count_urls": Function(
         "sum",
         parameters=[Function("length", parameters=[Column("urls")])],
@@ -690,13 +676,16 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
-    "new_error_ids": _collect_new_errors(),
+    "click.component_name": Function(
+        "groupArray", parameters=[Column("click_component_name")], alias="click_component_name"
+    ),
+    "error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),
     "info_ids": _collect_event_ids("info_ids", ["info_id", "debug_id"]),
-    "new_count_errors": Function(
+    "count_errors": Function(
         "sum",
         parameters=[Column("count_error_events")],
-        alias="new_count_errors",
+        alias="count_errors",
     ),
     "count_warnings": Function(
         "sum",

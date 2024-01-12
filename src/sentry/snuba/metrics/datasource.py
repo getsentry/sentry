@@ -22,12 +22,12 @@ from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
 
 from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -44,10 +44,11 @@ from sentry.snuba.metrics.fields.base import (
     get_derived_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, is_mri
+from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import (
     get_available_operations,
     is_custom_measurement,
+    is_mri,
     parse_mri,
 )
 from sentry.snuba.metrics.query import Groupable, MetricField, MetricsQuery
@@ -66,7 +67,9 @@ from sentry.snuba.metrics.utils import (
     MetricDoesNotExistInIndexer,
     MetricMeta,
     MetricMetaWithTagKeys,
+    MetricOperationType,
     MetricType,
+    MetricUnit,
     NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
@@ -112,6 +115,28 @@ def _get_metrics_for_entity(
     )
 
 
+def _get_metrics_by_project_for_entity(
+    entity_key: EntityKey,
+    project_ids: Sequence[int],
+    org_id: int,
+    use_case_id: UseCaseID,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> List[SnubaDataType]:
+    return run_metrics_query(
+        entity_key=entity_key,
+        select=[Column("project_id"), Column("metric_id")],
+        groupby=[Column("project_id"), Column("metric_id")],
+        where=[_build_use_case_id_filter(use_case_id)],
+        referrer="snuba.metrics.get_metrics_names_for_entity",
+        project_ids=project_ids,
+        org_id=org_id,
+        use_case_id=use_case_id,
+        start=start,
+        end=end,
+    )
+
+
 def get_available_derived_metrics(
     projects: Sequence[Project],
     supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
@@ -131,7 +156,7 @@ def get_available_derived_metrics(
 
     # Initially, we need all derived metrics to be able to support derived metrics that are not
     # private but might have private constituent metrics
-    all_derived_metrics = get_derived_metrics(exclude_private=False)
+    all_derived_metrics = get_derived_metrics()
 
     for derived_metric_mri, derived_metric_obj in all_derived_metrics.items():
         try:
@@ -159,39 +184,38 @@ def get_available_derived_metrics(
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_mri)
 
-    public_derived_metrics = set(get_derived_metrics(exclude_private=True).keys())
-    return found_derived_metrics.intersection(public_derived_metrics)
+    all_derived_metrics = set(get_derived_metrics().keys())
+    return found_derived_metrics.intersection(all_derived_metrics)
 
 
 def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
     metas = []
-    stored_mris = get_stored_mris(projects, use_case_id) if projects else []
+    stored_mris = get_stored_mris(projects, use_case_id) if projects else {}
 
-    for mri in stored_mris:
-        parsed_mri = parse_mri(mri)
-
-        # TODO(ogi): check how is this possible
+    for metric_mri, project_ids in stored_mris.items():
+        parsed_mri = parse_mri(metric_mri)
         if parsed_mri is None:
             continue
 
-        ops = get_available_operations(parsed_mri)
-
         metas.append(
             MetricMeta(
-                mri=mri,
+                mri=metric_mri,
                 name=parsed_mri.name,
-                operations=ops,
-                # TODO: check unit casting
-                unit=parsed_mri.unit,
-                # TODO: add entity letter to entity key mapping i.e. c -> counter
+                operations=cast(
+                    Sequence[MetricOperationType], get_available_operations(parsed_mri)
+                ),
+                unit=cast(MetricUnit, parsed_mri.unit),
                 type=parsed_mri.entity,
+                project_ids=project_ids,
             )
         )
 
     return metas
 
 
-def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List[str]:
+def get_stored_mris(
+    projects: Sequence[Project], use_case_id: UseCaseID
+) -> Mapping[str, Sequence[int]]:
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
 
@@ -219,22 +243,26 @@ def get_stored_mris(projects: Sequence[Project], use_case_id: UseCaseID) -> List
 
     stored_metrics = []
     for entity_key in entity_keys:
-        stored_metrics += _get_metrics_for_entity(
+        stored_metrics += _get_metrics_by_project_for_entity(
             entity_key=entity_key,
             project_ids=project_ids,
             org_id=org_id,
             use_case_id=use_case_id,
         )
 
-    logger.debug("stored_metrics: %s", stored_metrics)
+    grouped_stored_metrics = {}
+    for stored_metric in stored_metrics:
+        grouped_stored_metrics.setdefault(stored_metric["metric_id"], []).append(
+            stored_metric["project_id"]
+        )
 
-    mris = bulk_reverse_resolve(
-        use_case_id, org_id, [row["metric_id"] for row in stored_metrics]
-    ).values()
+    resolved_mris = bulk_reverse_resolve(
+        use_case_id, org_id, [metric_id for metric_id in grouped_stored_metrics.keys()]
+    )
 
-    logger.debug("mris: %s", mris)
-
-    return list(mris)
+    return {
+        resolved_mris[metric_id]: projects for metric_id, projects in grouped_stored_metrics.items()
+    }
 
 
 def get_custom_measurements(
@@ -294,7 +322,7 @@ def _get_metrics_filter_ids(
     org_id = org_id_from_projects(projects)
 
     metric_mris_deque = deque(metric_mris)
-    all_derived_metrics = get_derived_metrics(exclude_private=False)
+    all_derived_metrics = get_derived_metrics()
 
     while metric_mris_deque:
         mri = metric_mris_deque.popleft()
@@ -329,9 +357,9 @@ def _validate_requested_derived_metrics_in_input_metrics(
     SingleEntityDerivedMetric was incorrectly setup with constituent metrics that span multiple
     entities
     """
-    public_derived_metrics = get_derived_metrics(exclude_private=True)
+    all_derived_metrics = get_derived_metrics()
     requested_derived_metrics = {
-        metric_mri for metric_mri in metric_mris if metric_mri in public_derived_metrics
+        metric_mri for metric_mri in metric_mris if metric_mri in all_derived_metrics
     }
     found_derived_metrics = get_available_derived_metrics(
         projects, supported_metric_ids_in_entities, use_case_id
@@ -380,13 +408,6 @@ def _fetch_tags_or_values_for_mri(
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
     org_id = projects[0].organization_id
-
-    if metric_mris is not None:
-        private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
-            get_derived_metrics(exclude_private=True).keys()
-        )
-        if set(metric_mris).intersection(private_derived_metrics) != set():
-            raise InvalidParams(f"Metric MRIs {metric_mris} do not exist")
 
     try:
         metric_ids = _get_metrics_filter_ids(
@@ -526,9 +547,9 @@ def get_single_metric_info(
     }
 
     metric_mri = get_mri(metric_name)
-    public_derived_metrics = get_derived_metrics(exclude_private=True)
-    if metric_mri in public_derived_metrics:
-        derived_metric = public_derived_metrics[metric_mri]
+    all_derived_metrics = get_derived_metrics()
+    if metric_mri in all_derived_metrics:
+        derived_metric = all_derived_metrics[metric_mri]
         response_dict.update(
             {
                 "operations": derived_metric.generate_available_operations(),

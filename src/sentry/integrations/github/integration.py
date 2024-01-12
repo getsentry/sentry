@@ -22,11 +22,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
-    FileBlameInfo,
-    SourceLineInfo,
-)
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -145,11 +141,11 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         gh_org = domain_name.split("github.com/")[1]
         extra.update({"gh_org": gh_org})
-        organization_context = organization_service.get_organization_by_id(
-            id=self.org_integration.organization_id, user_id=None
+        org_exists = organization_service.check_organization_by_id(
+            id=self.org_integration.organization_id, only_visible=False
         )
-        if not organization_context:
-            logger.exception(
+        if not org_exists:
+            logger.error(
                 "No organization information was found. Continuing execution.", extra=extra
             )
         else:
@@ -252,26 +248,18 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             return False
         return True
 
-    def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
-    ) -> Sequence[FileBlameInfo]:
-        return self.get_blame_for_files(files, extra)
-
     def get_commit_context(
         self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
     ) -> Mapping[str, str] | None:
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
-        try:
-            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-                repo, filepath, ref, lineno
-            )
+        blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+            repo, filepath, ref, lineno
+        )
 
-            if blame_range is None:
-                return None
-        except ApiError as e:
-            raise e
+        if blame_range is None:
+            return None
 
         try:
             commit: Mapping[str, Any] = max(
@@ -371,7 +359,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         except ApiError as api_error:
             if api_error.code == 404:
                 raise IntegrationError("The GitHub installation could not be found.")
-            raise api_error
+            raise
 
         integration = {
             "name": installation["account"]["login"],

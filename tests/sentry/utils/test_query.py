@@ -54,12 +54,12 @@ class RangeQuerySetWrapperTest(TestCase):
         assert len(list(self.range_wrapper(qs, step=2))) == 0
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBar
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
 
@@ -67,16 +67,35 @@ class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
 class BulkDeleteObjectsTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.group = self.create_group(project=self.project, message="Foo bar")
         UserReport.objects.all().delete()
 
     def test_basic(self):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records])
+        assert result, "Could be more work to do"
+        assert len(UserReport.objects.all()) == 0
+
+    def test_basic_tuple(self):
+        total = 10
+        records = []
+        for i in range(total):
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
+
+        result = bulk_delete_objects(UserReport, id__in=tuple([r.id for r in records]))
+        assert result, "Could be more work to do"
+        assert len(UserReport.objects.all()) == 0
+
+    def test_basic_set(self):
+        total = 10
+        records = []
+        for i in range(total):
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
+
+        result = bulk_delete_objects(UserReport, id__in={r.id for r in records})
         assert result, "Could be more work to do"
         assert len(UserReport.objects.all()) == 0
 
@@ -84,7 +103,7 @@ class BulkDeleteObjectsTest(TestCase):
         total = 10
         records = []
         for i in range(total):
-            records.append(self.create_userreport(group=self.group, event_id=i))
+            records.append(self.create_userreport(project=self.project, event_id=str(i) * 32))
 
         result = bulk_delete_objects(UserReport, id__in=[r.id for r in records], limit=5)
         assert result, "Still more work to do"

@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.types.region import RegionMappingNotFound
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -41,11 +42,6 @@ def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs)
 
 
 def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -> None:
-    org = organization_service.get(id=org_id)
-    if not org:
-        logger.warning("Could not send SSO link emails: Missing organization")
-        return
-
     user = user_service.get_user(user_id=sending_user_id)
     if not user:
         logger.warning(
@@ -53,9 +49,12 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
         )
         return
 
-    organization_service.send_sso_link_emails(
-        organization_id=org_id, sending_user_email=user.email, provider_key=provider_key
-    )
+    try:
+        organization_service.send_sso_link_emails(
+            organization_id=org_id, sending_user_email=user.email, provider_key=provider_key
+        )
+    except RegionMappingNotFound:
+        logger.warning("Could not send SSO link emails: Missing organization")
 
 
 @instrumented_task(
@@ -116,12 +115,13 @@ class OrganizationComplianceTask(abc.ABC):
             )
             if removed_member is None:
                 logger.warning(
-                    f"Could not remove {self.log_label} noncompliant user from org",
+                    "Could not remove %s noncompliant user from org",
+                    self.log_label,
                     extra=logging_data,
                 )
             else:
                 logger.info(
-                    f"{self.log_label} noncompliant user removed from org", extra=logging_data
+                    "%s noncompliant user removed from org", self.log_label, extra=logging_data
                 )
                 create_audit_entry_from_user(
                     user=actor,

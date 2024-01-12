@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from sentry.models.commit import Commit
@@ -77,12 +78,12 @@ class CodeOwnersTest(TestCase):
 
         assert code_owners.schema == {"$version": 1, "rules": []}
 
+    @patch("django.utils.timezone.now")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
-    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file):
-
+    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file, mock_timezone_now):
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             self.create_external_team()
             self.create_external_user(external_name="@NisanthanNanthakumar")
@@ -98,6 +99,8 @@ class CodeOwnersTest(TestCase):
                 filename=".github/CODEOWNERS",
                 type="A",
             )
+            mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
+            mock_timezone_now.return_value = mock_now
             code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
@@ -118,6 +121,7 @@ class CodeOwnersTest(TestCase):
                 },
             ],
         }
+        assert code_owners.date_updated == mock_now
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_codeowner_file",

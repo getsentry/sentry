@@ -239,7 +239,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 function CustomFilters({project, disabled}: {disabled: boolean; project: Project}) {
   return (
     <Feature
-      features={['projects:custom-inbound-filters']}
+      features="projects:custom-inbound-filters"
       hookName="feature-disabled:custom-inbound-filters"
       project={project}
       renderDisabled={({children, ...props}) => {
@@ -324,7 +324,8 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
-    staleTime: Infinity,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const filterList = filterListData ?? [];

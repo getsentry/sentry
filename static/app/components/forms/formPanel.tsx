@@ -86,6 +86,10 @@ function FormPanel({
           }
 
           const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
+          const fieldConfig =
+            field.type === 'boolean' || field.type === 'bool'
+              ? field
+              : fieldWithoutDefaultValue;
 
           // Allow the form panel disabled prop to override the fields
           // disabled prop, with fallback to the fields disabled state.
@@ -101,7 +105,7 @@ function FormPanel({
               key={field.name}
               {...otherProps}
               {...additionalFieldProps}
-              field={fieldWithoutDefaultValue}
+              field={fieldConfig}
               highlighted={otherProps.highlighted === `#${field.name}`}
             />
           );

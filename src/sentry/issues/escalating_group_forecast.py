@@ -100,7 +100,10 @@ class EscalatingGroupForecast:
             # This should not happen, but exists as a check
             forecast_today_index = -1
             logger.error(
-                f"Forecast list index is out of range. Index: {forecast_today_index}. Date now: {date_now}. Forecast date added: {date_added}."
+                "Forecast list index is out of range. Index: %s. Date now: %s. Forecast date added: %s.",
+                forecast_today_index,
+                date_now,
+                date_added,
             )
         return escalating_forecast.forecast[forecast_today_index]
 

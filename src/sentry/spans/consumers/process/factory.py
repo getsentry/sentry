@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -14,12 +14,12 @@ from django.conf import settings
 from sentry_kafka_schemas import get_codec
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import IngestSpanMessage
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent, _SentryExtractedTags
+from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.spans.grouping.strategy.base import Span
 from sentry.utils import metrics
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 INGEST_SPAN_SCHEMA: Codec[IngestSpanMessage] = get_codec("ingest-spans")
@@ -44,42 +44,40 @@ def _process_relay_span_v1(relay_span: Mapping[str, Any]) -> SpanEvent:
         segment_id=relay_span.get("segment_id", "0"),
         span_id=relay_span.get("span_id", "0"),
         start_timestamp_ms=int(start_timestamp.timestamp() * 1e3),
-        trace_id=uuid.UUID(relay_span["trace_id"]).hex,
+        trace_id=_format_event_id(relay_span["trace_id"]),
     )
 
-    if value := relay_span.get("description"):
-        snuba_span["description"] = value
+    for key in {
+        "_metrics_summary",
+        "description",
+        "measurements",
+        "sentry_tags",
+        "tags",
+    }:
+        if value := relay_span.get(key):
+            snuba_span[key] = value  # type: ignore
 
-    if value := relay_span.get("tags"):
-        snuba_span["tags"] = value
+    for key in {"event_id", "profile_id"}:
+        if value := format_event_id(relay_span, key=key):
+            snuba_span[key] = value  # type: ignore
 
-    if value := _format_event_id(relay_span, key="event_id"):
-        snuba_span["event_id"] = value
-
-    if value := _format_event_id(relay_span, key="profile_id"):
-        snuba_span["profile_id"] = value
-
-    snuba_span["sentry_tags"] = cast(
-        _SentryExtractedTags,
-        relay_span.get("sentry_tags", {}),
-    )
-
-    _process_group_raw(snuba_span, snuba_span["sentry_tags"].get("transaction", ""))
+    _process_group_raw(snuba_span)
 
     return snuba_span
 
 
-def _process_group_raw(snuba_span: SpanEvent, transaction: str) -> None:
+def _process_group_raw(snuba_span: SpanEvent) -> None:
     grouping_config = load_span_grouping_config()
+    sentry_tags = snuba_span.get("sentry_tags", {})
 
     if snuba_span["is_segment"]:
         group_raw = grouping_config.strategy.get_transaction_span_group(
-            {"transaction": transaction},
+            {"transaction": sentry_tags.get("transaction", "")},
         )
     else:
         # Build a span with only necessary values filled.
         span = Span(
-            op=snuba_span.get("sentry_tags", {}).get("op", ""),
+            op=sentry_tags.get("op", ""),
             description=snuba_span.get("description", ""),
             fingerprint=None,
             trace_id="",
@@ -101,20 +99,38 @@ def _process_group_raw(snuba_span: SpanEvent, transaction: str) -> None:
         metrics.incr("spans.invalid_group_raw")
 
 
-def _format_event_id(payload: Mapping[str, Any], key="event_id") -> Optional[str]:
-    event_id = payload.get(key)
-    if event_id:
-        return uuid.UUID(event_id).hex
+def format_event_id(payload: Mapping[str, Any], key: str) -> Optional[str]:
+    if event_id := payload.get(key):
+        return _format_event_id(event_id)
     return None
 
 
-def _deserialize_payload(payload: bytes) -> Mapping[str, Any]:
+def _format_event_id(event_id: str) -> str:
+    return uuid.UUID(event_id).hex
+
+
+def _deserialize_payload_as_ingest(payload: bytes) -> Mapping[str, Any]:
     return INGEST_SPAN_SCHEMA.decode(payload)
+
+
+def _deserialize_payload_as_snuba(payload: bytes) -> Mapping[str, Any]:
+    return SNUBA_SPAN_SCHEMA.decode(payload)
 
 
 def _process_message(message: Message[KafkaPayload]) -> KafkaPayload | FilteredPayload:
     try:
-        payload = _deserialize_payload(message.payload.value)
+        # Try to deserialize as snuba-spans schema.
+        _ = _deserialize_payload_as_snuba(message.payload.value)
+        # If it works, the payload was already translated to a snuba-spans
+        # schema and we can sent it right away to Kafka.
+        return KafkaPayload(key=None, value=message.payload.value, headers=[])
+    except Exception:
+        # If it fails, it's not in the snuba-spans schema and we proceed
+        # as usual.
+        pass
+
+    try:
+        payload = _deserialize_payload_as_ingest(message.payload.value)
     except ValidationError as err:
         metrics.incr("spans.consumer.schema_validation.failed.input")
         _capture_exception(err)
@@ -157,12 +173,11 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
     ):
         super().__init__()
 
-        self.__num_processes = num_processes
         self.__max_batch_size = max_batch_size
         self.__max_batch_time = max_batch_time
         self.__input_block_size = input_block_size
@@ -178,6 +193,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             )
         )
         self.__output_topic = Topic(name=output_topic)
+        self.__pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
@@ -191,9 +207,9 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             max_buffer_size=100000,
         )
         return RunTaskWithMultiprocessing(
-            num_processes=self.__num_processes,
             max_batch_size=self.__max_batch_size,
             max_batch_time=self.__max_batch_time,
+            pool=self.__pool,
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
             function=process_message,
@@ -202,3 +218,4 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def shutdown(self) -> None:
         self.__producer.close()
+        self.__pool.close()

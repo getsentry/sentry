@@ -1,46 +1,59 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import {Button} from 'sentry/components/button';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import Tag from 'sentry/components/tag';
-import {IconLightning, IconReleases} from 'sentry/icons';
+import {IconLightning, IconReleases, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsTag, SavedSearchType, TagCollection} from 'sentry/types';
+import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {
-  defaultMetricDisplayType,
+  getDefaultMetricDisplayType,
   getReadableMetricType,
-  getUseCaseFromMri,
   isAllowedOp,
+  isCustomMetric,
+  isMeasurement,
+  isTransactionDuration,
   MetricDisplayType,
-  MetricsQuery,
-  useMetricsMeta,
-  useMetricsTags,
+  MetricsQuerySubject,
+  MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
-import useApi from 'sentry/utils/useApi';
+import {formatMRI} from 'sentry/utils/metrics/mri';
+import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
+import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricWidgetProps} from 'sentry/views/ddm/widget';
+import useRouter from 'sentry/utils/useRouter';
+import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 type QueryBuilderProps = {
-  displayType: MetricDisplayType; // TODO(ddm): move display type out of the query builder
-  metricsQuery: Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'>;
-  onChange: (data: Partial<MetricWidgetProps>) => void;
+  displayType: MetricDisplayType;
+  isEdit: boolean;
+  metricsQuery: MetricsQuerySubject;
+  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   powerUserMode?: boolean;
 };
 
-export function QueryBuilder({
+const isShownByDefault = (metric: MetricMeta) =>
+  isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
+
+function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
+  return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
+}
+
+export const QueryBuilder = memo(function QueryBuilder({
   metricsQuery,
   projects,
   displayType,
   powerUserMode,
   onChange,
 }: QueryBuilderProps) {
-  const meta = useMetricsMeta(projects);
+  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
+  const router = useRouter();
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
 
@@ -53,72 +66,144 @@ export function QueryBuilder({
 
   const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
 
-  const metaArr = useMemo(() => {
+  const displayedMetrics = useMemo(() => {
     if (mriMode) {
-      return Object.values(meta);
+      return meta;
     }
 
-    return Object.values(meta).filter(
-      metric => metric.mri.includes(':custom/') || metric.mri === metricsQuery.mri
-    );
+    const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
+    return meta
+      .filter(metric => isShownByDefault(metric) || isSelected(metric))
+      .sort(metric => (isSelected(metric) ? -1 : 1));
   }, [meta, metricsQuery.mri, mriMode]);
 
-  if (!meta) {
-    return null;
-  }
+  const selectedMeta = useMemo(() => {
+    return meta.find(metric => metric.mri === metricsQuery.mri);
+  }, [meta, metricsQuery.mri]);
+
+  // Reset the query data if the selected metric is no longer available
+  useEffect(() => {
+    if (
+      metricsQuery.mri &&
+      !isMetaLoading &&
+      !displayedMetrics.find(metric => metric.mri === metricsQuery.mri)
+    ) {
+      onChange({mri: '' as MRI, op: '', groupBy: []});
+    }
+  }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
+
+  const incrementQueryMetric = useIncrementQueryMetric({
+    displayType,
+    op: metricsQuery.op,
+    groupBy: metricsQuery.groupBy,
+    query: metricsQuery.query,
+    mri: metricsQuery.mri,
+  });
+
+  const handleMRIChange = ({value}: SelectOption<MRI>) => {
+    const availableOps = getOpsForMRI(value, meta);
+    const selectedOp = availableOps.includes((metricsQuery.op ?? '') as MetricsOperation)
+      ? metricsQuery.op
+      : availableOps?.[0];
+
+    const queryChanges = {
+      mri: value,
+      op: selectedOp,
+      groupBy: undefined,
+      displayType: getDefaultMetricDisplayType(value, selectedOp),
+    };
+
+    incrementQueryMetric('ddm.widget.metric', queryChanges);
+    onChange({
+      ...queryChanges,
+      focusedSeries: undefined,
+    });
+  };
+
+  const handleOpChange = ({value}: SelectOption<MetricsOperation>) => {
+    incrementQueryMetric('ddm.widget.operation', {op: value});
+    onChange({
+      op: value,
+    });
+  };
+
+  const handleGroupByChange = (options: SelectOption<string>[]) => {
+    incrementQueryMetric('ddm.widget.group', {
+      groupBy: options.map(o => o.value),
+    });
+    onChange({
+      groupBy: options.map(o => o.value),
+      focusedSeries: undefined,
+    });
+  };
+
+  const mriOptions = useMemo(
+    () =>
+      displayedMetrics.map<SelectOption<MRI>>(metric => ({
+        label: mriMode ? metric.mri : formatMRI(metric.mri),
+        // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+        textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
+        value: metric.mri,
+        trailingItems: mriMode
+          ? undefined
+          : ({isFocused}) => (
+              <Fragment>
+                {isFocused && isCustomMetric({mri: metric.mri}) && (
+                  <Button
+                    borderless
+                    size="zero"
+                    icon={<IconSettings />}
+                    aria-label={t('Metric Settings')}
+                    onPointerDown={() => {
+                      // not using onClick to beat the dropdown listener
+                      navigateTo(
+                        `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                          metric.mri
+                        )}`,
+                        router
+                      );
+                    }}
+                  />
+                )}
+
+                <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
+                <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+              </Fragment>
+            ),
+      })),
+    [displayedMetrics, mriMode, router]
+  );
 
   return (
     <QueryBuilderWrapper>
-      <QueryBuilderRow>
-        <WrapPageFilterBar>
+      <FlexBlock>
+        <CompactSelect
+          searchable
+          sizeLimit={100}
+          size="md"
+          triggerLabel={middleEllipsis(formatMRI(metricsQuery.mri) ?? '', 35, /\.|-|_/)}
+          options={mriOptions}
+          value={metricsQuery.mri}
+          onChange={handleMRIChange}
+        />
+        <FlexBlock>
           <CompactSelect
-            searchable
-            sizeLimit={100}
-            triggerProps={{prefix: t('Metric'), size: 'sm'}}
-            options={metaArr.map(metric => ({
-              label: mriMode ? metric.mri : metric.name,
-              value: metric.mri,
-              trailingItems: mriMode ? undefined : (
-                <Fragment>
-                  <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
-                  <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-                </Fragment>
-              ),
-            }))}
-            value={metricsQuery.mri}
-            onChange={option => {
-              const availableOps = meta[option.value]?.operations.filter(isAllowedOp);
-              const selectedOp = availableOps.includes(metricsQuery.op ?? '')
-                ? metricsQuery.op
-                : availableOps[0];
-              onChange({
-                mri: option.value,
-                op: selectedOp,
-                groupBy: undefined,
-                focusedSeries: undefined,
-                displayType: getWidgetDisplayType(option.value, selectedOp),
-              });
-            }}
-          />
-          <CompactSelect
-            triggerProps={{prefix: t('Op'), size: 'sm'}}
+            size="md"
+            triggerProps={{prefix: t('Op')}}
             options={
-              meta[metricsQuery.mri]?.operations.filter(isAllowedOp).map(op => ({
+              selectedMeta?.operations.filter(isAllowedOp).map(op => ({
                 label: op,
                 value: op,
               })) ?? []
             }
             disabled={!metricsQuery.mri}
-            value={metricsQuery.op}
-            onChange={option =>
-              onChange({
-                op: option.value,
-              })
-            }
+            value={metricsQuery.op as MetricsOperation}
+            onChange={handleOpChange}
           />
           <CompactSelect
             multiple
-            triggerProps={{prefix: t('Group by'), size: 'sm'}}
+            size="md"
+            triggerProps={{prefix: t('Group by')}}
             options={tags.map(tag => ({
               label: tag.key,
               value: tag.key,
@@ -131,138 +216,41 @@ export function QueryBuilder({
             }))}
             disabled={!metricsQuery.mri}
             value={metricsQuery.groupBy}
-            onChange={options =>
-              onChange({
-                groupBy: options.map(o => o.value),
-                focusedSeries: undefined,
-              })
-            }
+            onChange={handleGroupByChange}
           />
-          <CompactSelect
-            triggerProps={{prefix: t('Display'), size: 'sm'}}
-            value={displayType ?? defaultMetricDisplayType}
-            options={[
-              {
-                value: MetricDisplayType.LINE,
-                label: t('Line'),
-              },
-              {
-                value: MetricDisplayType.AREA,
-                label: t('Area'),
-              },
-              {
-                value: MetricDisplayType.BAR,
-                label: t('Bar'),
-              },
-            ]}
-            onChange={({value}) => {
-              onChange({displayType: value});
-            }}
-          />
-        </WrapPageFilterBar>
-      </QueryBuilderRow>
-      <QueryBuilderRow>
+        </FlexBlock>
+      </FlexBlock>
+      <SearchBarWrapper>
         <MetricSearchBar
-          tags={tags}
+          // TODO(aknaus): clean up projectId type in ddm
+          projectIds={projects.map(id => id.toString())}
           mri={metricsQuery.mri}
           disabled={!metricsQuery.mri}
-          onChange={query => onChange({query})}
+          onChange={query => {
+            incrementQueryMetric('ddm.widget.filter', {query});
+            onChange({query});
+          }}
           query={metricsQuery.query}
         />
-      </QueryBuilderRow>
+      </SearchBarWrapper>
     </QueryBuilderWrapper>
   );
-}
-
-type MetricSearchBarProps = {
-  mri: string;
-  onChange: (value: string) => void;
-  tags: MetricsTag[];
-  disabled?: boolean;
-  query?: string;
-};
-
-function MetricSearchBar({tags, mri, disabled, onChange, query}: MetricSearchBarProps) {
-  const org = useOrganization();
-  const api = useApi();
-  const {selection} = usePageFilters();
-
-  const supportedTags: TagCollection = useMemo(
-    () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
-    [tags]
-  );
-
-  // TODO(ddm): try to use useApiQuery here
-  const getTagValues = useCallback(
-    async tag => {
-      const tagsValues = await api.requestPromise(
-        `/organizations/${org.slug}/metrics/tags/${tag.key}/`,
-        {
-          query: {
-            metric: mri,
-            useCase: getUseCaseFromMri(mri),
-            project: selection.projects,
-          },
-        }
-      );
-
-      return tagsValues.filter(tv => tv.value !== '').map(tv => tv.value);
-    },
-    [api, mri, org.slug, selection.projects]
-  );
-
-  const handleChange = useCallback(
-    (value: string, {validSearch} = {validSearch: true}) => {
-      if (validSearch) {
-        onChange(value);
-      }
-    },
-    [onChange]
-  );
-
-  return (
-    <WideSearchBar
-      disabled={disabled}
-      maxMenuHeight={220}
-      organization={org}
-      onGetTagValues={getTagValues}
-      supportedTags={supportedTags}
-      onClose={handleChange}
-      onSearch={handleChange}
-      placeholder={t('Filter by tags')}
-      query={query}
-      savedSearchType={SavedSearchType.METRIC}
-    />
-  );
-}
-
-function getWidgetDisplayType(
-  mri: MetricsQuery['mri'],
-  op: MetricsQuery['op']
-): MetricDisplayType {
-  if (mri?.startsWith('c') || op === 'count') {
-    return MetricDisplayType.BAR;
-  }
-  return MetricDisplayType.LINE;
-}
+});
 
 const QueryBuilderWrapper = styled('div')`
   display: flex;
-  flex-direction: column;
-`;
-
-const QueryBuilderRow = styled('div')`
-  padding: ${space(1)};
-  padding-bottom: 0;
-`;
-
-const WideSearchBar = styled(SearchBar)`
-  width: 100%;
-  opacity: ${p => (p.disabled ? '0.6' : '1')};
-`;
-
-const WrapPageFilterBar = styled(PageFilterBar)`
-  max-width: max-content;
-  height: auto;
+  flex-grow: 1;
+  gap: ${space(1)};
   flex-wrap: wrap;
+`;
+
+const FlexBlock = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  flex-wrap: wrap;
+`;
+
+const SearchBarWrapper = styled('div')`
+  flex: 1;
+  min-width: 300px;
 `;

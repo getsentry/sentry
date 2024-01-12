@@ -28,17 +28,17 @@ import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/compo
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
 import {
-  calculatePerformanceScore,
+  calculatePerformanceScoreFromTableDataRow,
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
 import {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useProjectWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsQuery';
-import {useProjectWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/useProjectWebVitalsValuesTimeseriesQuery';
-import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/useTransactionSamplesWebVitalsQuery';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
@@ -53,7 +53,7 @@ const columnOrder: GridColumnOrder[] = [
 ];
 
 const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
-  key: 'score',
+  key: 'totalScore',
   order: 'desc',
 };
 
@@ -82,15 +82,9 @@ export function PageOverviewWebVitalsDetailPanel({
       : location.query.transaction
     : undefined;
 
-  const {data: projectData} = useProjectWebVitalsQuery({transaction});
+  const {data: projectData} = useProjectRawWebVitalsQuery({transaction});
 
-  const projectScore = calculatePerformanceScore({
-    lcp: projectData?.data[0]['p75(measurements.lcp)'] as number,
-    fcp: projectData?.data[0]['p75(measurements.fcp)'] as number,
-    cls: projectData?.data[0]['p75(measurements.cls)'] as number,
-    ttfb: projectData?.data[0]['p75(measurements.ttfb)'] as number,
-    fid: projectData?.data[0]['p75(measurements.fid)'] as number,
-  });
+  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
@@ -103,6 +97,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -114,6 +110,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -125,6 +123,8 @@ export function PageOverviewWebVitalsDetailPanel({
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
+      sortName: 'webVitalSort',
+      webVital: webVital ?? undefined,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
@@ -139,7 +139,7 @@ export function PageOverviewWebVitalsDetailPanel({
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsValuesTimeseriesQuery({transaction});
+    useProjectRawWebVitalsValuesTimeseriesQuery({transaction});
 
   const webVitalData: LineChartSeries = {
     data:
@@ -174,8 +174,8 @@ export function PageOverviewWebVitalsDetailPanel({
     return <NoOverflow>{col.name}</NoOverflow>;
   };
 
-  const getFormattedDuration = (value: number | null) => {
-    if (value === null) {
+  const getFormattedDuration = (value: number) => {
+    if (value === undefined) {
       return null;
     }
     if (value < 1000) {
@@ -188,7 +188,7 @@ export function PageOverviewWebVitalsDetailPanel({
     const {key} = col;
     const projectSlug = getProjectSlug(row);
     if (key === 'score') {
-      if (row[`measurements.${webVital}`] !== null) {
+      if (row[`measurements.${webVital}`] !== undefined) {
         return (
           <AlignCenter>
             <PerformanceBadge score={row[`${webVital}Score`]} />
@@ -198,10 +198,14 @@ export function PageOverviewWebVitalsDetailPanel({
       return null;
     }
     if (col.key === 'webVital') {
-      if (row[key] === null) {
-        return <NoValue>{t('(no value)')}</NoValue>;
-      }
       const value = row[`measurements.${webVital}`];
+      if (value === undefined) {
+        return (
+          <AlignRight>
+            <NoValue>{t('(no value)')}</NoValue>
+          </AlignRight>
+        );
+      }
       const formattedValue =
         webVital === 'cls' ? value?.toFixed(2) : getFormattedDuration(value);
       return <AlignRight>{formattedValue}</AlignRight>;
@@ -217,7 +221,7 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (key === 'replayId') {
       const replayTarget =
-        row['transaction.duration'] !== null &&
+        row['transaction.duration'] !== undefined &&
         replayLinkGenerator(
           organization,
           {
@@ -262,10 +266,12 @@ export function PageOverviewWebVitalsDetailPanel({
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  const webVitalScore = projectScore[`${webVital}Score`];
+
   return (
     <PageErrorProvider>
       <DetailPanel detailKey={webVital ?? undefined} onClose={onClose}>
-        {webVital && projectData && (
+        {webVital && projectData && webVitalScore !== undefined && (
           <WebVitalDetailHeader
             value={
               webVital !== 'cls'
@@ -277,26 +283,28 @@ export function PageOverviewWebVitalsDetailPanel({
                   )
                 : (
                     projectData?.data[0][`p75(measurements.${webVital})`] as number
-                  ).toFixed(2)
+                  )?.toFixed(2)
             }
             webVital={webVital}
-            score={projectScore[`${webVital}Score`]}
+            score={webVitalScore}
           />
         )}
         <ChartContainer>
           {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
         </ChartContainer>
-        <GridEditable
-          data={tableData}
-          isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[sort]}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-          location={location}
-        />
+        <TableContainer>
+          <GridEditable
+            data={tableData}
+            isLoading={isTransactionWebVitalsQueryLoading}
+            columnOrder={columnOrder}
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+            }}
+            location={location}
+          />
+        </TableContainer>
         <PageErrorAlert />
       </DetailPanel>
     </PageErrorProvider>
@@ -326,4 +334,8 @@ const ChartContainer = styled('div')`
 
 const NoValue = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const TableContainer = styled('div')`
+  margin-bottom: 80px;
 `;

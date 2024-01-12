@@ -43,7 +43,7 @@ test_region = Region(
 )
 
 
-@control_silo_test(stable=True, regions=[test_region])
+@control_silo_test(regions=[test_region])
 class FakedAPIProxyTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"

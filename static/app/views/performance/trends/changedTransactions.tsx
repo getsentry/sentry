@@ -487,7 +487,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           title={
             <StyledButton
               size="xs"
-              icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+              icon={<IconEllipsis data-test-id="trends-item-action" />}
               aria-label={t('Actions')}
             />
           }
@@ -544,7 +544,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           <ValueDelta {...props} />
         </ItemTransactionStatus>
       </ListItemContainer>
-      <Feature features={['performance-change-explorer']}>
+      <Feature features="performance-change-explorer">
         <PerformanceChangeExplorer
           collapsed={openedTransaction === null}
           onClose={() => setOpenedTransaction(null)}

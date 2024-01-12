@@ -1,5 +1,6 @@
-import {AuditLogs} from 'sentry-fixture/auditLogs';
-import {AuditLogsApiEventNames} from 'sentry-fixture/auditLogsApiEventNames';
+import {AuditLogsFixture} from 'sentry-fixture/auditLogs';
+import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNames';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -26,7 +27,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: AuditLogs(), options: AuditLogsApiEventNames()},
+      body: {rows: AuditLogsFixture(), options: AuditLogsApiEventNamesFixture()},
     });
   });
 
@@ -49,7 +50,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: [], options: AuditLogsApiEventNames()},
+      body: {rows: [], options: AuditLogsApiEventNamesFixture()},
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
@@ -73,7 +74,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: {
-        rows: AuditLogs(),
+        rows: AuditLogsFixture(),
         options: ['rule.edit', 'alertrule.edit', 'member.add'],
       },
     });
@@ -97,7 +98,7 @@ describe('OrganizationAuditLog', function () {
       body: {
         rows: [
           {
-            actor: TestStubs.User(),
+            actor: UserFixture(),
             event: 'rule.edit',
             ipAddress: '127.0.0.1',
             id: '214',
@@ -107,7 +108,7 @@ describe('OrganizationAuditLog', function () {
             data: {},
           },
           {
-            actor: TestStubs.User(),
+            actor: UserFixture(),
             event: 'alertrule.edit',
             ipAddress: '127.0.0.1',
             id: '215',
@@ -117,7 +118,7 @@ describe('OrganizationAuditLog', function () {
             data: {},
           },
         ],
-        options: AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNamesFixture(),
       },
     });
 

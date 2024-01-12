@@ -1,46 +1,49 @@
 import {Location} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   MetricsProperty,
   MetricsResponse,
-  SpanMetricsField,
+  SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_GROUP} = SpanMetricsField;
+interface UseSpanMetricsOptions<Fields> {
+  cursor?: string;
+  fields?: Fields;
+  filters?: SpanMetricsQueryFilters;
+  limit?: number;
+  referrer?: string;
+  sorts?: Sort[];
+}
 
-export type SpanSummaryQueryFilters = {
-  release?: string;
-  'transaction.method'?: string;
-  transactionName?: string;
-};
-
-export const useSpanMetrics = <T extends MetricsProperty[]>(
-  group: string,
-  queryFilters: SpanSummaryQueryFilters,
-  fields: T,
-  referrer: string = 'span-metrics'
+export const useSpanMetrics = <Fields extends MetricsProperty[]>(
+  options: UseSpanMetricsOptions<Fields> = {}
 ) => {
+  const {fields = [], filters = {}, sorts = [], limit, cursor, referrer} = options;
+
   const location = useLocation();
-  const eventView = group
-    ? getEventView(group, location, queryFilters, fields)
-    : undefined;
 
-  const enabled =
-    Boolean(group) && Object.values(queryFilters).every(value => Boolean(value));
+  const eventView = getEventView(filters, fields, sorts, location);
 
-  // TODO: Add referrer
-  const result = useSpansQuery({
+  const enabled = Object.values(filters).every(value => Boolean(value));
+
+  const result = useWrappedDiscoverQuery({
     eventView,
     initialData: [],
+    limit,
     enabled,
     referrer,
+    cursor,
   });
 
-  const data = (result?.data?.[0] ?? {}) as Pick<MetricsResponse, T[number]>;
+  // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  const data = (result?.data ?? []) as Pick<MetricsResponse, Fields[number]>[] | [];
 
   return {
     ...result,
@@ -50,27 +53,30 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 };
 
 function getEventView(
-  group: string,
-  location: Location,
-  queryFilters?: SpanSummaryQueryFilters,
-  fields: string[] = []
+  filters: SpanMetricsQueryFilters = {},
+  fields: string[] = [],
+  sorts: Sort[] = [],
+  location: Location
 ) {
-  return EventView.fromNewQueryWithLocation(
+  const query = MutableSearch.fromQueryObject(filters);
+
+  // TODO: This condition should be enforced everywhere
+  // query.addFilterValue('has', 'span.description');
+
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `${SPAN_GROUP}:${group}${
-        queryFilters?.transactionName
-          ? ` transaction:"${queryFilters?.transactionName}"`
-          : ''
-      }${
-        queryFilters?.['transaction.method']
-          ? ` transaction.method:${queryFilters?.['transaction.method']}`
-          : ''
-      }${queryFilters?.release ? ` release:${queryFilters?.release}` : ''}`,
+      query: query.formatString(),
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
     location
   );
+
+  if (sorts.length > 0) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }

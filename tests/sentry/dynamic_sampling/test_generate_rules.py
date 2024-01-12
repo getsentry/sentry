@@ -71,13 +71,13 @@ def _validate_rules(project):
     rules = generate_rules(project)
 
     # Generate boilerplate around minimal project config:
-    project_config = {  # type:ignore
+    project_config = {
         "allowedDomains": ["*"],
         "piiConfig": None,
         "trustedRelays": [],
-        "dynamicSampling": {
-            "rules": [],
-            "rulesV2": rules,
+        "sampling": {
+            "version": 2,
+            "rules": rules,
             "mode": "total",
         },
     }

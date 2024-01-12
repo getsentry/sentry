@@ -46,7 +46,12 @@ export interface DocsParams<
   projectId: Project['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
+  cdn?: string;
   newOrg?: boolean;
+  replayOptions?: {
+    block?: boolean;
+    mask?: boolean;
+  };
 }
 
 export interface NextStep {
@@ -70,5 +75,14 @@ export interface OnboardingConfig<
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   onboarding: OnboardingConfig<PlatformOptions>;
+  customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
+  replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
+  replayOnboardingNpm?: OnboardingConfig<PlatformOptions>;
 }
+
+export type ConfigType =
+  | 'onboarding'
+  | 'replayOnboardingNpm'
+  | 'replayOnboardingJsLoader'
+  | 'customMetricsOnboarding';

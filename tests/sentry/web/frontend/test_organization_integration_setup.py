@@ -4,7 +4,7 @@ from sentry.testutils.cases import PermissionTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -21,7 +21,7 @@ class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
         self.assert_owner_can_access(self.path)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationSetupTest(TestCase):
     def setUp(self):
         super().setUp()

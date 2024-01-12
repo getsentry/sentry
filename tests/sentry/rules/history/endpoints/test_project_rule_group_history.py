@@ -13,7 +13,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RuleGroupHistorySerializerTest(TestCase):
     def test(self):
         current_date = datetime.now()
@@ -29,7 +29,7 @@ class RuleGroupHistorySerializerTest(TestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"

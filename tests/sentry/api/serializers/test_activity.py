@@ -8,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class GroupActivityTestCase(TestCase):
     def test_pr_activity(self):
         self.org = self.create_organization(name="Rowdy Tiger")

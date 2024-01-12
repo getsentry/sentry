@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,8 +11,8 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('projectContext component', function () {
-  const project = TestStubs.Project();
-  const org = Organization();
+  const project = ProjectFixture();
+  const org = OrganizationFixture();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -91,7 +92,7 @@ describe('projectContext component', function () {
       url: `/projects/${org.slug}/new-slug/`,
       method: 'GET',
       statusCode: 200,
-      body: TestStubs.Project({slug: 'new-slug'}),
+      body: ProjectFixture({slug: 'new-slug'}),
     });
 
     rerender(

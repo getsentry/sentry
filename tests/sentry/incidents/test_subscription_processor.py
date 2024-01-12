@@ -38,7 +38,6 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
@@ -46,7 +45,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
@@ -1525,7 +1523,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1593,7 +1591,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1671,7 +1669,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -2113,7 +2111,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident, [self.action], [(150.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
-    @with_feature("organizations:metric-alert-rate-limiting")
     def test_no_new_incidents_within_ten_minutes(self):
         # Verify that a new incident is not made for the same rule, trigger, and
         # subscription if an incident was already made within the last 10 minutes.
@@ -2152,7 +2149,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             any_order=True,
         )
 
-    @with_feature("organizations:metric-alert-rate-limiting")
     def test_incident_made_after_ten_minutes(self):
         # Verify that a new incident will be made for the same rule, trigger, and
         # subscription if the last incident made for those was made more tha 10 minutes

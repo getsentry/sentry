@@ -9,6 +9,7 @@ import {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -68,12 +69,7 @@ const getMavenInstallSnippet = (params: Params) => `
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>${
-        params.sourcePackageRegistries?.isLoading
-          ? t('\u2026loading')
-          : params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
-            '0.0.4'
-      }</version>
+      <version>${getPackageVersion(params, 'sentry.java.maven-plugin', '0.0.4')}</version>
       <extensions>true</extensions>
       <configuration>
         <!-- for showing output of sentry-cli -->
@@ -123,7 +119,7 @@ sentry:
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
-  sentry.traces-sample-rate: 1.0`
+  traces-sample-rate: 1.0`
       : ''
   }`;
 
@@ -305,6 +301,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  replayOnboardingJsLoader,
 };
 
 export default docs;

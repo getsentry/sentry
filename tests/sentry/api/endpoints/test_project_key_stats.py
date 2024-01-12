@@ -9,7 +9,7 @@ from sentry.utils.outcomes import Outcome
 
 
 @freeze_time("2022-01-01 03:30:00")
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()

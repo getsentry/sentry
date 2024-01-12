@@ -77,7 +77,7 @@ class AuthenticationForm(forms.Form):
         UserModel = get_user_model()
         self.username_field = UserModel._meta.get_field(UserModel.USERNAME_FIELD)
         if not self.fields["username"].label:
-            self.fields["username"].label = capfirst(self.username_field.verbose_name)  # type: ignore[type-var]  # issue: typeddjango/django-stubs#1626
+            self.fields["username"].label = capfirst(self.username_field.verbose_name)
 
     def clean_username(self, value=None):
         if not value:
@@ -100,7 +100,7 @@ class AuthenticationForm(forms.Form):
             return False
 
         ip_address = self.request.META["REMOTE_ADDR"]
-        return ratelimiter.is_limited(f"auth:ip:{ip_address}", limit)
+        return ratelimiter.backend.is_limited(f"auth:ip:{ip_address}", limit)
 
     def _is_user_rate_limited(self):
         limit = options.get("auth.user-rate-limit")
@@ -111,7 +111,7 @@ class AuthenticationForm(forms.Form):
         if not username:
             return False
 
-        return ratelimiter.is_limited(f"auth:username:{username}", limit)
+        return ratelimiter.backend.is_limited(f"auth:username:{username}", limit)
 
     def clean(self) -> dict[str, Any] | None:
         username = self.cleaned_data.get("username")

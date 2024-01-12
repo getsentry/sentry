@@ -37,7 +37,7 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
@@ -74,19 +74,49 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         )
         run_metrics_query.assert_called_once()
 
-    def test_compare_query_with_transactions_metric(self):
-        self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
-            tags={"transaction": "/hello", "platform": "ios"},
-            value=10,
+    def test_query_with_invalid_query(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            status_code=400,
+            field=f"sum({TransactionMRI.DURATION.value})",
+            query="foo:foz < bar:baz",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
         )
+
+    def test_query_with_invalid_percentile(self):
+        self.get_error_response(
+            self.project.organization.slug,
+            status_code=500,
+            field=f"p30({TransactionMRI.DURATION.value})",
+            useCase="transactions",
+            useNewMetricsLayer="true",
+            statsPeriod="1h",
+            interval="1h",
+        )
+
+    def test_compare_query_with_transactions_metric(self):
+        for transaction, value in (("/hello", 10), ("/world", 5), ("/foo", 3)):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
 
         responses = []
         for flag_value in False, True:
+            field = f"sum({TransactionMRI.DURATION.value})"
             response = self.get_response(
                 self.project.organization.slug,
-                field=f"sum({TransactionMRI.DURATION.value})",
+                field=field,
+                groupBy="transaction",
+                orderBy=field,
                 useCase="transactions",
+                # We test the limit in both.
+                limit="2",
+                per_page="2",
                 useNewMetricsLayer="true" if flag_value else "false",
                 statsPeriod="1h",
                 interval="1h",
@@ -96,20 +126,25 @@ class OrganizationMetricsDataWithNewLayerTest(MetricsAPIBaseTestCase):
         response_old = responses[0].data
         response_new = responses[1].data
 
-        # We want to only compare a subset of the fields, since the new integration doesn't have all features.
-        assert response_old["groups"][0]["by"] == response_new["groups"][0]["by"]
-        assert list(response_old["groups"][0]["series"].values()) == list(
-            response_new["groups"][0]["series"].values()
-        )
-        assert list(response_old["groups"][0]["totals"].values()) == list(
-            response_new["groups"][0]["totals"].values()
-        )
+        for group_index in (0, 1):
+            # We want to only compare a subset of the fields since the APIs have some differences.
+            assert (
+                response_old["groups"][group_index]["by"]
+                == response_new["groups"][group_index]["by"]
+            )
+            assert list(response_old["groups"][group_index]["series"].values()) == list(
+                response_new["groups"][group_index]["series"].values()
+            )
+            assert list(response_old["groups"][group_index]["totals"].values()) == list(
+                response_new["groups"][group_index]["totals"].values()
+            )
+
         assert response_old["intervals"] == response_new["intervals"]
         assert response_old["start"] == response_new["start"]
         assert response_old["end"] == response_new["end"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
@@ -1535,7 +1570,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            f"Requested interval of timedelta of {timedelta(minutes=5)} with statsPeriod "
+            f"Requested intervals (288) of timedelta of {timedelta(minutes=5)} with statsPeriod "
             f"timedelta of {timedelta(hours=24)} is too granular "
             f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
             f"or decrease your per_page parameter."
@@ -1567,6 +1602,31 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
 
+    def test_transaction_status_unknown_error(self):
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction.status": "unknown"},
+            value=10.0,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=f"sum({TransactionMetricKey.DURATION.value})",
+            query="transaction.status:unknown_error",
+            statsPeriod="1h",
+            interval="1h",
+            per_page=1,
+            useCase="transactions",
+        )
+        groups = response.data["groups"]
+        assert groups == [
+            {
+                "by": {},
+                "series": {"sum(transaction.duration)": [10.0]},
+                "totals": {"sum(transaction.duration)": 10.0},
+            }
+        ]
+
     def test_gauges(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -1581,7 +1641,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         gauge_2 = {
             "min": 2.0,
             "max": 21.0,
-            "sum": 25.0,
+            "sum": 21.0,
             "count": 3,
             "last": 4.0,
         }
@@ -1597,6 +1657,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"max({mri})",
                 f"last({mri})",
                 f"sum({mri})",
+                f"avg({mri})",
             ],
             query="",
             statsPeriod="1h",
@@ -1604,7 +1665,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             per_page=3,
             useCase="custom",
             includeSeries="1",
-            allowPrivate="true",
         )
         groups = response.data["groups"]
 
@@ -1613,18 +1673,20 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {
                 "by": {},
                 "series": {
-                    "count(g:custom/page_load@millisecond)": [2, 3],
-                    "max(g:custom/page_load@millisecond)": [20.0, 21.0],
-                    "min(g:custom/page_load@millisecond)": [1.0, 2.0],
-                    "last(g:custom/page_load@millisecond)": [20.0, 4.0],
-                    "sum(g:custom/page_load@millisecond)": [21.0, 25.0],
+                    "count(page_load)": [2, 3],
+                    "max(page_load)": [20.0, 21.0],
+                    "min(page_load)": [1.0, 2.0],
+                    "last(page_load)": [20.0, 4.0],
+                    "sum(page_load)": [21.0, 21.0],
+                    "avg(page_load)": [10.5, 7.0],
                 },
                 "totals": {
-                    "count(g:custom/page_load@millisecond)": 5,
-                    "max(g:custom/page_load@millisecond)": 21.0,
-                    "min(g:custom/page_load@millisecond)": 1.0,
-                    "last(g:custom/page_load@millisecond)": 4.0,
-                    "sum(g:custom/page_load@millisecond)": 46.0,
+                    "count(page_load)": 5,
+                    "max(page_load)": 21.0,
+                    "min(page_load)": 1.0,
+                    "last(page_load)": 4.0,
+                    "sum(page_load)": 42.0,
+                    "avg(page_load)": 8.4,
                 },
             }
         ]

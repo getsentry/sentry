@@ -13,7 +13,7 @@ GITHUB_CODEOWNER = {
 }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationCodeMappingCodeOwnersTest(APITestCase):
     def setUp(self):
         super().setUp()

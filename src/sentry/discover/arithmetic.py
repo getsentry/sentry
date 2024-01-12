@@ -319,9 +319,9 @@ def parse_arithmetic(
 def resolve_equation_list(
     equations: List[str],
     selected_columns: List[str],
-    aggregates_only: Optional[bool] = False,
-    auto_add: Optional[bool] = False,
-    plain_math: Optional[bool] = False,
+    aggregates_only: bool = False,
+    auto_add: bool = False,
+    plain_math: bool = False,
     custom_measurements: Optional[Set[str]] = None,
 ) -> Tuple[List[str], List[ParsedEquation]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats

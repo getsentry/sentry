@@ -23,7 +23,7 @@ from sentry.utils.cache import cache
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectOwnershipEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-project-ownership"
     method = "put"

@@ -40,7 +40,7 @@ class DummyPipeline(Pipeline):
         self.finished = True
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class PipelineTestCase(TestCase):
     def setUp(self):
         super().setUp()

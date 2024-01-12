@@ -7,13 +7,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log, deletions, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
-from sentry.mediators import InstallationNotifier
+from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.apps import SentryAppUpdater
@@ -22,10 +23,12 @@ from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
+PARTNERSHIP_RESTRICTED_ERROR_MESSAGE = "This integration is managed by an active partnership and cannot be modified until the end of the partnership."
 
 
 @control_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -37,6 +40,11 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
     @catch_raised_errors
     def put(self, request: Request, sentry_app) -> Response:
+        if sentry_app.metadata.get("partnership_restricted", False):
+            return Response(
+                {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
+                status=403,
+            )
         owner_context = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=None
         )
@@ -49,7 +57,6 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 actor=request.user,
             )
         ):
-
             return Response(
                 {
                     "non_field_errors": [
@@ -104,6 +111,11 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(serializer.errors, status=400)
 
     def delete(self, request: Request, sentry_app) -> Response:
+        if sentry_app.metadata.get("partnership_restricted", False):
+            return Response(
+                {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
+                status=403,
+            )
         if sentry_app.is_unpublished or sentry_app.is_internal:
             if not sentry_app.is_internal:
                 for install in sentry_app.installations.all():

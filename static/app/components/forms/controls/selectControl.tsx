@@ -116,6 +116,10 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    */
   inFieldLabel?: string;
   /**
+   * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
+   */
+  isInsideModal?: boolean;
+  /**
    * Maximum width of the menu component. Menu item labels that overflow the
    * menu's boundaries will automatically be truncated.
    */
@@ -167,7 +171,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth} = props;
+  const {size, maxMenuWidth, isInsideModal} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -216,27 +220,17 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...provided,
         zIndex: theme.zIndex.dropdown,
         background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
         borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
+        boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
         width: 'auto',
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
       }),
 
-      menuPortal: () => ({
+      menuPortal: provided => ({
+        ...provided,
         maxWidth: maxMenuWidth ?? '24rem',
-        zIndex: theme.zIndex.dropdown,
-        width: '90%',
-        position: 'fixed',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
-        borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
-        overflow: 'hidden',
+        zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
       }),
 
       option: provided => ({

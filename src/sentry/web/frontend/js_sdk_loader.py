@@ -12,7 +12,7 @@ from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynami
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.utils import metrics
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
 CACHE_CONTROL = (
@@ -43,6 +43,7 @@ class LoaderContext(TypedDict):
     isLazy: bool
 
 
+@region_silo_view
 class JavaScriptSdkLoader(BaseView):
     auth_required = False
 
@@ -211,6 +212,6 @@ class JavaScriptSdkLoader(BaseView):
             response["Surrogate-Key"] = f"project/{key.project_id} sdk/{sdk_version} sdk-loader"
 
         ms = int((time.time() - start_time) * 1000)
-        metrics.timing("js-sdk-loader.duration", ms, instance=instance)
+        metrics.distribution("js-sdk-loader.duration", ms, instance=instance, unit="millisecond")
 
         return response

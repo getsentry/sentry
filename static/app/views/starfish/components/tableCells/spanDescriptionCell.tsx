@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
@@ -12,23 +12,31 @@ import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatte
 const formatter = new SQLishFormatter();
 
 interface Props {
+  description: string;
   moduleName: ModuleName;
   projectId: number;
-  description?: string;
   endpoint?: string;
   endpointMethod?: string;
   group?: string;
 }
 
 export function SpanDescriptionCell({
-  description,
+  description: rawDescription,
   group,
   moduleName,
   endpoint,
   endpointMethod,
   projectId,
 }: Props) {
-  if (!description) {
+  const formatterDescription = useMemo(() => {
+    if (moduleName !== ModuleName.DB) {
+      return rawDescription;
+    }
+
+    return formatter.toSimpleMarkup(rawDescription);
+  }, [moduleName, rawDescription]);
+
+  if (!rawDescription) {
     return NULL_DESCRIPTION;
   }
 
@@ -38,9 +46,7 @@ export function SpanDescriptionCell({
       projectId={projectId}
       endpoint={endpoint}
       endpointMethod={endpointMethod}
-      description={
-        moduleName === ModuleName.DB ? formatter.toSimpleMarkup(description) : description
-      }
+      description={formatterDescription}
     />
   );
 
@@ -52,7 +58,7 @@ export function SpanDescriptionCell({
           body={
             <FullSpanDescription
               group={group}
-              shortDescription={description}
+              shortDescription={rawDescription}
               language="sql"
             />
           }
@@ -73,7 +79,7 @@ export function SpanDescriptionCell({
               <TitleWrapper>{t('Example')}</TitleWrapper>
               <FullSpanDescription
                 group={group}
-                shortDescription={description}
+                shortDescription={rawDescription}
                 language="http"
               />
             </Fragment>

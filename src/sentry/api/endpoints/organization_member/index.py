@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, ratelimits, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -131,6 +132,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (MemberPermission,)
+    owner = ApiOwner.ENTERPRISE
 
     def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
@@ -248,6 +250,15 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
 
         allowed_roles = get_allowed_org_roles(request, organization)
+
+        # We allow requests from integration tokens to invite new members as the member role only
+        if not allowed_roles and request.access.is_integration_token:
+            # Error if the assigned role is not a member
+            if request.data.get("role") != "member" and request.data.get("orgRole") != "member":
+                raise serializers.ValidationError(
+                    "Integration tokens are restricted to inviting new members with the member role only."
+                )
+            allowed_roles = [organization_roles.get("member")]
 
         serializer = OrganizationMemberSerializer(
             data=request.data,

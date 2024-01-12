@@ -7,7 +7,6 @@ from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
-from sentry.models.integrations.integration import Integration
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -19,7 +18,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, regi
 from social_auth.models import UserSocialAuth
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class FetchCommitsTest(TestCase):
     def _test_simple_action(self, user, org):
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
@@ -263,7 +262,7 @@ class FetchCommitsTest(TestCase):
         org = self.create_organization(owner=self.user, name="baz")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org)
 
         repo = Repository.objects.create(
@@ -298,7 +297,7 @@ class FetchCommitsTest(TestCase):
         assert "Repository not found" in msg.body
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class HandleInvalidIdentityTest(TestCase):
     def test_simple(self):
         usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")

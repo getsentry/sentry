@@ -1,4 +1,9 @@
-import {HiddenEnvironments} from 'sentry-fixture/environments';
+import {
+  EnvironmentsFixture,
+  HiddenEnvironmentsFixture,
+} from 'sentry-fixture/environments';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +24,7 @@ function renderComponent(isHidden: boolean) {
     <ProjectEnvironments
       {...routerProps}
       params={{projectId: project.slug}}
-      location={TestStubs.location({pathname})}
+      location={LocationFixture({pathname})}
       organization={organization}
       project={project}
     />
@@ -27,7 +32,7 @@ function renderComponent(isHidden: boolean) {
 }
 
 describe('ProjectEnvironments', function () {
-  const project = TestStubs.Project({
+  const project = ProjectFixture({
     defaultEnvironment: 'production',
   });
 
@@ -59,7 +64,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        body: TestStubs.Environments(),
+        body: EnvironmentsFixture(),
       });
       renderComponent(false);
 
@@ -85,7 +90,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        body: HiddenEnvironments(),
+        body: HiddenEnvironmentsFixture(),
       });
       renderComponent(true);
 
@@ -116,7 +121,7 @@ describe('ProjectEnvironments', function () {
     it('hides', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: TestStubs.Environments(),
+        body: EnvironmentsFixture(),
       });
 
       renderComponent(false);
@@ -162,7 +167,7 @@ describe('ProjectEnvironments', function () {
     it('shows', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: HiddenEnvironments(),
+        body: HiddenEnvironmentsFixture(),
       });
 
       renderComponent(true);
@@ -180,7 +185,7 @@ describe('ProjectEnvironments', function () {
     it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: HiddenEnvironments(),
+        body: HiddenEnvironmentsFixture(),
       });
 
       renderComponent(true);

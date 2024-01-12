@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class EmailMissingLinksControlTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -43,8 +43,17 @@ class EmailMissingLinksControlTest(TestCase):
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
 
+    def test_email_missing_links_organization_deleted(self):
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization.delete()
 
-@region_silo_test(stable=True)
+        with self.tasks():
+            email_missing_links_control(self.organization.id, self.user.id, self.provider.provider)
+
+        assert len(mail.outbox) == 0
+
+
+@region_silo_test
 class EmailMissingLinksTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -76,8 +85,16 @@ class EmailMissingLinksTest(TestCase):
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
 
+    def test_email_missing_links_organization_deleted(self):
+        self.organization.delete()
 
-@region_silo_test(stable=True)
+        with self.tasks():
+            email_missing_links(self.organization.id, self.user.id, self.provider.provider)
+
+        assert len(mail.outbox) == 0
+
+
+@region_silo_test
 class EmailUnlinkNotificationsTest(TestCase):
     def setUp(self):
         super().setUp()

@@ -7,7 +7,7 @@ import {
   RuleActionsCategories,
 } from 'sentry/types/alerts';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 export function getProjectOptions({
   organization,
@@ -100,4 +100,8 @@ export function getAlertRuleActionCategory(rule: MetricRule) {
     default:
       return RuleActionsCategories.SOME_DEFAULT;
   }
+}
+
+export function shouldUseErrorsDiscoverDataset(query: string, dataset: Dataset) {
+  return dataset === Dataset.ERRORS && query?.includes('is:unresolved');
 }

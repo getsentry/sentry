@@ -461,7 +461,7 @@ def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any):
         pass
 
     for outbox_name in (name for names in settings.SENTRY_OUTBOX_MODELS.values() for name in names):
-        logger.info(f"Processing {outbox_name}s...")
+        logger.info("Processing %ss...", outbox_name)
         outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
         for shard_attrs in outbox_model.find_scheduled_shards():
             next_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attrs)

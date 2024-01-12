@@ -32,7 +32,7 @@ def _as_serialized(a: Any) -> Any:
     return a
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
@@ -176,7 +176,7 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert not delay.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
     def setUp(self):
@@ -355,7 +355,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
     def setUp(self):
@@ -427,7 +427,7 @@ class TestIssueAssigned(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestIssueAssignedSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -491,7 +491,7 @@ class TestIssueAssignedSentryFunctions(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
 class TestComments(APITestCase):
     def setUp(self):
@@ -564,7 +564,7 @@ class TestComments(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestCommentsSentryFunctions(APITestCase):
     def setUp(self):

@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.dates import to_timestamp
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSentryAppStatsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)

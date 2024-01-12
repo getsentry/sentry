@@ -15,7 +15,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TimeSeriesValueSerializerTest(TestCase):
     def test(self):
         time_series_value = TimeSeriesValue(datetime.now(), 30)
@@ -29,7 +29,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 
 @freeze_time()
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 

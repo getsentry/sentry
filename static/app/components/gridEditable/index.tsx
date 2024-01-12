@@ -1,11 +1,11 @@
-import {Component, createRef, Fragment, Profiler, ReactNode} from 'react';
+import {Component, createRef, Fragment, ReactNode} from 'react';
 import {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {onRenderCallback} from 'sentry/utils/performanceForSentry';
+import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
   Body,

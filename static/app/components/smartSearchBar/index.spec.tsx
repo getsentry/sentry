@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {Organization} from 'sentry-fixture/organization';
-import {Tags} from 'sentry-fixture/tags';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
   act,
@@ -22,7 +22,7 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(Tags());
+    TagStore.loadTagsSuccess(TagsFixture());
     const supportedTags = TagStore.getState();
     supportedTags.firstRelease = {
       key: 'firstRelease',
@@ -33,7 +33,7 @@ describe('SmartSearchBar', function () {
       name: 'is',
     };
 
-    const organization = Organization({id: '123'});
+    const organization = OrganizationFixture({id: '123'});
 
     const location = {
       pathname: '/organizations/org-slug/recent-searches/',
@@ -1086,56 +1086,6 @@ describe('SmartSearchBar', function () {
       expect(dateInput).toHaveValue('2022-01-01');
       expect(screen.getByLabelText('Time')).toHaveValue('09:45:12');
       expect(screen.getByLabelText('Use UTC')).not.toBeChecked();
-    });
-  });
-
-  describe('custom performance metric filters', () => {
-    it('raises Invalid file size when parsed filter unit is not a valid size unit', async () => {
-      render(
-        <SmartSearchBar
-          {...defaultProps}
-          customPerformanceMetrics={{
-            'measurements.custom.kibibyte': {
-              fieldType: 'size',
-            },
-          }}
-        />
-      );
-
-      const textbox = screen.getByRole('textbox');
-      await userEvent.click(textbox);
-      await userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
-      await userEvent.keyboard('{arrowleft}');
-
-      expect(
-        screen.getByText(
-          'Invalid file size. Expected number followed by file size unit suffix'
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('raises Invalid duration when parsed filter unit is not a valid duration unit', async () => {
-      render(
-        <SmartSearchBar
-          {...defaultProps}
-          customPerformanceMetrics={{
-            'measurements.custom.minute': {
-              fieldType: 'duration',
-            },
-          }}
-        />
-      );
-
-      const textbox = screen.getByRole('textbox');
-      await userEvent.click(textbox);
-      await userEvent.type(textbox, 'measurements.custom.minute:10kb ');
-      await userEvent.keyboard('{arrowleft}');
-
-      expect(
-        screen.getByText(
-          'Invalid duration. Expected number followed by duration unit suffix'
-        )
-      ).toBeInTheDocument();
     });
   });
 

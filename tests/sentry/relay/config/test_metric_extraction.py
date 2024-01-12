@@ -1,5 +1,4 @@
-from typing import Optional, Sequence
-from unittest.mock import ANY
+from typing import Any, Optional, Sequence
 
 import pytest
 
@@ -60,7 +59,7 @@ def create_widget(
     aggregates: Sequence[str],
     query: str,
     project: Project,
-    title="Dashboard",
+    title: Optional[str] = "Dashboard",
     columns: Optional[Sequence[str]] = None,
 ) -> DashboardWidgetQuery:
     columns = columns or []
@@ -93,20 +92,20 @@ def create_project_threshold(
 
 
 @django_db_all
-def test_get_metric_extraction_config_empty_no_alerts(default_project):
+def test_get_metric_extraction_config_empty_no_alerts(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         assert not get_metric_extraction_config(default_project)
 
 
 @django_db_all
-def test_get_metric_extraction_config_empty_feature_flag_off(default_project):
+def test_get_metric_extraction_config_empty_feature_flag_off(default_project: Project) -> None:
     create_alert("count()", "transaction.duration:>=1000", default_project)
 
     assert not get_metric_extraction_config(default_project)
 
 
 @django_db_all
-def test_get_metric_extraction_config_empty_standard_alerts(default_project):
+def test_get_metric_extraction_config_empty_standard_alerts(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         # standard alerts are not included in the config
         create_alert("count()", "", default_project)
@@ -115,7 +114,7 @@ def test_get_metric_extraction_config_empty_standard_alerts(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_alert(default_project):
+def test_get_metric_extraction_config_single_alert(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
 
@@ -128,12 +127,89 @@ def test_get_metric_extraction_config_single_alert(default_project):
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [{"key": "query_hash", "value": "a312e0db"}],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_alerts(default_project):
+def test_get_metric_extraction_config_with_double_write_env_alert(
+    default_project: Project, default_environment: Environment
+) -> None:
+    with Feature(ON_DEMAND_METRICS):
+        create_alert(
+            "count()",
+            "device.platform:android OR device.platform:ios",
+            default_project,
+            environment=default_environment,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
+        # and then AND with the injected environment.
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {"name": "event.environment", "op": "eq", "value": "development"},
+                    {
+                        "inner": [
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
+                        ],
+                        "op": "or",
+                    },
+                ],
+                "op": "and",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": "ca87c609"}],
+        }
+        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
+        # expression, we will prioritize our filter.
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {
+                "inner": [
+                    {
+                        "inner": [
+                            {"name": "event.environment", "op": "eq", "value": "development"},
+                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
+                        ],
+                        "op": "and",
+                    },
+                    {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
+                ],
+                "op": "or",
+            },
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": "47bc817d"}],
+        }
+
+
+@django_db_all
+def test_get_metric_extraction_config_single_alert_with_mri(default_project: Project) -> None:
+    with Feature(ON_DEMAND_METRICS):
+        create_alert(
+            "sum(c:custom/page_load@millisecond)", "transaction.duration:>=1000", default_project
+        )
+        create_alert(
+            "count(d:transactions/measurements.fcp@millisecond)",
+            "transaction.duration:>=1000",
+            default_project,
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config is None
+
+
+@django_db_all
+def test_get_metric_extraction_config_multiple_alerts(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_alert("count()", "transaction.duration:>=2000", default_project)
@@ -150,7 +226,27 @@ def test_get_metric_extraction_config_multiple_alerts(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project):
+@override_options({"on_demand.max_alert_specs": 1})
+def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature(ON_DEMAND_METRICS):
+        create_alert("count()", "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=2000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.split(": ")[-1] == "Too many (2) on demand metric alerts for project bar\n"
+
+
+@django_db_all
+def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project: Project) -> None:
     # alerts with the same query should be deduplicated
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>=1000", default_project)
@@ -163,7 +259,9 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
 
 
 @django_db_all
-def test_get_metric_extraction_config_environment(default_project, default_environment):
+def test_get_metric_extraction_config_environment(
+    default_project: Project, default_environment: Environment
+) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert("count()", "transaction.duration:>0", default_project)
         create_alert("count()", "transaction.duration:>0", default_project, environment=None)
@@ -186,7 +284,7 @@ def test_get_metric_extraction_config_environment(default_project, default_envir
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_standard_widget(default_project):
+def test_get_metric_extraction_config_single_standard_widget(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "", default_project)
 
@@ -194,7 +292,7 @@ def test_get_metric_extraction_config_single_standard_widget(default_project):
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_widget(default_project):
+def test_get_metric_extraction_config_single_widget(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
@@ -207,12 +305,17 @@ def test_get_metric_extraction_config_single_widget(default_project):
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "a312e0db"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_project):
+def test_get_metric_extraction_config_single_widget_multiple_aggregates(
+    default_project: Project,
+) -> None:
     # widget with multiple fields should result in multiple metrics
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -228,19 +331,27 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(default_
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "a312e0db"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
         assert config["metrics"][1] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "10acc97f"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_widget_multiple_count_if(default_project):
+def test_get_metric_extraction_config_single_widget_multiple_count_if(
+    default_project: Project,
+) -> None:
     # widget with multiple fields should result in multiple metrics
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         aggregates = [
@@ -259,7 +370,10 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(default_pr
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "a312e0db"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
         assert config["metrics"][1] == {
             "category": "transaction",
@@ -272,7 +386,10 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(default_pr
             },
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "e2977925"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
         assert config["metrics"][2] == {
             "category": "transaction",
@@ -285,12 +402,17 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(default_pr
             },
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "c50b5bc7"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_aggregates_single_field(default_project):
+def test_get_metric_extraction_config_multiple_aggregates_single_field(
+    default_project: Project,
+) -> None:
     # widget with multiple aggregates on the same field in a single metric
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -308,12 +430,15 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(default_p
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "10acc97f"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project):
+def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project: Project) -> None:
     # metrics should be deduplicated across widgets
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -330,19 +455,45 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "a312e0db"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
         assert config["metrics"][1] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "10acc97f"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
+@override_options({"on_demand.max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.split(": ")[-1] == "Too many (2) on demand metric widgets for project bar\n"
+
+
+@django_db_all
+def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Project) -> None:
     # widgets should be skipped if the feature is off
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: False}):
         create_alert("count()", "transaction.duration:>=1000", default_project)
@@ -357,12 +508,12 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project):
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [{"key": "query_hash", "value": "a312e0db"}],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_alerts_and_widgets(default_project):
+def test_get_metric_extraction_config_alerts_and_widgets(default_project: Project) -> None:
     # deduplication should work across alerts and widgets
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_alert("count()", "transaction.duration:>=1000", default_project)
@@ -379,19 +530,25 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project):
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "a312e0db"},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
         assert config["metrics"][1] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": "10acc97f"},
+                {"key": "environment", "field": "event.environment"},
+            ],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_failure_count(default_project):
+def test_get_metric_extraction_config_with_failure_count(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["failure_count()"], "transaction.duration:>=1000", default_project)
 
@@ -417,13 +574,14 @@ def test_get_metric_extraction_config_with_failure_count(default_project):
                     "key": "failure",
                     "value": "true",
                 },
-                {"key": "query_hash", "value": ANY},
+                {"key": "query_hash", "value": "c3a2ddea"},
+                {"key": "environment", "field": "event.environment"},
             ],
         }
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_apdex(default_project):
+def test_get_metric_extraction_config_with_apdex(default_project: Project) -> None:
     with Feature({ON_DEMAND_METRICS: True}):
         threshold = 10
         create_alert(f"apdex({threshold})", "transaction.duration:>=1000", default_project)
@@ -462,7 +620,7 @@ def test_get_metric_extraction_config_with_apdex(default_project):
                     "key": "satisfaction",
                     "value": "frustrated",
                 },
-                {"key": "query_hash", "value": ANY},
+                {"key": "query_hash", "value": "4445a852"},
             ],
         }
 
@@ -471,8 +629,8 @@ def test_get_metric_extraction_config_with_apdex(default_project):
 @pytest.mark.parametrize("measurement_rating", ["good", "meh", "poor", "any"])
 @pytest.mark.parametrize("measurement", ["measurements.lcp"])
 def test_get_metric_extraction_config_with_count_web_vitals(
-    default_project, measurement_rating, measurement
-):
+    default_project: Project, measurement_rating: str, measurement: str
+) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"count_web_vitals({measurement}, {measurement_rating})"],
@@ -503,7 +661,8 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "key": "measurement_rating",
                         "value": "matches_hash",
                     },
-                    {"key": "query_hash", "value": ANY},
+                    {"key": "query_hash", "value": "30cb4ba5"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -533,7 +692,8 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "key": "measurement_rating",
                         "value": "matches_hash",
                     },
-                    {"key": "query_hash", "value": ANY},
+                    {"key": "query_hash", "value": "f207c139"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -553,7 +713,8 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "key": "measurement_rating",
                         "value": "matches_hash",
                     },
-                    {"key": "query_hash", "value": ANY},
+                    {"key": "query_hash", "value": "051c26d1"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -573,7 +734,8 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "key": "measurement_rating",
                         "value": "matches_hash",
                     },
-                    {"key": "query_hash", "value": ANY},
+                    {"key": "query_hash", "value": "511aaa66"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -583,12 +745,14 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                 "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
-                "tags": [],
+                "tags": [
+                    {"key": "environment", "field": "event.environment"},
+                ],
             }
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_user_misery(default_project):
+def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
     threshold = 100
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -614,14 +778,17 @@ def test_get_metric_extraction_config_with_user_misery(default_project):
                         "key": "satisfaction",
                         "value": "frustrated",
                     },
-                    {"key": "query_hash", "value": ANY},
+                    {"key": "query_hash", "value": "1394a552"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
             }
         ]
 
 
 @django_db_all
-def test_get_metric_extraction_config_user_misery_with_tag_columns(default_project):
+def test_get_metric_extraction_config_user_misery_with_tag_columns(
+    default_project: Project,
+) -> None:
     threshold = 100
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -649,16 +816,17 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(default_proje
                         "key": "satisfaction",
                         "value": "frustrated",
                     },
-                    {"key": "query_hash", "value": ANY},
+                    {"key": "query_hash", "value": "565e1845"},
                     {"key": "lcp.element", "field": "event.tags.lcp.element"},
                     {"key": "custom", "field": "event.tags.custom"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
             }
         ]
 
 
 @django_db_all
-def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
+def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: Project) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -679,9 +847,10 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": ANY},
+                    {"key": "query_hash", "value": "d9f30df7"},
                     {"key": "user.id", "field": "event.user.id"},
                     {"key": "release", "field": "event.release"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
             }
         ]
@@ -689,14 +858,14 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project):
 
 @django_db_all
 @override_options({"on_demand.max_widget_cardinality.count": -1})
-def test_get_metric_extraction_config_with_high_cardinality(default_project):
+def test_get_metric_extraction_config_with_high_cardinality(default_project: Project) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             ["epm()"],
             f"transaction.duration:>={duration}",
             default_project,
-            columns=["user.id", "release"],
+            columns=["user.id", "release", "count()"],
         )
 
         config = get_metric_extraction_config(default_project)
@@ -705,8 +874,28 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project):
 
 
 @django_db_all
+@override_options({"on_demand.max_widget_cardinality.count": 1})
+def test_get_metric_extraction_config_with_low_cardinality(default_project: Project) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+
+
+@django_db_all
 @pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
-def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
+def test_get_metric_extraction_config_with_no_tag_spec(
+    default_project: Project, metric: str
+) -> None:
+    query_hash = "8f8293cf" if metric == "epm()" else "9ffdd8ac"
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget([metric], "transaction.duration:>=1000", default_project)
 
@@ -719,7 +908,10 @@ def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [
+                {"key": "query_hash", "value": query_hash},
+                {"field": "event.environment", "key": "environment"},
+            ],
         }
 
 
@@ -737,8 +929,8 @@ def test_get_metric_extraction_config_with_no_tag_spec(default_project, metric):
     ],
 )
 def test_get_metrics_extraction_config_features_combinations(
-    enabled_features, number_of_metrics, default_project
-):
+    enabled_features: str, number_of_metrics: int, default_project: Project
+) -> None:
     create_alert("count()", "transaction.duration:>=10", default_project)
     create_widget(["count()"], "transaction.duration:>=20", default_project)
 
@@ -753,7 +945,7 @@ def test_get_metrics_extraction_config_features_combinations(
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_transactions_dataset(default_project):
+def test_get_metric_extraction_config_with_transactions_dataset(default_project: Project) -> None:
     create_alert(
         "count()", "transaction.duration:>=10", default_project, dataset=Dataset.PerformanceMetrics
     )
@@ -772,14 +964,14 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project)
             "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [{"key": "query_hash", "value": "f1353b0f"}],
         }
         assert config["metrics"][1] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [{"key": "query_hash", "value": "a547e4d9"}],
         }
 
     # We test without prefilling, and we expect that only alerts for performance metrics are fetched.
@@ -793,5 +985,22 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project)
             "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
             "field": None,
             "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": ANY}],
+            "tags": [{"key": "query_hash", "value": "f1353b0f"}],
         }
+
+
+@django_db_all
+def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> None:
+    create_alert(
+        "apdex(300)",
+        "",
+        default_project,
+        dataset=Dataset.PerformanceMetrics,
+    )
+
+    with Feature({ON_DEMAND_METRICS: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0].get("condition") is None

@@ -135,12 +135,22 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    const performanceIssuesEndpoint = [
+    const performanceIssuesEndpoint: ReturnType<
+      DeprecatedAsyncView['getEndpoints']
+    >[number] = [
       'performance_issue_settings',
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
-    ] as [string, string];
+    ];
+
+    const generalSettingsEndpoint: ReturnType<
+      DeprecatedAsyncView['getEndpoints']
+    >[number] = [
+      'general',
+      `/projects/${organization.slug}/${projectId}/performance/configure/`,
+    ];
 
     endpoints.push(performanceIssuesEndpoint);
+    endpoints.push(generalSettingsEndpoint);
 
     return endpoints;
   }
@@ -828,6 +838,30 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
         <PermissionAlert project={project} />
+        <Access access={requiredScopes} project={project}>
+          {({hasAccess}) => (
+            <Feature features="organizations:starfish-browser-resource-module-image-view">
+              <Form
+                initialData={this.state.general}
+                saveOnBlur
+                apiEndpoint={`/projects/${organization.slug}/${project.slug}/performance/configure/`}
+              >
+                <JsonForm
+                  disabled={!hasAccess}
+                  fields={[
+                    {
+                      name: 'enable_images',
+                      type: 'boolean',
+                      label: t('Images'),
+                      help: t('Enables images from real data to be displayed'),
+                    },
+                  ]}
+                  title={t('General')}
+                />
+              </Form>
+            </Feature>
+          )}
+        </Access>
 
         <Form
           saveOnBlur
@@ -850,7 +884,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
-                title={t('General')}
+                title={t('Threshold Settings')}
                 fields={this.formFields}
                 disabled={!hasAccess}
                 renderFooter={() => (
@@ -862,7 +896,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             )}
           </Access>
         </Form>
-        <Feature features={['organizations:dynamic-sampling']}>
+        <Feature features="organizations:dynamic-sampling">
           <Form
             saveOnBlur
             allowUndo
@@ -910,7 +944,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           </Form>
         </Feature>
         <Fragment>
-          <Feature features={['organizations:performance-issues-dev']}>
+          <Feature features="organizations:performance-issues-dev">
             <Form
               saveOnBlur
               allowUndo

@@ -9,7 +9,7 @@ from sentry.testutils.skips import requires_kafka, requires_snuba
 pytestmark = [requires_snuba, requires_kafka]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectOwnershipEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)

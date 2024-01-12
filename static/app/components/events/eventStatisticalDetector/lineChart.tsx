@@ -1,42 +1,32 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import VisualMap from 'sentry/components/charts/components/visualMap';
-import BarSeries from 'sentry/components/charts/series/barSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
+import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {getUserTimezone} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType, RateUnits} from 'sentry/utils/discover/fields';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
 import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {getIntervalLine} from 'sentry/views/performance/utils';
 
 interface ChartProps {
-  end: string;
+  datetime: PageFilters['datetime'];
   evidenceData: NormalizedTrendsTransaction;
   percentileSeries: Series[];
-  start: string;
-  throughputSeries: Series;
 }
 
-function LineChart({
-  percentileSeries,
-  throughputSeries,
-  evidenceData,
-  start,
-  end,
-}: ChartProps) {
+function LineChart({datetime, percentileSeries, evidenceData}: ChartProps) {
   const theme = useTheme();
   const router = useRouter();
 
-  const topSeries = useMemo(() => {
+  const series = useMemo(() => {
     const intervalSeries = getIntervalLine(
       theme,
       percentileSeries,
@@ -48,96 +38,17 @@ function LineChart({
     return [...percentileSeries, ...intervalSeries];
   }, [percentileSeries, evidenceData, theme]);
 
-  const bottomSeries = useMemo(() => {
-    if (evidenceData.breakpoint) {
-      throughputSeries.markLine = {
-        data: [
-          {
-            xAxis: evidenceData.breakpoint * 1000,
-          },
-        ],
-        label: {show: false},
-        lineStyle: {
-          color: theme.red300,
-          type: 'solid',
-          width: 2,
-        },
-        symbol: ['none', 'none'],
-        tooltip: {
-          show: false,
-        },
-        silent: true,
-      };
-    }
-    return [throughputSeries];
-  }, [throughputSeries, evidenceData, theme]);
-
-  const series = useMemo(() => {
-    return [
-      ...bottomSeries.map(({seriesName, data, ...options}) =>
-        BarSeries({
-          ...options,
-          name: seriesName,
-          data: data?.map(({value, name, itemStyle}) => {
-            if (itemStyle === undefined) {
-              return [name, value];
-            }
-            return {value: [name, value], itemStyle};
-          }),
-          animation: false,
-          animationThreshold: 1,
-          animationDuration: 0,
-          xAxisIndex: 1,
-          yAxisIndex: 1,
-        })
-      ),
-      ...topSeries.map(({seriesName, data, ...options}) =>
-        LineSeries({
-          ...options,
-          name: seriesName,
-          data: data?.map(({value, name}) => [name, value]),
-          animation: false,
-          animationThreshold: 1,
-          animationDuration: 0,
-          showSymbol: false,
-          xAxisIndex: 0,
-          yAxisIndex: 0,
-        })
-      ),
-    ];
-  }, [topSeries, bottomSeries]);
-
   const chartOptions: Omit<
-    React.ComponentProps<typeof BaseChart>,
+    React.ComponentProps<typeof EChartsLineChart>,
     'series'
   > = useMemo(() => {
     const legend = {
       right: 16,
       top: 12,
-      data: [...percentileSeries.map(s => s.seriesName), throughputSeries.seriesName],
+      data: percentileSeries.map(s => s.seriesName),
     };
 
-    const durationUnit = getDurationUnit(topSeries);
-
-    const yAxes: React.ComponentProps<typeof BaseChart>['yAxes'] = [
-      {
-        minInterval: durationUnit,
-        axisLabel: {
-          color: theme.chartLabel,
-          formatter: (value: number) =>
-            axisLabelFormatter(value, 'duration', undefined, durationUnit),
-        },
-        gridIndex: 0,
-      },
-      {
-        axisLabel: {
-          color: theme.chartLabel,
-          formatter: (value: number) =>
-            axisLabelFormatter(value, 'rate', true, undefined, RateUnits.PER_SECOND),
-        },
-        gridIndex: 1,
-      },
-    ];
+    const durationUnit = getDurationUnit(series);
 
     return {
       axisPointer: {
@@ -149,17 +60,10 @@ function LineChart({
         ],
       },
       colors: [theme.gray200, theme.gray500],
-      height: 400,
-      grid: [
-        {
-          top: '40px',
-          bottom: '200px',
-        },
-        {
-          top: '240px',
-          bottom: '0px',
-        },
-      ],
+      grid: {
+        top: '40px',
+        bottom: '0px',
+      },
       legend,
       toolBox: {show: false},
       tooltip: {
@@ -167,11 +71,15 @@ function LineChart({
           return tooltipFormatter(value, aggregateOutputType(seriesName));
         },
       },
-      xAxes: [
-        {gridIndex: 0, type: 'time'},
-        {gridIndex: 1, type: 'time'},
-      ],
-      yAxes,
+      xAxis: {type: 'time'},
+      yAxis: {
+        minInterval: durationUnit,
+        axisLabel: {
+          color: theme.chartLabel,
+          formatter: (value: number) =>
+            axisLabelFormatter(value, 'duration', undefined, durationUnit),
+        },
+      },
       options: {
         visualMap: VisualMap({
           show: false,
@@ -189,26 +97,15 @@ function LineChart({
               color: theme.red300,
             },
           ],
-          // only want to apply the visual map on the first grid which contains the p95
-          seriesIndex: series
-            .map((s, idx) => (s.yAxisIndex === 0 ? idx : -1))
-            .filter(idx => idx >= 0),
         }),
       },
     };
-  }, [
-    series,
-    theme,
-    topSeries,
-    percentileSeries,
-    throughputSeries,
-    evidenceData.breakpoint,
-  ]);
+  }, [series, theme, percentileSeries, evidenceData.breakpoint]);
 
   return (
-    <ChartZoom router={router} start={start} end={end} utc={getUserTimezone() === 'UTC'}>
+    <ChartZoom router={router} {...datetime}>
       {zoomRenderProps => (
-        <BaseChart {...zoomRenderProps} {...chartOptions} series={series} />
+        <EChartsLineChart {...zoomRenderProps} {...chartOptions} series={series} />
       )}
     </ChartZoom>
   );

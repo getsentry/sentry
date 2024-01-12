@@ -5,7 +5,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.iterators import chunked
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ActivityTest(TestCase):
     def test_get_activities_for_group_none(self):
         project = self.create_project(name="test_activities_group")

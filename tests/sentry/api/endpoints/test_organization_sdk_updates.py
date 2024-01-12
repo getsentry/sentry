@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -199,8 +199,42 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             == "Creating a LegacyVersion has been deprecated and will be removed in the next major release"
         )
 
+    @mock.patch(
+        "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
+        return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
+    )
+    def test_empty_version_sdk_name(self, mock_index_state):
+        min_ago = iso_format(before_now(minutes=1))
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": min_ago,
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "", "version": "1.0.0"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "b",
+                "timestamp": min_ago,
+                "fingerprint": ["group-2"],
+                "sdk": {"name": "example.sdk", "version": ""},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
 
-@region_silo_test(stable=True)
+        response = self.client.get(self.url)
+
+        update_suggestions = response.data
+        assert len(update_suggestions) == 0
+
+
+@region_silo_test
 class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 
@@ -213,7 +247,8 @@ class OrganizationSdks(APITestCase):
         response = self.get_error_response(self.organization.slug)
 
         assert mocked_sdk_index.call_count == 1
-        assert response.data == {"detail": "Error occurred while fetching SDKs"}
+        assert response.status_code == 404
+        assert response.data == {"detail": "No SDKs found in index"}
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.get_sdk_index",
@@ -241,4 +276,5 @@ class OrganizationSdks(APITestCase):
         response = self.get_error_response(self.organization.slug, status_code=500)
 
         assert mocked_sdk_index.call_count == 1
+        assert response.status_code == 500
         assert response.data == {"detail": "Error occurred while fetching SDKs"}

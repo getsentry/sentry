@@ -12,7 +12,7 @@ type Props = {
 
 function TeamInsightsContainer({children, organization}: Props) {
   return (
-    <Feature organization={organization} features={['team-insights']}>
+    <Feature organization={organization} features="team-insights">
       <NoProjectMessage organization={organization}>
         {children && isValidElement(children)
           ? cloneElement<any>(children, {

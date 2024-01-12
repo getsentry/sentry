@@ -1,4 +1,5 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -30,20 +31,19 @@ export const operatingSystemMetaMockData = {
   },
 };
 
-const event = {
-  ...TestStubs.Event(),
+const event = EventFixture({
   _meta: {
     contexts: {
       os: operatingSystemMetaMockData,
     },
   },
-};
+});
 
 describe('operating system event context', function () {
   it('display redacted data', async function () {
     render(<OperatingSystemEventContext event={event} data={operatingSystemMockData} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 

@@ -166,15 +166,10 @@ const StyledCheckbox = styled('div')<{
 
   ${p =>
     p.invertColors
-      ? p.checked
-        ? css`
-            background: ${p.theme.background};
-            border: 1px solid ${p.theme.gray200};
-          `
-        : css`
-            background: ${p.theme.background};
-            border: 0;
-          `
+      ? css`
+          background: ${p.theme.white};
+          border: 0;
+        `
       : p.checked
       ? css`
           background: ${p.color ?? p.theme.active};

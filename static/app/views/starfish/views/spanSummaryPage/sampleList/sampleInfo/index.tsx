@@ -34,17 +34,17 @@ function SampleInfo(props: Props) {
   const displayedMetrics = props.displayedMetrics ?? DEFAULT_DISPLAYED_METRICS;
 
   const filters = {
-    transactionName,
+    'span.group': groupId,
+    transaction: transactionName,
   };
 
   if (transactionMethod) {
     filters['transaction.method'] = transactionMethod;
   }
 
-  const {data: spanMetrics, error} = useSpanMetrics(
-    groupId,
+  const {data, error} = useSpanMetrics({
     filters,
-    [
+    fields: [
       SPAN_OP,
       'spm()',
       `sum(${SPAN_SELF_TIME})`,
@@ -52,8 +52,10 @@ function SampleInfo(props: Props) {
       'time_spent_percentage()',
       'count()',
     ],
-    'api.starfish.span-summary-panel-metrics'
-  );
+    referrer: 'api.starfish.span-summary-panel-metrics',
+  });
+
+  const spanMetrics = data[0] ?? {};
 
   const style: CSSProperties = {
     textAlign: 'left',

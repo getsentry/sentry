@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Relocation Failed</h3>
+    <p>Your relocation has failed for the following reason:</p>
+    {%if reason != "" %}
+    <code>
+        {{ reason }}
+    </code>
+    <br>
+    <br>
+    {% endif %}
+    <p>Please <a href="https://help.sentry.io">contact support</a> for further assistance if necessary.</p>
+    <p><small><i>ID: {{ uuid }}</i></small></p>
+{% endblock %}

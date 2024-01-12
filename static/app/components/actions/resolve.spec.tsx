@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
   render,
@@ -140,7 +141,7 @@ describe('ResolveActions', function () {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
     render(<ResolveActions hasRelease projectSlug="project-slug" onUpdate={onUpdate} />);
     renderGlobalModal();
@@ -202,5 +203,29 @@ describe('ResolveActions', function () {
     expect(
       screen.queryByText('Resolving is better with Releases')
     ).not.toBeInTheDocument();
+  });
+
+  it('does render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease={false}
+      />
+    );
+    expect(screen.getByLabelText('More resolve options')).toBeInTheDocument();
+  });
+
+  it('does not render more resolve options', function () {
+    render(
+      <ResolveActions
+        onUpdate={spy}
+        hasRelease={false}
+        projectSlug="proj-1"
+        disableResolveInRelease
+      />
+    );
+    expect(screen.queryByLabelText('More resolve options')).not.toBeInTheDocument();
   });
 });

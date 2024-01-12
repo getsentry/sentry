@@ -5,6 +5,7 @@ import {action, computed, makeObservable, observable} from 'mobx';
 import {Client} from 'sentry/api';
 import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
@@ -36,21 +37,25 @@ class WaterfallModel {
   hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
   focusedSpanIds: Set<string> | undefined = undefined;
+  traceInfo: TraceInfo | undefined = undefined;
 
   constructor(
     event: Readonly<EventTransaction | AggregateEventTransaction>,
     affectedSpanIds?: string[],
-    focusedSpanIds?: string[]
+    focusedSpanIds?: string[],
+    hiddenSpanSubTrees?: Set<string>,
+    traceInfo?: TraceInfo
   ) {
     this.event = event;
-
+    this.traceInfo = traceInfo;
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
     this.rootSpan = new SpanTreeModel(
       rootSpan,
       this.parsedTrace.childSpans,
       this.api,
-      true
+      true,
+      traceInfo
     );
 
     // Track the trace bounds of the current transaction and the trace bounds of
@@ -61,7 +66,7 @@ class WaterfallModel {
 
     // Set of span IDs whose sub-trees should be hidden. This is used for the
     // span tree toggling product feature.
-    this.hiddenSpanSubTrees = new Set();
+    this.hiddenSpanSubTrees = hiddenSpanSubTrees ?? new Set();
 
     // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
 
@@ -290,8 +295,15 @@ class WaterfallModel {
     viewEnd: number;
     viewStart: number; // in [0, 1]
   }) => {
+    const bounds = this.traceInfo
+      ? {
+          traceEndTimestamp: this.traceInfo.endTimestamp,
+          traceStartTimestamp: this.traceInfo.startTimestamp,
+        }
+      : this.getTraceBounds();
+
     return boundsGenerator({
-      ...this.getTraceBounds(),
+      ...bounds,
       viewStart,
       viewEnd,
     });

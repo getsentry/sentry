@@ -16,6 +16,7 @@ from sentry.search.events.fields import (
     NullColumn,
     NumberRange,
     NumericColumn,
+    SnQLFieldColumn,
     SnQLFunction,
     with_default,
 )
@@ -38,6 +39,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: lambda search_filter: filter_aliases.device_class_converter(
                 self.builder, search_filter
             ),
+            constants.SPAN_IS_SEGMENT_ALIAS: filter_aliases.span_is_segment_converter,
         }
 
     @property
@@ -183,6 +185,14 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "any",
+                    required_args=[SnQLFieldColumn("column")],
+                    # Not actually using `any` so that this function returns consistent results
+                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    result_type_fn=self.reflective_result_type(),
+                    redundant_grouping=True,
                 ),
             ]
         }

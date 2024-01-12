@@ -11,7 +11,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
@@ -80,11 +79,11 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = install_slack(organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.jira_integration = Integration.objects.create(
+            self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
             )
             self.jira_integration.add_organization(self.organization, self.user)
-            self.jira_server_integration = Integration.objects.create(
+            self.jira_server_integration = self.create_provider_integration(
                 provider="jira_server", name="Jira Server", external_id="jira_server:1"
             )
             self.jira_server_integration.add_organization(self.organization, self.user)
@@ -116,7 +115,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -213,6 +212,63 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
         assert response.data["snoozeForEveryone"]
+
+    @responses.activate
+    def test_with_sentryapp_action(self):
+        conditions = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10},
+        ]
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"summary": "Something happened here..."},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Nisanthan"},
+                ],
+            }
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        # Request to external service made
+        assert len(responses.calls) == 1
+
+        assert response.status_code == 200
+        assert "errors" not in response.data
+        assert "actions" in response.data
+
+        # Check that the sentryapp action contains choices from the integration host
+        action = response.data["actions"][0]
+        assert (
+            action["id"]
+            == "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
+        )
+        assert action["formFields"]["optional_fields"][-1]
+        assert "select" == action["formFields"]["optional_fields"][-1]["type"]
+        assert "sentry/members" in action["formFields"]["optional_fields"][-1]["uri"]
+        assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
 
     @responses.activate
     def test_with_unresponsive_sentryapp(self):
@@ -421,7 +477,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         ]
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
 
@@ -1193,7 +1249,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 

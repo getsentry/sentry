@@ -11,6 +11,7 @@ from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.strings import unescape_string
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 VERSION = 1
 
@@ -68,6 +69,7 @@ class EventAccess:
         self._log_info = None
         self._toplevel = None
         self._tags = None
+        self._sdk = None
 
     def get_messages(self):
         if self._messages is None:
@@ -143,6 +145,11 @@ class EventAccess:
                 {"tags.%s" % k: v for (k, v) in get_path(self.event, "tags", filter=True) or ()}
             ]
         return self._tags
+
+    def get_sdk(self):
+        if self._sdk is None:
+            self._sdk = [{"sdk": normalized_sdk_tag_from_event(self.event)}]
+        return self._sdk
 
     def get_values(self, match_group):
         return getattr(self, "get_" + match_group)()
@@ -223,6 +230,7 @@ MATCHERS = {
     # fingerprinting specific fields
     "family": "family",
     "app": "app",
+    "sdk": "sdk",
 }
 
 
@@ -248,6 +256,8 @@ class Match:
             return "exceptions"
         if self.key.startswith("tags."):
             return "tags"
+        if self.key == "sdk":
+            return "sdk"
         return "frames"
 
     def matches(self, values):
@@ -294,6 +304,10 @@ class Match:
             if self._positive_path_match(value):
                 return True
         elif self.key == "family":
+            flags = self.pattern.split(",")
+            if "all" in flags or value in flags:
+                return True
+        elif self.key == "sdk":
             flags = self.pattern.split(",")
             if "all" in flags or value in flags:
                 return True

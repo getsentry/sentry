@@ -18,6 +18,6 @@ def test_contains_attributes():
         "flush",
     ]
 
-    presenter_delegator = PresenterDelegator()
+    presenter_delegator = PresenterDelegator("options-automator")
     for method_name in expected_methods:
         assert hasattr(presenter_delegator, method_name)

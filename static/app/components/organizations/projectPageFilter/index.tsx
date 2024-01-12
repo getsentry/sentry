@@ -427,7 +427,7 @@ function checkboxWrapper(
 ) {
   return (
     <Feature
-      features={['organizations:global-views']}
+      features="organizations:global-views"
       hookName="feature-disabled:project-selector-checkbox"
       renderDisabled={props => (
         <Hovercard

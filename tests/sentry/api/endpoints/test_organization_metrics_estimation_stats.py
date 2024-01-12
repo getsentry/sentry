@@ -30,7 +30,7 @@ MINUTE = timedelta(minutes=1)
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(MOCK_DATETIME)
 class OrganizationMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLayerTestCase):
     endpoint = "sentry-api-0-organization-metrics-estimation-stats"

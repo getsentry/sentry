@@ -18,7 +18,7 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
         alert_rule: AlertRule,
         incident: Optional[Incident] = None,
         new_status: Optional[IncidentStatus] = None,
-        metric_value: Optional[int] = None,
+        metric_value: Optional[float] = None,
         chart_url: Optional[str] = None,
     ) -> None:
         self.alert_rule = alert_rule

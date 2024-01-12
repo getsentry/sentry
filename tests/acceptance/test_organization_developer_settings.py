@@ -4,7 +4,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     """
     As a developer, I can create an integration, install it, and uninstall it
@@ -52,7 +52,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.browser.wait_until(xpath="//button//span[contains(text(), 'New Token')]", timeout=3)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
     """
     As a developer, I can edit an existing integration

@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SentryInternalAppTokenCreationTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="boop@example.com")
@@ -83,3 +83,9 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         response = self.client.delete(url, format="json")
 
         assert response.status_code == 404
+
+    def test_cannot_delete_partner_app_token(self):
+        self.login_as(user=self.user)
+        self.internal_sentry_app.update(metadata={"partnership_restricted": True})
+        response = self.client.delete(self.url)
+        assert response.status_code == 403

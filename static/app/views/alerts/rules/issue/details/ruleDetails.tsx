@@ -7,7 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -20,9 +20,8 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -461,7 +460,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
                   )}
             </Alert>
           )}
-          <StyledPageTimeRangeSelector
+          <StyledTimeRangeSelector
             relative={period ?? ''}
             start={start ?? null}
             end={end ?? null}
@@ -499,7 +498,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
 
 export default AlertRuleDetails;
 
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-bottom: ${space(2)};
 `;
 

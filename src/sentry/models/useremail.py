@@ -16,6 +16,7 @@ from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.region import find_regions_for_user
 from sentry.utils.security import get_secure_token
 
@@ -37,7 +38,7 @@ class UserEmailManager(BaseManager["UserEmail"]):
             emails_by_user[entry.user].add(entry.email)
         return emails_by_user
 
-    def get_primary_email(self, user: User) -> UserEmail:
+    def get_primary_email(self, user: RpcUser | User) -> UserEmail:
         user_email, _ = self.get_or_create(user_id=user.id, email=user.email)
         return user_email
 
@@ -46,6 +47,7 @@ class UserEmailManager(BaseManager["UserEmail"]):
 class UserEmail(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.User
     __relocation_dependencies__ = {"sentry.Email"}
+    __relocation_custom_ordinal__ = ["user", "email"]
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)
@@ -102,11 +104,9 @@ class UserEmail(ControlOutboxProducingModel):
         if old_pk is None:
             return None
 
-        # If we are merging users, ignore the imported email and use the merged user's email
+        # If we are merging users, ignore the imported email and use the existing user's email
         # instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
-            useremail = self.__class__.objects.get(user_id=self.user_id)
-            pk_map.insert(get_model_name(self), self.pk, useremail.pk, ImportKind.Existing)
             return None
 
         # Only preserve validation hashes in the backup/restore scope - in all others, have the user
@@ -121,13 +121,19 @@ class UserEmail(ControlOutboxProducingModel):
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
     ) -> Optional[Tuple[int, ImportKind]]:
-        # The `UserEmail` was automatically generated `post_save()`. We just need to update it with
-        # the data being imported. Note that if we've reached this point, we cannot be merging into
-        # an existing user, and are instead modifying the just-created `UserEmail` for a new one.
-        useremail = self.__class__.objects.get(user=self.user, email=self.email)
-        for f in self._meta.fields:
-            if f.name not in ["id", "pk"]:
-                setattr(useremail, f.name, getattr(self, f.name))
+        # The `UserEmail` was automatically generated `post_save()`, but only if it was the user's
+        # primary email. We just need to update it with the data being imported. Note that if we've
+        # reached this point, we cannot be merging into an existing user, and are instead modifying
+        # the just-created `UserEmail` for a new one.
+        try:
+            useremail = self.__class__.objects.get(user=self.user, email=self.email)
+            for f in self._meta.fields:
+                if f.name not in ["id", "pk"]:
+                    setattr(useremail, f.name, getattr(self, f.name))
+        except self.__class__.DoesNotExist:
+            # This is a non-primary email, so was not auto-created - go ahead and add it in.
+            useremail = self
+
         useremail.save()
 
         # If we've entered this method at all, we can be sure that the `UserEmail` was created as

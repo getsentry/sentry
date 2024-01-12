@@ -1,7 +1,10 @@
 import type {RouteComponent, RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
-import {OrgRoleList, TeamRoleList} from 'sentry-fixture/roleList';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import type {Organization as TOrganization, Project} from 'sentry/types';
 
@@ -43,15 +46,15 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
   const projects = (
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
-  ).map(p => TestStubs.Project(p));
+  ).map(p => ProjectFixture(p));
   const [project] = projects;
-  const organization = Organization({
+  const organization = OrganizationFixture({
     projects,
     ...additionalOrg,
-    orgRoleList: OrgRoleList(),
-    teamRoleList: TeamRoleList(),
+    orgRoleList: OrgRoleListFixture(),
+    teamRoleList: TeamRoleListFixture(),
   });
-  const router = TestStubs.router({
+  const router = RouterFixture({
     ...additionalRouter,
     params: {
       orgId: organization.slug,
@@ -60,7 +63,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     },
   });
 
-  const routerContext: any = TestStubs.routerContext([
+  const routerContext: any = RouterContextFixture([
     {
       organization,
       project,

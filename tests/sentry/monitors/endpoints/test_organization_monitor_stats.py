@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time(
     (datetime.now() - timedelta(days=2)).replace(hour=7, minute=57, second=0, microsecond=0)
 )

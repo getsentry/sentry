@@ -4,13 +4,12 @@ import responses
 from django.urls import reverse
 
 from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GithubSearchTest(APITestCase):
     # There is another test case that inherits from this
     # one to ensure that github:enterprise behaves as expected.
@@ -19,7 +18,7 @@ class GithubSearchTest(APITestCase):
 
     def create_integration(self):
         future = datetime.now() + timedelta(hours=1)
-        return Integration.objects.create(
+        return self.create_provider_integration(
             provider=self.provider,
             name="test",
             external_id=9999,

@@ -24,16 +24,7 @@ def _get_user_from_email(group: Group, email: str) -> Optional[RpcUser]:
     return None
 
 
-@instrumented_task(
-    name="sentry.tasks.email.process_inbound_email",
-    queue="email",
-    default_retry_delay=60 * 5,
-    max_retries=None,
-    silo_mode=SiloMode.REGION,
-)
 def process_inbound_email(mailfrom: str, group_id: int, payload: str):
-    # TODO(hybridcloud) Once we aren't invoking this with celery
-    # detach  this from celery and have a basic function instead.
     from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
@@ -58,15 +49,18 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str):
     queue="email",
     default_retry_delay=60 * 5,
     max_retries=None,
+    silo_mode=SiloMode.REGION,
 )
 def send_email(message):
-    # HACK(django18) Django 1.8 assumes that message objects have a reply_to attribute
-    # When a message is enqueued by django 1.6 we need to patch that property on
-    # so that the message can be converted to a stdlib one.
-    #
-    # See
-    # https://github.com/django/django/blob/c686dd8e6bb3817bcf04b8f13c025b4d3c3dc6dc/django/core/mail/message.py#L273-L274
-    if not hasattr(message, "reply_to"):
-        message.reply_to = []
+    send_messages([message])
 
+
+@instrumented_task(
+    name="sentry.tasks.email.send_email_control",
+    queue="email.control",
+    default_retry_delay=60 * 5,
+    max_retries=None,
+    silo_mode=SiloMode.CONTROL,
+)
+def send_email_control(message):
     send_messages([message])

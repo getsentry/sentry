@@ -86,6 +86,8 @@ class UserManager(BaseManager["User"], DjangoUserManager):
 @control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
+    __relocation_custom_ordinal__ = ["username"]
+
     replication_version: int = 2
 
     id = BoundedBigAutoField(primary_key=True)
@@ -157,6 +159,11 @@ class User(BaseModel, AbstractBaseUser):
     )
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # Do we need to ask this user for newsletter consent?
         newsletter_consent_prompt: bool
 

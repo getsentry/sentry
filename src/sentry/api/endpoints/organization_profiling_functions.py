@@ -9,10 +9,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
@@ -65,8 +67,9 @@ class FunctionTrendsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBase):
+    owner = ApiOwner.PROFILING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization: Organization, request: Request):
@@ -268,7 +271,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_results.append(formatted_result)
             return formatted_results
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=paginate_trending_events),

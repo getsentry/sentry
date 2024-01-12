@@ -48,8 +48,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         integration = self.get_integration(organization.id, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
-            context = {"repos": []}
-            return self.respond(context)
+            return self.respond({"repos": []})
 
         installed_repos = Repository.objects.filter(integration_id=integration.id).exclude(
             status=ObjectStatus.HIDDEN
@@ -64,7 +63,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
-            serializedRepositories = [
+            serialized_repositories = [
                 IntegrationRepository(
                     name=repo["name"],
                     identifier=repo["identifier"],
@@ -73,7 +72,8 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
                 for repo in repositories
                 if repo["identifier"] not in repo_names
             ]
-            context = {"repos": serializedRepositories, "searchable": install.repo_search}
-            return self.respond(context)
+            return self.respond(
+                {"repos": serialized_repositories, "searchable": install.repo_search}
+            )
 
         return self.respond({"detail": "Repositories not supported"}, status=400)

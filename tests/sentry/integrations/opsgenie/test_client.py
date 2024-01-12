@@ -1,6 +1,6 @@
+import pytest
 import responses
 
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
@@ -18,10 +18,17 @@ METADATA = {
 
 class OpsgenieClientTest(APITestCase):
     def create_integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
-        integration.add_organization(self.organization, self.user)
+        org_integration = integration.add_organization(self.organization, self.user)
+        org_integration.config = {
+            "team_table": [
+                {"id": "team-123", "integration_key": "1234-ABCD", "team": "default team"},
+            ],
+        }
+        org_integration.save()
+
         return integration
 
     def setUp(self) -> None:
@@ -30,14 +37,18 @@ class OpsgenieClientTest(APITestCase):
         self.installation = self.integration.get_installation(self.organization.id)
 
     def test_get_client(self):
-        client = self.installation.get_client(integration_key="1234-ABCD")
+        with pytest.raises(NotImplementedError):
+            self.installation.get_client()
+
+    def test_get_keyring_client(self):
+        client = self.installation.get_keyring_client("team-123")
         assert client.integration == self.installation.model
         assert client.base_url == METADATA["base_url"] + "v2"
         assert client.integration_key == METADATA["api_key"]
 
     @responses.activate
     def test_authorize_integration(self):
-        client = self.installation.get_client(integration_key="1234-5678")
+        client = self.installation.get_keyring_client("team-123")
 
         resp_data = {
             "result": "Integration [sentry] is valid",
@@ -73,7 +84,7 @@ class OpsgenieClientTest(APITestCase):
         assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
-        client = self.installation.get_client(integration_key="1234-5678")
+        client = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             client.send_notification(event, "P2", [rule])
 

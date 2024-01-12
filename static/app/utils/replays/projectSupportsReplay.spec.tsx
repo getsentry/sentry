@@ -3,7 +3,7 @@ import projectSupportsReplay, {
   projectCanLinkToReplay,
 } from 'sentry/utils/replays/projectSupportsReplay';
 
-function mockProject(platform: PlatformKey): MinimalProject {
+function mockProjectFixture(platform: PlatformKey): MinimalProject {
   return {
     id: '1',
     slug: 'test-project',
@@ -19,7 +19,7 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     'javascript' as PlatformKey,
     'electron' as PlatformKey,
   ])('should SUPPORT & LINK frontend platform %s', platform => {
-    const project = mockProject(platform);
+    const project = mockProjectFixture(platform);
     expect(projectSupportsReplay(project)).toBeTruthy();
     expect(projectCanLinkToReplay(project)).toBeTruthy();
   });
@@ -27,30 +27,39 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
   it.each(['javascript-angularjs' as PlatformKey])(
     'should FAIL for old, unsupported frontend framework %s',
     platform => {
-      const project = mockProject(platform);
+      const project = mockProjectFixture(platform);
       expect(projectSupportsReplay(project)).toBeFalsy();
       expect(projectCanLinkToReplay(project)).toBeFalsy();
     }
   );
 
   it.each([
-    'dotnet' as PlatformKey,
-    'java' as PlatformKey,
     'node' as PlatformKey,
     'php' as PlatformKey,
-    'rust' as PlatformKey,
-  ])('should NOT SUPPORT but CAN LINK for Backend framework %s', platform => {
-    const project = mockProject(platform);
-    expect(projectSupportsReplay(project)).toBeFalsy();
+    'bun' as PlatformKey,
+    'elixir' as PlatformKey,
+    'go' as PlatformKey,
+  ])('should SUPPORT Backend framework %s', platform => {
+    const project = mockProjectFixture(platform);
+    expect(projectSupportsReplay(project)).toBeTruthy();
     expect(projectCanLinkToReplay(project)).toBeTruthy();
   });
+
+  it.each(['java' as PlatformKey, 'rust' as PlatformKey, 'python' as PlatformKey])(
+    'should NOT SUPPORT but CAN LINK for Backend framework %s',
+    platform => {
+      const project = mockProjectFixture(platform);
+      expect(projectSupportsReplay(project)).toBeFalsy();
+      expect(projectCanLinkToReplay(project)).toBeTruthy();
+    }
+  );
 
   it.each([
     'apple-macos' as PlatformKey,
     'flutter' as PlatformKey,
     'unity' as PlatformKey,
   ])('should FAIL for Desktop framework %s', platform => {
-    const project = mockProject(platform);
+    const project = mockProjectFixture(platform);
     expect(projectSupportsReplay(project)).toBeFalsy();
     expect(projectCanLinkToReplay(project)).toBeFalsy();
   });

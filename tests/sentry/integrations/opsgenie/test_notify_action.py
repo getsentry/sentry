@@ -4,9 +4,8 @@ import pytest
 import responses
 
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamAction
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -22,12 +21,12 @@ METADATA = {
 }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OpsgenieNotifyTeamTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = OpsgenieNotifyTeamAction
 
     def create_integration(self, name):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name=name, external_id=name, metadata=METADATA
         )
         integration.add_organization(self.organization, self.user)

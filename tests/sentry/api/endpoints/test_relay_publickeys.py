@@ -15,7 +15,7 @@ def disable_internal_networks():
     return mock.patch.object(system, "INTERNAL_NETWORKS", ())
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class RelayPublicKeysConfigTest(APITestCase):
     def setUp(self):
         super().setUp()

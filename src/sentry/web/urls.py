@@ -38,22 +38,15 @@ from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
-from sentry.web.frontend.project_avatar import ProjectAvatarPhotoView
 from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
-from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
-from sentry.web.frontend.unsubscribe_incident_notifications import (
-    UnsubscribeIncidentNotificationsView,
-)
-from sentry.web.frontend.unsubscribe_issue_notifications import UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ("urlpatterns",)
@@ -377,27 +370,6 @@ urlpatterns += [
                         pattern_name="sentry-account-settings-notifications", permanent=False
                     ),
                 ),
-                # TODO(hybridcloud) These routes can be removed in Jan 2024 as all valid links
-                # will have been generated with hybrid-cloud compatible URLs.
-                re_path(
-                    r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
-                    accounts.email_unsubscribe_project,
-                    name="sentry-account-email-unsubscribe-project",
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/issue/(?P<issue_id>\d+)/$",
-                    UnsubscribeIssueNotificationsView.as_view(),
-                    name="sentry-account-email-unsubscribe-issue",
-                ),
-                re_path(
-                    r"^notifications/unsubscribe/incident/(?P<incident_id>\d+)/$",
-                    UnsubscribeIncidentNotificationsView.as_view(),
-                    name="sentry-account-email-unsubscribe-incident",
-                ),
                 re_path(
                     r"^remove/$",
                     RedirectView.as_view(
@@ -420,6 +392,8 @@ urlpatterns += [
         r"^onboarding/",
         generic_react_page_view,
     ),
+    # Relocation
+    re_path(r"^relocation/", generic_react_page_view, name="sentry-relocation"),
     # Admin
     re_path(
         r"^manage/",
@@ -645,26 +619,6 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
-                    r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-organization-unsubscribe-project",
-                ),
-                re_path(
-                    r"^unsubscribe/project/(?P<project_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-customer-domain-unsubscribe-project",
-                ),
-                re_path(
-                    r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-organization-unsubscribe-issue",
-                ),
-                re_path(
-                    r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
-                    react_page_view,
-                    name="sentry-customer-domain-unsubscribe-issue",
-                ),
-                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
@@ -705,6 +659,26 @@ urlpatterns += [
         r"^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$",
         react_page_view,
         name="integration-installation",
+    ),
+    re_path(
+        r"^unsubscribe/(?P<organization_slug>\w+)/project/(?P<project_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-organization-unsubscribe-project",
+    ),
+    re_path(
+        r"^unsubscribe/project/(?P<project_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-customer-domain-unsubscribe-project",
+    ),
+    re_path(
+        r"^unsubscribe/(?P<organization_slug>\w+)/issue/(?P<issue_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-organization-unsubscribe-issue",
+    ),
+    re_path(
+        r"^unsubscribe/issue/(?P<issue_id>\d+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="sentry-customer-domain-unsubscribe-issue",
     ),
     # Issues
     re_path(
@@ -859,7 +833,7 @@ urlpatterns += [
     # Restore organization
     re_path(
         r"^restore/",
-        RestoreOrganizationView.as_view(),
+        generic_react_page_view,
         name="sentry-customer-domain-restore-organization",
     ),
     # Project on-boarding
@@ -1018,7 +992,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
-                    RestoreOrganizationView.as_view(),
+                    generic_react_page_view,
                     name="sentry-restore-organization",
                 ),
                 re_path(
@@ -1060,16 +1034,6 @@ urlpatterns += [
         r"^organization-avatar/(?P<avatar_id>[^\/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
-    ),
-    re_path(
-        r"^project-avatar/(?P<avatar_id>[^\/]+)/$",
-        ProjectAvatarPhotoView.as_view(),
-        name="sentry-project-avatar-url",
-    ),
-    re_path(
-        r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
-        TeamAvatarPhotoView.as_view(),
-        name="sentry-team-avatar-url",
     ),
     re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",

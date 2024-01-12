@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -22,8 +23,10 @@ from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.services.hybrid_cloud.util import region_silo_function
 
 
+@region_silo_function
 def build_action_response(
     registered_type,
     integration: RpcIntegration | None = None,
@@ -84,6 +87,7 @@ def build_action_response(
 
 @region_silo_endpoint
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

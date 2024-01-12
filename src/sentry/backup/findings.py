@@ -37,6 +37,9 @@ class ComparatorFindingKind(FindingKind):
     # The instances of a particular model did not maintain total ordering of pks (that is, pks did not appear in ascending order, or appear multiple times).
     UnorderedInput = auto()
 
+    # Multiple instances of the same custom ordinal signature exist in the input.
+    DuplicateCustomOrdinal = auto()
+
     # The number of instances of a particular model on the left and right side of the input were not
     # equal.
     UnequalCounts = auto()
@@ -72,6 +75,12 @@ class ComparatorFindingKind(FindingKind):
     # `None`.
     EmailObfuscatingComparatorExistenceCheck = auto()
 
+    # The fields were both present but unequal.
+    EqualOrRemovedComparator = auto()
+
+    # The left field does not exist.
+    EqualOrRemovedComparatorExistenceCheck = auto()
+
     # Hash equality comparison failed.
     HashObfuscatingComparator = auto()
 
@@ -89,10 +98,6 @@ class ComparatorFindingKind(FindingKind):
     # Failed to compare an ignored field.
     IgnoredComparator = auto()
 
-    # Failed to compare an ignored field because one of the fields being compared was not present or
-    # `None`.
-    IgnoredComparatorExistenceCheck = auto()
-
     # Secret token fields did not match their regex specification.
     SecretHexComparator = auto()
 
@@ -106,6 +111,13 @@ class ComparatorFindingKind(FindingKind):
     # Failed to compare a subscription id field because one of the fields being compared was not
     # present or `None`.
     SubscriptionIDComparatorExistenceCheck = auto()
+
+    # Unordered list fields did not match.
+    UnorderedListComparator = auto()
+
+    # Failed to compare a unordered list field because one of the fields being compared was not
+    # present or `None`.
+    UnorderedListComparatorExistenceCheck = auto()
 
     # UUID4 fields did not match their regex specification.
     UUID4Comparator = auto()

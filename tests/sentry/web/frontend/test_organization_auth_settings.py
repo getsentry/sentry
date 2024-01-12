@@ -30,7 +30,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -112,7 +112,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             assert resp.status_code == 200
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def enroll_user_and_require_2fa(self, user, organization):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -615,7 +615,7 @@ class DummySAML2Provider(GenericSAML2Provider):
         return dummy_provider_config
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"

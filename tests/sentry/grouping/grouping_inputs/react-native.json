@@ -4,9 +4,7 @@
   "environment": "production",
   "platform": "java",
   "logger": "javascript",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {
@@ -358,13 +356,7 @@
             {
               "function": "invokeGuardedCallbackAndCatchFirstError",
               "abs_path": "app:///node_modules/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js",
-              "pre_context": [
-                "    c,",
-                "    d,",
-                "    e,",
-                "    f",
-                "  ) {"
-              ],
+              "pre_context": ["    c,", "    d,", "    e,", "    f", "  ) {"],
               "post_context": [
                 "    if (ReactErrorUtils.hasCaughtError()) {",
                 "      var error = ReactErrorUtils.clearCaughtError();",

@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +19,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
       <ProjectQuickLinks
         organization={organization}
         location={router.location}
-        project={TestStubs.Project()}
+        project={ProjectFixture()}
       />,
       {context: routerContext}
     );
@@ -59,7 +61,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
       <ProjectQuickLinks
         organization={{...organization, features: []}}
         location={router.location}
-        project={TestStubs.Project()}
+        project={ProjectFixture()}
       />,
       {context: routerContext}
     );

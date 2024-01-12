@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from random import random
-from typing import Mapping
+from typing import Mapping, Optional
 
 import sentry_sdk
 from arroyo import Topic, configure_metrics
@@ -20,7 +20,7 @@ from sentry_kafka_schemas import get_codec
 
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic, topic_to_dataset
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
         multi_proc: bool = True,
     ):
         self.topic = topic
@@ -41,10 +41,10 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.logical_topic = dataset_to_logical_topic[self.dataset]
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
-        self.num_processes = num_processes
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.multi_proc = multi_proc
+        self.pool = MultiprocessingPool(num_processes)
 
     def create_with_partitions(
         self,
@@ -56,14 +56,17 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             return RunTaskWithMultiprocessing(
                 function=callable,
                 next_step=CommitOffsets(commit),
-                num_processes=self.num_processes,
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
+                pool=self.pool,
                 input_block_size=self.input_block_size,
                 output_block_size=self.output_block_size,
             )
         else:
             return RunTask(callable, CommitOffsets(commit))
+
+    def shutdown(self) -> None:
+        self.pool.close()
 
 
 def process_message(
@@ -114,11 +117,10 @@ def get_query_subscription_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: int,
-    output_block_size: int,
+    input_block_size: Optional[int],
+    output_block_size: Optional[int],
     multi_proc: bool = False,
 ) -> StreamProcessor[KafkaPayload]:
-
     from sentry.utils import kafka_config
 
     cluster_name = kafka_config.get_topic_definition(topic)["cluster"]

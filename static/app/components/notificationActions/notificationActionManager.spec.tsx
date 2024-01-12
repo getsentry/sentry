@@ -1,3 +1,5 @@
+import {AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -12,7 +14,7 @@ import type {NotificationAction} from 'sentry/types';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();
-  const availableActions = TestStubs.AvailableNotificationActions().actions;
+  const availableActions = AvailableNotificationActionsFixture().actions;
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/notifications/available-actions/`,
     body: availableActions,
@@ -24,7 +26,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       organizationId: parseInt(organization.id, 10),
       integrationId: null,
       sentryAppId: null,
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       serviceType: 'sentry_notification',
       triggerType: 'spike-protection',
       targetType: 'specific',
@@ -36,7 +38,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       organizationId: parseInt(organization.id, 10),
       integrationId: 5,
       sentryAppId: null,
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       serviceType: 'slack',
       triggerType: 'spike-protection',
       targetType: 'specific',
@@ -48,7 +50,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       organizationId: parseInt(organization.id, 10),
       integrationId: 2,
       sentryAppId: null,
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       serviceType: 'pagerduty',
       triggerType: 'spike-protection',
       targetType: 'specific',
@@ -60,7 +62,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       organizationId: parseInt(organization.id, 10),
       integrationId: 3,
       sentryAppId: null,
-      projects: [project.id],
+      projects: [parseInt(project.id, 10)],
       serviceType: 'opsgenie',
       triggerType: 'spike-protection',
       targetType: 'specific',
@@ -268,7 +270,7 @@ describe('Adds, deletes, and updates notification actions', function () {
           organizationId: organization.id,
           integrationId: 1,
           sentryAppId: null,
-          projects: [project.id],
+          projects: [parseInt(project.id, 10)],
           serviceType: 'slack',
           triggerType: 'spike-protection',
           targetType: 'specific',
@@ -379,7 +381,7 @@ describe('Adds, deletes, and updates notification actions', function () {
           organizationId: organization.id,
           integrationId: 2,
           sentryAppId: null,
-          projects: [project.id],
+          projects: [parseInt(project.id, 10)],
           serviceType: 'pagerduty',
           triggerType: 'spike-protection',
           targetType: 'specific',
@@ -484,7 +486,7 @@ describe('Adds, deletes, and updates notification actions', function () {
           organizationId: organization.id,
           integrationId: 4,
           sentryAppId: null,
-          projects: [project.id],
+          projects: [parseInt(project.id, 10)],
           serviceType: 'opsgenie',
           triggerType: 'spike-protection',
           targetType: 'specific',

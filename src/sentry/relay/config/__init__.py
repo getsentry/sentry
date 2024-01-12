@@ -64,6 +64,9 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
     "organizations:custom-metrics",
+    "organizations:metric-meta",
+    "organizations:standalone-span-ingestion",
+    "organizations:relay-cardinality-limiter",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -154,8 +157,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
     if project.get_option("filters:chunk-load-error") == "1":
         # ChunkLoadError: Loading chunk 3662 failed.\n(error:
-        # https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
-        error_messages += ["ChunkLoadError: Loading chunk *"]
+        # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += [
+            "ChunkLoadError: Loading chunk *",
+            "Uncaught *: ChunkLoadError: Loading chunk *",
+        ]
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
@@ -213,7 +219,7 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
-        return {"rules": [], "rulesV2": generate_rules(project)}
+        return {"version": 2, "rules": generate_rules(project)}
 
     return None
 
@@ -274,28 +280,6 @@ class SpanDescriptionRule(TypedDict):
     redaction: SpanDescriptionRuleRedaction
 
 
-def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDescriptionRule]]:
-    if not features.has("projects:span-metrics-extraction", project):
-        return None
-
-    rules = get_sorted_rules(ClustererNamespace.SPANS, project)
-    if not rules:
-        return None
-
-    return [_get_span_desc_rule(pattern, seen) for pattern, seen in rules]
-
-
-def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
-    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
-    return SpanDescriptionRule(
-        pattern=pattern,
-        expiry=expiry_at,
-        scope={"op": "http"},
-        redaction={"method": "replace", "substitution": "*"},
-    )
-
-
 def add_experimental_config(
     config: MutableMapping[str, Any],
     key: str,
@@ -312,7 +296,7 @@ def add_experimental_config(
     try:
         subconfig = function(*args, **kwargs)
     except Exception:
-        logger.error("Exception while building Relay project config field", exc_info=True)
+        logger.exception("Exception while building Relay project config field")
     else:
         if subconfig is not None:
             config[key] = subconfig
@@ -363,13 +347,10 @@ def _get_project_config(
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
-    add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
+    add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
-
-    # Rules to replace high cardinality span descriptions
-    add_experimental_config(config, "spanDescriptionRules", get_span_descriptions_config, project)
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
@@ -414,20 +395,230 @@ def _get_project_config(
         config["performanceScore"] = {
             "profiles": [
                 {
-                    "name": "Desktop",
+                    "name": "Chrome",
                     "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
-                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
-                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
                     ],
                     "condition": {
                         "op": "eq",
                         "name": "event.contexts.browser.name",
                         "value": "Chrome",
                     },
-                }
+                },
+                {
+                    "name": "Firefox",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.0,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.0,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Firefox",
+                    },
+                },
+                {
+                    "name": "Safari",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.0,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.0,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.0,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Safari",
+                    },
+                },
+                {
+                    "name": "Edge",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Edge",
+                    },
+                },
+                {
+                    "name": "Opera",
+                    "scoreComponents": [
+                        {
+                            "measurement": "fcp",
+                            "weight": 0.15,
+                            "p10": 900.0,
+                            "p50": 1600.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "lcp",
+                            "weight": 0.30,
+                            "p10": 1200.0,
+                            "p50": 2400.0,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "fid",
+                            "weight": 0.30,
+                            "p10": 100.0,
+                            "p50": 300.0,
+                            "optional": True,
+                        },
+                        {
+                            "measurement": "cls",
+                            "weight": 0.15,
+                            "p10": 0.1,
+                            "p50": 0.25,
+                            "optional": False,
+                        },
+                        {
+                            "measurement": "ttfb",
+                            "weight": 0.10,
+                            "p10": 200.0,
+                            "p50": 400.0,
+                            "optional": False,
+                        },
+                    ],
+                    "condition": {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Opera",
+                    },
+                },
             ]
         }
 

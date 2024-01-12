@@ -15,8 +15,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -69,6 +68,7 @@ class TestCommitContextMixin(TestCase):
                             "lineno": 30,
                             "filename": "sentry/tasks.py",
                         },
+                        None,
                         {
                             "function": "set_commits",
                             "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
@@ -86,7 +86,7 @@ class TestCommitContextMixin(TestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestCommitContext(TestCommitContextMixin):
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
@@ -524,7 +524,7 @@ class TestCommitContext(TestCommitContextMixin):
             assert mock_suspect_commits.called
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestCommitContextAllFrames(TestCommitContextMixin):
     def setUp(self):
         super().setUp()
@@ -1128,7 +1128,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
 
         mock_logger_exception.assert_any_call(
-            "process_commit_context.get_commit_context_all_frames.unknown_error",
+            "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
             extra={
                 "organization": self.organization.id,
                 "group": self.event.group_id,
@@ -1227,7 +1227,7 @@ class TestCommitContextAllFrames(TestCommitContextMixin):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @patch(
     "sentry.integrations.github.GitHubIntegration.get_commit_context",
     Mock(

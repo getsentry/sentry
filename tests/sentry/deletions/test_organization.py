@@ -32,7 +32,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org_owner = self.create_user()

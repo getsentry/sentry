@@ -168,6 +168,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'discord',
+        groups: ['logo'],
+        keywords: [],
+        name: 'Discord',
+        defaultProps: {},
+      },
+      {
         id: 'github',
         groups: ['logo'],
         keywords: [],
@@ -991,6 +998,18 @@ const SECTIONS: TSection[] = [
         keywords: ['keyboard', 'press', 'click', 'tap'],
         name: 'KeyDown',
         defaultProps: {},
+      },
+      {
+        id: 'zoom-out',
+        keywords: [],
+        name: 'Zoom',
+        defaultProps: {isZoomIn: false},
+      },
+      {
+        id: 'zoom-in',
+        keywords: [],
+        name: 'Zoom',
+        defaultProps: {isZoomIn: true},
       },
     ],
   },

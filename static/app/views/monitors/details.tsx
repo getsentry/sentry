@@ -3,24 +3,29 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {updateMonitor} from 'sentry/actionCreators/monitors';
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {CronDetailsTimeline} from 'sentry/views/monitors/components/cronDetailsTimeline';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
+import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorCheckIns from './components/monitorCheckIns';
 import MonitorHeader from './components/monitorHeader';
 import MonitorIssues from './components/monitorIssues';
 import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
+import {StatusToggleButton} from './components/statusToggleButton';
 import {Monitor} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
@@ -32,19 +37,14 @@ function hasLastCheckIn(monitor: Monitor) {
 }
 
 function MonitorDetails({params, location}: Props) {
-  const {selection} = usePageFilters();
+  const api = useApi();
 
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  // TODO(epurkhiser): For now we just use the fist environment OR production
-  // if we have all environments selected
-  const environment = selection.environments[0];
-
-  const queryKey = [
-    `/organizations/${organization.slug}/monitors/${params.monitorSlug}/`,
-    {query: {...location.query, environment}},
-  ] as const;
+  const queryKey = makeMonitorDetailsQueryKey(organization, params.monitorSlug, {
+    ...location.query,
+  });
 
   const {data: monitor} = useApiQuery<Monitor>(queryKey, {
     staleTime: 0,
@@ -70,6 +70,17 @@ function MonitorDetails({params, location}: Props) {
     setApiQueryData(queryClient, queryKey, updatedMonitor);
   }
 
+  const handleUpdate = async (data: Partial<Monitor>) => {
+    if (monitor === undefined) {
+      return;
+    }
+    const resp = await updateMonitor(api, organization.slug, monitor.slug, data);
+
+    if (resp !== null) {
+      onUpdate(resp);
+    }
+  };
+
   if (!monitor) {
     return (
       <Layout.Page>
@@ -90,6 +101,23 @@ function MonitorDetails({params, location}: Props) {
               <DatePageFilter />
               <EnvironmentPageFilter />
             </StyledPageFilterBar>
+            {monitor.status === 'disabled' && (
+              <Alert
+                type="muted"
+                showIcon
+                trailingItems={
+                  <StatusToggleButton
+                    monitor={monitor}
+                    size="xs"
+                    onToggleStatus={status => handleUpdate({status})}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and is not accepting check-ins.')}
+              </Alert>
+            )}
             {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding monitor={monitor} />
             ) : (

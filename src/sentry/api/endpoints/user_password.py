@@ -3,11 +3,12 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.auth import password_validation
-from sentry.security import capture_security_activity
+from sentry.security.utils import capture_security_activity
 
 
 class UserPasswordSerializer(serializers.Serializer):
@@ -45,8 +46,9 @@ class UserPasswordSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserPasswordEndpoint(UserEndpoint):
+    owner = ApiOwner.SECURITY
     publish_status = {
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def put(self, request: Request, user) -> Response:

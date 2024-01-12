@@ -33,7 +33,7 @@ FEATURE_NAMES = [
 EDIT_FEATURE = ["organizations:dashboards-edit"]
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -669,7 +669,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.page.save_dashboard()
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

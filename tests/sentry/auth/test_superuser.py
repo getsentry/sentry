@@ -44,7 +44,7 @@ INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 @freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
     def setUp(self):
@@ -153,7 +153,11 @@ class SuperuserTestCase(TestCase):
 
     @freeze_time(BASETIME + EXPIRE_TIME)
     def test_expired(self):
-        request = self.build_request(expires=self.current_datetime)
+        # Set idle time to the current time so we fail on checking expire time
+        # and not idle time.
+        request = self.build_request(
+            idle_expires=BASETIME + EXPIRE_TIME, expires=self.current_datetime
+        )
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
 
@@ -256,7 +260,7 @@ class SuperuserTestCase(TestCase):
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
             superuser.set_logged_in(request.user)
-            logger.error.assert_any_call("superuser.superuser_access.missing_user_info")
+            logger.exception.assert_any_call("superuser.superuser_access.missing_user_info")
 
     def test_su_access_invalid_request_body(
         self,
@@ -285,7 +289,8 @@ class SuperuserTestCase(TestCase):
         request.user = user
         assert superuser.is_active
 
-        data = request.session.get(SESSION_KEY)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
@@ -365,7 +370,8 @@ class SuperuserTestCase(TestCase):
         assert not superuser.is_active
 
         # a non-superuser
-        request.user = self.create_user("baz@example.com")
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        request.user = self.create_user("baz@example.com")  # type:ignore[unreachable]
         assert not superuser.is_active
 
         # a superuser
@@ -396,7 +402,7 @@ class SuperuserTestCase(TestCase):
         assert is_active_superuser(request)
 
     @mock.patch("sentry.auth.superuser.logger")
-    def test_superuser_session_doesnt_needs_validatation_superuser_prompts(self, logger):
+    def test_superuser_session_doesnt_need_validation_superuser_prompts(self, logger):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
         superuser = Superuser(request, org_id=None)

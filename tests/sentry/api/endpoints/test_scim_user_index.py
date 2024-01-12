@@ -30,7 +30,7 @@ def merge_dictionaries(dict1, dict2):
     return {**dict1, **dict2}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-scim-member-index"
 
@@ -462,7 +462,7 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert len(response.data["Resources"]) == 7
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
     def test_user_index_get_no_active(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
@@ -490,7 +490,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
         }
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class SCIMQueryParameterSerializerTest(unittest.TestCase):
     def test_defaults(self):
         serializer = SCIMQueryParamSerializer(data={})

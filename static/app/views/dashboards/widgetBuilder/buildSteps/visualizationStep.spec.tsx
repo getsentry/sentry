@@ -1,4 +1,4 @@
-import {Tags} from 'sentry-fixture/tags';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -25,7 +25,7 @@ function mockRequests(orgSlug: Organization['slug']) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/tags/',
     method: 'GET',
-    body: Tags(),
+    body: TagsFixture(),
   });
 
   MockApiClient.addMockResponse({
@@ -222,7 +222,7 @@ describe('VisualizationStep', function () {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({query: ' release:v1 '}),
+          query: expect.objectContaining({query: ' release:"v1" '}),
         })
       )
     );

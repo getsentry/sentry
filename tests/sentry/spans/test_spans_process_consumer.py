@@ -103,8 +103,26 @@ def test_v1_span():
                 "start_timestamp": 123.456,
                 "timestamp": 124.567,
                 "trace_id": "ff62a8b040f340bda5d830223def1d81",
+                "measurements": {
+                    "memory": {
+                        "value": 1000.0,
+                    },
+                },
+                "_metrics_summary": {
+                    "c:spans/somemetric@none": [
+                        {
+                            "min": 1.0,
+                            "max": 2.0,
+                            "sum": 3.0,
+                            "count": 1,
+                            "tags": {
+                                "environment": "test",
+                            },
+                        },
+                    ],
+                },
             },
-        }
+        },
     ).encode()
     value = BrokerValue(KafkaPayload(None, payload, []), None, 0, None)  # type: ignore
     processed = _process_message(Message(value))
@@ -134,4 +152,46 @@ def test_v1_span():
         "span_id": "bbbbbbbbbbbbbbbb",
         "start_timestamp_ms": 123456,
         "trace_id": "ff62a8b040f340bda5d830223def1d81",
+        "measurements": {
+            "memory": {
+                "value": 1000.0,
+            },
+        },
+        "_metrics_summary": {
+            "c:spans/somemetric@none": [
+                {
+                    "min": 1.0,
+                    "max": 2.0,
+                    "sum": 3.0,
+                    "count": 1,
+                    "tags": {
+                        "environment": "test",
+                    },
+                },
+            ],
+        },
     }
+
+
+def test_snuba_span_schema():
+    relay_span = {
+        "description": "first server span",
+        "duration_ms": 100001000,
+        "exclusive_time_ms": 10004.0,
+        "is_segment": True,
+        "measurements": {"inp": {"value": 1000.0}},
+        "project_id": 1,
+        "received": 1704746372.235384,
+        "retention_days": 90,
+        "segment_id": "b8670efa82b3781a",
+        "sentry_tags": {"op": "interaction"},
+        "span_id": "b8670efa82b3781a",
+        "start_timestamp_ms": 1702933324389,
+        "tags": {"ui.interaction.finish": "timeout"},
+        "trace_id": "63f25a650da04bb7bb23628c0f7668ad",
+    }
+    payload = json.dumps(relay_span)
+    value = BrokerValue(KafkaPayload(None, payload.encode(), []), None, 0, None)  # type: ignore
+    processed = _process_message(Message(value))
+    assert isinstance(processed, KafkaPayload)
+    assert json.loads(processed.value) == relay_span

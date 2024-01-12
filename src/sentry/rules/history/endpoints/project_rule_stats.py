@@ -40,12 +40,16 @@ class TimeSeriesValueSerializer(Serializer):
 @region_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     @extend_schema(
         operation_id="Retrieve firing starts for an issue alert rule for a given time range. Results are returned in hourly buckets.",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG, IssueAlertParams],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            IssueAlertParams.ISSUE_RULE_ID,
+        ],
         responses={
             200: TimeSeriesValueSerializer,
             401: RESPONSE_UNAUTHORIZED,

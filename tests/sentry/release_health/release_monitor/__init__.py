@@ -6,7 +6,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class BaseFetchProjectsWithRecentSessionsTest(TestCase, SnubaTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     backend_class: type[BaseReleaseMonitorBackend]
 
@@ -47,7 +47,7 @@ class BaseFetchProjectsWithRecentSessionsTest(TestCase, SnubaTestCase):
 
 
 class BaseFetchProjectReleaseHealthTotalsTest(TestCase, SnubaTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     backend_class: type[BaseReleaseMonitorBackend]
 

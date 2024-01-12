@@ -20,7 +20,6 @@ import {
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 const getDate = date =>
@@ -256,7 +255,9 @@ class ChartZoom extends Component<Props> {
       });
     }
 
-    callIfFunction(this.props.onFinished);
+    if (typeof this.props.onFinished === 'function') {
+      this.props.onFinished(_props, chart);
+    }
   };
 
   render() {

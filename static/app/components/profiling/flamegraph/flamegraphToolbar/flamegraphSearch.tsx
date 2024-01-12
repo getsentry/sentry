@@ -20,6 +20,12 @@ import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
+function isFlamegraphFrame(
+  frame: FlamegraphFrame | SpanChartNode
+): frame is FlamegraphFrame {
+  return 'frame' in frame;
+}
+
 export function searchFrameFzf(
   frame: FlamegraphFrame,
   matches: FlamegraphSearchResults['results']['frames'],
@@ -206,18 +212,35 @@ function yieldingRafFrameSearch(
   return raf;
 }
 
+function sortByDepthAndStart(
+  a: FlamegraphFrame | SpanChartNode,
+  b: FlamegraphFrame | SpanChartNode
+) {
+  return a.start === b.start
+    ? numericSort(a.depth, b.depth, 'asc')
+    : numericSort(a.start, b.start, 'asc');
+}
+
 function sortFrameResults(
-  frames: FlamegraphSearchResults['results']
-): Array<FlamegraphFrame> {
+  results: FlamegraphSearchResults['results']
+): Array<FlamegraphFrame | SpanChartNode> {
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
-  return [...frames.frames.values()]
-    .map(f => f.frame)
-    .sort((a, b) =>
-      a.start === b.start
-        ? numericSort(a.depth, b.depth, 'asc')
-        : numericSort(a.start, b.start, 'asc')
-    );
+  let sid = -1;
+  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.frames.size);
+  for (const n of results.spans.values()) {
+    spans[++sid] = n.span;
+  }
+
+  let fid = -1;
+  const frames: Array<FlamegraphFrame> = new Array(results.frames.size);
+  for (const n of results.frames.values()) {
+    frames[++fid] = n.frame;
+  }
+  spans.sort(sortByDepthAndStart);
+  frames.sort(sortByDepthAndStart);
+
+  return spans.concat(frames);
 }
 
 const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
@@ -280,6 +303,14 @@ function FlamegraphSearch({
     [canvasPoolManager]
   );
 
+  const onZoomIntoSpan = useCallback(
+    (span: SpanChartNode) => {
+      canvasPoolManager.dispatch('zoom at span', [span, 'min']);
+      canvasPoolManager.dispatch('highlight span', [[span], 'selected']);
+    },
+    [canvasPoolManager]
+  );
+
   useEffect(() => {
     if (typeof search.index !== 'number') {
       return;
@@ -288,9 +319,13 @@ function FlamegraphSearch({
     const frames = memoizedSortFrameResults(search.results);
     const frame = frames[search.index];
     if (frame) {
-      onZoomIntoFrame(frame);
+      if (isFlamegraphFrame(frame)) {
+        onZoomIntoFrame(frame);
+      } else {
+        onZoomIntoSpan(frame);
+      }
     }
-  }, [search.results, search.index, onZoomIntoFrame]);
+  }, [search.results, search.index, onZoomIntoFrame, onZoomIntoSpan]);
 
   const rafHandler = useRef<ReturnType<typeof yieldingRafFrameSearch> | null>(null);
 
@@ -403,7 +438,7 @@ function FlamegraphSearch({
                 search.index !== null && search.results.frames.size > 0
                   ? search.index + 1
                   : '-'
-              }/${search.results.frames.size}`}
+              }/${search.results.frames.size + search.results.spans.size}`}
             </StyledTrailingText>
             <StyledSearchBarTrailingButton
               size="zero"

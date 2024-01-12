@@ -20,7 +20,7 @@ from sentry.utils.snuba import QueryMemoryLimitExceeded
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @apply_feature_flag_on_cls("organizations:global-views")
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
@@ -90,6 +90,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -99,6 +100,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 is_rage=1,
                 text="Hello",
                 release=None,
+            )
+        )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
             )
         )
 
@@ -134,6 +140,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                         "click.alt": "Alt",
                         "click.classes": ["class1", "class2"],
                         "click.id": "myid",
+                        "click.component_name": "SignUpForm",
                         "click.role": "button",
                         "click.tag": "div",
                         "click.testid": "1",
@@ -527,7 +534,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
         )
         self.store_replays(
-            self.mock_event_links(seq1_timestamp, project.id, "error", replay1_id, uuid.uuid4().hex)
+            self.mock_event_links(seq1_timestamp, project.id, "fatal", replay1_id, uuid.uuid4().hex)
+        )
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
+            )
         )
         self.store_replays(
             self.mock_event_links(
@@ -607,9 +619,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "url:example.com",
                 "activity:3",
                 "activity:>2",
-                "new_count_errors:2",
-                "new_count_errors:>1",
-                "new_count_errors:<3",
                 "count_warnings:1",
                 "count_warnings:>0",
                 "count_warnings:<2",
@@ -823,7 +832,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.email",
                 "user.id",
                 "user.username",
-                "new_count_errors",
                 "count_warnings",
                 "count_infos",
             ]
@@ -965,10 +973,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "count_segments": None,
                     "count_urls": None,
                     "clicks": None,
-                    "new_error_ids": None,
                     "warning_ids": None,
                     "info_ids": None,
-                    "new_count_errors": None,
                     "count_warnings": None,
                     "count_infos": None,
                 }
@@ -1032,6 +1038,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2", "class:hover"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -1062,6 +1069,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.class:class3",
                 "click.id:myid",
                 "click.label:AriaLabel",
+                "click.component_name:SignUpForm",
                 "click.role:button",
                 "click.tag:div",
                 "click.tag:button",
@@ -1071,6 +1079,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div#myid",
                 "click.selector:div[alt=Alt]",
                 "click.selector:div[title=MyTitle]",
+                "click.selector:div[data-sentry-component=SignUpForm]",
                 "click.selector:div[data-testid='1']",
                 "click.selector:div[data-test-id='1']",
                 "click.selector:div[role=button]",
@@ -1094,6 +1103,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.class:class4",
                 "click.id:other",
                 "click.label:NotAriaLabel",
+                "click.component_name:NotSignUpForm",
                 "click.role:form",
                 "click.tag:header",
                 "click.testid:2",
@@ -1134,6 +1144,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 tag="div",
                 id="myid",
                 class_=["class1", "class2"],
+                component_name="SignUpForm",
                 role="button",
                 testid="1",
                 alt="Alt",
@@ -1165,6 +1176,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                             "click.alt": "Alt",
                             "click.classes": ["class1", "class3"],
                             "click.id": "myid",
+                            "click.component_name": "SignUpForm",
                             "click.role": "button",
                             "click.tag": "button",
                             "click.testid": "1",
@@ -1176,6 +1188,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                             "click.alt": None,
                             "click.classes": ["class1", "class2"],
                             "click.id": "myid",
+                            "click.component_name": None,
                             "click.role": None,
                             "click.tag": "div",
                             "click.testid": None,
@@ -1248,7 +1261,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 400, query
                 assert response.content == (
                     b'{"detail":"Invalid attribute specified. Only alt, aria-label, role, '
-                    b'data-testid, data-test-id, and title are supported."}'
+                    b'data-testid, data-test-id, data-sentry-component, and title are supported."}'
                 ), query
 
     def test_get_replays_filter_clicks_unsupported_operators(self):
@@ -1593,6 +1606,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
         self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, error_ids=[]))
+        self.store_replays(
+            self.mock_event_links(
+                seq1_timestamp, project.id, "error", replay1_id, "a3a62ef6ac86415b83c2416fc2f76db1"
+            )
+        )
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
@@ -1797,23 +1815,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         )
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                f"new_error_id:{uid1}",
-                f"new_error_id:{uid2}",
-                f"new_error_id:[{uid1}]",
-                f"!new_error_id:[{uid3}]",
-                f"!new_error_id:{uid3}",
+                f"error_id:{uid1}",
+                f"error_id:{uid2}",
+                f"error_id:[{uid1}]",
+                f"!error_id:[{uid3}]",
+                f"!error_id:{uid3}",
             ]
             for query in queries:
-                response = self.client.get(
-                    self.url + f"?field=id&field=new_error_ids&query={query}"
-                )
+                response = self.client.get(self.url + f"?field=id&field=error_ids&query={query}")
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["new_error_ids"]) == 2, query
+                assert len(response_data["data"][0]["error_ids"]) == 2, query
 
             response = self.client.get(
-                self.url + f"?field=id&field=new_error_ids&query=new_error_id:{uid3}"
+                self.url + f"?field=id&field=error_ids&query=error_id:{uid3}"
             )
             assert response.status_code == 200
             response_data = response.json()
@@ -1913,19 +1929,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                f"new_error_ids:{uid1}",
-                f"!new_error_ids:{uid2}",
-                f"new_error_ids:[{uid1},{uid2}]",
-                f"!new_error_ids:[{uid2}]",
+                f"error_ids:{uid1}",
+                f"!error_ids:{uid2}",
+                f"error_ids:[{uid1},{uid2}]",
+                f"!error_ids:[{uid2}]",
             ]
             for query in queries:
-                response = self.client.get(
-                    self.url + f"?field=id&field=new_error_ids&query={query}"
-                )
+                response = self.client.get(self.url + f"?field=id&field=error_ids&query={query}")
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["new_error_ids"]) == 1, query
+                assert len(response_data["data"][0]["error_ids"]) == 1, query
 
     def test_event_id_count_columns(self):
         project = self.create_project(teams=[self.team])
@@ -1967,11 +1981,48 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(
-                self.url
-                + f"?field=id&field=new_count_errors&field=count_warnings&field=count_infos&query=id:{replay1_id}"
+                self.url + f"?field=id&field=count_warnings&field=count_infos&query=id:{replay1_id}"
             )
             assert response.status_code == 200
             response_data = response.json()
-            assert response_data["data"][0]["new_count_errors"] == 2
             assert response_data["data"][0]["count_warnings"] == 1
-            assert response_data["data"][0]["new_count_errors"] == 2
+
+    def test_non_empty_string_scalar(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=0, dist="")
+        )
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=0, dist="1")
+        )
+
+        # "dist" is used as a placeholder to test the "NonEmptyStringScalar" class. Empty
+        # strings should be ignored when performing negation queries.
+        with self.feature(REPLAYS_FEATURES):
+            # dist should be findable if any of its filled values match the query.
+            queries = [
+                "dist:1",
+                "dist:[1]",
+                "dist:*1*",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            # If we explicitly negate dist's filled value we should also ignore empty
+            # values.
+            queries = [
+                "!dist:1",
+                "!dist:[1]",
+                "!dist:*1*",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query

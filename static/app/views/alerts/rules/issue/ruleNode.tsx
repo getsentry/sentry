@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
+import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
@@ -279,6 +280,16 @@ function RuleNode({
       onReset,
     };
 
+    if (name === 'environment') {
+      return (
+        <ChoiceField
+          {...merge(fieldProps, {
+            fieldConfig: {choices: project.environments.map(env => [env, env])},
+          })}
+        />
+      );
+    }
+
     switch (fieldConfig.type) {
       case 'choice':
         return <ChoiceField {...fieldProps} />;
@@ -367,7 +378,7 @@ function RuleNode({
       return (
         <Button
           size="sm"
-          icon={<IconSettings size="xs" />}
+          icon={<IconSettings />}
           onClick={() =>
             openModal(deps => (
               <TicketRuleModal
@@ -392,7 +403,7 @@ function RuleNode({
       return (
         <Button
           size="sm"
-          icon={<IconSettings size="xs" />}
+          icon={<IconSettings />}
           disabled={Boolean(data.disabled) || disabled}
           onClick={() => {
             openModal(

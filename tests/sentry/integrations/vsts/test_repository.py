@@ -8,14 +8,13 @@ import responses
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VisualStudioRepositoryProviderTest(TestCase):
     def setUp(self):
         self.base_url = "https://visualstudio.com/"
@@ -43,7 +42,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             body=COMMIT_DETAILS_EXAMPLE,
         )
 
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
@@ -87,7 +86,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
     @responses.activate
     def test_build_repository_config(self):
         organization = self.create_organization()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",
@@ -125,7 +124,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         assert result == repo.external_id
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:vsts"
 
@@ -133,7 +132,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         super().setUp()
         self.base_url = "https://visualstudio.com/"
         self.vsts_external_id = "654321"
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="vsts",
             external_id=self.vsts_external_id,
             name="Hello world",

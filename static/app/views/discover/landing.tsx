@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -269,7 +269,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Feature
         organization={organization}
-        features={['discover-query']}
+        features="discover-query"
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>

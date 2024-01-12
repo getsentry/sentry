@@ -29,7 +29,6 @@ from sentry.incidents.serializers import (
 )
 from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.models.environment import Environment
-from sentry.models.integrations.integration import Integration
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -49,7 +48,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 class TestAlertRuleSerializerBase(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             external_id="1",
             provider="slack",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
@@ -57,7 +56,7 @@ class TestAlertRuleSerializerBase(TestCase):
         self.integration.add_organization(self.organization, self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def valid_params(self):
@@ -728,8 +727,30 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert isinstance(excinfo.value.detail, list)
         assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
+    def test_error_issue_status(self):
+        params = self.valid_params.copy()
+        params["query"] = "status:abcd"
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert not serializer.is_valid()
+        assert serializer.errors == {
+            "nonFieldErrors": [
+                ErrorDetail(
+                    string="Invalid Query or Metric: invalid status value of 'abcd'", code="invalid"
+                )
+            ]
+        }
 
-@region_silo_test(stable=True)
+        params = self.valid_params.copy()
+        params["query"] = "status:unresolved"
+        with self.feature("organizations:metric-alert-ignore-archived"):
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid()
+            alert_rule = serializer.save()
+        assert alert_rule.snuba_query.query == "status:unresolved"
+
+
+@region_silo_test
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -779,7 +800,7 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         }
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def other_project(self):
@@ -882,6 +903,20 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "target_identifier": str(other_user.id),
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
+        )
+
+    def test_discord(self):
+        self.run_fail_validation_test(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.DISCORD
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "123",
+            },
+            {"integration": ["Integration must be provided for discord"]},
         )
 
     def test_slack(self):

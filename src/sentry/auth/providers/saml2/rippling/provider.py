@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.auth.providers.saml2.forms import URLMetadataForm
@@ -18,7 +18,7 @@ class WaitForCompletion(AuthView):
     This is simply an extra step to wait for them to complete that.
     """
 
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: Request, helper) -> HttpResponseBase:
         if "continue_setup" in request.POST:
             return helper.next_step()
 

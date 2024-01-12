@@ -11,7 +11,7 @@ from sentry.testutils.cases import PermissionTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class SetupWizard(PermissionTestCase):
     def test_redirect(self):
         user = self.create_user("foo@example.com", is_active=False)

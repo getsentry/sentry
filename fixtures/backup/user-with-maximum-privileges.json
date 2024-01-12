@@ -5,7 +5,7 @@
         "fields": {
             "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+QsGn0tfIJ1FZLxQI37mVU1gL2KbL/wqjMtG/dFhsMA=",
             "last_login": null,
-            "username": "maximum@example.com",
+            "username": "max_user",
             "name": "",
             "email": "maximum@example.com",
             "is_staff": true,
@@ -22,6 +22,14 @@
             "last_active": "2023-06-22T22:59:55.489Z",
             "avatar_type": 0,
             "avatar_url": null
+        }
+    },
+    {
+        "model": "sentry.email",
+        "pk": 1,
+        "fields": {
+            "email": "maximum@example.com",
+            "date_added": "2023-06-22T22:59:54.521Z"
         }
     },
     {

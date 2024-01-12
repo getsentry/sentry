@@ -143,7 +143,6 @@ function Line({
     expanded: isExpanded,
     collapsed: !isExpanded,
     'system-frame': !frame.inApp,
-    'frame-errors': !!(frame.errors ?? []).length,
     'leads-to-app': leadsToApp,
   });
 
@@ -162,7 +161,6 @@ function Line({
         hasContextRegisters={hasContextRegisters(registers)}
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(frame, platform)}
-        expandable={expandable}
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}

@@ -1,5 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {UserFeedback as UserFeedbackFixture} from 'sentry-fixture/userFeedback';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFeedbackFixture} from 'sentry-fixture/userFeedback';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +15,7 @@ describe('UserFeedback', function () {
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  const project = TestStubs.Project({isMember: true});
+  const project = ProjectFixture({isMember: true});
 
   const routeProps = {
     routes: router.routes,
@@ -34,7 +36,7 @@ describe('UserFeedback', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
   });
 
@@ -44,7 +46,7 @@ describe('UserFeedback', function () {
 
   it('renders', function () {
     const params = {
-      organization: Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -66,7 +68,7 @@ describe('UserFeedback', function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
-      organization: Organization(),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -86,8 +88,8 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       params: {
         orgId: organization.slug,
@@ -107,8 +109,8 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       location: {
         ...routeProps.location,
@@ -127,8 +129,8 @@ describe('UserFeedback', function () {
 
   it('renders issue status filter', async function () {
     const params = {
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       params: {
         orgId: organization.slug,
@@ -161,8 +163,8 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: OrganizationFixture({
+        projects: [ProjectFixture({isMember: true})],
       }),
       location: {
         ...routeProps.location,

@@ -29,7 +29,7 @@ class AlertRuleDetailsBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         # self.login_as(self.owner_user)
@@ -40,7 +40,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data == serialize(self.alert_rule, serializer=DetailedAlertRuleSerializer())
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
@@ -103,7 +103,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 

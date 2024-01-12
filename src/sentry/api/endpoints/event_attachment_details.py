@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features, roles
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -13,7 +14,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
 
 
@@ -48,6 +48,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -55,16 +56,20 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):
-        file = File.objects.get(id=attachment.file_id)
-        fp = file.getfile()
+        name = posixpath.basename(" ".join(attachment.name.split()))
+
+        def stream_attachment():
+            with attachment.getfile() as fp:
+                while chunk := fp.read(4096):
+                    yield chunk
+
         response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b""),
-            content_type=file.headers.get("content-type", "application/octet-stream"),
+            stream_attachment(),
+            content_type=attachment.content_type,
         )
-        response["Content-Length"] = file.size
-        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
-            " ".join(attachment.name.split())
-        )
+        response["Content-Length"] = attachment.size
+        response["Content-Disposition"] = f'attachment; filename="{name}"'
+
         return response
 
     def get(self, request: Request, project, event_id, attachment_id) -> Response:

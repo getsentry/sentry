@@ -3,7 +3,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -59,15 +58,14 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             data=webhook_data,
             sender="delete",
         )
-        if features.has("organizations:participants-purge", group.organization):
-            # if the user left more than one comment, we want to keep the subscription
-            if len(notes_by_user) == 1:
-                GroupSubscription.objects.filter(
-                    user_id=request.user.id,
-                    group=group,
-                    project=group.project,
-                    reason=GroupSubscriptionReason.comment,
-                ).delete()
+        # if the user left more than one comment, we want to keep the subscription
+        if len(notes_by_user) == 1:
+            GroupSubscription.objects.filter(
+                user_id=request.user.id,
+                group=group,
+                project=group.project,
+                reason=GroupSubscriptionReason.comment,
+            ).delete()
 
         return Response(status=204)
 

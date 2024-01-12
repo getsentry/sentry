@@ -120,6 +120,7 @@ type Props = {
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
+  supportsInvestigationRule?: boolean;
   /**
    * A list of preferred table headers to use over the field names.
    */
@@ -267,9 +268,11 @@ class _TransactionsList extends Component<Props> {
   renderHeader({
     cursor,
     numSamples,
+    supportsInvestigationRule,
   }: {
     numSamples: number | null | undefined;
     cursor?: string | undefined;
+    supportsInvestigationRule?: boolean;
   }): React.ReactNode {
     const {
       organization,
@@ -295,13 +298,15 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
-        <InvestigationRuleWrapper>
-          <InvestigationRuleCreation
-            buttonProps={{size: 'xs'}}
-            eventView={eventView}
-            numSamples={totalNumSamples}
-          />
-        </InvestigationRuleWrapper>
+        {supportsInvestigationRule && (
+          <InvestigationRuleWrapper>
+            <InvestigationRuleCreation
+              buttonProps={{size: 'xs'}}
+              eventView={eventView}
+              numSamples={totalNumSamples}
+            />
+          </InvestigationRuleWrapper>
+        )}
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
@@ -401,6 +406,7 @@ class _TransactionsList extends Component<Props> {
             tableData={tableData}
             header={this.renderHeader({
               numSamples: tableData?.data?.length ?? null,
+              supportsInvestigationRule: this.props.supportsInvestigationRule,
               cursor,
             })}
           />
@@ -441,7 +447,10 @@ class _TransactionsList extends Component<Props> {
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
             paginationCursorSize="sm"
-            header={this.renderHeader({numSamples: null})}
+            header={this.renderHeader({
+              numSamples: null,
+              supportsInvestigationRule: false,
+            })}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([
               {field: 'transaction'},

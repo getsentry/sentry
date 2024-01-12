@@ -7,7 +7,6 @@ import responses
 
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.models.integrations.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -18,7 +17,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -58,7 +57,7 @@ class GitHubAppsProviderTest(TestCase):
     @responses.activate
     def test_build_repository_config(self):
         organization = self.create_organization()
-        integration = Integration.objects.create(provider="github", name="Example GitHub")
+        integration = self.create_provider_integration(provider="github", name="Example GitHub")
         integration.add_organization(organization, self.user)
         data = {
             "identifier": "getsentry/example-repo",

@@ -42,13 +42,9 @@
             e: [].slice.call(arguments),
         });
     }
-    function onUnhandledRejection(e) {
+    function onUnhandledRejection(p) {
         enqueue({
-            p: 'reason' in e
-                ? e.reason
-                : 'detail' in e && 'reason' in e.detail
-                    ? e.detail.reason
-                    : e,
+            p: p,
         });
     }
     function onSentryCDNScriptLoaded() {

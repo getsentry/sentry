@@ -57,7 +57,6 @@ from sentry.utils import metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 _T = TypeVar("_T")
-_M = TypeVar("_M", bound=BaseModel)
 
 
 class OutboxFlushError(Exception):
@@ -407,6 +406,8 @@ class WebhookProviderIdentifier(IntEnum):
     BITBUCKET_SERVER = 9
     LEGACY_PLUGIN = 10
     GETSENTRY = 11
+    DISCORD = 12
+    VERCEL = 13
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -535,7 +536,7 @@ class OutboxBase(Model):
     def save(self, **kwds: Any) -> None:  # type: ignore[override]
         if OutboxCategory(self.category) not in _outbox_categories_for_scope[int(self.shard_scope)]:
             raise InvalidOutboxError(
-                f"Outbox.category {self.category} not configured for scope {self.shard_scope}"
+                f"Outbox.category {self.category} ({OutboxCategory(self.category).name}) not configured for scope {self.shard_scope} ({OutboxScope(self.shard_scope).name})"
             )
 
         if _outbox_context.flushing_enabled:
@@ -564,15 +565,17 @@ class OutboxBase(Model):
                     # If a non task flush process is running already, allow it to proceed without contention.
                     next_shard_row = None
                 else:
-                    raise e
+                    raise
 
             yield next_shard_row
 
     @contextlib.contextmanager
-    def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
+    def process_coalesced(
+        self, is_synchronous_flush: bool
+    ) -> Generator[OutboxBase | None, None, None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
-        tags = {"category": "None"}
+        tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
 
         if coalesced is not None:
             tags["category"] = OutboxCategory(self.category).name
@@ -615,19 +618,23 @@ class OutboxBase(Model):
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
-    def process(self) -> bool:
-        with self.process_coalesced() as coalesced:
+    def process(self, is_synchronous_flush: bool) -> bool:
+        with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
             if coalesced is not None:
                 with metrics.timer(
                     "outbox.send_signal.duration",
-                    tags={"category": OutboxCategory(coalesced.category).name},
+                    tags={
+                        "category": OutboxCategory(coalesced.category).name,
+                        "synchronous": int(is_synchronous_flush),
+                    },
                 ), sentry_sdk.start_span(op="outbox.process") as span:
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:
                         coalesced.send_signal()
                     except Exception as e:
                         raise OutboxFlushError(
-                            f"Could not flush shard category={coalesced.category}", coalesced
+                            f"Could not flush shard category={coalesced.category} ({OutboxCategory(coalesced.category).name})",
+                            coalesced,
                         ) from e
 
                 return True
@@ -662,7 +669,7 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                shard_row.process()
+                shard_row.process(is_synchronous_flush=not flush_all)
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()

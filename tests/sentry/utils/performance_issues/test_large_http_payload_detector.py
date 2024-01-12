@@ -19,7 +19,7 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @pytest.mark.django_db
 class LargeHTTPPayloadDetectorTest(TestCase):
     def setUp(self):

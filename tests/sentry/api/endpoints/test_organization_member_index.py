@@ -18,7 +18,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -75,7 +75,7 @@ class OrganizationMemberSerializerTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
-            invite_state = get_invite_state(member.id, org.slug, user.id)
+            invite_state = get_invite_state(member.id, org.slug, user.id, request)
             assert invite_state, "Expected invite state, logic bug?"
             invite_helper = ApiInviteHelper(
                 request=request, invite_context=invite_state, token=None
@@ -156,7 +156,7 @@ class OrganizationMemberListTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -463,7 +463,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         self.assert_org_member_mapping(org_member=member)
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
@@ -474,27 +474,27 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         )
         self.login_as(user=manager_user)
 
-        data = {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
+        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=400)
 
-        data = {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
-        self.get_success_response(self.organization.slug, **data)
+        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
+        self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
-        self.get_error_response(self.organization.slug, **data, status_code=400)
+        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
+        self.get_success_response(self.organization.slug, **data, status_code=201)
 
     def test_admin_invites(self):
         admin_user = self.create_user("admin22@localhost")
         self.create_member(user=admin_user, organization=self.organization, role="admin")
         self.login_as(user=admin_user)
 
-        data = {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
+        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        data = {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
+        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
     def test_member_invites(self):
@@ -502,13 +502,13 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(user=member_user)
 
-        data = {"email": "eric@localhost", "role": "owner", "teams": [self.team.slug]}
+        data = {"email": "eric1@localhost", "role": "owner", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        data = {"email": "eric@localhost", "role": "manager", "teams": [self.team.slug]}
+        data = {"email": "eric2@localhost", "role": "manager", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
-        data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
+        data = {"email": "eric3@localhost", "role": "member", "teams": [self.team.slug]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
     def test_respects_feature_flag(self):
@@ -601,7 +601,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
@@ -676,6 +676,50 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         self.assert_org_member_mapping(org_member=om)
 
         mock_send_invite_email.assert_called_with("test_referrer")
+
+    @patch.object(OrganizationMember, "send_invite_email")
+    def test_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+        token = self.create_internal_integration_token(
+            user=self.user, org=self.organization, scopes=["member:write"]
+        )
+        err_message = (
+            "Integration tokens are restricted to inviting new members with the member role only."
+        )
+
+        data = {"email": "jane@gmail.com", "role": "owner", "teams": [self.team.slug]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=400,
+        )
+        assert response.data[0] == err_message
+
+        data = {"email": "jane@gmail.com", "role": "manager", "teams": [self.team.slug]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=400,
+        )
+        assert response.data[0] == err_message
+
+        data = {"email": "jane@gmail.com", "role": "member", "teams": [self.team.slug]}
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=201,
+        )
+
+        om = OrganizationMember.objects.get(id=response.data["id"])
+        assert om.user_id is None
+        assert om.email == "jane@gmail.com"
+        assert om.role == "member"
+        assert list(om.teams.all()) == [self.team]
+        self.assert_org_member_mapping(org_member=om)
+
+        mock_send_invite_email.assert_called_once()
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     def test_rate_limited(self, mock_rate_limit):

@@ -79,7 +79,6 @@ instead of group deletion is:
 * All reprocessed events are "just" inserted over the old ones.
 """
 
-import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
@@ -98,7 +97,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
-from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import get_path, set_path
@@ -145,29 +143,6 @@ class CannotReprocess(Exception):
         Exception.__init__(self, reason)
 
 
-def _generate_unprocessed_event_node_id(project_id, event_id):
-    return hashlib.md5(f"{project_id}:{event_id}:unprocessed".encode()).hexdigest()
-
-
-def save_unprocessed_event(project, event_id):
-    """
-    Move event from event_processing_store into nodestore. Only call if event
-    has outcome=accepted.
-    """
-    with sentry_sdk.start_span(
-        op="sentry.reprocessing2.save_unprocessed_event.get_unprocessed_event"
-    ):
-        data = event_processing_store.get(
-            cache_key_for_event({"project": project.id, "event_id": event_id}), unprocessed=True
-        )
-        if data is None:
-            return
-
-    with sentry_sdk.start_span(op="sentry.reprocessing2.save_unprocessed_event.set_nodestore"):
-        node_id = _generate_unprocessed_event_node_id(project_id=project.id, event_id=event_id)
-        nodestore.set(node_id, data)
-
-
 def backup_unprocessed_event(data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
@@ -199,9 +174,6 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         node_id = Event.generate_node_id(project_id, event_id)
         data = nodestore.get(node_id, subkey="unprocessed")
-        if data is None:
-            node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
-            data = nodestore.get(node_id)
 
     # Check data after checking presence of event to avoid too many instances.
     if data is None:
@@ -222,7 +194,6 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
 
 
 def reprocess_event(project_id, event_id, start_time):
-
     from sentry.ingest.consumer.processors import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
@@ -245,7 +216,10 @@ def reprocess_event(project_id, event_id, start_time):
     # (we simply update group_id on the EventAttachment models in post_process)
     attachment_objects = []
 
-    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments])}
+    files = {
+        f.id: f
+        for f in models.File.objects.filter(id__in=[ea.file_id for ea in attachments if ea.file_id])
+    }
 
     for attachment_id, attachment in enumerate(attachments):
         with sentry_sdk.start_span(op="reprocess_event._copy_attachment_into_cache") as span:
@@ -254,7 +228,7 @@ def reprocess_event(project_id, event_id, start_time):
                 _copy_attachment_into_cache(
                     attachment_id=attachment_id,
                     attachment=attachment,
-                    file=files[attachment.file_id],
+                    file=files[attachment.file_id] if attachment.file_id else None,
                     cache_key=cache_key,
                     cache_timeout=CACHE_TIMEOUT,
                 )
@@ -312,7 +286,6 @@ def _send_delete_old_primary_hash_messages(
         # Racing might be happening between two different tasks. Give up on the
         # task that's lagging behind by prematurely terminating flushing.
         if len(event_ids) == 0:
-
             logger.error("reprocessing2.buffered_delete_old_primary_hash.empty_batch")
             return
 
@@ -335,15 +308,15 @@ def _send_delete_old_primary_hash_messages(
     # Try to track counts so if it turns out that tombstoned events trend towards a ratio of 1
     # event per hash, a different solution may need to be considered.
     ratio = 0 if len(old_primary_hashes) == 0 else event_count / len(old_primary_hashes)
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.event_count",
         value=event_count,
     )
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_count",
         value=len(old_primary_hashes),
     )
-    metrics.timing(
+    metrics.distribution(
         key="reprocessing2.buffered_delete_old_primary_hash.primary_hash_to_event_ratio",
         value=ratio,
     )
@@ -420,7 +393,6 @@ def buffered_delete_old_primary_hash(
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"
     ):
-
         _send_delete_old_primary_hash_messages(
             client, project_id, group_id, old_primary_hashes, force_flush_batch
         )
@@ -446,7 +418,8 @@ def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cach
         )
         chunk_index += 1
 
-    assert size == file.size
+    expected_size = attachment.size or file.size
+    assert size == expected_size
 
     return CachedAttachment(
         key=cache_key,
@@ -455,7 +428,7 @@ def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cach
         # XXX: Not part of eventattachment model, but not strictly
         # necessary for processing
         content_type=None,
-        type=file.type,
+        type=attachment.type,
         chunks=chunk_index,
         size=size,
     )

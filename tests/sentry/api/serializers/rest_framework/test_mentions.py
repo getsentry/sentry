@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class ExtractUserIdsFromMentionsTest(TestCase):
     def test_users(self):
         actor = ActorTuple(self.user.id, User)

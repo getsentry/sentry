@@ -28,7 +28,7 @@ def mock_is_login_provider_effect(provider_key: str) -> bool:
     return provider_key in ("github", "vsts", "google")
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config"
     method = "get"
@@ -152,7 +152,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
         assert identity["status"] == "needed_for_org_auth"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config-details"
     method = "get"
@@ -195,7 +195,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config-details"
     method = "delete"

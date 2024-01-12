@@ -37,7 +37,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @pytest.mark.django_db
 class FileIOMainThreadDetectorTest(TestCase):
     def setUp(self):

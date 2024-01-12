@@ -9,6 +9,7 @@ from sentry.replays.usecases.ingest.dom_index import (
     _parse_classes,
     encode_as_uuid,
     get_user_actions,
+    log_canvas_size,
     parse_replay_actions,
 )
 from sentry.utils import json
@@ -40,6 +41,7 @@ def test_get_user_actions():
                                 "alt": "1",
                                 "data-testid": "2",
                                 "title": "3",
+                                "data-sentry-component": "SignUpForm",
                             },
                             "textContent": "Hello, world!",
                         },
@@ -61,6 +63,7 @@ def test_get_user_actions():
     assert user_actions[0]["testid"] == "2"
     assert user_actions[0]["aria_label"] == "test"
     assert user_actions[0]["title"] == "3"
+    assert user_actions[0]["component_name"] == "SignUpForm"
     assert user_actions[0]["is_dead"] == 0
     assert user_actions[0]["is_rage"] == 0
     assert user_actions[0]["timestamp"] == 1674298825
@@ -114,6 +117,7 @@ def test_parse_replay_actions():
                                 "alt": "1",
                                 "data-testid": "2",
                                 "title": "3",
+                                "data-sentry-component": "SignUpForm",
                             },
                             "textContent": "text",
                         },
@@ -148,6 +152,7 @@ def test_parse_replay_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
+    assert action["component_name"] == "SignUpForm"
     assert action["is_dead"] == 0
     assert action["is_rage"] == 0
     assert action["timestamp"] == 1
@@ -181,6 +186,7 @@ def test_parse_replay_dead_click_actions():
                                 "alt": "1",
                                 "data-testid": "2",
                                 "title": "3",
+                                "data-sentry-component": "SignUpForm",
                             },
                             "textContent": "text",
                         },
@@ -214,6 +220,7 @@ def test_parse_replay_dead_click_actions():
                                 "alt": "1",
                                 "data-testid": "2",
                                 "title": "3",
+                                "data-sentry-component": "SignUpForm",
                             },
                             "textContent": "text",
                         },
@@ -248,6 +255,7 @@ def test_parse_replay_dead_click_actions():
                                 "alt": "1",
                                 "data-testid": "2",
                                 "title": "3",
+                                "data-sentry-component": "SignUpForm",
                             },
                             "textContent": "text",
                         },
@@ -282,6 +290,7 @@ def test_parse_replay_dead_click_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
+    assert action["component_name"] == "SignUpForm"
     assert action["is_dead"] == 1
     assert action["is_rage"] == 0
     assert action["timestamp"] == 1
@@ -326,6 +335,7 @@ def test_parse_replay_rage_click_actions():
                                 "alt": "1",
                                 "data-testid": "2",
                                 "title": "3",
+                                "data-sentry-component": "SignUpForm",
                             },
                             "textContent": "text",
                         },
@@ -360,6 +370,7 @@ def test_parse_replay_rage_click_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
+    assert action["component_name"] == "SignUpForm"
     assert action["is_dead"] == 1
     assert action["is_rage"] == 1
     assert action["timestamp"] == 1
@@ -410,11 +421,11 @@ def test_parse_request_response_latest():
             },
         }
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.request_body_size", 2949),
-            mock.call("replays.usecases.ingest.response_body_size", 94),
+            mock.call("replays.usecases.ingest.request_body_size", 2949, unit="byte"),
+            mock.call("replays.usecases.ingest.response_body_size", 94, unit="byte"),
         ]
 
 
@@ -463,10 +474,10 @@ def test_parse_request_response_old_format_request_only():
             },
         },
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.request_body_size", 1002),
+            mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
         ]
 
 
@@ -491,10 +502,10 @@ def test_parse_request_response_old_format_response_only():
             },
         },
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.response_body_size", 1002),
+            mock.call("replays.usecases.ingest.response_body_size", 1002, unit="byte"),
         ]
 
 
@@ -520,11 +531,11 @@ def test_parse_request_response_old_format_request_and_response():
             },
         },
     ]
-    with mock.patch("sentry.utils.metrics.timing") as timing:
+    with mock.patch("sentry.utils.metrics.distribution") as timing:
         parse_replay_actions(1, "1", 30, events)
         assert timing.call_args_list == [
-            mock.call("replays.usecases.ingest.request_body_size", 1002),
-            mock.call("replays.usecases.ingest.response_body_size", 8001),
+            mock.call("replays.usecases.ingest.request_body_size", 1002, unit="byte"),
+            mock.call("replays.usecases.ingest.response_body_size", 8001, unit="byte"),
         ]
 
 
@@ -622,3 +633,44 @@ def test_parse_classes():
     assert _parse_classes("  a b ") == ["a", "b"]
     assert _parse_classes("a  ") == ["a"]
     assert _parse_classes("  a") == ["a"]
+
+
+def test_log_canvas_size():
+    event = {
+        "type": 3,
+        "data": {
+            "source": 9,
+            "id": 2440,
+            "type": 0,
+            "commands": [
+                {"property": "clearRect", "args": [0, 0, 1342, 60]},
+                {
+                    "property": "drawImage",
+                    "args": [
+                        {
+                            "rr_type": "ImageBitmap",
+                            "args": [
+                                {
+                                    "rr_type": "Blob",
+                                    "data": [{"rr_type": "ArrayBuffer", "base64": "..."}],
+                                    "type": "image/png",
+                                }
+                            ],
+                        },
+                        0,
+                        0,
+                    ],
+                },
+            ],
+        },
+        "timestamp": 1704225903264,
+    }
+
+    # Valid event.
+    log_canvas_size(1, 1, "a", [event])
+
+    # Invalid event.
+    log_canvas_size(1, 1, "a", [{}])
+
+    # No events.
+    log_canvas_size(1, 1, "a", [])

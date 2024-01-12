@@ -17,8 +17,7 @@ import TransactionsList, {
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -63,6 +62,7 @@ import OtherProjects from './sidebar/otherProjects';
 import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
 import ReleaseAdoption from './sidebar/releaseAdoption';
 import ReleaseStats from './sidebar/releaseStats';
+import ThresholdStatuses from './sidebar/thresholdStatuses';
 import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
@@ -365,6 +365,10 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
   render() {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
+    const hasV2ReleaseUIEnabled =
+      organization.features.includes('releases-v2-internal') ||
+      organization.features.includes('releases-v2') ||
+      organization.features.includes('releases-v2-st');
 
     return (
       <ReleaseContext.Consumer>
@@ -524,7 +528,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                               }}
                             />
                           </ReleaseDetailsPageFilters>
-
                           {(hasDiscover || hasPerformance || hasHealthData) && (
                             <ReleaseComparisonChart
                               release={release}
@@ -541,7 +544,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                               hasHealthData={hasHealthData}
                             />
                           )}
-
                           <ReleaseIssues
                             organization={organization}
                             version={version}
@@ -550,8 +552,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             queryFilterDescription={t('In this release')}
                             withChart
                           />
-
-                          <Feature features={['performance-view']}>
+                          <Feature features="performance-view">
                             {hasReleaseComparisonPerformance ? (
                               <PerformanceCardTable
                                 organization={organization}
@@ -574,6 +575,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                                 }
                                 titles={titles}
                                 generateLink={generateLink}
+                                supportsInvestigationRule={false}
                               />
                             )}
                           </Feature>
@@ -584,6 +586,14 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             release={release}
                             project={project}
                           />
+                          {hasV2ReleaseUIEnabled && (
+                            <ThresholdStatuses
+                              project={project}
+                              release={release}
+                              organization={organization}
+                              selectedEnvs={selection.environments}
+                            />
+                          )}
                           {hasHealthData && (
                             <ReleaseAdoption
                               releaseSessions={thisRelease}
@@ -748,4 +758,5 @@ const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
   color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 
+ReleaseOverview.contextType = ReleaseContext;
 export default withApi(withPageFilters(withOrganization(ReleaseOverview)));

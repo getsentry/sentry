@@ -2495,7 +2495,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             params=self.params,
             referrer="discover",
         )
@@ -2506,7 +2506,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             params=self.params,
             referrer="discover",
         )
@@ -2518,7 +2518,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         }
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
             params=self.params,
             referrer="discover",
         )

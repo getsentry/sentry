@@ -23,7 +23,7 @@ FEATURES = {
 }
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()

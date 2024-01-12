@@ -69,7 +69,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
 
 @pytest.mark.snuba_ci
 class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     def add_event(self, data, project_id, timestamp):
         raise NotImplementedError
@@ -106,11 +106,11 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
             )
 
         if passes:
-            self.assertPasses(rule, event)
-            self.assertPasses(environment_rule, event)
+            self.assertPasses(rule, event, is_new=False)
+            self.assertPasses(environment_rule, event, is_new=False)
         else:
-            self.assertDoesNotPass(rule, event)
-            self.assertDoesNotPass(environment_rule, event)
+            self.assertDoesNotPass(rule, event, is_new=False)
+            self.assertDoesNotPass(environment_rule, event, is_new=False)
 
     def test_one_minute_with_events(self):
         data = {"interval": "1m", "value": 6}
@@ -180,7 +180,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertPasses(rule, event)
+        self.assertPasses(rule, event, is_new=False)
 
         data = {
             "interval": "1h",
@@ -189,7 +189,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event, is_new=False)
 
     def test_comparison_empty_comparison_period(self):
         # Test data is 1 event in the current period and 0 events in the comparison period. This
@@ -209,7 +209,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event, is_new=False)
 
         data = {
             "interval": "1h",
@@ -218,11 +218,32 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase):
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event, is_new=False)
+
+    @patch("sentry.rules.conditions.event_frequency.BaseEventFrequencyCondition.get_rate")
+    def test_is_new_issue_skips_snuba(self, mock_get_rate):
+        # Looking for more than 1 event
+        data = {"interval": "1m", "value": 6}
+        minutes = 1
+        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
+        environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
+
+        event = self.add_event(
+            data={
+                "fingerprint": ["something_random"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+            timestamp=before_now(minutes=minutes),
+        )
+        # Issue is new and is the first event
+        self.assertDoesNotPass(rule, event, is_new=True)
+        self.assertDoesNotPass(environment_rule, event, is_new=True)
+        assert mock_get_rate.call_count == 0
 
 
 class EventFrequencyConditionTestCase(StandardIntervalTestBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyCondition
 
@@ -241,7 +262,7 @@ class EventFrequencyConditionTestCase(StandardIntervalTestBase):
 
 
 class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventUniqueUserFrequencyCondition
 
@@ -262,7 +283,7 @@ class EventUniqueUserFrequencyConditionTestCase(StandardIntervalTestBase):
 
 
 class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
-    __test__ = Abstract(__module__, __qualname__)  # type: ignore[name-defined]  # python/mypy#10570
+    __test__ = Abstract(__module__, __qualname__)
 
     rule_cls = EventFrequencyPercentCondition
 
@@ -315,8 +336,8 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
         if passes:
-            self.assertPasses(rule, self.test_event)
-            self.assertPasses(environment_rule, self.test_event)
+            self.assertPasses(rule, self.test_event, is_new=False)
+            self.assertPasses(environment_rule, self.test_event, is_new=False)
         else:
             self.assertDoesNotPass(rule, self.test_event)
             self.assertDoesNotPass(environment_rule, self.test_event)
@@ -425,7 +446,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertPasses(rule, event)
+        self.assertPasses(rule, event, is_new=False)
 
         data = {
             "interval": "1h",
@@ -434,7 +455,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase, RuleTestCase):
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event, is_new=False)
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))

@@ -38,12 +38,11 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.models.actor import Actor
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.fields import resolve_field
+from sentry.search.events.fields import is_function, resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
@@ -61,6 +60,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
+from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -1146,21 +1146,16 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
-        # Avoids the case where the discord feature flag is off and the action type is discord
-        if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
-            "organizations:integrations-discord-metric-alerts", trigger.alert_rule.organization
-        ):
-            target_identifier, target_display = get_target_identifier_display_for_integration(
-                type.value,
-                target_identifier,
-                trigger.alert_rule.organization,
-                integration_id,
-                use_async_lookup=use_async_lookup,
-                input_channel_id=input_channel_id,
-                integrations=integrations,
-            )
-        else:
-            raise InvalidTriggerActionError("Discord metric alerts not enabled")
+        target_identifier, target_display = get_target_identifier_display_for_integration(
+            type.value,
+            target_identifier,
+            trigger.alert_rule.organization,
+            integration_id,
+            use_async_lookup=use_async_lookup,
+            input_channel_id=input_channel_id,
+            integrations=integrations,
+        )
+
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
             trigger.alert_rule.organization, sentry_app_id, installations
@@ -1221,22 +1216,16 @@ def update_alert_rule_trigger_action(
             integration_id = updated_fields.get("integration_id", trigger_action.integration_id)
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
-            # Avoids the case where the discord feature flag is off and the action type is discord
-            if type != AlertRuleTriggerAction.Type.DISCORD.value or features.has(
-                "organizations:integrations-discord-metric-alerts", organization
-            ):
-                target_identifier, target_display = get_target_identifier_display_for_integration(
-                    type,
-                    target_identifier,
-                    organization,
-                    integration_id,
-                    use_async_lookup=use_async_lookup,
-                    input_channel_id=input_channel_id,
-                    integrations=integrations,
-                )
-                updated_fields["target_display"] = target_display
-            else:
-                raise InvalidTriggerActionError("Discord metric alerts not enabled")
+            target_identifier, target_display = get_target_identifier_display_for_integration(
+                type,
+                target_identifier,
+                organization,
+                integration_id,
+                use_async_lookup=use_async_lookup,
+                input_channel_id=input_channel_id,
+                integrations=integrations,
+            )
+            updated_fields["target_display"] = target_display
 
         elif type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
             sentry_app_id = updated_fields.get("sentry_app_id", trigger_action.sentry_app_id)
@@ -1349,7 +1338,6 @@ def get_alert_rule_trigger_action_discord_channel_id(
         validate_channel_id(
             channel_id=name,
             guild_id=integration.external_id,
-            integration_id=integration.id,
             guild_name=integration.name,
         )
     except ValidationError as e:
@@ -1391,9 +1379,12 @@ def get_alert_rule_trigger_action_pagerduty_service(
     input_channel_id=None,
     integrations=None,
 ):
-    service = integration_service.find_pagerduty_service(
-        organization_id=organization.id, integration_id=integration_id, service_id=target_value
+    from sentry.integrations.pagerduty.utils import get_service
+
+    org_integration = integration_service.get_organization_integration(
+        integration_id=integration_id, organization_id=organization.id
     )
+    service = get_service(org_integration, target_value)
     if not service:
         raise InvalidTriggerActionError("No PagerDuty service found.")
 
@@ -1426,10 +1417,12 @@ def get_alert_rule_trigger_action_opsgenie_team(
         integration=integration,
         integration_key=integration_key,
         org_integration_id=oi.id,
+        keyid=team["id"],
     )
     try:
         client.authorize_integration(type="sentry")
-    except ApiError:
+    except ApiError as e:
+        logger.info("opsgenie.authorization_error", extra={"error": str(e)})
         raise InvalidTriggerActionError("Invalid integration key.")
     return team["id"], team["team"]
 
@@ -1467,13 +1460,11 @@ def get_available_action_integrations_for_org(organization) -> List[RpcIntegrati
     filtered by the list of registered providers.
     :param organization:
     """
-    # Avoids the case where the discord feature flag is off and the action type is discord
+
     providers = [
         registration.integration_provider
         for registration in AlertRuleTriggerAction.get_registered_types()
         if registration.integration_provider is not None
-        if registration.type != AlertRuleTriggerAction.Type.DISCORD
-        or features.has("organizations:integrations-discord-metric-alerts", organization)
     ]
     return integration_service.get_integrations(
         status=ObjectStatus.ACTIVE,
@@ -1484,12 +1475,12 @@ def get_available_action_integrations_for_org(organization) -> List[RpcIntegrati
 
 
 def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+    from sentry.integrations.pagerduty.utils import get_services
+
     org_int = integration_service.get_organization_integration(
         organization_id=organization_id, integration_id=integration_id
     )
-    if org_int is None:
-        return []
-    services = OrganizationIntegration.services_in(org_int.config)
+    services = get_services(org_int)
     return [(s["id"], s["service_name"]) for s in services]
 
 
@@ -1523,25 +1514,53 @@ TRANSLATABLE_COLUMNS = {
 }
 
 
-def get_column_from_aggregate(aggregate):
+def get_column_from_aggregate(aggregate, allow_mri):
+    if allow_mri:
+        mri_column = get_column_from_aggregate_with_mri(aggregate)
+        # Only if the column was allowed, we return it, otherwise we fallback to the old logic.
+        if mri_column:
+            return mri_column
+
     function = resolve_field(aggregate)
     if function.aggregate is not None:
         return function.aggregate[1]
+
     return None
 
 
-def check_aggregate_column_support(aggregate):
-    column = get_column_from_aggregate(aggregate)
+def get_column_from_aggregate_with_mri(aggregate):
+    match = is_function(aggregate)
+    if match is None:
+        return None
+
+    function = match.group("function")
+    columns = match.group("columns")
+
+    parsed_mri = parse_mri(columns)
+    if parsed_mri is None:
+        return None
+
+    available_ops = set(get_available_operations(parsed_mri))
+    if function not in available_ops:
+        return None
+
+    return columns
+
+
+def check_aggregate_column_support(aggregate, allow_mri=False):
+    # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
+    column = get_column_from_aggregate(aggregate, allow_mri)
     return (
         column is None
         or is_measurement(column)
         or column in SUPPORTED_COLUMNS
         or column in TRANSLATABLE_COLUMNS
+        or (is_mri(column) and allow_mri)
     )
 
 
-def translate_aggregate_field(aggregate, reverse=False):
-    column = get_column_from_aggregate(aggregate)
+def translate_aggregate_field(aggregate, reverse=False, allow_mri=False):
+    column = get_column_from_aggregate(aggregate, allow_mri)
     if not reverse:
         if column in TRANSLATABLE_COLUMNS:
             return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])

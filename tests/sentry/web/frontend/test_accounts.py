@@ -1,20 +1,16 @@
 from functools import cached_property
 from unittest.mock import patch
-from urllib.parse import urlparse
 
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.types import NotificationSettingOptionValues
-from sentry.silo.base import SiloMode
+from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
-from sentry.utils import linksign
+from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestAccounts(TestCase):
     @cached_property
     def path(self):
@@ -182,45 +178,86 @@ class TestAccounts(TestCase):
                 assert resp.status_code == 200
                 assert resp[header_name] == "strict-origin-when-cross-origin"
 
+    def test_confirm_email(self):
+        self.login_as(self.user)
 
-@region_silo_test(stable=True)
-class EmailUnsubscribeProjectTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.signed_link = linksign.generate_signed_link(
-            self.user,
-            "sentry-account-email-unsubscribe-project",
-            kwargs={"project_id": self.project.id},
+        useremail = UserEmail(user=self.user, email="new@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        resp = self.client.get(
+            reverse(
+                "sentry-account-confirm-email",
+                kwargs={"user_id": self.user.id, "hash": useremail.validation_hash},
+            ),
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
+
+        useremail = UserEmail.objects.get(user=self.user, email="new@example.com")
+        assert useremail.is_verified
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert messages[0].message == "Thanks for confirming your email"
+
+    def test_confirm_email_userid_mismatch(self):
+        victim_user = self.create_user(email="victim@example.com")
+        self.login_as(victim_user)
+
+        attacker_user = self.user
+
+        useremail = UserEmail(user=attacker_user, email="victim@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        resp = self.client.get(
+            reverse(
+                "sentry-account-confirm-email",
+                kwargs={"user_id": str(attacker_user.id), "hash": useremail.validation_hash},
+            ),
+            follow=True,
+        )
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
+
+        useremail = UserEmail.objects.get(user=attacker_user, email="victim@example.com")
+        assert not useremail.is_verified
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert (
+            messages[0].message
+            == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
         )
 
-    def test_get_invalid_link(self):
-        resp = self.client.get(f"/notifications/unsubscribe/{self.project.id}/?_=lol")
-        assert resp.status_code == 302
-        assert resp["Location"] == "/auth/login/"
+    def test_confirm_email_invalid_hash(self):
+        self.login_as(self.user)
 
-    def test_get(self):
-        url = urlparse(self.signed_link)
-        resp = self.client.get(f"{url.path}?{url.query}")
+        useremail = UserEmail(user=self.user, email="new@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        resp = self.client.get(
+            reverse(
+                "sentry-account-confirm-email",
+                kwargs={"user_id": self.user.id, "hash": "WrongValidationHashRightHere1234"},
+            ),
+            follow=True,
+        )
         assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/email_unsubscribe_project.html")
+        assert resp.redirect_chain == [(reverse("sentry-account-settings-emails"), 302)]
 
-    def test_post_cancel(self):
-        url = urlparse(self.signed_link)
-        resp = self.client.post(f"{url.path}?{url.query}", data={"cancel": "1"})
-        assert resp.status_code == 302
-        assert resp["Location"] == "/auth/login/"
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert NotificationSetting.objects.count() == 0, "No settings should be saved"
+        useremail = UserEmail.objects.get(user=self.user, email="new@example.com")
+        assert not useremail.is_verified
 
-    def test_post_success(self):
-        url = urlparse(self.signed_link)
-        resp = self.client.post(f"{url.path}?{url.query}")
-        assert resp.status_code == 302
-        assert resp["Location"] == "/auth/login/"
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            setting = NotificationSetting.objects.filter(
-                user_id=self.user.id,
-                scope_identifier=self.project.id,
-                value=NotificationSettingOptionValues.NEVER.value,
-            )
-            assert setting.get(), "Setting should be saved"
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert (
+            messages[0].message
+            == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
+        )

@@ -11,7 +11,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/performance/browser/webVitals/utils/calculatePerformanceScore';
+} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 
 interface Props {
   webVitalSeries: LineChartSeries;

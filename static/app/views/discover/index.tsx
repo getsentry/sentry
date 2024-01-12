@@ -22,7 +22,7 @@ function DiscoverContainer({organization, children}: Props) {
 
   return (
     <Feature
-      features={['discover-basic']}
+      features="discover-basic"
       organization={organization}
       hookName="feature-disabled:discover2-page"
       renderDisabled={renderNoAccess}

@@ -13,6 +13,7 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import MetricWidgetQueries from 'sentry/views/dashboards/widgetCard/metricWidgetQueries';
 
 import {DashboardFilters, Widget, WidgetType} from '../types';
 
@@ -147,6 +148,48 @@ export function WidgetCardChartContainer({
           );
         }}
       </ReleaseWidgetQueries>
+    );
+  }
+
+  if (widget.widgetType === WidgetType.METRICS) {
+    return (
+      <MetricWidgetQueries
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        limit={widget.limit ?? tableItemLimit}
+        onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
+      >
+        {({tableResults, timeseriesResults, errorMessage, loading}) => {
+          return (
+            <Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorMessage)
+                : null}
+              <WidgetCardChart
+                timeseriesResults={timeseriesResults}
+                tableResults={tableResults}
+                errorMessage={errorMessage}
+                loading={loading}
+                location={location}
+                widget={widget}
+                selection={selection}
+                router={router}
+                organization={organization}
+                isMobile={isMobile}
+                windowWidth={windowWidth}
+                expandNumbers={expandNumbers}
+                onZoom={onZoom}
+                showSlider={showSlider}
+                noPadding={noPadding}
+                chartZoomOptions={chartZoomOptions}
+              />
+            </Fragment>
+          );
+        }}
+      </MetricWidgetQueries>
     );
   }
 

@@ -15,7 +15,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="gitlab", name="Gitlab", external_id="gitlab:1"
         )
         self.identity = Identity.objects.create(
@@ -37,14 +37,14 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
@@ -59,7 +59,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         assert org_integration.config == config
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 

@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers import serialize
@@ -19,9 +20,10 @@ SETUP_WIZARD_CACHE_TIMEOUT = 600
 
 @control_silo_endpoint
 class SetupWizard(Endpoint):
+    owner = ApiOwner.WEB_FRONTEND_SDKS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = ()
 
@@ -53,7 +55,7 @@ class SetupWizard(Endpoint):
             return Response(serialize(wizard_data))
         else:
             # This creates a new available hash url for the project wizard
-            rate_limited = ratelimits.is_limited(
+            rate_limited = ratelimits.backend.is_limited(
                 key="rl:setup-wizard:ip:%s" % request.META["REMOTE_ADDR"], limit=10
             )
             if rate_limited:

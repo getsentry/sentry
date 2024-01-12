@@ -92,6 +92,7 @@ from sentry.stacktraces.functions import (
         ["lambda_7156c3ceaa11256748687ab67e3ef4cd", "lambda"],
         ["<lambda_7156c3ceaa11256748687ab67e3ef4cd>::operator()", "<lambda>::operator()"],
         ["trigger_crash_a(int*) [clone .constprop.0]", "trigger_crash_a"],
+        ["ShellCorona::screenInvariants() const [clone .cold]", "ShellCorona::screenInvariants"],
         [
             "__gnu_cxx::__verbose_terminate_handler() [clone .cold]",
             "__gnu_cxx::__verbose_terminate_handler",

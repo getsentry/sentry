@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from sentry.api.base import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.models import (
@@ -16,17 +16,17 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorObjectStatus,
     MonitorStatus,
     MonitorType,
     ScheduleType,
 )
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 @freeze_time()
 class CreateMonitorCheckInTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-monitor-ingest-check-in-index"
@@ -166,9 +166,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
                 == monitor.get_next_expected_checkin_latest(checkin.date_added)
             )
 
-    def test_disabled(self):
+    def test_muted(self):
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor(status=MonitorObjectStatus.DISABLED)
+            monitor = self._create_monitor(is_muted=True)
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
@@ -180,7 +180,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
 
             # The created monitor environment is in line with the check-in, but the parent monitor
-            # is disabled
+            # is muted
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
             assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
@@ -192,7 +192,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
 
     def test_pending_deletion(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.PENDING_DELETION)
+        monitor = self._create_monitor(status=ObjectStatus.PENDING_DELETION)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
@@ -236,7 +236,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         )
 
     def test_deletion_in_progress(self):
-        monitor = self._create_monitor(status=MonitorObjectStatus.DELETION_IN_PROGRESS)
+        monitor = self._create_monitor(status=ObjectStatus.DELETION_IN_PROGRESS)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
@@ -546,3 +546,57 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert checkin.status == CheckInStatus.OK
             # Monitor config will not be saved because it is missing margin and max runtime
             assert not checkin.monitor_config
+
+    def test_monitor_upsert_via_checkin_disabled_new_monitors(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+
+            with self.feature("organizations:crons-disable-new-projects"):
+                resp = self.client.post(
+                    path,
+                    {
+                        "status": "ok",
+                        "monitor_config": {
+                            "schedule_type": "crontab",
+                            "schedule": "5 * * * *",
+                            "checkin_margin": 5,
+                        },
+                    },
+                    **self.dsn_auth_headers,
+                )
+
+            assert resp.status_code == 400
+            assert (
+                resp.data
+                == "Creating monitors in projects without pre-existing monitors is temporarily disabled"
+            )
+
+    def test_monitor_upsert_via_checkin_disabled_existing_monitors(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+            self.project.flags.has_cron_monitors = True
+            self.project.save()
+
+            with self.feature("organizations:crons-disable-new-projects"):
+                resp = self.client.post(
+                    path,
+                    {
+                        "status": "ok",
+                        "monitor_config": {
+                            "schedule_type": "crontab",
+                            "schedule": "5 * * * *",
+                            "checkin_margin": 5,
+                        },
+                    },
+                    **self.dsn_auth_headers,
+                )
+
+            assert resp.status_code == 201, resp.content
+            monitor = Monitor.objects.get(slug=slug)
+            assert monitor.config["schedule"] == "5 * * * *"
+            assert monitor.config["checkin_margin"] == 5
+
+            checkins = MonitorCheckIn.objects.filter(monitor=monitor)
+            assert len(checkins) == 1

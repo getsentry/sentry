@@ -1,8 +1,9 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
-import {Tags} from 'sentry-fixture/tags';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -212,19 +213,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsField(`sum(session)`),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('session.all'),
+      body: MetricsFieldFixture('session.all'),
     });
 
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
 
     MockApiClient.addMockResponse({
@@ -1060,7 +1061,7 @@ describe('WidgetBuilder', function () {
   it('renders page filters in the filter step', async () => {
     const mockReleases = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     renderTestComponent({
@@ -1080,7 +1081,7 @@ describe('WidgetBuilder', function () {
   it('appends dashboard filters to widget builder fetch data request', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -1108,7 +1109,7 @@ describe('WidgetBuilder', function () {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            query: ' release:abc@1.2.0 ',
+            query: ' release:"abc@1.2.0" ',
           }),
         })
       );
@@ -1242,7 +1243,7 @@ describe('WidgetBuilder', function () {
 
   it('does not fetch tags when tag store is not empty', async function () {
     await act(async () => {
-      TagStore.loadTagsSuccess(Tags());
+      TagStore.loadTagsSuccess(TagsFixture());
       renderTestComponent();
       await tick();
     });

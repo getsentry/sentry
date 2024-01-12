@@ -78,6 +78,8 @@ import {
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
+import {NewTraceDetailsSpanBar} from './newTraceDetailsSpanBar';
+import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
@@ -127,7 +129,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
 
 export const MARGIN_LEFT = 0;
 
-export type SpanBarProps = {
+export type SpanBarProps = ScrollbarManagerChildrenProps & {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   addExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
   cellMeasurerCache: CellMeasurerCache;
@@ -152,7 +154,7 @@ export type SpanBarProps = {
   showSpanTree: boolean;
   span: ProcessedSpanType | AggregateSpanType;
   spanNumber: number;
-  storeSpanBar: (spanBar: SpanBar) => void;
+  storeSpanBar: (spanBar: SpanBar | NewTraceDetailsSpanBar) => void;
   toggleEmbeddedChildren:
     | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;
@@ -160,6 +162,7 @@ export type SpanBarProps = {
   toggleSpanTree: () => void;
   trace: Readonly<ParsedTraceType>;
   treeDepth: number;
+  fromTraceView?: boolean;
   groupOccurrence?: number;
   groupType?: GroupType;
   isLast?: boolean;
@@ -556,6 +559,12 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
             PerformanceInteraction.startInteraction('SpanTreeToggle', 1000 * 10);
             this.props.toggleSpanTree();
+
+            // TODO Abdullah Khan: A little bit hacky, but ensures that the toggled tree aligns
+            // with the rest of the span tree, in the trace view.
+            if (this.props.fromTraceView) {
+              this.props.updateHorizontalScrollState(0.5);
+            }
           }}
         >
           <Count value={numOfSpanChildren} />
@@ -950,6 +959,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           containerDisplayMode="block"
         >
           <EmbeddedTransactionBadge
+            inTraceView={!!this.props.fromTraceView}
             expanded={showEmbeddedChildren}
             onClick={() => {
               if (toggleEmbeddedChildren) {
@@ -1237,4 +1247,4 @@ const StyledIconWarning = styled(IconWarning)`
 
 const Regroup = styled('span')``;
 
-export const ProfiledSpanBar = withProfiler(SpanBar);
+export const ProfiledSpanBar = withProfiler(withScrollbarManager(SpanBar));

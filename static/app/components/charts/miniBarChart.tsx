@@ -229,7 +229,7 @@ function MiniBarChart({
       ? makeLabelYAxisOptions(tooltipFormatter)
       : noLabelYAxisOptions;
 
-    return makeBaseChartOptions({
+    const options = makeBaseChartOptions({
       height,
       hideDelay,
       tooltipFormatter,
@@ -238,6 +238,8 @@ function MiniBarChart({
       grid,
       yAxisOptions,
     });
+
+    return options;
   }, [grid, height, hideDelay, labelYAxisExtents, showMarkLineLabel, tooltipFormatter]);
 
   return <BarChart series={updatedSeries} height={height} {...chartOptions} {...props} />;

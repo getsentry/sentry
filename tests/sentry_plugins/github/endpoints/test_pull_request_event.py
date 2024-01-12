@@ -14,7 +14,7 @@ from sentry_plugins.github.testutils import (
 from social_auth.models import UserSocialAuth
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation

@@ -1,3 +1,6 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -10,8 +13,8 @@ import {EntryType} from 'sentry/types';
 
 describe('EventErrors', () => {
   const defaultProps = {
-    project: TestStubs.Project(),
-    event: TestStubs.Event(),
+    project: ProjectFixture(),
+    event: EventFixture(),
     isShare: false,
   };
 
@@ -27,7 +30,7 @@ describe('EventErrors', () => {
   });
 
   it('renders with errors in event', async () => {
-    const eventWithErrors = TestStubs.Event({
+    const eventWithErrors = EventFixture({
       errors: [
         {
           type: 'invalid_data',
@@ -60,7 +63,7 @@ describe('EventErrors', () => {
   });
 
   it('does not render hidden cocoa errors', async () => {
-    const eventWithErrors = TestStubs.Event({
+    const eventWithErrors = EventFixture({
       errors: [
         {
           type: 'not_invalid_data',
@@ -92,7 +95,7 @@ describe('EventErrors', () => {
   });
 
   it('hides source map not found error', () => {
-    const eventWithDifferentDist = TestStubs.Event({
+    const eventWithDifferentDist = EventFixture({
       errors: [
         {
           type: JavascriptProcessingErrors.JS_MISSING_SOURCE,
@@ -105,7 +108,7 @@ describe('EventErrors', () => {
   });
 
   it('hides event error that is hidden', () => {
-    const eventWithUnknownError = TestStubs.Event({
+    const eventWithUnknownError = EventFixture({
       errors: [
         {
           type: GenericSchemaErrors.UNKNOWN_ERROR,
@@ -128,7 +131,7 @@ describe('EventErrors', () => {
     const proGuardUuid = 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7';
 
     it('displays missing mapping file with debugmeta but no event error', async () => {
-      const eventWithDebugMeta = TestStubs.Event({
+      const eventWithDebugMeta = EventFixture({
         platform: 'java',
         entries: [
           {
@@ -153,7 +156,7 @@ describe('EventErrors', () => {
     });
 
     it('displays missing mapping file with debugmeta and matching event error', async () => {
-      const eventWithDebugMeta = TestStubs.Event({
+      const eventWithDebugMeta = EventFixture({
         platform: 'java',
         entries: [
           {
@@ -186,7 +189,7 @@ describe('EventErrors', () => {
 
     describe('ProGuard Plugin seems to not be correctly configured', function () {
       it('find minified data in the exception entry', async function () {
-        const newEvent = TestStubs.Event({
+        const newEvent = EventFixture({
           platform: 'java',
           entries: [
             {
@@ -240,7 +243,7 @@ describe('EventErrors', () => {
       });
 
       it('find minified data in the threads entry', async function () {
-        const newEvent = TestStubs.Event({
+        const newEvent = EventFixture({
           platform: 'java',
           entries: [
             {

@@ -41,7 +41,7 @@ def reset_processing_state():
 
 
 @django_db_all
-@no_silo_test(stable=True)
+@no_silo_test
 def test_processing_awaits_options():
     reset_processing_state()
     org = Factories.create_organization()
@@ -66,7 +66,7 @@ def test_processing_awaits_options():
 
 
 @django_db_all
-@region_silo_test(stable=True)
+@region_silo_test
 def test_region_processing(task_runner):
     with outbox_context(flush=False):
         for i in range(5):
@@ -84,7 +84,7 @@ def test_region_processing(task_runner):
 
 
 @django_db_all
-@control_silo_test(stable=True)
+@control_silo_test
 def test_control_processing(task_runner):
     reset_processing_state()
 

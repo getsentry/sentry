@@ -20,8 +20,6 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BLOCK_SIZE = int(32 * 1e6)
-
 
 def convert_max_batch_time(ctx, param, value):
     if value <= 0:
@@ -36,8 +34,8 @@ def multiprocessing_options(
 ):
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
-        click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
-        click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+        click.Option(["--input-block-size"], type=int, default=None),
+        click.Option(["--output-block-size"], type=int, default=None),
         click.Option(
             ["--max-batch-size"],
             default=default_max_batch_size,
@@ -61,9 +59,31 @@ def ingest_replay_recordings_options() -> List[click.Option]:
     return options
 
 
+def ingest_replay_recordings_buffered_options() -> List[click.Option]:
+    """Return a list of ingest-replay-recordings-buffered options."""
+    options = [
+        click.Option(
+            ["--max-buffer-row-count", "max_buffer_row_count"],
+            type=int,
+            default=100,
+        ),
+        click.Option(
+            ["--max-buffer-size-in-bytes", "max_buffer_size_in_bytes"],
+            type=int,
+            default=2_500_000,
+        ),
+        click.Option(
+            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"],
+            type=int,
+            default=1,
+        ),
+    ]
+    return options
+
+
 _METRICS_INDEXER_OPTIONS = [
-    click.Option(["--input-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
-    click.Option(["--output-block-size"], type=int, default=DEFAULT_BLOCK_SIZE),
+    click.Option(["--input-block-size"], type=int, default=None),
+    click.Option(["--output-block-size"], type=int, default=None),
     click.Option(["--indexer-db"], default="postgres"),
     click.Option(["max_msg_batch_size", "--max-msg-batch-size"], type=int, default=50),
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
@@ -95,13 +115,21 @@ _METRICS_LAST_SEEN_UPDATER_OPTIONS = [
     click.Option(["--indexer-db"], default="postgres"),
 ]
 
-_POST_PROCESS_FORWARDER_OPTIONS = [
+_POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
+    default_max_batch_size=1000, default_max_batch_time_ms=1000
+) + [
     click.Option(
         ["--concurrency"],
         default=5,
         type=int,
         help="Thread pool size for post process worker.",
-    )
+    ),
+    click.Option(
+        ["--mode"],
+        default="multithreaded",
+        type=click.Choice(["multithreaded", "multiprocess"]),
+        help="Mode to run post process forwarder in.",
+    ),
 ]
 
 
@@ -123,6 +151,11 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
+    },
+    "ingest-replay-recordings-buffered": {
+        "topic": settings.KAFKA_INGEST_REPLAYS_RECORDINGS,
+        "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
+        "click_options": ingest_replay_recordings_buffered_options(),
     },
     "ingest-monitors": {
         "topic": settings.KAFKA_INGEST_MONITORS,

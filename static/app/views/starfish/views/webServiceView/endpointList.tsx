@@ -31,6 +31,7 @@ import DiscoverQuery, {
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -182,16 +183,18 @@ function EndpointList({
             onChange={() => toggleCheckbox(dataRow.transaction as string)}
           />
           <Link
-            to={`/organizations/${
-              organization.slug
-            }/starfish/endpoint-overview/?${qs.stringify({
-              endpoint: dataRow.transaction,
-              'http.method': dataRow['http.method'],
-              statsPeriod: eventView.statsPeriod,
-              project: eventView.project,
-              start: eventView.start,
-              end: eventView.end,
-            })}`}
+            to={normalizeUrl(
+              `/organizations/${
+                organization.slug
+              }/starfish/endpoint-overview/?${qs.stringify({
+                endpoint: dataRow.transaction,
+                'http.method': dataRow['http.method'],
+                statsPeriod: eventView.statsPeriod,
+                project: eventView.project,
+                start: eventView.start,
+                end: eventView.end,
+              })}`
+            )}
             style={{display: `block`, width: `100%`}}
             onClick={() => {
               trackAnalytics('starfish.web_service_view.endpoint_list.endpoint.clicked', {

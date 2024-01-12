@@ -6,7 +6,7 @@ import {space} from 'sentry/styles/space';
 
 const cellBackground = (p: CellProps & {theme: Theme}) => {
   if (p.isSelected) {
-    return `background-color: ${p.theme.textColor};`;
+    return `background-color: ${p.theme.black};`;
   }
   if (p.isStatusError) {
     return `background-color: ${p.theme.red100};`;
@@ -23,7 +23,7 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
       ? p.theme.red300
       : p.isStatusWarning
       ? p.theme.yellow300
-      : p.theme.background;
+      : p.theme.white;
     return `color: ${color};`;
   }
   const colors = p.isStatusError
@@ -76,7 +76,7 @@ export const CodeHighlightCell = styled(CodeSnippet)`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${space(0.75)} 0;
   display: flex;
   gap: ${space(0.5)};
   --prism-block-background: transparent;

@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class BitbucketServerRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
     factory = RequestFactory()

@@ -1,6 +1,6 @@
 ---
 relay:
-  upstream: 'http://host.docker.internal:8000/'
+  upstream: 'http://host.docker.internal:8001/'
   host: 0.0.0.0
   port: 7899
 logging:

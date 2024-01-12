@@ -17,7 +17,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
+from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
@@ -64,14 +64,14 @@ def get_notification_uuid(url: str):
     return notification_uuid
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ActivityNotificationTest(APITestCase):
     """
     Enable Slack AND email notification settings for a user
     """
 
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -90,15 +90,16 @@ class ActivityNotificationTest(APITestCase):
             scopes=[],
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-        url = "/api/0/users/me/notification-settings/"
-        data = {
-            "workflow": {"user": {"me": {"email": "always", "slack": "always"}}},
-            "deploy": {"user": {"me": {"email": "always", "slack": "always"}}},
-            "alerts": {"user": {"me": {"email": "always", "slack": "always"}}},
-        }
         self.login_as(self.user)
-        response = self.client.put(url, format="json", data=data)
-        assert response.status_code == 204, response.content
+        # modify settings
+        for type in ["workflow", "deploy", "alerts"]:
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type=type,
+                value="always",
+            )
 
         responses.add(
             method=responses.POST,

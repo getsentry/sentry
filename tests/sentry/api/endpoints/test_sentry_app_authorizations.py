@@ -14,7 +14,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestSentryAppAuthorizations(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-authorizations"
     method = "post"

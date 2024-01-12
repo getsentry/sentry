@@ -4,16 +4,15 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Type
+from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
-from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import BasePermission
@@ -31,7 +30,6 @@ from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.types.region import is_region_name
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -88,13 +86,6 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-DEFAULT_SLUG_PATTERN = r"^[a-z0-9_\-]+$"
-NON_NUMERIC_SLUG_PATTERN = r"^(?![0-9]+$)[a-z0-9_\-]+$"
-DEFAULT_SLUG_ERROR_MESSAGE = _(
-    "Enter a valid slug consisting of lowercase letters, numbers, underscores or hyphens. "
-    "It cannot be entirely numeric."
-)
-
 
 def allow_cors_options(func):
     """
@@ -116,47 +107,59 @@ def allow_cors_options(func):
         else:
             response = func(self, request, *args, **kwargs)
 
-        allow = ", ".join(self._allowed_methods())
-        response["Allow"] = allow
-        response["Access-Control-Allow-Methods"] = allow
-        response["Access-Control-Allow-Headers"] = (
-            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage, X-CSRFToken"
+        return apply_cors_headers(
+            request=request, response=response, allowed_methods=self._allowed_methods()
         )
-        response["Access-Control-Expose-Headers"] = (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
-            "Endpoint, Retry-After, Link"
-        )
-
-        if request.META.get("HTTP_ORIGIN") == "null":
-            # if ORIGIN header is explicitly specified as 'null' leave it alone
-            origin: str | None = "null"
-        else:
-            origin = origin_from_request(request)
-
-        if origin is None or origin == "null":
-            response["Access-Control-Allow-Origin"] = "*"
-        else:
-            response["Access-Control-Allow-Origin"] = origin
-
-        # If the requesting origin is a subdomain of
-        # the application's base-hostname we should allow cookies
-        # to be sent.
-        basehost = options.get("system.base-hostname")
-        if basehost and origin:
-            if origin.endswith(("://" + basehost, "." + basehost)):
-                response["Access-Control-Allow-Credentials"] = "true"
-
-        return response
 
     return allow_cors_options_wrapper
 
 
+def apply_cors_headers(
+    request: HttpRequest, response: HttpResponse, allowed_methods: list[str] | None = None
+) -> HttpResponse:
+    if allowed_methods is None:
+        allowed_methods = []
+    allow = ", ".join(allowed_methods)
+    response["Allow"] = allow
+    response["Access-Control-Allow-Methods"] = allow
+    response["Access-Control-Allow-Headers"] = (
+        "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
+        "Content-Type, Authentication, Authorization, Content-Encoding, "
+        "sentry-trace, baggage, X-CSRFToken"
+    )
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
+    )
+
+    if request.META.get("HTTP_ORIGIN") == "null":
+        # if ORIGIN header is explicitly specified as 'null' leave it alone
+        origin: str | None = "null"
+    else:
+        origin = origin_from_request(request)
+
+    if origin is None or origin == "null":
+        response["Access-Control-Allow-Origin"] = "*"
+    else:
+        response["Access-Control-Allow-Origin"] = origin
+
+    # If the requesting origin is a subdomain of
+    # the application's base-hostname we should allow cookies
+    # to be sent.
+    basehost = options.get("system.base-hostname")
+    if basehost and origin:
+        if (
+            origin.endswith(("://" + basehost, "." + basehost))
+            or origin in settings.ALLOWED_CREDENTIAL_ORIGINS
+        ):
+            response["Access-Control-Allow-Credentials"] = "true"
+
+    return response
+
+
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
-    authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
-    permission_classes: Tuple[Type[BasePermission], ...] = (NoPermission,)
+    authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
+    permission_classes: tuple[type[BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
@@ -388,7 +391,7 @@ class Endpoint(APIView):
             ]
         )
 
-    def respond(self, context: Mapping[str, Any] | None = None, **kwargs: Any) -> Response:
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
     def respond_with_text(self, text):
@@ -577,28 +580,8 @@ class ReleaseAnalyticsMixin:
         )
 
 
-class PreventNumericSlugMixin:
-    def validate_slug(self, slug: str) -> str:
-        """
-        Validates that the slug is not entirely numeric. Requires a feature flag
-        to be turned on.
-        """
-        if options.get("api.prevent-numeric-slugs") and slug.isdecimal():
-            raise serializers.ValidationError(DEFAULT_SLUG_ERROR_MESSAGE)
-        return slug
-
-
-def resolve_region(request: HttpRequest) -> Optional[str]:
-    subdomain = getattr(request, "subdomain", None)
-    if subdomain is None:
-        return None
-    if is_region_name(subdomain):
-        return subdomain
-    return None
-
-
 class EndpointSiloLimit(SiloLimit):
-    def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
+    def modify_endpoint_class(self, decorated_class: type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
             decorated_class.__name__,

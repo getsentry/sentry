@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
@@ -78,6 +78,18 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_installation_by_id(self, *, id: int) -> Optional[RpcSentryAppInstallation]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_installation(
+        self, *, sentry_app_id: int, organization_id: int
+    ) -> Optional[RpcSentryAppInstallation]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> Optional[str]:
         pass
 
@@ -142,6 +154,7 @@ class AppService(RpcService):
         integration_name: str,
         integration_scopes: List[str],
         integration_creator_id: int,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> RpcSentryAppInstallation:
         pass
 
@@ -150,6 +163,11 @@ class AppService(RpcService):
     def prepare_sentry_app_components(
         self, *, installation_id: int, component_type: str, project_slug: Optional[str] = None
     ) -> Optional[RpcSentryAppComponent]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def disable_sentryapp(self, *, id: int) -> None:
         pass
 
 

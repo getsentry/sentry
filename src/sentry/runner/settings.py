@@ -1,9 +1,11 @@
+import importlib.resources
 import os
 import warnings
 
 import click
 
-DEFAULT_SETTINGS_MODULE = "sentry.conf.server"
+from sentry.runner import importer
+
 DEFAULT_SETTINGS_CONF = "config.yml"
 DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 
@@ -15,10 +17,8 @@ def generate_secret_key():
     return get_random_string(50, chars)
 
 
-def load_config_template(path, version="default"):
-    from pkg_resources import resource_string
-
-    return resource_string("sentry", f"data/config/{path}.{version}").decode("utf8")
+def load_config_template(path: str, version: str = "default") -> str:
+    return importlib.resources.files("sentry").joinpath(f"data/config/{path}.{version}").read_text()
 
 
 def generate_settings(dev=False):
@@ -109,8 +109,6 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     ):
         mimetypes.add_type(type, "." + ext)
 
-    from .importer import install
-
     if yaml is None:
         # `yaml` will be None when SENTRY_CONF is pointed
         # directly to a file, in which case, this file must exist
@@ -135,9 +133,9 @@ def configure(ctx, py, yaml, skip_service_validation=False):
 
         reload_on_change(yaml)
 
-    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry_config"
+    importer.SENTRY_CONF_PY = py
 
-    install("sentry_config", py, DEFAULT_SETTINGS_MODULE)
+    os.environ["DJANGO_SETTINGS_MODULE"] = "sentry.runner.default_settings"
 
     from django.conf import settings
 

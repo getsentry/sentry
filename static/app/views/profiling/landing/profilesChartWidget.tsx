@@ -14,7 +14,6 @@ import {
   ContentContainer,
   HeaderContainer,
   HeaderTitleLegend,
-  Subtitle,
   WidgetContainer,
 } from './styles';
 
@@ -106,7 +105,7 @@ export function ProfilesChartWidget({
       },
       legend: {
         right: 16,
-        top: 12,
+        top: 0,
         data: SERIES_ORDER.slice(),
       },
     };
@@ -116,7 +115,6 @@ export function ProfilesChartWidget({
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
         {header ?? <HeaderTitleLegend>{t('Profiles by Percentiles')}</HeaderTitleLegend>}
-        <Subtitle>{t('P50(), P75(), P95(), P99() over time')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
         <ChartZoom router={router} {...selection?.datetime}>

@@ -31,7 +31,7 @@ from sentry.testutils.silo import region_silo_test
         False,
     ],
 )
-@region_silo_test(stable=True)
+@region_silo_test
 def test_group_creation_race(monkeypatch, default_project, is_race_free):
     CONCURRENCY = 2
 

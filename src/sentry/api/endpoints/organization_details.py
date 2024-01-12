@@ -44,7 +44,7 @@ from sentry.constants import (
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
 )
-from sentry.datascrubbing import validate_pii_config_update
+from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -78,6 +78,7 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
+ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -250,7 +251,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_safeFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
-        return value
+        return validate_pii_selectors(value)
 
     def validate_attachmentsRole(self, value):
         try:
@@ -580,6 +581,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
+        from sentry import features
+
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
@@ -589,6 +592,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
         if enabling_codecov:
+            if not features.has("organizations:codecov-integration", organization):
+                return self.respond({"detail": ERR_PLAN_REQUIRED}, status=status.HTTP_403_FORBIDDEN)
+
             has_integration, error = has_codecov_integration(organization)
             if not has_integration:
                 return self.respond(

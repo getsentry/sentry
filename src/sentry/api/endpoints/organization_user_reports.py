@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
@@ -14,6 +15,7 @@ from sentry.models.userreport import UserReport
 
 @region_silo_endpoint
 class OrganizationUserReportsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.FEEDBACK
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -40,6 +42,7 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
             project_id__in=filter_params["project_id"], group_id__isnull=False
         )
         if "environment" in filter_params:
+            assert filter_params["environment_objects"]
             queryset = queryset.filter(
                 environment_id__in=[env.id for env in filter_params["environment_objects"]]
             )
