@@ -1,8 +1,8 @@
-import {Fragment, useState} from 'react';
+import { Fragment, useState } from 'react';
 
-import {Button, ButtonProps} from 'sentry/components/button';
-import Matrix, {PropMatrix} from 'sentry/components/stories/matrix';
-import {IconDelete} from 'sentry/icons';
+import { Button, ButtonProps } from 'sentry/components/button';
+import Matrix, { PropMatrix } from 'sentry/components/stories/matrix';
+import { IconDelete } from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook('Button', story => {
@@ -21,13 +21,13 @@ export default storyBook('Button', story => {
   const propMatrix: PropMatrix<ButtonProps> = {
     borderless: [false, true],
     busy: [false, true],
-    children: ['Save', undefined],
+    children: ['Delete', undefined],
     icon: [undefined, <IconDelete key="" />],
     priority: ['default', 'primary', 'danger', 'link', undefined],
     size: ['md', 'sm', 'xs', 'zero'],
     disabled: [false, true],
     external: [false, true],
-    title: [undefined, 'Save Now'],
+    title: [undefined, 'Delete this'],
     translucentBorder: [false, true],
   };
   story('Props', () => (
