@@ -40,9 +40,7 @@ const storeConfig: TagStoreDefinition = {
     const isSuggestions = [
       'resolved',
       'unresolved',
-      ...(org.features.includes('escalating-issues')
-        ? ['archived', 'escalating', 'new', 'ongoing', 'regressed']
-        : ['ignored']),
+      ...['archived', 'escalating', 'new', 'ongoing', 'regressed'],
       'assigned',
       'unassigned',
       'for_review',

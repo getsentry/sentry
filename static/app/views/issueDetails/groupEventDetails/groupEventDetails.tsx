@@ -9,7 +9,6 @@ import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
@@ -120,18 +119,15 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   ]);
 
   const renderGroupStatusBanner = () => {
-    const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
     if (group.status === 'ignored') {
       return (
         <GroupStatusBannerWrapper>
-          {hasEscalatingIssuesUi ? (
+          {(
             <ArchivedBox
               substatus={group.substatus}
               statusDetails={group.statusDetails}
               organization={organization}
             />
-          ) : (
-            <MutedBox statusDetails={group.statusDetails} />
           )}
         </GroupStatusBannerWrapper>
       );

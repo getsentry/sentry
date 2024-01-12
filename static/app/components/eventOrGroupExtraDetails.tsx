@@ -54,14 +54,13 @@ function EventOrGroupExtraDetails({
 
   const showReplayCount =
     organization.features.includes('session-replay') && projectCanLinkToReplay(project);
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   return (
     <GroupExtra>
-      {!hasEscalatingIssuesUi && inbox && (
+      {inbox && (
         <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
       )}
-      {hasEscalatingIssuesUi && (
+      {(
         <GroupStatusBadge status={status} substatus={substatus} />
       )}
       {shortId && (

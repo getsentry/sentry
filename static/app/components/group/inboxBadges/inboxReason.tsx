@@ -8,7 +8,6 @@ import {t, tct} from 'sentry/locale';
 import {GroupInboxReason, InboxDetails} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   inbox: InboxDetails;
@@ -20,7 +19,6 @@ type Props = {
 const EVENT_ROUND_LIMIT = 1000;
 
 function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
-  const organization = useOrganization();
   const {reason, reason_details: reasonDetails, date_added: dateAdded} = inbox;
   const relativeDateAdded = getDynamicText({
     value: dateAdded && (
@@ -176,15 +174,11 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
 
   const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
 
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
-      )}
-      {hasEscalatingIssuesUi ? null : (
-        <TooltipDescription>{t('Mark Reviewed to remove this label')}</TooltipDescription>
       )}
     </TooltipWrapper>
   );
