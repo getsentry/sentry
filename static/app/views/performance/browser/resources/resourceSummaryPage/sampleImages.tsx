@@ -174,10 +174,11 @@ function ImageContainer(props: {
   const [hasError, setHasError] = useState(false);
 
   const {fileName, size, src, showImage = true} = props;
+  const isRelativeUrl = src.startsWith('/');
 
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
-      {showImage && !hasError ? (
+      {showImage && !isRelativeUrl && !hasError ? (
         <div
           style={{
             width: imageWidth,
