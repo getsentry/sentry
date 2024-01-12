@@ -1669,6 +1669,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 @patch("sentry.signals.relocated.send_robust")
 @patch("sentry.tasks.relocation.notifying_users.apply_async")
 @patch("sentry.analytics.record")
+@patch("sentry.signals.terms_accepted.send_robust")
 class PostprocessingTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
@@ -1702,6 +1703,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
     def test_success(
         self,
+        terms_accepted_signal_mock: Mock,
         analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
@@ -1743,8 +1745,13 @@ class PostprocessingTest(RelocationTaskTestCase):
             owner_id=self.owner.id,
         )
 
+        terms_accepted_signal_mock.assert_called_with(
+            user_id=self.owner.id, organization_id=self.imported_org_id, sender=postprocessing
+        )
+
     def test_pause(
         self,
+        terms_accepted_signal_mock: Mock,
         analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
@@ -1766,9 +1773,11 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert relocation.latest_task == OrderedTask.POSTPROCESSING.name
 
         analytics_record_mock.assert_not_called()
+        terms_accepted_signal_mock.assert_not_called()
 
     def test_retry_if_attempts_left(
         self,
+        terms_accepted_signal_mock: Mock,
         analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
@@ -1796,9 +1805,14 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         # Technically this should be called, but since we're mocking out the `send_robust` function, it won't
         analytics_record_mock.assert_not_called()
+        # This is called before retry is failed
+        terms_accepted_signal_mock.assert_called_with(
+            user_id=self.owner.id, organization_id=self.imported_org_id, sender=postprocessing
+        )
 
     def test_fail_if_no_attempts_left(
         self,
+        terms_accepted_signal_mock: Mock,
         analytics_record_mock: Mock,
         notifying_users_mock: Mock,
         relocated_signal_mock: Mock,
@@ -1830,6 +1844,10 @@ class PostprocessingTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_POSTPROCESSING_INTERNAL
         analytics_record_mock.assert_not_called()
+        # This is called before retry is failed
+        terms_accepted_signal_mock.assert_called_with(
+            user_id=self.owner.id, organization_id=self.imported_org_id, sender=postprocessing
+        )
 
 
 @region_silo_test
