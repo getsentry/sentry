@@ -152,6 +152,7 @@ export const MetricWidget = memo(
               addFocusArea={addFocusArea}
               focusArea={focusArea}
               removeFocusArea={removeFocusArea}
+              chartHeight={300}
               {...widget}
             />
           ) : (
