@@ -157,7 +157,7 @@ type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
 export type ParntershipAgreementType = 'standard' | 'partner_presence';
-type PartnershipAgreementProps = {
+export type PartnershipAgreementProps = {
   agreements: Array<ParntershipAgreementType>;
   organizationSlug: string | null;
   partnerDisplayName: string;
