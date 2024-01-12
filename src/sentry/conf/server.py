@@ -1476,8 +1476,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:create": True,
     # Disables projects with zero monitors to create new ones
     "organizations:crons-disable-new-projects": False,
-    # Enable the new crons monitor form
-    "organizations:crons-new-monitor-form": False,
     # Metrics: Enable ingestion and storage of custom metrics. See ddm-ui for UI.
     "organizations:custom-metrics": False,
     # Allow organizations to configure custom external symbol sources.
@@ -1532,7 +1530,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables data secrecy mode
     "organizations:enterprise-data-secrecy": False,
     # Enable archive/escalating issue workflow
-    "organizations:escalating-issues": False,
+    "organizations:escalating-issues": True,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
@@ -1639,6 +1637,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issues-similarity-embeddings": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
+    # Enable updated legacy browser settings
+    "organizations:legacy-browser-update": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable ignoring archived issues in metric alerts

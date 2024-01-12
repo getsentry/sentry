@@ -443,6 +443,10 @@ class Fixtures:
 
         return integration
 
+    def create_provider_integration(self, **integration_params: Any) -> Integration:
+        """Create an integration tied to a provider but no particular organization."""
+        return Factories.create_provider_integration(**integration_params)
+
     def create_integration(
         self,
         organization: Organization,
@@ -450,6 +454,7 @@ class Fixtures:
         oi_params: Mapping[str, Any] | None = None,
         **kwargs: Any,
     ) -> Integration:
+        """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
 
     def create_identity(self, *args, **kwargs):

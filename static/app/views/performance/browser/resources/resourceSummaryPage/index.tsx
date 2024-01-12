@@ -17,8 +17,8 @@ import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/re
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
+import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
-import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -32,7 +32,6 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_TRANSFER_SIZE,
   RESOURCE_RENDER_BLOCKING_STATUS,
-  SPAN_OP,
 } = SpanMetricsField;
 
 function ResourceSummary() {
@@ -59,8 +58,9 @@ function ResourceSummary() {
     ],
   });
   const spanMetrics = data[0] ?? {};
-  const isImage = filters[SPAN_OP] === ResourceSpanOps.IMAGE;
-
+  const isImage = IMAGE_FILE_EXTENSIONS.includes(
+    spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
+  );
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
@@ -118,7 +118,7 @@ function ResourceSummary() {
             />
           </HeaderContainer>
           {isImage && (
-            <SampleImages groupId={groupId} projectId={data[0]['project.id']} />
+            <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
           )}
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />

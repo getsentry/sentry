@@ -29,7 +29,6 @@ from sentry.incidents.serializers import (
 )
 from sentry.models.actor import ACTOR_TYPES, get_actor_for_user
 from sentry.models.environment import Environment
-from sentry.models.integrations.integration import Integration
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -49,7 +48,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 class TestAlertRuleSerializerBase(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             external_id="1",
             provider="slack",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
