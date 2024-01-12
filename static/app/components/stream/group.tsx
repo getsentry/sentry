@@ -7,7 +7,6 @@ import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
@@ -63,7 +62,6 @@ type Props = {
   narrowGroups?: boolean;
   query?: string;
   queryFilterDescription?: string;
-  showInboxTime?: boolean;
   showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
@@ -83,7 +81,6 @@ function BaseGroupRow({
   memberList,
   query,
   queryFilterDescription,
-  showInboxTime,
   source,
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
@@ -430,7 +427,6 @@ function BaseGroupRow({
           size="normal"
           source={referrer}
         />
-        <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
