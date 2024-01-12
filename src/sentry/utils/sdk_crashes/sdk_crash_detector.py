@@ -24,7 +24,7 @@ class SDKCrashDetectorConfig:
 
     min_sdk_version: str
 
-    system_library_paths: Set[str]
+    system_library_path_patterns: Set[str]
 
     sdk_frame_config: SDKFrameConfig
 
@@ -134,9 +134,9 @@ class SDKCrashDetector:
 
     def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
         for field in self.fields_containing_paths:
-            for system_library_path in self.config.system_library_paths:
+            for pattern in self.config.system_library_path_patterns:
                 field_with_path = frame.get(field)
-                if field_with_path and field_with_path.startswith(system_library_path):
+                if field_with_path and glob_match(field_with_path, pattern, ignorecase=True):
                     return True
 
         return False
