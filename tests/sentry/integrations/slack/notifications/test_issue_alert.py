@@ -823,7 +823,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # add a second organization
         org = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=org.id, integration=self.integration
             )
 
@@ -904,7 +904,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # add a second organization
         org = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=org.id, integration=self.integration
             )
 

@@ -21,7 +21,7 @@ cocoa_sdk_crash_detector_config = SDKCrashDetectorConfig(
     # the frames contain the full paths required for detecting system frames in is_system_library_frame.
     # Therefore, we require at least sentry-cocoa 8.2.0.
     min_sdk_version="8.2.0",
-    system_library_paths={"/System/Library/", "/usr/lib/"},
+    system_library_path_patterns={r"/System/Library/*", r"/usr/lib/*"},
     sdk_frame_config=SDKFrameConfig(
         function_patterns={
             r"*sentrycrash*",
@@ -44,13 +44,13 @@ react_native_sdk_crash_detector_config = SDKCrashDetectorConfig(
     # 4.0.0 was released in June 2022, see https://github.com/getsentry/sentry-react-native/releases/tag/4.0.0.
     # We require at least sentry-react-native 4.0.0 to only detect SDK crashes for not too old versions.
     min_sdk_version="4.0.0",
-    system_library_paths={
-        "react-native/Libraries/",
-        "react-native-community/",
+    system_library_path_patterns={
+        r"*/react-native/Libraries/*",
+        r"*/react-native-community/*",
     },
     sdk_frame_config=SDKFrameConfig(
         function_patterns=set(),
-        filename_patterns={r"**/sentry-react-native/**"},
+        filename_patterns={r"**/sentry-react-native/dist/**"},
         path_replacer=KeepAfterPatternMatchPathReplacer(
             patterns={r"\/sentry-react-native\/.*", r"\/@sentry.*"},
             fallback_path="sentry-react-native",

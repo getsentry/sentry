@@ -15,7 +15,6 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.identity import Identity, IdentityStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import APITestCase
@@ -46,7 +45,7 @@ class StatusActionTest(APITestCase):
                     "expires_at": int(time.time()) + 86400,
                 },
             )
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=self.org.id, integration=self.integration
             )
 
@@ -288,9 +287,7 @@ class StatusActionTest(APITestCase):
                     "expires_at": int(time.time()) + 86400,
                 },
             )
-            OrganizationIntegration.objects.create(
-                organization_id=org2.id, integration=integration2
-            )
+            self.create_organization_integration(organization_id=org2.id, integration=integration2)
 
             idp2 = self.create_identity_provider(type="msteams", external_id="54rum4n")
             Identity.objects.create(
