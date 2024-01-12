@@ -1,8 +1,8 @@
-import { Fragment, useState } from 'react';
+import {Fragment, useState} from 'react';
 
-import { Button, ButtonProps } from 'sentry/components/button';
-import Matrix, { PropMatrix } from 'sentry/components/stories/matrix';
-import { IconDelete } from 'sentry/icons';
+import {Button, ButtonProps} from 'sentry/components/button';
+import Matrix, {PropMatrix} from 'sentry/components/stories/matrix';
+import {IconDelete} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook('Button', story => {
