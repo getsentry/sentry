@@ -13,46 +13,47 @@ import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import {getTraceDetailsUrl} from './utils';
 
 type Props = {
-    children: JSX.Element;
-    event: Event;
-    metaResults: TraceMetaQueryChildrenProps | undefined;
-}
+  children: JSX.Element;
+  event: Event;
+  metaResults: TraceMetaQueryChildrenProps | undefined;
+};
 
 function TraceDetailsRouting(props: Props) {
-    const {metaResults, event, children} = props;
-    const organization = useOrganization();
-    const location = useLocation();
+  const {metaResults, event, children} = props;
+  const organization = useOrganization();
+  const location = useLocation();
 
-    useEffect(() => {
-        const traceId = event.contexts?.trace?.trace_id ?? '';
+  useEffect(() => {
+    const traceId = event.contexts?.trace?.trace_id ?? '';
 
-        if (
-            organization.features.includes('performance-trace-details') &&
-            metaResults?.meta &&
-            metaResults?.meta.transactions <= DEFAULT_TRACE_ROWS_LIMIT
-        ) {
-            const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-            organization,
-            traceId,
-            event.title,
-            location.query
-            );
-
-            browserHistory.replace({
-            pathname: traceDetailsLocation.pathname,
-            query: {
-                transaction: traceDetailsLocation.query?.transaction,
-            },
-            hash: transactionTargetHash(event.eventID) + location.hash,
-            });
-        }
-    }, [event, metaResults, location , organization]);
-
-    if (metaResults?.isLoading &&
-      organization.features.includes('performance-trace-details')
+    if (
+      organization.features.includes('performance-trace-details') &&
+      metaResults?.meta &&
+      metaResults?.meta.transactions <= DEFAULT_TRACE_ROWS_LIMIT
     ) {
-      return <LoadingIndicator />;
+      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+        organization,
+        traceId,
+        event.title,
+        location.query
+      );
+
+      browserHistory.replace({
+        pathname: traceDetailsLocation.pathname,
+        query: {
+          transaction: traceDetailsLocation.query?.transaction,
+        },
+        hash: transactionTargetHash(event.eventID) + location.hash,
+      });
     }
+  }, [event, metaResults, location, organization]);
+
+  if (
+    metaResults?.isLoading &&
+    organization.features.includes('performance-trace-details')
+  ) {
+    return <LoadingIndicator />;
+  }
 
   return children;
 }

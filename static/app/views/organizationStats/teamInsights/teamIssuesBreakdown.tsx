@@ -154,9 +154,7 @@ function TeamIssuesBreakdown({
               headers={[
                 t('Project'),
                 ...statuses
-                  .map(action =>
-                    action.replace('ignore', 'archive')
-                  )
+                  .map(action => action.replace('ignore', 'archive'))
                   .map(action => <AlignRight key={action}>{action}</AlignRight>),
                 <AlignRight key="total">
                   {t('total')} <IconArrow direction="down" size="xs" color="gray300" />

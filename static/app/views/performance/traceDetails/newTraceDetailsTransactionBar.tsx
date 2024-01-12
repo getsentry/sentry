@@ -181,7 +181,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       scrollIntoView();
     }
 
-    if(isIntersecting){
+    if (isIntersecting) {
       props.onBarScrolledTo();
     }
 

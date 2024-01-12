@@ -154,9 +154,9 @@ function renderDivider(
 function renderMeasurements(
   event: Readonly<EventTransaction | AggregateEventTransaction>,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType,
-  measurements: Map<number, VerticalMark> | undefined,
+  measurements: Map<number, VerticalMark> | undefined
 ) {
-  const barMeasurements =  measurements ?? getMeasurements(event, generateBounds);
+  const barMeasurements = measurements ?? getMeasurements(event, generateBounds);
 
   return (
     <Fragment>
@@ -197,7 +197,7 @@ export function SpanGroupBar(props: Props) {
     getCurrentLeftPos,
     spanBarType,
     event,
-    measurements
+    measurements,
   } = props;
 
   const theme = useTheme();

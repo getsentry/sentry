@@ -23,7 +23,11 @@ jest.mock('sentry/utils/useProjects');
 describe('PageloadModule', function () {
   const project = ProjectFixture({platform: 'react-native'});
   const organization = OrganizationFixture({
-    features: ['performance-screens-view', 'mobile-ttid-ttfd-contribution', 'performance-screens-platform-selector'],
+    features: [
+      'performance-screens-view',
+      'mobile-ttid-ttfd-contribution',
+      'performance-screens-platform-selector',
+    ],
     projects: [project],
   });
   jest.mocked(useOrganization).mockReturnValue(organization);
@@ -74,31 +78,41 @@ describe('PageloadModule', function () {
       url: `/organizations/${organization.slug}/releases/`,
       body: [
         {
-          "id": 970136705,
-          "version": "com.example.vu.android@2.10.5",
-          "dateCreated": "2023-12-19T21:37:53.895495Z",
+          id: 970136705,
+          version: 'com.example.vu.android@2.10.5',
+          dateCreated: '2023-12-19T21:37:53.895495Z',
         },
         {
-          "id": 969902997,
-          "version": "com.example.vu.android@2.10.3+42",
-          "dateCreated": "2023-12-19T18:04:06.953025Z",
-        }
+          id: 969902997,
+          version: 'com.example.vu.android@2.10.3+42',
+          dateCreated: '2023-12-19T18:04:06.953025Z',
+        },
       ],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      query: {dataset: "metrics", environment: [], field: ["release", "count()"], per_page: 50, project: ["2"], query: "transaction.op:ui.load release:[\"com.example.vu.android@2.10.5\",\"com.example.vu.android@2.10.3+42\"]", referrer: "api.starfish.mobile-release-selector", statsPeriod: "10d"},
+      query: {
+        dataset: 'metrics',
+        environment: [],
+        field: ['release', 'count()'],
+        per_page: 50,
+        project: ['2'],
+        query:
+          'transaction.op:ui.load release:["com.example.vu.android@2.10.5","com.example.vu.android@2.10.3+42"]',
+        referrer: 'api.starfish.mobile-release-selector',
+        statsPeriod: '10d',
+      },
       body: {
         meta: {},
         data: [
           {
-            "release": "com.example.vu.android@2.10.5",
-            "count()": 9768
+            release: 'com.example.vu.android@2.10.5',
+            'count()': 9768,
           },
           {
-            "release": "com.example.vu.android@2.10.3+42",
-            "count()": 826
-          }
+            release: 'com.example.vu.android@2.10.3+42',
+            'count()': 826,
+          },
         ],
       },
     });
@@ -113,53 +127,60 @@ describe('PageloadModule', function () {
   });
 
   it('defaults requests with android platform filter', async function () {
-    render(
-      <PageloadModule />,
-      {organization}
-    );
+    render(<PageloadModule />, {organization});
 
     await waitFor(() => {
-      expect(screen.getByRole('radiogroup', {name: 'Filter platform'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('radiogroup', {name: 'Filter platform'})
+      ).toBeInTheDocument();
     });
 
-    await waitFor(
-      () => {expect(eventsMock).toHaveBeenNthCalledWith(
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenNthCalledWith(
         3,
         expect.anything(),
-        expect.objectContaining({"query": expect.objectContaining({
-          "query": "event.type:transaction transaction.op:ui.load os.name:Android"
-        })}));
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction.op:ui.load os.name:Android',
+          }),
+        })
+      );
     });
 
-    await waitFor(
-      () => {expect(eventsMock).toHaveBeenNthCalledWith(
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenNthCalledWith(
         4,
         expect.anything(),
-        expect.objectContaining({"query": expect.objectContaining({
-          "query": "event.type:transaction transaction.op:ui.load os.name:Android"
-        })}));
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction.op:ui.load os.name:Android',
+          }),
+        })
+      );
     });
   });
 
   it('uses value from local storage if available', async function () {
     localStorage.setItem(PLATFORM_LOCAL_STORAGE_KEY, 'iOS');
 
-    render(
-      <PageloadModule />,
-      {organization}
-    );
+    render(<PageloadModule />, {organization});
 
     await waitFor(() => {
-      expect(screen.getByRole('radiogroup', {name: 'Filter platform'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('radiogroup', {name: 'Filter platform'})
+      ).toBeInTheDocument();
     });
 
-    await waitFor(
-      () => {expect(eventsMock).toHaveBeenNthCalledWith(
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenNthCalledWith(
         3,
         expect.anything(),
-        expect.objectContaining({"query": expect.objectContaining({
-          "query": "event.type:transaction transaction.op:ui.load os.name:iOS"
-        })}));
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:transaction transaction.op:ui.load os.name:iOS',
+          }),
+        })
+      );
     });
   });
 });

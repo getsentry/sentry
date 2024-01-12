@@ -163,7 +163,8 @@ function App({children, params}: Props) {
     ConfigStore.set('user', {...config.user, flags});
   }
 
-  const displayInstallWizard = config.user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
+  const displayInstallWizard =
+    config.user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
   const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
   const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
 

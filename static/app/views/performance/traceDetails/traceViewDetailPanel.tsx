@@ -212,33 +212,36 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     .filter(isNotPerformanceScoreMeasurement)
     .sort();
 
-  const renderMeasurements = () =>  {
-      if(!detail.event){
-        return null;
-      }
+  const renderMeasurements = () => {
+    if (!detail.event) {
+      return null;
+    }
 
-      const {measurements} = detail.event;
+    const {measurements} = detail.event;
 
-      const measurementKeys = Object.keys(measurements ?? {})
-        .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
-        .sort();
+    const measurementKeys = Object.keys(measurements ?? {})
+      .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+      .sort();
 
-      if (!measurements || measurementKeys.length <= 0) {
-        return null;
-      }
+    if (!measurements || measurementKeys.length <= 0) {
+      return null;
+    }
 
-      return (
-        <Fragment>
-          {measurementKeys.map(measurement => (
-            <Row
-              key={measurement}
-              title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
-            >
-              <PerformanceDuration milliseconds={Number(measurements[measurement].value.toFixed(3))} abbreviation />
-            </Row>
-          ))}
-        </Fragment>
-      );
+    return (
+      <Fragment>
+        {measurementKeys.map(measurement => (
+          <Row
+            key={measurement}
+            title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
+          >
+            <PerformanceDuration
+              milliseconds={Number(measurements[measurement].value.toFixed(3))}
+              abbreviation
+            />
+          </Row>
+        ))}
+      </Fragment>
+    );
   };
 
   const renderGoToProfileButton = () => {

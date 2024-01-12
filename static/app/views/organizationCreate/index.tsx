@@ -5,16 +5,13 @@ import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import {OnSubmitCallback} from "sentry/components/forms/types";
+import {OnSubmitCallback} from 'sentry/components/forms/types';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
-import {
-  getRegionChoices,
-  shouldDisplayRegions,
-} from 'sentry/utils/regions';
+import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -35,20 +32,23 @@ function OrganizationCreate() {
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host
   // with the selected region's URL if one is provided.
-  const submitOrganizationCreate: OnSubmitCallback = useCallback((data, onSubmitSuccess, onSubmitError, _event, formModel) => {
-    if (!formModel.validateForm()) {
-      return;
-    }
-    const regionUrl = data.dataStorageLocation;
+  const submitOrganizationCreate: OnSubmitCallback = useCallback(
+    (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
+      if (!formModel.validateForm()) {
+        return;
+      }
+      const regionUrl = data.dataStorageLocation;
 
-    client.request("/organizations/", {
-      method:"POST",
-      data: removeDataStorageLocationFromFormData(data),
-      host: regionUrl,
-      success: onSubmitSuccess,
-      error: onSubmitError
-    });
-  }, [client]);
+      client.request('/organizations/', {
+        method: 'POST',
+        data: removeDataStorageLocationFromFormData(data),
+        host: regionUrl,
+        success: onSubmitSuccess,
+        error: onSubmitError,
+      });
+    },
+    [client]
+  );
 
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
@@ -96,7 +96,7 @@ function OrganizationCreate() {
             stacked
             required
           />
-          {shouldDisplayRegions() &&  (
+          {shouldDisplayRegions() && (
             <SelectField
               name="dataStorageLocation"
               label="Data Storage Location"

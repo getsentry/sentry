@@ -281,16 +281,11 @@ function buildRoutes() {
       />
       <Route
         path="/relocation/"
-        component={
-          make(() => import('sentry/views/relocation'))
-        }
+        component={make(() => import('sentry/views/relocation'))}
         key="orgless-relocation"
       >
         <IndexRedirect to="get-started/" />
-        <Route
-          path=":step/"
-          component={make(() => import('sentry/views/relocation'))}
-        />
+        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {usingCustomerDomain && (
         <Route

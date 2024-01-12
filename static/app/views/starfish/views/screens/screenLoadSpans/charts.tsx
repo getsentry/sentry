@@ -33,10 +33,17 @@ import {
   OUTPUT_TYPE,
   YAXIS_COLUMNS,
 } from 'sentry/views/starfish/views/screens';
-import {DEFAULT_PLATFORM, PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {isCrossPlatform, transformDeviceClassEvents} from 'sentry/views/starfish/views/screens/utils';
+import {
+  isCrossPlatform,
+  transformDeviceClassEvents,
+} from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
   WARM_START,
@@ -69,11 +76,13 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
+  );
   const platform =
-        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-        DEFAULT_PLATFORM;
+    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
 
   const queryString = useMemo(() => {
     const query = new MutableSearch([
@@ -87,7 +96,14 @@ export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
     }
 
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
-  }, [additionalFilters, hasPlatformSelectFeature, platform, primaryRelease, project, secondaryRelease]);
+  }, [
+    additionalFilters,
+    hasPlatformSelectFeature,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
+  ]);
 
   const {
     data: series,

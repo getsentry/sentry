@@ -10,7 +10,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {DEFAULT_PLATFORM,PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
@@ -44,11 +48,13 @@ export function ScreenLoadEventSamples({
 
   const deviceClass = decodeScalar(location.query['device.class']);
 
-  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
+  );
   const platform =
-        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-        DEFAULT_PLATFORM;
+    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
 
   const searchQuery = useMemo(() => {
     const mutableQuery = new MutableSearch([

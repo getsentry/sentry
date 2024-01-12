@@ -343,6 +343,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [theme, size, maxMenuWidth, indicatorStyles]
   );
 

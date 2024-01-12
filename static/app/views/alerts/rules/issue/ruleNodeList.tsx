@@ -74,9 +74,7 @@ const createSelectOptions = (
       };
     }
 
-    if (
-      node.id === IssueAlertConditionType.REAPPEARED_EVENT
-    ) {
+    if (node.id === IssueAlertConditionType.REAPPEARED_EVENT) {
       const label = t('The issue changes state from archived to escalating');
       return {
         value: node,

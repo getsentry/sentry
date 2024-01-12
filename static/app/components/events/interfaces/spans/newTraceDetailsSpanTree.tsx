@@ -43,7 +43,13 @@ import {
   SpanType,
   TreeDepthType,
 } from './types';
-import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash,VerticalMark} from './utils';
+import {
+  getSpanID,
+  getSpanOperation,
+  isGapSpan,
+  spanTargetHash,
+  VerticalMark,
+} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -482,7 +488,9 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
         });
 
         if (!this.props.parentIsLast) {
-          const value: TreeDepthType = this.props.parentIsOrphan ? {depth: this.props.parentGeneration, type: "orphan"} : this.props.parentGeneration;
+          const value: TreeDepthType = this.props.parentIsOrphan
+            ? {depth: this.props.parentGeneration, type: 'orphan'}
+            : this.props.parentGeneration;
           continuingTreeDepthPastParent.push(value);
         }
 
@@ -495,8 +503,12 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
         ) {
           // To avoid an extra connector line, skip a step of continuing depths if the parent txn is at least 2 generations deep
           // and it's a last child.
-          const generationOffset = parentContinuingDepths.length === 1
-            && parentContinuingDepths[0].depth === 0 && parentGeneration > 2 ? 2 : 1;
+          const generationOffset =
+            parentContinuingDepths.length === 1 &&
+            parentContinuingDepths[0].depth === 0 &&
+            parentGeneration > 2
+              ? 2
+              : 1;
           let i = parentGeneration - generationOffset;
           while (i >= minDepth) {
             const value: TreeDepthType =

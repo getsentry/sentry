@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Theme} from '@emotion/react';
-import {Location,LocationDescriptorObject} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 import isNumber from 'lodash/isNumber';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
@@ -462,33 +462,33 @@ export function getTraceContext(
 }
 
 export function handleTraceDetailsRouting(
-    metaResults: TraceMetaQueryChildrenProps | undefined,
-    event: Event,
-    organization: Organization,
-    location: Location
+  metaResults: TraceMetaQueryChildrenProps | undefined,
+  event: Event,
+  organization: Organization,
+  location: Location
+) {
+  const traceId = event.contexts?.trace?.trace_id ?? '';
+
+  if (
+    organization.features.includes('performance-trace-details') &&
+    metaResults?.meta &&
+    metaResults?.meta.transactions <= 200
   ) {
-    const traceId = event.contexts?.trace?.trace_id ?? '';
+    const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+      organization,
+      traceId,
+      event.title,
+      location.query
+    );
 
-    if (
-      organization.features.includes('performance-trace-details') &&
-      metaResults?.meta &&
-      metaResults?.meta.transactions <= 200
-    ) {
-      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-        organization,
-        traceId,
-        event.title,
-        location.query
-      );
-
-      browserHistory.replace({
-        pathname: traceDetailsLocation.pathname,
-        query: {
-          transaction: traceDetailsLocation.query?.transaction,
-        },
-        hash: transactionTargetHash(event.eventID) + location.hash,
-      });
-    }
+    browserHistory.replace({
+      pathname: traceDetailsLocation.pathname,
+      query: {
+        transaction: traceDetailsLocation.query?.transaction,
+      },
+      hash: transactionTargetHash(event.eventID) + location.hash,
+    });
+  }
 }
 
 export function parseTrace(

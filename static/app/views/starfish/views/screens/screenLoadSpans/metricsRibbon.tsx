@@ -16,12 +16,22 @@ import {DurationCell} from 'sentry/views/starfish/components/tableCells/duration
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {DEFAULT_PLATFORM, PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
-export function ScreenMetricsRibbon({additionalFilters, project}: {additionalFilters?: string[], project?: Project | null;}) {
+export function ScreenMetricsRibbon({
+  additionalFilters,
+  project,
+}: {
+  additionalFilters?: string[];
+  project?: Project | null;
+}) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const location = useLocation();
@@ -35,11 +45,13 @@ export function ScreenMetricsRibbon({additionalFilters, project}: {additionalFil
   const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
   const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
 
-  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
+  );
   const platform =
-        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-        DEFAULT_PLATFORM;
+    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
 
   const queryString = useMemo(() => {
     const searchQuery = new MutableSearch([
@@ -52,12 +64,15 @@ export function ScreenMetricsRibbon({additionalFilters, project}: {additionalFil
       searchQuery.addFilterValue('os.name', platform);
     }
 
-    return appendReleaseFilters(
-      searchQuery,
-      primaryRelease,
-      secondaryRelease
-    );
-  }, [additionalFilters, hasPlatformSelectFeature, platform, primaryRelease, project, secondaryRelease]);
+    return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
+  }, [
+    additionalFilters,
+    hasPlatformSelectFeature,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
+  ]);
 
   const newQuery: NewQuery = {
     name: 'ScreenMetricsRibbon',

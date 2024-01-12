@@ -1,4 +1,4 @@
-import {t} from "sentry/locale";
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Region} from 'sentry/types';
 

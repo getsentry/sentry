@@ -79,12 +79,11 @@ describe('App', function () {
   });
 
   it('renders PartnershipAgreement', function () {
-    ConfigStore.set('partnershipAgreementPrompt', {partnerDisplayName: 'Foo', agreements:['standard', 'partner_presence']});
-    HookStore.add(
-      'component:partnership-agreement',
-      () =>
-      <HookWrapper key={0}/>
-    );
+    ConfigStore.set('partnershipAgreementPrompt', {
+      partnerDisplayName: 'Foo',
+      agreements: ['standard', 'partner_presence'],
+    });
+    HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
@@ -96,11 +95,7 @@ describe('App', function () {
 
   it('does not render PartnerAgreement for non-partnered orgs', function () {
     ConfigStore.set('partnershipAgreementPrompt', null);
-    HookStore.add(
-      'component:partnership-agreement',
-      () =>
-      <HookWrapper key={0}/>
-    );
+    HookStore.add('component:partnership-agreement', () => <HookWrapper key={0} />);
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
@@ -170,7 +165,11 @@ describe('App', function () {
       body: {
         healthy: false,
         problems: [
-          {id: 'abc123', message: 'Celery workers have not checked in', severity: 'critical'},
+          {
+            id: 'abc123',
+            message: 'Celery workers have not checked in',
+            severity: 'critical',
+          },
         ],
       },
     });
@@ -185,6 +184,8 @@ describe('App', function () {
     ConfigStore.config.isSelfHosted = restore;
 
     expect(getMock).toHaveBeenCalled();
-    expect(await screen.findByText(/Celery workers have not checked in/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Celery workers have not checked in/)
+    ).toBeInTheDocument();
   });
 });

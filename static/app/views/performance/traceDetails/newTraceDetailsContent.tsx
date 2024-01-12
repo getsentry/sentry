@@ -133,26 +133,25 @@ function NewTraceDetailsContent(props: Props) {
               bodyText={<BrowserDisplay event={rootEvent} showVersion />}
               subtext={null}
             />
-            {replay_id &&
+            {replay_id && (
               <MetaData
                 headingText={t('Replay')}
                 tooltipText=""
                 bodyText={
-                <Link
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/replays/${replay_id}/`
-                  )}
-                >
-                  <ReplayLinkBody>
-                    {
-                      getShortEventId(replay_id)
-                    }
-                    <IconPlay size='xs'/>
-                  </ReplayLinkBody>
-                </Link>}
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/replays/${replay_id}/`
+                    )}
+                  >
+                    <ReplayLinkBody>
+                      {getShortEventId(replay_id)}
+                      <IconPlay size="xs" />
+                    </ReplayLinkBody>
+                  </Link>
+                }
                 subtext={null}
               />
-            }
+            )}
           </TraceHeaderRow>
         )}
         <TraceHeaderRow>
@@ -168,20 +167,27 @@ function NewTraceDetailsContent(props: Props) {
             headingText={t('Issues')}
             tooltipText=""
             bodyText={
-            <Tooltip
-              title={
-                errors + performanceIssues > 0 ?
-                  <Fragment>
-                    <div>{tn('%s error issue', '%s error issues', errors)}</div>
-                    <div>{tn('%s performance issue', '%s performance issues', performanceIssues)}</div>
-                  </Fragment>
-                : null
-              }
-              showUnderline
-              position='bottom'
-            >
-              {errors + performanceIssues}
-            </Tooltip>}
+              <Tooltip
+                title={
+                  errors + performanceIssues > 0 ? (
+                    <Fragment>
+                      <div>{tn('%s error issue', '%s error issues', errors)}</div>
+                      <div>
+                        {tn(
+                          '%s performance issue',
+                          '%s performance issues',
+                          performanceIssues
+                        )}
+                      </div>
+                    </Fragment>
+                  ) : null
+                }
+                showUnderline
+                position="bottom"
+              >
+                {errors + performanceIssues}
+              </Tooltip>
+            }
             subtext={null}
           />
           <MetaData
@@ -416,17 +422,15 @@ function NewTraceDetailsContent(props: Props) {
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-            <Breadcrumb
-              organization={organization}
-              location={location}
-              transaction={
-                  {
-                    project: rootEvent?.projectID ?? '',
-                    name: rootEvent?.title ?? ''
-                  }
-              }
-              traceSlug={traceSlug}
-            />
+          <Breadcrumb
+            organization={organization}
+            location={location}
+            transaction={{
+              project: rootEvent?.projectID ?? '',
+              name: rootEvent?.title ?? '',
+            }}
+            traceSlug={traceSlug}
+          />
           <Layout.Title data-test-id="trace-header">
             {t('Trace ID: %s', traceSlug)}
           </Layout.Title>
@@ -467,7 +471,7 @@ const LoadingContainer = styled('div')`
 const ReplayLinkBody = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.25)}
+  gap: ${space(0.25)};
 `;
 
 const TraceHeaderContainer = styled('div')`

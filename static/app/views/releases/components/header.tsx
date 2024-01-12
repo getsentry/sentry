@@ -53,7 +53,7 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
             },
             pathname: `/organizations/${organization.slug}/release-thresholds/`,
           }),
-          badge: (<FeatureBadge type="alpha" /> )
+          badge: <FeatureBadge type="alpha" />,
         },
       ]
     : [];

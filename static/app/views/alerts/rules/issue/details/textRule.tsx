@@ -18,7 +18,6 @@ export function TextCondition({
 }: {
   condition: IssueAlertRule['conditions'][number];
 }) {
-
   if (
     condition.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT ||
     condition.id === IssueAlertConditionType.EVENT_FREQUENCY ||
@@ -43,9 +42,7 @@ export function TextCondition({
     );
   }
 
-  if (
-    condition.id === IssueAlertConditionType.REAPPEARED_EVENT
-  ) {
+  if (condition.id === IssueAlertConditionType.REAPPEARED_EVENT) {
     return (
       <Fragment>{t('The issue changes state from archived to escalating')}</Fragment>
     );
