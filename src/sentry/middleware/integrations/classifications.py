@@ -5,10 +5,9 @@ import logging
 import re
 from typing import TYPE_CHECKING, List, Mapping, Type, cast
 
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
-from rest_framework.response import Response
 
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -142,7 +141,7 @@ class IntegrationClassification(BaseClassification):
                 f"hybrid_cloud.integration_control.integration.{parser.provider}",
                 tags={"url_name": parser.match.url_name, "status_code": 404},
             )
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return HttpResponse("", status=status.HTTP_404_NOT_FOUND)
 
         metrics.incr(
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
