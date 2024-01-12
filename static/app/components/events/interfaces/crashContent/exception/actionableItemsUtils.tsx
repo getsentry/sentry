@@ -135,7 +135,7 @@ export function shouldErrorBeShown(error: EventErrorData, event: Event) {
       return false;
     }
   }
-return true;
+  return true;
 }
 
 function isDataMinified(str: string | null) {
