@@ -84,6 +84,7 @@ class CustomerDomainMiddleware:
         ):
             return self.get_response(request)
         subdomain = request.subdomain
+        # This is where the request is going wrong as we're relying on lastorg from here on.
         if subdomain is None or subdomain_is_region(request):
             return self.get_response(request)
 
