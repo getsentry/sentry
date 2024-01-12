@@ -366,8 +366,6 @@ def fetch_key_error_groups(ctx):
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
-    group_id_to_group_history = {}
-
     for project_ctx in ctx.projects.values():
         # note Snuba might have groups that have since been deleted
         # we should just ignore those
@@ -377,7 +375,7 @@ def fetch_key_error_groups(ctx):
                 [
                     (
                         group_id_to_group.get(group_id),
-                        group_id_to_group_history.get(group_id, None),
+                        None,
                         count,
                     )
                     for group_id, count in project_ctx.key_errors
