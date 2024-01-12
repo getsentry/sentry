@@ -6,10 +6,8 @@ import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -84,48 +82,44 @@ function ScreenSummary() {
               <PageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
                 </Container>
-                <ErrorBoundary mini>
-                  <AppStartWidgets
-                    additionalFilters={[`transaction:${transactionName}`]}
-                  />
-                </ErrorBoundary>
-                <EventSamplesContainer>
-                  <ErrorBoundary mini>
-                    <div>
-                      <EventSamples
-                        cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                        sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                        release={primaryRelease}
-                        transaction={transactionName}
-                        showDeviceClassSelector
-                      />
-                    </div>
-                  </ErrorBoundary>
-                  <ErrorBoundary mini>
-                    <div>
-                      <EventSamples
-                        cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                        sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                        release={secondaryRelease}
-                        transaction={transactionName}
-                      />
-                    </div>
-                  </ErrorBoundary>
-                </EventSamplesContainer>
-                <ErrorBoundary mini>
-                  <SpanOperationTable
-                    transaction={transactionName}
-                    primaryRelease={primaryRelease}
-                    secondaryRelease={secondaryRelease}
-                  />
-                </ErrorBoundary>
               </PageFiltersContainer>
+              <ErrorBoundary mini>
+                <AppStartWidgets additionalFilters={[`transaction:${transactionName}`]} />
+              </ErrorBoundary>
+              <EventSamplesContainer>
+                <ErrorBoundary mini>
+                  <div>
+                    <EventSamples
+                      cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                      sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                      release={primaryRelease}
+                      transaction={transactionName}
+                      showDeviceClassSelector
+                    />
+                  </div>
+                </ErrorBoundary>
+                <ErrorBoundary mini>
+                  <div>
+                    <EventSamples
+                      cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                      sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                      release={secondaryRelease}
+                      transaction={transactionName}
+                    />
+                  </div>
+                </ErrorBoundary>
+              </EventSamplesContainer>
+              <ErrorBoundary mini>
+                <SpanOperationTable
+                  transaction={transactionName}
+                  primaryRelease={primaryRelease}
+                  secondaryRelease={secondaryRelease}
+                />
+              </ErrorBoundary>
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
