@@ -300,9 +300,9 @@ class WidgetCard extends Component<Props, State> {
       if (hasDDMExperimentalFeature(organization)) {
         return (
           <MetricWidgetCardAdapter
-            loading={false}
             index={this.props.index}
             isEditingWidget={this.props.isEditingWidget}
+            isEditingDashboard={this.props.isEditingDashboard}
             onEdit={this.props.onEdit}
             onUpdate={this.props.onUpdate}
             onDelete={this.props.onDelete}

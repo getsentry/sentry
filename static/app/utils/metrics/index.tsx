@@ -64,6 +64,7 @@ export enum MetricDisplayType {
   AREA = 'area',
   BAR = 'bar',
   TABLE = 'table',
+  BIG_NUMBER = 'big_number',
 }
 
 export const metricDisplayTypeOptions = [
@@ -662,11 +663,7 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
 }
 
 export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy, title} = metricWidget;
-
-  if (title) {
-    return title;
-  }
+  const {mri, op, query, groupBy} = metricWidget;
 
   if (!op) {
     return '';
