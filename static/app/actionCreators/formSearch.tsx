@@ -1,4 +1,3 @@
-import flatMap from 'lodash/flatMap';
 import flatten from 'lodash/flatten';
 
 import {Field, JsonFormObject} from 'sentry/components/forms/types';
@@ -26,7 +25,7 @@ const createSearchMap = ({
   // If `formGroups` is defined, then return a flattened list of fields in all formGroups
   // Otherwise `fields` is a map of fieldName -> fieldObject -- create a list of fields
   const listOfFields = formGroups
-    ? flatMap(formGroups, formGroup => formGroup.fields)
+    ? formGroups.flatMap(formGroup => formGroup.fields)
     : Object.keys(fields).map(fieldName => fields[fieldName]);
 
   return listOfFields.map(field => ({

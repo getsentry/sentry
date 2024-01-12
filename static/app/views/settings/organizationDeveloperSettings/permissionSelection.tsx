@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import find from 'lodash/find';
-import flatMap from 'lodash/flatMap';
 
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
@@ -100,8 +99,7 @@ function findResource(r: PermissionResource) {
  *
  */
 function permissionStateToList(permissions: Permissions) {
-  return flatMap(
-    Object.entries(permissions),
+  return Object.entries(permissions).flatMap(
     ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes
   );
 }
