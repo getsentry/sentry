@@ -118,7 +118,7 @@ function ResourceSummary() {
             />
           </HeaderContainer>
           {isImage && (
-            <SampleImages groupId={groupId} projectId={data[0]['project.id']} />
+            <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
           )}
           <ResourceSummaryCharts groupId={groupId} />
           <ResourceSummaryTable />

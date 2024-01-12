@@ -1242,6 +1242,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "sentry-metrics.synchronize-kafka-rebalances",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.synchronized-rebalance-delay",
+    default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Performance issue option for *all* performance issues detection
 register("performance.issues.all.problem-detection", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
