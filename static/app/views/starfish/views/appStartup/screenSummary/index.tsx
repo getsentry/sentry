@@ -26,6 +26,7 @@ import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/starfish/views/screens/constants';
+import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 
 import AppStartWidgets from './widgets';
 
@@ -85,6 +86,9 @@ function ScreenSummary() {
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
+                  <ScreenMetricsRibbon
+                    additionalFilters={[`transaction:${transactionName}`]}
+                  />
                 </Container>
               </PageFiltersContainer>
               <ErrorBoundary mini>
@@ -134,7 +138,6 @@ const Container = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-rows: auto;
