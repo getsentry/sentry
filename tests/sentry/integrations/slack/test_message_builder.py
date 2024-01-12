@@ -87,9 +87,9 @@ def build_test_message_blocks(
                     },
                     {
                         "type": "button",
-                        "action_id": "ignored:forever",
-                        "text": {"type": "plain_text", "text": "Ignore"},
-                        "value": "ignored:forever",
+                        "action_id": "ignored:until_escalating",
+                        "text": {"type": "plain_text", "text": "Archive"},
+                        "value": "ignored:until_escalating",
                     },
                     {
                         "type": "static_select",
@@ -152,7 +152,12 @@ def build_test_message(
         "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
+            {
+                "name": "status",
+                "text": "Archive",
+                "type": "button",
+                "value": "ignored:until_escalating",
+            },
             {
                 "option_groups": [
                     {
@@ -248,6 +253,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
         group = self.create_group(project=self.project)
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -875,7 +883,7 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
         expected = {
-            "label": "Stop Ignoring",
+            "label": "Mark as Ongoing",
             "name": "status",
             "type": "button",
             "value": "unresolved:ongoing",
@@ -934,10 +942,10 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
         expected = {
-            "label": "Ignore",
+            "label": "Archive",
             "name": "status",
             "type": "button",
-            "value": "ignored:forever",
+            "value": "ignored:until_escalating",
         }
         self._assert_message_actions_list(
             res[0],
@@ -1016,6 +1024,20 @@ class ActionsTest(TestCase):
             res[0],
             expected,
         )
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+
+            self._assert_message_actions_list(
+                res[0],
+                {
+                    "label": "Unresolve",
+                    "name": "unresolved:ongoing",
+                    "type": "button",
+                    "value": "unresolved:ongoing",
+                },
+            )
 
     def test_resolve_unresolved_no_releases(self):
         group = self.create_group(project=self.project)
@@ -1037,6 +1059,19 @@ class ActionsTest(TestCase):
                 "value": "resolved",
             },
         )
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            self._assert_message_actions_list(
+                res[0],
+                {
+                    "label": "Resolve",
+                    "name": "status",
+                    "type": "button",
+                    "value": "resolved",
+                },
+            )
 
     def test_resolve_unresolved_has_releases(self):
         group = self.create_group(project=self.project)
@@ -1058,6 +1093,20 @@ class ActionsTest(TestCase):
                 "value": "resolve_dialog",
             },
         )
+
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            self._assert_message_actions_list(
+                res[0],
+                {
+                    "label": "Resolve",
+                    "name": "status",
+                    "type": "button",
+                    "value": "resolve_dialog",
+                },
+            )
 
     def test_assign(self):
         group = self.create_group(project=self.project)

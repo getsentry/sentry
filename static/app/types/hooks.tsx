@@ -156,6 +156,13 @@ type MonitorCreatedCallback = (organization: Organization) => void;
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
+export type ParntershipAgreementType = 'standard' | 'partner_presence';
+type PartnershipAgreementProps = {
+  agreements: Array<ParntershipAgreementType>;
+  partnerDisplayName: string;
+  onSubmitSuccess?: () => void;
+};
+
 /**
  * Component wrapping hooks
  */
@@ -179,7 +186,8 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
-  'component:organization-header': React.ComponentType<OrganizationHeaderProps>;
+  'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
+  'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
@@ -266,7 +274,6 @@ export type FeatureDisabledHooks = {
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
@@ -348,11 +355,6 @@ type GenericOrganizationComponentHook = (opts: {
  * Receives a project object and should return a React node.
  */
 type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
-
-// TODO(ts): We should correct the organization header hook to conform to the
-// GenericOrganizationComponentHook, passing org as a prop object, not direct
-// as the only argument.
-type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.

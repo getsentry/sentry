@@ -22,7 +22,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {MetricRange, MetricSpan} from '../../utils/metrics/index';
 
 export type SamplesTableProps = MetricRange & {
-  mri: MRI;
+  mri?: MRI;
+  query?: string;
 };
 
 type Column = GridColumnHeader<keyof MetricSpan>;
@@ -35,12 +36,12 @@ const columnOrder: GridColumnOrder<keyof MetricSpan>[] = [
   {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: 'Replay'},
 ];
 
-export function SampleTable({mri, ...range}: SamplesTableProps) {
+export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const {data, isLoading} = useMetricsSpans(mri, range);
+  const {data, isFetching} = useMetricsSpans(mri, metricMetaOptions);
 
   const getProjectSlug = useCallback(
     (projectId: number) => {
@@ -64,7 +65,7 @@ export function SampleTable({mri, ...range}: SamplesTableProps) {
   function renderBodyCell(col: Column, row: MetricSpan) {
     const {key} = col;
     if (!row[key]) {
-      return <span>{'\u2014'}</span>;
+      return <AlignCenter>{'\u2014'}</AlignCenter>;
     }
     if (key === 'spanId') {
       return (
@@ -137,7 +138,7 @@ export function SampleTable({mri, ...range}: SamplesTableProps) {
 
   return (
     <GridEditable
-      isLoading={isLoading}
+      isLoading={isFetching}
       columnOrder={columnOrder}
       columnSortBy={[]}
       data={rows}
@@ -145,6 +146,7 @@ export function SampleTable({mri, ...range}: SamplesTableProps) {
         renderHeadCell,
         renderBodyCell,
       }}
+      emptyMessage={mri ? t('No samples found') : t('Choose a metric to display data.')}
       location={location}
     />
   );

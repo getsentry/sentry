@@ -1,18 +1,18 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './react-native';
 
-import {GettingStartedWithReactNative, steps} from './react-native';
+describe('GettingStartedWithSpring', function () {
+  it('renders docs correctly', function () {
+    renderWithOnboardingLayout(docs);
 
-describe('GettingStartedWithDjango', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithReactNative dsn="test-dsn" projectSlug="test-project" />);
-
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Performance'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Debug Symbols'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Source Context'})).toBeInTheDocument();
   });
 });

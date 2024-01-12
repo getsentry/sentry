@@ -6,9 +6,8 @@ from fixtures.vsts import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.grouplink import GroupLink
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -26,7 +25,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
 
     def setUp(self):
-        model = Integration.objects.create(
+        model = self.create_provider_integration(
             provider="vsts",
             external_id="vsts_external_id",
             name="fabrikam-fiber-inc",
@@ -36,7 +35,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
             },
         )
         identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="vsts",
             data={"access_token": "123456789", "expires": time() + 1234567},

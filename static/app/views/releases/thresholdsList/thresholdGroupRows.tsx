@@ -16,7 +16,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
-  CRASH_FREE_SESSION_RATE_STR as _CRASH_FREE_SESSION_RATE_STR,
+  CRASH_FREE_SESSION_RATE_STR,
   CRASH_FREE_USER_RATE_STR as _CRASH_FREE_USER_RATE_STR,
   FAILURE_RATE_STR as _FAILURE_RATE_STR,
   NEW_ISSUE_COUNT_STR as _NEW_ISSUE_COUNT_STR,
@@ -80,6 +80,25 @@ export function ThresholdGroupRows({
     }
     return new Set([...initial, ...Object.keys(editingThresholds)]);
   }, [initialThreshold, editingThresholds]);
+
+  const thresholdTypeList = useMemo(() => {
+    const isInternal = organization.features?.includes('releases-v2-internal');
+    const list = [
+      {
+        value: TOTAL_ERROR_COUNT_STR,
+        textValue: 'Errors',
+        label: 'Error Count',
+      },
+    ];
+    if (isInternal) {
+      list.push({
+        value: CRASH_FREE_SESSION_RATE_STR,
+        textValue: 'Crash Free Sessions',
+        label: 'Crash Free Sessions',
+      });
+    }
+    return list;
+  }, [organization]);
 
   const initializeNewThreshold = (
     environmentName: string | undefined = undefined,
@@ -311,18 +330,7 @@ export function ThresholdGroupRows({
                         selectedOption.value
                       )
                     }
-                    options={[
-                      {
-                        value: TOTAL_ERROR_COUNT_STR,
-                        textValue: 'Errors',
-                        label: 'Error Count',
-                      },
-                      // {
-                      //   value: CRASH_FREE_SESSION_RATE_STR,
-                      //   textValue: 'Crash Free Sessions',
-                      //   label: 'Crash Free Sessions',
-                      // },
-                    ]}
+                    options={thresholdTypeList}
                   />
                   {threshold.trigger_type === 'over' ? (
                     <Button

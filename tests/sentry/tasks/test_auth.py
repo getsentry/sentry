@@ -43,6 +43,15 @@ class EmailMissingLinksControlTest(TestCase):
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
 
+    def test_email_missing_links_organization_deleted(self):
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization.delete()
+
+        with self.tasks():
+            email_missing_links_control(self.organization.id, self.user.id, self.provider.provider)
+
+        assert len(mail.outbox) == 0
+
 
 @region_silo_test
 class EmailMissingLinksTest(TestCase):
@@ -75,6 +84,14 @@ class EmailMissingLinksTest(TestCase):
         assert message.to == [self.user2.email]
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
+
+    def test_email_missing_links_organization_deleted(self):
+        self.organization.delete()
+
+        with self.tasks():
+            email_missing_links(self.organization.id, self.user.id, self.provider.provider)
+
+        assert len(mail.outbox) == 0
 
 
 @region_silo_test

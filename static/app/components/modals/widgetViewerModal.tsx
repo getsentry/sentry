@@ -751,7 +751,7 @@ function WidgetViewerModal(props: Props) {
                 <CodeLocations mri={parsedField.mri} />
               </TabPanels.Item>
               <TabPanels.Item key="samples">
-                <SampleTable mri={parsedField.mri} />
+                <SampleTable mri={parsedField.mri} query={widget.queries[0].conditions} />
               </TabPanels.Item>
             </TabPanels>
           </MetricWidgetTabContent>
@@ -1214,7 +1214,7 @@ function OpenButton({
       path = getWidgetReleasesUrl(widget, selection, organization);
       break;
     case WidgetType.METRICS:
-      openLabel = t('Open in DDM');
+      openLabel = t('Open in Metrics');
       path = getWidgetDDMUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
