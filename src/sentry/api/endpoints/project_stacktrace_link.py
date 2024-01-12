@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,9 +23,15 @@ from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
+
+
+class ReposityLinkOutcome(TypedDict):
+    sourceUrl: str | None
+    error: str | None
+    attemptedUrl: str | None
+    sourcePath: str | None
 
 
 def get_link(
@@ -34,8 +40,8 @@ def get_link(
     version: Optional[str] = None,
     group_id: Optional[str] = None,
     frame_abs_path: Optional[str] = None,
-) -> Dict[str, str]:
-    result = {}
+) -> ReposityLinkOutcome:
+    result: ReposityLinkOutcome = {}
 
     integration = integration_service.get_integration(
         organization_integration_id=config.organization_integration_id
@@ -155,17 +161,106 @@ def try_path_munging(
     return result, current_iteration_count
 
 
-def set_tags(scope: Scope, result: JSONData) -> None:
-    scope.set_tag("stacktrace_link.found", result["sourceUrl"] is not None)
-    scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
+def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: List[None]) -> None:
+    scope.set_tag("stacktrace_link.found", result["source_url"] is not None)
+    scope.set_tag("stacktrace_link.source_url", result.get("source_url"))
     scope.set_tag("stacktrace_link.error", result.get("error"))
     scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
-    if result["config"]:
-        scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
+    if result["current_config"]:
         scope.set_tag(
-            "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
+            "stacktrace_link.empty_root",
+            result["current_config"]["config"].automatically_generated == "",
         )
-    scope.set_tag("stacktrace_link.has_integration", len(result["integrations"]) > 0)
+        scope.set_tag(
+            "stacktrace_link.auto_derived",
+            result["current_config"]["config"].automatically_generated is True,
+        )
+    scope.set_tag("stacktrace_link.has_integration", len(integrations) > 0)
+
+
+class StacktraceLinkConfig(TypedDict):
+    config: RepositoryProjectPathConfig
+    outcome: ReposityLinkOutcome
+    repository: str
+
+
+class StacktraceLinkOutcome(TypedDict):
+    source_url: str | None
+    error: str | None
+    current_config: StacktraceLinkConfig | None
+    iteration_count: int
+    is_munged: bool
+
+
+def get_stacktrace_config(
+    configs: List[RepositoryProjectPathConfig],
+    ctx: Dict[str, Optional[str]],
+) -> StacktraceLinkOutcome:
+    filepath = ctx.get("file")
+    result: StacktraceLinkOutcome = {
+        "source_url": None,
+        "error": None,
+        "current_config": None,
+        "iteration_count": 0,
+        "is_munged": False,
+    }
+    for config in configs:
+        outcome = {}
+        munging_outcome = {}
+
+        # Munging is required for get_link to work with mobile platforms
+        if ctx["platform"] in ["java", "cocoa", "other"]:
+            munging_outcome, next_iteration_count = try_path_munging(
+                config, filepath, ctx, result["iteration_count"]
+            )
+            result["iteration_count"] = next_iteration_count
+            if munging_outcome.get("error") == "stack_root_mismatch":
+                result["error"] = "stack_root_mismatch"
+                continue
+
+        if not munging_outcome:
+            if not filepath.startswith(config.stack_root):
+                # This may be overwritten if a valid code mapping is found
+                result["error"] = "stack_root_mismatch"
+                continue
+
+            outcome = get_link(
+                config,
+                filepath,
+                ctx.get("commit_id"),
+                ctx.get("group_id"),
+                ctx.get("abs_path"),
+            )
+            result["iteration_count"] += 1
+            # XXX: I want to remove this whole block logic as I believe it is wrong
+            # In some cases the stack root matches and it can either be that we have
+            # an invalid code mapping or that munging is expect it to work
+            if not outcome.get("sourceUrl"):
+                munging_outcome, next_iteration_count = try_path_munging(
+                    config, filepath, ctx, result["iteration_count"]
+                )
+                result["iteration_count"] = next_iteration_count
+                if munging_outcome:
+                    # Report errors to Sentry for investigation
+                    logger.error("We should never be able to reach this code.")
+
+        # Keep the original outcome if munging failed
+        if munging_outcome:
+            outcome = munging_outcome
+            result["is_munged"] = True
+
+        result["current_config"] = {
+            "config": config,
+            "outcome": outcome,
+            "repository": config.repository,
+        }
+
+        # Stop processing if a match is found
+        if outcome.get("sourceUrl") and outcome["sourceUrl"]:
+            result["source_url"] = outcome["sourceUrl"]
+            return result
+
+    return result
 
 
 @region_silo_endpoint
@@ -196,99 +291,61 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
-        result: JSONData = {"config": None, "sourceUrl": None}
-
         integrations = integration_service.get_integrations(organization_id=project.organization_id)
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
         serializer = IntegrationSerializer()
-        result["integrations"] = [
+        serialized_integrations = [
             serialize(i, request.user, serializer)
             for i in integrations
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
         configs = get_sorted_code_mapping_configs(project)
+        if not configs:
+            return Response(
+                {
+                    "config": None,
+                    "sourceUrl": None,
+                    "integrations": serialized_integrations,
+                }
+            )
 
-        current_config = None
-        iteration_count = 0
+        attempted_url = None
+        error = None
+        codecov_data = None
+        serialized_config = None
 
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
-            for config in configs:
-                outcome = {}
-                munging_outcome = {}
-
-                # Munging is required for get_link to work with mobile platforms
-                if ctx["platform"] in ["java", "cocoa", "other"]:
-                    munging_outcome, next_iteration_count = try_path_munging(
-                        config, filepath, ctx, iteration_count
-                    )
-                    iteration_count = next_iteration_count
-                    if munging_outcome.get("error") == "stack_root_mismatch":
-                        result["error"] = "stack_root_mismatch"
-                        continue
-
-                if not munging_outcome:
-                    if not filepath.startswith(config.stack_root):
-                        # This may be overwritten if a valid code mapping is found
-                        result["error"] = "stack_root_mismatch"
-                        continue
-
-                    outcome = get_link(
-                        config,
-                        filepath,
-                        ctx.get("commit_id"),
-                        ctx.get("group_id"),
-                        ctx.get("abs_path"),
-                    )
-                    iteration_count += 1
-                    # XXX: I want to remove this whole block logic as I believe it is wrong
-                    # In some cases the stack root matches and it can either be that we have
-                    # an invalid code mapping or that munging is expect it to work
-                    if not outcome.get("sourceUrl"):
-                        munging_outcome, next_iteration_count = try_path_munging(
-                            config, filepath, ctx, iteration_count
-                        )
-                        iteration_count = next_iteration_count
-                        if munging_outcome:
-                            # Report errors to Sentry for investigation
-                            logger.error("We should never be able to reach this code.")
-
-                # Keep the original outcome if munging failed
-                if munging_outcome:
-                    outcome = munging_outcome
-                    scope.set_tag("stacktrace_link.munged", True)
-
-                current_config = {
-                    "config": serialize(config, request.user),
-                    "outcome": outcome,
-                    "repository": config.repository,
-                }
-
-                # Use the provider key to split up stacktrace-link metrics by integration type
-                provider = current_config["config"]["provider"]["key"]
-                scope.set_tag("integration_provider", provider)  # e.g. github
-
-                # Stop processing if a match is found
-                if outcome.get("sourceUrl") and outcome["sourceUrl"]:
-                    result["sourceUrl"] = outcome["sourceUrl"]
-                    break
+            result = get_stacktrace_config(configs, ctx)
+            error = result["error"]
 
             # Post-processing before exiting scope context
-            if current_config:
-                result["config"] = current_config["config"]
-                if not result.get("sourceUrl"):
-                    result["error"] = current_config["outcome"]["error"]
+            if result["current_config"]:
+                # Use the provider key to split up stacktrace-link metrics by integration type
+                serialized_config = serialize(result["current_config"]["config"], request.user)
+                provider = serialized_config["provider"]["key"]
+                scope.set_tag("integration_provider", provider)  # e.g. github
+                scope.set_tag("stacktrace_link.munged", result["is_munged"])
+
+                if not result["source_url"]:
+                    error = result["current_config"]["outcome"].get("error")
                     # When no code mapping have been matched we have not attempted a URL
-                    if current_config["outcome"].get("attemptedUrl"):
-                        result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
+                    if result["current_config"]["outcome"].get("attemptedUrl"):
+                        attempted_url = result["current_config"]["outcome"]["attemptedUrl"]
 
                 should_get_coverage = codecov_enabled(project.organization)
                 scope.set_tag("codecov.enabled", should_get_coverage)
                 if should_get_coverage:
                     with Timer() as t:
-                        codecov_data = fetch_codecov_data(config=current_config)
+                        codecov_data = fetch_codecov_data(
+                            config={
+                                "repository": result["current_config"]["repository"],
+                                "config": serialized_config,
+                                "outcome": result["current_config"]["outcome"],
+                            }
+                        )
                         analytics.record(
                             "function_timer.timed",
                             function_name="fetch_codecov_data",
@@ -298,23 +355,41 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                             group_id=ctx.get("group_id"),
                             frame_abs_path=ctx.get("abs_path"),
                         )
-                    if codecov_data:
-                        result["codecov"] = codecov_data
             try:
-                set_tags(scope, result)
+                set_tags(scope, result, serialized_integrations)
             except Exception:
                 logger.exception("Failed to set tags.")
 
-        if result["config"]:
+        if result["current_config"] and serialized_config:
             analytics.record(
                 "integration.stacktrace.linked",
-                provider=result["config"]["provider"]["key"],
-                config_id=result["config"]["id"],
+                provider=serialized_config["provider"]["key"],
+                config_id=serialized_config["id"],
                 project_id=project.id,
                 organization_id=project.organization_id,
                 filepath=filepath,
-                status=result.get("error") or "success",
-                link_fetch_iterations=iteration_count,
+                status=error or "success",
+                link_fetch_iterations=result["iteration_count"],
+            )
+            return Response(
+                {
+                    # TODO(scttcper): Remove error in success case
+                    "error": error,
+                    "config": serialized_config,
+                    "sourceUrl": result["source_url"],
+                    "attemptedUrl": attempted_url,
+                    "integrations": serialized_integrations,
+                    "codecov": codecov_data,
+                }
             )
 
-        return Response(result)
+        return Response(
+            {
+                "error": error,
+                "config": serialized_config,
+                "sourceUrl": None,
+                "attemptedUrl": attempted_url,
+                "integrations": serialized_integrations,
+                "codecov": codecov_data,
+            }
+        )
