@@ -20,6 +20,7 @@ from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import to_intervals
 from sentry.snuba.metrics_layer.query import run_query
+from sentry.utils import metrics
 from sentry.utils.snuba import SnubaError
 
 # Snuba can return at most 10.000 rows.
@@ -551,6 +552,8 @@ class QueryExecutor:
         self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
         self._scheduled_queries: List[ExecutableQuery] = []
+        # Tracks the number of queries that have been executed (for measuring purposes).
+        self._number_of_executed_queries = 0
 
     def _build_request(self, query: MetricsQuery) -> Request:
         """
@@ -609,6 +612,7 @@ class QueryExecutor:
                         order_by_direction
                     )
 
+                self._number_of_executed_queries += 1
                 totals_result = run_query(
                     request=self._build_request(
                         totals_executable_query.to_totals_query().metrics_query
@@ -629,6 +633,7 @@ class QueryExecutor:
                         _extract_groups_from_seq(totals_result["data"])
                     )
 
+                self._number_of_executed_queries += 1
                 series_result = run_query(
                     request=self._build_request(series_executable_query.metrics_query)
                 )
@@ -734,6 +739,10 @@ class QueryExecutor:
 
             results = [reference_query_result]
             reference_groups = reference_query_result.groups
+            metrics.distribution(
+                key="ddm.metrics_api.groups_cardinality", value=len(reference_groups)
+            )
+
             for query in self._scheduled_queries:
                 query_result = self._execute(
                     executable_query=query.add_group_filters(reference_groups),
@@ -759,7 +768,12 @@ class QueryExecutor:
         return self._serial_execute()
 
     def execute(self) -> Sequence[QueryResult]:
-        return self._serial_execute()
+        results = self._serial_execute()
+        metrics.distribution(
+            key="ddm.metrics_api.queries_executed", value=self._number_of_executed_queries
+        )
+
+        return results
 
     def schedule(
         self,
@@ -1019,10 +1033,14 @@ def run_metrics_query(
             f"The supplied orderBy {order_by} is not matching with any field of the query"
         )
 
-    # Iterating over each result.
-    results = []
-    for result in executor.execute():
-        results.append(result)
+    with metrics.timer(
+        key="ddm.metrics_api.queries_execution_time",
+        tags={"with_order_by": (order_by is not None), "with_group_by": (group_bys is not None)},
+    ):
+        # Iterating over each result.
+        results = []
+        for result in executor.execute():
+            results.append(result)
 
     # We translate the result back to the pre-existing format.
     return _translate_query_results(execution_results=results)
