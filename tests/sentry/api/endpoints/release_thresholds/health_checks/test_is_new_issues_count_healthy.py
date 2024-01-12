@@ -424,3 +424,7 @@ class TestUpdateNewIssuesCountHealthyForThresholds(TestCase):
         update_new_issues_count_healthy_for_thresholds(list_of_thresholds)
         assert enriched_threshold["is_healthy"] is True
         assert wrong_threshold["is_healthy"] is False
+
+    def test_returns_early_when_no_annotations_are_found(self) -> None:
+        list_of_thresholds = []
+        update_new_issues_count_healthy_for_thresholds(list_of_thresholds)

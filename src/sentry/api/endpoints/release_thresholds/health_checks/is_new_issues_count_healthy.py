@@ -37,6 +37,9 @@ def update_new_issues_count_healthy_for_thresholds(
         else:
             q = q.union(annotation, all=True)
 
+    if q is None:
+        return
+
     # Execute the query to retrieve the unique_key and count columns that hold the data we need
     # Each resultant threshold should be a dictionary with the 2 columns
     results = q.values(NEW_ISSUES_UNIQUE_KEY_COLUMN, NEW_ISSUES_COUNT_COLUMN)
