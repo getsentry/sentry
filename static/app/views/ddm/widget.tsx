@@ -61,7 +61,7 @@ export const MetricWidget = memo(
     isSelected = false,
     onSelect,
     onChange,
-    hasSiblings,
+    hasSiblings = false,
     addFocusArea,
     removeFocusArea,
     focusArea = null,
