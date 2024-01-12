@@ -202,7 +202,7 @@ const ICON_SIZES: Partial<
   Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
 > = {
   xs: 'xs',
-  sm: 'xs',
+  sm: 'sm',
   md: 'sm',
 };
 

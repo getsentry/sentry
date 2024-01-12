@@ -21,13 +21,13 @@ export default storyBook('Button', story => {
   const propMatrix: PropMatrix<ButtonProps> = {
     borderless: [false, true],
     busy: [false, true],
-    children: ['Save', undefined],
+    children: ['Delete', undefined],
     icon: [undefined, <IconDelete key="" />],
     priority: ['default', 'primary', 'danger', 'link', undefined],
     size: ['md', 'sm', 'xs', 'zero'],
     disabled: [false, true],
     external: [false, true],
-    title: [undefined, 'Save Now'],
+    title: [undefined, 'Delete this'],
     translucentBorder: [false, true],
   };
   story('Props', () => (
