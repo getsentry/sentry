@@ -45,7 +45,6 @@ from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -1235,7 +1234,6 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 [],
             )
 
-    @with_feature("organizations:escalating-issues")
     def test_group_substatus_header(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id

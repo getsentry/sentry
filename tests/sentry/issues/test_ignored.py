@@ -6,7 +6,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
@@ -58,7 +57,6 @@ class HandleIgnoredTest(TestCase):
         assert Group.objects.get(id=self.group.id).substatus == GroupSubStatus.UNTIL_CONDITION_MET
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class HandleArchiveUntilEscalating(TestCase):
     @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
     @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")

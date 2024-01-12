@@ -248,7 +248,6 @@ class UpdateGroupsTest(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignore_with_substatus_archived_until_escalating(self, send_robust: Mock) -> None:
         group = self.create_group()

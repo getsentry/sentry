@@ -197,9 +197,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
-            if "forecast" in expand and features.has(
-                "organizations:escalating-issues", group.organization
-            ):
+            if "forecast" in expand:
                 fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
                 if fetched_forecast:
                     fetched_forecast = fetched_forecast.to_dict()

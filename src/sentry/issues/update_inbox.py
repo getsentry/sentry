@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from sentry import features
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import (
@@ -37,9 +36,6 @@ def update_inbox(
         for group in group_list:
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
     elif not in_inbox:
-        has_escalating = features.has(
-            "organizations:escalating-issues", group_list[0].project.organization, actor=acting_user
-        )
         for group in group_list:
             # Remove from inbox first to insert the mark reviewed activity
             remove_group_from_inbox(
@@ -48,11 +44,7 @@ def update_inbox(
                 user=acting_user,
                 referrer=http_referrer,
             )
-            if (
-                has_escalating
-                and group.substatus != GroupSubStatus.ONGOING
-                and group.status == GroupStatus.UNRESOLVED
-            ):
+            if group.substatus != GroupSubStatus.ONGOING and group.status == GroupStatus.UNRESOLVED:
                 bulk_transition_group_to_ongoing(
                     group.status,
                     group.substatus,

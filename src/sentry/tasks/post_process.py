@@ -910,7 +910,6 @@ def process_snoozes(job: PostProcessJob) -> None:
     # Check if group is escalating
     if (
         not should_use_new_escalation_logic
-        and features.has("organizations:escalating-issues", group.organization)
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
@@ -962,10 +961,7 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_window": snooze.user_window,
             }
 
-            if features.has("organizations:escalating-issues", group.organization):
-                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
-            else:
-                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
+            manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
 
             snooze.delete()
 
