@@ -1,3 +1,4 @@
+import {useCallback, useRef} from 'react';
 import {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
@@ -47,8 +48,16 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
+import useRouter from 'sentry/utils/useRouter';
 
+import {
+  normalizeDateTimeParams,
+  parseStatsPeriod,
+} from '../../components/organizations/pageFilters/parse';
 import {DateString, PageFilters} from '../../types/core';
+
+export const METRICS_DOCS_URL =
+  'https://develop.sentry.dev/delightful-developer-metrics/';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -57,7 +66,30 @@ export enum MetricDisplayType {
   TABLE = 'table',
 }
 
-export const defaultMetricDisplayType = MetricDisplayType.LINE;
+export const metricDisplayTypeOptions = [
+  {
+    value: MetricDisplayType.LINE,
+    label: t('Line'),
+  },
+  {
+    value: MetricDisplayType.AREA,
+    label: t('Area'),
+  },
+  {
+    value: MetricDisplayType.BAR,
+    label: t('Bar'),
+  },
+];
+
+export function getDefaultMetricDisplayType(
+  mri: MetricsQuery['mri'],
+  op: MetricsQuery['op']
+): MetricDisplayType {
+  if (mri?.startsWith('c') || op === 'count') {
+    return MetricDisplayType.BAR;
+  }
+  return MetricDisplayType.LINE;
+}
 
 export const getMetricDisplayType = (displayType: unknown): MetricDisplayType => {
   if (
@@ -83,8 +115,7 @@ export type SortState = {
   order: 'asc' | 'desc';
 };
 
-export interface MetricWidgetQueryParams
-  extends Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> {
+export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
   focusedSeries?: string;
   powerUserMode?: boolean;
@@ -110,7 +141,13 @@ export type MetricsQuery = {
   groupBy?: string[];
   op?: string;
   query?: string;
+  title?: string;
 };
+
+export type MetricsQuerySubject = Pick<
+  MetricsQuery,
+  'mri' | 'op' | 'query' | 'groupBy' | 'title'
+>;
 
 export type MetricCodeLocationFrame = {
   absPath?: string;
@@ -129,7 +166,28 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
+  metricSpans?: MetricSpan[];
 };
+
+export type MetricSpan = {
+  duration: number;
+  profileId: string;
+  projectId: number;
+  spanId: string;
+  timestamp: string;
+  traceId: string;
+  transactionId: string;
+  // Not there yet but we will add it
+  replayId?: string;
+};
+
+export type MetricRange = {
+  end?: DateString;
+  max?: number;
+  min?: number;
+  start?: DateString;
+};
+
 export function getDdmUrl(
   orgSlug: string,
   {
@@ -161,7 +219,7 @@ export function getDdmUrl(
 }
 
 export function getMetricsApiRequestQuery(
-  {field, query, groupBy}: MetricsApiRequestMetric,
+  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
@@ -178,9 +236,11 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
+    orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
-    // max result groups
-    per_page: 10,
+    // Max result groups for compatibility with old metrics layer
+    // TODO(telemetry-experience): remove once everyone is on new metrics layer
+    per_page: Math.max(10, overrides.limit ?? 0),
   };
 
   return {...queryToSend, ...overrides};
@@ -215,7 +275,7 @@ export function getDDMInterval(
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= 60 && useCase === 'custom') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && fidelity === 'high') {
     return '10s';
   }
 
@@ -444,12 +504,23 @@ export function isAllowedOp(op: string) {
   return !['max_timestamp', 'min_timestamp', 'histogram'].includes(op);
 }
 
-export function updateQuery(router: InjectedRouter, partialQuery: Record<string, any>) {
+// Applying these operations to a metric will result in a timeseries whose scale is different than
+// the original metric. Becuase of that min and max bounds can't be used and we display the fog of war
+export function isCumulativeOp(op: string = '') {
+  return ['sum', 'count', 'count_unique'].includes(op);
+}
+
+export function updateQuery(
+  router: InjectedRouter,
+  queryUpdater:
+    | Record<string, any>
+    | ((query: Record<string, any>) => Record<string, any>)
+) {
   router.push({
     ...router.location,
     query: {
       ...router.location.query,
-      ...partialQuery,
+      ...queryUpdater,
     },
   });
 }
@@ -459,6 +530,35 @@ export function clearQuery(router: InjectedRouter) {
     ...router.location,
     query: {},
   });
+}
+
+export function useInstantRef<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
+
+export function useUpdateQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(
+    (partialQuery: Record<string, any>) => {
+      updateQuery(routerRef.current, partialQuery);
+    },
+    [routerRef]
+  );
+}
+
+export function useClearQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(() => {
+    clearQuery(routerRef.current);
+  }, [routerRef]);
 }
 
 // TODO(ddm): there has to be a nicer way to do this
@@ -549,4 +649,55 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
     acc[newKeys[index]] = obj[key];
     return acc;
   }, {});
+}
+
+export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
+  const {mri, op, query, groupBy, title} = metricWidget;
+
+  if (title) {
+    return title;
+  }
+
+  if (!op) {
+    return '';
+  }
+
+  let result = `${op}(${formatMRI(mri)})`;
+
+  if (query) {
+    result += `{${query.trim()}}`;
+  }
+
+  if (groupBy && groupBy.length) {
+    result += ` by ${groupBy.join(', ')}`;
+  }
+
+  return result;
+}
+
+// TODO: consider moving this to utils/dates.tsx
+export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
+  const {start, end, statsPeriod, utc} = normalizeDateTimeParams(params, {
+    allowAbsoluteDatetime: true,
+  });
+
+  if (start && end) {
+    return {start: moment(start).toISOString(), end: moment(end).toISOString()};
+  }
+
+  const parsedStatusPeriod = parseStatsPeriod(statsPeriod || '24h');
+
+  const now = utc ? moment().utc() : moment();
+
+  if (!parsedStatusPeriod) {
+    // Default to 24h
+    return {start: moment(now).subtract(1, 'day').toISOString(), end: now.toISOString()};
+  }
+
+  const startObj = moment(now).subtract(
+    parsedStatusPeriod.period,
+    parsedStatusPeriod.periodLength
+  );
+
+  return {start: startObj.toISOString(), end: now.toISOString()};
 }

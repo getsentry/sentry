@@ -1,3 +1,35 @@
+23.12.1
+-------
+
+### Various fixes & improvements
+
+- migrations(crons): Add is_muted to MonitorEnvironment (#62115) by @rjo100
+- chore(logs): Remove logging for entire response object (#62123) by @leeandher
+- ref: factor out our remaining pkg_resources usages (#62084) by @asottile-sentry
+- ref: upgrade jsonschema (#62087) by @asottile-sentry
+- Revert "ref: upgrade to python 3.11 (#59730)" (f3ad67ad) by @getsentry-bot
+- fix(integrations) Make social auth user update silo safe (#62092) by @markstory
+- fix(hybridcloud) Return early when we can't find organizations (#62126) by @markstory
+- profiling: test idle callback finish strategy (#62171) by @JonasBa
+- Revert "test(backup): Remove @targets decorator and improve assert message (#61719)" (2f81e776) by @getsentry-bot
+- ref(tests): Remove TestStubs from contextPickerModal, customResolutionModal, debugMeta (#62132) by @billyvg
+- chore: remove lodash usages (#61593) by @anonrig
+- ref: upgrade to python 3.11 (#59730) by @asottile-sentry
+- Revert "feat(replays): Remove scalar query optimization (#61815)" (08821e13) by @getsentry-bot
+- feat(ddm): Handle dashboard naming collision (#62163) by @ArthurKnaus
+- feat(ddm): Explicitly pass codeLocations to the ddm/meta endopint (#62155) by @iambriccardo
+- fix(ddm): Metrics meta stale time (#62162) by @ArthurKnaus
+- feat(ddm): Update PHP onboarding docs link (#62159) by @ArthurKnaus
+- fix(ddm): Grouped chart crashing without data (#62158) by @ArthurKnaus
+- feat(ddm): Add PHP onboarding (#62156) by @ArthurKnaus
+- fix(onboarding-docs): Prism console warning language text (#62154) by @ArthurKnaus
+- feat(setting): Add audit log to add team (#62129) by @ykamo001
+- fix(open-pr-comments): template nits (#62130) by @cathteng
+- fix(suspect-commits): Fix code mapping for files without a slash (#61896) by @malwilley
+- feat(replays): Add click.react_component_name as searchable field (#62027) by @cmanallen
+
+_Plus 100 more_
+
 23.12.0
 -------
 

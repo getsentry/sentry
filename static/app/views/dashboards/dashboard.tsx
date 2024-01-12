@@ -22,10 +22,12 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
@@ -69,7 +71,7 @@ type Props = {
   dashboard: DashboardDetails;
   handleAddCustomWidget: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
-  isEditing: boolean;
+  isEditingDashboard: boolean;
   location: Location;
   /**
    * Fired when widgets are added/removed/sorted.
@@ -205,7 +207,7 @@ class Dashboard extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
   }
 
-  handleStartAdd = () => {
+  handleStartAdd = (dataset?: DataSet) => {
     const {organization, router, location, paramDashboardId} = this.props;
 
     if (paramDashboardId) {
@@ -215,6 +217,7 @@ class Dashboard extends Component<Props, State> {
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
+            dataset,
           },
         })
       );
@@ -227,6 +230,7 @@ class Dashboard extends Component<Props, State> {
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
+          dataset,
         },
       })
     );
@@ -235,7 +239,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+    const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
 
     let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
@@ -256,26 +260,26 @@ class Dashboard extends Component<Props, State> {
     }
 
     onUpdate(nextList);
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
 
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
 
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
 
     const widgetCopy = cloneDeep(
       assignTempId({...widget, id: undefined, tempId: undefined})
@@ -286,7 +290,7 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
@@ -331,11 +335,11 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, widgetLimitReached, isPreview, dashboard, location} = this.props;
+    const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} = this.props;
 
     const widgetProps = {
       widget,
-      isEditing,
+      isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
@@ -459,7 +463,7 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditing, dashboard, widgetLimitReached, organization} = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, organization} = this.props;
     let {widgets} = dashboard;
     // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
@@ -472,7 +476,7 @@ class Dashboard extends Component<Props, State> {
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
-    const canModifyLayout = !isMobile && isEditing;
+    const canModifyLayout = !isMobile && isEditingDashboard;
 
     return (
       <GridLayout
@@ -501,14 +505,15 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {isEditing && !widgetLimitReached && (
-          <AddWidgetWrapper
-            key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={this.addWidgetLayout}
-          >
-            <AddWidget onAddWidget={this.handleStartAdd} />
-          </AddWidgetWrapper>
-        )}
+        {(isEditingDashboard || hasDDMExperimentalFeature(organization)) &&
+          !widgetLimitReached && (
+            <AddWidgetWrapper
+              key={ADD_WIDGET_BUTTON_DRAG_ID}
+              data-grid={this.addWidgetLayout}
+            >
+              <AddWidget onAddWidget={this.handleStartAdd} />
+            </AddWidgetWrapper>
+          )}
       </GridLayout>
     );
   }

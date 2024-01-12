@@ -1,7 +1,8 @@
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -143,3 +144,45 @@ class TeamProjectsCreateTest(APITestCase):
         )
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
+
+    @with_feature("organizations:default-inbound-filters")
+    def test_default_inbound_filters(self):
+        filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
+        python_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=python_response.data["id"])
+
+        python_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, python_project)
+            for filter_id in filters
+        }
+
+        assert not python_filter_states["browser-extensions"]
+        assert not python_filter_states["legacy-browsers"]
+        assert not python_filter_states["web-crawlers"]
+        assert python_filter_states["filtered-transaction"]
+
+        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
+        javascript_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **project_data,
+            status_code=201,
+        )
+
+        javascript_project = Project.objects.get(id=javascript_response.data["id"])
+
+        javascript_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, javascript_project)
+            for filter_id in filters
+        }
+
+        assert javascript_filter_states["browser-extensions"]
+        assert javascript_filter_states["legacy-browsers"]
+        assert javascript_filter_states["web-crawlers"]
+        assert javascript_filter_states["filtered-transaction"]

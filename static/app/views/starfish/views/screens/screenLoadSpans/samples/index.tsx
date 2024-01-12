@@ -117,6 +117,7 @@ export function ScreenLoadSpanSamples({
               transactionMethod={transactionMethod}
               release={primaryRelease}
               sectionTitle={t('Release 1')}
+              project={project}
             />
           </ChartsContainerItem>
           <ChartsContainerItem key="release2">
@@ -126,6 +127,7 @@ export function ScreenLoadSpanSamples({
               transactionMethod={transactionMethod}
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
+              project={project}
             />
           </ChartsContainerItem>
         </ChartsContainer>

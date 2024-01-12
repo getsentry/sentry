@@ -85,7 +85,9 @@ class BaseRequestParser(abc.ABC):
 
     def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
         with metrics.timer(
-            "integration_proxy.control.get_response_from_region_silo", sample_rate=1.0
+            "integration_proxy.control.get_response_from_region_silo",
+            tags={"destination_region": region.name},
+            sample_rate=1.0,
         ):
             region_client = RegionSiloClient(region)
             return region_client.proxy_request(incoming_request=self.request)
@@ -195,10 +197,16 @@ class BaseRequestParser(abc.ABC):
             integration = self.get_integration_from_request()
         if not integration:
             logger.info("%s.no_integration", self.provider, extra={"path": self.request.path})
-            return []
+            raise Integration.DoesNotExist()
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration.id
         )
+
+        if organization_integrations.count() == 0:
+            logger.info(
+                "%s.no_organization_integrations", self.provider, extra={"path": self.request.path}
+            )
+            raise OrganizationIntegration.DoesNotExist()
         organization_ids = [oi.organization_id for oi in organization_integrations]
         return organization_mapping_service.get_many(organization_ids=organization_ids)
 
@@ -210,8 +218,8 @@ class BaseRequestParser(abc.ABC):
         """
         if not organizations:
             organizations = self.get_organizations_from_integration()
-        if not organizations:
-            logger.info("%s.no_organizations", self.provider, extra={"path": self.request.path})
-            return []
 
         return [get_region_for_organization(organization.slug) for organization in organizations]
+
+    def get_default_missing_integration_response(self) -> HttpResponse:
+        return HttpResponse(status=400)

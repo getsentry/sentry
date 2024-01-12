@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
 from sentry.models.environment import Environment
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
@@ -33,8 +32,6 @@ logger = logging.getLogger(__name__)
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 
 
-# TODO(hybrid-cloud): Mark this as region silo only once testing/decorator
-#  interaction is cleaned up
 @instrumented_task(
     name="sentry.snuba.tasks.create_subscription_in_snuba",
     queue="subscriptions",
@@ -199,19 +196,16 @@ def build_query_builder(
     query: str,
     project_ids: Sequence[int],
     environment: Optional[Environment],
-    params: Optional[Mapping[str, Any]] = None,
+    params: Optional[MutableMapping[str, Any]] = None,
 ) -> QueryBuilder:
     return entity_subscription.build_query_builder(query, project_ids, environment, params)
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
-        organization_context = organization_service.get_organization_by_id(
-            id=subscription.project.organization_id
-        )
         span.set_tag(
             "uses_metrics_layer",
-            features.has("organizations:use-metrics-layer", organization_context.organization),
+            features.has("organizations:use-metrics-layer", subscription.project.organization),
         )
         span.set_tag("dataset", subscription.snuba_query.dataset)
 

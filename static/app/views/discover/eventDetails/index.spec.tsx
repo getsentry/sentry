@@ -1,7 +1,8 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -109,8 +110,8 @@ describe('Discover > EventDetails', function () {
   it('renders', async function () {
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
-        organization={Organization()}
+        {...RouteComponentPropsFixture()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -124,8 +125,8 @@ describe('Discover > EventDetails', function () {
   it('renders a 404', async function () {
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
-        organization={Organization()}
+        {...RouteComponentPropsFixture()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{
           ...LocationFixture(),
@@ -140,8 +141,8 @@ describe('Discover > EventDetails', function () {
   it('renders a chart in grouped view', async function () {
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
-        organization={Organization()}
+        {...RouteComponentPropsFixture()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -161,8 +162,8 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
-        organization={Organization()}
+        {...RouteComponentPropsFixture()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -179,7 +180,7 @@ describe('Discover > EventDetails', function () {
 
   it('navigates when tag values are clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -189,7 +190,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -222,7 +223,7 @@ describe('Discover > EventDetails', function () {
 
   it('navigates to homepage when tag values are clicked', async function () {
     const {organization, routerContext, router} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -232,7 +233,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
@@ -262,7 +263,7 @@ describe('Discover > EventDetails', function () {
 
   it('appends tag value to existing query when clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -272,7 +273,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
@@ -304,7 +305,7 @@ describe('Discover > EventDetails', function () {
 
   it('links back to the homepage if the query param contains homepage flag', async () => {
     const {organization, router, routerContext} = initializeOrg({
-      organization: Organization(),
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -315,7 +316,7 @@ describe('Discover > EventDetails', function () {
 
     render(
       <EventDetails
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}

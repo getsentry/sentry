@@ -7,6 +7,9 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types/project';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -15,6 +18,8 @@ import {DurationCell} from 'sentry/views/starfish/components/tableCells/duration
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
+import {DEFAULT_PLATFORM,PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
@@ -25,6 +30,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 type Props = {
   groupId: string;
   transactionName: string;
+  project?: Project | null;
   release?: string;
   sectionSubtitle?: string;
   sectionTitle?: string;
@@ -36,13 +42,21 @@ export function ScreenLoadSampleContainer({
   transactionName,
   transactionMethod,
   release,
+  project,
 }: Props) {
   const router = useRouter();
+  const location = useLocation();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
 
   const organization = useOrganization();
+
+  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const platform =
+        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+        DEFAULT_PLATFORM;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
@@ -65,14 +79,15 @@ export function ScreenLoadSampleContainer({
     filters.release = release;
   }
 
-  const {data} = useSpanMetrics(
+  if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+    filters['os.name'] = platform;
+  }
+
+  const {data} = useSpanMetrics({
     filters,
-    [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-panel-samples-table-avg'
-  );
+    fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
+    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
+  });
 
   const spanMetrics = data[0] ?? {};
 
@@ -132,6 +147,7 @@ export function ScreenLoadSampleContainer({
         onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
         highlightedSpanId={highlightedSpanId}
         release={release}
+        platform={(project && isCrossPlatform(project) && hasPlatformSelectFeature) ? platform : undefined}
       />
       <SampleTable
         highlightedSpanId={highlightedSpanId}

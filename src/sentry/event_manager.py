@@ -3,14 +3,11 @@ from __future__ import annotations
 import copy
 import ipaddress
 import logging
-import mimetypes
-import random
 import re
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -62,16 +59,15 @@ from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import (
-    BackgroundGroupingConfigLoader,
     GroupingConfig,
-    GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
-    apply_server_fingerprinting,
-    detect_synthetic_exception,
-    get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
-    load_grouping_config,
+)
+from sentry.grouping.ingest import (
+    calculate_event_grouping,
+    run_background_grouping,
+    update_grouping_config_if_needed,
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
@@ -80,12 +76,10 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
-from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
 from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
-from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -105,9 +99,8 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
-from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.quotas.base import index_data_category
-from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.reprocessing2 import is_reprocessed_event
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import (
@@ -525,7 +518,7 @@ class EventManager:
         # either before or after the main grouping logic, depending on the option value.
         do_background_grouping_before = options.get("store.background-grouping-before")
         if do_background_grouping_before:
-            _run_background_grouping(project, job)
+            run_background_grouping(project, job)
 
         secondary_hashes = None
         migrate_off_hierarchical = False
@@ -559,6 +552,26 @@ class EventManager:
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
             hashes = _calculate_primary_hash(project, job, grouping_config)
 
+        if secondary_hashes:
+            tags = {
+                "primary_config": grouping_config["id"],
+                "secondary_config": secondary_grouping_config["id"],
+            }
+            current_values = hashes.hashes
+            secondary_values = secondary_hashes.hashes
+            hashes_match = current_values == secondary_values
+
+            if hashes_match:
+                tags["result"] = "no change"
+            else:
+                shared_hashes = set(current_values) & set(secondary_values)
+                if len(shared_hashes) > 0:
+                    tags["result"] = "partial change"
+                else:
+                    tags["result"] = "full change"
+
+            metrics.incr("grouping.hash_comparison", tags=tags)
+
         # Track the total number of grouping calculations done overall, so we can divide by the
         # count to get an average number of calculations per event
         metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
@@ -585,7 +598,7 @@ class EventManager:
         )
 
         if not do_background_grouping_before:
-            _run_background_grouping(project, job)
+            run_background_grouping(project, job)
 
         if hashes.tree_labels:
             job["finest_tree_label"] = hashes.finest_tree_label
@@ -668,7 +681,6 @@ class EventManager:
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs=jobs, app_feature="errors")
-        save_unprocessed_event(project, job["event"].event_id)
 
         if not raw:
             if not project.first_event:
@@ -731,8 +743,7 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if _project_should_update_grouping(project):
-            _auto_update_grouping(project)
+        update_grouping_config_if_needed(project)
 
         return job["event"]
 
@@ -755,7 +766,7 @@ def _calculate_primary_hash(
 
     This is pulled out into a separate function mostly in order to make testing easier.
     """
-    return _calculate_event_grouping(project, job["event"], grouping_config)
+    return calculate_event_grouping(project, job["event"], grouping_config)
 
 
 def _calculate_secondary_hash(
@@ -772,94 +783,16 @@ def _calculate_secondary_hash(
             op="event_manager",
             description="event_manager.save.secondary_calculate_event_grouping",
         ):
-            # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
+            # create a copy since `calculate_event_grouping` modifies the event to add all sorts
             # of grouping info and we don't want the backup grouping data in there
             event_copy = copy.deepcopy(job["event"])
-            secondary_hashes = _calculate_event_grouping(
+            secondary_hashes = calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
             )
     except Exception:
         sentry_sdk.capture_exception()
 
     return secondary_hashes
-
-
-def _project_should_update_grouping(project: Project) -> bool:
-    should_update_org = (
-        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
-    )
-    return bool(project.get_option("sentry:grouping_auto_update")) and should_update_org
-
-
-def _auto_update_grouping(project: Project) -> None:
-    old_grouping = project.get_option("sentry:grouping_config")
-    new_grouping = DEFAULT_GROUPING_CONFIG
-
-    # update to latest grouping config but not if a user is already on
-    # beta.
-    if old_grouping == new_grouping or old_grouping == BETA_GROUPING_CONFIG:
-        return
-
-    # Because the way the auto grouping upgrading happening is racy, we want to
-    # try to write the audit log entry only and project option change just once.
-    # For this a cache key is used.  That's not perfect, but should reduce the
-    # risk significantly.
-    cache_key = f"grouping-config-update:{project.id}:{old_grouping}"
-    lock = f"grouping-update-lock:{project.id}"
-    if cache.get(cache_key) is not None:
-        return
-
-    with locks.get(lock, duration=60, name="grouping-update-lock").acquire():
-        if cache.get(cache_key) is None:
-            cache.set(cache_key, "1", 60 * 5)
-        else:
-            return
-
-        from sentry import audit_log
-        from sentry.utils.audit import create_system_audit_entry
-
-        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-        changes = {
-            "sentry:secondary_grouping_config": old_grouping,
-            "sentry:secondary_grouping_expiry": expiry,
-            "sentry:grouping_config": new_grouping,
-        }
-        for key, value in changes.items():
-            project.update_option(key, value)
-        create_system_audit_entry(
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**changes, **project.get_audit_log_data()},
-        )
-
-
-def _calculate_background_grouping(
-    project: Project, event: Event, config: GroupingConfig
-) -> CalculatedHashes:
-    metric_tags: MutableTags = {
-        "grouping_config": config["id"],
-        "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
-    }
-    with metrics.timer("event_manager.background_grouping", tags=metric_tags):
-        return _calculate_event_grouping(project, event, config)
-
-
-def _run_background_grouping(project: Project, job: Job) -> None:
-    """Optionally run a fraction of events with a third grouping config
-    This can be helpful to measure its performance impact.
-    This does not affect actual grouping.
-    """
-    try:
-        sample_rate = options.get("store.background-grouping-sample-rate")
-        if sample_rate and random.random() <= sample_rate:
-            config = BackgroundGroupingConfigLoader().get_config_dict(project)
-            if config["id"]:
-                copied_event = copy.deepcopy(job["event"])
-                _calculate_background_grouping(project, copied_event, config)
-    except Exception:
-        sentry_sdk.capture_exception()
 
 
 @metrics.wraps("save_event.pull_out_data")
@@ -2405,6 +2338,7 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     return filtered
 
 
+@sentry_sdk.tracing.trace
 def save_attachment(
     cache_key: Optional[str],
     attachment: Attachment,
@@ -2440,7 +2374,7 @@ def save_attachment(
         timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
     try:
-        data = attachment.data
+        attachment.data
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,
@@ -2456,18 +2390,7 @@ def save_attachment(
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
 
-    content_type = normalize_content_type(attachment.content_type, attachment.name)
-
-    file = File.objects.create(
-        name=attachment.name,
-        type=attachment.type,
-        headers={"Content-Type": content_type},
-    )
-    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
-
-    size = file.size
-    sha1 = file.checksum
-    file_id = file.id
+    file = EventAttachment.putfile(project.id, attachment)
 
     EventAttachment.objects.create(
         # lookup:
@@ -2477,11 +2400,12 @@ def save_attachment(
         # metadata:
         type=attachment.type,
         name=attachment.name,
-        content_type=content_type,
-        size=size,
-        sha1=sha1,
+        content_type=file.content_type,
+        size=file.size,
+        sha1=file.sha1,
         # storage:
-        file_id=file_id,
+        file_id=file.file_id,
+        blob_path=file.blob_path,
     )
 
     track_outcome(
@@ -2495,12 +2419,6 @@ def save_attachment(
         category=DataCategory.ATTACHMENT,
         quantity=attachment.size or 1,
     )
-
-
-def normalize_content_type(content_type: str | None, name: str) -> str:
-    if content_type:
-        return content_type.split(";")[0].strip()
-    return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 
 def save_attachments(cache_key: Optional[str], attachments: list[Attachment], job: Job) -> None:
@@ -2545,54 +2463,6 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
                 metrics.incr(f"event_manager.save.event_metrics.{metric_name}")
 
         job["event_metrics"] = event_metrics
-
-
-def _calculate_event_grouping(
-    project: Project, event: Event, grouping_config: GroupingConfig
-) -> CalculatedHashes:
-    """
-    Main entrypoint for modifying/enhancing and grouping an event, writes
-    hashes back into event payload.
-    """
-    metric_tags: MutableTags = {
-        "grouping_config": grouping_config["id"],
-        "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
-    }
-
-    with metrics.timer("save_event.calculate_event_grouping", tags=metric_tags):
-        with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
-            with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-                event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
-
-        # Detect & set synthetic marker if necessary
-        detect_synthetic_exception(event.data, grouping_config)
-
-        with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
-            # The active grouping config was put into the event in the
-            # normalize step before.  We now also make sure that the
-            # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to get_hashes will then
-            # look at `grouping_config` to pick the right parameters.
-            event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(
-                event.data.data,
-                get_fingerprinting_config_for_project(project),
-                allow_custom_title=True,
-            )
-
-        with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
-            # Here we try to use the grouping config that was requested in the
-            # event. If that config has since been deleted (because it was an
-            # experimental grouping config) we fall back to the default.
-            try:
-                hashes = event.get_hashes(grouping_config)
-            except GroupingConfigNotFound:
-                event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = event.get_hashes()
-
-        hashes.write_to_event(event.data)
-        return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")

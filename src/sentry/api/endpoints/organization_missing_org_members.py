@@ -71,10 +71,14 @@ def _get_missing_organization_members(
     org_id = organization.id
     domain_query = ""
     if shared_domain:
-        domain_query = f"AND sentry_commitauthor.email::text LIKE '%%{shared_domain}'"
+        domain_query = (
+            f"AND (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%{shared_domain}'))"
+        )
     else:
         for filtered_email in FILTERED_EMAILS:
-            domain_query += f"AND sentry_commitauthor.email::text NOT LIKE '{filtered_email}' "
+            domain_query += (
+                f"AND (UPPER(sentry_commitauthor.email::text) NOT LIKE UPPER('{filtered_email}')) "
+            )
 
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
 
@@ -99,7 +103,7 @@ def _get_missing_organization_members(
             (select id from sentry_commitauthor
                 WHERE sentry_commitauthor.organization_id = %(org_id)s
                 AND NOT (
-                    (sentry_commitauthor.email IN (select coalesce(email, user_email) from sentry_organizationmember where organization_id = %(org_id)s and (email is not null or user_email is not null)
+                    (UPPER(sentry_commitauthor.email::text) IN (select coalesce(UPPER(email), UPPER(user_email)) from sentry_organizationmember where organization_id = %(org_id)s and (email is not null or user_email is not null)
                 )
         OR sentry_commitauthor.external_id IS NULL))
     """

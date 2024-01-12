@@ -7,7 +7,6 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -20,6 +19,7 @@ from sentry.search.utils import map_device_class_level
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.snuba.utils import DATASET_OPTIONS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -3061,6 +3061,34 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
 
+    def test_timestamp_groupby(self):
+        self.store_transaction_metric(
+            0.03,
+            tags={"transaction": "foo_transaction", "user": "foo"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "timestamp",
+                    "count()",
+                    "count_unique(user)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert meta["dataset"] == "metricsEnhanced"
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3216,3 +3244,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_count_starts(self):
         super().test_count_starts()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_timestamp_groupby(self):
+        super().test_timestamp_groupby()

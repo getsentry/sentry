@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     headers = {"X-SMTPAPI": json.dumps({"category": notification.metrics_key})}
-    if isinstance(notification, ProjectNotification):
+    if isinstance(notification, ProjectNotification) and notification.project.slug:
         headers["X-Sentry-Project"] = notification.project.slug
 
     group = getattr(notification, "group", None)

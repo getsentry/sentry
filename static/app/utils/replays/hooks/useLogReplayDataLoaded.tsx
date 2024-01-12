@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
@@ -46,17 +47,30 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
       replay_id: replayRecord.id,
     });
 
-    // TODO(session-replay-show-hydration-errors): remove this analytic on GA
-    if (!organization.features.includes('session-replay-show-hydration-errors')) {
-      const hydrationErrorFrames = replay.getHydrationFrames();
-      if (hydrationErrorFrames.length > 0) {
-        // Track when a hydration breadcrumb is present but unable to be viewed
-        trackAnalytics('replay.details-has-hydration-error', {
-          organization,
-          num_errors: hydrationErrorFrames.length,
-          replay_id: replayRecord.id,
-        });
-      }
+    const hydrationErrorFrames = replay.getHydrationFrames();
+    if (hydrationErrorFrames.length > 0) {
+      // Track when a hydration breadcrumb is present but unable to be viewed
+      trackAnalytics('replay.details-has-hydration-error', {
+        organization,
+        num_errors: hydrationErrorFrames.length,
+        replay_id: replayRecord.id,
+      });
+    }
+
+    const metricData = {
+        unit: 'millisecond',
+        tags: {
+          // This is a boolean to reduce cardinality -- technically this can
+          // match 7.8.x, but replay wasn't released in that version, so this should be fine
+          recentSdkVersion: replayRecord.sdk.version.startsWith('7.8'),
+        }
+    };
+
+    if (replay.timestampDeltas.startedAtDelta !== 0) {
+      Sentry.metrics.distribution('replay.start-time-delta', replay.timestampDeltas.startedAtDelta, metricData);
+    }
+    if (replay.timestampDeltas.finishedAtDelta !== 0) {
+      Sentry.metrics.distribution('replay.end-time-delta', replay.timestampDeltas.finishedAtDelta, metricData);
     }
   }, [organization, project, fetchError, fetching, projectSlug, replay]);
 }

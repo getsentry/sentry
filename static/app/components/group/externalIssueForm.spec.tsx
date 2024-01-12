@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
-import {Organization} from 'sentry-fixture/organization';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -30,8 +32,8 @@ describe('ExternalIssueForm', () => {
   const onChange = jest.fn();
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    group = TestStubs.Group();
-    integration = TestStubs.GitHubIntegration({externalIssues: []});
+    group = GroupFixture();
+    integration = GitHubIntegrationFixture({externalIssues: []});
   });
 
   afterEach(() => {
@@ -51,7 +53,7 @@ describe('ExternalIssueForm', () => {
       <ExternalIssueForm
         Body={styledWrapper()}
         Footer={styledWrapper()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         Header={c => <span>{c.children}</span>}
         group={group}
         integration={integration}

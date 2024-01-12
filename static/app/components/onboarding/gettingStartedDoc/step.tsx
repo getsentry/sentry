@@ -120,6 +120,10 @@ interface BaseStepProps {
    * Additional information to be displayed below the configurations
    */
   additionalInfo?: React.ReactNode;
+  /**
+   * Content that goes directly above the code snippet
+   */
+  codeHeader?: React.ReactNode;
   configurations?: ConfigurationType[];
   /**
    * A brief description of the step
@@ -129,7 +133,6 @@ interface BaseStepProps {
    * Whether the step is optional
    */
   isOptional?: boolean;
-  isReplayConfigStep?: boolean;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -195,12 +198,14 @@ export function Step({
   additionalInfo,
   description,
   isOptional = false,
+  codeHeader,
 }: StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
   const config = (
     <Fragment>
       {description && <Description>{description}</Description>}
+
       {!!configurations?.length && (
         <Configurations>
           {configurations.map((configuration, index) => {
@@ -211,6 +216,10 @@ export function Step({
                   {configuration.configurations.map(
                     (nestedConfiguration, nestedConfigurationIndex) => (
                       <Fragment key={nestedConfigurationIndex}>
+                        {nestedConfigurationIndex ===
+                        (configuration.configurations?.length ?? 1) - 1
+                          ? codeHeader
+                          : null}
                         {getConfiguration(nestedConfiguration)}
                       </Fragment>
                     )
@@ -218,7 +227,12 @@ export function Step({
                 </Fragment>
               );
             }
-            return <Fragment key={index}>{getConfiguration(configuration)}</Fragment>;
+            return (
+              <Fragment key={index}>
+                {index === configurations.length - 1 ? codeHeader : null}
+                {getConfiguration(configuration)}
+              </Fragment>
+            );
           })}
         </Configurations>
       )}
@@ -266,6 +280,13 @@ const Configurations = styled(Configuration)`
 const Description = styled('div')`
   code {
     color: ${p => p.theme.pink400};
+  }
+
+  && > p,
+  && > h4,
+  && > h5,
+  && > h6 {
+    margin-bottom: ${space(1)};
   }
 `;
 

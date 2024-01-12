@@ -1,34 +1,37 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Repository} from 'sentry-fixture/repository';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {GroupStatus} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import IssueContext from './issueContext';
 import {defaultRow} from './testUtils';
 
-let mockedGroup = TestStubs.Group({
+const mockedGroup = GroupFixture({
   id: '3512441874',
-  project: {
+  project: ProjectFixture({
     id: '1',
     slug: 'cool-team',
-  },
-  status: 'ignored',
+  }),
+  status: GroupStatus.IGNORED,
   assignedTo: {
     id: '12312',
     name: 'ingest',
     type: 'team',
   },
-  count: 2500000,
+  count: '2500000',
   userCount: 64000,
   title: 'typeError: error description',
 });
 
 const renderIssueContext = (dataRow: EventData = defaultRow) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <IssueContext dataRow={dataRow} organization={organization} />
@@ -75,11 +78,11 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   it('Renders resolved issue status context', async () => {
-    mockedGroup = {...mockedGroup, status: 'resolved'};
+    const group = {...mockedGroup, status: GroupStatus.RESOLVED};
     MockApiClient.addMockResponse({
       url: '/issues/3512441874/',
       method: 'GET',
-      body: mockedGroup,
+      body: group,
     });
     renderIssueContext();
 
@@ -89,11 +92,11 @@ describe('Quick Context Content Issue Column', function () {
   });
 
   it('Renders unresolved issue status context', async () => {
-    mockedGroup = {...mockedGroup, status: 'unresolved'};
+    const group = {...mockedGroup, status: GroupStatus.UNRESOLVED};
     MockApiClient.addMockResponse({
       url: '/issues/3512441874/',
       method: 'GET',
-      body: mockedGroup,
+      body: group,
     });
 
     renderIssueContext();
@@ -134,7 +137,7 @@ describe('Quick Context Content Issue Column', function () {
           message: 'feat(simulator): Add option for multiple squirrels (#1121)',
           id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
           dateCreated: '2012-09-08T04:15:12',
-          repository: Repository(),
+          repository: RepositoryFixture(),
         },
       ],
     };
@@ -146,7 +149,7 @@ describe('Quick Context Content Issue Column', function () {
             'ref(simulator): Split leaderboard calculations into separate functions (#1231)',
           id: 'fe29668b24cea6faad8afb8f6d9417f402ef9c18',
           dateCreated: '2012-04-15T09:09:12',
-          repository: Repository(),
+          repository: RepositoryFixture(),
         },
       ],
     };

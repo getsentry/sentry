@@ -4,24 +4,30 @@ import datetime
 import logging
 import re
 import sys
+import time
 import traceback
+from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, List, Literal, Mapping, Tuple, overload
+from typing import Any, Generator, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
-from django.conf import settings
+import sentry_sdk
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry import options
 from sentry.auth.superuser import is_active_superuser
+from sentry.discover.arithmetic import ArithmeticError
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -30,16 +36,30 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.silo import SiloMode
+from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.snuba import (
+    DatasetSelectionError,
+    QueryConnectionFailed,
+    QueryExecutionError,
+    QueryExecutionTimeMaximum,
+    QueryIllegalTypeOfArgument,
+    QueryMemoryLimitExceeded,
+    QueryMissingColumn,
+    QueryOutsideRetentionError,
+    QuerySizeExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    SchemaValidationError,
+    SnubaError,
+    UnqualifiedQueryError,
+)
 
 logger = logging.getLogger(__name__)
 
 MAX_STATS_PERIOD = timedelta(days=90)
-
-
-class InvalidParams(Exception):
-    pass
 
 
 def get_datetime_from_stats_period(
@@ -260,8 +280,8 @@ def generate_organization_url(org_slug: str) -> str:
 
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
-    if region_name is None:
-        region_name = settings.SENTRY_REGION
+    if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
+        region_name = get_local_region().name
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
@@ -349,3 +369,85 @@ def get_auth_api_token_type(auth: object) -> str | None:
     if is_api_key_auth(auth):
         return "api_key"
     return None
+
+
+@contextmanager
+def handle_query_errors() -> Generator[None, None, None]:
+    try:
+        yield
+    except InvalidSearchQuery as error:
+        message = str(error)
+        # Special case the project message since it has so many variants so tagging is messy otherwise
+        if message.endswith("do not exist or are not actively selected."):
+            sentry_sdk.set_tag(
+                "query.error_reason", "Project in query does not exist or not selected"
+            )
+        else:
+            sentry_sdk.set_tag("query.error_reason", message)
+        raise ParseError(detail=message)
+    except ArithmeticError as error:
+        message = str(error)
+        sentry_sdk.set_tag("query.error_reason", message)
+        raise ParseError(detail=message)
+    except QueryOutsideRetentionError as error:
+        sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
+        raise ParseError(detail=str(error))
+    except QueryIllegalTypeOfArgument:
+        message = "Invalid query. Argument to function is wrong type."
+        sentry_sdk.set_tag("query.error_reason", message)
+        raise ParseError(detail=message)
+    except IncompatibleMetricsQuery as error:
+        message = str(error)
+        sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
+        raise ParseError(detail=message)
+    except SnubaError as error:
+        message = "Internal error. Please try again."
+        if isinstance(
+            error,
+            (
+                RateLimitExceeded,
+                QueryMemoryLimitExceeded,
+                QueryExecutionTimeMaximum,
+                QueryTooManySimultaneous,
+            ),
+        ):
+            sentry_sdk.set_tag("query.error_reason", "Timeout")
+            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+        elif isinstance(error, (UnqualifiedQueryError)):
+            sentry_sdk.set_tag("query.error_reason", str(error))
+            raise ParseError(detail=str(error))
+        elif isinstance(
+            error,
+            (
+                DatasetSelectionError,
+                QueryConnectionFailed,
+                QueryExecutionError,
+                QuerySizeExceeded,
+                SchemaValidationError,
+                QueryMissingColumn,
+            ),
+        ):
+            sentry_sdk.capture_exception(error)
+            message = "Internal error. Your query failed to run."
+        else:
+            sentry_sdk.capture_exception(error)
+        raise APIException(detail=message)
+
+
+class Timer:
+    def __enter__(self):
+        self._start = time.time()
+        self._duration = None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._end = time.time()
+        self._duration = self._end - self._start
+
+    @property
+    def duration(self):
+        # If _duration is set, return it; otherwise, calculate ongoing duration
+        if self._duration is not None:
+            return self._duration
+        else:
+            return time.time() - self._start

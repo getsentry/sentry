@@ -89,11 +89,11 @@ def build_tag_fields(
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
-            std_key = tagstore.get_standardized_key(key)
+            std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
 
-            labeled_value = tagstore.get_tag_value_label(key, value)
+            labeled_value = tagstore.backend.get_tag_value_label(key, value)
             fields.append(
                 {
                     "title": std_key.encode("utf-8"),
@@ -113,11 +113,11 @@ def get_tags(
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
-            std_key = tagstore.get_standardized_key(key)
+            std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
 
-            labeled_value = tagstore.get_tag_value_label(key, value)
+            labeled_value = tagstore.backend.get_tag_value_label(key, value)
             fields.append(
                 {
                     "title": std_key,
@@ -236,8 +236,12 @@ def build_actions(
 
     def _resolve_button(use_block_kit) -> MessageAction:
         if use_block_kit:
-            # TODO(CEO): handle if the issue is resolved - render a button that unresolves
-            # TODO(CEO): handle if not project.flags.has_releases in block kit - render a resolve button instead of a modal
+            if status == GroupStatus.RESOLVED:
+                return MessageAction(
+                    name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
+                )
+            if not project.flags.has_releases:
+                return MessageAction(name="status", label="Resolve", value="resolved")
             return MessageAction(
                 name="status",
                 label="Resolve",
