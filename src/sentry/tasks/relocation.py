@@ -15,17 +15,19 @@ from cryptography.fernet import Fernet
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
+from sentry_sdk import capture_exception
 
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
-from sentry.backup.dependencies import NormalizedModelName, get_model
-from sentry.backup.exports import export_in_config_scope, export_in_user_scope
-from sentry.backup.helpers import (
+from sentry.backup.crypto import (
     GCPKMSDecryptor,
     GCPKMSEncryptor,
-    ImportFlags,
     get_default_crypto_key_version,
     unwrap_encrypted_export_tarball,
 )
+from sentry.backup.dependencies import NormalizedModelName, get_model
+from sentry.backup.exports import export_in_config_scope, export_in_user_scope
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage, get_storage
@@ -127,6 +129,7 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 @instrumented_task(
     name="sentry.relocation.uploading_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -174,6 +177,7 @@ def uploading_complete(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_scan",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -330,6 +334,7 @@ def preprocessing_scan(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_transfer",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -410,6 +415,7 @@ def preprocessing_transfer(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_baseline_config",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -462,6 +468,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_colliding_users",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -512,6 +519,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -723,6 +731,7 @@ def _update_relocation_validation_attempt(
 @instrumented_task(
     name="sentry.relocation.validating_start",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -799,6 +808,7 @@ def validating_start(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.validating_poll",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_VALIDATION_POLLS,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -898,6 +908,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
 @instrumented_task(
     name="sentry.relocation.validating_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1028,6 +1039,7 @@ def importing(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.postprocessing",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1085,7 +1097,6 @@ def postprocessing(uuid: str) -> None:
                 user_id=relocation.owner_id,
                 role="owner",
             )
-
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
         # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
         # the entire task.
@@ -1093,12 +1104,25 @@ def postprocessing(uuid: str) -> None:
             if isinstance(result, Exception):
                 raise result
 
+        for org in imported_orgs:
+            try:
+                analytics.record(
+                    "relocation.organization_imported",
+                    organization_id=org.id,
+                    relocation_uuid=str(relocation.uuid),
+                    slug=org.slug,
+                    owner_id=relocation.owner_id,
+                )
+            except Exception as e:
+                capture_exception(e)
+
     notifying_users.apply_async(args=[uuid])
 
 
 @instrumented_task(
     name="sentry.relocation.notifying_users",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1162,6 +1186,7 @@ def notifying_users(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.notifying_owner",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1204,6 +1229,7 @@ def notifying_owner(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.completed",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,

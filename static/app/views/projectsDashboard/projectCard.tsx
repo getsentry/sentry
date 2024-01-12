@@ -25,7 +25,6 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
@@ -266,7 +265,11 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   }
 
   componentWillUnmount() {
-    this.listeners.forEach(callIfFunction);
+    this.listeners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener();
+      }
+    });
   }
 
   listeners = [

@@ -124,7 +124,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_update_config_valid(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
 
@@ -143,7 +143,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_update_config_invalid(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
 
@@ -177,7 +177,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 class OpsgenieMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
         integration.add_organization(self.organization, self.user)

@@ -1,4 +1,3 @@
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -14,7 +13,7 @@ class UserOrganizationIntegationTest(APITestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        integration = Integration.objects.create(provider="github")
+        integration = self.create_provider_integration(provider="github")
 
         OrganizationIntegration.objects.create(
             organization_id=self.organization.id, integration_id=integration.id

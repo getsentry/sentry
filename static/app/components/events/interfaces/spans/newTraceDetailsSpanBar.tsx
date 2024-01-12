@@ -168,6 +168,13 @@ export class NewTraceDetailsSpanBar extends Component<
     if (this.props.location.query !== prevProps.location.query) {
       this.updateHighlightedState();
     }
+
+    if(this.props.quickTrace !== prevProps.quickTrace){
+      const relatedErrors = this.getRelatedErrors(this.props.quickTrace);
+      if(this.isHighlighted && this.props.onRowClick && relatedErrors && relatedErrors.length > 0){
+        this.props.onRowClick(this.getSpanDetailsProps());
+      }
+    }
   }
 
   componentWillUnmount() {

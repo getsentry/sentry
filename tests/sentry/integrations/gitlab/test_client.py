@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from dataclasses import asdict
 from datetime import datetime, timezone
 from unittest import mock
@@ -207,12 +206,16 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
-            json={"content": base64.b64encode(GITLAB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
 
+        assert (
+            responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert responses.calls[0].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITLAB_CODEOWNERS
 
     @responses.activate

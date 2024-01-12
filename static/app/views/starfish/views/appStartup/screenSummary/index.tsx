@@ -21,7 +21,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
+import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {
+  MobileCursors,
+  MobileSortKeys,
+} from 'sentry/views/starfish/views/screens/constants';
 
 import AppStartWidgets from './widgets';
 
@@ -36,7 +42,7 @@ function ScreenSummary() {
   const organization = useOrganization();
   const location = useLocation<Query>();
 
-  const {transaction: transactionName} = location.query;
+  const {primaryRelease, secondaryRelease, transaction: transactionName} = location.query;
 
   const startupModule: LocationDescriptor = {
     pathname: `/organizations/${organization.slug}/starfish/appStartup/`,
@@ -89,6 +95,36 @@ function ScreenSummary() {
                     additionalFilters={[`transaction:${transactionName}`]}
                   />
                 </ErrorBoundary>
+                <EventSamplesContainer>
+                  <ErrorBoundary mini>
+                    <div>
+                      <EventSamples
+                        cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                        sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                        release={primaryRelease}
+                        transaction={transactionName}
+                        showDeviceClassSelector
+                      />
+                    </div>
+                  </ErrorBoundary>
+                  <ErrorBoundary mini>
+                    <div>
+                      <EventSamples
+                        cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                        sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                        release={secondaryRelease}
+                        transaction={transactionName}
+                      />
+                    </div>
+                  </ErrorBoundary>
+                </EventSamplesContainer>
+                <ErrorBoundary mini>
+                  <SpanOperationTable
+                    transaction={transactionName}
+                    primaryRelease={primaryRelease}
+                    secondaryRelease={secondaryRelease}
+                  />
+                </ErrorBoundary>
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
@@ -110,4 +146,11 @@ const Container = styled('div')`
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
+`;
+
+const EventSamplesContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: ${space(2)};
+  gap: ${space(2)};
 `;

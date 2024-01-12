@@ -603,7 +603,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 - index),
                 span_id=span_id,
-                is_segment=1,
+                is_segment=True,
                 duration_ms=100,
                 transaction=transaction,
                 tags={"device": device},
@@ -657,7 +657,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             span_id=span_id,
-            is_segment=1,
+            is_segment=True,
             duration_ms=100,
             transaction=transaction,
         )

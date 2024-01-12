@@ -13,7 +13,6 @@ from sentry.eventstore.models import Event
 from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -374,15 +373,18 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
         profile_message = load_data("generic-event-profiling")
         geo_interface = {"city": "San Francisco", "country_code": "US", "region": "California"}
-        event_data = profile_message["event"]
-        event_data["user"] = {"geo": geo_interface}
+        event_data = {
+            **profile_message["event"],
+            "user": {"geo": geo_interface},
+            "timestamp": datetime.utcnow().isoformat(),
+        }
 
         project_id = event_data.get("project_id", self.project.id)
-        event_data["timestamp"] = datetime.utcnow().isoformat()
 
-        occurrence, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_data["event_id"], project_id=project_id),
-            event_data,
+        occurrence, group_info = self.process_occurrence(
+            event_id=event_data["event_id"],
+            project_id=project_id,
+            event_data=event_data,
         )
         assert group_info is not None
 
