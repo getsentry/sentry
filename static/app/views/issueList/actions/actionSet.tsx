@@ -246,7 +246,7 @@ function ActionSet({
           }}
         />
       )}
-      {(
+      {
         <GuideAnchor
           target="issue_stream_archive_button"
           position="bottom"
@@ -262,7 +262,7 @@ function ActionSet({
             disabled={ignoreDisabled}
           />
         </GuideAnchor>
-      )}
+      }
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
