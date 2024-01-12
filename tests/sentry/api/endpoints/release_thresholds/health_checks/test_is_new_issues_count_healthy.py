@@ -191,6 +191,7 @@ class TestGetNewIssueCountIsHealthy(TestCase):
                 "end": end_time,
                 "project_id": self.project1.id,
                 "release_id": self.release1.id,
+                "key": "key",
             }
         )
         del enriched_threshold["environment"]["id"]
