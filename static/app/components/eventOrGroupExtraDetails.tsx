@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
@@ -53,6 +54,9 @@ function EventOrGroupExtraDetails({
 
   return (
     <GroupExtra>
+      {inbox && (
+        <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
+      )}
       {(
         <GroupStatusBadge status={status} substatus={substatus} />
       )}

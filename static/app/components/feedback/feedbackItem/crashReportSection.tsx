@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
+import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
 import Placeholder from 'sentry/components/placeholder';
@@ -45,6 +46,7 @@ export default function CrashReportSection({
         data={groupData}
         size="normal"
       />
+      <EventOrGroupExtraDetails data={groupData} showInboxTime />
     </IssueDetailsContainer>
   );
 }
