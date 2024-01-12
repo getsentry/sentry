@@ -730,7 +730,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         response = self.get_success_response(
             self.organization.slug,
             metric=[lcp_mri],
-            query="transaction:/api/users AND device:iPhone",
+            query="transaction:/api/users",
             project=[self.project.id],
             statsPeriod="1d",
             metricSpans="true",

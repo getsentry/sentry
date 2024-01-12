@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Sequence, Set
+from typing import Optional, Sequence, Set, cast
 
 from snuba_sdk import (
     Column,
@@ -26,7 +26,13 @@ from sentry.sentry_metrics.querying.metadata.utils import (
     transform_to_tags,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI, is_measurement, is_mri, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    ParsedMRI,
+    TransactionMRI,
+    is_measurement,
+    is_mri,
+    parse_mri,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -248,7 +254,7 @@ class TransactionDurationSpansSource(SpansSource):
 class MeasurementsSpansSource(SpansSource):
     def _extract_measurement_name(self, metric_mri: str) -> str:
         # We assume the `parse_mri` to never fail, since we have the guarantee that `supports` is called first.
-        return parse_mri(metric_mri).name[13:]
+        return cast(ParsedMRI, parse_mri(metric_mri)).name[13:]
 
     @classmethod
     def supports(cls, metric_mri: str) -> bool:
@@ -379,7 +385,7 @@ def get_spans_source(
 
     for source_clazz in SPANS_SOURCES:
         if source_clazz.supports(metric_mri):
-            return source_clazz(organization=organization, projects=projects)
+            return source_clazz(organization=organization, projects=projects)  # type:ignore
 
     return None
 
