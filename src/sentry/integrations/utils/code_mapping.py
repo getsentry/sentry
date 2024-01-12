@@ -8,7 +8,6 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -99,38 +98,6 @@ def filter_source_code_files(files: List[str]) -> List[str]:
             logger.exception("We've failed to store the file path.")
 
     return _supported_files
-
-
-def convert_stacktrace_frame_path_to_source_path(
-    frame: EventFrame,
-    code_mapping: RepositoryProjectPathConfig,
-    platform: str | None,
-    sdk_name: str | None,
-) -> str | None:
-    """
-    Applies the given code mapping to the given stacktrace frame and returns the source path.
-
-    If the code mapping does not apply to the frame, returns None.
-    """
-
-    # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
-    # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
-    # gets transformed to "com/example/app/MainActivity.java"), so in those cases we use the
-    # transformed path instead.
-    stacktrace_path = (
-        try_munge_frame_path(frame=frame, platform=platform, sdk_name=sdk_name) or frame.filename
-    )
-
-    if stacktrace_path and stacktrace_path.startswith(code_mapping.stack_root):
-        return stacktrace_path.replace(code_mapping.stack_root, code_mapping.source_root, 1)
-
-    # Some platforms only provide the file's name without folder paths, so we
-    # need to use the absolute path instead. If the code mapping has a non-empty
-    # stack_root value and it matches the absolute path, we do the mapping on it.
-    if frame.abs_path and frame.abs_path.startswith(code_mapping.stack_root):
-        return frame.abs_path.replace(code_mapping.stack_root, code_mapping.source_root, 1)
-
-    return None
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -466,7 +433,6 @@ def get_sorted_code_mapping_configs(project: Project) -> List[RepositoryProjectP
     """
     Returns the code mapping config list for a project sorted based on precedence.
     User generated code mappings are evaluated before Sentry generated code mappings.
-    Code mappings with absolute path stack roots are evaluated before relative path stack roots.
     Code mappings with more defined stack trace roots are evaluated before less defined stack trace
     roots.
 
@@ -489,15 +455,10 @@ def get_sorted_code_mapping_configs(project: Project) -> List[RepositoryProjectP
             for index, sorted_config in enumerate(sorted_configs):
                 # This check will ensure that all user defined code mappings will come before Sentry generated ones
                 if (
-                    (sorted_config.automatically_generated and not config.automatically_generated)
-                    or (  # Insert absolute paths before relative paths
-                        not sorted_config.stack_root.startswith("/")
-                        and config.stack_root.startswith("/")
-                    )
-                    or (  # Insert more defined stack roots before less defined ones
-                        (sorted_config.automatically_generated == config.automatically_generated)
-                        and config.stack_root.startswith(sorted_config.stack_root)
-                    )
+                    sorted_config.automatically_generated and not config.automatically_generated
+                ) or (  # Insert more defined stack roots before less defined ones
+                    (sorted_config.automatically_generated == config.automatically_generated)
+                    and config.stack_root.startswith(sorted_config.stack_root)
                 ):
                     sorted_configs.insert(index, config)
                     inserted = True
