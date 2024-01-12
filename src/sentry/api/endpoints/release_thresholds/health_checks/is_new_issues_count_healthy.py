@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 from uuid import uuid4
 
 from django.db.models import CharField, Count, QuerySet, Value
@@ -22,7 +22,7 @@ def update_new_issues_count_healthy_for_thresholds(
     Each release threshold is considered to be a unique threshold to determine its own health.
     """
     queries = {}
-    q = None
+    q: Optional[QuerySet] = None
     # Loop through each enriched_threshold and get the query that we need to aggregate
     for ethreshold in release_thresholds:
         # Ignore any incorrect thresholds that might have slipped in

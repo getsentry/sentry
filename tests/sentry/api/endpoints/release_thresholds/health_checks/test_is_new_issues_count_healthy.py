@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import List
 from uuid import uuid4
 
 from sentry.api.endpoints.release_thresholds.health_checks.is_new_issues_count_healthy import (
@@ -426,5 +427,5 @@ class TestUpdateNewIssuesCountHealthyForThresholds(TestCase):
         assert wrong_threshold["is_healthy"] is False
 
     def test_returns_early_when_no_annotations_are_found(self) -> None:
-        list_of_thresholds = []
+        list_of_thresholds: List[EnrichedThreshold] = []
         update_new_issues_count_healthy_for_thresholds(list_of_thresholds)
