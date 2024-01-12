@@ -455,8 +455,8 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
 
     This function is ideal for non-transient failures, where we know there is no need to retry
     because the result won't change, like invalid input data or conclusive validation results. For
-    transient failures where retrying at a later time may be useful, use `retry_or_fail_relocation`
-    instead.
+    transient failures where retrying at a later time may be useful, use
+    `retry_task_or_fail_relocation` instead.
     """
 
     # Another nested exception handler could have already failed this relocation - in this case, do
