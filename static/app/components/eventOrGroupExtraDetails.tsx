@@ -23,11 +23,13 @@ type Props = {
   data: Event | Group;
   organization: Organization;
   showAssignee?: boolean;
+  showInboxTime?: boolean;
 };
 
 function EventOrGroupExtraDetails({
   data,
   showAssignee,
+  showInboxTime,
   organization,
 }: Props) {
   const {
@@ -43,6 +45,7 @@ function EventOrGroupExtraDetails({
     project,
     lifetime,
     isUnhandled,
+    inbox,
     status,
     substatus,
   } = data as Group;
