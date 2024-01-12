@@ -26,13 +26,14 @@ import {getFormatter} from '../../components/charts/components/tooltip';
 import {Series} from './widget';
 
 type ChartProps = {
-  addFocusArea: (area: FocusArea) => void;
   displayType: MetricDisplayType;
   focusArea: FocusArea | null;
-  removeFocusArea: () => void;
   series: Series[];
   widgetIndex: number;
+  addFocusArea?: (area: FocusArea) => void;
+  height?: number;
   operation?: string;
+  removeFocusArea?: () => void;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -50,6 +51,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       addFocusArea,
       focusArea,
       removeFocusArea,
+      height,
     },
     forwardedRef
   ) => {
@@ -71,14 +73,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const focusAreaBrush = useFocusAreaBrush(
       chartRef,
       focusArea,
-      addFocusArea,
-      removeFocusArea,
-      handleZoom,
       {
         widgetIndex,
-        isDisabled: !isHovered,
+        isDisabled: !isHovered || !addFocusArea || !removeFocusArea || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
-      }
+      },
+      addFocusArea,
+      removeFocusArea,
+      handleZoom
     );
 
     // TODO(ddm): Try to do this in a more elegant way
@@ -114,13 +116,16 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 10,
       };
+      const heightOptions = height ? {height} : {autoHeightResize: true};
+
       return {
+        ...heightOptions,
         ...focusAreaBrush.options,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
-        // height: 300,
+        height,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 20, bottom: 20, left: 15, right: 25},
         tooltip: {
@@ -166,6 +171,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       operation,
       seriesToShow,
       unit,
+      height,
     ]);
 
     return (
@@ -230,12 +236,10 @@ function getWidthFactor(bucketSize: number) {
 
 const ChartWrapper = styled('div')`
   position: relative;
-  height: 100%;
-  /* height: 300px; */
 `;
 
 const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: 244px;
+  height: calc(100% - 56px);
   width: ${p => p.width}%;
   position: absolute;
   right: 21px;

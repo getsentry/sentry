@@ -36,34 +36,36 @@ import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
 import {MIN_WIDGET_WIDTH} from './constants';
 
+type MetricWidgetProps = {
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
+  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
+  projects: PageFilters['projects'];
+  widget: MetricWidgetQueryParams;
+  addFocusArea?: (area: FocusArea) => void;
+  focusArea?: FocusArea | null;
+  hasSiblings?: boolean;
+  index?: number;
+  isSelected?: boolean;
+  onSelect?: (index: number) => void;
+  removeFocusArea?: () => void;
+};
+
 export const MetricWidget = memo(
   ({
     widget,
     datetime,
     projects,
     environments,
-    index,
-    isSelected,
+    index = 0,
+    isSelected = false,
     onSelect,
     onChange,
-    hasSiblings,
+    hasSiblings = false,
     addFocusArea,
     removeFocusArea,
-    focusArea,
-  }: {
-    addFocusArea: (area: FocusArea) => void;
-    datetime: PageFilters['datetime'];
-    environments: PageFilters['environments'];
-    focusArea: FocusArea | null;
-    hasSiblings: boolean;
-    index: number;
-    isSelected: boolean;
-    onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
-    onSelect: (index: number) => void;
-    projects: PageFilters['projects'];
-    removeFocusArea: () => void;
-    widget: MetricWidgetQueryParams;
-  }) => {
+    focusArea = null,
+  }: MetricWidgetProps) => {
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
         onChange(index, data);
@@ -114,7 +116,7 @@ export const MetricWidget = memo(
         // show the selection border only if we have more widgets than one
         isHighlighted={isSelected && !!hasSiblings}
         isHighlightable={!!hasSiblings}
-        onClick={() => onSelect(index)}
+        onClick={() => onSelect?.(index)}
       >
         <PanelBody>
           <MetricWidgetHeader>
@@ -150,6 +152,7 @@ export const MetricWidget = memo(
               addFocusArea={addFocusArea}
               focusArea={focusArea}
               removeFocusArea={removeFocusArea}
+              chartHeight={300}
               {...widget}
             />
           ) : (
@@ -167,12 +170,13 @@ export const MetricWidget = memo(
   }
 );
 
-interface MetricWidgetProps extends MetricWidgetQueryParams {
-  addFocusArea: (area: FocusArea) => void;
+interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   focusArea: FocusArea | null;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
-  removeFocusArea: () => void;
   widgetIndex: number;
+  addFocusArea?: (area: FocusArea) => void;
+  chartHeight?: number;
+  removeFocusArea?: () => void;
 }
 
 export const MetricWidgetBody = memo(
@@ -185,8 +189,9 @@ export const MetricWidgetBody = memo(
     addFocusArea,
     focusArea,
     removeFocusArea,
+    chartHeight,
     ...metricsQuery
-  }: MetricWidgetProps & PageFilters) => {
+  }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
     const {data, isLoading, isError, error} = useMetricsDataZoom(
@@ -281,6 +286,7 @@ export const MetricWidgetBody = memo(
           addFocusArea={addFocusArea}
           focusArea={focusArea}
           removeFocusArea={removeFocusArea}
+          height={chartHeight}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable

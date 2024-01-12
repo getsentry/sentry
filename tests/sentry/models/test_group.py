@@ -9,7 +9,6 @@ from django.db.models import ProtectedError
 from django.utils import timezone
 
 from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.grouprelease import GroupRelease
@@ -416,16 +415,14 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
 
     def test_get_latest_event_occurrence(self):
         event_id = uuid.uuid4().hex
-        occurrence_data = self.build_occurrence_data(event_id=event_id, project_id=self.project.id)
-        occurrence = process_event_and_issue_occurrence(
-            occurrence_data,
-            {
-                "event_id": event_id,
+        occurrence, _ = self.process_occurrence(
+            project_id=self.project.id,
+            event_id=event_id,
+            event_data={
                 "fingerprint": ["group-1"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
-        )[0]
+        )
 
         group = Group.objects.first()
         group.update(type=ProfileFileIOGroupType.type_id)
