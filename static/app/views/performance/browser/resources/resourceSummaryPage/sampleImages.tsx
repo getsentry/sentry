@@ -94,10 +94,10 @@ function SampleImagesChartPanelBody(props: {
   const hasImages = images.length > 0;
 
   useEffect(() => {
-    if (showImages && !hasImages) {
+    if (showImages && !hasImages && !isLoadingImages) {
       Sentry.captureException(new Error('No sample images found'));
     }
-  }, [showImages, hasImages]);
+  }, [showImages, hasImages, isLoadingImages]);
 
   if (isSettingsLoading || (showImages && isLoadingImages)) {
     return <LoadingIndicator />;
