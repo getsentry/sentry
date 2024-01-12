@@ -26,14 +26,14 @@ import {getFormatter} from '../../components/charts/components/tooltip';
 import {Series} from './widget';
 
 type ChartProps = {
-  addFocusArea: (area: FocusArea) => void;
   displayType: MetricDisplayType;
   focusArea: FocusArea | null;
-  removeFocusArea: () => void;
   series: Series[];
   widgetIndex: number;
+  addFocusArea?: (area: FocusArea) => void;
   height?: number;
   operation?: string;
+  removeFocusArea?: () => void;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -73,14 +73,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const focusAreaBrush = useFocusAreaBrush(
       chartRef,
       focusArea,
-      addFocusArea,
-      removeFocusArea,
-      handleZoom,
       {
         widgetIndex,
-        isDisabled: !isHovered,
+        isDisabled: !isHovered || !addFocusArea || !removeFocusArea || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
-      }
+      },
+      addFocusArea,
+      removeFocusArea,
+      handleZoom
     );
 
     // TODO(ddm): Try to do this in a more elegant way
