@@ -74,10 +74,13 @@ class SuperuserAccessForm extends Component<Props, State> {
         superuserAccessCategory: suAccessCategory,
         superuserReason: suReason,
       });
-    // If U2F is disabled, authenticate immediately
+      // If U2F is disabled, authenticate immediately
     } else {
       try {
-        await api.requestPromise(this.props.hasStaff ? '/staff-auth/' : '/auth/', {method: 'PUT', data});
+        await api.requestPromise(this.props.hasStaff ? '/staff-auth/' : '/auth/', {
+          method: 'PUT',
+          data,
+        });
         this.handleSuccess();
       } catch (err) {
         this.handleError(err);
@@ -179,12 +182,13 @@ class SuperuserAccessForm extends Component<Props, State> {
           onSubmit={this.handleSubmit}
           initialData={{isSuperuserModal: true}}
           extraButton={
-            hasStaff ? null :
+            hasStaff ? null : (
               <BackWrapper>
                 <Button type="submit" onClick={this.handleSubmitCOPS}>
                   {t('COPS/CSM')}
                 </Button>
               </BackWrapper>
+            )
           }
           resetOnError
         >
@@ -193,7 +197,9 @@ class SuperuserAccessForm extends Component<Props, State> {
               {errorType}
             </StyledAlert>
           )}
-          {!hasStaff && showAccessForms && <Hook name="component:superuser-access-category" />}
+          {!hasStaff && showAccessForms && (
+            <Hook name="component:superuser-access-category" />
+          )}
           {!showAccessForms && (
             <U2fContainer
               authenticators={authenticators}
