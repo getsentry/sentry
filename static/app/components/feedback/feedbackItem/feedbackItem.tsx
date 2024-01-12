@@ -14,6 +14,7 @@ import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconChat, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,6 +41,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
   const [isHidden, setIsHidden] = useState(true);
+  const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
   return (
     <Fragment>
@@ -87,7 +89,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
               />
             </ErrorBoundary>
           </Section>
-        ) : hasSentOneReplay ? null : (
+        ) : hasSentOneReplay || !platformSupported ? null : (
           <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
             <ReplayInlineCTAPanel />
           </Section>
