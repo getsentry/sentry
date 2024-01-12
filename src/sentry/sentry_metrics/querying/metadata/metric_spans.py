@@ -3,12 +3,23 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Sequence, Set
 
-from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 from snuba_sdk.conditions import ConditionGroup
 
+from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.metadata.utils import (
     get_snuba_conditions_from_query,
     transform_conditions_with,
@@ -22,7 +33,7 @@ from sentry.utils.snuba import raw_snql_query
 # Maximum number of unique spans returned by the database.
 MAX_NUMBER_OF_SPANS = 10
 # Sentry tag values that are converted to columns in Snuba. The conversion happens here:
-# https://github.com/getsentry/snuba/blob/master/snuba/datasets/processors/spans_processor.py
+# https://github.com/getsentry/snuba/blob/master/rust_snuba/src/processors/spans.rs#L239
 SENTRY_TAG_TO_COLUMN_NAME = {
     "module": "module",
     "action": "action",
@@ -32,6 +43,8 @@ SENTRY_TAG_TO_COLUMN_NAME = {
     "transaction": "segment_name",
     "op": "op",
     "transaction.op": "transaction_op",
+    "user": "user",
+    "status": "status",
 }
 
 
@@ -265,10 +278,15 @@ class MeasurementsSpansSource(SpansSource):
 
         if transformed_conditions:
             where += transformed_conditions
+
         if min_value:
             where += [Condition(Column(f"measurements[{measurement_name}]"), Op.GTE, min_value)]
         if max_value:
             where += [Condition(Column(f"measurements[{measurement_name}]"), Op.LTE, max_value)]
+        if not min_value and not max_value:
+            where += [
+                Condition(Function("has", [Column("measurements.key"), measurement_name]), Op.EQ, 1)
+            ]
 
         return get_indexed_spans(
             where=[
@@ -342,6 +360,14 @@ def get_indexed_spans(
     ]
 
 
+# Ordered list (by priority) of spans sources that will be used to get the spans of a specific metric.
+SPANS_SOURCES = [
+    MeasurementsSpansSource,
+    TransactionDurationSpansSource,
+    MetricsSummariesSpansSource,
+]
+
+
 def get_spans_source(
     metric_mri: str, organization: Organization, projects: Sequence[Project]
 ) -> Optional[SpansSource]:
@@ -350,7 +376,8 @@ def get_spans_source(
 
     In case multiple sources would apply to a `metric_mri` the first one is chosen.
     """
-    for source_clazz in [TransactionDurationSpansSource, MetricsSummariesSpansSource]:
+
+    for source_clazz in SPANS_SOURCES:
         if source_clazz.supports(metric_mri):
             return source_clazz(organization=organization, projects=projects)
 
@@ -375,7 +402,7 @@ def get_spans_of_metric(
     """
     spans_source = get_spans_source(metric_mri, organization, projects)
     if not spans_source:
-        raise InvalidMetricsQueryError(
+        raise InvalidParams(
             f"The supplied metric {metric_mri} does not support fetching correlated spans"
         )
 

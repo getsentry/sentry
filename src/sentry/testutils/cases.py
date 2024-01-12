@@ -1405,6 +1405,7 @@ class BaseSpansTestCase(SnubaTestCase):
         is_segment: int = 0,
         duration_ms: int = 10,
         transaction: str = None,
+        measurements: Optional[Mapping[str, Union[int, float]]] = None,
     ):
         payload = {
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
@@ -1425,6 +1426,10 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"] = sentry_tags
         if metrics_summary:
             payload["_metrics_summary"] = metrics_summary
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.

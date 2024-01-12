@@ -691,3 +691,109 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             assert len(metric_spans) == len(cast(Sequence[str], expected_span_ids))
             for i, expected_span_id in enumerate(cast(Sequence[str], expected_span_ids)):
                 assert metric_spans[i]["spanId"] == expected_span_id
+
+    def test_get_metric_spans_with_measurement_with_filters(self):
+        lcp_mri = TransactionMRI.MEASUREMENTS_LCP.value
+        fcp_mri = TransactionMRI.MEASUREMENTS_FCP.value
+
+        data = [
+            (lcp_mri, "lcp", "98230207e6e4a6ad", "/api/users", "iPhone"),
+            (lcp_mri, "lcp", "23430217e654a6ad", "/api/events", "Samsung Galaxy"),
+            (fcp_mri, "fcp", "96b41c8d77b591ab", "/api/users", "OnePlus"),
+            (fcp_mri, "fcp", "16bd1c7d77b591ab", "/api/customers", "iPhone"),
+        ]
+        for index, (mri, measurement, span_id, transaction, device) in enumerate(data):
+            self.store_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5 - index),
+                span_id=span_id,
+                is_segment=1,
+                transaction=transaction,
+                tags={"device": device},
+                measurements={measurement: 100},
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[lcp_mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["spanId"] == data[1][2]
+        assert metric_spans[0]["segmentName"] == data[1][3]
+        assert metric_spans[1]["spanId"] == data[0][2]
+        assert metric_spans[1]["segmentName"] == data[0][3]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[lcp_mri],
+            query="transaction:/api/users AND device:iPhone",
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["spanId"] == data[0][2]
+        assert metric_spans[0]["segmentName"] == data[0][3]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[fcp_mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["spanId"] == data[3][2]
+        assert metric_spans[0]["segmentName"] == data[3][3]
+        assert metric_spans[1]["spanId"] == data[2][2]
+        assert metric_spans[1]["segmentName"] == data[2][3]
+
+    def test_get_metric_spans_with_measurement_with_bounds(self):
+        mri = TransactionMRI.MEASUREMENTS_APP_START_COLD.value
+
+        span_id = "98230207e6e4a6ad"
+        transaction = "/api/users"
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id=span_id,
+            is_segment=1,
+            transaction=transaction,
+            measurements={"app_start_cold": 100},
+        )
+
+        for min_val, max_val, expected_span_ids in (
+            (10.0, 100.0, [span_id]),
+            (90.0, 150.0, [span_id]),
+            (10.0, 50.0, []),
+            (None, 90, []),
+            (None, 100, [span_id]),
+            (110, None, []),
+            (100, None, [span_id]),
+            (None, None, [span_id]),
+        ):
+            extra_params = {}
+            if min_val:
+                extra_params["min"] = min_val
+            if max_val:
+                extra_params["max"] = max_val
+
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=[mri],
+                project=[self.project.id],
+                statsPeriod="1d",
+                metricSpans="true",
+                **extra_params,
+            )
+
+            metric_spans = response.data["metricSpans"]
+            assert len(metric_spans) == len(cast(Sequence[str], expected_span_ids))
+            for i, expected_span_id in enumerate(cast(Sequence[str], expected_span_ids)):
+                assert metric_spans[i]["spanId"] == expected_span_id
