@@ -39,6 +39,7 @@ export default function useReplayFromIssue({
             query: `issue.id:[${group.id}]`,
             data_source: dataSource,
             statsPeriod: '14d',
+            environment: location.query.environment,
             project: ALL_ACCESS_PROJECTS,
           },
         }
@@ -48,7 +49,7 @@ export default function useReplayFromIssue({
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource]);
+  }, [api, organization.slug, group.id, dataSource, location.query.environment]);
 
   const eventView = useMemo(() => {
     if (!replayIds || !replayIds.length) {
