@@ -87,9 +87,9 @@ def build_test_message_blocks(
                     },
                     {
                         "type": "button",
-                        "action_id": "ignored:forever",
-                        "text": {"type": "plain_text", "text": "Ignore"},
-                        "value": "ignored:forever",
+                        "action_id": "ignored:until_escalating",
+                        "text": {"type": "plain_text", "text": "Archive"},
+                        "value": "ignored:until_escalating",
                     },
                     {
                         "type": "static_select",
@@ -152,7 +152,12 @@ def build_test_message(
         "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
+            {
+                "name": "status",
+                "text": "Archive",
+                "type": "button",
+                "value": "ignored:until_escalating",
+            },
             {
                 "option_groups": [
                     {
@@ -878,7 +883,7 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
         expected = {
-            "label": "Stop Ignoring",
+            "label": "Mark as Ongoing",
             "name": "status",
             "type": "button",
             "value": "unresolved:ongoing",
@@ -937,10 +942,10 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
         expected = {
-            "label": "Ignore",
+            "label": "Archive",
             "name": "status",
             "type": "button",
-            "value": "ignored:forever",
+            "value": "ignored:until_escalating",
         }
         self._assert_message_actions_list(
             res[0],

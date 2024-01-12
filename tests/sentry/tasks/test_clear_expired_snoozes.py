@@ -34,7 +34,7 @@ class ClearExpiredSnoozesTest(TestCase):
         group2.refresh_from_db()
 
         assert group1.status == GroupStatus.UNRESOLVED
-        assert group1.substatus == GroupSubStatus.ONGOING
+        assert group1.substatus == GroupSubStatus.ESCALATING
 
         # Check if unexpired snooze got cleared
         assert group2.status == GroupStatus.IGNORED
@@ -42,10 +42,10 @@ class ClearExpiredSnoozesTest(TestCase):
         assert not GroupSnooze.objects.filter(id=snooze1.id).exists()
         assert GroupSnooze.objects.filter(id=snooze2.id).exists()
         assert GroupHistory.objects.filter(
-            group=group1, status=GroupHistoryStatus.UNIGNORED
+            group=group1, status=GroupHistoryStatus.ESCALATING
         ).exists()
         assert not GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.UNIGNORED
+            group=group2, status=GroupHistoryStatus.ESCALATING
         ).exists()
 
         assert send_robust.called

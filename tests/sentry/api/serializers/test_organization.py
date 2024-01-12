@@ -74,6 +74,7 @@ class OrganizationSerializerTest(TestCase):
             "discover-basic",
             "discover-query",
             "derive-code-mappings",
+            "escalating-issues",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
