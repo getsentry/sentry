@@ -12,16 +12,15 @@ from django.core.files.storage import Storage
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google_crc32c import value as crc32c
 
-from sentry.backup.dependencies import NormalizedModelName, get_model_name
-from sentry.backup.helpers import (
-    ImportFlags,
+from sentry.backup.crypto import (
     LocalFileDecryptor,
     LocalFileEncryptor,
-    Printer,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
     unwrap_encrypted_export_tarball,
 )
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.helpers import ImportFlags, Printer
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage, get_storage
@@ -264,7 +263,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch(
-    "sentry.backup.helpers.KeyManagementServiceClient",
+    "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
@@ -741,7 +740,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch(
-    "sentry.backup.helpers.KeyManagementServiceClient",
+    "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
@@ -848,7 +847,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch(
-    "sentry.backup.helpers.KeyManagementServiceClient",
+    "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.utils.relocation.MessageBuilder")
@@ -1599,7 +1598,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch(
-    "sentry.backup.helpers.KeyManagementServiceClient",
+    "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch("sentry.tasks.relocation.postprocessing.apply_async")
@@ -2074,7 +2073,7 @@ class CompletedTest(RelocationTaskTestCase):
 
 @region_silo_test
 @patch(
-    "sentry.backup.helpers.KeyManagementServiceClient",
+    "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 @patch(

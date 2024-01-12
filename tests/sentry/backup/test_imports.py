@@ -19,8 +19,9 @@ from django.db import connections, router
 from django.db.models import Model
 from django.utils import timezone
 
+from sentry.backup.crypto import LocalFileDecryptor
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
-from sentry.backup.helpers import ImportFlags, LocalFileDecryptor
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
     ImportingError,
     import_in_config_scope,

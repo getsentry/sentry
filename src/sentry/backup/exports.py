@@ -3,13 +3,14 @@ from __future__ import annotations
 import io
 from typing import BinaryIO
 
+from sentry.backup.crypto import Encryptor, create_encrypted_export_tarball
 from sentry.backup.dependencies import (
     PrimaryKeyMap,
     dependencies,
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import Encryptor, Filter, Printer, create_encrypted_export_tarball
+from sentry.backup.helpers import Filter, Printer
 from sentry.backup.scopes import ExportScope
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportError,

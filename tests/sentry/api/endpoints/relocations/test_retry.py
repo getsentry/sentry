@@ -16,7 +16,7 @@ from sentry.api.endpoints.relocations.retry import (
     ERR_NOT_RETRYABLE_STATUS,
     ERR_OWNER_NO_LONGER_EXISTS,
 )
-from sentry.backup.helpers import LocalFileEncryptor, create_encrypted_export_tarball
+from sentry.backup.crypto import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.models.user import User

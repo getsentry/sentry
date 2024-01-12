@@ -17,7 +17,7 @@ from sentry.api.endpoints.relocations.index import (
     ERR_THROTTLED_RELOCATION,
     ERR_UNKNOWN_RELOCATION_STATUS,
 )
-from sentry.backup.helpers import LocalFileEncryptor, create_encrypted_export_tarball
+from sentry.backup.crypto import LocalFileEncryptor, create_encrypted_export_tarball
 from sentry.models.relocation import Relocation, RelocationFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
