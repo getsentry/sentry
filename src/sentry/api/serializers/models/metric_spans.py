@@ -14,12 +14,14 @@ class MetricSpansSerializer(Serializer):
     def _serialize_span_payload(self, span_payload):
         return {
             "projectId": span_payload.get("project_id"),
-            "spanId": span_payload.get("span_id"),
-            "traceId": span_payload.get("trace_id"),
             "transactionId": span_payload.get("transaction_id"),
+            "traceId": span_payload.get("trace_id"),
+            "spanId": span_payload.get("span_id"),
             "profileId": span_payload.get("profile_id"),
-            "duration": span_payload.get("duration"),
             "segmentName": span_payload.get("segment_name"),
+            "op": span_payload.get("op"),
+            "description": span_payload.get("description"),
+            "duration": span_payload.get("duration"),
             "timestamp": span_payload.get("timestamp"),
         }
 

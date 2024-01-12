@@ -57,12 +57,14 @@ SENTRY_TAG_TO_COLUMN_NAME = {
 @dataclass(frozen=True)
 class Span:
     project_id: int
-    span_id: str
-    trace_id: str
     transaction_id: Optional[str]
+    trace_id: str
+    span_id: str
     profile_id: Optional[str]
-    duration: int
     segment_name: str
+    op: str
+    description: str
+    duration: int
     timestamp: datetime
 
 
@@ -323,12 +325,14 @@ def get_indexed_spans(
         match=Entity(EntityKey.Spans.value),
         select=[
             Column("project_id"),
-            Column("span_id"),
-            Column("trace_id"),
             Column("transaction_id"),
+            Column("trace_id"),
+            Column("span_id"),
             Column("profile_id"),
-            Column("duration"),
             Column("segment_name"),
+            Column("op"),
+            Column("description"),
+            Column("duration"),
             Column("timestamp"),
         ],
         where=[
@@ -354,12 +358,14 @@ def get_indexed_spans(
     return [
         Span(
             project_id=value["project_id"],
-            span_id=value["span_id"],
-            trace_id=value["trace_id"],
             transaction_id=value["transaction_id"],
+            trace_id=value["trace_id"],
+            span_id=value["span_id"],
             profile_id=value["profile_id"],
-            duration=value["duration"],
             segment_name=value["segment_name"],
+            op=value["op"],
+            description=value["description"],
+            duration=value["duration"],
             timestamp=value["timestamp"],
         )
         for value in data
