@@ -369,9 +369,6 @@ export function Actions(props: Props) {
   });
   return (
     <ActionWrapper>
-      {organization.features.includes('issue-details-new-experience-toggle') ? (
-        <NewIssueExperienceButton />
-      ) : null}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -472,6 +469,9 @@ export function Actions(props: Props) {
           },
         ]}
       />
+      {organization.features.includes('issue-details-new-experience-toggle') ? (
+        <NewIssueExperienceButton />
+      ) : null}
       <SubscribeAction
         className="hidden-xs"
         disabled={disabled}
