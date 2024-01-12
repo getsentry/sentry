@@ -229,7 +229,7 @@ class BuiltInFingerprintingTest(TestCase):
         """
         ChunkLoadError rule based on value should apply even if error is not ChunkLoadError type.
         """
-        self.chunkload_error_trace["exception"]["values"][0]["type"] = "chunky"
+        self.chunkload_error_trace["exception"]["values"][0]["type"] = "chunky"  # type: ignore[index]
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         assert event.data["fingerprint"] == ["chunkloaderror"]
@@ -244,7 +244,7 @@ class BuiltInFingerprintingTest(TestCase):
         """
         Built-in ChunkLoadError rule should not apply if SDK is not sentry.javascript.nextjs.
         """
-        self.chunkload_error_trace["sdk"]["name"] = "sentry.javascript.react"
+        self.chunkload_error_trace["sdk"]["name"] = "sentry.javascript.react"  # type: ignore[index]
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         assert event.data["fingerprint"] == ["my-route", "{{ default }}"]
