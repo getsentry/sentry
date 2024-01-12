@@ -295,7 +295,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.ML_AI
     # go away
     private = True
     enforce_rate_limit = True
