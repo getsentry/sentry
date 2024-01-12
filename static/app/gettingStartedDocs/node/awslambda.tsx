@@ -95,12 +95,11 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: (
-        <p>
-          {tct("Wrap your lambda handler with Sentry's [code:wraphandler] function:", {
-            code: <code />,
-          })}
-        </p>
+      description: tct(
+        "Wrap your lambda handler with Sentry's [code:wraphandler] function:",
+        {
+          code: <code />,
+        }
       ),
       configurations: [
         {
