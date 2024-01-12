@@ -707,7 +707,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 - index),
                 span_id=span_id,
-                is_segment=1,
+                is_segment=True,
                 transaction=transaction,
                 tags={"device": device},
                 measurements={measurement: 100},
@@ -763,7 +763,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             span_id=span_id,
-            is_segment=1,
+            is_segment=True,
             transaction=transaction,
             measurements={"app_start_cold": 100},
         )
@@ -805,13 +805,13 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             span_id="98230207e6e4a6ad",
-            is_segment=1,
+            is_segment=True,
         )
         self.store_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             span_id="16bd1c7d77b591ab",
-            is_segment=1,
+            is_segment=True,
             measurements={"frames_frozen": 0},
         )
 
