@@ -206,6 +206,8 @@ def describe_event_for_ai(event, model):
         if frames:
             stacktrace = []
             for frame in reversed(frames):
+                if frame is None:
+                    continue
                 stack_frame = {}
                 set_if_value(stack_frame, "func", frame.get("function"))
                 set_if_value(stack_frame, "module", frame.get("module"))
