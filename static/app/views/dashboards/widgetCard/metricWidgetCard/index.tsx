@@ -38,7 +38,7 @@ type Props = {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: (index: string) => void;
-  onUpdate?: (widget: Widget) => void;
+  onUpdate?: (widget: Widget | null) => void;
   onZoom?: AugmentedEChartDataZoomHandler;
   showSlider?: boolean;
   tableItemLimit?: number;
@@ -49,7 +49,7 @@ export function defaultMetricWidget(selection) {
   return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
 }
 
-export function MetricWidgetCardAdapter({
+export function MetricWidgetCard({
   organization,
   selection,
   widget,
@@ -64,7 +64,6 @@ export function MetricWidgetCardAdapter({
   index,
 }: Props) {
   const query = widget.queries[0];
-
   const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
 
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
@@ -102,8 +101,8 @@ export function MetricWidgetCardAdapter({
   }, [metricWidgetQueryParams, onUpdate, widget, selection]);
 
   const handleCancel = useCallback(() => {
-    onUpdate?.(widget);
-  }, [onUpdate, widget]);
+    onUpdate?.(null);
+  }, [onUpdate]);
 
   if (!parsed) {
     return (

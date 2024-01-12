@@ -15,7 +15,7 @@ type Props = {
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
-  onUpdate: (widget: Widget) => void;
+  onUpdate: (widget: Widget | null) => void;
   widget: Widget;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;

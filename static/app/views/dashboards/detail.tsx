@@ -485,7 +485,16 @@ class DashboardDetail extends Component<Props, State> {
     this.setState({editingWidgetIndex: index});
   };
 
-  handleEndEditMetricWidget = (widgets: Widget[]) => {
+  handleEndEditMetricWidget = (widgets: Widget[], isCancel = false) => {
+    if (isCancel) {
+      this.setState({
+        dashboardState: DashboardState.VIEW,
+        modifiedDashboard: null,
+        editingWidgetIndex: -1,
+      });
+      return;
+    }
+
     this.setState(
       (state: State) => ({
         ...state,

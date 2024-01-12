@@ -1,10 +1,11 @@
-import {Fragment, memo, useEffect, useMemo} from 'react';
+import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Button} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -90,6 +91,13 @@ export const InlineEditor = memo(function InlineEditor({
   }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
   const stringifiedMetricWidget = stringifyMetricWidget(metricsQuery);
+
+  const [loading, setIsLoading] = useState(false);
+  useEffect(() => {
+    if (loading && !isEdit) {
+      setIsLoading(false);
+    }
+  }, [isEdit, loading]);
 
   if (!isEdit) {
     return (
@@ -245,11 +253,13 @@ export const InlineEditor = memo(function InlineEditor({
         </InlineEditorRow>
       </InlineEditorRowsWrapper>
       <InlineEditorRowsWrapper>
-        <Button
+        <SumbitButton
           size={size}
-          priority="primary"
-          onClick={onSubmit}
-          icon={<IconCheckmark size="xs" />}
+          loading={loading}
+          onClick={() => {
+            onSubmit();
+            setIsLoading(true);
+          }}
           aria-label="apply"
         />
         <Button
@@ -262,6 +272,20 @@ export const InlineEditor = memo(function InlineEditor({
     </InlineEditorWrapper>
   );
 });
+
+function SumbitButton({loading, ...buttonProps}: {loading: boolean} & ButtonProps) {
+  if (loading) {
+    return (
+      <LoadingIndicatorButton {...buttonProps} priority="primary">
+        <LoadingIndicator mini />
+      </LoadingIndicatorButton>
+    );
+  }
+
+  return (
+    <Button {...buttonProps} priority="primary" icon={<IconCheckmark size="xs" />} />
+  );
+}
 
 function getWidgetDisplayType(
   mri: MetricsQuery['mri'],
@@ -290,6 +314,12 @@ const TagXS = styled(Tag)`
     height: ${space(2)};
     line-height: ${space(2)};
   }
+`;
+
+const LoadingIndicatorButton = styled(Button)`
+  padding: 0;
+  padding-left: ${space(0.75)};
+  pointer-events: none;
 `;
 
 const InlineEditorWrapper = styled('div')`

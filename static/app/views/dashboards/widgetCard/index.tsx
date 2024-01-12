@@ -36,7 +36,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {MetricWidgetCardAdapter} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
+import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
@@ -81,7 +81,7 @@ type Props = WithRouterProps & {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
-  onUpdate?: (widget: Widget) => void;
+  onUpdate?: (widget: Widget | null) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
@@ -268,7 +268,7 @@ class WidgetCard extends Component<Props, State> {
     if (widget.widgetType === WidgetType.METRICS) {
       if (hasDDMExperimentalFeature(organization)) {
         return (
-          <MetricWidgetCardAdapter
+          <MetricWidgetCard
             index={this.props.index}
             isEditingWidget={this.props.isEditingWidget}
             isEditingDashboard={this.props.isEditingDashboard}

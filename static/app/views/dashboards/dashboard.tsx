@@ -85,7 +85,7 @@ type Props = {
   editingWidgetIndex?: number;
   isPreview?: boolean;
   newWidget?: Widget;
-  onEndEditMetricWidget?: (widgets: Widget[]) => void;
+  onEndEditMetricWidget?: (widgets: Widget[], isCancel?: boolean) => void;
   onSetNewWidget?: () => void;
   onStartEditMetricWidget?: (index: number) => void;
   paramDashboardId?: string;
@@ -375,20 +375,23 @@ class Dashboard extends Component<Props, State> {
     this.props.onStartEditMetricWidget?.(index);
   };
 
-  onUpdate = (widget: Widget, index: number) => (newWidget: Widget) => {
+  onUpdate = (widget: Widget, index: number) => (newWidget: Widget | null) => {
     if (widget.widgetType === WidgetType.METRICS) {
       this.handleEndEditMetricWidget(widget, index)(newWidget);
       return;
     }
   };
 
-  handleEndEditMetricWidget = (widget: Widget, index: number) => (newWidget: Widget) => {
-    const widgets = [...this.props.dashboard.widgets];
-    // TODO: fix this
-    widgets[index] = {...widget, ...newWidget};
+  handleEndEditMetricWidget =
+    (widget: Widget, index: number) => (newWidget: Widget | null) => {
+      const widgets = [...this.props.dashboard.widgets];
 
-    this.props.onEndEditMetricWidget?.(widgets);
-  };
+      if (newWidget) {
+        widgets[index] = {...widget, ...newWidget};
+      }
+
+      this.props.onEndEditMetricWidget?.(widgets, !newWidget);
+    };
 
   getWidgetIds() {
     return [
