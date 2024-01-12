@@ -393,13 +393,13 @@ function getMetricRequest(
   const requestData = getMetricsApiRequestQuery(
     {
       field: query.aggregates[0],
-      query: query.conditions,
-      groupBy: query.columns,
-      orderBy: query.orderby,
+      query: query.conditions || undefined,
+      groupBy: query.columns || undefined,
+      orderBy: query.orderby || undefined,
     },
     pageFilters,
     {
-      limit,
+      limit: limit || undefined,
       useNewMetricsLayer,
       fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }

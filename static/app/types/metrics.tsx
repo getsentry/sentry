@@ -26,9 +26,9 @@ export type ParsedMRI = {
 
 export type MetricsApiRequestMetric = {
   field: string;
-  query: string;
   groupBy?: string[];
   orderBy?: string;
+  query?: string;
 };
 
 export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
