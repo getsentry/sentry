@@ -264,13 +264,13 @@ function GroupHeader({
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
-              {(
+              {
                 <GroupStatusBadge
                   status={group.status}
                   substatus={group.substatus}
                   fontSize="md"
                 />
-              )}
+              }
             </TitleHeading>
             <StyledTagAndMessageWrapper>
               {group.level && <ErrorLevel level={group.level} size="11px" />}

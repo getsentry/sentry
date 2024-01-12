@@ -79,7 +79,7 @@ function TeamStatsIssues({location, router}: Props) {
             <DescriptionCard
               title={t('All Unresolved Issues')}
               description={t(
-                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or archived in the past.',
+                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or archived in the past.'
               )}
             >
               <TeamUnresolvedIssues
@@ -97,7 +97,7 @@ function TeamStatsIssues({location, router}: Props) {
             <DescriptionCard
               title={t('New and Returning Issues')}
               description={t(
-                'The new, regressed, and escalating issues that were assigned to your team.',
+                'The new, regressed, and escalating issues that were assigned to your team.'
               )}
             >
               <TeamIssuesBreakdown

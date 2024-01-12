@@ -57,12 +57,8 @@ function EventOrGroupExtraDetails({
 
   return (
     <GroupExtra>
-      {inbox && (
-        <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
-      )}
-      {(
-        <GroupStatusBadge status={status} substatus={substatus} />
-      )}
+      {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
+      {<GroupStatusBadge status={status} substatus={substatus} />}
       {shortId && (
         <InboxShortId
           shortId={shortId}
