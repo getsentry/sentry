@@ -76,6 +76,8 @@ class SystemOptionsEndpoint(Endpoint):
         )
 
     def has_permission(self, request: Request):
+        if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:
+            return True
         if not request.access.has_permission("options.admin"):
             # We ignore options.admin permission is all keys in the update match the allowlist.
             if all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]):
