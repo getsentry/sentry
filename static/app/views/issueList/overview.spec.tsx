@@ -305,15 +305,9 @@ describe('IssueList', function () {
     });
 
     it('shows archived tab', async function () {
-      render(
-        <IssueListWithStores
-          {...routerProps}
-          organization={{...organization}}
-        />,
-        {
-          context: routerContext,
-        }
-      );
+      render(<IssueListWithStores {...routerProps} organization={{...organization}} />, {
+        context: routerContext,
+      });
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalled();

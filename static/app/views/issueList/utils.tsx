@@ -63,8 +63,8 @@ export function getTabs(organization: Organization) {
         count: true,
         enabled: true,
         tooltipTitle: t(
-              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
-            ),
+          'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+        ),
       },
     ],
     [

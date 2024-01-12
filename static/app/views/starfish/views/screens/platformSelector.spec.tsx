@@ -1,9 +1,9 @@
 import {browserHistory} from 'react-router';
 
-import {render, screen, userEvent} from "sentry-test/reactTestingLibrary";
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import localStorage from 'sentry/utils/localStorage';
-import {PlatformSelector} from "sentry/views/starfish/views/screens/platformSelector";
+import {PlatformSelector} from 'sentry/views/starfish/views/screens/platformSelector';
 
 jest.mock('sentry/utils/localStorage');
 

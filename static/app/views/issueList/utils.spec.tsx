@@ -4,11 +4,7 @@ import {getTabs} from './utils';
 
 describe('getTabs', () => {
   it('should enable/disable tabs for escalating-issues', () => {
-    expect(
-      getTabs(OrganizationFixture({})).map(
-        tab => tab[1].name
-      )
-    ).toEqual([
+    expect(getTabs(OrganizationFixture({})).map(tab => tab[1].name)).toEqual([
       'Unresolved',
       'For Review',
       'Regressed',
