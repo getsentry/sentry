@@ -281,6 +281,13 @@ const Description = styled('div')`
   code {
     color: ${p => p.theme.pink400};
   }
+
+  && > p,
+  && > h4,
+  && > h5,
+  && > h6 {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 const AdditionalInfo = styled(Description)``;
