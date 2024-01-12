@@ -66,8 +66,6 @@ UNSET = object()
 
 ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
 
-DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
-
 
 def is_active_superuser(request):
     if is_system_auth(getattr(request, "auth", None)):
@@ -154,9 +152,8 @@ class Superuser(ElevatedMode):
         # if we've bound superuser to an organization they must
         # have completed SSO to gain status
         if self.org_id and not has_completed_sso(self.request, self.org_id):
-            # Allow superuser session on dev env for non sso flow
-            if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
-                return False, InactiveReason.INCOMPLETE_SSO
+            return False, InactiveReason.INCOMPLETE_SSO
+
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
             return True, InactiveReason.NONE
