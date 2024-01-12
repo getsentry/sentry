@@ -208,7 +208,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        context = organization_service.get_organization_by_id(id=self.organization_id)
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
         organization = context.organization
 
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
@@ -513,7 +515,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 group.organization
                 if group
                 else organization_service.get_organization_by_id(
-                    id=self.organization_id
+                    id=self.organization_id, include_projects=False, include_teams=False
                 ).organization
             )
             fkwargs["url"] = self.search_url(organization.slug)

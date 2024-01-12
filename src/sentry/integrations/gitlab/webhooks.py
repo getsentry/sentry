@@ -328,7 +328,9 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return HttpResponse(status=400, reason=extra["reason"])
 
         for install in installs:
-            org_context = organization_service.get_organization_by_id(id=install.organization_id)
+            org_context = organization_service.get_organization_by_id(
+                id=install.organization_id, include_teams=False, include_projects=False
+            )
             if org_context:
                 organization = org_context.organization
                 handler()(integration, organization, event)
