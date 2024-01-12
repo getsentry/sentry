@@ -139,10 +139,10 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.resolve_issue()
 
-    def test_ignored(self):
+    def test_archived(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.ignore_issue()
+        self.page.archive_issue()
 
     def test_exception_and_no_threads_event(self):
         event = self.create_sample_event(platform="exceptions-and-no-threads")

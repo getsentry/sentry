@@ -316,20 +316,6 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 _as_serialized(sub_data),
             )
 
-    def test_notify_after_issue_ignored(self, delay):
-
-        with Feature("organizations:sentry-functions"):
-            self.update_issue({"status": "ignored"})
-            sub_data = {}
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                sub_data["user"] = serialize(self.user)
-            delay.assert_called_once_with(
-                self.sentryFunction.external_id,
-                "issue.ignored",
-                self.issue.id,
-                _as_serialized(sub_data),
-            )
-
     def test_notify_after_issue_archived(self, delay):
 
         with Feature(
