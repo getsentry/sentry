@@ -171,6 +171,15 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         interval = int(3600 if interval is None else interval.total_seconds())
         start, end = get_date_range_from_params(request.GET)
 
+        limit = request.GET.get("limit")
+        if not limit:
+            limit = self.default_limit
+        else:
+            try:
+                limit = int(limit)
+            except ValueError:
+                return Response(status=400, data={"detail": "The provided `limit` is invalid"})
+
         try:
             results = run_metrics_query(
                 fields=request.GET.getlist("field", []),
@@ -185,7 +194,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query=request.GET.get("query"),
                 group_bys=request.GET.getlist("groupBy"),
                 order_by=request.GET.get("orderBy"),
-                limit=int(request.GET.get("limit", self.default_limit)),
+                limit=limit,
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
