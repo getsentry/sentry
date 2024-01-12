@@ -1533,12 +1533,24 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
-        return IdentityProvider.objects.create(
-            type=integration.provider,
-            external_id=integration.external_id,
-            config={},
-        )
+    def create_identity_provider(
+        integration: Integration | None = None,
+        config: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> IdentityProvider:
+        if integration is not None:
+            integration_values = dict(
+                type=integration.provider,
+                external_id=integration.external_id,
+            )
+            if any((key in kwargs) for key in integration_values):
+                raise ValueError(
+                    "Values from integration should not be in kwargs: "
+                    + repr(list(integration_values.keys()))
+                )
+            kwargs.update(integration_values)
+
+        return IdentityProvider.objects.create(config=config or {}, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

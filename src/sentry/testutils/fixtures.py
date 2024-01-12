@@ -11,6 +11,7 @@ from sentry.incidents.models import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.identity import IdentityProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
@@ -465,8 +466,13 @@ class Fixtures:
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
 
-    def create_identity_provider(self, *args, **kwargs):
-        return Factories.create_identity_provider(*args, **kwargs)
+    def create_identity_provider(
+        self,
+        integration: Integration | None = None,
+        config: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> IdentityProvider:
+        return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:

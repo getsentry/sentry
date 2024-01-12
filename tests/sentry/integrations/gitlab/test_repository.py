@@ -5,7 +5,7 @@ import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -36,7 +36,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
                 },
             )
             identity = Identity.objects.create(
-                idp=IdentityProvider.objects.create(
+                idp=self.create_identity_provider(
                     type="gitlab", config={}, external_id="1234567890"
                 ),
                 user=self.user,

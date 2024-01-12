@@ -5,7 +5,7 @@ from django.db import router
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
@@ -310,7 +310,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type="plugin"
         )
         identity = Identity.objects.create(
@@ -349,7 +349,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type="plugin"
         )
         identity = Identity.objects.create(
@@ -388,7 +388,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type=self.provider.key
         )
         Identity.objects.create(
@@ -456,7 +456,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type=self.provider.key
         )
         Identity.objects.create(

@@ -2,7 +2,7 @@ from unittest import mock
 
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
@@ -12,9 +12,9 @@ class UserIdentityConfigTest(APITestCase):
     def setUp(self):
         super().setUp()
 
-        self.slack_idp = IdentityProvider.objects.create(type="slack", external_id="A", config={})
-        self.github_idp = IdentityProvider.objects.create(type="github", external_id="B", config={})
-        self.google_idp = IdentityProvider.objects.create(type="google", external_id="C", config={})
+        self.slack_idp = self.create_identity_provider(type="slack", external_id="A")
+        self.github_idp = self.create_identity_provider(type="github", external_id="B")
+        self.google_idp = self.create_identity_provider(type="google", external_id="C")
 
         self.org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"

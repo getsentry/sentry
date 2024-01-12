@@ -18,7 +18,7 @@ from fixtures.vsts import (
 )
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -87,7 +87,7 @@ class VstsIssueBase(TestCase):
                 },
             )
             identity = Identity.objects.create(
-                idp=IdentityProvider.objects.create(type="vsts", config={}),
+                idp=self.create_identity_provider(type="vsts"),
                 user=self.user,
                 external_id="vsts",
                 data={"access_token": "123456789", "expires": time() + 1234567},

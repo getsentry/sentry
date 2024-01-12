@@ -7,7 +7,7 @@ import responses
 
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
@@ -49,7 +49,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             metadata={"domain_name": self.base_url},
         )
         default_auth = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="123",
             data={
@@ -139,7 +139,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
             metadata={"domain_name": self.base_url},
         )
         default_auth = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="123",
             data={

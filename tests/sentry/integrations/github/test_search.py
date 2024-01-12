@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import responses
 from django.urls import reverse
 
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -34,7 +34,7 @@ class GithubSearchTest(APITestCase):
         super().setUp()
         self.integration = self.create_integration()
         identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type=self.provider, config={}),
+            idp=self.create_identity_provider(type=self.provider),
             user=self.user,
             external_id=self.user.id,
             data={"access_token": "123456789"},

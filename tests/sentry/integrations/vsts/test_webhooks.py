@@ -15,7 +15,7 @@ from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.silo import SiloMode
@@ -41,7 +41,7 @@ class VstsWebhookWorkItemTest(APITestCase):
                     "subscription": {"id": 1234, "secret": self.shared_secret},
                 },
             )
-            self.identity_provider = IdentityProvider.objects.create(type="vsts")
+            self.identity_provider = self.create_identity_provider(type="vsts")
             self.identity = Identity.objects.create(
                 idp=self.identity_provider,
                 user=self.user,
