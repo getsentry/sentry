@@ -1503,91 +1503,13 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
     def test_bad_span_loop(self):
         super().test_bad_span_loop()
 
-    def test_with_orphan_trace(self):
-        self.load_trace()
-        orphan_span_ids = {
-            key: uuid4().hex[:16]
-            for key in ["root", "root_span", "child", "child_span", "grandchild", "grandchild_span"]
-        }
-        # Create the orphan transactions
-        root_event = self.create_event(
-            trace=self.trace_id,
-            transaction="/orphan/root",
-            spans=[
-                {
-                    "same_process_as_parent": True,
-                    "op": "http",
-                    "description": "GET gen1 orphan",
-                    "span_id": orphan_span_ids["root_span"],
-                    "trace_id": self.trace_id,
-                }
-            ],
-            # Some random id so its separated from the rest of the trace
-            parent_span_id=uuid4().hex[:16],
-            span_id=orphan_span_ids["root"],
-            project_id=self.project.id,
-            duration=1000,
-        )
-        child_event = self.create_event(
-            trace=self.trace_id,
-            transaction="/orphan/child1-0",
-            spans=[
-                {
-                    "same_process_as_parent": True,
-                    "op": "http",
-                    "description": "GET gen1 orphan",
-                    "span_id": orphan_span_ids["child_span"],
-                    "trace_id": self.trace_id,
-                }
-            ],
-            parent_span_id=orphan_span_ids["root_span"],
-            span_id=orphan_span_ids["child"],
-            project_id=self.gen1_project.id,
-            # Because the snuba query orders based is_root then timestamp, this causes grandchild1-0 to be added to
-            # results first before child1-0
-            duration=2500,
-        )
-        grandchild_event = self.create_event(
-            trace=self.trace_id,
-            transaction="/orphan/grandchild1-0",
-            spans=[
-                {
-                    "same_process_as_parent": True,
-                    "op": "http",
-                    "description": "GET gen1 orphan",
-                    "span_id": orphan_span_ids["grandchild_span"],
-                    "trace_id": self.trace_id,
-                }
-            ],
-            parent_span_id=orphan_span_ids["child_span"],
-            span_id=orphan_span_ids["grandchild"],
-            project_id=self.gen1_project.id,
-            duration=1500,
-        )
+    @pytest.mark.skip("Can't use the detailed response with useSpans on")
+    def test_detailed_trace_with_bad_tags(self):
+        super().test_detailed_trace_with_bad_tags()
 
-        with self.feature(self.FEATURES):
-            response = self.client_get(
-                data={"project": -1},
-            )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["transactions"]) == 2
-        # The first item of the response should be the main trace
-        main, orphans = response.data["transactions"]
-        self.assert_trace_data(main)
-        self.assert_event(orphans, root_event, "orphan-root")
-        assert len(orphans["children"]) == 1
-        assert orphans["generation"] == 0
-        assert orphans["parent_event_id"] is None
-        child = orphans["children"][0]
-        self.assert_event(child, child_event, "orphan-child")
-        assert len(child["children"]) == 1
-        assert child["generation"] == 1
-        assert child["parent_event_id"] == root_event.event_id
-        grandchild = child["children"][0]
-        self.assert_event(grandchild, grandchild_event, "orphan-grandchild")
-        assert grandchild["generation"] == 2
-        assert grandchild["parent_event_id"] == child_event.event_id
+    @pytest.mark.skip("We shouldn't need to prune with events anymore since spans should be faster")
+    def test_pruning_event(self):
+        super().test_purning_event()
 
     def test_detailed_trace(self):
         """Can't use detailed with useSpans, so this should actually just 400"""
@@ -1597,14 +1519,6 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
             )
 
         assert response.status_code == 400, response.content
-
-    @pytest.mark.skip("Can't use the detailed response with useSpans on")
-    def test_detailed_trace_with_bad_tags(self):
-        super().test_detailed_trace_with_bad_tags()
-
-    @pytest.mark.skip("We shouldn't need to prune with events anymore since spans should be faster")
-    def test_pruning_event(self):
-        super().test_purning_event()
 
 
 @region_silo_test

@@ -336,6 +336,12 @@ class TraceEvent:
                     ),
                 }
             )
+        if self.span_serialized:
+            result["timestamp"] = datetime.fromisoformat(self.event["timestamp"]).timestamp()
+            result["start_timestamp"] = (
+                datetime.fromisoformat(self.event["timestamp"]).timestamp()
+                - self.event["transaction.duration"]
+            )
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
