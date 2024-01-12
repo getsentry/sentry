@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import (
@@ -19,25 +18,10 @@ from typing import (
 from sentry.utils.safe import PathSearchable, get_path
 
 
-@dataclass(frozen=True)
-class EventFrame:
-    lineno: Optional[int] = None
-    in_app: Optional[bool] = None
-    abs_path: Optional[str] = None
-    filename: Optional[str] = None
-    function: Optional[str] = None
-    package: Optional[str] = None
-    module: Optional[str] = None
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> EventFrame:
-        return cls(**{k: v for k, v in data.items() if k in inspect.signature(cls).parameters})
-
-
 # mypy hack to work around callable assuing the first arg of callable is 'self'
 # https://github.com/python/mypy/issues/5485
 class FrameMunger(Protocol):
-    def __call__(self, frame: EventFrame) -> str | None:
+    def __call__(self, key: str, frame: MutableMapping[str, Any]) -> bool:
         pass
 
 
@@ -48,48 +32,51 @@ class SdkFrameMunger:
     supported_sdks: Set[str] = field(default_factory=set)
 
 
-def java_frame_munger(frame: EventFrame) -> str | None:
-    if not frame.filename or not frame.module:
-        return None
-    if "/" not in str(frame.filename) and frame.module:
+def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+    if frame.get("filename") is None or frame.get("module") is None:
+        return False
+    if "/" not in str(frame.get("filename")) and frame.get("module"):
         # Replace the last module segment with the filename, as the
         # terminal element in a module path is the class
-        module = frame.module.split(".")
-        module[-1] = frame.filename
-        return "/".join(module)
-    return None
+        module = frame["module"].split(".")
+        module[-1] = frame["filename"]
+        frame[key] = "/".join(module)
+        return True
+    return False
 
 
-def cocoa_frame_munger(frame: EventFrame) -> str | None:
-    if not frame.package or not frame.abs_path:
-        return None
+def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+    if not frame.get("package") or not frame.get("abs_path"):
+        return False
 
-    rel_path = package_relative_path(frame.abs_path, frame.package)
+    rel_path = package_relative_path(frame.get("abs_path"), frame.get("package"))
     if rel_path:
-        return rel_path
-    return None
+        frame[key] = rel_path
+        return True
+    return False
 
 
-def flutter_frame_munger(frame: EventFrame) -> str | None:
-    if not frame.abs_path:
-        return None
+def flutter_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+    if not frame.get("abs_path"):
+        return False
 
-    abs_path = str(frame.abs_path)
+    abs_path = str(frame.get("abs_path"))
 
     if abs_path.startswith("dart:"):
-        return None
+        return False
     elif abs_path.startswith("package:"):
-        if not frame.package:
-            return None
+        if not frame.get("package"):
+            return False
 
-        pkg = frame.package
+        pkg = frame.get("package")
         if abs_path.find(f"package:{pkg}") == -1:
-            return None
+            return False
         else:
             src_path = abs_path.replace(f"package:{pkg}", "", 1).strip("/")
             if src_path:
-                return src_path
-    return None
+                frame[key] = src_path
+                return True
+    return False
 
 
 def package_relative_path(abs_path: str | None, package: str | None) -> str | None:
@@ -119,23 +106,6 @@ def get_sdk_name(event_data: PathSearchable) -> Optional[str]:
     return get_path(event_data, "sdk", "name", filter=True) or None
 
 
-def try_munge_frame_path(
-    frame: EventFrame,
-    platform: str | None = None,
-    sdk_name: str | None = None,
-) -> str | None:
-    """
-    Applies platform-specific frame munging for filename pathing.
-
-    If munging was successful, return the munged filename, otherwise return None.
-    """
-    munger = platform and PLATFORM_FRAME_MUNGER.get(platform)
-    if not munger or (munger.requires_sdk and sdk_name not in munger.supported_sdks):
-        return None
-
-    return munger.frame_munger(frame)
-
-
 def munged_filename_and_frames(
     platform: str,
     data_frames: Sequence[Mapping[str, Any]],
@@ -157,10 +127,7 @@ def munged_filename_and_frames(
     )
     frames_updated = False
     for frame in copy_frames:
-        munged_filename = munger.frame_munger(EventFrame.from_dict(frame))
-        if munged_filename:
-            frame[key] = munged_filename
-            frames_updated = True
+        frames_updated |= munger.frame_munger(key, frame)
     return (key, copy_frames) if frames_updated else None
 
 
