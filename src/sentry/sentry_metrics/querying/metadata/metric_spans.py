@@ -231,9 +231,9 @@ class TransactionDurationSpansSource(SpansSource):
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
-
         if transformed_conditions:
             where += transformed_conditions
+
         if min_value:
             where += [Condition(Column("duration"), Op.GTE, min_value)]
         if max_value:
@@ -279,20 +279,20 @@ class MeasurementsSpansSource(SpansSource):
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
-
-        measurement_name = self._extract_measurement_name(metric_mri)
-
         if transformed_conditions:
             where += transformed_conditions
+
+        measurement_name = self._extract_measurement_name(metric_mri)
+        # We add this condition every time, since if a measurement is not set, Snuba will return 0, but it could also
+        # return 0 if the measurement value is 0, thus we need a way to discriminate between the two cases.
+        where += [
+            Condition(Function("has", [Column("measurements.key"), measurement_name]), Op.EQ, 1)
+        ]
 
         if min_value:
             where += [Condition(Column(f"measurements[{measurement_name}]"), Op.GTE, min_value)]
         if max_value:
             where += [Condition(Column(f"measurements[{measurement_name}]"), Op.LTE, max_value)]
-        if not min_value and not max_value:
-            where += [
-                Condition(Function("has", [Column("measurements.key"), measurement_name]), Op.EQ, 1)
-            ]
 
         return get_indexed_spans(
             where=[

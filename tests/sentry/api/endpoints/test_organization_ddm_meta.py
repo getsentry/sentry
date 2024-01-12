@@ -797,3 +797,32 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             assert len(metric_spans) == len(cast(Sequence[str], expected_span_ids))
             for i, expected_span_id in enumerate(cast(Sequence[str], expected_span_ids)):
                 assert metric_spans[i]["spanId"] == expected_span_id
+
+    def test_get_metric_spans_with_measurement_with_zero_edge_case(self):
+        mri = TransactionMRI.MEASUREMENTS_FRAMES_FROZEN.value
+
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id="98230207e6e4a6ad",
+            is_segment=1,
+        )
+        self.store_span(
+            project_id=self.project.id,
+            timestamp=before_now(minutes=5),
+            span_id="16bd1c7d77b591ab",
+            is_segment=1,
+            measurements={"frames_frozen": 0},
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            min="0",
+        )
+        metric_spans = response.data["metricSpans"]
+        # We expect to only have returned that span with that measurement, even if the value is 0.
+        assert len(metric_spans) == 1
