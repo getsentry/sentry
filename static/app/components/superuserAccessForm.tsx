@@ -33,7 +33,7 @@ type State = {
   superuserReason: string;
 };
 
-class SuperuserStaffAccessForm extends Component<Props, State> {
+class SuperuserAccessForm extends Component<Props, State> {
   state: State = {
     authenticators: [],
     error: false,
@@ -216,4 +216,4 @@ const BackWrapper = styled('div')`
   margin-left: ${space(4)};
 `;
 
-export default withApi(SuperuserStaffAccessForm);
+export default withApi(SuperuserAccessForm);
