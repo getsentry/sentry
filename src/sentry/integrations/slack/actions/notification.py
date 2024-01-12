@@ -102,14 +102,19 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             try:
                 client.post("/chat.postMessage", data=payload, timeout=5)
             except ApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "channel_name": self.get_option("channel"),
+                }
+                if features.has("organizations:slack-block-kit", event.group.project.organization):
+                    # temporarily log the payload so we can debug message failures
+                    log_params["payload"] = payload
+
                 self.logger.info(
                     "rule.fail.slack_post",
-                    extra={
-                        "error": str(e),
-                        "project_id": event.project_id,
-                        "event_id": event.event_id,
-                        "channel_name": self.get_option("channel"),
-                    },
+                    extra=log_params,
                 )
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel, rule, notification_uuid)
