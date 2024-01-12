@@ -490,7 +490,6 @@ class DashboardDetail extends Component<Props, State> {
       (state: State) => ({
         ...state,
         widgetLimitReached: widgets.length >= MAX_WIDGETS,
-        editingWidgetIndex: -1,
         dashboardState: DashboardState.EDIT,
         modifiedDashboard: {
           ...(state.modifiedDashboard || this.props.dashboard),
@@ -587,16 +586,23 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
+          const isInlineEdit = this.state.editingWidgetIndex !== -1;
+          if (isInlineEdit) {
+            this.setState({
+              dashboardState: DashboardState.VIEW,
+            });
+          }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
-              addSuccessMessage(t('Dashboard updated'));
+              !isInlineEdit && addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
+                editingWidgetIndex: -1,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {

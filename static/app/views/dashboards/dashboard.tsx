@@ -215,7 +215,7 @@ class Dashboard extends Component<Props, State> {
     const {organization, router, location, paramDashboardId} = this.props;
 
     if (dataset === DataSet.METRICS) {
-      this.handleAddMetricsWidget();
+      this.handleAddMetricWidget();
       return;
     }
 
@@ -247,9 +247,15 @@ class Dashboard extends Component<Props, State> {
     return;
   };
 
-  handleAddMetricsWidget() {
-    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList, selection} =
-      this.props;
+  handleAddMetricWidget() {
+    const {
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+      selection,
+      onStartEditMetricWidget,
+    } = this.props;
 
     const widgetLayout = this.addWidgetLayout;
 
@@ -262,14 +268,14 @@ class Dashboard extends Component<Props, State> {
       })
     );
 
-    let nextList = [...dashboard.widgets];
-    nextList.splice(nextList.length - 1, 0, widgetCopy);
+    let nextList = [...dashboard.widgets, widgetCopy];
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
     if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
+    onStartEditMetricWidget?.(nextList.length - 1);
   }
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {

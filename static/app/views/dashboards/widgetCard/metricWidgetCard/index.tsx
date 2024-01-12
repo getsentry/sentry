@@ -17,6 +17,7 @@ import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCar
 import {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {InlineEditor} from 'sentry/views/dashboards/widgetCard/metricWidgetCard/inlineEditor';
+import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
 import {MetricWidgetBody} from 'sentry/views/ddm/widget';
 
@@ -53,6 +54,7 @@ export function MetricWidgetCardAdapter({
   selection,
   widget,
   isEditingWidget,
+  isEditingDashboard,
   onEdit,
   onUpdate,
   onDelete,
@@ -135,26 +137,26 @@ export function MetricWidgetCardAdapter({
             </WidgetTitleRow>
           </WidgetHeaderDescription>
           <ContextMenuWrapper>
-            <WidgetCardContextMenu
-              organization={organization}
-              widget={widget}
-              selection={selection}
-              showContextMenu
-              isPreview={false}
-              widgetLimitReached={false}
-              onEdit={() => index && onEdit?.(index)}
-              router={router}
-              location={location}
-              onDelete={onDelete}
-              onDuplicate={onDuplicate}
-            />
+            {!isEditingDashboard && (
+              <WidgetCardContextMenu
+                organization={organization}
+                widget={widget}
+                selection={selection}
+                showContextMenu
+                isPreview={false}
+                widgetLimitReached={false}
+                onEdit={() => index && onEdit?.(index)}
+                router={router}
+                location={location}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+              />
+            )}
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
 
         <MetricWidgetBody
           widgetIndex={0}
-          addFocusArea={() => {}}
-          removeFocusArea={() => {}}
           focusArea={null}
           datetime={selection.datetime}
           projects={selection.projects}
@@ -166,6 +168,7 @@ export function MetricWidgetCardAdapter({
           groupBy={metricWidgetQueryParams.groupBy}
           displayType={metricWidgetQueryParams.displayType as any as MetricDisplayType}
         />
+        {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
     </DashboardsMEPContext.Provider>
   );

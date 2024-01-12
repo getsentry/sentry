@@ -320,7 +320,10 @@ const WrapPageFilterBar = styled(PageFilterBar)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  padding-left: ${space(1)};
+  padding-left: ${space(1.5)};
   padding-top: ${space(1)};
   padding-right: ${space(1)};
+
+  ${p => p.theme.overflowEllipsis};
+  font-weight: normal;
 `;
