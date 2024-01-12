@@ -9,7 +9,7 @@ from sentry.net.http import Session
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.socket import override_blacklist
+from sentry.testutils.helpers.socket import override_blocklist
 
 
 class BaseApiClientTest(TestCase):
@@ -66,7 +66,7 @@ class BaseApiClientTest(TestCase):
     @responses.activate
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
     @patch.object(Session, "send", side_effect=RestrictedIPAddress())
-    @override_blacklist("172.16.0.0/12")
+    @override_blocklist("172.16.0.0/12")
     def test_restricted_ip_address(self, mock_finalize_request, mock_session_send):
         assert not mock_finalize_request.called
         with raises(ApiHostError):
