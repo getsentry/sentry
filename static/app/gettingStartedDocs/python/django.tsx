@@ -83,10 +83,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
-api = falcon.API()
-      `,
+          code: getSdkSetupSnippet(params),
         },
       ],
     },
