@@ -1,4 +1,4 @@
-import {CSSProperties, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {safeURL} from 'sentry/utils/url/safeURL';
@@ -31,7 +32,8 @@ const imageHeight = '180px';
 function SampleImages({groupId, projectId}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const [showImages, setShowImages] = useState(showLinks);
-  const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
+  const {data: settings, isLoading: isSettingsLoading} =
+    usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
   const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
@@ -64,6 +66,7 @@ function SampleImages({groupId, projectId}: Props) {
         onClickShowLinks={handleClickOnlyShowLinks}
         images={filteredResources}
         isLoadingImages={isLoadingImages}
+        isSettingsLoading={isSettingsLoading}
         isImagesEnabled={isImagesEnabled}
         showImages={showImages || isImagesEnabled}
       />
@@ -75,25 +78,35 @@ function SampleImagesChartPanelBody(props: {
   images: ReturnType<typeof useIndexedResourcesQuery>['data'];
   isImagesEnabled: boolean;
   isLoadingImages: boolean;
+  isSettingsLoading: boolean;
   showImages: boolean;
   onClickShowLinks?: () => void;
 }) {
-  const {onClickShowLinks, images, isLoadingImages, showImages, isImagesEnabled} = props;
-
-  useEffect(() => {
-    if (showImages && !isImagesEnabled) {
-      Sentry.captureException(new Error('No sample images found'));
-    }
-  }, [showImages, isImagesEnabled]);
+  const {
+    onClickShowLinks,
+    images,
+    isLoadingImages,
+    showImages,
+    isImagesEnabled,
+    isSettingsLoading,
+  } = props;
 
   const hasImages = images.length > 0;
+
+  useEffect(() => {
+    if (showImages && !hasImages && !isLoadingImages) {
+      Sentry.captureException(new Error('No sample images found'));
+    }
+  }, [showImages, hasImages, isLoadingImages]);
+
+  if (isSettingsLoading || (showImages && isLoadingImages)) {
+    return <LoadingIndicator />;
+  }
 
   if (!showImages) {
     return <DisabledImages onClickShowLinks={onClickShowLinks} />;
   }
-  if (showImages && isLoadingImages) {
-    return <LoadingIndicator />;
-  }
+
   if (showImages && !hasImages) {
     return (
       <EmptyStateWarning>
@@ -132,6 +145,7 @@ function DisabledImages(props: {onClickShowLinks?: () => void}) {
   return (
     <div>
       <ChartPanelTextContainer>
+        <IconImage />
         <h6>{t('Images not shown')}</h6>
         {t(
           'You know, you can see the actual images that are on your site if you opt into this feature.'
@@ -157,17 +171,9 @@ function ImageContainer(props: {
   size: number;
   src: string;
 }) {
-  const theme = useTheme();
   const [hasError, setHasError] = useState(false);
 
   const {fileName, size, src, showImage = true} = props;
-
-  const commonStyles: CSSProperties = {
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    objectPosition: 'center',
-  };
 
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
@@ -178,14 +184,47 @@ function ImageContainer(props: {
             height: imageHeight,
           }}
         >
-          <img onError={() => setHasError(true)} src={src} style={commonStyles} />
+          <img
+            onError={() => setHasError(true)}
+            src={src}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center',
+            }}
+          />
         </div>
       ) : (
-        <div
-          style={{width: imageWidth, height: imageHeight, backgroundColor: theme.gray100}}
-        />
+        <MissingImage />
       )}
       {fileName} (<ResourceSize bytes={size} />)
+    </div>
+  );
+}
+
+function MissingImage() {
+  const theme = useTheme();
+
+  return (
+    <div
+      style={{
+        background: theme.gray100,
+        width: imageWidth,
+        height: imageHeight,
+        position: 'relative',
+      }}
+    >
+      <IconImage
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          margin: 'auto',
+        }}
+      />
     </div>
   );
 }

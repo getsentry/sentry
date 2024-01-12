@@ -291,6 +291,15 @@ def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
     return parsed_mri.namespace == "custom"
 
 
+def is_measurement(parsed_mri: ParsedMRI) -> bool:
+    """
+    A measurement won't use the custom namespace, but will be under the transaction namespace.
+
+    This checks the namespace, and name to match what we consider to be a standard + custom measurement.
+    """
+    return parsed_mri.namespace == "transactions" and parsed_mri.name.startswith("measurements.")
+
+
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     """
     A custom measurement won't use the custom namespace, but will be under the transaction namespace.

@@ -1,18 +1,14 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './rack';
 
-import {GettingStartedWithRubyRack, steps} from './rack';
+describe('GettingStartedWithSpring', function () {
+  it('renders docs correctly', function () {
+    renderWithOnboardingLayout(docs);
 
-describe('GettingStartedWithRubyRack', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithRubyRack dsn="test-dsn" projectSlug="test-project" />);
-
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
   });
 });
