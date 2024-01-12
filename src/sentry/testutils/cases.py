@@ -1404,7 +1404,8 @@ class BaseSpansTestCase(SnubaTestCase):
         store_only_summary: bool = False,
         is_segment: bool = False,
         duration_ms: int = 10,
-        transaction: Optional[str] = None,
+        transaction: str = None,
+        measurements: Optional[Mapping[str, Union[int, float]]] = None,
     ):
         if timestamp is None:
             timestamp = datetime.now(tz=timezone.utc)
@@ -1414,6 +1415,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "exclusive_time_ms": 5,
             "is_segment": is_segment,
             "project_id": project_id,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
             "retention_days": 90,
             "sentry_tags": {"transaction": transaction or "/hello"},
             "span_id": span_id,
@@ -1429,6 +1431,10 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["profile_id"] = profile_id
         if metrics_summary:
             payload["_metrics_summary"] = metrics_summary
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.

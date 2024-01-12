@@ -221,6 +221,8 @@ def describe_event_for_ai(event, model):
         if frames:
             stacktrace = []
             for frame in reversed(frames):
+                if frame is None:
+                    continue
                 stack_frame: dict[str, Any] = {}
                 set_if_value(stack_frame, "func", frame.get("function"))
                 set_if_value(stack_frame, "module", frame.get("module"))
@@ -295,7 +297,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.ML_AI
     # go away
     private = True
     enforce_rate_limit = True

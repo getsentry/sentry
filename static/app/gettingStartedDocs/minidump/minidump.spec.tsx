@@ -1,18 +1,15 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './minidump';
 
-import {GettingStartedWithMinidump, steps} from './minidump';
+describe('GettingStartedWithSpring', function () {
+  it('renders gradle docs correctly', function () {
+    renderWithOnboardingLayout(docs);
 
-describe('GettingStartedWithMinidump', function () {
-  it('renders doc correctly', function () {
-    render(<GettingStartedWithMinidump dsn="test-dsn" projectSlug="test-project" />);
-
-    // Steps
-    for (const step of steps()) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(
+      screen.getByRole('heading', {name: 'Creating and Uploading Minidumps'})
+    ).toBeInTheDocument();
   });
 });

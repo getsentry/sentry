@@ -2,7 +2,6 @@ import uuid
 from unittest.mock import patch
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -183,12 +182,11 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
 
     def test_profile_issue_helpful(self):
         event_id_1 = uuid.uuid4().hex
-        occurrence = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_1, project_id=self.project.id),
-            {
-                "event_id": event_id_1,
+        occurrence, _ = self.process_occurrence(
+            event_id=event_id_1,
+            project_id=self.project.id,
+            event_data={
                 "fingerprint": ["group-1"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=2).isoformat(),
                 "contexts": {
                     "profile": {"profile_id": uuid.uuid4().hex},
@@ -201,18 +199,17 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
                 },
                 "errors": [],
             },
-        )[0]
+        )
 
         event_id_2 = uuid.uuid4().hex
-        occurrence_2 = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_2, project_id=self.project.id),
-            {
-                "event_id": event_id_2,
+        occurrence_2, _ = self.process_occurrence(
+            event_id=event_id_2,
+            project_id=self.project.id,
+            event_data={
                 "fingerprint": ["group-1"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
-        )[0]
+        )
 
         group = Group.objects.first()
         group.update(type=ProfileFileIOGroupType.type_id)

@@ -15,8 +15,6 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import APITestCase
@@ -37,7 +35,7 @@ class StatusActionTest(APITestCase):
         self.team = self.create_team(organization=self.org, members=[self.user])
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="msteams",
                 name="Fellowship of the Ring",
                 external_id="f3ll0wsh1p",
@@ -47,7 +45,7 @@ class StatusActionTest(APITestCase):
                     "expires_at": int(time.time()) + 86400,
                 },
             )
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=self.org.id, integration=self.integration
             )
 
@@ -281,7 +279,7 @@ class StatusActionTest(APITestCase):
         org2 = self.create_organization(owner=None)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration2 = Integration.objects.create(
+            integration2 = self.create_provider_integration(
                 provider="msteams",
                 name="Army of Mordor",
                 external_id="54rum4n",
@@ -291,9 +289,7 @@ class StatusActionTest(APITestCase):
                     "expires_at": int(time.time()) + 86400,
                 },
             )
-            OrganizationIntegration.objects.create(
-                organization_id=org2.id, integration=integration2
-            )
+            self.create_organization_integration(organization_id=org2.id, integration=integration2)
 
             idp2 = IdentityProvider.objects.create(type="msteams", external_id="54rum4n", config={})
             Identity.objects.create(

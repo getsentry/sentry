@@ -5,7 +5,6 @@ from selenium.webdriver.common.by import By
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -34,7 +33,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
             role="member",
         )
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",

@@ -48,9 +48,13 @@ class WebhookPresenter(OptionsPresenter):
         ):
             return
 
-        region: Optional[str] = settings.SENTRY_REGION
-        if not region:
-            region = settings.CUSTOMER_ID
+        region: Optional[str] = (
+            settings.SENTRY_REGION
+            if settings.SENTRY_REGION
+            else settings.CUSTOMER_ID
+            if settings.CUSTOMER_ID
+            else settings.SILO_MODE
+        )
 
         json_data = {
             "region": region,

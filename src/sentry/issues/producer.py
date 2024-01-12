@@ -22,6 +22,13 @@ logger = logging.getLogger(__name__)
 
 
 class PayloadType(ValueEqualityEnum):
+    """
+    Defines the type of payload that is being sent to Kafka.
+
+    Messages without PayloadTypes default to OCCURRENCE.
+    When adding new types, existing tests must pass without modifying the payload_type or the payload for backwards compatibility.
+    """
+
     OCCURRENCE = "occurrence"
     STATUS_CHANGE = "status_change"
 
@@ -40,12 +47,11 @@ _occurrence_producer = SingletonProducer(
 
 
 def produce_occurrence_to_kafka(
-    payload_type: PayloadType | None = PayloadType.OCCURRENCE,
+    payload_type: PayloadType = PayloadType.OCCURRENCE,
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
     event_data: Optional[Dict[str, Any]] = None,
 ) -> None:
-    payload_data = None
     if payload_type == PayloadType.OCCURRENCE:
         payload_data = _prepare_occurrence_message(occurrence, event_data)
     elif payload_type == PayloadType.STATUS_CHANGE:

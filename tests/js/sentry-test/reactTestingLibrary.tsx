@@ -20,10 +20,18 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 import {initializeOrg} from './initializeOrg';
 
 type ProviderOptions = {
+  /**
+   * Sets legacy context providers. This value is directly passed to a
+   * `getChildContext`.
+   */
   context?: Record<string, any>;
+  /**
+   * Sets the OrganizationContext
+   */
   organization?: Partial<Organization>;
-  project?: string;
-  projects?: string[];
+  /**
+   * Sets the RouterContext
+   */
   router?: Partial<InjectedRouter>;
 };
 
@@ -89,7 +97,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
  */
 function render(ui: React.ReactElement, options?: Options) {
   options = options ?? {};
-  const {context, organization, project, projects, ...otherOptions} = options;
+  const {context, organization, ...otherOptions} = options;
   let {router} = options;
 
   if (router === undefined && context?.context?.router) {
@@ -99,8 +107,6 @@ function render(ui: React.ReactElement, options?: Options) {
   const AllTheProviders = makeAllTheProviders({
     context,
     organization,
-    project,
-    projects,
     router,
   });
 

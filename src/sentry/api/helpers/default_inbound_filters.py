@@ -5,7 +5,6 @@ from sentry.ingest import inbound_filters
 
 # Turns on certain inbound filters by default for project.
 def set_default_inbound_filters(project):
-    state: Dict[str, Union[bool, List[str]]] = {}
     filters = [
         "browser-extensions",
         "legacy-browsers",
@@ -14,6 +13,7 @@ def set_default_inbound_filters(project):
     ]
 
     for filter_id in filters:
+        state: Dict[str, Union[bool, List[str]]] = {}
         if filter_id == "legacy-browsers":
             state["subfilters"] = [
                 "ie_pre_9",
