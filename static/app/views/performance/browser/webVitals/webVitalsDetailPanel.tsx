@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import toUpper from 'lodash/toUpper';
 
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import GridEditable, {
@@ -168,7 +167,7 @@ export function WebVitalsDetailPanel({
             <span>
               {tct(
                 "A number rating how impactful a performance improvement on this page would be to your application's [webVital] Performance Score.",
-                {webVital: webVital ? toUpper(webVital) : ''}
+                {webVital: webVital?.toUpperCase() ?? ''}
               )}
               <br />
               <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
