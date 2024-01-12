@@ -27,9 +27,8 @@ def test_simple(mock_getaddrinfo):
     assert "gzip" in request.headers.get("Accept-Encoding", "")
 
 
+@pytest.mark.disable_automatic_responses_mock
 @override_blocklist("127.0.0.1", "::1", "10.0.0.0/8")
-# XXX(dcramer): we can't use responses here as it hooks Session.send
-# @responses.activate
 def test_ip_blacklist_ipv4():
     with pytest.raises(SuspiciousOperation):
         http.safe_urlopen("http://127.0.0.1")
@@ -40,6 +39,7 @@ def test_ip_blacklist_ipv4():
         http.safe_urlopen("http://2130706433")
 
 
+@pytest.mark.disable_automatic_responses_mock
 @pytest.mark.skipif(not HAS_IPV6, reason="needs ipv6")
 @override_blocklist("::1")
 def test_ip_blacklist_ipv6():
@@ -56,6 +56,7 @@ def test_ip_blacklist_ipv6_fallback(mock_getaddrinfo):
         http.safe_urlopen("http://[::1]")
 
 
+@pytest.mark.disable_automatic_responses_mock
 @pytest.mark.skipif(
     platform.system() == "Darwin", reason="macOS is always broken, see comment in sentry/http.py"
 )

@@ -1,6 +1,7 @@
 import ipaddress
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import override_settings
 from pytest import raises
 from requests import Request
@@ -93,6 +94,7 @@ class IntegrationProxyClientTest(TestCase):
             assert header in prepared_request.headers
         assert prepared_request.headers[PROXY_PATH] == "get?query=1&user=me"
 
+    @pytest.mark.disable_automatic_responses_mock
     @override_settings(SILO_MODE=SiloMode.REGION)
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
@@ -110,6 +112,7 @@ class IntegrationProxyClientTest(TestCase):
         err = mock_capture_exception.call_args.args[0]
         assert err.args == ("Disallowed Control Silo IP address: 172.31.255.255",)
 
+    @pytest.mark.disable_automatic_responses_mock
     @override_settings(SILO_MODE=SiloMode.REGION)
     @patch("sentry.shared_integrations.client.proxy.is_control_silo_ip_address")
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
@@ -136,6 +139,7 @@ class IntegrationProxyClientTest(TestCase):
             client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
         assert mock_is_control_silo_ip_address.call_count == 1
 
+    @pytest.mark.disable_automatic_responses_mock
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.shared_integrations.client.proxy.is_control_silo_ip_address")
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")

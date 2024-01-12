@@ -1,4 +1,5 @@
 import os
+import re
 from typing import MutableMapping
 
 import psutil
@@ -188,3 +189,18 @@ def check_leaked_responses_mocks():
             f"`responses` were leaked outside of the test context:\n{leaked_s}"
             f"(make sure to use `@responses.activate` or `with responses.mock:`)"
         )
+
+
+@pytest.fixture(autouse=True)
+def responses_mock_automatic(request):
+    if request.node.get_closest_marker("disable_automatic_responses_mock"):
+        yield
+    else:
+        with responses.RequestsMock() as mck:
+            # snuba, relay, symbolicator, etc.
+            mck.add_passthru(re.compile(r"^http://127\.0\.0\.1:.*$"))
+            # self requests, via the docker network
+            mck.add_passthru(re.compile(r"^http://172\.17\.0\.1:.*$"))
+            # docker api
+            mck.add_passthru(re.compile(r"^http\+docker://.*$"))
+            yield

@@ -22,6 +22,7 @@ addopts = "-ra --tb=short --strict-markers -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
+    "disable_automatic_responses_mock(reason): disable the automatic `responses` mocking",
     "snuba: test requires access to snuba",
     "snuba_ci: test is run in snuba ci",
     "sentry_metrics: test requires access to sentry metrics",

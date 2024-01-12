@@ -3,6 +3,7 @@ from hashlib import sha1
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import pytest
 import responses
 from django.test import RequestFactory, override_settings
 from pytest import raises
@@ -385,6 +386,7 @@ class SiloClientTest(TestCase):
             assert isinstance(err, RegionResolutionError)
             assert err.args == ("Disallowed Region Silo IP address: 172.31.255.31",)
 
+    @pytest.mark.disable_automatic_responses_mock
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_allowed_region_silo_ip_addresses("172.31.255.255")
     def test_client_restricted_ip_address(self):
