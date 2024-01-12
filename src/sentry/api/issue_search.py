@@ -3,7 +3,6 @@ from __future__ import annotations
 from functools import partial
 from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
 
-from sentry import features
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -303,11 +302,6 @@ def convert_query_values(
             if isinstance(search_filter, (ParenExpression, str)):
                 continue
             if search_filter.key.name == "substatus":
-                if not features.has("organizations:escalating-issues", org):
-                    raise InvalidSearchQuery(
-                        "The substatus filter is not supported for this organization"
-                    )
-
                 converted = convert_search_filter(search_filter, org)
                 new_value = converted.value.raw_value
                 status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(

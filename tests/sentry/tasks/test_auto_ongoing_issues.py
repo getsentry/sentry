@@ -10,13 +10,11 @@ from sentry.tasks.auto_ongoing_issues import (
     schedule_auto_transition_to_ongoing,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
@@ -269,7 +267,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         )
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
@@ -373,7 +370,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         )
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
