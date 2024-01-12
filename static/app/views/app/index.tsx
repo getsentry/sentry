@@ -12,6 +12,7 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
+import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
@@ -36,7 +37,6 @@ const InstallWizard: React.FC<InstallWizardProps> = lazy(
   () => import('sentry/views/admin/installWizard')
 );
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
-const PartnershipAgreement = lazy(() => import('sentry/views/partnershipAgreement'));
 
 /**
  * App is the root level container for all uathenticated routes.
@@ -179,11 +179,12 @@ function App({children, params}: Props) {
     if (partnershipAgreementPrompt) {
       return (
         <Suspense fallback={null}>
-          <PartnershipAgreement
+          <Hook
+            name="component:partnership-agreement"
             partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
             agreements={partnershipAgreementPrompt.agreements}
-            onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)
-          } />
+            onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)}
+          />
         </Suspense>
       );
     }

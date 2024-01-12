@@ -9,10 +9,11 @@ from sentry.backup.dependencies import (
     ModelRelations,
     NormalizedModelName,
     dependencies,
+    get_exportable_sentry_models,
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder, get_exportable_sentry_models
+from sentry.backup.helpers import DatetimeSafeDjangoJSONEncoder
 from sentry.utils.json import JSONData
 
 
