@@ -1,7 +1,5 @@
 from django.urls import re_path
 
-from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
-
 from .views.link_identity import SlackLinkIdentityView
 from .views.link_team import SlackLinkTeamView
 from .views.unlink_identity import SlackUnlinkIdentityView
@@ -9,6 +7,7 @@ from .views.unlink_team import SlackUnlinkTeamView
 from .webhooks.action import SlackActionEndpoint
 from .webhooks.command import SlackCommandsEndpoint
 from .webhooks.event import SlackEventEndpoint
+from .webhooks.options_load import SlackOptionsLoadEndpoint
 
 urlpatterns = [
     re_path(

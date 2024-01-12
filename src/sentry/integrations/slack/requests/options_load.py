@@ -17,10 +17,6 @@ class SlackOptionsLoadRequest(SlackRequest):
     """
 
     @property
-    def type(self) -> str:
-        return str(self.data.get("type"))
-
-    @property
     def group_id(self) -> int:
         return int(json.loads(self.data["message"]["blocks"][0]["block_id"])["issue"])
 

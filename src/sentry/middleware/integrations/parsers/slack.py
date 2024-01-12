@@ -23,6 +23,7 @@ from sentry.integrations.slack.webhooks.action import (
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
+from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -54,9 +55,15 @@ class SlackRequestParser(BaseRequestParser):
         SlackUnlinkTeamView,
         SlackCommandsEndpoint,
         SlackEventEndpoint,
+        SlackOptionsLoadEndpoint,
     ]
 
-    webhook_endpoints = [SlackCommandsEndpoint, SlackActionEndpoint, SlackEventEndpoint]
+    webhook_endpoints = [
+        SlackCommandsEndpoint,
+        SlackActionEndpoint,
+        SlackEventEndpoint,
+        SlackOptionsLoadEndpoint,
+    ]
     """
     Endpoints which provide integration info in the request headers.
     See: `src/sentry/integrations/slack/webhooks`
