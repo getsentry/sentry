@@ -19,7 +19,7 @@ from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_health
     is_error_count_healthy,
 )
 from sentry.api.endpoints.release_thresholds.health_checks.is_new_issues_count_healthy import (
-    is_new_issues_count_healthy,
+    update_new_issues_count_healthy_for_thresholds,
 )
 from sentry.api.endpoints.release_thresholds.utils import (
     get_errors_counts_timeseries_by_project_and_release,
@@ -343,9 +343,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
                 metrics.incr("release.threshold_health_status.check.new_issue_count")
+                update_new_issues_count_healthy_for_thresholds(category_thresholds)
                 for ethreshold in category_thresholds:
-                    is_healthy = is_new_issues_count_healthy(ethreshold)
-                    ethreshold.update({"is_healthy": is_healthy})
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key

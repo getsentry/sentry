@@ -136,6 +136,8 @@ class ReleaseThresholdStatusTest(APITestCase):
         for _ in range(2):
             grouped_issue = Group.objects.create(
                 project=self.project1,
+                first_release=self.release1,
+                first_seen=new_issue_time,
             )
             GroupEnvironment.objects.create(
                 group=grouped_issue,
