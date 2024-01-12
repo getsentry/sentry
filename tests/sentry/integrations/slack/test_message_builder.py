@@ -92,34 +92,12 @@ def build_test_message_blocks(
                         "value": "ignored:until_escalating",
                     },
                     {
-                        "type": "static_select",
+                        "type": "external_select",
                         "placeholder": {
                             "type": "plain_text",
                             "text": "Select Assignee...",
                             "emoji": True,
                         },
-                        "option_groups": [
-                            {
-                                "label": {"type": "plain_text", "text": "Teams"},
-                                "options": [
-                                    {
-                                        "text": {"type": "plain_text", "text": f"#{team.slug}"},
-                                        "value": f"team:{team.id}",
-                                    }
-                                    for team in teams
-                                ],
-                            },
-                            {
-                                "label": {"type": "plain_text", "text": "People"},
-                                "options": [
-                                    {
-                                        "text": {"type": "plain_text", "text": f"{user.email}"},
-                                        "value": f"user:{user.id}",
-                                    }
-                                    for user in users
-                                ],
-                            },
-                        ],
                         "action_id": "assign",
                     },
                 ],
