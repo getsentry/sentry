@@ -31,7 +31,7 @@ DEPENDENCY_TEST_DATA = {
         "django.core.cache.backends.memcached.MemcachedCache",
         {
             "default": {
-                "BACKEND": "django.core.cache.backends.memcached.MemcachedCache",
+                "BACKEND": "sentry.utils.memcached.MemcachedCache",
                 "LOCATION": "127.0.0.1:11211",
             }
         },
