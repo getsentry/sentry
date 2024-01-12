@@ -36,6 +36,7 @@ ContextValue = Any
 ContextDict = Dict[str, ContextValue]
 
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
+DEFAULT_GROUPING_FINGERPRINTING_BASES = []
 
 ReturnedVariants = Dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
@@ -292,6 +293,7 @@ class StrategyConfiguration:
     risk = RISK_LEVEL_LOW
     initial_context: ContextDict = {}
     enhancements_base: Optional[str] = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    fingerprinting_bases: Optional[Sequence[str]] = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
     def __init__(self, enhancements: Optional[str] = None, **extra: Any):
         if enhancements is None:
@@ -334,6 +336,7 @@ def create_strategy_configuration(
     risk: Optional[Risk] = None,
     initial_context: Optional[ContextDict] = None,
     enhancements_base: Optional[str] = None,
+    fingerprinting_bases: Optional[Sequence[str]] = None,
 ) -> Type[StrategyConfiguration]:
     """Declares a new strategy configuration.
 
@@ -354,6 +357,11 @@ def create_strategy_configuration(
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
     NewStrategyConfiguration.initial_context = dict(base.initial_context) if base else {}
     NewStrategyConfiguration.enhancements_base = base.enhancements_base if base else None
+    if base and base.fingerprinting_bases is not None:
+        NewStrategyConfiguration.fingerprinting_bases = list(base.fingerprinting_bases)
+    else:
+        NewStrategyConfiguration.fingerprinting_bases = None
+
     if risk is None:
         risk = RISK_LEVEL_LOW
     NewStrategyConfiguration.risk = risk
@@ -387,6 +395,9 @@ def create_strategy_configuration(
 
     if enhancements_base:
         NewStrategyConfiguration.enhancements_base = enhancements_base
+
+    if fingerprinting_bases:
+        NewStrategyConfiguration.fingerprinting_bases = fingerprinting_bases
 
     NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id
