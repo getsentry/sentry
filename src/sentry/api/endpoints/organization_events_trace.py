@@ -206,13 +206,13 @@ class TraceEvent:
                 continue
 
             suspect_spans: List[str] = []
+            unique_spans: Set[str] = set()
             start: Optional[float] = None
             end: Optional[float] = None
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
             elif "occurrence_spans" in self.event:
-                unique_spans: Set[str] = set()
                 for problem in self.event["problems"]:
                     parent_span_ids = problem.evidence_data.get("parent_span_ids")
                     if parent_span_ids is not None:
@@ -232,7 +232,10 @@ class TraceEvent:
                                     start_timestamp = float(
                                         end_timestamp - event_span.get("span.duration")
                                     )
-                                    start = min(start, start_timestamp)
+                                    if start is None:
+                                        start = start_timestamp
+                                    else:
+                                        start = min(start, start_timestamp)
                             except ValueError:
                                 pass
                             suspect_spans.append(event_span.get("span_id"))
@@ -252,7 +255,6 @@ class TraceEvent:
                         [occurrence.get("occurrence_id") for occurrence in occurrence_ids],
                         self.event["project.id"],
                     )
-                    unique_spans: Set[str] = set()
                     for problem in problems:
                         parent_span_ids = problem.evidence_data.get("parent_span_ids")
                         if parent_span_ids is not None:

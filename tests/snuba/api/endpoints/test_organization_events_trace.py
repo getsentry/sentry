@@ -1509,7 +1509,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
     @pytest.mark.skip("We shouldn't need to prune with events anymore since spans should be faster")
     def test_pruning_event(self):
-        super().test_purning_event()
+        super().test_pruning_event()
 
     def test_detailed_trace(self):
         """Can't use detailed with useSpans, so this should actually just 400"""
