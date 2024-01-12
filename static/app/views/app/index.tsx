@@ -185,7 +185,7 @@ function App({children, params}: Props) {
             partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
             agreements={partnershipAgreementPrompt.agreements}
             onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)}
-            organizationSlug={orgId}
+            organizationSlug={config.customerDomain?.subdomain}
           />
         </Suspense>
       );
