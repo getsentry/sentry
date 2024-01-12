@@ -84,7 +84,6 @@ class OnDemandMetricSpecVersioning:
 
     @classmethod
     def get_default_spec_version(cls: Any) -> SpecVersion:
-        # XXX: Remove this comment
         # I believe this should be the original behaviour rather than the new one,
         # however, the current code defaults to the new `use_updated_env_logic: bool = True``
         return cls.spec_versions[-1]

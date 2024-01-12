@@ -247,7 +247,7 @@ def _trim_if_above_limit(
 
             # We only trim the minimum version
             if version == OnDemandMetricSpecVersioning.get_default_spec_version().version:
-                return_specs = return_specs[:max_specs]
+                return_specs = list(specs[:max_specs])
 
     return return_specs
 
@@ -261,7 +261,6 @@ def _merge_metric_specs(
     for query_hash, spec, _ in alert_specs + widget_specs:
         already_present = metrics.get(query_hash)
         if already_present and already_present != spec:
-            # XXX: I do not think this should be an error
             logger.error(
                 "Duplicate metric spec found for hash %s with different specs: %s != %s",
                 query_hash,
@@ -522,7 +521,6 @@ def _convert_aggregate_and_query_to_metrics(
         if not should_use_on_demand_metrics(dataset, aggregate, query, groupbys, prefilling):
             return None
 
-        # XXX: We could remove deduplication here
         metric_specs_and_hashes = []
         # Create as many specs as we support
         for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
