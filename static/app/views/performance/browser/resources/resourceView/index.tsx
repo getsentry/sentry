@@ -100,7 +100,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
             label: (
               <span>
                 {`${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`}
-                <FeatureBadge type="alpha"> </FeatureBadge>
+                <FeatureBadge type="new"> </FeatureBadge>
               </span>
             ),
           },

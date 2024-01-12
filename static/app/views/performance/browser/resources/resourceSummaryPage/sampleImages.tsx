@@ -32,7 +32,8 @@ const imageHeight = '180px';
 function SampleImages({groupId, projectId}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const [showImages, setShowImages] = useState(showLinks);
-  const {data: settings} = usePerformanceGeneralProjectSettings(projectId);
+  const {data: settings, isLoading: isSettingsLoading} =
+    usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
   const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
@@ -65,6 +66,7 @@ function SampleImages({groupId, projectId}: Props) {
         onClickShowLinks={handleClickOnlyShowLinks}
         images={filteredResources}
         isLoadingImages={isLoadingImages}
+        isSettingsLoading={isSettingsLoading}
         isImagesEnabled={isImagesEnabled}
         showImages={showImages || isImagesEnabled}
       />
@@ -76,25 +78,35 @@ function SampleImagesChartPanelBody(props: {
   images: ReturnType<typeof useIndexedResourcesQuery>['data'];
   isImagesEnabled: boolean;
   isLoadingImages: boolean;
+  isSettingsLoading: boolean;
   showImages: boolean;
   onClickShowLinks?: () => void;
 }) {
-  const {onClickShowLinks, images, isLoadingImages, showImages, isImagesEnabled} = props;
-
-  useEffect(() => {
-    if (showImages && !isImagesEnabled) {
-      Sentry.captureException(new Error('No sample images found'));
-    }
-  }, [showImages, isImagesEnabled]);
+  const {
+    onClickShowLinks,
+    images,
+    isLoadingImages,
+    showImages,
+    isImagesEnabled,
+    isSettingsLoading,
+  } = props;
 
   const hasImages = images.length > 0;
+
+  useEffect(() => {
+    if (showImages && !hasImages) {
+      Sentry.captureException(new Error('No sample images found'));
+    }
+  }, [showImages, hasImages]);
+
+  if (isSettingsLoading || (showImages && isLoadingImages)) {
+    return <LoadingIndicator />;
+  }
 
   if (!showImages) {
     return <DisabledImages onClickShowLinks={onClickShowLinks} />;
   }
-  if (showImages && isLoadingImages) {
-    return <LoadingIndicator />;
-  }
+
   if (showImages && !hasImages) {
     return (
       <EmptyStateWarning>
