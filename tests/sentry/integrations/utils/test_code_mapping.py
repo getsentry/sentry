@@ -16,6 +16,7 @@ from sentry.integrations.utils.code_mapping import (
     should_include,
     stacktrace_buckets,
 )
+from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
