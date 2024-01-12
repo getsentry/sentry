@@ -9,8 +9,8 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconInfo} from 'sentry/icons';
@@ -23,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
+import ReplayPanel from 'sentry/views/replays/list/replayPanel';
 
 type Breakpoints = {
   large: string;
@@ -117,9 +118,7 @@ export default function ReplayOnboardingPanel() {
           </Alert>
         )}
       </OnboardingAlertHook>
-      <OnboardingPanel
-        image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}
-      >
+      <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
             orgSlug={organization.slug}
@@ -127,7 +126,7 @@ export default function ReplayOnboardingPanel() {
             disabled={primaryActionDisabled}
           />
         </OnboardingCTAHook>
-      </OnboardingPanel>
+      </ReplayPanel>
     </Fragment>
   );
 }
@@ -144,7 +143,7 @@ export function SetupReplaysCTA({
   orgSlug,
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
-  const [expanded, setExpanded] = useState(0);
+  const [expanded, setExpanded] = useState(-1);
   const FAQ = [
     {
       header: () => (
@@ -154,15 +153,23 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications. This includes static websites, single-page aplications, and also server-side rendered applications. The only prerequisite is that your application uses Sentry JavaScript SDK (7.2.0 or greater) either with NPM/Yarn or our JS Loader script.'
+              'Session Replay supports all browser-based applications. This includes static websites, single-page aplications, and also server-side rendered applications. The only prerequisite is that your application uses Sentry JavaScript SDK (version 7.2.0 or greater) either with NPM/Yarn or with our JS Loader script.'
             )}
           </div>
           <div>
-            {tct('To learn about which SDKs we support, please visit [link:our docs].', {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/" />
-              ),
-            })}
+            {t(
+              "Replays are integrated with Sentry's tracing data model, enabling you to see replays associated with backend errors as well. You need to have Sentry set up for both your frontend and backend, along with distributed tracing."
+            )}
+          </div>
+          <div>
+            {tct(
+              'To learn more about which SDKs we support, please visit [link:our docs].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/" />
+                ),
+              }
+            )}
           </div>
         </AnswerContent>
       ),
@@ -175,12 +182,17 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay adds a small amount of performance overhead to your web application. The performance overhead generally scales linearly with the amount of DOM complexity your application has. The more DOM state changes that occur in the application lifecycle, the more events that are captured, transmitted, etc.'
+              'Session Replay adds a small amount of performance overhead to your web application. For most web apps, the performance overhead of our client SDK will be imperceptible to end-users. For example, the Sentry site has Replay enabled and we have not seen any significant slowdowns.'
+            )}
+          </div>
+          <div>
+            {t(
+              'The performance overhead generally scales linearly with the DOM complexity of your application. The more DOM state changes that occur in the application lifecycle, the more events that are captured, transmitted, etc.'
             )}
           </div>
           <div>
             {tct(
-              'To learn about how we’ve optimized our SDK, please visit [link:our docs].',
+              'To learn more about how we’ve optimized our SDK, please visit [link:our docs].',
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/session-replay/performance-overhead/" />
@@ -199,12 +211,17 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'We offer a range of privacy controls to let developers ensure that no sensitive user information leaves the browser. By default, our privacy configuration is very aggressive and masks all text and images, but you can choose to just mask user input text, for example. '
+              'We offer a range of privacy controls to let developers ensure that no sensitive user information leaves the browser. By default, our privacy configuration is very aggressive and masks all text and images, but you can choose to just mask user input text, for example.'
+            )}
+          </div>
+          <div>
+            {t(
+              'Customers can also use server-side scrubbing capabilities to further filter and remove sensitive user data, or our deletion capabilities to delete individual recordings after ingestion.'
             )}
           </div>
           <div>
             {tct(
-              'To learn about how we protect user privacy, please visit [link:our docs].',
+              'To learn more about how we protect user privacy, please visit [link:our docs].',
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/product/session-replay/protecting-user-privacy/" />
@@ -280,13 +297,25 @@ export function SetupReplaysCTA({
         </Button>
       </ButtonList>
       <StyledWidgetContainer>
-        <StyledHeaderContainer>{t('FAQ')}</StyledHeaderContainer>
+        <StyledHeaderContainer>
+          {t('FAQ')}
+          {
+            <QuestionTooltip
+              size="xs"
+              isHoverable
+              title={tct('See a [link:full list of FAQs].', {
+                link: (
+                  <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
+                ),
+              })}
+            />
+          }
+        </StyledHeaderContainer>
         <Accordion
           items={FAQ}
           expandedIndex={expanded}
           setExpandedIndex={setExpanded}
           buttonOnLeft
-          collapsible={false}
         />
       </StyledWidgetContainer>
     </CenteredContent>
@@ -352,4 +381,7 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
 `;

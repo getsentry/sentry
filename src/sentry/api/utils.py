@@ -4,6 +4,7 @@ import datetime
 import logging
 import re
 import sys
+import time
 import traceback
 from contextlib import contextmanager
 from datetime import timedelta
@@ -11,7 +12,6 @@ from typing import Any, Generator, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
-from django.conf import settings
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -21,6 +21,7 @@ from sentry_sdk import Scope
 
 from sentry import options
 from sentry.auth.superuser import is_active_superuser
+from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
@@ -35,6 +36,8 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.silo import SiloMode
+from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 from sentry.utils.snuba import (
@@ -277,8 +280,8 @@ def generate_organization_url(org_slug: str) -> str:
 
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
-    if region_name is None:
-        region_name = settings.SENTRY_REGION
+    if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
+        region_name = get_local_region().name
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
@@ -368,10 +371,8 @@ def get_auth_api_token_type(auth: object) -> str | None:
     return None
 
 
-# NOTE: This duplicates OrganizationEventsEndpointBase.handle_query_errors
-# TODO: move other references over to this implementation rather than the organization_events implementation
 @contextmanager
-def handle_query_errors(self) -> Generator[None, None, None]:
+def handle_query_errors() -> Generator[None, None, None]:
     try:
         yield
     except InvalidSearchQuery as error:
@@ -431,3 +432,22 @@ def handle_query_errors(self) -> Generator[None, None, None]:
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
+
+
+class Timer:
+    def __enter__(self):
+        self._start = time.time()
+        self._duration = None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._end = time.time()
+        self._duration = self._end - self._start
+
+    @property
+    def duration(self):
+        # If _duration is set, return it; otherwise, calculate ongoing duration
+        if self._duration is not None:
+            return self._duration
+        else:
+            return time.time() - self._start

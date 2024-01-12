@@ -1,31 +1,71 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Sequence, Set
+from typing import Optional, Sequence, Set, cast
 
-from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request, Timeseries
-from snuba_sdk.conditions import BooleanCondition, ConditionGroup
-from snuba_sdk.mql.mql import parse_mql
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
+from snuba_sdk.conditions import ConditionGroup
 
+from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
-from sentry.snuba import spans_indexed
+from sentry.sentry_metrics.querying.metadata.utils import (
+    get_snuba_conditions_from_query,
+    transform_conditions_with,
+    transform_to_tags,
+)
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics.naming_layer.mri import (
+    ParsedMRI,
+    TransactionMRI,
+    is_measurement,
+    is_mri,
+    parse_mri,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 # Maximum number of unique spans returned by the database.
 MAX_NUMBER_OF_SPANS = 10
+# Sentry tag values that are converted to columns in Snuba. The conversion happens here:
+# https://github.com/getsentry/snuba/blob/master/rust_snuba/src/processors/spans.rs#L239
+SENTRY_TAG_TO_COLUMN_NAME = {
+    "module": "module",
+    "action": "action",
+    "domain": "domain",
+    "group": "group",
+    "system": "platform",
+    "transaction": "segment_name",
+    "op": "op",
+    "transaction.op": "transaction_op",
+    "user": "user",
+    "status": "status",
+}
 
 
 @dataclass(frozen=True)
 class Span:
     project_id: int
-    span_id: str
-    trace_id: str
     transaction_id: Optional[str]
+    trace_id: str
+    span_id: str
     profile_id: Optional[str]
+    segment_name: str
+    op: str
+    description: str
     duration: int
+    timestamp: datetime
 
 
 @dataclass(frozen=True)
@@ -38,148 +78,271 @@ class MetricSpans:
         return hash(self.metric_mri)
 
 
-def _get_spans_by_ids(
-    span_ids: Set[str],
-    start: datetime,
-    end: datetime,
-    organization: Organization,
-    projects: Sequence[Project],
-) -> Sequence[Span]:
-    """
-    Returns multiple `Span`s given a set of `span_ids`.
+class SpansSource(ABC):
+    def __init__(
+        self,
+        organization: Organization,
+        projects: Sequence[Project],
+    ):
+        self.organization = organization
+        self.projects = projects
 
-    The rationale behind this query is that we want to query the main `spans` entity to get more information about the
-    span. Since this query is relatively inefficient due to the use of the `IN` operator, we might want to change the
-    data representation in the future.
-    """
-    if not span_ids:
-        return []
-
-    data = spans_indexed.query(
-        selected_columns=[
-            "project_id",
-            "span_id",
-            "trace_id",
-            "transaction_id",
-            "profile_id",
-            "duration",
-            "timestamp",
-        ],
-        # We are interested in the most recent spans for now.
-        orderby=["-timestamp"],
-        params={
-            "organization_id": organization.id,
-            "project_objects": projects,
-            "start": start,
-            "end": end,
-        },
-        query=f"span_id:[{','.join(span_ids)}]",
-        referrer=Referrer.API_DDM_FETCH_SPANS.value,
-    )["data"]
-
-    return [
-        Span(
-            project_id=value["project_id"],
-            span_id=value["span_id"],
-            trace_id=value["trace_id"],
-            transaction_id=value["transaction_id"],
-            profile_id=value["profile_id"],
-            duration=value["duration"],
+    def get_spans(
+        self,
+        metric_mri: str,
+        query: Optional[str],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        return self._get_spans(
+            metric_mri=metric_mri,
+            # TODO: when the environment support is added, inject here the environment condition after the AST is
+            #   generated.
+            conditions=get_snuba_conditions_from_query(query) if query else None,
+            start=start,
+            end=end,
+            min_value=min_value,
+            max_value=max_value,
         )
-        for value in data
-    ]
+
+    @classmethod
+    @abstractmethod
+    def supports(cls, metric_mri: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        raise NotImplementedError
 
 
-def _convert_to_tags(conditions: Optional[ConditionGroup]) -> Optional[ConditionGroup]:
-    """
-    Converts all the conditions to work on tags, by wrapping each `Column` name with 'tags[x]'.
+class MetricsSummariesSpansSource(SpansSource):
+    def _get_span_ids_from_metrics_summaries(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Set[str]:
+        """
+        Returns a set of cardinality at most `MAX_NUMBER_OF_SPANS` containing the ids of the spans in which `metric_mri`
+        was emitted.
 
-    This function assumes that the query of a metric only refers to tags.
-    """
-    if conditions is None:
-        return None
+        In order to honor the filters that the user has in a widget, we take the `query` and parse it to extract a
+        series of Snuba conditions that we apply on the tags of the metric summary. For example, if you are filtering by
+        tag device:iPhone, we will only show you the spans in which the metric with tag device:iPhone was emitted.
+        """
+        where = []
 
-    new_conditions = []
-    for condition in conditions:
-        if isinstance(condition, BooleanCondition):
-            new_conditions.append(
-                BooleanCondition(op=condition.op, conditions=_convert_to_tags(condition.conditions))
-            )
-        elif isinstance(condition, Condition) and isinstance(condition.lhs, Column):
-            # We assume that all incoming conditions are on tags, since we do not allow filtering by project in the
-            # query filters.
-            tag_column = f"tags[{condition.lhs.name}]"
-            new_conditions.append(
-                Condition(lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs)
-            )
+        if min_value is not None:
+            where.append(Condition(Column("min"), Op.GTE, min_value))
+        if max_value is not None:
+            where.append(Condition(Column("max"), Op.LTE, max_value))
+        if conditions:
+            where += conditions
 
-    return new_conditions
+        query = Query(
+            match=Entity(EntityKey.MetricsSummaries.value),
+            select=[Column("span_id")],
+            where=[
+                Condition(Column("project_id"), Op.IN, [project.id for project in self.projects]),
+                Condition(Column("end_timestamp"), Op.GTE, start),
+                Condition(Column("end_timestamp"), Op.LT, end),
+                Condition(Column("metric_mri"), Op.EQ, metric_mri),
+            ]
+            + where,
+            # We group by to deduplicate the span id and apply the limit.
+            groupby=[Column("span_id")],
+            limit=Limit(MAX_NUMBER_OF_SPANS),
+        )
+
+        request = Request(
+            dataset=Dataset.SpansIndexed.value,
+            app_id="metrics",
+            query=query,
+            tenant_ids={"organization_id": self.organization.id},
+        )
+
+        data = raw_snql_query(
+            request, Referrer.API_DDM_FETCH_METRICS_SUMMARIES.value, use_cache=True
+        )["data"]
+
+        return {value["span_id"] for value in data}
+
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        return is_mri(metric_mri)
+
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        span_ids = self._get_span_ids_from_metrics_summaries(
+            metric_mri=metric_mri,
+            conditions=transform_to_tags(conditions),
+            start=start,
+            end=end,
+            min_value=min_value,
+            max_value=max_value,
+        )
+        if not span_ids:
+            return []
+
+        return get_indexed_spans(
+            where=[Condition(Column("span_id"), Op.IN, list(span_ids))],
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
 
 
-def _get_snuba_conditions_from_query(query: str) -> Optional[ConditionGroup]:
-    """
-    Returns a set of Snuba conditions from a query string which is assumed to contain filters in the MQL grammar.
+class TransactionDurationSpansSource(SpansSource):
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        return metric_mri == TransactionMRI.DURATION.value
 
-    Since MQL does not support parsing only filters, we have to create a phantom query to feed the parser, in order for
-    it to correctly resolve a `Timeseries` out of which we extract the `filters`.
-    """
-    # We want to create a phantom query to feed into the parser in order to be able to extract the conditions from the
-    # returned timeseries.
-    phantom_query = f"count(phantom){{{query}}}"
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        where = []
 
-    # TODO: find a way to directly use only filters grammar to avoid making a phantom query.
-    parsed_phantom_query = parse_mql(phantom_query).query
-    if not isinstance(parsed_phantom_query, Timeseries):
-        # For now, we reuse data from `api` but we will soon lift out common components from that file.
-        raise InvalidMetricsQueryError("The supplied query is not valid")
+        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_with(
+            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
+        )
+        if transformed_conditions:
+            where += transformed_conditions
 
-    return _convert_to_tags(parsed_phantom_query.filters)
+        if min_value:
+            where += [Condition(Column("duration"), Op.GTE, min_value)]
+        if max_value:
+            where += [Condition(Column("duration"), Op.LTE, max_value)]
+
+        return get_indexed_spans(
+            where=[
+                Condition(Column("is_segment"), Op.GTE, 1),
+            ]
+            + where,
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
 
 
-def _get_metrics_summaries(
-    metric_mri: str,
-    query: Optional[str],
+class MeasurementsSpansSource(SpansSource):
+    def _extract_measurement_name(self, metric_mri: str) -> str:
+        # We assume the `parse_mri` to never fail, since we have the guarantee that `supports` is called first.
+        return cast(ParsedMRI, parse_mri(metric_mri)).name[13:]
+
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        parsed_mri = parse_mri(metric_mri)
+        if parsed_mri:
+            return is_measurement(parsed_mri)
+
+        return False
+
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        where = []
+
+        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_with(
+            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
+        )
+        if transformed_conditions:
+            where += transformed_conditions
+
+        measurement_name = self._extract_measurement_name(metric_mri)
+        # We add this condition every time, since if a measurement is not set, Snuba will return 0, but it could also
+        # return 0 if the measurement value is 0, thus we need a way to discriminate between the two cases.
+        where += [
+            Condition(Function("has", [Column("measurements.key"), measurement_name]), Op.EQ, 1)
+        ]
+
+        if min_value:
+            where += [Condition(Column(f"measurements[{measurement_name}]"), Op.GTE, min_value)]
+        if max_value:
+            where += [Condition(Column(f"measurements[{measurement_name}]"), Op.LTE, max_value)]
+
+        return get_indexed_spans(
+            where=[
+                Condition(Column("is_segment"), Op.GTE, 1),
+            ]
+            + where,
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
+
+
+def get_indexed_spans(
+    where: Optional[ConditionGroup],
     start: datetime,
     end: datetime,
-    min_value: Optional[float],
-    max_value: Optional[float],
     organization: Organization,
     projects: Sequence[Project],
-) -> Set[str]:
+):
     """
-    Returns a set of cardinality at most `MAX_NUMBER_OF_SPANS` containing the ids of the spans in which `metric_mri`
-    was emitted.
+    Fetches top N most recent indexed spans.
 
-    In order to honor the filters that the user has in a widget, we take the `query` and parse it to extract a
-    series of Snuba conditions that we apply on the tags of the metric summary. For example, if you are filtering by
-    tag device:iPhone, we will only show you the spans in which the metric with tag device:iPhone was emitted.
+    The choice of not using query builders was deliberate, since we have to access columns that are not exposed via
+    the query builders because they are meant to be internal.
     """
-    project_ids = [project.id for project in projects]
-
-    where = []
-    if min_value is not None:
-        where.append(Condition(Column("min"), Op.GTE, min_value))
-
-    if max_value is not None:
-        where.append(Condition(Column("max"), Op.LTE, max_value))
-
-    if query is not None:
-        snuba_conditions = _get_snuba_conditions_from_query(query)
-        if snuba_conditions:
-            where += snuba_conditions
-
     query = Query(
-        match=Entity(EntityKey.MetricsSummaries.value),
-        select=[Column("span_id")],
+        match=Entity(EntityKey.Spans.value),
+        select=[
+            Column("project_id"),
+            Column("transaction_id"),
+            Column("trace_id"),
+            Column("span_id"),
+            Column("profile_id"),
+            Column("segment_name"),
+            Column("op"),
+            Column("description"),
+            Column("duration"),
+            Column("timestamp"),
+        ],
         where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("end_timestamp"), Op.GTE, start),
-            Condition(Column("end_timestamp"), Op.LT, end),
-            Condition(Column("metric_mri"), Op.EQ, metric_mri),
+            Condition(Column("project_id"), Op.IN, [project.id for project in projects]),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
         ]
-        + where,
-        # We group by to deduplicate the span id and apply the limit.
-        groupby=[Column("span_id")],
+        + (where or []),
+        # We want to get the newest spans.
+        orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
         limit=Limit(MAX_NUMBER_OF_SPANS),
     )
 
@@ -190,11 +353,47 @@ def _get_metrics_summaries(
         tenant_ids={"organization_id": organization.id},
     )
 
-    data = raw_snql_query(request, Referrer.API_DDM_FETCH_METRICS_SUMMARIES.value, use_cache=True)[
-        "data"
+    data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
+
+    return [
+        Span(
+            project_id=value["project_id"],
+            transaction_id=value["transaction_id"],
+            trace_id=value["trace_id"],
+            span_id=value["span_id"],
+            profile_id=value["profile_id"],
+            segment_name=value["segment_name"],
+            op=value["op"],
+            description=value["description"],
+            duration=value["duration"],
+            timestamp=value["timestamp"],
+        )
+        for value in data
     ]
 
-    return {value["span_id"] for value in data}
+
+# Ordered list (by priority) of spans sources that will be used to get the spans of a specific metric.
+SPANS_SOURCES = [
+    MeasurementsSpansSource,
+    TransactionDurationSpansSource,
+    MetricsSummariesSpansSource,
+]
+
+
+def get_spans_source(
+    metric_mri: str, organization: Organization, projects: Sequence[Project]
+) -> Optional[SpansSource]:
+    """
+    Finds the first spans source that supports the `metric_mri`.
+
+    In case multiple sources would apply to a `metric_mri` the first one is chosen.
+    """
+
+    for source_clazz in SPANS_SOURCES:
+        if source_clazz.supports(metric_mri):
+            return source_clazz(organization=organization, projects=projects)  # type:ignore
+
+    return None
 
 
 def get_spans_of_metric(
@@ -213,10 +412,14 @@ def get_spans_of_metric(
     The metric can be emitted within a span with different tag values. These are uniquely stored in the
     metrics_summaries entity.
     """
-    span_ids = _get_metrics_summaries(
-        metric_mri, query, start, end, min_value, max_value, organization, projects
+    spans_source = get_spans_source(metric_mri, organization, projects)
+    if not spans_source:
+        raise InvalidParams(
+            f"The supplied metric {metric_mri} does not support fetching correlated spans"
+        )
+
+    spans = spans_source.get_spans(metric_mri, query, start, end, min_value, max_value)
+    return MetricSpans(
+        metric_mri=metric_mri,
+        spans=spans,
     )
-
-    spans = _get_spans_by_ids(span_ids, start, end, organization, projects)
-
-    return MetricSpans(metric_mri=metric_mri, spans=spans)

@@ -364,21 +364,6 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
-# on organization-id.
-register(
-    "replay.storage.direct-storage-sample-rate",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# The sample rate at which to allow dom-click-search.
-register(
-    "replay.ingest.dom-click-search",
-    type=Int,
-    default=0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Replay Analyzer service.
 register(
     "replay.analyzer_service_url",
@@ -839,6 +824,14 @@ register(
     "processing.use-release-archives-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )  # unused
 
+# Whether to use `zstd` instead of `zlib` for the attachment cache.
+register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Set of projects that will always store `EventAttachment` blobs directly.
+register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Percentage sample rate for `EventAttachment`s that should use direct blob storage.
+register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -1053,6 +1046,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Option to control whether or not we raise ValidationErrors in the indexer
+# (Temporary) raising the error would mean we skip the processing or DLQing of these
+# invalid messages
+register(
+    "sentry-metrics.indexer.raise-validation-errors",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -1237,6 +1239,18 @@ register(
 register(
     "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.synchronize-kafka-rebalances",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.synchronized-rebalance-delay",
+    default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1564,6 +1578,24 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Globally enables the check_accept_monitor_checkin method to be run during
+# monitor check-ins. This is temporarily in support of billing in getsentry.
+register(
+    "crons.check-accept-monitor-checkin-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# A list of monitor slugs that should have the check_accept_monitor_checkin
+# method run, even when check-accept-monitor-checkin-enabled is False.
+register(
+    "crons.check-accept-monitor-checkin-slug-overrides",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)

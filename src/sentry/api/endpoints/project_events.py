@@ -18,7 +18,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 class ProjectEventsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     enforce_rate_limit = True
     rate_limits = {

@@ -50,6 +50,10 @@ import {
 } from 'sentry/utils/metrics/mri';
 import useRouter from 'sentry/utils/useRouter';
 
+import {
+  normalizeDateTimeParams,
+  parseStatsPeriod,
+} from '../../components/organizations/pageFilters/parse';
 import {DateString, PageFilters} from '../../types/core';
 
 export const METRICS_DOCS_URL =
@@ -62,7 +66,30 @@ export enum MetricDisplayType {
   TABLE = 'table',
 }
 
-export const defaultMetricDisplayType = MetricDisplayType.LINE;
+export const metricDisplayTypeOptions = [
+  {
+    value: MetricDisplayType.LINE,
+    label: t('Line'),
+  },
+  {
+    value: MetricDisplayType.AREA,
+    label: t('Area'),
+  },
+  {
+    value: MetricDisplayType.BAR,
+    label: t('Bar'),
+  },
+];
+
+export function getDefaultMetricDisplayType(
+  mri: MetricsQuery['mri'],
+  op: MetricsQuery['op']
+): MetricDisplayType {
+  if (mri?.startsWith('c') || op === 'count') {
+    return MetricDisplayType.BAR;
+  }
+  return MetricDisplayType.LINE;
+}
 
 export const getMetricDisplayType = (displayType: unknown): MetricDisplayType => {
   if (
@@ -139,7 +166,19 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
-  metricSpans?: any[];
+  metricSpans?: MetricSpan[];
+};
+
+export type MetricSpan = {
+  duration: number;
+  profileId: string;
+  projectId: number;
+  spanId: string;
+  timestamp: string;
+  traceId: string;
+  transactionId: string;
+  // Not there yet but we will add it
+  replayId?: string;
 };
 
 export type MetricRange = {
@@ -180,7 +219,7 @@ export function getDdmUrl(
 }
 
 export function getMetricsApiRequestQuery(
-  {field, query, groupBy}: MetricsApiRequestMetric,
+  {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
   overrides: Partial<MetricsApiRequestQueryOptions>
 ): MetricsApiRequestQuery {
@@ -197,9 +236,11 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
+    orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
-    // max result groups
-    per_page: 10,
+    // Max result groups for compatibility with old metrics layer
+    // TODO(telemetry-experience): remove once everyone is on new metrics layer
+    per_page: Math.max(10, overrides.limit ?? 0),
   };
 
   return {...queryToSend, ...overrides};
@@ -510,6 +551,16 @@ export function useUpdateQuery() {
   );
 }
 
+export function useClearQuery() {
+  const router = useRouter();
+  // Store the router in a ref so that we can use it in the callback
+  // without needing to generate a new callback every time the location changes
+  const routerRef = useInstantRef(router);
+  return useCallback(() => {
+    clearQuery(routerRef.current);
+  }, [routerRef]);
+}
+
 // TODO(ddm): there has to be a nicer way to do this
 export function getSeriesName(
   group: MetricsGroup,
@@ -601,7 +652,11 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
 }
 
 export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy} = metricWidget;
+  const {mri, op, query, groupBy, title} = metricWidget;
+
+  if (title) {
+    return title;
+  }
 
   if (!op) {
     return '';
@@ -618,4 +673,31 @@ export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string
   }
 
   return result;
+}
+
+// TODO: consider moving this to utils/dates.tsx
+export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
+  const {start, end, statsPeriod, utc} = normalizeDateTimeParams(params, {
+    allowAbsoluteDatetime: true,
+  });
+
+  if (start && end) {
+    return {start: moment(start).toISOString(), end: moment(end).toISOString()};
+  }
+
+  const parsedStatusPeriod = parseStatsPeriod(statsPeriod || '24h');
+
+  const now = utc ? moment().utc() : moment();
+
+  if (!parsedStatusPeriod) {
+    // Default to 24h
+    return {start: moment(now).subtract(1, 'day').toISOString(), end: now.toISOString()};
+  }
+
+  const startObj = moment(now).subtract(
+    parsedStatusPeriod.period,
+    parsedStatusPeriod.periodLength
+  );
+
+  return {start: startObj.toISOString(), end: now.toISOString()};
 }

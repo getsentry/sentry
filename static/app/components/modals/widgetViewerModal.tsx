@@ -92,7 +92,7 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
-import {TraceTable} from 'sentry/views/ddm/samplesTable';
+import {SampleTable} from 'sentry/views/ddm/sampleTable';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -705,14 +705,8 @@ function WidgetViewerModal(props: Props) {
     const isFirstPage = links.previous?.results === false;
     const data = tableResults?.[0]?.data ?? [];
 
-    // For now we only support one aggregate in metric widgets, once we support multiple aggregates we will need to do the sorting on the backend
     const mainField = props.widget.queries[0].aggregates[0];
-    const sortedData = [...data].sort(
-      (a, b) => Number(b[mainField]) - Number(a[mainField])
-    );
-
     const parsedField = parseField(mainField);
-
     if (!parsedField) {
       return null;
     }
@@ -734,7 +728,7 @@ function WidgetViewerModal(props: Props) {
               <TabPanels.Item key="summary">
                 <GridEditable
                   isLoading={loading}
-                  data={sortedData}
+                  data={data}
                   columnOrder={columnOrder}
                   columnSortBy={columnSortBy}
                   grid={{
@@ -757,7 +751,7 @@ function WidgetViewerModal(props: Props) {
                 <CodeLocations mri={parsedField.mri} />
               </TabPanels.Item>
               <TabPanels.Item key="samples">
-                <TraceTable mri={parsedField.mri} />
+                <SampleTable mri={parsedField.mri} query={widget.queries[0].conditions} />
               </TabPanels.Item>
             </TabPanels>
           </MetricWidgetTabContent>
@@ -1220,7 +1214,7 @@ function OpenButton({
       path = getWidgetReleasesUrl(widget, selection, organization);
       break;
     case WidgetType.METRICS:
-      openLabel = t('Open in DDM');
+      openLabel = t('Open in Metrics');
       path = getWidgetDDMUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:

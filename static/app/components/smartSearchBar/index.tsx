@@ -40,7 +40,6 @@ import {space} from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {
   FieldDefinition,
   FieldKind,
@@ -318,7 +317,7 @@ type Props = WithRouterProps &
     /**
      * Called when the search input changes
      */
-    onChange?: (value: string, e: React.ChangeEvent) => void;
+    onChange?: (value: string, e: React.ChangeEvent | React.ClipboardEvent) => void;
     /**
      * Called when the user has closed the search dropdown.
      * Occurs on escape, tab, or clicking outside the component.
@@ -475,6 +474,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
   componentWillUnmount() {
     this.inputResizeObserver?.disconnect();
+    this.updateAutoCompleteItems.cancel();
     document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   }
 
@@ -827,7 +827,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.searchInput.current!.selectionStart = newCursorPosition;
       this.searchInput.current!.selectionEnd = newCursorPosition;
     });
-    callIfFunction(this.props.onChange, mergedText, evt);
+
+    if (typeof this.props.onChange === 'function') {
+      this.props.onChange(mergedText, evt);
+    }
   };
 
   onInputClick = () => {
@@ -1214,56 +1217,52 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues = debounce(
-    async (tag: Tag, query: string): Promise<SearchItem[]> => {
-      // Strip double quotes if there are any
-      query = query.replace(/"/g, '').trim();
+  getTagValues = async (tag: Tag, query: string): Promise<SearchItem[]> => {
+    // Strip double quotes if there are any
+    query = query.replace(/"/g, '').trim();
 
-      if (!this.props.onGetTagValues) {
-        return [];
-      }
+    if (!this.props.onGetTagValues) {
+      return [];
+    }
 
-      if (
-        this.state.noValueQuery !== undefined &&
-        query.startsWith(this.state.noValueQuery)
-      ) {
-        return [];
-      }
+    if (
+      this.state.noValueQuery !== undefined &&
+      query.startsWith(this.state.noValueQuery)
+    ) {
+      return [];
+    }
 
-      const {location} = this.props;
-      const endpointParams = normalizeDateTimeParams(location.query);
+    const {location} = this.props;
+    const endpointParams = normalizeDateTimeParams(location.query);
 
-      this.setState({loading: true});
-      let values: string[] = [];
+    this.setState({loading: true});
+    let values: string[] = [];
 
-      try {
-        values = await this.props.onGetTagValues(tag, query, endpointParams);
-        this.setState({loading: false});
-      } catch (err) {
-        this.setState({loading: false});
-        Sentry.captureException(err);
-        return [];
-      }
+    try {
+      values = await this.props.onGetTagValues(tag, query, endpointParams);
+      this.setState({loading: false});
+    } catch (err) {
+      this.setState({loading: false});
+      Sentry.captureException(err);
+      return [];
+    }
 
-      if (tag.key === 'release:' && !values.includes('latest')) {
-        values.unshift('latest');
-      }
+    if (tag.key === 'release:' && !values.includes('latest')) {
+      values.unshift('latest');
+    }
 
-      const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
-      this.setState({noValueQuery});
+    const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
+    this.setState({noValueQuery});
 
-      return values.map(value => {
-        const escapedValue = escapeTagValue(value);
-        return {
-          value: escapedValue,
-          desc: escapedValue,
-          type: ItemType.TAG_VALUE,
-        };
-      });
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
+    return values.map(value => {
+      const escapedValue = escapeTagValue(value);
+      return {
+        value: escapedValue,
+        desc: escapedValue,
+        type: ItemType.TAG_VALUE,
+      };
+    });
+  };
 
   /**
    * Returns array of tag values that substring match `query`; invokes `callback`
@@ -1304,21 +1303,17 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   /**
    * Get recent searches
    */
-  getRecentSearches = debounce(
-    async () => {
-      const {savedSearchType, hasRecentSearches, onGetRecentSearches} = this.props;
+  getRecentSearches = async () => {
+    const {savedSearchType, hasRecentSearches, onGetRecentSearches} = this.props;
 
-      // `savedSearchType` can be 0
-      if (!defined(savedSearchType) || !hasRecentSearches) {
-        return [];
-      }
+    // `savedSearchType` can be 0
+    if (!defined(savedSearchType) || !hasRecentSearches) {
+      return [];
+    }
 
-      const fetchFn = onGetRecentSearches || this.fetchRecentSearches;
-      return await fetchFn(this.state.query);
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
+    const fetchFn = onGetRecentSearches || this.fetchRecentSearches;
+    return await fetchFn(this.state.query);
+  };
 
   fetchRecentSearches = async (fullQuery: string): Promise<SearchItem[]> => {
     const {api, organization, savedSearchType} = this.props;
@@ -1346,28 +1341,24 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   };
 
-  getReleases = debounce(
-    async (tag: Tag, query: string) => {
-      const releasePromise = this.fetchReleases(query);
+  getReleases = async (tag: Tag, query: string) => {
+    const releasePromise = this.fetchReleases(query);
 
-      const tags = this.getPredefinedTagValues(tag, query);
-      const tagValues = tags.map<SearchItem>(v => ({
-        ...v,
-        type: ItemType.FIRST_RELEASE,
-      }));
+    const tags = this.getPredefinedTagValues(tag, query);
+    const tagValues = tags.map<SearchItem>(v => ({
+      ...v,
+      type: ItemType.FIRST_RELEASE,
+    }));
 
-      const releases = await releasePromise;
-      const releaseValues = releases.map<SearchItem>((r: any) => ({
-        value: r.shortVersion,
-        desc: r.shortVersion,
-        type: ItemType.FIRST_RELEASE,
-      }));
+    const releases = await releasePromise;
+    const releaseValues = releases.map<SearchItem>((r: any) => ({
+      value: r.shortVersion,
+      desc: r.shortVersion,
+      type: ItemType.FIRST_RELEASE,
+    }));
 
-      return [...tagValues, ...releaseValues];
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
+    return [...tagValues, ...releaseValues];
+  };
 
   /**
    * Fetches latest releases from a organization/project. Returns an empty array
@@ -1622,9 +1613,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
   };
 
-  updateAutoCompleteItems = () => {
-    this.updateAutoCompleteFromAst();
-  };
+  updateAutoCompleteItems = debounce(
+    () => {
+      this.updateAutoCompleteFromAst();
+    },
+    DEFAULT_DEBOUNCE_DURATION,
+    {leading: true}
+  );
 
   /**
    * Updates autocomplete dropdown items and autocomplete index state

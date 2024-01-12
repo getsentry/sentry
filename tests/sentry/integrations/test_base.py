@@ -1,5 +1,5 @@
 from sentry.integrations import IntegrationInstallation
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.identity.serial import serialize_identity
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import TestCase
@@ -11,7 +11,7 @@ class IntegrationTestCase(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project()
         self.identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="base", config={}),
+            idp=self.create_identity_provider(type="base"),
             user=self.user,
             external_id="base_id",
             data={"access_token": "11234567"},

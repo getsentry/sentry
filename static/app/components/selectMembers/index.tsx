@@ -9,7 +9,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {Member, Organization, Project, User} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withApi from 'sentry/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>
@@ -64,7 +63,11 @@ class SelectMembers extends Component<Props, State> {
   };
 
   componentWillUnmount() {
-    this.unlisteners.forEach(callIfFunction);
+    this.unlisteners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener();
+      }
+    });
   }
 
   unlisteners = [

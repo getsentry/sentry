@@ -1,17 +1,17 @@
 import type {
-  DashboardDetails as TDashboardDetails,
-  DashboardFilters as TDashboardFilters,
-  DashboardListItem as TDashboardListItem,
-  Widget as TWidget,
+  DashboardDetails,
+  DashboardFilters,
+  DashboardListItem,
+  Widget,
 } from 'sentry/views/dashboards/types';
 
-export function Dashboard(
-  widgets: TWidget[],
-  props: Partial<TDashboardDetails> = {}
-): TDashboardDetails {
+export function DashboardFixture(
+  widgets: Widget[],
+  props: Partial<DashboardDetails> = {}
+): DashboardDetails {
   return {
     id: '1',
-    filters: [] as TDashboardFilters,
+    filters: [] as DashboardFilters,
     dateCreated: new Date().toISOString(),
     projects: undefined,
     title: 'Dashboard',
@@ -20,9 +20,9 @@ export function Dashboard(
   };
 }
 
-export function DashboardListItem(
-  params: Partial<TDashboardListItem> = {}
-): TDashboardListItem {
+export function DashboardListItemFixture(
+  params: Partial<DashboardListItem> = {}
+): DashboardListItem {
   return {
     id: '1',
     title: 'Dashboard',

@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
-import {AuthProvider} from 'sentry-fixture/authProvider';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Members as MembersFixture} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
+import {AuthProviderFixture} from 'sentry-fixture/authProvider';
+import {MemberFixture} from 'sentry-fixture/member';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -54,7 +54,7 @@ const roles = [
 describe('OrganizationMembersList', function () {
   const members = MembersFixture();
 
-  const ownerTeam = Team({slug: 'owner-team', orgRole: 'owner'});
+  const ownerTeam = TeamFixture({slug: 'owner-team', orgRole: 'owner'});
   const member = MemberFixture({
     id: '5',
     email: 'member@sentry.io',
@@ -82,8 +82,11 @@ describe('OrganizationMembersList', function () {
   });
 
   const currentUser = members[1];
-  currentUser.user = User({...currentUser, flags: {newsletter_consent_prompt: true}});
-  const organization = Organization({
+  currentUser.user = UserFixture({
+    ...currentUser,
+    flags: {newsletter_consent_prompt: true},
+  });
+  const organization = OrganizationFixture({
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
@@ -140,7 +143,7 @@ describe('OrganizationMembersList', function () {
               name: 'sentry@test.com',
             },
           },
-          team: Team(),
+          team: TeamFixture(),
         },
       ],
     });
@@ -148,14 +151,14 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/auth-provider/',
       method: 'GET',
       body: {
-        ...AuthProvider(),
+        ...AuthProviderFixture(),
         require_link: true,
       },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: [Team(), ownerTeam],
+      body: [TeamFixture(), ownerTeam],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
@@ -251,7 +254,7 @@ describe('OrganizationMembersList', function () {
       url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
     });
-    const secondOrg = Organization({
+    const secondOrg = OrganizationFixture({
       slug: 'org-two',
       status: {
         id: 'active',
@@ -453,7 +456,7 @@ describe('OrganizationMembersList', function () {
       id: '123',
       user: null,
       inviteStatus: 'requested_to_be_invited',
-      inviterName: User().name,
+      inviterName: UserFixture().name,
       role: 'member',
       teams: [],
     });
@@ -467,7 +470,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('disable buttons for no access', function () {
-      const org = Organization({
+      const org = OrganizationFixture({
         status: {
           id: 'active',
           name: 'active',
@@ -492,7 +495,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can approve invite request and update', async function () {
-      const org = Organization({
+      const org = OrganizationFixture({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
@@ -530,7 +533,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can deny invite request and remove', async function () {
-      const org = Organization({
+      const org = OrganizationFixture({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
@@ -565,7 +568,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can update invite requests', async function () {
-      const org = Organization({
+      const org = OrganizationFixture({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',

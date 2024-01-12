@@ -1,5 +1,5 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +17,7 @@ describe('GuideAnchor', function () {
 
   beforeEach(function () {
     ConfigStore.config = ConfigFixture({
-      user: User({
+      user: UserFixture({
         isSuperuser: false,
         dateJoined: '2020-01-01T00:00:00',
       }),

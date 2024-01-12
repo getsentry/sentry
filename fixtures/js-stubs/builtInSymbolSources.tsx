@@ -1,8 +1,8 @@
-import type {BuiltinSymbolSource as BuiltinSymbolSourceType} from 'sentry/types';
+import type {BuiltinSymbolSource} from 'sentry/types';
 
-export function BuiltInSymbolSources(
-  params: BuiltinSymbolSourceType[] = []
-): BuiltinSymbolSourceType[] {
+export function BuiltInSymbolSourcesFixture(
+  params: BuiltinSymbolSource[] = []
+): BuiltinSymbolSource[] {
   return [
     {
       sentry_key: 'amd',

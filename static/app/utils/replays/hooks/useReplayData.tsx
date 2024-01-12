@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -131,6 +132,7 @@ export default function useReplayData({
           query: {
             start: replayRecord?.started_at.toISOString(),
             end: finishedAtClone.toISOString(),
+            project: ALL_ACCESS_PROJECTS,
             query: `replayId:[${replayRecord?.id}]`,
             per_page,
             cursor,

@@ -28,6 +28,7 @@ type Props = {
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  platform?: string;
   query?: string[];
   release?: string;
   spanDescription?: string;
@@ -68,6 +69,7 @@ function DurationChart({
   additionalFields,
   release,
   query,
+  platform,
 }: Props) {
   const theme = useTheme();
   const {setPageError} = usePageError();
@@ -86,24 +88,25 @@ function DurationChart({
     filters.release = release;
   }
 
+  if (platform) {
+    filters['os.name'] = platform;
+  }
+
   const {
     isLoading,
     data: spanMetricsSeriesData,
     error: spanMetricsSeriesError,
-  } = useSpanMetricsSeries(
+  } = useSpanMetricsSeries({
     filters,
-    [`avg(${SPAN_SELF_TIME})`],
-    'api.starfish.sidebar-span-metrics-chart'
-  );
+    yAxis: [`avg(${SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.sidebar-span-metrics-chart',
+  });
 
-  const {data, error: spanMetricsError} = useSpanMetrics(
+  const {data, error: spanMetricsError} = useSpanMetrics({
     filters,
-    [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-panel-samples-table-avg'
-  );
+    fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
+    referrer: 'api.starfish.span-summary-panel-samples-table-avg',
+  });
 
   const spanMetrics = data[0] ?? {};
 

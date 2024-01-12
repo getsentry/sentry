@@ -120,11 +120,21 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "transaction_duration_regression_detection_enabled": True,
 }
 
+DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
+    "enable_images": False,
+}
+
 # A dict containing all the specific detection thresholds and rates.
 register(
     key="sentry:performance_issue_settings",
     default=DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS,
 )
+
+register(
+    key="sentry:performance_general_settings",
+    default=DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,
