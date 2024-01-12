@@ -229,23 +229,6 @@ export function MetricWidgetCardAdapter({
   );
 }
 
-// const LoadingPlaceholder = styled(Placeholder)`
-//   background-color: ${p => p.theme.surface300};
-// `;
-
-// const StyledSimpleTableChart = styled(SimpleTableChart)`
-//   margin-top: ${space(1.5)};
-//   border-bottom-left-radius: ${p => p.theme.borderRadius};
-//   border-bottom-right-radius: ${p => p.theme.borderRadius};
-//   font-size: ${p => p.theme.fontSizeMedium};
-//   box-shadow: none;
-// `;
-
-// const WidgetTitle = styled(HeaderTitle)`
-//   ${p => p.theme.overflowEllipsis};
-//   font-weight: normal;
-// `;
-
 const WidgetHeaderWrapper = styled('div')`
   min-height: 36px;
   width: 100%;
@@ -669,7 +652,6 @@ const QueryBuilderWrapper = styled('div')`
   flex-direction: row;
   padding: ${space(1)};
   gap: ${space(1)};
-  background: ${p => p.theme.background};
   z-index: 1;
 `;
 
