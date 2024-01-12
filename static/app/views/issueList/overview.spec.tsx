@@ -308,7 +308,7 @@ describe('IssueList', function () {
       render(
         <IssueListWithStores
           {...routerProps}
-          organization={{...organization, features: ['escalating-issues']}}
+          organization={{...organization}}
         />,
         {
           context: routerContext,
