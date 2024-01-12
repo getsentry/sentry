@@ -274,7 +274,6 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         # Should get nothing if not part of the org
         self.run_test([])
         # Should get everything if super user
-        # NOTE: failing
         self.run_test([self.project_1, self.project_2], user=self.user, active_superuser=True)
 
         # owner does not see projects they aren't members of if not included in query params
@@ -301,7 +300,6 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.run_test([self.project_1])
         membership.delete()
         self.create_team_membership(user=self.user, team=self.team_3)
-        # NOTE: failing
         self.run_test([self.project_1, self.project_2])
 
     def test_ids_no_teams(self):
