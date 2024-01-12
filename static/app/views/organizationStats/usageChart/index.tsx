@@ -30,6 +30,7 @@ import {formatUsageWithUnits} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
+const GIGABYTE = 10 ** 9;
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
@@ -73,7 +74,7 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     label: DATA_CATEGORY_INFO.attachment.titleName,
     value: DATA_CATEGORY_INFO.attachment.plural,
     disabled: false,
-    yAxisMinInterval: 0.5 * 1e9,
+    yAxisMinInterval: 0.5 * GIGABYTE,
   },
   {
     label: DATA_CATEGORY_INFO.profile.titleName,
