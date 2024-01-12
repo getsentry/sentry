@@ -21,79 +21,93 @@ jest.mock('sentry/utils/useProjects');
 
 function mockResponses(organization, project) {
   jest.mocked(useOrganization).mockReturnValue(organization);
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
-    jest.mocked(useProjects).mockReturnValue({
-      fetchError: null,
-      fetching: false,
-      hasMore: false,
-      initiallyLoaded: false,
-      onSearch: jest.fn(),
-      placeholders: [],
-      projects: [project],
-    });
+  jest.mocked(useProjects).mockReturnValue({
+    fetchError: null,
+    fetching: false,
+    hasMore: false,
+    initiallyLoaded: false,
+    onSearch: jest.fn(),
+    placeholders: [],
+    projects: [project],
+  });
 
-    jest.mocked(useLocation).mockReturnValue({
-      action: 'PUSH',
-      hash: '',
-      key: '',
-      pathname: '/organizations/org-slug/performance/mobile/screens/spans/',
-      query: {project: project.id, transaction: 'MainActivity', primaryRelease: 'com.example.vu.android@2.10.5', secondaryRelease: 'com.example.vu.android@2.10.3+42'},
-      search: '',
-      state: undefined,
-    } as Location);
+  jest.mocked(useLocation).mockReturnValue({
+    action: 'PUSH',
+    hash: '',
+    key: '',
+    pathname: '/organizations/org-slug/performance/mobile/screens/spans/',
+    query: {
+      project: project.id,
+      transaction: 'MainActivity',
+      primaryRelease: 'com.example.vu.android@2.10.5',
+      secondaryRelease: 'com.example.vu.android@2.10.3+42',
+    },
+    search: '',
+    state: undefined,
+  } as Location);
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
+  jest.mocked(usePageFilters).mockReturnValue({
+    isReady: true,
+    desyncedFilters: new Set(),
+    pinnedFilters: new Set(),
+    shouldPersist: true,
+    selection: {
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
       },
-    });
+      environments: [],
+      projects: [parseInt(project.id, 10)],
+    },
+  });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
-      body: [
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/releases/`,
+    body: [
+      {
+        id: 970136705,
+        version: 'com.example.vu.android@2.10.5',
+        dateCreated: '2023-12-19T21:37:53.895495Z',
+      },
+      {
+        id: 969902997,
+        version: 'com.example.vu.android@2.10.3+42',
+        dateCreated: '2023-12-19T18:04:06.953025Z',
+      },
+    ],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    query: {
+      dataset: 'metrics',
+      environment: [],
+      field: ['release', 'count()'],
+      per_page: 50,
+      project: ['2'],
+      query:
+        'transaction.op:ui.load release:["com.example.vu.android@2.10.5","com.example.vu.android@2.10.3+42"]',
+      referrer: 'api.starfish.mobile-release-selector',
+      statsPeriod: '10d',
+    },
+    body: {
+      meta: {},
+      data: [
         {
-          "id": 970136705,
-          "version": "com.example.vu.android@2.10.5",
-          "dateCreated": "2023-12-19T21:37:53.895495Z",
+          release: 'com.example.vu.android@2.10.5',
+          'count()': 9768,
         },
         {
-          "id": 969902997,
-          "version": "com.example.vu.android@2.10.3+42",
-          "dateCreated": "2023-12-19T18:04:06.953025Z",
-        }
+          release: 'com.example.vu.android@2.10.3+42',
+          'count()': 826,
+        },
       ],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      query: {dataset: "metrics", environment: [], field: ["release", "count()"], per_page: 50, project: ["2"], query: "transaction.op:ui.load release:[\"com.example.vu.android@2.10.5\",\"com.example.vu.android@2.10.3+42\"]", referrer: "api.starfish.mobile-release-selector", statsPeriod: "10d"},
-      body: {
-        meta: {},
-        data: [
-          {
-            "release": "com.example.vu.android@2.10.5",
-            "count()": 9768
-          },
-          {
-            "release": "com.example.vu.android@2.10.3+42",
-            "count()": 826
-          }
-        ],
-      },
-    });
+    },
+  });
 }
-
 
 describe('Screen Summary', function () {
   describe('Cross Platform Project', function () {
@@ -103,7 +117,11 @@ describe('Screen Summary', function () {
     beforeEach(function () {
       const project = ProjectFixture({platform: 'react-native'});
       organization = OrganizationFixture({
-        features: ['performance-screens-view', 'mobile-ttid-ttfd-contribution', 'performance-screens-platform-selector'],
+        features: [
+          'performance-screens-view',
+          'mobile-ttid-ttfd-contribution',
+          'performance-screens-platform-selector',
+        ],
         projects: [project],
       });
       mockResponses(organization, project);
@@ -122,52 +140,72 @@ describe('Screen Summary', function () {
       jest.clearAllMocks();
     });
 
-    it('appends os.name filter for react native projects', async function() {
+    it('appends os.name filter for react native projects', async function () {
       render(<ScreenLoadSpans />, {organization});
       // Event samples
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "discover",
-            "query": "transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.5 os.name:Android"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'discover',
+              query:
+                'transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.5 os.name:Android',
+            }),
+          })
+        );
       });
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "discover",
-            "query": "transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.3+42 os.name:Android"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'discover',
+              query:
+                'transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.3+42 os.name:Android',
+            }),
+          })
+        );
       });
 
       // Span Table
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "spansMetrics",
-            "query": "transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'spansMetrics',
+              query:
+                'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+            }),
+          })
+        );
       });
 
       // Chart
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "metrics",
-            "query": "event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'metrics',
+              query:
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+            }),
+          })
+        );
       });
-      await waitFor(
-        () => {expect(eventsStatsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "metrics",
-            "query": "event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'metrics',
+              query:
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity os.name:Android release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+            }),
+          })
+        );
       });
     });
   });
@@ -179,7 +217,11 @@ describe('Screen Summary', function () {
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android'});
       organization = OrganizationFixture({
-        features: ['performance-screens-view', 'mobile-ttid-ttfd-contribution', 'performance-screens-platform-selector'],
+        features: [
+          'performance-screens-view',
+          'mobile-ttid-ttfd-contribution',
+          'performance-screens-platform-selector',
+        ],
         projects: [project],
       });
       mockResponses(organization, project);
@@ -198,53 +240,73 @@ describe('Screen Summary', function () {
       jest.clearAllMocks();
     });
 
-    it('does not append os.name filter for native projects', async function() {
+    it('does not append os.name filter for native projects', async function () {
       render(<ScreenLoadSpans />, {organization});
       // Event samples
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "discover",
-            "query": "transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.5"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'discover',
+              query:
+                'transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.5',
+            }),
+          })
+        );
       });
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "discover",
-            "query": "transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.3+42"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'discover',
+              query:
+                'transaction.op:ui.load transaction:MainActivity release:com.example.vu.android@2.10.3+42',
+            }),
+          })
+        );
       });
 
       // Span Table
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "spansMetrics",
-            "query": "transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'spansMetrics',
+              query:
+                'transaction.op:ui.load transaction:MainActivity has:span.description span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction] release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+            }),
+          })
+        );
       });
 
       // Chart
-      await waitFor(
-        () => {expect(eventsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "metrics",
-            "query": "event.type:transaction transaction.op:ui.load transaction:MainActivity release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'metrics',
+              query:
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+            }),
+          })
+        );
       });
 
-      await waitFor(
-        () => {expect(eventsStatsMock).toHaveBeenCalledWith(
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({"query": expect.objectContaining({
-            "dataset": "metrics",
-            "query": "event.type:transaction transaction.op:ui.load transaction:MainActivity release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]"
-          })}));
+          expect.objectContaining({
+            query: expect.objectContaining({
+              dataset: 'metrics',
+              query:
+                'event.type:transaction transaction.op:ui.load transaction:MainActivity release:[com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42]',
+            }),
+          })
+        );
       });
     });
   });

@@ -91,13 +91,11 @@ export function ThresholdGroupRows({
       },
     ];
     if (isInternal) {
-      list.push(
-        {
-          value: CRASH_FREE_SESSION_RATE_STR,
-          textValue: 'Crash Free Sessions',
-          label: 'Crash Free Sessions',
-        },
-      );
+      list.push({
+        value: CRASH_FREE_SESSION_RATE_STR,
+        textValue: 'Crash Free Sessions',
+        label: 'Crash Free Sessions',
+      });
     }
     return list;
   }, [organization]);
