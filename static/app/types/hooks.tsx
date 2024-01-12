@@ -187,7 +187,7 @@ export type ComponentHooks = {
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
-  'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>,
+  'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;

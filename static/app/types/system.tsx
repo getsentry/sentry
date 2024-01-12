@@ -2,7 +2,7 @@ import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
-import {ParntershipAgreementType} from 'sentry/views/partnershipAgreement';
+import {ParntershipAgreementType} from 'sentry/types/hooks';
 
 import type {User} from './user';
 
