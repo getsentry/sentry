@@ -1,28 +1,45 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Sequence, Set
+from typing import Optional, Sequence, Set, cast
 
-from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query, Request
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 from snuba_sdk.conditions import ConditionGroup
 
+from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.metadata.utils import (
     get_snuba_conditions_from_query,
     transform_conditions_with,
     transform_to_tags,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI, is_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    ParsedMRI,
+    TransactionMRI,
+    is_measurement,
+    is_mri,
+    parse_mri,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 # Maximum number of unique spans returned by the database.
 MAX_NUMBER_OF_SPANS = 10
 # Sentry tag values that are converted to columns in Snuba. The conversion happens here:
-# https://github.com/getsentry/snuba/blob/master/snuba/datasets/processors/spans_processor.py
+# https://github.com/getsentry/snuba/blob/master/rust_snuba/src/processors/spans.rs#L239
 SENTRY_TAG_TO_COLUMN_NAME = {
     "module": "module",
     "action": "action",
@@ -32,6 +49,8 @@ SENTRY_TAG_TO_COLUMN_NAME = {
     "transaction": "segment_name",
     "op": "op",
     "transaction.op": "transaction_op",
+    "user": "user",
+    "status": "status",
 }
 
 
@@ -212,13 +231,68 @@ class TransactionDurationSpansSource(SpansSource):
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
-
         if transformed_conditions:
             where += transformed_conditions
+
         if min_value:
             where += [Condition(Column("duration"), Op.GTE, min_value)]
         if max_value:
             where += [Condition(Column("duration"), Op.LTE, max_value)]
+
+        return get_indexed_spans(
+            where=[
+                Condition(Column("is_segment"), Op.GTE, 1),
+            ]
+            + where,
+            start=start,
+            end=end,
+            organization=self.organization,
+            projects=self.projects,
+        )
+
+
+class MeasurementsSpansSource(SpansSource):
+    def _extract_measurement_name(self, metric_mri: str) -> str:
+        # We assume the `parse_mri` to never fail, since we have the guarantee that `supports` is called first.
+        return cast(ParsedMRI, parse_mri(metric_mri)).name[13:]
+
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        parsed_mri = parse_mri(metric_mri)
+        if parsed_mri:
+            return is_measurement(parsed_mri)
+
+        return False
+
+    def _get_spans(
+        self,
+        metric_mri: str,
+        conditions: Optional[ConditionGroup],
+        start: datetime,
+        end: datetime,
+        min_value: Optional[float],
+        max_value: Optional[float],
+    ) -> Sequence[Span]:
+        where = []
+
+        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_with(
+            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
+        )
+        if transformed_conditions:
+            where += transformed_conditions
+
+        measurement_name = self._extract_measurement_name(metric_mri)
+        # We add this condition every time, since if a measurement is not set, Snuba will return 0, but it could also
+        # return 0 if the measurement value is 0, thus we need a way to discriminate between the two cases.
+        where += [
+            Condition(Function("has", [Column("measurements.key"), measurement_name]), Op.EQ, 1)
+        ]
+
+        if min_value:
+            where += [Condition(Column(f"measurements[{measurement_name}]"), Op.GTE, min_value)]
+        if max_value:
+            where += [Condition(Column(f"measurements[{measurement_name}]"), Op.LTE, max_value)]
 
         return get_indexed_spans(
             where=[
@@ -292,6 +366,14 @@ def get_indexed_spans(
     ]
 
 
+# Ordered list (by priority) of spans sources that will be used to get the spans of a specific metric.
+SPANS_SOURCES = [
+    MeasurementsSpansSource,
+    TransactionDurationSpansSource,
+    MetricsSummariesSpansSource,
+]
+
+
 def get_spans_source(
     metric_mri: str, organization: Organization, projects: Sequence[Project]
 ) -> Optional[SpansSource]:
@@ -300,9 +382,10 @@ def get_spans_source(
 
     In case multiple sources would apply to a `metric_mri` the first one is chosen.
     """
-    for source_clazz in [TransactionDurationSpansSource, MetricsSummariesSpansSource]:
+
+    for source_clazz in SPANS_SOURCES:
         if source_clazz.supports(metric_mri):
-            return source_clazz(organization=organization, projects=projects)
+            return source_clazz(organization=organization, projects=projects)  # type:ignore
 
     return None
 
@@ -325,7 +408,7 @@ def get_spans_of_metric(
     """
     spans_source = get_spans_source(metric_mri, organization, projects)
     if not spans_source:
-        raise InvalidMetricsQueryError(
+        raise InvalidParams(
             f"The supplied metric {metric_mri} does not support fetching correlated spans"
         )
 
