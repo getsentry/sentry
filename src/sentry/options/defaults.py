@@ -1881,3 +1881,11 @@ register(
     default=0,
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# max number of profiles to use for computing
+# the aggregated flamegraph.
+register(
+    "profiling.flamegraph.profile-set.size",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
