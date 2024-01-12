@@ -130,14 +130,6 @@ const Blockquote = styled('blockquote')`
   margin: 0 ${space(4)};
   position: relative;
 
-  &::before {
-    position: absolute;
-    color: ${p => p.theme.purple300};
-    content: '❝';
-    font-size: ${space(4)};
-    left: -${space(4)};
-    top: -0.4rem;
-  }
   &::after {
     position: absolute;
     border: 1px solid ${p => p.theme.purple300};
