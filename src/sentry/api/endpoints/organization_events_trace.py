@@ -1252,7 +1252,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 continue
             if "trace.transaction" in error and error["trace.transaction"] == parent.event["id"]:
                 visited_errors.add(error["id"])
-                parent.errors.append(error)
+                parent.errors.append(self.serialize_error(error))
         for transaction in transactions:
             if transaction["id"] in visited_transactions:
                 continue

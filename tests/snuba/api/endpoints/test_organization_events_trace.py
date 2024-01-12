@@ -1236,7 +1236,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_trace_data(response.data["transactions"][0])
         gen1_event = response.data["transactions"][0]["children"][0]
         assert len(gen1_event["errors"]) == 2
-        assert {
+        data = {
             "event_id": error.event_id,
             "issue_id": error.group_id,
             "span": self.gen1_span_ids[0],
@@ -1247,8 +1247,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in gen1_event["errors"]
-        assert {
+        }
+        data1 = {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
             "span": self.gen1_span_ids[0],
@@ -1259,7 +1259,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in gen1_event["errors"]
+        }
+        assert data in gen1_event["errors"]
+        assert data1 in gen1_event["errors"]
 
     def test_with_only_orphan_errors_with_same_span_ids(self):
         span_id = uuid4().hex[:16]
