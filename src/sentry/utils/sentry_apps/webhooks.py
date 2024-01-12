@@ -165,8 +165,8 @@ def send_and_save_webhook_request(
         headers=app_platform_event.headers,
     )
     # we don't disable alert rules for internal integrations
-    # so we don't want to consider responeses related to them
-    # for the purpose of disaabling integrations
+    # so we don't want to consider responses related to them
+    # for the purpose of disabling integrations
     if app_platform_event.action != "event.alert":
         record_response_for_disabling_integration(sentry_app, org_id, response)
 
