@@ -594,7 +594,7 @@ class SlackActionEndpoint(Endpoint):
                             ],
                         )
                         # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
-                    elif action_data.get("value"):
+                    else:
                         action = BlockKitMessageAction(
                             name=action_data["action_id"],
                             label=action_data["text"]["text"],
@@ -603,8 +603,6 @@ class SlackActionEndpoint(Endpoint):
                             action_id=action_data["action_id"],
                             block_id=action_data["block_id"],
                         )
-                    else:
-                        continue  # url action
                     action_list.append(action)
 
                 return action_list
@@ -637,6 +635,7 @@ class SlackActionEndpoint(Endpoint):
             "grace_period_warning",
             "integration_disabled_slack",
             "trial_end_warning",
+            "link_clicked",
         ):
             return self.respond()
 
@@ -668,8 +667,6 @@ class SlackActionEndpoint(Endpoint):
                 )
 
         action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
-        if len(action_list) == 0:
-            return self.respond({})
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
