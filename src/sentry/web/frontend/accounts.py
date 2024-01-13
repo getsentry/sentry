@@ -15,7 +15,7 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.signals import email_verified
+from sentry.signals import email_verified, terms_accepted
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
@@ -122,6 +122,13 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 if mode == "relocate":
                     user.username = form.cleaned_data["username"]
                     user.is_unclaimed = False
+                    # Relocation form require users to accept TOS and privacy policy
+                    terms_accepted.send_robust(
+                        user=request.user,
+                        organization=None,
+                        ip_address=request.META["REMOTE_ADDR"],
+                        sender=recover_confirm,
+                    )
                 user.set_password(form.cleaned_data["password"])
                 user.refresh_session_nonce(request)
                 user.save()

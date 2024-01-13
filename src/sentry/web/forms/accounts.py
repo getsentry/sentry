@@ -341,6 +341,14 @@ class TwoFactorForm(forms.Form):
 class RelocationForm(forms.Form):
     username = forms.CharField(max_length=128, required=False, widget=forms.TextInput())
     password = forms.CharField(widget=forms.PasswordInput())
+    tos_check = forms.BooleanField(
+        label=_(
+            f"I agree to the <a href={settings.TERMS_URL}>Terms of Service</a> and <a href={settings.PRIVACY_URL}>Privacy Policy</a>"
+        ),
+        widget=forms.CheckboxInput(),
+        required=True,
+        initial=False,
+    )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)

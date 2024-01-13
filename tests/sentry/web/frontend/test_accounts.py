@@ -134,7 +134,7 @@ class TestAccounts(TestCase):
 
         resp = self.client.post(
             self.relocation_recover_path(lost_password.user_id, lost_password.hash),
-            {"username": new_username, "password": "test_password"},
+            {"username": new_username, "password": "test_password", "tos_check": True},
         )
 
         header_name = "Referrer-Policy"
@@ -146,6 +146,31 @@ class TestAccounts(TestCase):
         assert user.username == new_username
         assert user.password != old_password
         assert resp.status_code == 302
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+
+    def test_relocate_recovery_unchecked_tos(self):
+        user = self.create_user()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+        user.is_unclaimed = True
+        user.save()
+        new_username = "test_username"
+
+        resp = self.client.post(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+            {"username": new_username, "password": "test_password", "tos_check": False},
+        )
+
+        header_name = "Referrer-Policy"
+
+        user.refresh_from_db()
+        assert resp.has_header(header_name)
+        assert resp.templates[0].name == ("sentry/account/relocate/confirm.html")
+        assert user.is_unclaimed
+        assert resp.status_code == 200
         assert resp[header_name] == "strict-origin-when-cross-origin"
 
     def test_relocate_recovery_invalid_password(self):
@@ -164,7 +189,7 @@ class TestAccounts(TestCase):
             with patch.object(LostPasswordHash.objects, "get", return_value=lost_password):
                 resp = self.client.post(
                     self.relocation_recover_path(lost_password.user_id, lost_password.hash),
-                    {"username": new_username, "password": "test_password123"},
+                    {"username": new_username, "password": "test_password123", "tos_check": True},
                 )
 
                 header_name = "Referrer-Policy"
