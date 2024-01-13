@@ -145,7 +145,7 @@ class GroupVariant extends Component<Props, State> {
               size="xs"
               position="top"
               title={t(
-                'Overrides the default grouping by a built-in fingerprinting rule'
+                'Overrides the default grouping by a Sentry defined fingerprinting rule'
               )}
             />
           </TextWithQuestionTooltip>,

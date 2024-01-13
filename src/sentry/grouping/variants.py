@@ -154,13 +154,13 @@ class CustomFingerprintVariant(BaseVariant):
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
-    """A built-in fingerprint."""
+    """A built-in, Sentry defined fingerprint."""
 
     type = "built-in-fingerprint"
 
     @property
     def description(self):
-        return "built-in fingerprint"
+        return "Sentry defined fingerprint"
 
 
 class SaltedComponentVariant(ComponentVariant):
