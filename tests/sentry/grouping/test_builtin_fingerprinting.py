@@ -33,11 +33,13 @@ def test_default_bases(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ]
     }
@@ -53,11 +55,13 @@ def test_built_in_chunkload_rules_base(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -74,11 +78,13 @@ def test_built_in_chunkload_rules_from_empty_config_string(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -111,11 +117,13 @@ def test_built_in_chunkload_rules_from_config_string_with_custom(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -153,6 +161,7 @@ def test_load_configs_borked_file_doesnt_blow_up(tmp_path):
             "matchers": [["type", "DatabaseUnavailable"]],
             "fingerprint": ["DatabaseUnavailable"],
             "attributes": {},
+            "is_builtin": True,
         },
     ]
 
@@ -214,6 +223,7 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["chunkloaderror"],
             "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+            "is_builtin": True,
         }
 
     def test_built_in_chunkload_rules_disabled(self):
@@ -237,6 +247,7 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["chunkloaderror"],
             "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
+            "is_builtin": True,
         }
 
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
