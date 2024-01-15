@@ -3,12 +3,10 @@ import styled from '@emotion/styled';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, ButtonProps} from 'sentry/components/button';
-import {HeaderTitle} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
-import TextOverflow from 'sentry/components/textOverflow';
 import {
   IconCheckmark,
   IconClose,
@@ -29,7 +27,6 @@ import {
   MetricsQuery,
   MetricsQuerySubject,
   MetricWidgetQueryParams,
-  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
@@ -90,24 +87,12 @@ export const InlineEditor = memo(function InlineEditor({
     }
   }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
-  const stringifiedMetricWidget = stringifyMetricWidget(metricsQuery);
-
   const [loading, setIsLoading] = useState(false);
   useEffect(() => {
     if (loading && !isEdit) {
       setIsLoading(false);
     }
   }, [isEdit, loading]);
-
-  if (!isEdit) {
-    return (
-      <InlineEditorWrapper>
-        <WidgetTitle>
-          <TextOverflow>{stringifiedMetricWidget}</TextOverflow>
-        </WidgetTitle>
-      </InlineEditorWrapper>
-    );
-  }
 
   return (
     <InlineEditorWrapper>
@@ -352,12 +337,4 @@ const WrapPageFilterBar = styled(PageFilterBar)`
   max-width: max-content;
   height: auto;
   flex-wrap: wrap;
-`;
-
-const WidgetTitle = styled(HeaderTitle)`
-  padding-left: ${space(1.5)};
-  padding-top: ${space(1)};
-  padding-right: ${space(1)};
-  ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
 `;

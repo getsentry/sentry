@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {HeaderTitle} from 'sentry/components/charts/styles';
+import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MRI, Organization, PageFilters} from 'sentry/types';
@@ -112,6 +114,8 @@ export function MetricWidgetCard({
     );
   }
 
+  const stringifiedMetricWidget = stringifyMetricWidget(metricWidgetQueryParams);
+
   return (
     <DashboardsMEPContext.Provider
       value={{
@@ -121,20 +125,27 @@ export function MetricWidgetCard({
     >
       <WidgetCardPanel isDragging={false}>
         <WidgetHeaderWrapper>
-          <WidgetHeaderDescription>
-            <WidgetTitleRow>
-              <InlineEditor
-                isEdit={!!isEditingWidget}
-                displayType={toMetricDisplayType(widget.displayType)}
-                metricsQuery={metricWidgetQueryParams}
-                projects={selection.projects}
-                powerUserMode={false}
-                onChange={handleChange}
-                onSubmit={handleSubmit}
-                onCancel={handleCancel}
-              />
-            </WidgetTitleRow>
-          </WidgetHeaderDescription>
+          {isEditingWidget ? (
+            <InlineEditor
+              isEdit={!!isEditingWidget}
+              displayType={toMetricDisplayType(widget.displayType)}
+              metricsQuery={metricWidgetQueryParams}
+              projects={selection.projects}
+              powerUserMode={false}
+              onChange={handleChange}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+            />
+          ) : (
+            <WidgetHeaderDescription>
+              <WidgetTitleRow>
+                <WidgetTitle>
+                  <TextOverflow>{stringifiedMetricWidget}</TextOverflow>
+                </WidgetTitle>
+              </WidgetTitleRow>
+            </WidgetHeaderDescription>
+          )}
+
           <ContextMenuWrapper>
             {!isEditingDashboard && (
               <WidgetCardContextMenu
@@ -186,10 +197,16 @@ const ContextMenuWrapper = styled('div')`
 `;
 
 const WidgetHeaderDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
   ${p => p.theme.overflowEllipsis};
+  overflow-y: visible;
+`;
+
+const WidgetTitle = styled(HeaderTitle)`
+  padding-left: ${space(3)};
+  padding-top: ${space(2)};
+  padding-right: ${space(1)};
+  ${p => p.theme.overflowEllipsis};
+  font-weight: normal;
 `;
 
 function toMetricDisplayType(displayType: string): MetricDisplayType {
