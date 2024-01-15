@@ -292,11 +292,20 @@ def test_spec_context_mapping() -> None:
 
 
 def test_spec_query_or_precedence_with_environment() -> None:
+    spec_version = OnDemandMetricSpecVersioning._get_query_spec_version_flags_set(
+        {"use_updated_env_logic"}
+    )
     spec_1 = OnDemandMetricSpec(
-        "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
+        "count()",
+        "(transaction.duration:>1s OR http.status_code:200)",
+        "dev",
+        spec_version=spec_version,
     )
     spec_2 = OnDemandMetricSpec(
-        "count()", "transaction.duration:>1s OR http.status_code:200", "dev"
+        "count()",
+        "transaction.duration:>1s OR http.status_code:200",
+        "dev",
+        spec_version=spec_version,
     )
 
     assert spec_1._metric_type == "c"
@@ -321,10 +330,14 @@ def test_spec_query_or_precedence_with_environment() -> None:
 
 
 def test_spec_count_if_query_with_environment() -> None:
+    spec_version = OnDemandMetricSpecVersioning._get_query_spec_version_flags_set(
+        {"use_updated_env_logic"}
+    )
     spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)",
         "(http.method:GET AND endpoint:/hello)",
         "production",
+        spec_version=spec_version,
     )
 
     assert spec._metric_type == "c"
@@ -347,10 +360,14 @@ def test_spec_count_if_query_with_environment() -> None:
 
 
 def test_spec_complex_query_with_environment() -> None:
+    spec_version = OnDemandMetricSpecVersioning._get_query_spec_version_flags_set(
+        {"use_updated_env_logic"}
+    )
     spec = OnDemandMetricSpec(
         "count()",
         "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
         "staging",
+        spec_version=spec_version,
     )
 
     assert spec._metric_type == "c"
