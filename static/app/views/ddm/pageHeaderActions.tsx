@@ -1,9 +1,16 @@
 import {useMemo} from 'react';
 
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconBookmark, IconDashboard, IconEllipsis, IconSiren} from 'sentry/icons';
+import {
+  IconBookmark,
+  IconDashboard,
+  IconEllipsis,
+  IconSettings,
+  IconSiren,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {MRIToField} from 'sentry/utils/metrics/mri';
@@ -36,8 +43,14 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         label: t('Add to Dashboard'),
         onAction: createDashboard,
       },
+      {
+        leadingItems: [<IconSettings key="icon" />],
+        key: 'metrics-settings',
+        label: t('Metrics Settings'),
+        onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
+      },
     ],
-    [createDashboard]
+    [createDashboard, router]
   );
 
   const alertItems = useMemo(
