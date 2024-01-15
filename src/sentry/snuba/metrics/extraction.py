@@ -102,13 +102,19 @@ class OnDemandMetricSpecVersioning:
     @classmethod
     def get_query_spec_version(cls: Any, organization_id: int, user: User) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
-        flags_set = set()
-        org = Organization.objects.get_from_cache(id=organization_id)
-        for feature_flag in cls.feature_to_flags_map.keys():
-            if features.has_for_batch(feature_flag, org, [], user):
-                flags_set = cls.feature_to_flags_map[feature_flag]
+        try:
+            flags_set = set()
+            org = Organization.objects.get_from_cache(id=organization_id)
+            for feature_flag in cls.feature_to_flags_map.keys():
+                if features.has_for_batch(feature_flag, org, [], user):
+                    flags_set = cls.feature_to_flags_map[feature_flag]
 
-        return cls._find_spec_version(flags_set)
+            return cls._find_spec_version(flags_set)
+        except Exception:
+            logger.exception(
+                "Error fetching flags associated to feature flag. Falling back to default."
+            )
+            return cls._get_default_spec_version()
 
     @classmethod
     def _get_query_spec_version_flags_set(cls: Any, flags_set: set[str]) -> SpecVersion:
