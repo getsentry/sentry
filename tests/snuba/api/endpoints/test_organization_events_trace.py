@@ -75,11 +75,13 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 }
             ):
                 event = self.store_event(data, project_id=project_id, **kwargs)
+                spans_to_store = []
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        self.store_span(self.create_span(span))
-                self.store_span(self.convert_event_data_to_span(event))
+                        spans_to_store.append(self.create_span(span))
+                spans_to_store.append(self.convert_event_data_to_span(event))
+                self.store_spans(spans_to_store)
                 return event
 
     def convert_event_data_to_span(self, event):
