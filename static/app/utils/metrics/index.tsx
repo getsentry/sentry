@@ -65,7 +65,6 @@ export enum MetricDisplayType {
   AREA = 'area',
   BAR = 'bar',
   TABLE = 'table',
-  BIG_NUMBER = 'big_number',
 }
 
 export const metricDisplayTypeOptions = [
