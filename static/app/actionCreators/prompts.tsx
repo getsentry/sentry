@@ -19,16 +19,11 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  const organizationId = params.organization
-    ? params.organization.id
-    : params.organizationId;
-  const url = params.organization
-    ? `/organizations/${params.organization.slug}/prompts-activity/`
-    : '/prompts-activity/';
+  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
   return api.requestPromise(url, {
     method: 'PUT',
     data: {
-      organization_id: organizationId,
+      organization_id: params.organization.id,
       project_id: params.projectId,
       feature: params.feature,
       status: params.status,
