@@ -13,7 +13,6 @@ function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
   const {isDefaultQuery} = useDDMContext();
   return (
     <PageFiltersContainer disablePersistence={isDefaultQuery}>
-      {' '}
       {children}
     </PageFiltersContainer>
   );
