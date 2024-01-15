@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {NewQuery, Project} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -34,7 +34,11 @@ export function MetricsRibbon({
   referrer,
   dataset,
 }: {
-  blocks: {dataKey: string; title: string; type: 'duration' | 'count'}[];
+  blocks: {
+    dataKey: string | ((data?: TableDataRow[]) => number | undefined);
+    title: string;
+    type: 'duration' | 'count';
+  }[];
   dataset: DiscoverDatasets;
   fields: string[];
   referrer: string;
@@ -90,6 +94,7 @@ export function MetricsRibbon({
     enabled: !isReleasesLoading,
     referrer,
   });
+  console.log(data);
 
   return (
     <BlockContainer>
@@ -114,18 +119,23 @@ function MetricsBlock({
   dataKey,
   isLoading,
 }: {
-  dataKey: string;
+  dataKey: string | ((data?: TableDataRow[]) => number | undefined);
   isLoading: boolean;
   title: string;
   type: 'duration' | 'count';
   data?: TableData;
   release?: string;
 }) {
+  const value =
+    typeof dataKey === 'function'
+      ? dataKey(data?.data)
+      : (data?.data[0]?.[dataKey] as number);
+
   if (type === 'duration') {
     return (
       <Block title={title}>
-        {!isLoading && data ? (
-          <DurationCell milliseconds={data.data[0]?.[dataKey] as number} />
+        {!isLoading && data && value ? (
+          <DurationCell milliseconds={value} />
         ) : (
           UNDEFINED_TEXT
         )}
@@ -135,11 +145,7 @@ function MetricsBlock({
 
   return (
     <Block title={title}>
-      {!isLoading && data ? (
-        <CountCell count={data.data[0]?.['count()'] as number} />
-      ) : (
-        UNDEFINED_TEXT
-      )}
+      {!isLoading && data && value ? <CountCell count={value} /> : UNDEFINED_TEXT}
     </Block>
   );
 }

@@ -151,12 +151,12 @@ function ScreenLoadSpans() {
                       },
                       {
                         type: 'duration',
-                        dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                        dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
                         title: t('TTFD (%s)', truncatedPrimary),
                       },
                       {
                         type: 'duration',
-                        dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                        dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
                         title: t('TTFD (%s)', truncatedSecondary),
                       },
                       {
@@ -165,7 +165,7 @@ function ScreenLoadSpans() {
                         title: t('Count'),
                       },
                     ]}
-                    referrer="api.starfish.mobile-startup-totals"
+                    referrer="api.starfish.mobile-screen-totals"
                   />
                 </Container>
               </StarfishPageFiltersContainer>
