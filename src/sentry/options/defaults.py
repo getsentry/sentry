@@ -1894,6 +1894,6 @@ register(
 register(
     "profiling.flamegraph.profile-set.size",
     type=Int,
-    default=0.0,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
