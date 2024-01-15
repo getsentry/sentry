@@ -95,7 +95,10 @@ export const makePromptsCheckQueryKey = ({
   projectId,
 }: PromptCheckParams): ApiQueryKey => {
   const url = `/organizations/${organization.slug}/prompts-activity/`;
-  return [url, {query: {feature, organization_id: organization.id, project_id: projectId}}];
+  return [
+    url,
+    {query: {feature, organization_id: organization.id, project_id: projectId}},
+  ];
 };
 
 /**
