@@ -84,7 +84,7 @@ class OnDemandMetricSpecVersioning:
         return cls.spec_versions
 
     @classmethod
-    def get_default_spec_version(cls: Any) -> SpecVersion:
+    def _get_default_spec_version(cls: Any) -> SpecVersion:
         return cls.spec_versions[0]
 
     @classmethod
@@ -99,7 +99,7 @@ class OnDemandMetricSpecVersioning:
         return cls._find_spec_version(flags_set)
 
     @classmethod
-    def get_query_spec_version_flags_set(cls: Any, flags_set: set[str]) -> SpecVersion:
+    def _get_query_spec_version_flags_set(cls: Any, flags_set: set[str]) -> SpecVersion:
         """Return spec version matching flags set."""
         return cls._find_spec_version(flags_set)
 
@@ -1114,7 +1114,7 @@ class OnDemandMetricSpec:
         self.spec_version = (
             spec_version
             if spec_version
-            else OnDemandMetricSpecVersioning.get_default_spec_version()
+            else OnDemandMetricSpecVersioning._get_default_spec_version()
         )
 
         # Removes field if passed in selected_columns
