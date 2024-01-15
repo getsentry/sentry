@@ -5,7 +5,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
-import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {EntryType} from 'sentry/types';
 
 describe('Actionable Items', () => {
@@ -119,31 +118,33 @@ describe('Actionable Items', () => {
   it('does not render hidden flutter web errors', async () => {
     const eventErrors = [
       {
-        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        type: 'missing_source_content',
         data: {
-          Source: "my_app/main.dart",
+          Source: 'my_app/main.dart',
         },
       },
       {
-        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
-        data: {
-          Source: "http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart",
-        },
-      },
-      {
-        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
-        data: {
-          Source: "org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart",
-        },
-      },
-      {
-        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        type: 'missing_source_content',
         data: {
           Source:
-        "org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart",
+            'http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart',
         },
       },
-      ];
+      {
+        type: 'missing_source_content',
+        data: {
+          Source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart',
+        },
+      },
+      {
+        type: 'missing_source_content',
+        data: {
+          Source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
+        },
+      },
+    ];
 
     MockApiClient.addMockResponse({
       url,
@@ -162,9 +163,7 @@ describe('Actionable Items', () => {
 
     render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
 
-    expect(
-      await screen.findByText('Missing Sources Context (1)')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
     expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 
