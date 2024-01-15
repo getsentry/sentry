@@ -25,9 +25,43 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         self.store_spans(
             [
                 self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
                 self.create_span({"description": "bar"}, start_ts=self.ten_mins_ago),
             ]
         )
+        for _ in range(200):
+            self.store_span(
+                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
+            )
         response = self.do_request(
             {
                 "field": ["description", "count()"],
@@ -43,5 +77,5 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert len(data) == 2
         assert data[0]["description"] == "bar"
         assert data[1]["description"] == "foo"
+        assert data[1]["count()"] == 231
         assert meta["dataset"] == "spansIndexed"
-        assert False
