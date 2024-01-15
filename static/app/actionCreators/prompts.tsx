@@ -9,9 +9,9 @@ type PromptsUpdateParams = {
   feature: string;
   status: 'snoozed' | 'dismissed';
   // TODO(mark) Remove optional once getsentry is updated.
-  organization?: OrganizationSummary,
+  organization?: OrganizationSummary;
   // Deprecated.
-  organizationId?: string,
+  organizationId?: string;
   /**
    * The numeric project ID as a string
    */
@@ -22,7 +22,9 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  const organizationId = params.organization ? params.organization.id : params.organizationId;
+  const organizationId = params.organization
+    ? params.organization.id
+    : params.organizationId;
   const url = params.organization
     ? `/organizations/${params.organization.slug}/prompts-activity/`
     : '/prompts-activity/';
@@ -43,7 +45,7 @@ type PromptCheckParams = {
    */
   feature: string;
   // TODO(mark) Remove optional once getsentry change has landed.
-  organization?: OrganizationSummary,
+  organization?: OrganizationSummary;
   // Deprecated To be removed once all usage has organization
   organizationId?: string;
   /**
@@ -73,7 +75,9 @@ export async function promptsCheck(
   api: Client,
   params: PromptCheckParams
 ): Promise<PromptData> {
-  const organizationId = params.organization ? params.organization.id : params.organizationId;
+  const organizationId = params.organization
+    ? params.organization.id
+    : params.organizationId;
   const query = {
     feature: params.feature,
     organization_id: organizationId,
@@ -108,10 +112,7 @@ export const makePromptsCheckQueryKey = ({
     ? `/organizations/${organization.slug}/prompts-activity/`
     : '/prompts-activity/';
 
-  return [
-    url,
-    {query: {feature, organization_id: orgId, project_id: projectId}},
-  ];
+  return [url, {query: {feature, organization_id: orgId, project_id: projectId}}];
 };
 
 /**
@@ -136,7 +137,11 @@ export function usePromptsCheck(
 export async function batchedPromptsCheck<T extends readonly string[]>(
   api: Client,
   features: T,
-  params: {organization?: OrganizationSummary; organizationId?: string; projectId?: string}
+  params: {
+    organization?: OrganizationSummary;
+    organizationId?: string;
+    projectId?: string;
+  }
 ): Promise<{[key in T[number]]: PromptData}> {
   const orgId = params.organization ? params.organization.id : params.organizationId;
   const query = {
