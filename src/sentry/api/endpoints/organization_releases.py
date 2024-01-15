@@ -231,11 +231,12 @@ class OrganizationReleasesEndpoint(
         ]
     )
 
-    def get_projects(self, request: Request, organization, project_ids=None):
+    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
         return super().get_projects(
             request,
             organization,
             project_ids=project_ids,
+            project_slugs=project_slugs,
             include_all_accessible="GET" != request.method,
         )
 

@@ -266,7 +266,7 @@ def _process_message(
         sampled=True,
     ) as txn:
         try:
-            # Assume messaged without a payload type are of type OCCURRENCE
+            # Messages without payload_type default to an OCCURRENCE payload
             payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
             if payload_type == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, txn)

@@ -23,7 +23,7 @@ import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 
 import {ActiveOperationFilter} from './filter';
 import {NewTraceDetailsProfiledSpanBar} from './newTraceDetailsSpanBar';
@@ -43,7 +43,13 @@ import {
   SpanType,
   TreeDepthType,
 } from './types';
-import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash,VerticalMark} from './utils';
+import {
+  getSpanID,
+  getSpanOperation,
+  isGapSpan,
+  spanTargetHash,
+  VerticalMark,
+} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -51,9 +57,10 @@ type PropType = ScrollbarManagerChildrenProps & {
   location: Location;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
+  parentContinuingDepths: TreeDepth[];
   parentGeneration: number;
-  parentHasContinuingDepths: boolean;
   parentIsLast: boolean;
+  parentIsOrphan: boolean;
   quickTrace: QuickTraceContextChildrenProps;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
@@ -481,16 +488,28 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
         });
 
         if (!this.props.parentIsLast) {
-          continuingTreeDepthPastParent.push(this.props.parentGeneration);
+          const value: TreeDepthType = this.props.parentIsOrphan
+            ? {depth: this.props.parentGeneration, type: 'orphan'}
+            : this.props.parentGeneration;
+          continuingTreeDepthPastParent.push(value);
         }
 
         // Add continuing depths from the trace level to to span rows.
+        const {parentContinuingDepths, parentGeneration} = this.props;
         const minDepth = traceHasMultipleRoots ? 1 : 2;
         if (
-          (this.props.parentGeneration > 2 || traceHasMultipleRoots) &&
-          this.props.parentHasContinuingDepths
+          (parentGeneration > 2 || traceHasMultipleRoots) &&
+          parentContinuingDepths.length > 0
         ) {
-          let i = this.props.parentGeneration - 1;
+          // To avoid an extra connector line, skip a step of continuing depths if the parent txn is at least 2 generations deep
+          // and it's a last child.
+          const generationOffset =
+            parentContinuingDepths.length === 1 &&
+            parentContinuingDepths[0].depth === 0 &&
+            parentGeneration > 2
+              ? 2
+              : 1;
+          let i = parentGeneration - generationOffset;
           while (i >= minDepth) {
             const value: TreeDepthType =
               traceHasMultipleRoots && i === 1 ? {depth: i, type: 'orphan'} : i;
@@ -789,22 +808,24 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     return (
       <TraceViewContainer>
         <WindowScroller onScroll={this.throttledOnScroll}>
-          {({height, isScrolling, onChildScroll, scrollTop}) => (
+          {({height, isScrolling, onChildScroll, scrollTop, registerChild}) => (
             <AutoSizer disableHeight>
               {({width}) => (
-                <ReactVirtualizedList
-                  autoHeight
-                  isScrolling={isScrolling}
-                  onScroll={onChildScroll}
-                  scrollTop={scrollTop}
-                  deferredMeasurementCache={this.cache}
-                  height={height}
-                  width={width}
-                  rowHeight={this.cache.rowHeight}
-                  rowCount={spanTree.length}
-                  rowRenderer={props => this.renderRow(props, spanTree)}
-                  ref={listRef}
-                />
+                <div ref={el => registerChild(el)}>
+                  <ReactVirtualizedList
+                    autoHeight
+                    isScrolling={isScrolling}
+                    onScroll={onChildScroll}
+                    scrollTop={scrollTop}
+                    deferredMeasurementCache={this.cache}
+                    height={height}
+                    width={width}
+                    rowHeight={this.cache.rowHeight}
+                    rowCount={spanTree.length}
+                    rowRenderer={props => this.renderRow(props, spanTree)}
+                    ref={listRef}
+                  />
+                </div>
               )}
             </AutoSizer>
           )}

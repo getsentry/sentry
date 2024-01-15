@@ -46,6 +46,7 @@ function RRWebReplayer({urls}: Props) {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => void loadEvents(), [urls]);
 
   return <BaseRRWebReplayer events={events} />;

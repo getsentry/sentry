@@ -5,9 +5,12 @@ import logging
 import re
 from typing import TYPE_CHECKING, List, Mapping, Type, cast
 
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
+from rest_framework import status
 
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -131,7 +134,15 @@ class IntegrationClassification(BaseClassification):
             request=request,
             response_handler=self.response_handler,
         )
-        response = parser.get_response()
+        try:
+            response = parser.get_response()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            metrics.incr(
+                f"hybrid_cloud.integration_control.integration.{parser.provider}",
+                tags={"url_name": parser.match.url_name, "status_code": 404},
+            )
+            return HttpResponse("", status=status.HTTP_404_NOT_FOUND)
+
         metrics.incr(
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
             tags={"url_name": parser.match.url_name, "status_code": response.status_code},

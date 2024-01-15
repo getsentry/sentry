@@ -36,10 +36,10 @@ type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 export function useFocusAreaBrush(
   chartRef: RefObject<ReactEchartsRef>,
   focusArea: FocusArea | null,
-  onAdd: (area: FocusArea) => void,
-  onRemove: () => void,
-  onZoom: (range: DateTimeObject) => void,
-  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaBrushOptions
+  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaBrushOptions,
+  onAdd: (area: FocusArea) => void = () => {},
+  onRemove: () => void = () => {},
+  onZoom: (range: DateTimeObject) => void = () => {}
 ) {
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
@@ -209,10 +209,14 @@ function BrushRectOverlay({
       ? `${CHART_HEIGHT}px`
       : `${heightPx.toPrecision(5)}px`;
 
+    // Ensure the focus area rect is always within the chart bounds
+    const left = Math.max(topLeft[0], 0);
+    const width = Math.min(widthPx, chartInstance.getWidth() - left);
+
     setPosition({
-      left: `${topLeft[0].toPrecision(5)}px`,
+      left: `${left.toPrecision(5)}px`,
       top: resultTop,
-      width: `${widthPx.toPrecision(5)}px`,
+      width: `${width.toPrecision(5)}px`,
       height: resultHeight,
     });
   }, [rect, chartInstance, useFullYAxis]);

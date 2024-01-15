@@ -1,5 +1,11 @@
-import inspect
+from __future__ import annotations
 
+import inspect
+import logging
+from pathlib import Path
+from typing import Sequence
+
+from django.conf import settings
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
@@ -11,8 +17,13 @@ from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.strings import unescape_string
+from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+
+logger = logging.getLogger(__name__)
 
 VERSION = 1
+
+CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 
 # Grammar is defined in EBNF syntax.
 fingerprinting_grammar = Grammar(
@@ -68,6 +79,7 @@ class EventAccess:
         self._log_info = None
         self._toplevel = None
         self._tags = None
+        self._sdk = None
 
     def get_messages(self):
         if self._messages is None:
@@ -144,23 +156,40 @@ class EventAccess:
             ]
         return self._tags
 
+    def get_sdk(self):
+        if self._sdk is None:
+            self._sdk = [{"sdk": normalized_sdk_tag_from_event(self.event)}]
+        return self._sdk
+
     def get_values(self, match_group):
         return getattr(self, "get_" + match_group)()
 
 
 class FingerprintingRules:
-    def __init__(self, rules, changelog=None, version=None):
+    def __init__(
+        self,
+        rules,
+        changelog=None,
+        version=None,
+        bases: Sequence[str] | None = None,
+    ):
         if version is None:
             version = VERSION
         self.version = version
         self.rules = rules
         self.changelog = changelog
+        self.bases = bases or []
 
-    def iter_rules(self):
-        return iter(self.rules)
+    def iter_rules(self, include_builtin=True):
+        if self.rules:
+            yield from self.rules
+        if include_builtin:
+            for base in self.bases:
+                base_rules = FINGERPRINTING_BASES.get(base, [])
+                yield from base_rules
 
     def get_fingerprint_values_for_event(self, event):
-        if not self.rules:
+        if not (self.bases or self.rules):
             return
         access = EventAccess(event)
         for rule in self.iter_rules():
@@ -169,27 +198,33 @@ class FingerprintingRules:
                 return (rule,) + new_values
 
     @classmethod
-    def _from_config_structure(cls, data):
+    def _from_config_structure(cls, data, bases=None):
         version = data["version"]
         if version != VERSION:
             raise ValueError("Unknown version")
-        return cls(rules=[Rule._from_config_structure(x) for x in data["rules"]], version=version)
+        return cls(
+            rules=[Rule._from_config_structure(x) for x in data["rules"]],
+            version=version,
+            bases=bases,
+        )
 
-    def _to_config_structure(self):
-        return {"version": self.version, "rules": [x._to_config_structure() for x in self.rules]}
+    def _to_config_structure(self, include_builtin=False):
+        rules = self.iter_rules(include_builtin=include_builtin)
 
-    def to_json(self):
-        return self._to_config_structure()
+        return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
+
+    def to_json(self, include_builtin=False):
+        return self._to_config_structure(include_builtin=include_builtin)
 
     @classmethod
-    def from_json(cls, value):
+    def from_json(cls, value, bases=None):
         try:
-            return cls._from_config_structure(value)
+            return cls._from_config_structure(value, bases=bases)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid fingerprinting config: %s" % e)
 
-    @classmethod
-    def from_config_string(self, s):
+    @staticmethod
+    def from_config_string(s, bases=None):
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
@@ -199,7 +234,7 @@ class FingerprintingRules:
             raise InvalidFingerprintingConfig(
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
-        return FingerprintingVisitor().visit(tree)
+        return FingerprintingVisitor(bases=bases).visit(tree)
 
 
 MATCHERS = {
@@ -223,6 +258,7 @@ MATCHERS = {
     # fingerprinting specific fields
     "family": "family",
     "app": "app",
+    "sdk": "sdk",
 }
 
 
@@ -248,6 +284,8 @@ class Match:
             return "exceptions"
         if self.key.startswith("tags."):
             return "tags"
+        if self.key == "sdk":
+            return "sdk"
         return "frames"
 
     def matches(self, values):
@@ -294,6 +332,10 @@ class Match:
             if self._positive_path_match(value):
                 return True
         elif self.key == "family":
+            flags = self.pattern.split(",")
+            if "all" in flags or value in flags:
+                return True
+        elif self.key == "sdk":
             flags = self.pattern.split(",")
             if "all" in flags or value in flags:
                 return True
@@ -388,6 +430,9 @@ class FingerprintingVisitor(NodeVisitor):
     visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
+    def __init__(self, bases):
+        self.bases = bases
+
     def visit_comment(self, node, children):
         return node.text
 
@@ -404,7 +449,11 @@ class FingerprintingVisitor(NodeVisitor):
             elif child is not None:
                 rules.append(child)
                 in_header = False
-        return FingerprintingRules(rules, inspect.cleandoc("\n".join(changelog)).rstrip() or None)
+        return FingerprintingRules(
+            rules=rules,
+            changelog=inspect.cleandoc("\n".join(changelog)).rstrip() or None,
+            bases=self.bases,
+        )
 
     def visit_line(self, node, children):
         _, line, _ = children
@@ -466,3 +515,45 @@ class FingerprintingVisitor(NodeVisitor):
     def visit_quoted_key(self, node, children):
         # leading ! are used to indicate negation. make sure they don't appear.
         return node.match.groups()[0].lstrip("!")
+
+
+def _load_configs():
+    if not CONFIGS_DIR.exists():
+        logger.error(
+            "Failed to load Fingerprinting Configs, invalid _config_dir: %s",
+            CONFIGS_DIR,
+        )
+        if settings.DEBUG:
+            raise Exception(
+                f"Failed to load Fingerprinting Configs, invalid _config_dir: '{CONFIGS_DIR}'"
+            )
+
+    configs = {}
+
+    for config_file_path in sorted(CONFIGS_DIR.glob("**/*.txt")):
+        config_name = config_file_path.parent.name
+        configs.setdefault(config_name, [])
+
+        try:
+            with open(config_file_path) as config_file:
+                str_conf = config_file.read().rstrip()
+                configs[config_name].extend(FingerprintingRules.from_config_string(str_conf).rules)
+        except InvalidFingerprintingConfig:
+            logger.exception(
+                "Fingerprinting Config %s Invalid",
+                config_file_path,
+            )
+            if settings.DEBUG:
+                raise
+        except Exception:
+            logger.exception(
+                "Failed to load Fingerprinting Config %s",
+                config_file_path,
+            )
+            if settings.DEBUG:
+                raise
+
+    return configs
+
+
+FINGERPRINTING_BASES = _load_configs()

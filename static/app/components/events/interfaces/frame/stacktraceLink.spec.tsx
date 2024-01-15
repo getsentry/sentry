@@ -7,9 +7,11 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {CodecovStatusCode, Frame} from 'sentry/types';
@@ -29,7 +31,7 @@ describe('StacktraceLink', function () {
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
 
-  const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
+  const frame = {filename: '/sentry/app.py', lineNo: 233, inApp: true} as Frame;
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
   let promptActivity: jest.Mock;
 
@@ -145,11 +147,9 @@ describe('StacktraceLink', function () {
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: RouterContextFixture(),
     });
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://something.io#L233'
-    );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
   it('displays fix modal on error', async function () {
@@ -234,12 +234,14 @@ describe('StacktraceLink', function () {
       organization,
     });
 
-    expect(await screen.findByText('Open in Codecov')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'Open in Codecov'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
-    await userEvent.click(await screen.findByText('Open in Codecov'));
+    await userEvent.click(link);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_codecov_link_clicked',
       expect.anything()
@@ -296,13 +298,26 @@ describe('StacktraceLink', function () {
   });
 
   it('renders the link using a valid sourceLink for a .NET project', async function () {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          issueDetailsNewExperienceQ42023: true,
+        },
+      })
+    );
     const dotnetFrame = {
       filename: 'path/to/file.py',
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
       lineNo: '100',
     } as unknown as Frame;
+    const organization = {
+      ...org,
+      features: ['issue-details-stacktrace-link-in-frame'],
+    };
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {
         config,
         integrations: [integration],
@@ -316,44 +331,15 @@ describe('StacktraceLink', function () {
       />,
       {
         context: RouterContextFixture(),
+        organization,
       }
     );
-    expect(await screen.findByRole('link')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
     );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
-  });
-
-  it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
-    const dotnetFrame = {
-      filename: 'link/url.py',
-      sourceLink: 'https://www.github.com/source/link/url.py#L1',
-      lineNo: '1',
-    } as unknown as Frame;
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: 'https://www.github.com/url/from/code/mapping',
-        integrations: [integration],
-      },
-    });
-    render(
-      <StacktraceLink
-        frame={dotnetFrame}
-        event={{...event, platform: 'csharp'}}
-        line="foo()"
-      />,
-      {
-        context: RouterContextFixture(),
-      }
-    );
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://www.github.com/url/from/code/mapping#L1'
-    );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
   });
 
   it('hides stacktrace link if there is no source link for .NET projects', async function () {
@@ -374,7 +360,15 @@ describe('StacktraceLink', function () {
   });
 
   it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
-    jest.useFakeTimers();
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          issueDetailsNewExperienceQ42023: true,
+        },
+      })
+    );
     const organization = OrganizationFixture({
       features: ['issue-details-stacktrace-link-in-frame'],
     });
@@ -387,22 +381,12 @@ describe('StacktraceLink', function () {
       organization,
     });
 
-    // Assert initial state (loading state)
-    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://something.io#L233');
+    // The link is an icon with aira label
+    expect(link).toHaveTextContent('');
 
-    // Fast-forward time by 100ms
-    act(() => {
-      jest.advanceTimersByTime(100);
-    });
-    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
-
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://something.io#L233'
-    );
-
-    expect(await screen.getByText('GitHub')).toBeInTheDocument();
-
-    jest.useRealTimers();
+    expect(mockRequest).toHaveBeenCalledTimes(1);
   });
 });
