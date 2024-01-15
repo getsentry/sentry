@@ -1042,7 +1042,7 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-        use_updated_env_logic: bool = True,
+        use_updated_env_logic: bool = False,
     ):
         self.field = field
         self.query = query
