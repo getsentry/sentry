@@ -81,9 +81,7 @@ export const SPAN_FUNCTIONS = [
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
-  [Property in SpanNumberFields as `avg(${Property})`]: number;
-} & {
-  [Property in SpanNumberFields as `sum(${Property})`]: number;
+  [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
