@@ -43,7 +43,7 @@ type FormState = {
 };
 
 function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
-  const {metricsMeta, addWidgets} = useDDMContext();
+  const {metricsMeta} = useDDMContext();
   const [formState, setFormState] = useState<FormState>({
     step: 'initial',
     dashboard: '',
@@ -65,12 +65,6 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
       }));
     }
   }, [formState.isValid, formState.dashboard, metricsMeta]);
-
-  const handleSetWidgets = useCallback(() => {
-    if (formState.importResult) {
-      addWidgets(formState.importResult.widgets);
-    }
-  }, [addWidgets, formState.importResult]);
 
   return (
     <Fragment>
@@ -133,9 +127,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
           <Button
             priority="primary"
             disabled={!formState.isValid}
-            onClick={
-              formState.step === 'initial' ? handleImportDashboard : handleSetWidgets
-            }
+            onClick={handleImportDashboard}
           >
             {formState.step === 'initial' ? t('Import') : t('Add Widgets')}
           </Button>
