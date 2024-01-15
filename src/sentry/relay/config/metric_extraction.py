@@ -212,8 +212,8 @@ def _get_widget_metric_specs(
                 # High cardinality widgets don't have metrics specs created
                 return []
 
-    max_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
-    specs = _trim_if_above_limit(specs, max_specs, project, "widgets")
+    max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
+    specs = _trim_if_above_limit(specs, max_widget_specs, project, "widgets")
 
     return specs
 
