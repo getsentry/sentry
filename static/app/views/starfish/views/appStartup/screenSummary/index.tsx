@@ -11,6 +11,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -19,6 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -26,7 +28,7 @@ import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/starfish/views/screens/constants';
-import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
+import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 
 import AppStartWidgets from './widgets';
 
@@ -66,6 +68,9 @@ function ScreenSummary() {
     },
   ];
 
+  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
+  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
+
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
@@ -86,8 +91,54 @@ function ScreenSummary() {
                     <DatePageFilter />
                   </PageFilterBar>
                   <ReleaseComparisonSelector />
-                  <ScreenMetricsRibbon
-                    additionalFilters={[`transaction:${transactionName}`]}
+                  <MetricsRibbon
+                    dataset={DiscoverDatasets.SPANS_METRICS}
+                    additionalFilters={[
+                      'transaction.op:ui.load',
+                      `transaction:${transactionName}`,
+                      `duration:>0`,
+                      `span.op:[app.start.cold,app.start.warm]`,
+                      '(',
+                      'span.description:"Cold Start"',
+                      'OR',
+                      'span.description:"Warm Start"',
+                      ')',
+                    ]}
+                    fields={[
+                      `avg_if(duration,release,${primaryRelease})`,
+                      `avg_if(duration,release,${secondaryRelease})`,
+                      `avg_if(duration,release,${primaryRelease})`,
+                      `avg_if(duration,release,${secondaryRelease})`,
+                      'count()',
+                    ]}
+                    blocks={[
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(duration,release,${primaryRelease})`,
+                        title: t('Cold Start (%s)', truncatedPrimary),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(duration,release,${secondaryRelease})`,
+                        title: t('Cold Start (%s)', truncatedSecondary),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(duration,release,${primaryRelease})`,
+                        title: t('Warm Start (%s)', truncatedPrimary),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(duration,release,${secondaryRelease})`,
+                        title: t('Warm Start (%s)', truncatedSecondary),
+                      },
+                      {
+                        type: 'count',
+                        dataKey: 'count',
+                        title: t('Count'),
+                      },
+                    ]}
+                    referrer="api.starfish.mobile-screen-totals"
                   />
                 </Container>
               </PageFiltersContainer>

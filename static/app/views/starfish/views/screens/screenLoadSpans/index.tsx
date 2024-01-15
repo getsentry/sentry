@@ -12,6 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -23,6 +24,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   MobileCursors,
@@ -34,7 +36,7 @@ import {
   YAxis,
 } from 'sentry/views/starfish/views/screens/screenLoadSpans/charts';
 import {ScreenLoadEventSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamples';
-import {ScreenMetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
+import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 import {ScreenLoadSpansTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/table';
 import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
@@ -90,6 +92,9 @@ function ScreenLoadSpans() {
     spanDescription,
   } = location.query;
 
+  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
+  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
+
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
@@ -99,7 +104,11 @@ function ScreenLoadSpans() {
               <Breadcrumbs crumbs={crumbs} />
               <HeaderWrapper>
                 <Layout.Title>{transactionName}</Layout.Title>
-                {organization.features.includes('performance-screens-platform-selector') && project && isCrossPlatform(project) && <PlatformSelector />}
+                {organization.features.includes(
+                  'performance-screens-platform-selector'
+                ) &&
+                  project &&
+                  isCrossPlatform(project) && <PlatformSelector />}
               </HeaderWrapper>
             </Layout.HeaderContent>
           </Layout.Header>
@@ -115,8 +124,48 @@ function ScreenLoadSpans() {
                     </PageFilterBar>
                     <ReleaseComparisonSelector />
                   </FilterContainer>
-                  <ScreenMetricsRibbon
-                    additionalFilters={[`transaction:${transactionName}`]}
+                  <MetricsRibbon
+                    dataset={DiscoverDatasets.METRICS}
+                    additionalFilters={[
+                      'event.type:transaction',
+                      'transaction.op:ui.load',
+                      `transaction:${transactionName}`,
+                    ]}
+                    fields={[
+                      `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                      `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                      `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
+                      `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
+                      'count()',
+                    ]}
+                    blocks={[
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                        title: t('TTID (%s)', truncatedPrimary),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                        title: t('TTID (%s)', truncatedSecondary),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                        title: t('TTFD (%s)', truncatedPrimary),
+                      },
+                      {
+                        type: 'duration',
+                        dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                        title: t('TTFD (%s)', truncatedSecondary),
+                      },
+                      {
+                        type: 'count',
+                        dataKey: 'count',
+                        title: t('Count'),
+                      },
+                    ]}
+                    referrer="api.starfish.mobile-startup-totals"
                   />
                 </Container>
               </StarfishPageFiltersContainer>
