@@ -131,9 +131,9 @@ export function shouldErrorBeShown(error: EventErrorData, event: Event) {
   // Hide unactionable source context errors that happen in flutter web: https://github.com/getsentry/sentry-dart/issues/1764
   if (
     event.sdk?.name === 'sentry.dart.flutter' &&
-    error.type === 'missing_source_content'
+    error.type === JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT
   ) {
-    const source = error.data?.Source;
+    const source = error.data?.source;
     if (
       source.includes('org-dartlang-sdk:///dart-sdk/lib/_internal') ||
       source.includes('flutter/packages/flutter/lib')

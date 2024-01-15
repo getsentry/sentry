@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {EntryType} from 'sentry/types';
 
 describe('Actionable Items', () => {
@@ -118,27 +119,27 @@ describe('Actionable Items', () => {
   it('does not render hidden flutter web errors', async () => {
     const eventErrors = [
       {
-        type: 'missing_source_content',
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
           Source: 'my_app/main.dart',
         },
       },
       {
-        type: 'missing_source_content',
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
           Source:
             'http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart',
         },
       },
       {
-        type: 'missing_source_content',
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
           Source:
             'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart',
         },
       },
       {
-        type: 'missing_source_content',
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
           Source:
             'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
