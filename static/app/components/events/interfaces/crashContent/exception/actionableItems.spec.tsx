@@ -121,27 +121,27 @@ describe('Actionable Items', () => {
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
-          Source: 'my_app/main.dart',
+          source: 'my_app/main.dart',
         },
       },
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
-          Source:
+          source:
             'http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart',
         },
       },
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
-          Source:
+          source:
             'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart',
         },
       },
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
-          Source:
+          source:
             'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
         },
       },
