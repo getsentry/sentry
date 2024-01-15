@@ -5,14 +5,13 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
 import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {Aggregate} from 'sentry/views/starfish/types';
 
 type Query = {
   aggregate: string;
 };
 
-// TODO: Type more strictly, these should be limited to only valid aggregate
-// functions
-type Result = [string, (string) => void];
+type Result = [Aggregate, (string) => void];
 
 export function useSelectedDurationAggregate(): Result {
   const [previouslySelectedAggregate, setPreviouslySelectedAggregate] =
@@ -34,12 +33,16 @@ export function useSelectedDurationAggregate(): Result {
 
   const location = useLocation<Query>();
 
-  let selectedAggregate = decodeScalar(
+  let selectedAggregate: Aggregate;
+  const aggregateFromURL = decodeScalar(
     location.query.aggregate,
     previouslySelectedAggregate
   );
 
-  if (!availableAggregates.includes(selectedAggregate)) {
+  // `availableAggregates` is typed `as const` so I have to cast to unknown to allow comparison to string
+  if ((availableAggregates as unknown as string[]).includes(aggregateFromURL)) {
+    selectedAggregate = aggregateFromURL as Aggregate;
+  } else {
     selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   }
 
