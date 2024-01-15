@@ -118,7 +118,7 @@ class OnDemandMetricSpecVersioning:
             return [
                 spec_version
                 for spec_version in cls.spec_versions
-                if spec_version.matches_flags_set(flags_set)
+                if spec_version.flags == flags_set
             ][0]
         except Exception:
             logger.exception("Error finding that set of flags. Falling back to default.")
