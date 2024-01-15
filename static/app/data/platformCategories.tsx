@@ -378,6 +378,7 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
+  'bun',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony
@@ -406,6 +407,11 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'rust',
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  'node-azurefunctions',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
