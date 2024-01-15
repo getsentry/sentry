@@ -11,7 +11,7 @@ import {NUM_DESKTOP_COLS} from './dashboard';
 import {DisplayType, Widget, WidgetLayout} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
-export const MAX_DEFAULT_WIDGET_WIDTH = 6;
+export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 3};
 
 const WIDGET_PREFIX = 'grid-item';
 

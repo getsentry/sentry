@@ -1,6 +1,12 @@
 import {urlEncode} from '@sentry/utils';
 
-import {isCustomMetric, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {PageFilters} from 'sentry/types';
+import {
+  emptyWidget,
+  isCustomMetric,
+  MetricDisplayType,
+  MetricsQuery,
+} from 'sentry/utils/metrics';
 import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {DashboardWidgetSource, Widget, WidgetType} from 'sentry/views/dashboards/types';
 
@@ -22,6 +28,10 @@ export function convertToDashboardWidget(
     limit: !metricsQuery.groupBy?.length ? 1 : 10,
     queries: [getWidgetQuery(metricsQuery)],
   };
+}
+
+export function defaultMetricWidget(selection: PageFilters) {
+  return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
 }
 
 export function getWidgetQuery(metricsQuery: MetricsQuery) {

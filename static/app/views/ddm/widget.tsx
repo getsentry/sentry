@@ -109,7 +109,7 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const widgetTitle = stringifyMetricWidget(metricsQuery);
+    const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
 
     return (
       <MetricWidgetPanel

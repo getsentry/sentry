@@ -29,7 +29,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {defaultMetricWidget} from './widgetCard/metricWidgetCard';
+import {defaultMetricWidget} from '../../utils/metrics/dashboard';
+
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
@@ -44,6 +45,7 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
+  METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
   Position,
 } from './layoutUtils';
@@ -261,15 +263,13 @@ class Dashboard extends Component<Props, State> {
 
     const widgetCopy = cloneDeep(
       assignTempId({
-        // TODO(ddm): extract to constantr
-        layout: {...widgetLayout, minH: 2, h: 2, w: 3},
+        layout: {...widgetLayout, ...METRIC_WIDGET_MIN_SIZE},
         ...defaultMetricWidget(selection),
         widgetType: WidgetType.METRICS,
       })
     );
 
-    let nextList = [...dashboard.widgets, widgetCopy];
-    nextList = generateWidgetsAfterCompaction(nextList);
+    const nextList = generateWidgetsAfterCompaction([...dashboard.widgets, widgetCopy]);
 
     onUpdate(nextList);
     if (!isEditingDashboard) {

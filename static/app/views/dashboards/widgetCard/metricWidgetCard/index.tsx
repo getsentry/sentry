@@ -10,7 +10,6 @@ import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MRI, Organization, PageFilters} from 'sentry/types';
 import {
-  emptyWidget,
   MetricDisplayType,
   MetricWidgetQueryParams,
   stringifyMetricWidget,
@@ -46,10 +45,6 @@ type Props = {
   tableItemLimit?: number;
   windowWidth?: number;
 };
-
-export function defaultMetricWidget(selection) {
-  return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
-}
 
 export function MetricWidgetCard({
   organization,
