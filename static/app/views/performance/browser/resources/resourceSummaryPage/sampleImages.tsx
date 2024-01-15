@@ -40,6 +40,7 @@ function SampleImages({groupId, projectId}: Props) {
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
     sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
     limit: 100,
+    referrer: 'api.performance.resources.sample-images',
   });
 
   const uniqueResources = new Set();
@@ -158,7 +159,9 @@ function DisabledImages(props: {onClickShowLinks?: () => void}) {
             `/settings/projects/${firstProjectSelected?.slug}/performance/`
           )}
         >
-          <Button priority="primary">Enable in Settings</Button>
+          <Button priority="primary" data-test-id="enable-sample-images-button">
+            {t(' Enable in Settings')}
+          </Button>
         </Link>
       </ButtonContainer>
     </div>
@@ -186,6 +189,7 @@ function ImageContainer(props: {
           }}
         >
           <img
+            data-test-id="sample-image"
             onError={() => setHasError(true)}
             src={src}
             style={{
