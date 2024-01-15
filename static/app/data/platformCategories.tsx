@@ -379,6 +379,14 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
+  'dotnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-winforms',
+  'dotnet-wpf',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony

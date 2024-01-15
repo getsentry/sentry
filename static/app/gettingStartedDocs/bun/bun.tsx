@@ -107,7 +107,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:4.17.0] of [codePackage:@sentry/bun].',
+        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/bun].',
         {
           codeVersion: <code />,
           codePackage: <code />,
