@@ -217,7 +217,6 @@ const PaddedContainer = styled('div')`
 
 const ChartContainer = styled('div')`
   display: grid;
-  gap: 0;
   grid-template-columns: 1fr;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
