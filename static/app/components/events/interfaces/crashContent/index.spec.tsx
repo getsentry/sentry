@@ -45,7 +45,7 @@ describe('CrashContent', function () {
   const exc = ExceptionWithMeta();
   const proxiedExc = withMeta(exc);
 
-  it("renders with meta data", function () {
+  it('renders with meta data', function () {
     render(
       <CrashContent
         stackView={StackView.FULL}
