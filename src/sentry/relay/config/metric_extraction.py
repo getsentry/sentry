@@ -224,7 +224,8 @@ def _trim_if_above_limit(
     project: Project,
     widget_type: str,
 ) -> list[HashedMetricSpec]:
-    """If any of the spec versions are above the max limit we should trim it."""
+    """If the specs are above the max limit we should report it but only trim them for the default spec version.
+    This is because running multiple versions should not cause any data loss for the customer."""
     return_specs = list(specs)
     count_per_version = {
         spec_version.version: 0 for spec_version in OnDemandMetricSpecVersioning.get_spec_versions()
