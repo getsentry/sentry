@@ -78,7 +78,7 @@ function StacktraceLinkSetup({
 
   const dismissPrompt = () => {
     promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       projectId: project?.id,
       feature: 'stacktrace_link',
       status: 'dismissed',
@@ -89,8 +89,8 @@ function StacktraceLinkSetup({
     setApiQueryData<PromptResponse>(
       queryClient,
       makePromptsCheckQueryKey({
+        organization,
         feature: 'stacktrace_link',
-        organizationId: organization.id,
         projectId: project?.id,
       }),
       () => {
@@ -227,8 +227,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   );
 
   const prompt = usePromptsCheck({
+    organization,
     feature: 'stacktrace_link',
-    organizationId: organization.id,
     projectId: project?.id,
   });
   const isPromptDismissed =

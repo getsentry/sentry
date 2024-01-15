@@ -42,7 +42,7 @@ describe('StacktraceLink', function () {
     MockApiClient.clearMockResponses();
     promptActivity = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/prompts-activity/',
+      url: `/organizations/${org.slug}/prompts-activity/`,
       body: {},
     });
     ProjectsStore.loadInitialData([project]);
@@ -77,7 +77,7 @@ describe('StacktraceLink', function () {
     );
     expect(promptActivity).toHaveBeenCalledTimes(1);
     expect(promptActivity).toHaveBeenCalledWith(
-      '/prompts-activity/',
+      `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
         query: {
           feature: 'stacktrace_link',
@@ -95,7 +95,7 @@ describe('StacktraceLink', function () {
     });
     const dismissPrompt = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/prompts-activity/`,
+      url: `/organizations/${org.slug}/prompts-activity/`,
       body: {},
     });
     const {container} = render(<StacktraceLink frame={frame} event={event} line="" />, {
@@ -114,7 +114,7 @@ describe('StacktraceLink', function () {
     });
 
     expect(dismissPrompt).toHaveBeenCalledWith(
-      `/prompts-activity/`,
+      `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
         data: {
           feature: 'stacktrace_link',

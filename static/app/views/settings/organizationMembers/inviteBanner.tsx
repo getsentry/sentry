@@ -60,7 +60,7 @@ export function InviteBanner({
     });
     setShowBanner(false);
     await promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       feature: promptsFeature,
       status: 'snoozed',
     });
@@ -100,7 +100,7 @@ export function InviteBanner({
     }
     fetchMissingMembers();
     promptsCheck(api, {
-      organizationId: organization.id,
+      organization,
       feature: promptsFeature,
     }).then(prompt => {
       setShowBanner(!promptIsDismissed(prompt));

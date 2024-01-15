@@ -73,7 +73,7 @@ describe('Transaction Summary Content', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({

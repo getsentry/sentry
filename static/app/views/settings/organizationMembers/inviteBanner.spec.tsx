@@ -27,7 +27,7 @@ describe('inviteBanner', function () {
       body: [missingMembers],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       method: 'GET',
       body: {
         dismissed_ts: undefined,
@@ -200,7 +200,7 @@ describe('inviteBanner', function () {
         .unix(),
     };
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${org.slug}/prompts-activity/`,
       method: 'GET',
       body: {data: promptResponse},
     });
@@ -234,7 +234,7 @@ describe('inviteBanner', function () {
         .unix(),
     };
     const mockPrompt = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${org.slug}/prompts-activity/`,
       method: 'GET',
       body: {data: promptResponse},
     });

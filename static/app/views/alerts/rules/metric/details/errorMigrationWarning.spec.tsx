@@ -24,7 +24,7 @@ describe('ErrorMigrationWarning', () => {
       query: '',
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
     render(<ErrorMigrationWarning project={project} rule={rule} />, {
@@ -44,11 +44,11 @@ describe('ErrorMigrationWarning', () => {
       query: '',
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
     const dismissMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       method: 'PUT',
       body: {},
     });
@@ -71,7 +71,7 @@ describe('ErrorMigrationWarning', () => {
       dateCreated: '2024-01-01T00:00:00Z',
     });
     const promptApi = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
     const {container} = render(<ErrorMigrationWarning project={project} rule={rule} />, {

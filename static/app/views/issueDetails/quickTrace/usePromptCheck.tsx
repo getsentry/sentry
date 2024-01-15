@@ -18,7 +18,7 @@ function usePromptCheck({feature, organization, projectId}: Opts) {
 
   useEffect(() => {
     promptsCheck(api, {
-      organizationId: organization.id,
+      organization,
       projectId,
       feature,
     }).then(data => {
@@ -29,7 +29,7 @@ function usePromptCheck({feature, organization, projectId}: Opts) {
   const snoozePrompt = useCallback(async () => {
     const data = {
       projectId,
-      organizationId: organization.id,
+      organization,
       feature,
       status: 'snoozed' as const,
     };
