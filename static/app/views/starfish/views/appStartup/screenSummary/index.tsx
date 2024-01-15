@@ -93,7 +93,7 @@ function ScreenSummary() {
                   <ReleaseComparisonSelector />
                   <MetricsRibbon
                     dataset={DiscoverDatasets.SPANS_METRICS}
-                    additionalFilters={[
+                    filters={[
                       'transaction.op:ui.load',
                       `transaction:${transactionName}`,
                       `duration:>0`,

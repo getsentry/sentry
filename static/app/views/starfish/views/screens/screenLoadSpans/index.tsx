@@ -126,7 +126,7 @@ function ScreenLoadSpans() {
                   </FilterContainer>
                   <MetricsRibbon
                     dataset={DiscoverDatasets.METRICS}
-                    additionalFilters={[
+                    filters={[
                       'event.type:transaction',
                       'transaction.op:ui.load',
                       `transaction:${transactionName}`,

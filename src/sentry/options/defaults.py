@@ -265,6 +265,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
+# API Tokens
+register(
+    "apitoken.auto-add-last-chars",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "api.rate-limit.org-create",
@@ -1880,4 +1887,13 @@ register(
     "relocation.daily-limit.large",
     default=0,
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# max number of profiles to use for computing
+# the aggregated flamegraph.
+register(
+    "profiling.flamegraph.profile-set.size",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

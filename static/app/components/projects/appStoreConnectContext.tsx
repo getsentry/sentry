@@ -66,6 +66,7 @@ function Provider({children, project, organization}: ProviderProps) {
     return () => {
       unmounted = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project, organization, api]);
 
   useEffect(() => {
