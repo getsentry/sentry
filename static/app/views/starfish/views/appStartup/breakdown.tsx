@@ -44,12 +44,10 @@ function Breakdown({
   row,
   breakdownGroups,
 }: {
-  breakdownGroups: any[];
+  breakdownGroups: BreakdownGroup[];
   row: Row;
-  coldStartKey?: string;
-  warmStartKey?: string;
 }) {
-  const total = breakdownGroups.reduce((acc, {dataKey}) => acc + row[dataKey], 0);
+  const total = breakdownGroups.reduce((acc, {key}) => acc + (row[key] ?? 0), 0);
 
   if (total === 0) {
     return null;
