@@ -245,7 +245,10 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
         assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
-        assert out.split(": ")[-1] == "Too many (2) on demand metric alerts for project bar\n"
+        assert out[0].split(": ")[-2:] == [
+            "Spec version 0",
+            "Too many (2) on demand metric alerts for project bar\n",
+        ]
 
 
 @django_db_all
@@ -492,7 +495,10 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
         assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
-        assert out.split(": ")[-1] == "Too many (2) on demand metric widgets for project bar\n"
+        assert out[0].split(": ")[-2:] == [
+            "Spec version 0",
+            "Too many (2) on demand metric widgets for project bar\n",
+        ]
 
 
 @django_db_all
