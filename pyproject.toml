@@ -478,7 +478,6 @@ module = [
     "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
     "sentry.snuba.metrics.datasource",
-    "sentry.snuba.metrics.extraction",
     "sentry.snuba.metrics.fields.base",
     "sentry.snuba.metrics.query_builder",
     "sentry.snuba.sessions",
