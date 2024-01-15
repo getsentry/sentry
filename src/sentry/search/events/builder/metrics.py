@@ -154,7 +154,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
 
             spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(
-                self.organization_id, "organizations:on-demand-query-with-new-env-logic"
+                organization_id=self.organization_id, user=None
             )
             return OnDemandMetricSpec(
                 field=field,
