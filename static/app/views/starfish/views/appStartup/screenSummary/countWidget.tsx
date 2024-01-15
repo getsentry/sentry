@@ -18,7 +18,7 @@ import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQue
 import {
   COLD_START_COLOR,
   WARM_START_COLOR,
-} from 'sentry/views/starfish/views/appStartup/appStartBreakdown';
+} from 'sentry/views/starfish/views/appStartup/breakdown';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 const SPAN_OP_TO_STRING = {
