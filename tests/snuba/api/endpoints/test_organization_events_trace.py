@@ -75,13 +75,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 }
             ):
                 event = self.store_event(data, project_id=project_id, **kwargs)
-                spans_to_store = []
                 for span in data["spans"]:
                     if span:
                         span.update({"event_id": event.event_id})
-                        spans_to_store.append(self.create_span(span))
-                spans_to_store.append(self.convert_event_data_to_span(event))
-                self.store_spans(spans_to_store)
+                        self.store_span(self.create_span(span))
+                self.store_span(self.convert_event_data_to_span(event))
                 return event
 
     def convert_event_data_to_span(self, event):
@@ -96,8 +94,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 "project_id": event.project.id,
                 "trace_id": trace_context["trace_id"],
                 "span_id": trace_context["span_id"],
-                "parent_span_id": trace_context.get("parent_span_id", None),
-                "segment_name": event.data["transaction"],
+                "parent_span_id": trace_context.get("parent_span_id", "000000000000"),
+                "description": event.data["transaction"],
                 "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,

@@ -128,6 +128,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
                 "profile_id": uuid4().hex,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+                "timestamp": int(start_ts.timestamp() * 1000),
                 "received": start_ts.timestamp(),
                 "duration_ms": duration,
                 "exclusive_time_ms": duration,
@@ -135,6 +136,9 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         )
         # Load any specific custom data
         span.update(extra_data)
+        # coerce to string
+        for tag, value in span["tags"].items():
+            span["tags"][tag] = str(value)
         return span
 
 
