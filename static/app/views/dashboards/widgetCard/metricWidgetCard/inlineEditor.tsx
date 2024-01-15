@@ -1,19 +1,12 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, ButtonProps} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
-import {
-  IconCheckmark,
-  IconClose,
-  IconLightning,
-  IconReleases,
-  IconSettings,
-} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MRI} from 'sentry/types';
@@ -30,7 +23,6 @@ import {
 } from 'sentry/utils/metrics';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
-import useRouter from 'sentry/utils/useRouter';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 import {formatMRI} from '../../../../utils/metrics/mri';
@@ -61,7 +53,6 @@ export const InlineEditor = memo(function InlineEditor({
   size = 'sm',
 }: InlineEditorProps) {
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
-  const router = useRouter();
 
   const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
 
@@ -110,26 +101,8 @@ export const InlineEditor = memo(function InlineEditor({
                 textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
                 value: metric.mri,
                 size,
-                trailingItems: ({isFocused}) => (
+                trailingItems: () => (
                   <Fragment>
-                    {isFocused && isCustomMetric({mri: metric.mri}) && (
-                      <Button
-                        borderless
-                        size="zero"
-                        icon={<IconSettings size={size} />}
-                        aria-label={t('Metric Settings')}
-                        onPointerDown={() => {
-                          // not using onClick to beat the dropdown listener
-                          navigateTo(
-                            `/settings/projects/:projectId/metrics/${encodeURIComponent(
-                              metric.mri
-                            )}`,
-                            router
-                          );
-                        }}
-                      />
-                    )}
-
                     <TagWithSize size={size} tooltipText={t('Type')}>
                       {getReadableMetricType(metric.type)}
                     </TagWithSize>
@@ -323,7 +296,6 @@ const InlineEditorWrapper = styled('div')`
 
 const InlineEditorRowsWrapper = styled('div')`
   display: flex;
-  flex-grow: 1;
   flex-direction: column;
   gap: ${space(0.5)};
 `;
