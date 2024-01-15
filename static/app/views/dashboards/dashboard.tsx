@@ -429,6 +429,21 @@ class Dashboard extends Component<Props, State> {
     };
 
     const key = constructGridItemKey(widget);
+
+    // inline edited widgets span full width
+    if (isEditingWidget) {
+      return (
+        <WidgetWidthWrapper key={key} data-grid={widget.layout}>
+          <SortableWidget
+            {...widgetProps}
+            isMobile={isMobile}
+            windowWidth={windowWidth}
+            index={String(index)}
+          />
+        </WidgetWidthWrapper>
+      );
+    }
+
     return (
       <div key={key} data-grid={widget.layout}>
         <SortableWidget
@@ -629,4 +644,14 @@ const ResizeHandle = styled(Button)`
   .react-resizable-hide & {
     display: none;
   }
+`;
+
+const WidgetWidthWrapper = styled('div')`
+  position: absolute;
+  /* react-grid-layout adds left, right and width so we need to override */
+  left: 16px !important;
+  right: 16px !important;
+  width: auto !important;
+  /* minimal working z-index */
+  z-index: 6;
 `;

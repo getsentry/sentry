@@ -211,7 +211,7 @@ export const InlineEditor = memo(function InlineEditor({
         </InlineEditorRow>
       </InlineEditorRowsWrapper>
       <InlineEditorRowsWrapper>
-        <SumbitButton
+        <SubmitButton
           size={size}
           loading={loading}
           onClick={() => {
@@ -231,7 +231,7 @@ export const InlineEditor = memo(function InlineEditor({
   );
 });
 
-function SumbitButton({loading, ...buttonProps}: {loading: boolean} & ButtonProps) {
+function SubmitButton({loading, ...buttonProps}: {loading: boolean} & ButtonProps) {
   if (loading) {
     return (
       <LoadingIndicatorButton {...buttonProps} priority="primary">
