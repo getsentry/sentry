@@ -161,7 +161,7 @@ function ScreenLoadSpans() {
                       },
                       {
                         type: 'count',
-                        dataKey: 'count',
+                        dataKey: 'count()',
                         title: t('Count'),
                       },
                     ]}

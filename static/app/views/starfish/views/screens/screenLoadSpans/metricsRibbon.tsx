@@ -129,7 +129,7 @@ function MetricsBlock({
   const value =
     typeof dataKey === 'function'
       ? dataKey(data?.data)
-      : (data?.data[0]?.[dataKey] as number);
+      : (data?.data?.[0]?.[dataKey] as number);
 
   if (type === 'duration') {
     return (
