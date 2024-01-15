@@ -100,10 +100,6 @@ class OnDemandMetricSpecVersioning:
         return cls.spec_versions
 
     @classmethod
-    def _get_default_spec_version(cls: Any) -> SpecVersion:
-        return cls.spec_versions[0]
-
-    @classmethod
     def get_query_spec_version(cls: Any, organization_id: int, user: User) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
         flags_set = set()
@@ -126,6 +122,10 @@ class OnDemandMetricSpecVersioning:
             for spec_version in cls.spec_versions
             if spec_version.matches_flags_set(flags_set)
         ][0]
+
+    @classmethod
+    def _get_default_spec_version(cls: Any) -> SpecVersion:
+        return cls.spec_versions[0]
 
 
 # Name component of MRIs used for custom alert metrics.
