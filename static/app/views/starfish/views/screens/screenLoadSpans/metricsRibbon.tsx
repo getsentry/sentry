@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {NewQuery, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -94,7 +95,6 @@ export function MetricsRibbon({
     enabled: !isReleasesLoading,
     referrer,
   });
-  console.log(data);
 
   return (
     <BlockContainer>
@@ -134,7 +134,7 @@ function MetricsBlock({
   if (type === 'duration') {
     return (
       <Block title={title}>
-        {!isLoading && data && value ? (
+        {!isLoading && data && defined(value) ? (
           <DurationCell milliseconds={value} />
         ) : (
           UNDEFINED_TEXT
@@ -145,7 +145,11 @@ function MetricsBlock({
 
   return (
     <Block title={title}>
-      {!isLoading && data && value ? <CountCell count={value} /> : UNDEFINED_TEXT}
+      {!isLoading && data && defined(value) ? (
+        <CountCell count={value} />
+      ) : (
+        UNDEFINED_TEXT
+      )}
     </Block>
   );
 }

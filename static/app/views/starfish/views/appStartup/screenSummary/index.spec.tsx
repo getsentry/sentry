@@ -46,6 +46,7 @@ describe('Screen Summary', function () {
       projects: [parseInt(project.id, 10)],
     },
   });
+
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/releases/`,
     body: [
@@ -63,26 +64,44 @@ describe('Screen Summary', function () {
   });
 
   describe('Native Project', function () {
+    let eventsMock;
+
+    beforeEach(() => {
+      eventsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+      });
+    });
+
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+      jest.clearAllMocks();
+    });
+
     it('renders the top level metrics data correctly', async function () {
-      const eventsMock = MockApiClient.addMockResponse({
+      eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
         body: {
           data: [
             {
-              'avg_if(duration,release,com.example.vu.android@2.10.5)': 1000,
-              'avg_if(duration,release,com.example.vu.android@2.10.3+42)': 2000,
-              'avg_if(duration,release,com.example.vu.android@2.10.5)': 3000,
-              'avg_if(duration,release,com.example.vu.android@2.10.3+42)': 4000,
+              'span.op': 'app.start.cold',
+              'avg_if(span.duration,release,com.example.vu.android@2.10.5)': 1000,
+              'avg_if(span.duration,release,com.example.vu.android@2.10.3+42)': 2000,
               'count()': 20,
+            },
+            {
+              'span.op': 'app.start.warm',
+              'avg_if(span.duration,release,com.example.vu.android@2.10.5)': 5000,
+              'avg_if(span.duration,release,com.example.vu.android@2.10.3+42)': 6000,
+              'count()': 30,
             },
           ],
         },
         match: [
           MockApiClient.matchQuery({referrer: 'api.starfish.mobile-startup-totals'}),
         ],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/`,
       });
 
       render(<ScreenSummary />, {organization});
@@ -94,19 +113,14 @@ describe('Screen Summary', function () {
       const blocks = [
         {header: 'Cold Start (2.10.5)', value: '1.00s'},
         {header: 'Cold Start (2.10.… (42))', value: '2.00s'},
-        {header: 'Warm Start (2.10.5)', value: '3.00s'},
-        {header: 'Warm Start (2.10.… (42))', value: '4.00s'},
-        {header: 'Count', value: '20'},
+        {header: 'Warm Start (2.10.5)', value: '5.00s'},
+        {header: 'Warm Start (2.10.… (42))', value: '6.00s'},
+        {header: 'Count', value: '50'},
       ];
-
-      // Wait for the ribbon request to finish
-      await screen.findByText('1.00s');
 
       for (const block of blocks) {
         const blockEl = screen.getByRole('heading', {name: block.header}).closest('div');
-        await waitFor(() => {
-          within(blockEl!).getByText(block.value);
-        });
+        await within(blockEl!).findByText(block.value);
       }
     });
   });

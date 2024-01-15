@@ -96,7 +96,6 @@ function ScreenSummary() {
                     filters={[
                       'transaction.op:ui.load',
                       `transaction:${transactionName}`,
-                      // `span.duration:>0`,
                       `span.op:[app.start.cold,app.start.warm]`,
                       '(',
                       'span.description:"Cold Start"',
@@ -105,11 +104,8 @@ function ScreenSummary() {
                       ')',
                     ]}
                     fields={[
-                      `avg_if(span.self_time,release,${primaryRelease})`,
-                      `avg_if(span.self_time,release,${secondaryRelease})`,
-                      // `avg_if(span.self_time,release,${primaryRelease})`,
-                      // `avg_if(span.self_time,release,${secondaryRelease})`,
-                      'release',
+                      `avg_if(span.duration,release,${primaryRelease})`,
+                      `avg_if(span.duration,release,${secondaryRelease})`,
                       'span.op',
                       'count()',
                     ]}
@@ -119,13 +115,11 @@ function ScreenSummary() {
                         title: t('Cold Start (%s)', truncatedPrimary),
                         dataKey: data => {
                           const matchingRow = data?.find(
-                            row =>
-                              row['span.op'] === 'app.start.cold' &&
-                              row.release === primaryRelease
+                            row => row['span.op'] === 'app.start.cold'
                           );
                           return (
                             (matchingRow?.[
-                              `avg_if(span.self_time,release,${primaryRelease})`
+                              `avg_if(span.duration,release,${primaryRelease})`
                             ] as number) ?? 0
                           );
                         },
@@ -135,13 +129,11 @@ function ScreenSummary() {
                         title: t('Cold Start (%s)', truncatedSecondary),
                         dataKey: data => {
                           const matchingRow = data?.find(
-                            row =>
-                              row['span.op'] === 'app.start.cold' &&
-                              row.release === secondaryRelease
+                            row => row['span.op'] === 'app.start.cold'
                           );
                           return (
                             (matchingRow?.[
-                              `avg_if(span.self_time,release,${secondaryRelease})`
+                              `avg_if(span.duration,release,${secondaryRelease})`
                             ] as number) ?? 0
                           );
                         },
@@ -151,13 +143,11 @@ function ScreenSummary() {
                         title: t('Warm Start (%s)', truncatedPrimary),
                         dataKey: data => {
                           const matchingRow = data?.find(
-                            row =>
-                              row['span.op'] === 'app.start.warm' &&
-                              row.release === primaryRelease
+                            row => row['span.op'] === 'app.start.warm'
                           );
                           return (
                             (matchingRow?.[
-                              `avg_if(span.self_time,release,${primaryRelease})`
+                              `avg_if(span.duration,release,${primaryRelease})`
                             ] as number) ?? 0
                           );
                         },
@@ -167,13 +157,11 @@ function ScreenSummary() {
                         title: t('Warm Start (%s)', truncatedSecondary),
                         dataKey: data => {
                           const matchingRow = data?.find(
-                            row =>
-                              row['span.op'] === 'app.start.warm' &&
-                              row.release === secondaryRelease
+                            row => row['span.op'] === 'app.start.warm'
                           );
                           return (
                             (matchingRow?.[
-                              `avg_if(span.self_time,release,${secondaryRelease})`
+                              `avg_if(span.duration,release,${secondaryRelease})`
                             ] as number) ?? 0
                           );
                         },
@@ -189,7 +177,7 @@ function ScreenSummary() {
                         },
                       },
                     ]}
-                    referrer="api.starfish.mobile-screen-totals"
+                    referrer="api.starfish.mobile-startup-totals"
                   />
                 </Container>
               </PageFiltersContainer>
