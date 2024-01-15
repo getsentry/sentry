@@ -1,11 +1,9 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Button} from 'sentry/components/button';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import Tag from 'sentry/components/tag';
-import {IconLightning, IconReleases, IconSettings} from 'sentry/icons';
+import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
@@ -26,7 +24,6 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
-import useRouter from 'sentry/utils/useRouter';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 type QueryBuilderProps = {
@@ -54,7 +51,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   onChange,
 }: QueryBuilderProps) {
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
-  const router = useRouter();
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
 
@@ -145,34 +141,14 @@ export const QueryBuilder = memo(function QueryBuilder({
         // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
         textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
         value: metric.mri,
-        trailingItems: mriMode
-          ? undefined
-          : ({isFocused}) => (
-              <Fragment>
-                {isFocused && isCustomMetric({mri: metric.mri}) && (
-                  <Button
-                    borderless
-                    size="zero"
-                    icon={<IconSettings />}
-                    aria-label={t('Metric Settings')}
-                    onPointerDown={() => {
-                      // not using onClick to beat the dropdown listener
-                      navigateTo(
-                        `/settings/projects/:projectId/metrics/${encodeURIComponent(
-                          metric.mri
-                        )}`,
-                        router
-                      );
-                    }}
-                  />
-                )}
-
-                <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
-                <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
-              </Fragment>
-            ),
+        trailingItems: mriMode ? undefined : (
+          <Fragment>
+            <Tag tooltipText={t('Type')}>{getReadableMetricType(metric.type)}</Tag>
+            <Tag tooltipText={t('Unit')}>{metric.unit}</Tag>
+          </Fragment>
+        ),
       })),
-    [displayedMetrics, mriMode, router]
+    [displayedMetrics, mriMode]
   );
 
   return (
