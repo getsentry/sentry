@@ -1,6 +1,8 @@
 from typing import Any, Dict, Optional, Type, Union
 
-from sentry import options, settings
+from django.conf import settings
+
+from sentry import options
 from sentry.metrics.base import MetricsBackend, Tags
 from sentry.metrics.dummy import DummyMetricsBackend
 from sentry.metrics.minimetrics import MiniMetricsMetricsBackend
