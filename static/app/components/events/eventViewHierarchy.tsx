@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import isEmpty from 'lodash/isEmpty';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -75,7 +74,7 @@ function EventViewHierarchyContent({event, project}: Props) {
     }
   }, [data]);
 
-  if (isEmpty(viewHierarchies)) {
+  if (viewHierarchies.length === 0) {
     return null;
   }
 

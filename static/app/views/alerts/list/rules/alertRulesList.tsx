@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 
 import {
@@ -233,7 +232,10 @@ function AlertRulesList() {
                   onRetry={refetch}
                 />
               ) : null}
-              <VisuallyCompleteWithData id="AlertRules-Body" hasData={!isEmpty(ruleList)}>
+              <VisuallyCompleteWithData
+                id="AlertRules-Body"
+                hasData={ruleList.length > 0}
+              >
                 <Projects orgId={organization.slug} slugs={projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => (

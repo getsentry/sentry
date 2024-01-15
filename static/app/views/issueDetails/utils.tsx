@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import isEmpty from 'lodash/isEmpty';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
@@ -202,7 +201,7 @@ export function getGroupDetailsQueryData({
 } = {}): Record<string, string | string[]> {
   // Note, we do not want to include the environment key at all if there are no environments
   const query: Record<string, string | string[]> = {
-    ...(!isEmpty(environments) ? {environment: environments} : {}),
+    ...(environments && environments.length > 0 ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
     collapse: ['release', 'tags'],
   };
@@ -224,7 +223,7 @@ export function getGroupEventDetailsQueryData({
     ...(query ? {query} : {}),
   };
 
-  if (!environments || isEmpty(environments)) {
+  if (!environments || environments.length === 0) {
     return defaultParams;
   }
 

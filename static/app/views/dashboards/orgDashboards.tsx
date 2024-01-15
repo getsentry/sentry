@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
@@ -108,11 +107,9 @@ class OrgDashboards extends DeprecatedAsyncComponent<Props, State> {
         // Only redirect if there are saved filters and none of the filters
         // appear in the query params
         hasSavedPageFilters(data) &&
-        isEmpty(
-          Object.keys(location.query).filter(unsavedQueryParam =>
-            queryParamFilters.has(unsavedQueryParam)
-          )
-        )
+        Object.keys(location.query).filter(unsavedQueryParam =>
+          queryParamFilters.has(unsavedQueryParam)
+        ).length === 0
       ) {
         browserHistory.replace({
           ...location,
@@ -209,7 +206,7 @@ class OrgDashboards extends DeprecatedAsyncComponent<Props, State> {
       loading &&
       selectedDashboard &&
       hasSavedPageFilters(selectedDashboard) &&
-      isEmpty(location.query)
+      Object.keys(location.query).length === 0
     ) {
       // Block dashboard from rendering if the dashboard has filters and
       // the URL does not contain filters yet. The filters can either match the
