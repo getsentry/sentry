@@ -42,6 +42,7 @@ import {
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   formatMRI,
+  formatMRIField,
   getUseCaseFromMRI,
   MRIToField,
   parseField,
@@ -629,11 +630,11 @@ export function isCustomMetric({mri}: {mri: MRI}) {
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
-  // if (isCustomMetric(metricsQuery)) {
-  return MRIToField(metricsQuery.mri, metricsQuery.op!);
-  // }
+  if (isCustomMetric(metricsQuery)) {
+    return MRIToField(metricsQuery.mri, metricsQuery.op!);
+  }
 
-  // return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
+  return formatMRIField(MRIToField(metricsQuery.mri, metricsQuery.op!));
 }
 
 // TODO(ddm): remove this and all of its usages once backend sends mri fields

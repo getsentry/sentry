@@ -1,12 +1,7 @@
 import {urlEncode} from '@sentry/utils';
 
-import {
-  getFieldFromMetricsQuery,
-  isCustomMetric,
-  MetricDisplayType,
-  MetricsQuery,
-} from 'sentry/utils/metrics';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+import {isCustomMetric, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {DashboardWidgetSource, Widget, WidgetType} from 'sentry/views/dashboards/types';
 
 const getDDMWidgetName = (metricsQuery: MetricsQuery) => {
@@ -30,7 +25,7 @@ export function convertToDashboardWidget(
 }
 
 export function getWidgetQuery(metricsQuery: MetricsQuery) {
-  const field = getFieldFromMetricsQuery(metricsQuery);
+  const field = MRIToField(metricsQuery.mri, metricsQuery.op || '');
 
   return {
     name: '',
