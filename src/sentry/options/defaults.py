@@ -1893,6 +1893,7 @@ register(
 # the aggregated flamegraph.
 register(
     "profiling.flamegraph.profile-set.size",
+    type=Int,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
