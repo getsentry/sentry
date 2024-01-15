@@ -78,7 +78,7 @@ describe('useSpanMetricsSeries', () => {
             release: '0.0.1',
             'resource.render_blocking_status': 'blocking' as const,
           },
-          yAxis: ['spm()' as const],
+          yAxis: ['spm()'] as MetricsProperty[],
         },
       }
     );
