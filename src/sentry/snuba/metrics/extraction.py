@@ -60,9 +60,6 @@ class SpecVersion(NamedTuple):
     version: int
     flags: set[str] = set()
 
-    def matches_flags_set(self, flags: set[str]) -> bool:
-        return flags == self.flags
-
 
 class OnDemandMetricSpecVersioning:
     """
@@ -102,19 +99,13 @@ class OnDemandMetricSpecVersioning:
     @classmethod
     def get_query_spec_version(cls: Any, organization_id: int, user: User) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
-        try:
-            flags_set = set()
-            org = Organization.objects.get_from_cache(id=organization_id)
-            for feature_flag in cls.feature_to_flags_map.keys():
-                if features.has_for_batch(feature_flag, org, [], user):
-                    flags_set = cls.feature_to_flags_map[feature_flag]
+        flags_set = set()
+        org = Organization.objects.get_from_cache(id=organization_id)
+        for feature_flag in cls.feature_to_flags_map.keys():
+            if features.has_for_batch(feature_flag, org, [], user):
+                flags_set = cls.feature_to_flags_map[feature_flag]
 
-            return cls._find_spec_version(flags_set)
-        except Exception:
-            logger.exception(
-                "Error fetching flags associated to feature flag. Falling back to default."
-            )
-            return cls._get_default_spec_version()
+        return cls._find_spec_version(flags_set)
 
     @classmethod
     def _get_query_spec_version_flags_set(cls: Any, flags_set: set[str]) -> SpecVersion:
@@ -123,11 +114,15 @@ class OnDemandMetricSpecVersioning:
 
     @classmethod
     def _find_spec_version(cls: Any, flags_set: set[str]) -> SpecVersion:
-        return [
-            spec_version
-            for spec_version in cls.spec_versions
-            if spec_version.matches_flags_set(flags_set)
-        ][0]
+        try:
+            return [
+                spec_version
+                for spec_version in cls.spec_versions
+                if spec_version.matches_flags_set(flags_set)
+            ][0]
+        except Exception:
+            logger.exception("Error finding that set of flags. Falling back to default.")
+            return cls._get_default_spec_version()
 
     @classmethod
     def _get_default_spec_version(cls: Any) -> SpecVersion:
@@ -1349,7 +1344,7 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.spec_version.matches_flags_set({"use_updated_env_logic"}):
+            if self.spec_version.flags == {"use_updated_env_logic"}:
                 conditions = [ParenExpression(children=conditions)] if conditions else []
                 # This transformation is equivalent to (new_conditions) AND (conditions).
                 extended_conditions = [ParenExpression(children=new_conditions)] + conditions
