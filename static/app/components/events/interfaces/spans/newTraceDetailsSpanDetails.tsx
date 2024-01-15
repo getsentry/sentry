@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import map from 'lodash/map';
 import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
@@ -536,7 +535,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   header. You may have to enable this collection manually.
                 </TextTr>
               )}
-              {map(sizeKeys, (value, key) => (
+              {Object.entries(sizeKeys).map(([key, value]) => (
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
@@ -544,7 +543,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   </Fragment>
                 </Row>
               ))}
-              {map(nonSizeKeys, (value, key) =>
+              {Object.entries(nonSizeKeys).map(([key, value]) =>
                 !isHiddenDataKey(key) ? (
                   <Row title={key} key={key}>
                     {maybeStringify(value)}
