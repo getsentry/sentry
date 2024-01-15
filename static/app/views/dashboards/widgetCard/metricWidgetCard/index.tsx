@@ -78,12 +78,15 @@ export function MetricWidgetCard({
       displayType: toMetricDisplayType(widget.displayType),
     });
 
-  const handleChange = useCallback((data: Partial<MetricWidgetQueryParams>) => {
-    setMetricWidgetQueryParams(curr => ({
-      ...curr,
-      ...data,
-    }));
-  }, []);
+  const handleChange = useCallback(
+    (data: Partial<MetricWidgetQueryParams>) => {
+      setMetricWidgetQueryParams(curr => ({
+        ...curr,
+        ...data,
+      }));
+    },
+    [setMetricWidgetQueryParams]
+  );
 
   const handleSubmit = useCallback(() => {
     const convertedWidget = convertToDashboardWidget(
@@ -128,7 +131,7 @@ export function MetricWidgetCard({
           {isEditingWidget ? (
             <InlineEditor
               isEdit={!!isEditingWidget}
-              displayType={toMetricDisplayType(widget.displayType)}
+              displayType={metricWidgetQueryParams.displayType}
               metricsQuery={metricWidgetQueryParams}
               projects={selection.projects}
               powerUserMode={false}
