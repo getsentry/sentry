@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, Optional, Type, Union
 
 from sentry import options
@@ -8,6 +9,9 @@ from sentry.options import UnknownOption
 from sentry.utils.imports import import_string
 
 __all__ = ["CompositeExperimentalMetricsBackend"]
+
+
+DISABLED = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
 
 
 class CompositeExperimentalMetricsBackend(MetricsBackend):
@@ -31,7 +35,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self._minimetrics: MiniMetricsMetricsBackend = MiniMetricsMetricsBackend()
 
     def _is_denied(self, key: str) -> bool:
-        return key.startswith(self._deny_prefixes)
+        return DISABLED or key.startswith(self._deny_prefixes)
 
     @staticmethod
     def _minimetrics_sample_rate() -> float:
