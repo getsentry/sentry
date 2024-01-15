@@ -2006,6 +2006,11 @@ ORGANIZATION_URLS = [
         OrganizationUnsubscribeIssue.as_view(),
         name="sentry-api-0-organization-unsubscribe-issue",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/prompts-activity/$",
+        PromptsActivityEndpoint.as_view(),
+        name="sentry-api-0-organization-prompts-activity",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [

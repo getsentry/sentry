@@ -3965,6 +3965,7 @@ REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
+    "sentry-api-0-prompts-activity",
     # Legacy monitor endpoints
     "sentry-api-0-monitor-ingest-check-in-index",
     # These paths are used by relay which is implicitly region scoped
