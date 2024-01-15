@@ -69,9 +69,6 @@ function getEventView(
 ) {
   const query = MutableSearch.fromQueryObject(filters);
 
-  // TODO: This condition should be enforced everywhere
-  // query.addFilterValue('has', 'span.description');
-
   // Pick the highest possible interval for the given yAxis selection. Find the ideal interval for each function, then choose the largest one. This results in the lowest granularity, but best performance.
   const interval = sortBy(
     yAxis.map(yAxisFunctionName => {

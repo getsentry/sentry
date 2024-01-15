@@ -60,9 +60,6 @@ function getEventView(
 ) {
   const query = MutableSearch.fromQueryObject(filters);
 
-  // TODO: This condition should be enforced everywhere
-  // query.addFilterValue('has', 'span.description');
-
   const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
