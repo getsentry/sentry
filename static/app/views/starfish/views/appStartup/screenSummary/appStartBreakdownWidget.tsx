@@ -120,7 +120,7 @@ function AppStartBreakdownWidget({additionalFilters}) {
     >
       <Legend>
         <LegendEntry>
-          <StyledStartTypeDot style={{backgroundColor: COLD_START_COLOR}} />{' '}
+          <StyledStartTypeDot style={{backgroundColor: COLD_START_COLOR}} />
           {t('Cold Start')}
         </LegendEntry>
         <LegendEntry>
