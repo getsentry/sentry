@@ -43,6 +43,7 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
@@ -87,6 +88,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import {MetricWidgetChartContainer} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
 import MetricWidgetQueries from 'sentry/views/dashboards/widgetCard/metricWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
@@ -104,7 +106,6 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
-  renderMetricGridHeaderCell,
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
@@ -696,15 +697,7 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderMetricsTable: MetricWidgetQueries['props']['children'] = ({
-    tableResults,
-    loading,
-    pageLinks,
-  }) => {
-    const links = parseLinkHeader(pageLinks ?? null);
-    const isFirstPage = links.previous?.results === false;
-    const data = tableResults?.[0]?.data ?? [];
-
+  const renderMetricsTable: MetricWidgetQueries['props']['children'] = ({}) => {
     const mainField = props.widget.queries[0].aggregates[0];
     const parsedField = parseField(mainField);
     if (!parsedField) {
@@ -717,41 +710,18 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <Tabs>
           <TabList>
-            <TabList.Item key="summary">{t('Summary')}</TabList.Item>
+            <TabList.Item key="samples">{t('Samples')}</TabList.Item>
             <TabList.Item hidden={useCase !== 'custom'} key="codeLocation">
               {t('Code Location')}
             </TabList.Item>
-            <TabList.Item key="samples">{t('Samples')}</TabList.Item>
           </TabList>
           <MetricWidgetTabContent>
             <TabPanels>
-              <TabPanels.Item key="summary">
-                <GridEditable
-                  isLoading={loading}
-                  data={data}
-                  columnOrder={columnOrder}
-                  columnSortBy={columnSortBy}
-                  grid={{
-                    renderHeadCell: renderMetricGridHeaderCell() as (
-                      column: GridColumnOrder,
-                      columnIndex: number
-                    ) => React.ReactNode,
-                    renderBodyCell: renderGridBodyCell({
-                      ...props,
-                      location,
-                      tableData: tableResults?.[0],
-                      isFirstPage,
-                    }),
-                    onResizeColumn,
-                  }}
-                  location={location}
-                />
+              <TabPanels.Item key="samples">
+                <SampleTable mri={parsedField.mri} query={widget.queries[0].conditions} />
               </TabPanels.Item>
               <TabPanels.Item key="codeLocation">
                 <CodeLocations mri={parsedField.mri} />
-              </TabPanels.Item>
-              <TabPanels.Item key="samples">
-                <SampleTable mri={parsedField.mri} query={widget.queries[0].conditions} />
               </TabPanels.Item>
             </TabPanels>
           </MetricWidgetTabContent>
@@ -969,6 +939,9 @@ function WidgetViewerModal(props: Props) {
                 noPadding
                 chartZoomOptions={chartZoomOptions}
               />
+            ) : widget.widgetType === WidgetType.METRICS &&
+              hasDDMExperimentalFeature(organization) ? (
+              <MetricWidgetChartContainer widget={widget} selection={selection} />
             ) : (
               <MemoizedWidgetCardChartContainer
                 location={location}
