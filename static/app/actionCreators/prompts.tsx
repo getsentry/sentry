@@ -7,7 +7,7 @@ type PromptsUpdateParams = {
    * The prompt feature name
    */
   feature: string;
-  organization: OrganizationSummary,
+  organization: OrganizationSummary;
   status: 'snoozed' | 'dismissed';
   /**
    * The numeric project ID as a string
@@ -19,15 +19,18 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  return api.requestPromise(`/organizations/${params.organization.slug}/prompts-activity/`, {
-    method: 'PUT',
-    data: {
-      organization_id: params.organization.id,
-      project_id: params.projectId,
-      feature: params.feature,
-      status: params.status,
-    },
-  });
+  return api.requestPromise(
+    `/organizations/${params.organization.slug}/prompts-activity/`,
+    {
+      method: 'PUT',
+      data: {
+        organization_id: params.organization.id,
+        project_id: params.projectId,
+        feature: params.feature,
+        status: params.status,
+      },
+    }
+  );
 }
 
 type PromptCheckParams = {
@@ -35,7 +38,7 @@ type PromptCheckParams = {
    * The prompt feature name
    */
   feature: string;
-  organization: OrganizationSummary,
+  organization: OrganizationSummary;
   /**
    * The numeric project ID as a string
    */
@@ -69,9 +72,12 @@ export async function promptsCheck(
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
 
-  const response: PromptResponse = await api.requestPromise(`/organizations/${params.organization.slug}/prompts-activity/`, {
-    query,
-  });
+  const response: PromptResponse = await api.requestPromise(
+    `/organizations/${params.organization.slug}/prompts-activity/`,
+    {
+      query,
+    }
+  );
 
   if (response?.data) {
     return {
@@ -122,9 +128,12 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
 
-  const response: PromptResponse = await api.requestPromise(`/organizations/${params.organization.slug}/prompts-activity/`, {
-    query,
-  });
+  const response: PromptResponse = await api.requestPromise(
+    `/organizations/${params.organization.slug}/prompts-activity/`,
+    {
+      query,
+    }
+  );
   const responseFeatures = response?.features;
 
   const result: {[key in T[number]]?: PromptData} = {};
