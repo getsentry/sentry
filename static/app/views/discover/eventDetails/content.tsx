@@ -159,10 +159,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
       metaResults?: TraceMetaQueryChildrenProps
     ) => {
       return (
-        <TraceDetailsRouting
-          event={event}
-          metaResults={metaResults}
-        >
+        <TraceDetailsRouting event={event} metaResults={metaResults}>
           <TransactionProfileIdProvider
             projectId={event.projectID}
             transactionId={event.type === 'transaction' ? event.id : undefined}
@@ -190,9 +187,12 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                     href={eventJsonUrl}
                     external
                     onClick={() =>
-                      trackAnalytics('performance_views.event_details.json_button_click', {
-                        organization,
-                      })
+                      trackAnalytics(
+                        'performance_views.event_details.json_button_click',
+                        {
+                          organization,
+                        }
+                      )
                     }
                   >
                     {t('JSON')} (<FileSize bytes={event.size} />)

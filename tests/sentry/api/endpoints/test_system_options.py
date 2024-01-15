@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import options
@@ -61,10 +62,16 @@ class SystemOptionsTest(APITestCase):
             assert response.data["mail.host"]["field"]["disabled"] is True
             assert response.data["mail.host"]["field"]["disabledReason"] == "smtpDisabled"
 
-    def test_put_no_options_permision(self):
-        self.login_as(user=self.user, superuser=True)
+    def test_put_user_access_forbidden(self):
+        self.login_as(user=self.user, superuser=False)
         response = self.client.put(self.url, {"auth.allow-registration": 1})
         assert response.status_code == 403
+
+    def test_put_self_hosted_superuser_access_allowed(self):
+        with override_settings(SENTRY_SELF_HOSTED=True):
+            self.login_as(user=self.user, superuser=True)
+            response = self.client.put(self.url, {"auth.allow-registration": 1})
+            assert response.status_code == 200
 
     def test_put_int_for_boolean(self):
         self.login_as(user=self.user, superuser=True)

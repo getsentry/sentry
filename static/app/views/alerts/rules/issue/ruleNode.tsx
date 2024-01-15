@@ -327,10 +327,7 @@ function RuleNode({
       label = 'Send a notification to {targetType}';
     }
 
-    if (
-      data.id === IssueAlertConditionType.REAPPEARED_EVENT &&
-      organization.features.includes('escalating-issues')
-    ) {
+    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
       label = t('The issue changes state from archived to escalating');
     }
 

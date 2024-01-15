@@ -4,7 +4,7 @@ import capitalize from 'lodash/capitalize';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
-import {IgnoredStatusDetails, Organization} from 'sentry/types';
+import {IgnoredStatusDetails} from 'sentry/types';
 
 import ExtraDescription from './extraDescription';
 
@@ -64,11 +64,9 @@ export function getConfirm({
   allInQuerySelected,
   query,
   queryCount,
-  organization,
 }: {
   allInQuerySelected: boolean;
   numIssues: number;
-  organization: Organization;
   query: string;
   queryCount: number;
 }) {
@@ -81,11 +79,7 @@ export function getConfirm({
     canBeUndone: boolean;
     append?: string;
   }) {
-    const actionText =
-      action === ConfirmAction.IGNORE &&
-      organization.features.includes('escalating-issues')
-        ? t('archive')
-        : action;
+    const actionText = action === ConfirmAction.IGNORE && t('archive');
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${actionText}${append}`, queryCount)
       : tn(
