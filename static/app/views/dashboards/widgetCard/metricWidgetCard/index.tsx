@@ -189,6 +189,7 @@ const WidgetHeaderDescription = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 function toMetricDisplayType(displayType: string): MetricDisplayType {

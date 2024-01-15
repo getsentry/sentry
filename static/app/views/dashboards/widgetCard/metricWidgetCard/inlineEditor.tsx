@@ -277,7 +277,7 @@ function SumbitButton({loading, ...buttonProps}: {loading: boolean} & ButtonProp
   if (loading) {
     return (
       <LoadingIndicatorButton {...buttonProps} priority="primary">
-        <LoadingIndicator mini />
+        <LoadingIndicator mini size={20} />
       </LoadingIndicatorButton>
     );
   }
@@ -320,6 +320,11 @@ const LoadingIndicatorButton = styled(Button)`
   padding: 0;
   padding-left: ${space(0.75)};
   pointer-events: none;
+
+  div.loading.mini {
+    height: ${space(3)};
+    width: 26px;
+  }
 `;
 
 const InlineEditorWrapper = styled('div')`
@@ -353,7 +358,6 @@ const WidgetTitle = styled(HeaderTitle)`
   padding-left: ${space(1.5)};
   padding-top: ${space(1)};
   padding-right: ${space(1)};
-
   ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
