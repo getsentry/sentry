@@ -295,10 +295,7 @@ class TransactionDurationSpansSource(SpansSource):
             where += [Condition(Column("duration"), Op.LTE, max_value)]
 
         return get_indexed_spans(
-            where=[
-                Condition(Column("is_segment"), Op.GTE, 1),
-            ]
-            + where,
+            where=where,
             start=start,
             end=end,
             organization=self.organization,
@@ -352,10 +349,7 @@ class MeasurementsSpansSource(SpansSource):
         # TODO: there might be the need to first obtain a set of transaction ids that have specific measurements and
         #  then filter all spans with that transaction id.
         return get_indexed_spans(
-            where=[
-                Condition(Column("is_segment"), Op.GTE, 1),
-            ]
-            + where,
+            where=where,
             start=start,
             end=end,
             organization=self.organization,
@@ -371,7 +365,7 @@ def get_indexed_spans(
     projects: Sequence[Project],
 ):
     """
-    Fetches top N most recent indexed spans.
+    Fetches indexed spans and performs some aggregate calculations on them.
 
     The choice of not using query builders was deliberate, since we have to access columns that are not exposed via
     the query builders because they are meant to be internal.

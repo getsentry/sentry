@@ -1412,7 +1412,7 @@ class BaseSpansTestCase(SnubaTestCase):
             timestamp = datetime.now(tz=timezone.utc)
 
         payload = {
-            "duration_ms": duration_ms,
+            "duration_ms": int(duration_ms),
             "exclusive_time_ms": 5,
             "is_segment": is_segment,
             "project_id": project_id,
@@ -1443,8 +1443,9 @@ class BaseSpansTestCase(SnubaTestCase):
             if store_transaction_and_span:
                 # To simplify the testing, the span duration is half the duration of the transaction.
                 for is_segment, duration in ((True, duration_ms), (False, duration_ms / 2)):
-                    payload.update({"is_segment": is_segment, "duration": duration})
-                    self._snuba_insert(payload, "spans")
+                    self._snuba_insert(
+                        {**payload, "is_segment": is_segment, "duration_ms": int(duration)}, "spans"
+                    )
             else:
                 self._snuba_insert(payload, "spans")
 

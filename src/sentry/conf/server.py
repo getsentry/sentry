@@ -2897,7 +2897,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/snuba:latest",
+            "image": "ghcr.io/getsentry/snuba:arm64-latest",
             "ports": {"1218/tcp": 1218, "1219/tcp": 1219},
             "command": ["devserver"]
             + (["--no-workers"] if "snuba" in settings.SENTRY_EVENTSTREAM else []),
