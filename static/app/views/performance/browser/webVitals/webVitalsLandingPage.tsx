@@ -2,15 +2,20 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -39,6 +44,12 @@ export default function WebVitalsLandingPage() {
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: (location.query.webVital as WebVitals) ?? null,
+  });
+
+  const user = ConfigStore.get('user');
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.slug}-${user.id}:performance-score-migration-message-dismissed`,
   });
 
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
@@ -93,6 +104,22 @@ export default function WebVitalsLandingPage() {
           )}
           {!onboardingProject && (
             <Fragment>
+              {shouldUseStoredScores && !isDismissed && (
+                <StyledAlert type="info" showIcon>
+                  <AlertContent>
+                    {t(
+                      'We changed how Performance Scores are calculated for your projects.'
+                    )}
+                    <DismissButton
+                      priority="link"
+                      icon={<IconClose />}
+                      onClick={dismiss}
+                      aria-label={t('Dismiss Alert')}
+                      title={t('Dismiss Alert')}
+                    />
+                  </AlertContent>
+                </StyledAlert>
+              )}
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
@@ -142,4 +169,24 @@ const OnboardingContainer = styled('div')`
 
 const WebVitalMetersContainer = styled('div')`
   margin-bottom: ${space(4)};
+`;
+
+export const AlertContent = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+export const DismissButton = styled(Button)`
+  color: ${p => p.theme.alert.info.iconColor};
+  pointer-events: all;
+  &:hover {
+    color: ${p => p.theme.alert.info.iconHoverColor};
+    opacity: 0.5;
+  }
+`;
+
+export const StyledAlert = styled(Alert)`
+  margin-top: ${space(2)};
 `;
