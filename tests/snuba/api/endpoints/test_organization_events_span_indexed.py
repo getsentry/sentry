@@ -44,3 +44,4 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["description"] == "bar"
         assert data[1]["description"] == "foo"
         assert meta["dataset"] == "spansIndexed"
+        assert False
