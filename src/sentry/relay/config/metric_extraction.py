@@ -224,31 +224,28 @@ def _trim_if_above_limit(
     project: Project,
     widget_type: str,
 ) -> list[HashedMetricSpec]:
-    """If the specs are above the max limit we should report it but only trim them for the default spec version.
-    This is because running multiple versions should not cause any data loss for the customer."""
-    return_specs = list(specs)
-    count_per_version = {
-        spec_version.version: 0 for spec_version in OnDemandMetricSpecVersioning.get_spec_versions()
-    }
-    for _, _, spec_version in specs:
-        count_per_version[spec_version.version] += 1
+    """Trim specs per version if above max limit"""
+    return_specs = []
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
 
-    # If any of the versions hit the max limit we should report it for investigation
-    for version, count in count_per_version.items():
-        if count > max_specs:
+    for version, specs_for_version in specs_per_version.items():
+        if len(specs_for_version) > max_specs:
             # Do not log for Sentry
             if project.organization.id != 1:
                 logger.error(
-                    "Version(%s): Too many (%s) on demand metric %s for project %s",
+                    "Spec version %s: Too many (%s) on demand metric %s for project %s",
                     version,
-                    count,
+                    len(specs_for_version),
                     widget_type,
                     project.slug,
                 )
 
-            # We only trim the minimum version
-            if version == OnDemandMetricSpecVersioning.get_default_spec_version().version:
-                return_specs = list(specs[:max_specs])
+            return_specs += specs_for_version[:max_specs]
+        else:
+            return_specs += specs_for_version
 
     return return_specs
 
