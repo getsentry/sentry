@@ -94,7 +94,6 @@ function ScreenSummary() {
                   <MetricsRibbon
                     dataset={DiscoverDatasets.SPANS_METRICS}
                     filters={[
-                      'transaction.op:ui.load',
                       `transaction:${transactionName}`,
                       `span.op:[app.start.cold,app.start.warm]`,
                       '(',
