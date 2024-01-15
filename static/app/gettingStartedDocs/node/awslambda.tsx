@@ -9,7 +9,7 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 import {
   getDefaulServerlessImports,
-  getInstallSnippet,
+  getInstallConfig,
   ProductSelectionMap,
 } from 'sentry/utils/gettingStartedDocs/node';
 
@@ -64,32 +64,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: t('Add the Sentry Serverless SDK as a dependency:'),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'npm',
-              value: 'npm',
-              language: 'bash',
-              code: getInstallSnippet({
-                basePackage: '@sentry/serverless',
-                productSelection: productSelection(params),
-                packageManager: 'npm',
-              }),
-            },
-            {
-              label: 'yarn',
-              value: 'yarn',
-              language: 'bash',
-              code: getInstallSnippet({
-                basePackage: '@sentry/serverless',
-                productSelection: productSelection(params),
-                packageManager: 'yarn',
-              }),
-            },
-          ],
-        },
-      ],
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/serverless',
+      }),
     },
   ],
   configure: params => [

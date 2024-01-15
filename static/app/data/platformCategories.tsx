@@ -409,6 +409,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'bun',
   'electron',
   'javascript-angular',
   'javascript-astro',
@@ -424,6 +425,11 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  'node-azurefunctions',
 ];
 
 // These are all the platforms that can set up custom metrics.
