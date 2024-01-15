@@ -65,10 +65,26 @@ class SpecVersion(NamedTuple):
 
 
 class OnDemandMetricSpecVersioning:
-    # The flags from the spec versions alter the generated metric in OnDemandMetricSpec
-    # Once we're ready to abandon a version we will coalesce the list into a single element
-    # When there's a single version we should not have any flags and we should change
-    # OnDemandMetricSpec accordingly
+    """
+    This class helps iterate over all spec versions we support with get_spec_versions.
+
+    If spec_versions only has one item that means we only have one metric spec being collected.
+
+    In order to add a new spec version update spec_versions with the flags which you will use
+    within OnDemandMetricSpec.
+
+    You also need to create a mapping between a feature flag and
+    the internal flags intended to use (see feature_to_flags_map for details).
+
+    Once we're ready to abandon a version:
+    - coalesce the spec_versions
+    - clear the associated feature/flags association from feature_to_flags_map
+    - remove any associated customizations to OnDemandMetricSpec
+
+    When there's a single version we should not have any flags and feature_to_flags_map
+    should be empty.
+    """
+
     spec_versions = [
         SpecVersion(0),
         SpecVersion(1, {"use_updated_env_logic"}),
