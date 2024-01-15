@@ -91,7 +91,7 @@ export function MetricWidgetCard({
   const handleSubmit = useCallback(() => {
     const convertedWidget = convertToDashboardWidget(
       {...selection, ...metricWidgetQueryParams},
-      toMetricDisplayType(widget.displayType)
+      toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
     const title = stringifyMetricWidget(metricWidgetQueryParams);
@@ -100,6 +100,7 @@ export function MetricWidgetCard({
       ...widget,
       title,
       queries: convertedWidget.queries,
+      displayType: convertedWidget.displayType,
     };
 
     onUpdate?.(updatedWidget);
