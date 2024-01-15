@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Sequence, cast
 from unittest.mock import patch
@@ -331,12 +332,17 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     def test_get_metric_spans(self):
         mri = "g:custom/page_load@millisecond"
 
+        transaction_id = uuid.uuid4().hex
+        trace_id = uuid.uuid4().hex
         span_id = "98230207e6e4a6ad"
         self.store_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
+            trace_id=trace_id,
+            transaction_id=transaction_id,
             span_id=span_id,
-            metrics_summary={
+            store_transaction_and_span=True,
+            store_metrics_summary={
                 mri: [
                     {
                         "min": 10.0,
@@ -361,7 +367,9 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
-        assert metric_spans[0]["spanId"] == span_id
+        assert metric_spans[0]["transactionId"] == transaction_id
+        assert metric_spans[0]["duration"] == 10
+        assert metric_spans[0]["spansNumber"] == 1
 
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
@@ -376,7 +384,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 + i),
                 span_id=span_id,
-                metrics_summary={
+                store_metrics_summary={
                     mri: [
                         {
                             "min": min,
@@ -426,7 +434,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             span_id=span_id_1,
-            metrics_summary={
+            store_metrics_summary={
                 mri: [
                     {
                         "min": 10.0,
@@ -446,7 +454,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             project_id=self.project.id,
             timestamp=before_now(minutes=10),
             span_id=span_id_2,
-            metrics_summary={
+            store_metrics_summary={
                 mri: [
                     {
                         "min": 10.0,
@@ -491,7 +499,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 - index),
                 span_id=span_id,
-                metrics_summary={
+                store_metrics_summary={
                     mri: [
                         {
                             "min": 10.0,
@@ -538,7 +546,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5),
                 span_id=span_id_2,
-                metrics_summary={
+                store_metrics_summary={
                     mri: [
                         {
                             "min": 10.0,
