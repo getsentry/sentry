@@ -31,7 +31,11 @@ import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
-import {DEFAULT_PLATFORM, PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {
   ScreensTable,
@@ -118,13 +122,15 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
   const {query: locationQuery} = location;
 
   const cursor = decodeScalar(location.query?.[MobileCursors.SCREENS_TABLE]);
-  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
+  );
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
   const platform =
-        decodeScalar(locationQuery[PLATFORM_QUERY_PARAM]) ??
-        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-        DEFAULT_PLATFORM;
+    decodeScalar(locationQuery[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
 
   const {
     primaryRelease,
@@ -153,7 +159,15 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
     }
 
     return appendReleaseFilters(query, primaryRelease, secondaryRelease);
-  }, [additionalFilters, hasPlatformSelectFeature, locationQuery.query, platform, primaryRelease, project, secondaryRelease]);
+  }, [
+    additionalFilters,
+    hasPlatformSelectFeature,
+    locationQuery.query,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
+  ]);
 
   const orderby = decodeScalar(locationQuery.sort, `-count`);
   const newQuery: NewQuery = {
@@ -187,9 +201,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
   });
 
   const topTransactions = useMemo(() => {
-    return topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ?? [];
+    return (
+      topTransactionsData?.data?.slice(0, 5).map(datum => datum.transaction as string) ??
+      []
+    );
   }, [topTransactionsData?.data]);
-
 
   const topEventsQueryString = useMemo(() => {
     const topEventsQuery = new MutableSearch([
@@ -202,18 +218,22 @@ export function ScreensView({yAxes, additionalFilters, chartHeight, project}: Pr
       topEventsQuery.addFilterValue('os.name', platform);
     }
 
-    return`${appendReleaseFilters(
-      topEventsQuery,
-      primaryRelease,
-      secondaryRelease
-    )} ${
+    return `${appendReleaseFilters(topEventsQuery, primaryRelease, secondaryRelease)} ${
       topTransactions.length > 0
         ? escapeFilterValue(
             `transaction:[${topTransactions.map(name => `"${name}"`).join()}]`
           )
         : ''
     }`.trim();
-  }, [additionalFilters, platform, primaryRelease, project, secondaryRelease, topTransactions, hasPlatformSelectFeature]);
+  }, [
+    additionalFilters,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
+    topTransactions,
+    hasPlatformSelectFeature,
+  ]);
 
   const {data: releaseEvents, isLoading: isReleaseEventsLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithLocation(

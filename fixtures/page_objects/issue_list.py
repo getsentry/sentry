@@ -37,8 +37,8 @@ class IssueListPage(BasePage):
     def find_resolved_issues(self):
         return self.browser.elements('[data-test-id="resolved-issue"]')
 
-    def ignore_issues(self):
-        self.browser.click('[aria-label="Ignore"]')
+    def archive_issues(self):
+        self.browser.click('[aria-label="Archive"]')
 
     def delete_issues(self):
         self.browser.click('[aria-label="More issue actions"]')
