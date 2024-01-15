@@ -133,7 +133,18 @@ export function useMetricWidgets() {
   );
 
   const addWidget = useCallback(() => {
-    setWidgets(currentWidgets => [...currentWidgets, emptyWidget]);
+    setWidgets(currentWidgets => {
+      const lastWidget = currentWidgets.length
+        ? currentWidgets[currentWidgets.length - 1]
+        : {};
+
+      const newWidget = {
+        ...emptyWidget,
+        ...lastWidget,
+      };
+
+      return [...currentWidgets, newWidget];
+    });
   }, [setWidgets]);
 
   const addWidgets = useCallback(
