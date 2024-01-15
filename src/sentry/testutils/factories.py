@@ -72,6 +72,7 @@ from sentry.models.integrations.integration_feature import (
     IntegrationFeature,
     IntegrationTypes,
 )
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import (
@@ -1507,11 +1508,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_provider_integration(**integration_params: Any) -> Integration:
-        return Integration.objects.create(**integration_params)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(
         organization: Organization,
         external_id: str,
@@ -1527,12 +1523,34 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
-        return IdentityProvider.objects.create(
-            type=integration.provider,
-            external_id=integration.external_id,
-            config={},
-        )
+    def create_provider_integration(**integration_params: Any) -> Integration:
+        return Integration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_integration(**integration_params: Any) -> OrganizationIntegration:
+        return OrganizationIntegration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_provider(
+        integration: Integration | None = None,
+        config: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> IdentityProvider:
+        if integration is not None:
+            integration_values = dict(
+                type=integration.provider,
+                external_id=integration.external_id,
+            )
+            if any((key in kwargs) for key in integration_values):
+                raise ValueError(
+                    "Values from integration should not be in kwargs: "
+                    + repr(list(integration_values.keys()))
+                )
+            kwargs.update(integration_values)
+
+        return IdentityProvider.objects.create(config=config or {}, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

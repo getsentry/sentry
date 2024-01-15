@@ -47,7 +47,11 @@ export default function PageloadModule() {
             <Layout.HeaderContent>
               <HeaderWrapper>
                 <Layout.Title>{t('Mobile')}</Layout.Title>
-                {organization.features.includes('performance-screens-platform-selector') && project && isCrossPlatform(project) && <PlatformSelector />}
+                {organization.features.includes(
+                  'performance-screens-platform-selector'
+                ) &&
+                  project &&
+                  isCrossPlatform(project) && <PlatformSelector />}
               </HeaderWrapper>
             </Layout.HeaderContent>
           </Layout.Header>
@@ -75,7 +79,11 @@ export default function PageloadModule() {
                     </OnboardingContainer>
                   )}
                   {!onboardingProject && (
-                    <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} project={project} />
+                    <ScreensView
+                      yAxes={[YAxis.TTID, YAxis.TTFD]}
+                      chartHeight={240}
+                      project={project}
+                    />
                   )}
                 </ErrorBoundary>
               </PageFiltersContainer>

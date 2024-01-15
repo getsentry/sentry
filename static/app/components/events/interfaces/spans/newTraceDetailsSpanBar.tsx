@@ -169,9 +169,14 @@ export class NewTraceDetailsSpanBar extends Component<
       this.updateHighlightedState();
     }
 
-    if(this.props.quickTrace !== prevProps.quickTrace){
+    if (this.props.quickTrace !== prevProps.quickTrace) {
       const relatedErrors = this.getRelatedErrors(this.props.quickTrace);
-      if(this.isHighlighted && this.props.onRowClick && relatedErrors && relatedErrors.length > 0){
+      if (
+        this.isHighlighted &&
+        this.props.onRowClick &&
+        relatedErrors &&
+        relatedErrors.length > 0
+      ) {
         this.props.onRowClick(this.getSpanDetailsProps());
       }
     }
@@ -568,7 +573,6 @@ export class NewTraceDetailsSpanBar extends Component<
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
       this.setState({isIntersecting: entry.isIntersecting}, () => {
-
         // Scrolls the next(invisible) bar from the virtualized list,
         // by it's height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
@@ -807,9 +811,7 @@ export class NewTraceDetailsSpanBar extends Component<
       if (isTransactionEvent) {
         browserHistory.push({
           ...location,
-          hash: `${transactionTargetHash(
-            event.eventID
-          )}${spanTargetHash(span.span_id)}`,
+          hash: `${transactionTargetHash(event.eventID)}${spanTargetHash(span.span_id)}`,
         });
       }
     }

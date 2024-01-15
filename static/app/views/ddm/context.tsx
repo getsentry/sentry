@@ -30,7 +30,6 @@ import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
 interface DDMContextValue {
   addFocusArea: (area: FocusArea) => void;
   addWidget: () => void;
-  addWidgets: (widgets: Partial<MetricWidgetQueryParams>[]) => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusArea | null;
   isDefaultQuery: boolean;
@@ -48,7 +47,6 @@ interface DDMContextValue {
 export const DDMContext = createContext<DDMContextValue>({
   addFocusArea: () => {},
   addWidget: () => {},
-  addWidgets: () => {},
   duplicateWidget: () => {},
   focusArea: null,
   isDefaultQuery: false,
@@ -133,18 +131,19 @@ export function useMetricWidgets() {
   );
 
   const addWidget = useCallback(() => {
-    setWidgets(currentWidgets => [...currentWidgets, emptyWidget]);
+    setWidgets(currentWidgets => {
+      const lastWidget = currentWidgets.length
+        ? currentWidgets[currentWidgets.length - 1]
+        : {};
+
+      const newWidget = {
+        ...emptyWidget,
+        ...lastWidget,
+      };
+
+      return [...currentWidgets, newWidget];
+    });
   }, [setWidgets]);
-
-  const addWidgets = useCallback(
-    (newWidgets: Partial<MetricWidgetQueryParams>[]) => {
-      const widgetsCopy = [...widgets].filter(widget => !!widget.mri);
-      widgetsCopy.push(...newWidgets.map(widget => ({...emptyWidget, ...widget})));
-
-      setWidgets(widgetsCopy);
-    },
-    [widgets, setWidgets]
-  );
 
   const removeWidget = useCallback(
     (index: number) => {
@@ -172,7 +171,7 @@ export function useMetricWidgets() {
     widgets,
     updateWidget,
     addWidget,
-    addWidgets,
+
     removeWidget,
     duplicateWidget,
   };
@@ -210,7 +209,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
-  const {widgets, updateWidget, addWidget, addWidgets, removeWidget, duplicateWidget} =
+  const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
     useMetricWidgets();
   const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
@@ -282,7 +281,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const contextValue = useMemo<DDMContextValue>(
     () => ({
       addWidget: handleAddWidget,
-      addWidgets,
       selectedWidgetIndex:
         selectedWidgetIndex > widgets.length - 1 ? 0 : selectedWidgetIndex,
       setSelectedWidgetIndex,
@@ -300,7 +298,6 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     }),
     [
       handleAddWidget,
-      addWidgets,
       selectedWidgetIndex,
       widgets,
       handleUpdateWidget,

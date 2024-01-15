@@ -307,7 +307,6 @@ describe('GroupActions', function () {
   });
 
   it('can archive issue', async () => {
-    const org = {...organization, features: ['escalating-issues']};
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
       method: 'PUT',
@@ -318,10 +317,10 @@ describe('GroupActions', function () {
       <GroupActions
         group={group}
         project={project}
-        organization={org}
+        organization={organization}
         disabled={false}
       />,
-      {organization: org}
+      {organization}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
