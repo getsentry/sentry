@@ -166,7 +166,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
       seriesName: t('Mark Line'),
       data: [],
       markLine: MarkLine({
-        lineStyle: {color: theme.blue400, type: 'solid', width: 1},
+        lineStyle: {color: '#E0DCE5', type: 'solid', width: 1},
         data: [{xAxis: SCORE_MIGRATION_TIMESTAMP}],
       }),
     });
