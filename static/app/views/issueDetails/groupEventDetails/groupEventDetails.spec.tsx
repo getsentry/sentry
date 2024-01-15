@@ -220,7 +220,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: '/prompts-activity/',
+    url: `/organizations/${organization.slug}/prompts-activity/`,
     body: undefined,
   });
 
