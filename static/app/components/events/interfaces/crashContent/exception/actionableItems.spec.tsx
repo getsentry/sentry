@@ -168,6 +168,36 @@ describe('Actionable Items', () => {
     expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 
+  it('handles unknown flutter source', async () => {
+    const eventErrors = [
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        // Missing Source key
+        data: {},
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {
+        errors: eventErrors,
+      },
+      method: 'GET',
+    });
+
+    const eventWithErrors = EventFixture({
+      errors: eventErrors,
+      sdk: {
+        name: 'sentry.dart.flutter',
+      },
+    });
+
+    render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
+
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
+  });
+
   it('displays missing mapping file', async () => {
     const eventError = [
       {
