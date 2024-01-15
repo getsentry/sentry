@@ -300,6 +300,11 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 
 export function InvestigationRuleCreation(props: Props) {
   const organization = useOrganization();
+
+  if (!organization.isDynamicallySampled) {
+    return null;
+  }
+
   return (
     <Feature features="investigation-bias">
       <InvestigationRuleCreationInternal {...props} organization={organization} />
