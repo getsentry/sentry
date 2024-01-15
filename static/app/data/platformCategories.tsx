@@ -378,6 +378,7 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
+  'bun',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony
@@ -406,10 +407,14 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'rust',
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  'node-azurefunctions',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
-  'bun',
   'electron',
   'javascript-angular',
   'javascript-astro',
@@ -425,11 +430,6 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
-  'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
-  'node-azurefunctions',
 ];
 
 // These are all the platforms that can set up custom metrics.
