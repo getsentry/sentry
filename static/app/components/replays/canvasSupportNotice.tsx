@@ -35,25 +35,28 @@ export function CanvasSupportNotice() {
   }
 
   return (
-  <StyledAlert
-          type="info"
-          showIcon
-          trailingItems={
-            <Button
-              aria-label={t('Dismiss banner')}
-              icon={<IconClose />}
-              onClick={dismiss}
-              size="zero"
-              borderless
-            />
-          }
-        >
-          {tct('Recording canvas in Replay is now supported, learn how to set it up [link:here].', {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
-            ),
-          })}
-        </StyledAlert>
+    <StyledAlert
+      type="info"
+      showIcon
+      trailingItems={
+        <Button
+          aria-label={t('Dismiss banner')}
+          icon={<IconClose />}
+          onClick={dismiss}
+          size="zero"
+          borderless
+        />
+      }
+    >
+      {tct(
+        'Recording canvas in Replay is now supported, learn how to set it up [link:here].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
+          ),
+        }
+      )}
+    </StyledAlert>
   );
 }
 

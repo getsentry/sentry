@@ -14,7 +14,10 @@ import {
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
-import {RRWebDOMFrameFixture, RRWebFullSnapshotFrameEventFixture} from 'sentry-fixture/replay/rrweb';
+import {
+  RRWebDOMFrameFixture,
+  RRWebFullSnapshotFrameEventFixture,
+} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -301,19 +304,20 @@ describe('ReplayReader', () => {
   it('detects canvas element from full snapshot', () => {
     const timestamp = new Date('2023-12-25T00:02:00');
 
-    const firstDiv = RRWebFullSnapshotFrameEventFixture({timestamp, childNodes: [
-      RRWebDOMFrameFixture({
-        tagName: 'div',
-        childNodes: [
-          RRWebDOMFrameFixture({
-            tagName: 'canvas',
-          })
-        ]
-      })
-    ]});
-    const attachments = [
-      firstDiv,
-    ];
+    const firstDiv = RRWebFullSnapshotFrameEventFixture({
+      timestamp,
+      childNodes: [
+        RRWebDOMFrameFixture({
+          tagName: 'div',
+          childNodes: [
+            RRWebDOMFrameFixture({
+              tagName: 'canvas',
+            }),
+          ],
+        }),
+      ],
+    });
+    const attachments = [firstDiv];
 
     const replay = ReplayReader.factory(
       {
@@ -338,14 +342,18 @@ describe('ReplayReader', () => {
         timestamp,
         data: {
           source: IncrementalSource.Mutation,
-          adds: [{node: RRWebDOMFrameFixture({
-            tagName: 'canvas',
-          })}],
+          adds: [
+            {
+              node: RRWebDOMFrameFixture({
+                tagName: 'canvas',
+              }),
+            },
+          ],
           removes: [],
           texts: [],
           attributes: [],
-        }
-      }
+        },
+      },
     ];
 
     const replay = ReplayReader.factory(

@@ -348,7 +348,6 @@ export default class ReplayReader {
   });
 }
 
-
 function findCanvas(event: RecordingFrame) {
   if (event.type === EventType.FullSnapshot) {
     return findCanvasInSnapshot(event);
@@ -362,16 +361,21 @@ function findCanvas(event: RecordingFrame) {
 }
 
 function findCanvasInMutation(event: incrementalSnapshotEvent) {
-  if (event.data.source !== IncrementalSource.Mutation){
+  if (event.data.source !== IncrementalSource.Mutation) {
     return false;
   }
 
-  return event.data.adds.find((add) => add.node && add.node.type === 2 && add.node.tagName === 'canvas');
+  return event.data.adds.find(
+    add => add.node && add.node.type === 2 && add.node.tagName === 'canvas'
+  );
 }
 
-
 function findCanvasInChildNodes(nodes: serializedNodeWithId[]) {
-  return nodes.find(node => node.type === 2 && (node.tagName === 'canvas' || findCanvasInChildNodes(node.childNodes || [])));
+  return nodes.find(
+    node =>
+      node.type === 2 &&
+      (node.tagName === 'canvas' || findCanvasInChildNodes(node.childNodes || []))
+  );
 }
 
 function findCanvasInSnapshot(event: fullSnapshotEvent) {
