@@ -1812,6 +1812,9 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         {
             "issues.sdk_crash_detection.cocoa.project_id": 1234,
             "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+            "issues.sdk_crash_detection.react-native.project_id": 12345,
+            "issues.sdk_crash_detection.react-native.sample_rate": 1.0,
+            "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
         }
     )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
@@ -1832,7 +1835,18 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
         assert args["configs"] == [
-            {"sdk_name": SdkName.Cocoa, "project_id": 1234, "sample_rate": 1.0}
+            {
+                "sdk_name": SdkName.Cocoa,
+                "project_id": 1234,
+                "sample_rate": 1.0,
+                "organization_allowlist": None,
+            },
+            {
+                "sdk_name": SdkName.ReactNative,
+                "project_id": 12345,
+                "sample_rate": 1.0,
+                "organization_allowlist": [1],
+            },
         ]
 
     @with_feature("organizations:sdk-crash-detection")

@@ -1,4 +1,5 @@
 from enum import Enum, unique
+from typing import Optional
 
 from typing_extensions import TypedDict
 
@@ -18,3 +19,5 @@ class SDKCrashDetectionConfig(TypedDict):
     project_id: int
     """The percentage of events to sample. 0.0 = 0%, 0.5 = 50% 1.0 = 100%."""
     sample_rate: float
+    """The organization allowlist to detect crashes for. If None, all organizations are allowed."""
+    organization_allowlist: Optional[list[int]]

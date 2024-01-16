@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -9,9 +10,18 @@ from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
 
-sdk_configs = [
-    SDKCrashDetectionConfig(sdk_name=SdkName.ReactNative, project_id=1234, sample_rate=1.0)
-]
+
+def build_sdk_configs(
+    organization_allowlist: Optional[list[int]] = None,
+) -> list[SDKCrashDetectionConfig]:
+    return [
+        SDKCrashDetectionConfig(
+            sdk_name=SdkName.ReactNative,
+            project_id=1234,
+            sample_rate=1.0,
+            organization_allowlist=organization_allowlist,
+        )
+    ]
 
 
 def decorators(func):
@@ -29,6 +39,8 @@ def decorators(func):
 @decorators
 def test_sdk_crash_is_reported(mock_sdk_crash_reporter, mock_random, store_event):
     event = store_event(data=get_crash_event())
+
+    sdk_configs = build_sdk_configs(organization_allowlist=[event.project.organization_id])
 
     sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
 
@@ -54,7 +66,10 @@ def test_sdk_crash_sample_app_not_reported(mock_sdk_crash_reporter, mock_random,
         )
     )
 
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=build_sdk_configs(organization_allowlist=[event.project.organization_id]),
+    )
 
     assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -67,7 +82,7 @@ def test_sdk_crash_react_natives_not_reported(mock_sdk_crash_reporter, mock_rand
         )
     )
 
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
 
     assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -78,7 +93,10 @@ def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_e
     set_path(event_data, "sdk", "version", value="4.1.0-beta.0")
     event = store_event(data=event_data)
 
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=build_sdk_configs(organization_allowlist=[event.project.organization_id]),
+    )
 
     assert mock_sdk_crash_reporter.report.call_count == 1
 
@@ -89,6 +107,37 @@ def test_too_low_min_sdk_version_not_detected(mock_sdk_crash_reporter, mock_rand
     set_path(event_data, "sdk", "version", value="3.9.9")
     event = store_event(data=event_data)
 
-    sdk_crash_detection.detect_sdk_crash(event=event, configs=sdk_configs)
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=build_sdk_configs(organization_allowlist=[event.project.organization_id]),
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_organization_not_in_allowlist_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event
+):
+    event = store_event(data=get_crash_event())
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=build_sdk_configs(organization_allowlist=[event.project.organization_id + 1]),
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_organization_empty_allowlist_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event
+):
+    event = store_event(data=get_crash_event())
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=build_sdk_configs(organization_allowlist=[]),
+    )
 
     assert mock_sdk_crash_reporter.report.call_count == 0

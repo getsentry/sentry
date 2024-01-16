@@ -1774,6 +1774,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# The allowlist of org IDs that the react-native crash detection is enabled for.
+register(
+    "issues.sdk_crash_detection.react-native.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.sdk_crash_detection.react-native.sample_rate",
     default=0.0,
