@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
@@ -15,6 +16,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/cons
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import CountWidget from 'sentry/views/starfish/views/appStartup/screenSummary/countWidget';
 import DeviceClassBreakdownBarChart from 'sentry/views/starfish/views/appStartup/screenSummary/deviceClassBreakdownBarChart';
+import SystemApplicationBreakdown from 'sentry/views/starfish/views/appStartup/screenSummary/systemApplicationBreakdown';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/starfish/views/screens';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/starfish/views/screens/utils';
@@ -85,8 +87,12 @@ function SummaryWidgets({additionalFilters}) {
       <div style={{gridArea: '1 / 1 / 1 / 1'}}>
         <AppStartBreakdownWidget additionalFilters={additionalFilters} />
       </div>
-      <div style={{gridArea: '2 / 1 / 2 / 1'}}>
-        <CountWidget additionalFilters={additionalFilters} />
+      <div style={{gridArea: '1 / 3 / 3 / 3'}}>
+        <CountWidget
+          additionalFilters={additionalFilters}
+          // 238 aligns the x-axis with other widgets
+          chartHeight={238}
+        />
       </div>
       <div style={{gridArea: '1 / 2 / 1 / 2'}}>
         <DeviceClassBreakdownBarChart
@@ -106,6 +112,9 @@ function SummaryWidgets({additionalFilters}) {
           yAxis={YAXIS_COLUMNS[YAxis.WARM_START]}
         />
       </div>
+      <div style={{gridArea: '2 / 1 / 2 / 1'}}>
+        <SystemApplicationBreakdown additionalFilters={additionalFilters} />
+      </div>
     </WidgetLayout>
   );
 }
@@ -117,4 +126,8 @@ const WidgetLayout = styled('div')`
   grid-template-columns: 33% 33% 33%;
   grid-template-rows: 140px 140px;
   gap: ${space(1)};
+
+  ${Panel} {
+    height: 100%;
+  }
 `;
