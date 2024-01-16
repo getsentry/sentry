@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
+import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
 import GridEditable, {
@@ -8,8 +9,9 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconProfiling} from 'sentry/icons';
+import {IconArrow, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MRI} from 'sentry/types';
@@ -50,11 +52,21 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
   const rows = data?.metrics
     .map(m => m.metricSpans)
     .flat()
-    .filter(Boolean) as MetricSpan[];
+    .filter(Boolean)
+    // We only want to show the first 10 transactions
+    .slice(0, 10) as MetricSpan[];
 
   function renderHeadCell(col: Column) {
     if (col.key === 'profileId' || col.key === 'replayId') {
       return <AlignCenter>{col.name}</AlignCenter>;
+    }
+    if (col.key === 'duration') {
+      return (
+        <DurationHeadCell>
+          {col.name}
+          <IconArrow size="xs" direction="down" />
+        </DurationHeadCell>
+      );
     }
     return <span>{col.name}</span>;
   }
@@ -95,9 +107,14 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
             <StyledPlatformIcon platform={project?.platform || 'default'} />
           </Tooltip>
           <Link
-            to={getTransactionDetailsUrl(organization.slug, eventSlug, undefined, {
-              referrer: 'metrics',
-            })}
+            to={normalizeUrl(
+              `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
+                ...extractSelectionParameters(location.query),
+                project: project?.id,
+                transaction: row.segmentName,
+                referrer: 'metrics',
+              })}`
+            )}
           >
             {row.segmentName}
           </Link>
@@ -165,6 +182,11 @@ const AlignCenter = styled('span')`
 
 const TransactionNameWrapper = styled('span')`
   display: inline-block;
+`;
+
+const DurationHeadCell = styled('span')`
+  display: flex;
+  gap: ${space(0.25)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
