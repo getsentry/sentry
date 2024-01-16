@@ -226,3 +226,7 @@ export function generateWidgetsAfterCompaction(widgets: Widget[]) {
     return {...widget, layout};
   });
 }
+
+export function isValidLayout(layout: Layout) {
+  return !isNaN(layout.x) && !isNaN(layout.y) && layout.w > 0 && layout;
+}
