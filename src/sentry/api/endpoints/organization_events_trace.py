@@ -40,6 +40,7 @@ from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
@@ -560,8 +561,7 @@ def augment_transactions_with_spans(
         ],
         orderby=["timestamp", "id"],
         limit=10000,
-        # TODO: fix referrer
-    ).run_query(referrer="get_them_parents")
+    ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS)
 
     parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
     for transaction in transactions:
