@@ -27,11 +27,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -71,7 +70,6 @@ import {
   calculateColumnDepths,
   generateWidgetsAfterCompaction,
   getDashboardLayout,
-  METRIC_WIDGET_MIN_SIZE,
 } from './layoutUtils';
 import DashboardTitle from './title';
 import {
@@ -109,6 +107,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
+  selection: PageFilters;
   children?: React.ReactNode;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -516,14 +515,12 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleAddMetricWidget() {
-    const {dashboard} = this.props;
-
-    const widgetLayout = this.addWidgetLayout;
+  handleAddMetricWidget = (layout?: Widget['layout']) => {
+    const {dashboard, selection} = this.props;
 
     const widgetCopy = cloneDeep(
       assignTempId({
-        layout: {...widgetLayout, ...METRIC_WIDGET_MIN_SIZE},
+        layout,
         ...defaultMetricWidget(selection),
         widgetType: WidgetType.METRICS,
       })
@@ -536,7 +533,7 @@ class DashboardDetail extends Component<Props, State> {
       this.handleUpdateWidgetList(nextList);
     }
     this.handleStartEditMetricWidget(nextList.length - 1);
-  }
+  };
 
   onAddWidget = (dataset: DataSet) => {
     const {
@@ -802,6 +799,7 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          handleAddMetricWidget={this.handleAddMetricWidget}
                           editingWidgetIndex={this.state.editingWidgetIndex}
                           onStartEditMetricWidget={this.handleStartEditMetricWidget}
                           onEndEditMetricWidget={this.handleEndEditMetricWidget}
@@ -1008,6 +1006,7 @@ class DashboardDetail extends Component<Props, State> {
                                   onUpdate={this.onUpdateWidget}
                                   handleUpdateWidgetList={this.handleUpdateWidgetList}
                                   handleAddCustomWidget={this.handleAddCustomWidget}
+                                  handleAddMetricWidget={this.handleAddMetricWidget}
                                   onStartEditMetricWidget={
                                     this.handleStartEditMetricWidget
                                   }
@@ -1064,4 +1063,4 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-export default withProjects(withApi(withOrganization(withPageFilters(DashboardDetail))));
+export default withPageFilters(withProjects(withApi(withOrganization(DashboardDetail))));

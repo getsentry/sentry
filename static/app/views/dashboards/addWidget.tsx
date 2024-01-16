@@ -3,7 +3,6 @@ import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {Button, ButtonProps} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconAdd} from 'sentry/icons';
@@ -120,6 +119,7 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
         onAction: () => handleAction(DataSet.ISSUES),
       },
     ];
+
     if (organization.features.includes('dashboards-rh-widget')) {
       menuItems.push({
         key: DataSet.RELEASES,

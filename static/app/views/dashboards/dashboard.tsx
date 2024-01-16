@@ -29,8 +29,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {defaultMetricWidget} from '../../utils/metrics/dashboard';
-
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
@@ -74,6 +72,7 @@ type Props = {
   api: Client;
   dashboard: DashboardDetails;
   handleAddCustomWidget: (widget: Widget) => void;
+  handleAddMetricWidget: (layout?: Widget['layout']) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditingDashboard: boolean;
   location: Location;
@@ -215,10 +214,11 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = (dataset?: DataSet) => {
-    const {organization, router, location, paramDashboardId} = this.props;
+    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
+      this.props;
 
     if (dataset === DataSet.METRICS) {
-      this.handleAddMetricWidget();
+      handleAddMetricWidget({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
       return;
     }
 
@@ -249,35 +249,6 @@ class Dashboard extends Component<Props, State> {
 
     return;
   };
-
-  handleAddMetricWidget() {
-    const {
-      dashboard,
-      onUpdate,
-      isEditingDashboard,
-      handleUpdateWidgetList,
-      selection,
-      onStartEditMetricWidget,
-    } = this.props;
-
-    const widgetLayout = this.addWidgetLayout;
-
-    const widgetCopy = cloneDeep(
-      assignTempId({
-        layout: {...widgetLayout, ...METRIC_WIDGET_MIN_SIZE},
-        ...defaultMetricWidget(selection),
-        widgetType: WidgetType.METRICS,
-      })
-    );
-
-    const nextList = generateWidgetsAfterCompaction([...dashboard.widgets, widgetCopy]);
-
-    onUpdate(nextList);
-    if (!isEditingDashboard) {
-      handleUpdateWidgetList(nextList);
-    }
-    onStartEditMetricWidget?.(nextList.length - 1);
-  }
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
