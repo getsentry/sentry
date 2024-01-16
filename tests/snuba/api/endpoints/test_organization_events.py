@@ -1,6 +1,7 @@
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict
 from unittest import mock
 from uuid import uuid4
 
@@ -44,7 +45,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
     # Some base data for create_span
-    base_span = {
+    base_span: Dict[str, Any] = {
         "is_segment": False,
         "retention_days": 90,
         "tags": {},
@@ -137,7 +138,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
         # Load any specific custom data
         span.update(extra_data)
         # coerce to string
-        for tag, value in span["tags"].items():
+        for tag, value in dict(span["tags"]).items():
             span["tags"][tag] = str(value)
         return span
 

@@ -86,15 +86,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
         trace_context = event.data["contexts"]["trace"]
         start_ts = event.data["start_timestamp"]
         end_ts = event.data["timestamp"]
-        # TODO measurements and tags
-        return self.create_span(
+        span_data = self.create_span(
             {
                 "event_id": event.event_id,
                 "organization_id": event.organization.id,
                 "project_id": event.project.id,
                 "trace_id": trace_context["trace_id"],
                 "span_id": trace_context["span_id"],
-                "parent_span_id": trace_context.get("parent_span_id", "000000000000"),
+                "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
                 "description": event.data["transaction"],
                 "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
@@ -105,6 +104,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
                 "duration_ms": int(end_ts - start_ts),
             }
         )
+        if "parent_span_id" in trace_context:
+            span_data["parent_span_id"] = trace_context["parent_span_id"]
+        else:
+            del span_data["parent_span_id"]
+
+        return span_data
 
     def setUp(self):
         """
