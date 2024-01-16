@@ -40,6 +40,7 @@ interface DDMContextValue {
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
   setSelectedWidgetIndex: (index: number) => void;
+  showQuerySymbols: boolean;
   updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   widgets: MetricWidgetQueryParams[];
 }
@@ -57,6 +58,7 @@ export const DDMContext = createContext<DDMContextValue>({
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
   setSelectedWidgetIndex: () => {},
+  showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
 });
@@ -295,6 +297,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeFocusArea: handleRemoveFocusArea,
       setDefaultQuery,
       isDefaultQuery,
+      showQuerySymbols: widgets.length > 1,
     }),
     [
       handleAddWidget,

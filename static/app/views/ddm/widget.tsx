@@ -49,6 +49,7 @@ type MetricWidgetProps = {
   isSelected?: boolean;
   onSelect?: (index: number) => void;
   removeFocusArea?: () => void;
+  showQuerySymbols?: boolean;
 };
 
 export const MetricWidget = memo(
@@ -64,6 +65,7 @@ export const MetricWidget = memo(
     hasSiblings = false,
     addFocusArea,
     removeFocusArea,
+    showQuerySymbols,
     focusArea = null,
   }: MetricWidgetProps) => {
     const handleChange = useCallback(
@@ -120,7 +122,7 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            <QuerySymbol index={index} />
+            {showQuerySymbols && <QuerySymbol index={index} />}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
