@@ -1,16 +1,16 @@
 import {RefObject, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import color from 'color';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
 import {IconClose, IconZoom} from 'sentry/icons';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {MetricRange} from 'sentry/utils/metrics';
-import theme from 'sentry/utils/theme';
 
 import {DateTimeObject} from '../../components/charts/utils';
 
@@ -34,9 +34,6 @@ interface UseFocusAreaBrushOptions {
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 
-const getBorderColor = () =>
-  ConfigStore.get('theme') === 'dark' ? theme.gray200 : theme.gray500;
-
 export function useFocusAreaBrush(
   chartRef: RefObject<ReactEchartsRef>,
   focusArea: FocusArea | null,
@@ -51,6 +48,8 @@ export function useFocusAreaBrush(
   );
 
   const isDrawingRef = useRef(false);
+
+  const theme = useTheme();
 
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
@@ -119,7 +118,7 @@ export function useFocusAreaBrush(
         xAxisIndex: 0,
         brushStyle: {
           borderWidth: 2,
-          borderColor: getBorderColor(),
+          borderColor: theme.gray500,
           color: 'transparent',
         },
         inBrush: {
@@ -131,7 +130,7 @@ export function useFocusAreaBrush(
         z: 10,
       } as EChartsOption['brush'],
     };
-  }, [onBrushEnd]);
+  }, [onBrushEnd, theme.gray500]);
 
   if (hasFocusArea) {
     return {
@@ -317,9 +316,9 @@ const FocusAreaRect = styled('div')<{
   pointer-events: none;
   z-index: 1;
 
-  outline: 2px solid ${getBorderColor};
+  outline: 2px solid ${p => p.theme.gray500};
   outline-style: auto;
 
   /* requires overflow: hidden on FocusAreaWrapper */
-  box-shadow: 0px 0px 0px 9999px ${p => color(p.theme.surface400).alpha(0.75).string()};
+  box-shadow: 0px 0px 0px 9999px ${p => color(p.theme.surface400).alpha(0.75).toString()};
 `;
