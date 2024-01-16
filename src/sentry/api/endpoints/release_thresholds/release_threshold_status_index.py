@@ -58,7 +58,7 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
         child=serializers.CharField(),
         help_text=("Provide a list of environment names to filter your results by"),
     )
-    project = serializers.ListField(
+    projectSlug = serializers.ListField(
         required=False,
         allow_empty=True,
         child=serializers.CharField(),
@@ -145,7 +145,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             return Response(serializer.errors, status=400)
 
         environments_list = serializer.validated_data.get("environment")
-        project_slug_list = serializer.validated_data.get("project")
+        project_slug_list = serializer.validated_data.get("projectSlug")
         releases_list = serializer.validated_data.get("release")
 
         # ========================================================================
