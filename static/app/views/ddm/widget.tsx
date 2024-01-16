@@ -109,7 +109,7 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const widgetTitle = stringifyMetricWidget(metricsQuery);
+    const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
 
     return (
       <MetricWidgetPanel
@@ -172,14 +172,14 @@ export const MetricWidget = memo(
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   focusArea: FocusArea | null;
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   chartHeight?: number;
+  onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   removeFocusArea?: () => void;
 }
 
-const MetricWidgetBody = memo(
+export const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,
@@ -223,7 +223,7 @@ const MetricWidgetBody = memo(
     const toggleSeriesVisibility = useCallback(
       (seriesName: string) => {
         setHoveredSeries('');
-        onChange({
+        onChange?.({
           focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
         });
       },
@@ -244,7 +244,7 @@ const MetricWidgetBody = memo(
 
     const handleSortChange = useCallback(
       newSort => {
-        onChange({sort: newSort});
+        onChange?.({sort: newSort});
       },
       [onChange]
     );
@@ -430,6 +430,7 @@ const StyledMetricWidgetBody = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
+  height: 100%;
 `;
 
 const MetricWidgetHeader = styled('div')`

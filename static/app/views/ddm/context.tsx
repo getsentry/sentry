@@ -9,11 +9,10 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {MRI} from 'sentry/types';
 import {
+  emptyWidget,
   getAbsoluteDateTimeRange,
   getDefaultMetricDisplayType,
-  MetricDisplayType,
   MetricWidgetQueryParams,
   useInstantRef,
   useUpdateQuery,
@@ -64,16 +63,6 @@ export const DDMContext = createContext<DDMContextValue>({
 export function useDDMContext() {
   return useContext(DDMContext);
 }
-
-const emptyWidget: MetricWidgetQueryParams = {
-  mri: 'd:transactions/duration@millisecond' satisfies MRI,
-  op: 'avg',
-  query: '',
-  groupBy: [],
-  sort: DEFAULT_SORT_STATE,
-  displayType: MetricDisplayType.LINE,
-  title: undefined,
-};
 
 export function useMetricWidgets() {
   const router = useRouter();

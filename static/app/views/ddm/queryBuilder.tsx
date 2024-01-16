@@ -33,6 +33,7 @@ type QueryBuilderProps = {
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
   powerUserMode?: boolean;
+  size?: 'sm' | 'xs';
 };
 
 const isShownByDefault = (metric: MetricMeta) =>

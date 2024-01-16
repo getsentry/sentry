@@ -11,6 +11,7 @@ import {NUM_DESKTOP_COLS} from './dashboard';
 import {DisplayType, Widget, WidgetLayout} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
+export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 3};
 
 const WIDGET_PREFIX = 'grid-item';
 
@@ -184,7 +185,12 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
 
     return {
       ...widget,
-      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
+      layout: {
+        ...nextPosition,
+        h: height,
+        minH: height,
+        w: DEFAULT_WIDGET_WIDTH,
+      },
     };
   });
   return newWidgets;
