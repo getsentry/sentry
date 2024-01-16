@@ -1,6 +1,8 @@
 import {RefObject, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import color from 'color';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
@@ -9,7 +11,6 @@ import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {MetricRange} from 'sentry/utils/metrics';
-import theme from 'sentry/utils/theme';
 
 import {DateTimeObject} from '../../components/charts/utils';
 
@@ -47,6 +48,8 @@ export function useFocusAreaBrush(
   );
 
   const isDrawingRef = useRef(false);
+
+  const theme = useTheme();
 
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
@@ -115,7 +118,7 @@ export function useFocusAreaBrush(
         xAxisIndex: 0,
         brushStyle: {
           borderWidth: 2,
-          borderColor: theme.purple300,
+          borderColor: theme.gray500,
           color: 'transparent',
         },
         inBrush: {
@@ -127,7 +130,7 @@ export function useFocusAreaBrush(
         z: 10,
       } as EChartsOption['brush'],
     };
-  }, [onBrushEnd]);
+  }, [onBrushEnd, theme.gray500]);
 
   if (hasFocusArea) {
     return {
@@ -275,14 +278,6 @@ const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRa
 
 const CHART_HEIGHT = 256;
 
-const FocusAreaWrapper = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-`;
-
 const FocusAreaRectActions = styled('div')<{
   top: string;
 }>`
@@ -296,6 +291,15 @@ const FocusAreaRectActions = styled('div')<{
   pointer-events: auto;
 `;
 
+const FocusAreaWrapper = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+`;
+
 const FocusAreaRect = styled('div')<{
   height: string;
   left: string;
@@ -307,9 +311,14 @@ const FocusAreaRect = styled('div')<{
   left: ${p => p.left};
   width: ${p => p.width};
   height: ${p => p.height};
-  outline: 2px solid ${p => p.theme.purple300};
-  outline-offset: -1px;
+
   padding: ${space(1)};
   pointer-events: none;
   z-index: 1;
+
+  outline: 2px solid ${p => p.theme.gray500};
+  outline-style: auto;
+
+  /* requires overflow: hidden on FocusAreaWrapper */
+  box-shadow: 0px 0px 0px 9999px ${p => color(p.theme.surface400).alpha(0.75).toString()};
 `;
