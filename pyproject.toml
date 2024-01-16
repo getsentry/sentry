@@ -388,7 +388,6 @@ module = [
     "sentry.issues.occurrence_consumer",
     "sentry.issues.search",
     "sentry.issues.status_change",
-    "sentry.mail.adapter",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
