@@ -37,7 +37,7 @@ DARWIN = sys.platform == "darwin"
 # 12.3.1: arm64
 APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 
-USE_COLIMA = bool(shutil.which("colima"))
+USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 
 if USE_COLIMA:
     RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
@@ -78,6 +78,7 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
             timeout = time.monotonic() + max_wait
 
             click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
+            click.echo(RAW_SOCKET_PATH)
             while time.monotonic() < timeout:
                 time.sleep(1)
                 try:
