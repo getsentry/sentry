@@ -6,6 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -49,7 +50,7 @@ export function CanvasSupportNotice() {
       }
     >
       {tct(
-        'Recording canvas in Replay is now supported, learn how to set it up [link:here].',
+        'We now support Canvas in SDK Version 7.94.0. Learn more [link:here].',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
@@ -61,7 +62,5 @@ export function CanvasSupportNotice() {
 }
 
 const StyledAlert = styled(Alert)`
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  margin-bottom: 0;
+  margin-bottom: ${space(1)};
 `;
