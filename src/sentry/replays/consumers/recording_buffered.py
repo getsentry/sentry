@@ -275,8 +275,27 @@ def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> 
 
 def commit_uploads(upload_events: list[UploadEvent]) -> None:
     with sentry_sdk.start_span(op="replays.consumer.recording.upload_segments"):
+        # This will run to completion taking potentially an infinite amount of time. However,
+        # that outcome is unlikely. In the event of an indefinite backlog the process can be
+        # restarted.
         with ThreadPoolExecutor(max_workers=len(upload_events)) as pool:
-            pool.map(_do_upload, upload_events)
+            futures = [pool.submit(_do_upload, upload) for upload in upload_events]
+
+    has_errors = False
+
+    # These futures should never fail unless there is a service-provider issue.
+    for error in filter(lambda n: n is not None, (fut.exception() for fut in futures)):
+        has_errors = True
+        sentry_sdk.capture_exception(error)
+
+    # If errors were detected the batch is failed as a whole. This wastes computation and
+    # incurs some amount service-provider cost.  However, this strategy is an improvement
+    # over dropping messages or manually retrying indefinitely.
+    #
+    # Raising an exception crashes the process and forces a restart from the last committed
+    # offset. No rate-limiting is applied.
+    if has_errors:
+        raise Exception("Could not upload one or more recordings.")
 
 
 def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -> None:
