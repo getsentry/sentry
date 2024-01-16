@@ -254,7 +254,7 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
-    orderBy: hasGroupBy && !orderBy ? `-${field}` : orderBy,
+    orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // Max result groups for compatibility with old metrics layer
     // TODO(telemetry-experience): remove once everyone is on new metrics layer
