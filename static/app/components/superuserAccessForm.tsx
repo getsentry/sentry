@@ -50,7 +50,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
     // If using staff and on local dev, skip U2F and immediately submit
-    if (this.props.hasStaff && disableU2FForSUForm && false) {
+    if (this.props.hasStaff && disableU2FForSUForm) {
       await this.handleSubmit(this.state);
       return;
     }
@@ -74,7 +74,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
     const suReason = superuserReason || data.superuserReason;
 
-    if (!authenticators.length && !disableU2FForSUForm && false) {
+    if (!authenticators.length && !disableU2FForSUForm) {
       this.handleError(ErrorCodes.NO_AUTHENTICATOR);
       return;
     }
@@ -153,6 +153,7 @@ class SuperuserAccessForm extends Component<Props, State> {
       error: true,
       errorType,
       showAccessForms: true,
+      isLoading: false,
     });
   };
 
@@ -203,7 +204,7 @@ class SuperuserAccessForm extends Component<Props, State> {
                   {errorType}
                 </StyledAlert>
               )}
-              {!authenticators.length && (
+              {!authenticators.length && !error && (
                 <StyledAlert type="error" showIcon>
                   {ErrorCodes.NO_AUTHENTICATOR}
                 </StyledAlert>
