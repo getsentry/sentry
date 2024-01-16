@@ -1,20 +1,19 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import WebVitalsLandingPage from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
+import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
 
-describe('WebVitalsLandingPage', function () {
-  const organization = OrganizationFixture({
-    features: ['starfish-browser-webvitals', 'performance-database-view'],
-  });
+describe('WebVitalsDetailPanel', function () {
+  const organization = OrganizationFixture();
+  let eventsMock, eventsStatsMock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -44,13 +43,13 @@ describe('WebVitalsLandingPage', function () {
     });
     jest.mocked(useOrganization).mockReturnValue(organization);
 
-    MockApiClient.addMockResponse({
+    eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },
     });
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
     });
@@ -60,19 +59,16 @@ describe('WebVitalsLandingPage', function () {
     jest.resetAllMocks();
   });
 
-  it('renders performance score migration alert', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {useStoredScores: 'true'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-    render(<WebVitalsLandingPage />);
-    await screen.findByText(
-      'We made improvements to how Performance Scores are calculated for your projects. Starting on 17 December 2023, scores are updated to more accurately reflect user experiences. Read more these improvements here.'
-    );
+  it('renders correctly with empty results', async () => {
+    render(<WebVitalsDetailPanel onClose={() => undefined} webVital="lcp" />);
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    // Once for project web vitals and once for samples
+    expect(eventsMock).toHaveBeenCalledTimes(2);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Largest Contentful Paint (P75)')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Largest Contentful Paint \(LCP\) measures the render/)
+    ).toBeInTheDocument();
   });
 });

@@ -1661,6 +1661,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable rate-limiting via relay for Monitors (crons)
+    "organizations:monitors-quota-rate-limit": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -1913,6 +1915,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Enable browser starfish webvitals module to use backend provided performance scores
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable mobile starfish app start module view
+    "organizations:starfish-mobile-appstart": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
@@ -3028,7 +3032,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "23.12.1"
+SELF_HOSTED_STABLE_VERSION = "24.1.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
