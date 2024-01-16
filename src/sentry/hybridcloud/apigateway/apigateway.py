@@ -52,9 +52,12 @@ def proxy_request_if_needed(
     if not silo_modes or current_silo_mode in silo_modes:
         return None
 
+    url_name = "unknown"
+    if request.resolver_match:
+        url_name = request.resolver_match.url_name or url_name
+
     if "organization_slug" in view_kwargs:
         org_slug = view_kwargs["organization_slug"]
-        url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
 
         metrics.incr(
             "apigateway.proxy_request",
@@ -63,7 +66,7 @@ def proxy_request_if_needed(
                 "kind": "orgslug",
             },
         )
-        return proxy_request(request, org_slug)
+        return proxy_request(request, org_slug, url_name)
 
     if (
         "uuid" in view_kwargs
@@ -74,11 +77,11 @@ def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": request.resolver_match.url_name,
+                "url_name": url_name,
                 "kind": "sentryapp-installation",
             },
         )
-        return proxy_sentryappinstallation_request(request, install_uuid)
+        return proxy_sentryappinstallation_request(request, install_uuid, url_name)
 
     if (
         "sentry_app_slug" in view_kwargs
@@ -89,11 +92,11 @@ def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": request.resolver_match.url_name,
+                "url_name": url_name,
                 "kind": "sentryapp",
             },
         )
-        return proxy_sentryapp_request(request, app_slug)
+        return proxy_sentryapp_request(request, app_slug, url_name)
 
     if (
         request.resolver_match
@@ -103,10 +106,10 @@ def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": request.resolver_match.url_name,
+                "url_name": url_name,
                 "kind": "regionpin",
             },
         )
 
-        return proxy_region_request(request, region)
+        return proxy_region_request(request, region, url_name)
     return None
