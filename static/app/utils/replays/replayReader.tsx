@@ -320,7 +320,7 @@ export default class ReplayReader {
   hasCanvasElementInReplay = memoize(() => {
     const sdkOptions = this.getSDKOptions();
     // @ts-expect-error TODO: Update SDK
-    if (sdkOptions?.canvas) {
+    if (sdkOptions?.shouldRecordCanvas) {
       // Return false to ignore this condition, as they are already using the
       // new canvas integration
       return false;
