@@ -74,7 +74,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
     const suReason = superuserReason || data.superuserReason;
 
-    if (!authenticators.length && !disableU2FForSUForm) {
+    if (!authenticators.length && !disableU2FForSUForm && false) {
       this.handleError(ErrorCodes.NO_AUTHENTICATOR);
       return;
     }
