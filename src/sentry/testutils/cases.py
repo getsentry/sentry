@@ -1395,23 +1395,24 @@ class BaseSpansTestCase(SnubaTestCase):
         self,
         project_id: int,
         span_id: str = "98230207e6e4a6ad",
-        trace_id: str = "b2565c0d-f13c-4c00-a654-d2209e06e4bd",
+        trace_id: str = "b2565c0df13c4c00a654d2209e06e4bd",
         transaction_id: Optional[str] = None,
         profile_id: Optional[str] = None,
-        metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
-        timestamp: Optional[datetime] = None,
-        tags: Optional[Mapping[str, Any]] = None,
-        store_only_summary: bool = False,
+        transaction: str = None,
         is_segment: bool = False,
         duration_ms: int = 10,
-        transaction: str = None,
+        tags: Optional[Mapping[str, Any]] = None,
         measurements: Optional[Mapping[str, Union[int, float]]] = None,
+        timestamp: Optional[datetime] = None,
+        store_only_summary: bool = False,
+        store_metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+        store_transaction_and_span: bool = False,
     ):
         if timestamp is None:
             timestamp = datetime.now(tz=timezone.utc)
 
         payload = {
-            "duration_ms": duration_ms,
+            "duration_ms": int(duration_ms),
             "exclusive_time_ms": 5,
             "is_segment": is_segment,
             "project_id": project_id,
@@ -1429,8 +1430,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["event_id"] = transaction_id
         if profile_id:
             payload["profile_id"] = profile_id
-        if metrics_summary:
-            payload["_metrics_summary"] = metrics_summary
+        if store_metrics_summary:
+            payload["_metrics_summary"] = store_metrics_summary
         if measurements:
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
@@ -1439,7 +1440,14 @@ class BaseSpansTestCase(SnubaTestCase):
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self._snuba_insert(payload, "spans")
+            if store_transaction_and_span:
+                # To simplify the testing, the span duration is half the duration of the transaction.
+                for is_segment, duration in ((True, duration_ms), (False, duration_ms / 2)):
+                    self._snuba_insert(
+                        {**payload, "is_segment": is_segment, "duration_ms": int(duration)}, "spans"
+                    )
+            else:
+                self._snuba_insert(payload, "spans")
 
         if "_metrics_summary" in payload:
             self._snuba_insert(payload, "metrics_summaries")
