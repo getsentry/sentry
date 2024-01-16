@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Organization} from 'sentry-fixture/organization';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -24,7 +25,7 @@ const getJoinButton = () => {
 };
 
 describe('AcceptOrganizationInvite', function () {
-  const organization = Organization({slug: 'org-slug'});
+  const organization = OrganizationFixture({slug: 'org-slug'});
   const initialData = window.__initialData;
 
   afterEach(() => {
@@ -43,7 +44,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -84,7 +85,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{memberId: '1', token: 'abc'}}
       />
     );
@@ -113,7 +114,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -144,7 +145,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -176,7 +177,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -208,7 +209,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -240,7 +241,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -266,7 +267,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -288,7 +289,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -312,7 +313,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );

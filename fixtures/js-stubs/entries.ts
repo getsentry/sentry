@@ -1,10 +1,10 @@
-import {EventEntry as MockEventEntry} from 'sentry-fixture/eventEntry';
+import {EventEntryFixture} from 'sentry-fixture/eventEntry';
 
-import {type Entry as TEntry, EntryType} from 'sentry/types';
+import {type Entry, EntryType} from 'sentry/types';
 
-export function Entries123Target(): TEntry[] {
+export function Entries123Target(): Entry[] {
   return [
-    MockEventEntry({
+    EventEntryFixture({
       type: EntryType.EXCEPTION,
       data: {
         values: [
@@ -45,7 +45,7 @@ export function Entries123Target(): TEntry[] {
         hasSystemFrames: false,
       },
     }),
-    MockEventEntry({
+    EventEntryFixture({
       type: EntryType.THREADS,
       data: {
         values: [
@@ -525,7 +525,7 @@ export function Entries123Target(): TEntry[] {
         ],
       },
     }),
-    MockEventEntry({
+    EventEntryFixture({
       type: EntryType.BREADCRUMBS,
       data: {
         values: [
@@ -567,7 +567,7 @@ export function Entries123Target(): TEntry[] {
         ],
       },
     }),
-    MockEventEntry({
+    EventEntryFixture({
       type: EntryType.REQUEST,
       data: {
         fragment: '',
@@ -590,9 +590,9 @@ export function Entries123Target(): TEntry[] {
   ];
 }
 
-export function Entries123Base(): TEntry[] {
+export function Entries123Base(): Entry[] {
   return [
-    MockEventEntry({
+    EventEntryFixture({
       type: EntryType.EXCEPTION,
       data: {
         values: [
@@ -633,7 +633,7 @@ export function Entries123Base(): TEntry[] {
         hasSystemFrames: false,
       },
     }),
-    MockEventEntry({
+    EventEntryFixture({
       type: EntryType.BREADCRUMBS,
       data: {
         values: [
@@ -675,7 +675,7 @@ export function Entries123Base(): TEntry[] {
         ],
       },
     }),
-    MockEventEntry({
+    EventEntryFixture({
       type: EntryType.REQUEST,
       data: {
         fragment: '',

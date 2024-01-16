@@ -14,6 +14,7 @@ import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project, SelectValue} from 'sentry/types';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useCurrentProjectState} from './useCurrentProjectState';
@@ -160,11 +161,7 @@ function OnboardingContent({
           })}
         </div>
         <div>
-          <LinkButton
-            size="sm"
-            href="https://develop.sentry.dev/delightful-developer-metrics/"
-            external
-          >
+          <LinkButton size="sm" href={METRICS_DOCS_URL} external>
             {t('Go to Sentry Documentation')}
           </LinkButton>
         </div>
@@ -182,11 +179,7 @@ function OnboardingContent({
           )}
         </div>
         <div>
-          <LinkButton
-            size="sm"
-            href="https://develop.sentry.dev/delightful-developer-metrics/"
-            external
-          >
+          <LinkButton size="sm" href={METRICS_DOCS_URL} external>
             {t('Read Docs')}
           </LinkButton>
         </div>

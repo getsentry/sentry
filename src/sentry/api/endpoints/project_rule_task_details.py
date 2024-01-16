@@ -16,9 +16,9 @@ from sentry.models.rule import Rule
 class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = [ProjectSettingPermission]
+    permission_classes = (ProjectSettingPermission,)
 
     def get(self, request: Request, project, task_uuid) -> Response:
         """

@@ -407,6 +407,7 @@ class WebhookProviderIdentifier(IntEnum):
     LEGACY_PLUGIN = 10
     GETSENTRY = 11
     DISCORD = 12
+    VERCEL = 13
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -564,7 +565,7 @@ class OutboxBase(Model):
                     # If a non task flush process is running already, allow it to proceed without contention.
                     next_shard_row = None
                 else:
-                    raise e
+                    raise
 
             yield next_shard_row
 

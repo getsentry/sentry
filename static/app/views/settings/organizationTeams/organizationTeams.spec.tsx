@@ -1,7 +1,7 @@
-import {AccessRequest} from 'sentry-fixture/accessRequest';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {AccessRequestFixture} from 'sentry-fixture/accessRequest';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -59,7 +59,7 @@ describe('OrganizationTeams', function () {
 
     it('can join team and have link to details', function () {
       const mockTeams = [
-        Team({
+        TeamFixture({
           hasAccess: true,
           isMember: false,
         }),
@@ -75,13 +75,13 @@ describe('OrganizationTeams', function () {
     });
 
     it('reloads projects after joining a team', async function () {
-      const team = Team({
+      const team = TeamFixture({
         hasAccess: true,
         isMember: false,
       });
       const getOrgMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
-        body: Organization(),
+        body: OrganizationFixture(),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/members/me/teams/${team.slug}/`,
@@ -101,7 +101,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: true})];
+      const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper();
 
@@ -109,7 +109,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot join idp-provisioned team', function () {
-      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: false})];
+      const mockTeams = [
+        TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -143,7 +145,7 @@ describe('OrganizationTeams', function () {
 
     it('can request access to team and does not have link to details', function () {
       const mockTeams = [
-        Team({
+        TeamFixture({
           hasAccess: false,
           isMember: false,
         }),
@@ -159,7 +161,7 @@ describe('OrganizationTeams', function () {
 
     it('can leave team when you are a member', function () {
       const mockTeams = [
-        Team({
+        TeamFixture({
           hasAccess: true,
           isMember: true,
         }),
@@ -173,7 +175,9 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot request to join idp-provisioned team', function () {
-      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: false})];
+      const mockTeams = [
+        TeamFixture({flags: {'idp:provisioned': true}, isMember: false}),
+      ];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -183,7 +187,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      const mockTeams = [Team({flags: {'idp:provisioned': true}, isMember: true})];
+      const mockTeams = [TeamFixture({flags: {'idp:provisioned': true}, isMember: true})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -200,16 +204,16 @@ describe('OrganizationTeams', function () {
       },
     });
     const orgId = organization.slug;
-    const accessRequest = AccessRequest({
+    const accessRequest = AccessRequestFixture({
       requester: {},
     });
-    const requester = User({
+    const requester = UserFixture({
       id: '9',
       username: 'requester@example.com',
       email: 'requester@example.com',
       name: 'Requester',
     });
-    const requestList = [accessRequest, AccessRequest({id: '4', requester})];
+    const requestList = [accessRequest, AccessRequestFixture({id: '4', requester})];
 
     const createWrapper = (
       props?: Partial<React.ComponentProps<typeof OrganizationTeams>>

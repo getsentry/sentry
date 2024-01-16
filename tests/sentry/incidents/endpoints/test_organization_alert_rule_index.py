@@ -16,7 +16,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
@@ -586,7 +585,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",
@@ -633,7 +632,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_uuid4.return_value = self.get_mock_uuid()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",
@@ -863,6 +862,33 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 == "You can use an MRI only on alerts on performance metrics"
             )
 
+    def test_post_rule_256_char_name(self):
+        char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"
+        alert_rule_dict = self.alert_rule_dict
+        alert_rule_dict["name"] = char_256_name
+        with outbox_runner(), self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **alert_rule_dict,
+            )
+        rule = AlertRule.objects.get(id=resp.data["id"])
+        assert rule.name == char_256_name
+
+    def test_post_rule_over_256_char_name(self):
+        char_257_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFOK"
+        alert_rule_dict = self.alert_rule_dict
+        alert_rule_dict["name"] = char_257_name
+        with outbox_runner(), self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **alert_rule_dict
+            )
+        assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
 
 # TODO(Gabe): Rewrite this test to properly annotate the silo mode
 @freeze_time()
@@ -972,7 +998,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",

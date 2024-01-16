@@ -90,6 +90,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
   hasV2ReleaseUIEnabled =
+    this.props.organization.features.includes('releases-v2-internal') ||
     this.props.organization.features.includes('releases-v2') ||
     this.props.organization.features.includes('releases-v2-st');
 
@@ -120,11 +121,12 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
         'releases', // stateKey
         `/organizations/${organization.slug}/releases/`, // endpoint
         {query}, // params
-        {disableEntireQuery: true}, // options
+        {disableEntireQuery: true}, // options - prevent cursor from being passed into query
       ],
     ];
 
     if (this.hasV2ReleaseUIEnabled) {
+      // prefetch all thresholds so we know whether to expect a threshold or not
       const thresholdQuery: ThresholdQuery = {};
       if (selection.projects.length) {
         thresholdQuery.project = selection.projects;
@@ -139,6 +141,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
         'thresholds',
         `/organizations/${organization.slug}/release-thresholds/`,
         {query: thresholdQuery},
+        {disableEntireQuery: true}, // options to prevent cursor from being passed
       ]);
     }
 

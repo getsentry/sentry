@@ -2,7 +2,6 @@ import {useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
@@ -168,7 +167,7 @@ function WidgetBuilder({
   tags,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
-  const {source, displayType, defaultTitle, limit} = location.query;
+  const {source, displayType, defaultTitle, limit, dataset} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
@@ -211,15 +210,20 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const dataset = source === DashboardWidgetSource.DDM ? DataSet.METRICS : DataSet.EVENTS;
+  const dataSet = dataset
+    ? dataset
+    : source === DashboardWidgetSource.DDM
+    ? DataSet.METRICS
+    : DataSet.EVENTS;
 
   const api = useApi();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
-    getDatasetConfig(WidgetType.DISCOVER)
+    getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
   );
+
   const defaultThresholds: ThresholdsConfig = {max_values: {}, unit: null};
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
@@ -238,7 +242,7 @@ function WidgetBuilder({
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
-      dataSet: dataset,
+      dataSet,
       queryConditionsValid: true,
       selectedDashboard: dashboard.id || NEW_DASHBOARD_ID,
     };
@@ -382,7 +386,10 @@ function WidgetBuilder({
       defined(currentDashboardId) && currentDashboardId !== NEW_DASHBOARD_ID
         ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
         : `/organizations/${orgId}/dashboards/${NEW_DASHBOARD_ID}/`,
-    query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
+    query:
+      Object.keys(queryParamsWithoutSource).length === 0
+        ? undefined
+        : queryParamsWithoutSource,
   };
 
   const isTimeseriesChart = getIsTimeseriesChart(state.displayType);
@@ -898,7 +905,7 @@ function WidgetBuilder({
 
   function goToDashboards(id: string, query?: Record<string, any>) {
     const pathQuery =
-      !isEmpty(queryParamsWithoutSource) || query
+      Object.keys(queryParamsWithoutSource).length > 0 || query
         ? {
             ...queryParamsWithoutSource,
             ...query,

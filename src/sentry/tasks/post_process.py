@@ -639,6 +639,33 @@ def post_process_group(
                 }
             ]
 
+        try:
+            if group_states is not None:
+                if not is_transaction_event:
+                    if len(group_states) == 0:
+                        metrics.incr("sentry.tasks.post_process.error_empty_group_states")
+                    elif len(group_states) > 1:
+                        metrics.incr("sentry.tasks.post_process.error_too_many_group_states")
+                    elif group_id != group_states[0]["id"]:
+                        metrics.incr(
+                            "sentry.tasks.post_process.error_group_states_dont_match_group"
+                        )
+                else:
+                    if len(group_states) == 1:
+                        metrics.incr("sentry.tasks.post_process.transaction_has_group_state")
+                        if group_id != group_states[0]["id"]:
+                            metrics.incr(
+                                "sentry.tasks.post_process.transaction_group_states_dont_match_group"
+                            )
+                    if len(group_states) > 1:
+                        metrics.incr(
+                            "sentry.tasks.post_process.transaction_has_too_many_group_states"
+                        )
+        except Exception:
+            logger.exception(
+                "Error logging group_states stats. If this happens it's noisy but not critical, nothing is broken"
+            )
+
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
@@ -883,7 +910,6 @@ def process_snoozes(job: PostProcessJob) -> None:
     # Check if group is escalating
     if (
         not should_use_new_escalation_logic
-        and features.has("organizations:escalating-issues", group.organization)
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
@@ -935,10 +961,7 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_window": snooze.user_window,
             }
 
-            if features.has("organizations:escalating-issues", group.organization):
-                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
-            else:
-                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
+            manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
 
             snooze.delete()
 
@@ -1352,6 +1375,7 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
 
 
 MAX_NEW_ESCALATION_AGE_HOURS = 24
+MIN_EVENTS_FOR_NEW_ESCALATION = 10
 
 
 def detect_new_escalation(job: PostProcessJob):
@@ -1374,20 +1398,33 @@ def detect_new_escalation(job: PostProcessJob):
         "projects:first-event-severity-new-escalation", job["event"].project
     ):
         return
+    extra = {
+        "org_id": group.organization.id,
+        "project_id": job["event"].project.id,
+        "group_id": group.id,
+    }
     group_age_seconds = (timezone.now() - group.first_seen).total_seconds()
     group_age_hours = group_age_seconds / 3600 if group_age_seconds >= 3600 else 1
     times_seen = group.times_seen_with_pending
     has_valid_status = group.substatus == GroupSubStatus.NEW
-    if group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS or not has_valid_status or times_seen <= 1:
+    if (
+        group_age_hours >= MAX_NEW_ESCALATION_AGE_HOURS
+        or not has_valid_status
+        or times_seen < MIN_EVENTS_FOR_NEW_ESCALATION
+    ):
+        logger.warning(
+            "tasks.post_process.detect_new_escalation.skipping_detection",
+            extra={
+                **extra,
+                "group_age_hours": group_age_hours,
+                "group_status": group.substatus,
+                "times_seen": times_seen,
+            },
+        )
         return
     # Get escalation lock for this group. If we're unable to acquire this lock, another process is handling
     # this group at the same time. In that case, just exit early, no need to retry.
     lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
-    extra = {
-        "org_id": group.organization.id,
-        "project_Id": job["event"].project.id,
-        "group_id": group.id,
-    }
     try:
         with lock.acquire():
             project_escalation_rate = get_latest_threshold(job["event"].project)
@@ -1404,6 +1441,15 @@ def detect_new_escalation(job: PostProcessJob):
                     type=ActivityType.SET_ESCALATING,
                     data={"event_id": job["event"].event_id},
                 )
+            logger.info(
+                "tasks.post_process.detect_new_escalation",
+                extra={
+                    **extra,
+                    "group_hourly_event_rate": group_hourly_event_rate,
+                    "project_escalation_rate": project_escalation_rate,
+                    "has_escalated": job["has_escalated"],
+                },
+            )
     except UnableToAcquireLock as error:
         extra["error"] = error
         logger.warning(

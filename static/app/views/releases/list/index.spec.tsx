@@ -1,5 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -21,6 +22,9 @@ import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOpt
 describe('ReleasesList', () => {
   const {organization, routerContext, router, routerProps} = initializeOrg();
   const semverVersionInfo = {
+    buildHash: null,
+    description: '1.2.3',
+    package: 'package',
     version: {
       raw: '1.2.3',
       major: 1,
@@ -64,16 +68,22 @@ describe('ReleasesList', () => {
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
-        TestStubs.Release({
+        ReleaseFixture({
           version: '1.0.0',
-          versionInfo: {...semverVersionInfo, raw: '1.0.0'},
+          versionInfo: {
+            ...semverVersionInfo,
+            version: {...semverVersionInfo.version, raw: '1.0.0'},
+          },
         }),
-        TestStubs.Release({
+        ReleaseFixture({
           version: '1.0.1',
-          versionInfo: {...semverVersionInfo, raw: '1.0.1'},
+          versionInfo: {
+            ...semverVersionInfo,
+            version: {...semverVersionInfo.version, raw: '1.0.1'},
+          },
         }),
         {
-          ...TestStubs.Release({version: 'af4f231ec9a8'}),
+          ...ReleaseFixture({version: 'af4f231ec9a8'}),
           projects: [
             {
               id: 4383604,
@@ -134,7 +144,7 @@ describe('ReleasesList', () => {
       name: 'test-name-2',
       features: [],
     });
-    const org = Organization({projects: [project, projectWithouReleases]});
+    const org = OrganizationFixture({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -502,7 +512,7 @@ describe('ReleasesList', () => {
       url: '/organizations/org-slug/releases/',
       body: [
         {
-          ...TestStubs.Release({version: '2.0.0'}),
+          ...ReleaseFixture({version: '2.0.0'}),
           projects: [
             {
               id: 1,
@@ -538,7 +548,7 @@ describe('ReleasesList', () => {
   it('does not hide health rows when "All Projects" are selected in global header', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release({version: '2.0.0'})],
+      body: [ReleaseFixture({version: '2.0.0'})],
     });
     render(<ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />, {
       context: routerContext,

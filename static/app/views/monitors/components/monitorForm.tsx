@@ -208,11 +208,15 @@ function MonitorForm({
 
   const selectedProjectId = selection.projects[0];
   const selectedProject = selectedProjectId
-    ? projects.find(p => p.id === selectedProjectId + '')
+    ? projects.find(p => p.id === selectedProjectId.toString())
     : null;
 
   const isSuperuser = isActiveSuperuser();
-  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
+  const disableNewProjects = organization.features.includes('crons-disable-new-projects');
+  const filteredProjects = projects.filter(
+    project =>
+      (isSuperuser || project.isMember) && (!disableNewProjects || project.hasMonitors)
+  );
 
   const alertRuleTarget = monitor?.alertRule?.targets.map(
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
@@ -261,6 +265,7 @@ function MonitorForm({
         <InputGroup>
           <StyledTextField
             name="name"
+            aria-label={t('Name')}
             placeholder={t('My Cron Job')}
             required
             stacked
@@ -269,6 +274,7 @@ function MonitorForm({
           {monitor && (
             <StyledTextField
               name="slug"
+              aria-label={t('Slug')}
               help={tct(
                 'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
                 {strong: <strong />}
@@ -282,6 +288,7 @@ function MonitorForm({
           )}
           <StyledSentryProjectSelectorField
             name="project"
+            aria-label={t('Project')}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
@@ -308,6 +315,7 @@ function MonitorForm({
           )}
           <StyledSelectField
             name="config.schedule_type"
+            aria-label={t('Schedule Type')}
             options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
             orientInline
@@ -331,6 +339,7 @@ function MonitorForm({
                   <MultiColumnInput columns="1fr 2fr">
                     <StyledTextField
                       name="config.schedule"
+                      aria-label={t('Crontab Schedule')}
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
@@ -340,6 +349,7 @@ function MonitorForm({
                     />
                     <StyledSelectField
                       name="config.timezone"
+                      aria-label={t('Timezone')}
                       defaultValue="UTC"
                       options={timezoneOptions}
                       required
@@ -356,14 +366,17 @@ function MonitorForm({
                     <LabelText>{t('Every')}</LabelText>
                     <StyledNumberField
                       name="config.schedule.frequency"
+                      aria-label={t('Interval Frequency')}
                       placeholder="e.g. 1"
                       defaultValue="1"
+                      min={1}
                       required
                       stacked
                       inline={false}
                     />
                     <StyledSelectField
                       name="config.schedule.interval"
+                      aria-label={t('Interval Type')}
                       options={getScheduleIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
@@ -470,14 +483,28 @@ function MonitorForm({
                 multiple
                 menuPlacement="auto"
               />
-              <SelectField
-                label={t('Environment')}
-                help={t('Only receive notifications from a specific environment.')}
-                name="alertRule.environment"
-                options={alertRuleEnvs}
-                menuPlacement="auto"
-                defaultValue=""
-              />
+              <Observer>
+                {() => {
+                  const selectedAssignee = form.current.getValue('alertRule.targets');
+                  // Check for falsey value or empty array value
+                  const disabled = !selectedAssignee || !selectedAssignee.toString();
+
+                  return (
+                    <SelectField
+                      label={t('Environment')}
+                      help={t('Only receive notifications from a specific environment.')}
+                      name="alertRule.environment"
+                      options={alertRuleEnvs}
+                      disabled={disabled}
+                      menuPlacement="auto"
+                      defaultValue=""
+                      disabledReason={t(
+                        'Please select which teams or members to notify first.'
+                      )}
+                    />
+                  );
+                }}
+              </Observer>
             </PanelBody>
           </Panel>
         </InputGroup>

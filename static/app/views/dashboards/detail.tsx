@@ -13,7 +13,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -46,6 +46,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
 import {generatePerformanceEventView} from '../performance/data';
@@ -109,6 +110,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   dashboardState: DashboardState;
+  editingWidgetIndex: number;
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
@@ -118,6 +120,7 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+    editingWidgetIndex: -1,
     setData: data => {
       this.setState(data);
     },
@@ -233,7 +236,7 @@ class DashboardDetail extends Component<Props, State> {
     return DashboardState.PREVIEW === dashboardState;
   }
 
-  get isEditing() {
+  get isEditingDashboard() {
     const {dashboardState} = this.state;
     return [
       DashboardState.EDIT,
@@ -442,7 +445,7 @@ class DashboardDetail extends Component<Props, State> {
       modifiedDashboard: newModifiedDashboard,
       widgetLimitReached: widgets.length >= MAX_WIDGETS,
     });
-    if (this.isEditing || this.isPreview) {
+    if (this.isEditingDashboard || this.isPreview) {
       return;
     }
     updateDashboard(api, organization.slug, newModifiedDashboard).then(
@@ -478,7 +481,35 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
-  onAddWidget = () => {
+  handleStartEditMetricWidget = (index: number) => {
+    this.setState({editingWidgetIndex: index});
+  };
+
+  handleEndEditMetricWidget = (widgets: Widget[], isCancel = false) => {
+    if (isCancel) {
+      this.setState({
+        dashboardState: DashboardState.VIEW,
+        modifiedDashboard: null,
+        editingWidgetIndex: -1,
+      });
+      return;
+    }
+
+    this.setState(
+      (state: State) => ({
+        ...state,
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        dashboardState: DashboardState.EDIT,
+        modifiedDashboard: {
+          ...(state.modifiedDashboard || this.props.dashboard),
+          widgets,
+        },
+      }),
+      this.onCommit
+    );
+  };
+
+  onAddWidget = (dataset: DataSet) => {
     const {
       organization,
       dashboard,
@@ -497,6 +528,7 @@ class DashboardDetail extends Component<Props, State> {
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
+            dataset,
           },
         })
       );
@@ -563,16 +595,23 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
+          const isInlineEdit = this.state.editingWidgetIndex !== -1;
+          if (isInlineEdit) {
+            this.setState({
+              dashboardState: DashboardState.VIEW,
+            });
+          }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
-              addSuccessMessage(t('Dashboard updated'));
+              !isInlineEdit && addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
+                editingWidgetIndex: -1,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
@@ -627,6 +666,21 @@ class DashboardDetail extends Component<Props, State> {
     }));
   };
 
+  onUpdateMetricWidget = (widgets: Widget[]) => {
+    this.setState(
+      (state: State) => ({
+        ...state,
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        dashboardState: DashboardState.EDIT,
+        modifiedDashboard: {
+          ...(state.modifiedDashboard || this.props.dashboard),
+          widgets,
+        },
+      }),
+      () => this.onCommit()
+    );
+  };
+
   renderWidgetBuilder() {
     const {children, dashboard} = this.props;
     const {modifiedDashboard} = this.state;
@@ -634,7 +688,9 @@ class DashboardDetail extends Component<Props, State> {
     return isValidElement(children)
       ? cloneElement<any>(children, {
           dashboard: modifiedDashboard ?? dashboard,
-          onSave: this.isEditing ? this.onUpdateWidget : this.handleUpdateWidgetList,
+          onSave: this.isEditingDashboard
+            ? this.onUpdateWidget
+            : this.handleUpdateWidgetList,
         })
       : children;
   }
@@ -665,7 +721,7 @@ class DashboardDetail extends Component<Props, State> {
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
                       onUpdate={this.setModifiedDashboard}
-                      isEditing={this.isEditing}
+                      isEditingDashboard={this.isEditingDashboard}
                     />
                   </Layout.Title>
                   <Controls
@@ -707,11 +763,14 @@ class DashboardDetail extends Component<Props, State> {
                           paramDashboardId={dashboardId}
                           dashboard={modifiedDashboard ?? dashboard}
                           organization={organization}
-                          isEditing={this.isEditing}
+                          isEditingDashboard={this.isEditingDashboard}
                           widgetLimitReached={widgetLimitReached}
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          editingWidgetIndex={this.state.editingWidgetIndex}
+                          onStartEditMetricWidget={this.handleStartEditMetricWidget}
+                          onEndEditMetricWidget={this.handleEndEditMetricWidget}
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
@@ -803,7 +862,7 @@ class DashboardDetail extends Component<Props, State> {
                         <DashboardTitle
                           dashboard={modifiedDashboard ?? dashboard}
                           onUpdate={this.setModifiedDashboard}
-                          isEditing={this.isEditing}
+                          isEditingDashboard={this.isEditingDashboard}
                         />
                       </Layout.Title>
                     </Layout.HeaderContent>
@@ -855,7 +914,7 @@ class DashboardDetail extends Component<Props, State> {
                                 hasUnsavedChanges={hasUnsavedFilters}
                                 isEditingDashboard={
                                   dashboardState !== DashboardState.CREATE &&
-                                  this.isEditing
+                                  this.isEditingDashboard
                                 }
                                 isPreview={this.isPreview}
                                 onDashboardFilterChange={this.handleChangeFilter}
@@ -910,11 +969,16 @@ class DashboardDetail extends Component<Props, State> {
                                   paramDashboardId={dashboardId}
                                   dashboard={modifiedDashboard ?? dashboard}
                                   organization={organization}
-                                  isEditing={this.isEditing}
+                                  isEditingDashboard={this.isEditingDashboard}
                                   widgetLimitReached={widgetLimitReached}
                                   onUpdate={this.onUpdateWidget}
                                   handleUpdateWidgetList={this.handleUpdateWidgetList}
                                   handleAddCustomWidget={this.handleAddCustomWidget}
+                                  onStartEditMetricWidget={
+                                    this.handleStartEditMetricWidget
+                                  }
+                                  onEndEditMetricWidget={this.handleEndEditMetricWidget}
+                                  editingWidgetIndex={this.state.editingWidgetIndex}
                                   router={router}
                                   location={location}
                                   newWidget={newWidget}

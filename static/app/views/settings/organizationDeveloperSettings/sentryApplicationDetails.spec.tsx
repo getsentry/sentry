@@ -1,8 +1,9 @@
 import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppToken} from 'sentry-fixture/sentryAppToken';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppTokenFixture} from 'sentry-fixture/sentryAppToken';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -17,12 +18,12 @@ describe('Sentry Application Details', function () {
 
   const maskedValue = '*'.repeat(64);
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    org = Organization({features: ['sentry-app-logo-upload']});
+    org = OrganizationFixture({features: ['sentry-app-logo-upload']});
   });
 
   describe('Creating a new public Sentry App', () => {
@@ -189,7 +190,7 @@ describe('Sentry Application Details', function () {
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp();
+      sentryApp = SentryAppFixture();
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -253,10 +254,10 @@ describe('Sentry Application Details', function () {
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'internal',
       });
-      token = SentryAppToken();
+      token = SentryAppTokenFixture();
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -324,11 +325,11 @@ describe('Sentry Application Details', function () {
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'internal',
         clientSecret: maskedValue,
       });
-      token = SentryAppToken({token: maskedValue, refreshToken: maskedValue});
+      token = SentryAppTokenFixture({token: maskedValue, refreshToken: maskedValue});
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -373,11 +374,11 @@ describe('Sentry Application Details', function () {
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp({
+      sentryApp = SentryAppFixture({
         status: 'internal',
         isAlertable: true,
       });
-      token = SentryAppToken();
+      token = SentryAppTokenFixture();
       sentryApp.events = ['issue'];
 
       MockApiClient.addMockResponse({
@@ -396,7 +397,7 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         method: 'POST',
         body: [
-          SentryAppToken({
+          SentryAppTokenFixture({
             token: '392847329',
             dateCreated: '2018-03-02T18:30:26Z',
           }),
@@ -450,7 +451,7 @@ describe('Sentry Application Details', function () {
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp();
+      sentryApp = SentryAppFixture();
       sentryApp.events = ['issue'];
       sentryApp.scopes = ['project:read', 'event:read'];
 
@@ -544,7 +545,7 @@ describe('Sentry Application Details', function () {
     }
 
     beforeEach(() => {
-      sentryApp = SentryApp();
+      sentryApp = SentryAppFixture();
 
       editAppRequest = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,

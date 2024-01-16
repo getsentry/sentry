@@ -1,4 +1,4 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -125,7 +125,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -152,7 +152,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -182,7 +182,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',
@@ -219,7 +219,7 @@ describe('Flamegraph', function () {
       statusCode: 404,
     });
 
-    (useParams as jest.Mock).mockReturnValue({
+    jest.mocked(useParams).mockReturnValue({
       orgId: 'org-slug',
       projectId: 'foo-project',
       eventId: 'profile-id',

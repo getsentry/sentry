@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +8,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ThresholdsList from 'sentry/views/releases/thresholdsList/';
 
 describe('ReleaseThresholdsList', () => {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     slug: 'test-thresholds',
     features: ['releases-v2'],
   });
@@ -34,7 +34,7 @@ describe('ReleaseThresholdsList', () => {
   });
 
   it('redirects to releases if flag is not set', () => {
-    const organization2 = Organization({
+    const organization2 = OrganizationFixture({
       slug: 'test-thresholds-no-flag',
       features: [],
     });

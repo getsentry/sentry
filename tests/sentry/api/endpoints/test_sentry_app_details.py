@@ -509,3 +509,12 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
         self.published_app.update(metadata={"partnership_restricted": True})
         response = self.client.delete(self.url)
         assert response.status_code == 403
+
+    def test_cannot_delete_by_manager(self):
+        self.user_manager = self.create_user("manager@example.com", is_superuser=False)
+        self.create_member(user=self.user_manager, organization=self.org, role="manager", teams=[])
+        self.login_as(self.user_manager)
+
+        url = reverse("sentry-api-0-sentry-app-details", args=[self.internal_integration.slug])
+        response = self.client.delete(url)
+        assert response.status_code == 403

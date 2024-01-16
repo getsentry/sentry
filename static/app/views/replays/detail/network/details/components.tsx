@@ -70,7 +70,7 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
 }
 
 const ValueContainer = styled('span')`
-  overflow: scroll;
+  overflow: auto;
 `;
 
 const SectionTitle = styled('dt')``;

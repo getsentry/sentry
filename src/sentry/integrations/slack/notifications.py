@@ -86,6 +86,10 @@ def _notify_recipient(
             if attachment_blocks:
                 for attachment in attachment_blocks:
                     blocks.append(attachment)
+            if len(blocks) >= 2 and blocks[1].get("block_id"):
+                # block id needs to be in the first block
+                blocks[0]["block_id"] = blocks[1]["block_id"]
+                del blocks[1]["block_id"]
             additional_attachment = get_additional_attachment(
                 integration, notification.organization
             )

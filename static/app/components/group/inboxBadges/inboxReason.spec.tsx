@@ -21,16 +21,6 @@ describe('InboxReason', () => {
     expect(screen.getByText(/\d+(s|ms|m)/i)).toBeInTheDocument();
   });
 
-  it('has a tooltip', async () => {
-    render(<InboxReason inbox={inbox} />);
-    const tag = screen.getByText('New Issue');
-    await userEvent.hover(tag);
-
-    expect(
-      await screen.findByText('Mark Reviewed to remove this label')
-    ).toBeInTheDocument();
-  });
-
   it('has affected user count', async () => {
     render(
       <InboxReason

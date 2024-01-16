@@ -1,6 +1,6 @@
-import type {User as UserType} from 'sentry/types';
+import type {User} from 'sentry/types';
 
-export function User(params: Partial<UserType> = {}): UserType {
+export function UserFixture(params: Partial<User> = {}): User {
   return {
     id: '1',
     username: 'foo@example.com',
@@ -15,6 +15,7 @@ export function User(params: Partial<UserType> = {}): UserType {
       defaultIssueEvent: 'recommended',
       avatarType: 'letter_avatar',
       stacktraceOrder: -1,
+      issueDetailsNewExperienceQ42023: false,
     },
     ip_address: '127.0.0.1',
     hasPasswordAuth: true,

@@ -4,12 +4,11 @@ import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import Badge from 'sentry/components/badge';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
-import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -169,7 +168,6 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
@@ -266,16 +264,13 @@ function GroupHeader({
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
-              {!hasEscalatingIssuesUi && group.inbox && (
-                <InboxReason inbox={group.inbox} fontSize="md" />
-              )}
-              {hasEscalatingIssuesUi && (
+              {
                 <GroupStatusBadge
                   status={group.status}
                   substatus={group.substatus}
                   fontSize="md"
                 />
-              )}
+              }
             </TitleHeading>
             <StyledTagAndMessageWrapper>
               {group.level && <ErrorLevel level={group.level} size="11px" />}

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.utils import timezone
-from rest_framework.exceptions import APIException, ParseError, ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
@@ -19,48 +18,24 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
-from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.api.utils import handle_query_errors
+from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
-from sentry.snuba import (
-    discover,
-    errors,
-    functions,
-    issue_platform,
-    metrics_enhanced_performance,
-    metrics_performance,
-    profiles,
-    spans_indexed,
-    spans_metrics,
-)
+from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
-
-# Doesn't map 1:1 with real datasets, but rather what we present to users
-# ie. metricsEnhanced is not a real dataset
-DATASET_OPTIONS = {
-    "discover": discover,
-    "errors": errors,
-    "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_performance,
-    "profiles": profiles,
-    "issuePlatform": issue_platform,
-    "profileFunctions": functions,
-    "spansIndexed": spans_indexed,
-    "spansMetrics": spans_metrics,
-}
-
-DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -103,10 +78,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_dataset(self, request: Request) -> Any:
         dataset_label = request.GET.get("dataset", "discover")
-        if dataset_label not in DATASET_OPTIONS:
+        result = get_dataset(dataset_label)
+        if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
         sentry_sdk.set_tag("query.dataset", dataset_label)
-        return DATASET_OPTIONS[dataset_label]
+        return result
 
     def get_snuba_dataclass(
         self, request: Request, organization: Organization, check_global_views: bool = True
@@ -200,73 +176,15 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if duration > 3600:
             # Round to 15 minutes if over 30 days, otherwise round to the minute
             round_to = 15 * 60 if duration >= 30 * 24 * 3600 else 60
-            for key in ["start", "end"]:
-                results[key] = snuba.quantize_time(
-                    params[key], params.get("organization_id", 0), duration=round_to
-                )
-        return results
+            key = params.get("organization_id", 0)
 
-    @contextmanager
-    def handle_query_errors(self) -> Generator[None, None, None]:
-        try:
-            yield
-        except discover.InvalidSearchQuery as error:
-            message = str(error)
-            # Special case the project message since it has so many variants so tagging is messy otherwise
-            if message.endswith("do not exist or are not actively selected."):
-                sentry_sdk.set_tag(
-                    "query.error_reason", "Project in query does not exist or not selected"
-                )
-            else:
-                sentry_sdk.set_tag("query.error_reason", message)
-            raise ParseError(detail=message)
-        except ArithmeticError as error:
-            message = str(error)
-            sentry_sdk.set_tag("query.error_reason", message)
-            raise ParseError(detail=message)
-        except snuba.QueryOutsideRetentionError as error:
-            sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
-            raise ParseError(detail=str(error))
-        except snuba.QueryIllegalTypeOfArgument:
-            message = "Invalid query. Argument to function is wrong type."
-            sentry_sdk.set_tag("query.error_reason", message)
-            raise ParseError(detail=message)
-        except IncompatibleMetricsQuery as error:
-            message = str(error)
-            sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
-            raise ParseError(detail=message)
-        except snuba.SnubaError as error:
-            message = "Internal error. Please try again."
-            if isinstance(
-                error,
-                (
-                    snuba.RateLimitExceeded,
-                    snuba.QueryMemoryLimitExceeded,
-                    snuba.QueryExecutionTimeMaximum,
-                    snuba.QueryTooManySimultaneous,
-                ),
-            ):
-                sentry_sdk.set_tag("query.error_reason", "Timeout")
-                raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
-            elif isinstance(error, (snuba.UnqualifiedQueryError)):
-                sentry_sdk.set_tag("query.error_reason", str(error))
-                raise ParseError(detail=str(error))
-            elif isinstance(
-                error,
-                (
-                    snuba.DatasetSelectionError,
-                    snuba.QueryConnectionFailed,
-                    snuba.QueryExecutionError,
-                    snuba.QuerySizeExceeded,
-                    snuba.SchemaValidationError,
-                    snuba.QueryMissingColumn,
-                ),
-            ):
-                sentry_sdk.capture_exception(error)
-                message = "Internal error. Your query failed to run."
-            else:
-                sentry_sdk.capture_exception(error)
-            raise APIException(detail=message)
+            results["start"] = snuba.quantize_time(
+                params["start"], key, duration=round_to, rounding=snuba.ROUND_DOWN
+            )
+            results["end"] = snuba.quantize_time(
+                params["end"], key, duration=round_to, rounding=snuba.ROUND_UP
+            )
+        return results
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
@@ -439,7 +357,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         additional_query_column: Optional[str] = None,
         dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
-        with self.handle_query_errors():
+        with handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):

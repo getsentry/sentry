@@ -1,15 +1,17 @@
-import {Commit} from 'sentry-fixture/commit';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {CommitFixture} from 'sentry-fixture/commit';
+import {EventFixture} from 'sentry-fixture/event';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {CodecovStatusCode, Frame} from 'sentry/types';
@@ -18,19 +20,19 @@ import * as analytics from 'sentry/utils/analytics';
 import {StacktraceLink} from './stacktraceLink';
 
 describe('StacktraceLink', function () {
-  const org = Organization();
+  const org = OrganizationFixture();
   const platform = 'python';
   const project = ProjectFixture({});
   const event = EventFixture({
     projectID: project.id,
-    release: ReleaseFixture({lastCommit: Commit()}),
+    release: ReleaseFixture({lastCommit: CommitFixture()}),
     platform,
   });
   const integration = GitHubIntegrationFixture();
-  const repo = Repository({integrationId: integration.id});
+  const repo = RepositoryFixture({integrationId: integration.id});
 
-  const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
-  const config = RepositoryProjectPathConfig({project, repo, integration});
+  const frame = {filename: '/sentry/app.py', lineNo: 233, inApp: true} as Frame;
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
   let promptActivity: jest.Mock;
 
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
@@ -40,7 +42,7 @@ describe('StacktraceLink', function () {
     MockApiClient.clearMockResponses();
     promptActivity = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/prompts-activity/',
+      url: `/organizations/${org.slug}/prompts-activity/`,
       body: {},
     });
     ProjectsStore.loadInitialData([project]);
@@ -69,12 +71,13 @@ describe('StacktraceLink', function () {
           file: frame.filename,
           platform,
           lineNo: frame.lineNo,
+          groupId: event.groupID,
         },
       })
     );
     expect(promptActivity).toHaveBeenCalledTimes(1);
     expect(promptActivity).toHaveBeenCalledWith(
-      '/prompts-activity/',
+      `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
         query: {
           feature: 'stacktrace_link',
@@ -92,7 +95,7 @@ describe('StacktraceLink', function () {
     });
     const dismissPrompt = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/prompts-activity/`,
+      url: `/organizations/${org.slug}/prompts-activity/`,
       body: {},
     });
     const {container} = render(<StacktraceLink frame={frame} event={event} line="" />, {
@@ -111,7 +114,7 @@ describe('StacktraceLink', function () {
     });
 
     expect(dismissPrompt).toHaveBeenCalledWith(
-      `/prompts-activity/`,
+      `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
         data: {
           feature: 'stacktrace_link',
@@ -144,11 +147,9 @@ describe('StacktraceLink', function () {
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: RouterContextFixture(),
     });
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://something.io#L233'
-    );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
   it('displays fix modal on error', async function () {
@@ -233,12 +234,14 @@ describe('StacktraceLink', function () {
       organization,
     });
 
-    expect(await screen.findByText('Open in Codecov')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'Open in Codecov'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
-    await userEvent.click(await screen.findByText('Open in Codecov'));
+    await userEvent.click(link);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_codecov_link_clicked',
       expect.anything()
@@ -295,12 +298,26 @@ describe('StacktraceLink', function () {
   });
 
   it('renders the link using a valid sourceLink for a .NET project', async function () {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          issueDetailsNewExperienceQ42023: true,
+        },
+      })
+    );
     const dotnetFrame = {
+      filename: 'path/to/file.py',
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
       lineNo: '100',
     } as unknown as Frame;
+    const organization = {
+      ...org,
+      features: ['issue-details-stacktrace-link-in-frame'],
+    };
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
       body: {
         config,
         integrations: [integration],
@@ -314,43 +331,15 @@ describe('StacktraceLink', function () {
       />,
       {
         context: RouterContextFixture(),
+        organization,
       }
     );
-    expect(await screen.findByRole('link')).toHaveAttribute(
+    const link = await screen.findByRole('link', {name: 'GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute(
       'href',
       'https://www.github.com/username/path/to/file.py#L100'
     );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
-  });
-
-  it('renders the link using sourceUrl instead of sourceLink if it exists for a .NET project', async function () {
-    const dotnetFrame = {
-      sourceLink: 'https://www.github.com/source/link/url#L1',
-      lineNo: '1',
-    } as unknown as Frame;
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: 'https://www.github.com/url/from/code/mapping',
-        integrations: [integration],
-      },
-    });
-    render(
-      <StacktraceLink
-        frame={dotnetFrame}
-        event={{...event, platform: 'csharp'}}
-        line="foo()"
-      />,
-      {
-        context: RouterContextFixture(),
-      }
-    );
-    expect(await screen.findByRole('link')).toHaveAttribute(
-      'href',
-      'https://www.github.com/url/from/code/mapping#L1'
-    );
-    expect(screen.getByText('Open this line in GitHub')).toBeInTheDocument();
   });
 
   it('hides stacktrace link if there is no source link for .NET projects', async function () {
@@ -368,5 +357,36 @@ describe('StacktraceLink', function () {
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          issueDetailsNewExperienceQ42023: true,
+        },
+      })
+    );
+    const organization = OrganizationFixture({
+      features: ['issue-details-stacktrace-link-in-frame'],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: RouterContextFixture([{organization}]),
+      organization,
+    });
+
+    const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://something.io#L233');
+    // The link is an icon with aira label
+    expect(link).toHaveTextContent('');
+
+    expect(mockRequest).toHaveBeenCalledTimes(1);
   });
 });

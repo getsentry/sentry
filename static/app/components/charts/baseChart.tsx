@@ -1,6 +1,7 @@
 import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
+import 'echarts/lib/component/brush';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
@@ -28,6 +29,9 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
 import {
+  EChartBrushEndHandler,
+  EChartBrushSelectedHandler,
+  EChartBrushStartHandler,
   EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -101,7 +105,10 @@ interface TooltipOption
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
   markerFormatter?: (marker: string, label?: string) => string;
-  nameFormatter?: (name: string) => string;
+  nameFormatter?: (
+    name: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
   /**
    * Array containing data that is used to display indented sublabels.
    */
@@ -127,6 +134,10 @@ export interface BaseChartProps {
    * Axis pointer options
    */
   axisPointer?: AxisPointerComponentOption;
+  /**
+   * ECharts Brush options
+   */
+  brush?: EChartsOption['brush'];
   /**
    * Bucket size to display time range in chart tooltip
    */
@@ -188,6 +199,9 @@ export interface BaseChartProps {
    * states whether or not to merge with previous `option`
    */
   notMerge?: boolean;
+  onBrushEnd?: EChartBrushEndHandler;
+  onBrushSelected?: EChartBrushSelectedHandler;
+  onBrushStart?: EChartBrushStartHandler;
   onChartReady?: EChartChartReadyHandler;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
@@ -305,6 +319,7 @@ const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
 function BaseChartUnwrapped({
+  brush,
   colors,
   grid,
   tooltip,
@@ -339,6 +354,9 @@ function BaseChartUnwrapped({
   onRestore,
   onFinished,
   onRendered,
+  onBrushStart,
+  onBrushEnd,
+  onBrushSelected,
 
   options = DEFAULT_OPTIONS,
   series = DEFAULT_SERIES,
@@ -534,6 +552,7 @@ function BaseChartUnwrapped({
       dataZoom,
       graphic,
       aria,
+      brush,
     };
   }, [
     color,
@@ -549,6 +568,7 @@ function BaseChartUnwrapped({
     grid,
     legend,
     toolBox,
+    brush,
     axisPointer,
     dataZoom,
     graphic,
@@ -585,6 +605,9 @@ function BaseChartUnwrapped({
         rendered: (props, instance) => onRendered?.(props, instance),
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
+        brush: (props, instance) => onBrushStart?.(props, instance),
+        brushend: (props, instance) => onBrushEnd?.(props, instance),
+        brushselected: (props, instance) => onBrushSelected?.(props, instance),
       }) as ReactEchartProps['onEvents'],
     [
       onClick,
@@ -596,6 +619,9 @@ function BaseChartUnwrapped({
       onRestore,
       onFinished,
       onRendered,
+      onBrushStart,
+      onBrushEnd,
+      onBrushSelected,
     ]
   );
 

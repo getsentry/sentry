@@ -112,4 +112,4 @@ def send_incident_alert_notification(
                 "integration_id": action.integration_id,
             },
         )
-        raise e
+        raise

@@ -1,20 +1,55 @@
 import platform
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
 import responses
+from django.utils import timezone
 
 import sentry
 from sentry import options
+from sentry.constants import DataCategory
 from sentry.models.broadcast import Broadcast
 from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
+from sentry.utils.outcomes import Outcome
 
 
 @no_silo_test
-class SendBeaconTest(TestCase):
+class SendBeaconTest(OutcomesSnubaTest):
+    def setUp(self):
+        super().setUp()
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": timezone.now() - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            },
+            5,  # Num of outcomes to be stored
+        )
+        self.org2 = self.create_organization()
+        self.project2 = self.create_project(
+            name="bar", teams=[self.create_team(organization=self.org2, members=[self.user])]
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.org2.id,
+                "timestamp": timezone.now() - timedelta(hours=1),
+                "project_id": self.project2.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            },
+            3,  # Num of outcomes to be stored
+        )
+
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
@@ -41,11 +76,11 @@ class SendBeaconTest(TestCase):
                 "docker": sentry.is_docker(),
                 "python_version": platform.python_version(),
                 "data": {
-                    "organizations": 1,
+                    "organizations": 2,
                     "users": 1,
-                    "projects": 1,
-                    "teams": 1,
-                    "events.24h": 0,
+                    "projects": 2,
+                    "teams": 2,
+                    "events.24h": 8,  # We expect the number of events to be the sum of events from two orgs. First org has 5 events while the second org has 3 events.
                 },
                 "anonymous": False,
                 "admin_email": "foo@example.com",
@@ -83,11 +118,11 @@ class SendBeaconTest(TestCase):
                 "docker": sentry.is_docker(),
                 "python_version": platform.python_version(),
                 "data": {
-                    "organizations": 1,
+                    "organizations": 2,
                     "users": 1,
-                    "projects": 1,
-                    "teams": 1,
-                    "events.24h": 0,
+                    "projects": 2,
+                    "teams": 2,
+                    "events.24h": 8,  # We expect the number of events to be the sum of events from two orgs. First org has 5 events while the second org has 3 events.
                 },
                 "anonymous": True,
                 "packages": mock_get_all_package_versions.return_value,

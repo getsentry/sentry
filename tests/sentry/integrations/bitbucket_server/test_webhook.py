@@ -4,8 +4,7 @@ from typing import Any
 import responses
 
 from sentry.integrations.bitbucket_server.webhook import PROVIDER_NAME
-from sentry.models.identity import Identity, IdentityProvider
-from sentry.models.integrations.integration import Integration
+from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -28,7 +27,7 @@ class WebhookTestBase(APITestCase):
         self.external_id = "{b128e0f6-196a-4dde-b72d-f42abc6dc239}"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider=PROVIDER,
                 external_id=self.subject,
                 name="sentryuser",
@@ -41,7 +40,7 @@ class WebhookTestBase(APITestCase):
             )
 
             self.identity = Identity.objects.create(
-                idp=IdentityProvider.objects.create(type=PROVIDER, config={}),
+                idp=self.create_identity_provider(type=PROVIDER),
                 user=self.user,
                 external_id="user_identity",
                 data={"access_token": "vsts-access-token", "expires": time() + 50000},

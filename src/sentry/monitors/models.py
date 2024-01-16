@@ -9,6 +9,7 @@ import jsonschema
 import pytz
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -29,6 +30,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.grouping.utils import hash_from_values
 from sentry.locks import locks
@@ -203,7 +205,7 @@ class Monitor(Model):
     API endpoints.
     """
 
-    slug = models.SlugField()
+    slug = SentrySlugField()
     """
     Organization unique slug of the monitor. Used to identify the monitor in
     check-in payloads. The slug can be changed.
@@ -465,11 +467,23 @@ class MonitorCheckIn(Model):
         indexes = [
             # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest in monitor consumer
+            # used for latest on api endpoints
+            models.Index(
+                fields=["monitor", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="api_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            # used for latest on api endpoints
+            # used for latest in monitor consumer
+            models.Index(
+                fields=["monitor_environment", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="consumer_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(fields=["status", "timeout_at"]),

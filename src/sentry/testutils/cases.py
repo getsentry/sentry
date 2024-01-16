@@ -113,7 +113,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
@@ -504,8 +504,9 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
                             region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                            mode, region
+                        with (
+                            SingleProcessSiloModeState.exit(),
+                            SingleProcessSiloModeState.enter(mode, region),
                         ):
                             return old_request(**request)
             return old_request(**request)
@@ -1389,6 +1390,75 @@ class SnubaTestCase(BaseTestCase):
         )
 
 
+class BaseSpansTestCase(SnubaTestCase):
+    def store_span(
+        self,
+        project_id: int,
+        span_id: str = "98230207e6e4a6ad",
+        trace_id: str = "b2565c0df13c4c00a654d2209e06e4bd",
+        transaction_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        transaction: str = None,
+        is_segment: bool = False,
+        duration_ms: int = 10,
+        tags: Optional[Mapping[str, Any]] = None,
+        measurements: Optional[Mapping[str, Union[int, float]]] = None,
+        timestamp: Optional[datetime] = None,
+        store_only_summary: bool = False,
+        store_metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+        store_transaction_and_span: bool = False,
+    ):
+        if timestamp is None:
+            timestamp = datetime.now(tz=timezone.utc)
+
+        payload = {
+            "duration_ms": int(duration_ms),
+            "exclusive_time_ms": 5,
+            "is_segment": is_segment,
+            "project_id": project_id,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "retention_days": 90,
+            "sentry_tags": {"transaction": transaction or "/hello"},
+            "span_id": span_id,
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "trace_id": trace_id,
+        }
+
+        if tags:
+            payload["tags"] = tags
+        if transaction_id:
+            payload["event_id"] = transaction_id
+        if profile_id:
+            payload["profile_id"] = profile_id
+        if store_metrics_summary:
+            payload["_metrics_summary"] = store_metrics_summary
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
+
+        # We want to give the caller the possibility to store only a summary since the database does not deduplicate
+        # on the span_id which makes the assumptions of a unique span_id in the database invalid.
+        if not store_only_summary:
+            if store_transaction_and_span:
+                # To simplify the testing, the span duration is half the duration of the transaction.
+                for is_segment, duration in ((True, duration_ms), (False, duration_ms / 2)):
+                    self._snuba_insert(
+                        {**payload, "is_segment": is_segment, "duration_ms": int(duration)}, "spans"
+                    )
+            else:
+                self._snuba_insert(payload, "spans")
+
+        if "_metrics_summary" in payload:
+            self._snuba_insert(payload, "metrics_summaries")
+
+    def _snuba_insert(self, payload, entity):
+        response = requests.post(
+            settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert", data=json.dumps([payload])
+        )
+        assert response.status_code == 200
+
+
 class BaseMetricsTestCase(SnubaTestCase):
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
@@ -2116,26 +2186,28 @@ class ProfilesSnubaTestCase(
             profile_context["profile_id"] = uuid4().hex
         profile_id = profile_context.get("profile_id")
 
-        timestamp = transaction["timestamp"]
-
         self.store_event(transaction, project_id=project.id)
 
+        timestamp = transaction["timestamp"]
         functions = [
-            {**function, "fingerprint": self.function_fingerprint(function)}
+            {
+                **function,
+                "self_times_ns": list(map(int, function["self_times_ns"])),
+                "fingerprint": self.function_fingerprint(function),
+            }
             for function in functions
         ]
-
         functions_payload = {
-            "project_id": project.id,
-            "profile_id": profile_id,
-            "transaction_name": transaction["transaction"],
+            "functions": functions,
             # the transaction platform doesn't quite match the
             # profile platform, but should be fine for tests
             "platform": transaction["platform"],
-            "functions": functions,
-            "timestamp": timestamp,
-            # TODO: should reflect the org
+            "profile_id": profile_id,
+            "project_id": project.id,
+            "received": int(datetime.now(tz=timezone.utc).timestamp()),
             "retention_days": 90,
+            "timestamp": int(timestamp),
+            "transaction_name": transaction["transaction"],
         }
 
         if extras is not None:
@@ -2759,9 +2831,7 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             name="Personal Installation",
             provider="msteams",
         )
-        self.idp = self.create_identity_provider(
-            integration=self.integration, type="msteams", external_id=self.tenant_id, config={}
-        )
+        self.idp = self.create_identity_provider(integration=self.integration)
         self.user_id_1 = "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
         self.user_1 = self.user
         self.identity_1 = self.create_identity(

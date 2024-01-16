@@ -8,7 +8,6 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -24,7 +23,7 @@ class GroupNotesDetailsTest(APITestCase):
         self.activity.save()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="example", external_id="example12345", name="Example 12345"
             )
             org_integration = self.integration.add_organization(self.organization)

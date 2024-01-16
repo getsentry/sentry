@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -12,6 +14,7 @@ import {
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -145,16 +148,21 @@ const replayOnboarding: OnboardingConfig = {
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/remix";`,
                 dsn: params.dsn,
-                mask: params.mask,
-                block: params.block,
+                mask: params.replayOptions?.mask,
+                block: params.replayOptions?.block,
               }),
             },
           ],
         },
       ],
-      additionalInfo: tct(
-        'Note: The Replay integration only needs to be added to your [entryClient:entry.client.tsx] file. It will not run if it is added into [sentryServer:sentry.server.config.js].',
-        {entryClient: <code />, sentryServer: <code />}
+      additionalInfo: (
+        <Fragment>
+          {tracePropagationMessage}
+          {tct(
+            'Note: The Replay integration only needs to be added to your [entryClient:entry.client.tsx] file. It will not run if it is added into [sentryServer:sentry.server.config.js].',
+            {entryClient: <code />, sentryServer: <code />}
+          )}
+        </Fragment>
       ),
     },
   ],

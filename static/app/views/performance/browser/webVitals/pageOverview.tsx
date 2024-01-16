@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -15,11 +15,13 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -39,6 +41,11 @@ import {
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
+import {
+  AlertContent,
+  DismissButton,
+  StyledAlert,
+} from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
@@ -103,6 +110,12 @@ export default function PageOverview() {
   // panel in this page opens automatically.
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: (location.query.webVital as WebVitals) ?? null,
+  });
+
+  const user = ConfigStore.get('user');
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.slug}-${user.id}:performance-score-migration-message-dismissed`,
   });
 
   const query = decodeScalar(location.query.query);
@@ -216,6 +229,22 @@ export default function PageOverview() {
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>
+              {shouldUseStoredScores && !isDismissed && (
+                <StyledAlert type="info" showIcon>
+                  <AlertContent>
+                    {t(
+                      'We changed how Performance Scores are calculated for your projects.'
+                    )}
+                    <DismissButton
+                      priority="link"
+                      icon={<IconClose />}
+                      onClick={dismiss}
+                      aria-label={t('Dismiss Alert')}
+                      title={t('Dismiss Alert')}
+                    />
+                  </AlertContent>
+                </StyledAlert>
+              )}
               <Flex>
                 <PerformanceScoreBreakdownChart transaction={transaction} />
               </Flex>

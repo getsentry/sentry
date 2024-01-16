@@ -50,9 +50,9 @@ export function SpanSummaryView({groupId}: Props) {
     filters['transaction.method'] = endpointMethod;
   }
 
-  const {data} = useSpanMetrics(
+  const {data} = useSpanMetrics({
     filters,
-    [
+    fields: [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
       SpanMetricsField.SPAN_ACTION,
@@ -64,11 +64,8 @@ export function SpanSummaryView({groupId}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-page-metrics'
-  );
+    referrer: 'api.starfish.span-summary-page-metrics',
+  });
 
   const spanMetrics = data[0] ?? {};
 
@@ -91,11 +88,11 @@ export function SpanSummaryView({groupId}: Props) {
   };
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
-    useSpanMetricsSeries(
-      {'span.group': groupId, ...seriesQueryFilter},
-      [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
-      'api.starfish.span-summary-page-metrics-chart'
-    );
+    useSpanMetricsSeries({
+      filters: {'span.group': groupId, ...seriesQueryFilter},
+      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`, 'spm()', 'http_error_count()'],
+      referrer: 'api.starfish.span-summary-page-metrics-chart',
+    });
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 

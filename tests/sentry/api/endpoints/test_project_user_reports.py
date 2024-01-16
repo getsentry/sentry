@@ -381,6 +381,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
                 "timestamp": self.min_ago,
                 "environment": self.environment.name,
+                "tags": {"foo": "bar"},
             },
             project_id=self.project.id,
         )
@@ -416,6 +417,11 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert mock_event_data["contexts"]["feedback"]["replay_id"] == replay_id
         assert mock_event_data["contexts"]["replay"]["replay_id"] == replay_id
         assert mock_event_data["environment"] == self.environment.name
+        assert mock_event_data["tags"] == [
+            ["environment", self.environment.name],
+            ["foo", "bar"],
+            ["level", "error"],
+        ]
 
         assert mock_event_data["platform"] == "other"
         assert (

@@ -494,7 +494,11 @@ class SlackActionEndpoint(Endpoint):
         # Handle interaction actions
         for action in action_list:
             try:
-                if action.name == "status":
+                if action.name == "status" or (
+                    use_block_kit
+                    and action.name
+                    in ("ignored:forever", "ignored:until_escalating", "unresolved:ongoing")
+                ):
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
                     self.on_assign(request, identity_user, group, action)
@@ -626,7 +630,12 @@ class SlackActionEndpoint(Endpoint):
         action_option = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
-        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
+        if action_option in (
+            "sentry_docs_link_clicked",
+            "grace_period_warning",
+            "integration_disabled_slack",
+            "trial_end_warning",
+        ):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:

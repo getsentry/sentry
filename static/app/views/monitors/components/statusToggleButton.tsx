@@ -1,23 +1,51 @@
 import {BaseButtonProps, Button} from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
+import {ObjectStatus} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Monitor} from 'sentry/views/monitors/types';
 
-interface StatusToggleButtonProps extends BaseButtonProps {
+interface StatusToggleButtonProps extends Omit<BaseButtonProps, 'onClick'> {
   monitor: Monitor;
+  onToggleStatus: (status: ObjectStatus) => Promise<void>;
 }
 
-function StatusToggleButton({monitor, ...props}: StatusToggleButtonProps) {
+function SimpleStatusToggle({
+  monitor,
+  onToggleStatus,
+  ...props
+}: StatusToggleButtonProps) {
+  const organization = useOrganization();
   const {status} = monitor;
-  const isDisabeld = status === 'disabled';
+  const isDisabled = status === 'disabled';
+  const monitorCreationCallbacks = HookStore.get('callback:on-monitor-created');
 
-  const Icon = isDisabeld ? IconPlay : IconPause;
+  const Icon = isDisabled ? IconPlay : IconPause;
 
-  const label = isDisabeld
-    ? t('Reactive this monitor')
+  const label = isDisabled
+    ? t('Enable this monitor')
     : t('Disable this monitor and discard incoming check-ins');
 
-  return <Button icon={<Icon />} aria-label={label} title={label} {...props} />;
+  return (
+    <Button
+      icon={<Icon />}
+      aria-label={label}
+      title={label}
+      onClick={async () => {
+        await onToggleStatus(isDisabled ? 'active' : 'disabled');
+        // TODO(davidenwang): Lets place this in the monitor-status-toggle hook once its created
+        monitorCreationCallbacks.map(cb => cb(organization));
+      }}
+      {...props}
+    />
+  );
 }
 
-export {StatusToggleButton};
+const StatusToggleButton = HookOrDefault({
+  hookName: 'component:monitor-status-toggle',
+  defaultComponent: SimpleStatusToggle,
+});
+
+export {StatusToggleButton, StatusToggleButtonProps};

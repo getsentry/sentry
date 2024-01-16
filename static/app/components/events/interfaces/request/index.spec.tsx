@@ -1,5 +1,5 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -165,7 +165,7 @@ describe('Request entry', function () {
 
     render(<Request event={event} data={event.entries[0].data} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 
@@ -212,7 +212,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
       });
 
@@ -246,7 +246,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
       });
 
@@ -280,7 +280,7 @@ describe('Request entry', function () {
 
       render(<Request event={event} data={event.entries[0].data} />, {
         organization: {
-          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+          relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
       });
 
@@ -316,7 +316,7 @@ describe('Request entry', function () {
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
         })
       ).not.toThrow();
@@ -347,7 +347,7 @@ describe('Request entry', function () {
       expect(() =>
         render(<Request event={event} data={event.entries[0].data} />, {
           organization: {
-            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
         })
       ).not.toThrow();
