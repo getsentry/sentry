@@ -103,6 +103,14 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         assert len(resp.data["option_groups"][1]["options"]) == 3
 
     def test_no_flag(self):
+        self.group = self.create_group(project=self.project)
+        self.original_message["blocks"][0]["block_id"] = json.dumps({"issue": self.group.id})
+        resp = self.post_webhook(substring="bbb", original_message=self.original_message)
+
+        assert resp.status_code == 400
+
+    @with_feature("organizations:slack-block-kit")
+    def test_non_existent_group(self):
         self.original_message["blocks"][0]["block_id"] = json.dumps({"issue": 1})
         resp = self.post_webhook(substring="bbb", original_message=self.original_message)
 
