@@ -122,7 +122,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 if mode == "relocate":
                     user.username = form.cleaned_data["username"]
                     user.is_unclaimed = False
-                    # Relocation form require users to accept TOS and privacy policy
+                    # Relocation form required users to accept TOS and privacy policy
                     terms_accepted.send_robust(
                         user=request.user,
                         organization=None,
