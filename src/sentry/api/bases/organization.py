@@ -308,7 +308,7 @@ class OrganizationEndpoint(Endpoint):
         else:
             # If we are explicitly querying for projects via id
             # Or we're querying for an empty set of ids
-            if ids and ALL_ACCESS_PROJECT_ID in ids:
+            if ALL_ACCESS_PROJECT_ID in ids:
                 # All projects i have access to
                 include_all_accessible = True
             elif ids:
