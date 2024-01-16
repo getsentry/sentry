@@ -40,6 +40,7 @@ function SampleImages({groupId, projectId}: Props) {
     queryConditions: [`${SPAN_GROUP}:${groupId}`],
     sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
     limit: 100,
+    referrer: 'api.performance.resources.sample-images',
   });
 
   const uniqueResources = new Set();
@@ -158,7 +159,9 @@ function DisabledImages(props: {onClickShowLinks?: () => void}) {
             `/settings/projects/${firstProjectSelected?.slug}/performance/`
           )}
         >
-          <Button priority="primary">Enable in Settings</Button>
+          <Button priority="primary" data-test-id="enable-sample-images-button">
+            {t(' Enable in Settings')}
+          </Button>
         </Link>
       </ButtonContainer>
     </div>
@@ -176,6 +179,19 @@ function ImageContainer(props: {
   const {fileName, size, src, showImage = true} = props;
   const isRelativeUrl = src.startsWith('/');
 
+  const handleError = () => {
+    setHasError(true);
+    Sentry.metrics.increment('performance.resource.image_load', 1, {
+      tags: {status: 'error'},
+    });
+  };
+
+  const handleLoad = () => {
+    Sentry.metrics.increment('performance.resource.image_load', 1, {
+      tags: {status: 'success'},
+    });
+  };
+
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
       {showImage && !isRelativeUrl && !hasError ? (
@@ -186,7 +202,9 @@ function ImageContainer(props: {
           }}
         >
           <img
-            onError={() => setHasError(true)}
+            data-test-id="sample-image"
+            onError={handleError}
+            onLoad={handleLoad}
             src={src}
             style={{
               width: '100%',
