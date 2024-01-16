@@ -53,7 +53,7 @@ function aggregateSystemApplicationBreakdown(data: TableDataRow[]) {
 
     acc[row.release] = {
       ...acc[row.release],
-      [type]: (acc[row.release]?.[type] ?? 0) + (row['avg(span.self_time)'] ?? 0),
+      [type]: (acc[row.release]?.[type] ?? 0) + (row['sum(span.self_time)'] ?? 0),
     };
 
     return acc;
@@ -89,7 +89,7 @@ function SystemApplicationBreakdown({additionalFilters}) {
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',
-        fields: ['release', 'span.op', 'span.description', 'avg(span.self_time)'],
+        fields: ['release', 'span.op', 'span.description', 'sum(span.self_time)'],
         topEvents: '2',
         query: queryString,
         dataset: DiscoverDatasets.SPANS_METRICS,
