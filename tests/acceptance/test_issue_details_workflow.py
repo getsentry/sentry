@@ -45,10 +45,10 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "resolved"
 
-    def test_ignore_basic(self):
+    def test_archive_basic(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.ignore_issue()
+        self.page.archive_issue()
         self.wait_for_loading()
 
         res = self.page.api_issue_get(event.group.id)

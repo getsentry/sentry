@@ -6,7 +6,6 @@ from sentry.api.bases.external_actor import (
 from sentry.api.serializers import serialize
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -19,7 +18,7 @@ class ExternalActorSerializerTest(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",

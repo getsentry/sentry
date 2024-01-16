@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # for snuba operations
 REFERRER = "sentry.issues.issue_velocity"
-THRESHOLD_QUANTILE = {"name": "p99", "function": "quantile(0.99)"}
+THRESHOLD_QUANTILE = {"name": "p95", "function": "quantile(0.95)"}
 WEEK_IN_HOURS = 7 * 24
 
 # for redis operations
@@ -46,9 +46,7 @@ DEFAULT_TTL = 48 * 60 * 60  # 2 days
 FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we can't query Snuba
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:v2:{project_id}"
-LEGACY_STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:{project_id}"
 STRING_TO_DATETIME = "%Y-%m-%d %H:%M:%S.%f"
-LEGACY_STRING_TO_DATETIME = "%Y%m%d"
 TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
 
 
@@ -125,7 +123,7 @@ def calculate_threshold(project: Project) -> Optional[float]:
                 [Column("hourly_event_rate")],
                 THRESHOLD_QUANTILE["name"],
             )
-        ],  # get the approximate 90th percentile of the event frequency in the past week
+        ],  # get the approximate 95th percentile of the event frequency in the past week
         limit=Limit(1),
     )
 
@@ -219,7 +217,6 @@ def get_latest_threshold(project: Project) -> float:
     keys = [
         THRESHOLD_KEY.format(project_id=project.id),
         STALE_DATE_KEY.format(project_id=project.id),
-        LEGACY_STALE_DATE_KEY.format(project_id=project.id),
     ]
     client = get_redis_client()
     cache_results = client.mget(keys)  # returns None if key is nonexistent
@@ -227,13 +224,6 @@ def get_latest_threshold(project: Project) -> float:
     stale_date = None
     if cache_results[1] is not None:
         stale_date = datetime.strptime(cache_results[1], STRING_TO_DATETIME)
-    elif cache_results[2] is not None:  # for backwards compatibility
-        # TODO(isabella): remove the legacy format once it is no longer being used
-        stale_date = datetime.strptime(cache_results[2], LEGACY_STRING_TO_DATETIME)
-        logger.info(
-            "issue_velocity.get_latest_threshold.legacy_date_format",
-            extra={"org_id": project.organization.id, "project_id": project.id},
-        )
     now = datetime.utcnow()
     if (
         stale_date is None

@@ -1,4 +1,3 @@
-import base64
 from unittest import mock
 
 import pytest
@@ -143,10 +142,14 @@ class GitHubAppsClientTest(TestCase):
         responses.add(
             method=responses.GET,
             url=url,
-            json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            body="docs/*    @jianyuan   @getsentry/ecosystem\n* @jianyuan\n",
         )
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
 
+        assert (
+            responses.calls[3].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert responses.calls[3].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITHUB_CODEOWNERS

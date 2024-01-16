@@ -109,6 +109,7 @@ export type DashboardDetails = {
 export enum DashboardState {
   VIEW = 'view',
   EDIT = 'edit',
+  INLINE_EDIT = 'inline_edit',
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
   PREVIEW = 'preview',

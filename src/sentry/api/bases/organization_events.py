@@ -28,39 +28,14 @@ from sentry.models.team import Team
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
-from sentry.snuba import (
-    discover,
-    errors,
-    functions,
-    issue_platform,
-    metrics_enhanced_performance,
-    metrics_performance,
-    profiles,
-    spans_indexed,
-    spans_metrics,
-)
+from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
-
-# Doesn't map 1:1 with real datasets, but rather what we present to users
-# ie. metricsEnhanced is not a real dataset
-DATASET_OPTIONS = {
-    "discover": discover,
-    "errors": errors,
-    "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_performance,
-    "profiles": profiles,
-    "issuePlatform": issue_platform,
-    "profileFunctions": functions,
-    "spansIndexed": spans_indexed,
-    "spansMetrics": spans_metrics,
-}
-
-DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
@@ -103,10 +78,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_dataset(self, request: Request) -> Any:
         dataset_label = request.GET.get("dataset", "discover")
-        if dataset_label not in DATASET_OPTIONS:
+        result = get_dataset(dataset_label)
+        if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
         sentry_sdk.set_tag("query.dataset", dataset_label)
-        return DATASET_OPTIONS[dataset_label]
+        return result
 
     def get_snuba_dataclass(
         self, request: Request, organization: Organization, check_global_views: bool = True

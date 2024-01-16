@@ -9,7 +9,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -229,7 +229,7 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -248,7 +248,7 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("time.time")
     def test_invalid_silo_member_removed(self, mock_time, mock_decode):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
 
@@ -271,7 +271,7 @@ class MsTeamsWebhookTest(APITestCase):
         different_member_removed = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)
         different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -495,7 +495,7 @@ class MsTeamsWebhookTest(APITestCase):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
         with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = IdentityProvider.objects.create(type="msteams", external_id=team_id, config={})
+            idp = self.create_identity_provider(type="msteams", external_id=team_id)
             Identity.objects.create(
                 external_id=other_command["from"]["id"], idp=idp, user=self.user
             )
@@ -567,7 +567,7 @@ class MsTeamsWebhookTest(APITestCase):
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            integration = Integration.objects.create(external_id=team_id, provider="msteams")
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
             CARD_ACTION_RESPONSE = {
                 "type": "message",
                 "from": {"id": "user_id"},

@@ -18,7 +18,7 @@ from sentry.auth.system import get_system_token
 from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
 from sentry.models.artifactbundle import NULL_STRING
 from sentry.models.project import Project
-from sentry.utils import json, redis, safe
+from sentry.utils import json, metrics, redis, safe
 from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
@@ -695,6 +695,10 @@ def sources_for_symbolication(project):
         sources, hide information about unknown sources and add names to sources rather then
         just have their IDs.
         """
+        try:
+            capture_apple_symbol_stats(json)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         for module in json.get("modules") or ():
             for candidate in module.get("candidates") or ():
                 # Reverse internal source aliases from the response.
@@ -711,3 +715,60 @@ def sources_for_symbolication(project):
         return json
 
     return (sources, _process_response)
+
+
+def capture_apple_symbol_stats(json):
+    eligible_symbols = 0
+    neither_has_symbol = 0
+    both_have_symbol = 0
+    old_has_symbol = 0
+    symx_has_symbol = 0
+
+    for module in json.get("modules") or ():
+        if (
+            module.get("debug_status", "unused") == "unused"
+            and module.get("unwind_status", "unused") == "unused"
+        ):
+            continue
+        if module["type"] != "macho":
+            continue
+        eligible_symbols += 1
+
+        old_has_this_symbol = False
+        symx_has_this_symbol = False
+        for candidate in module.get("candidates") or ():
+            if candidate["download"]["status"] == "ok":
+                source_id = candidate["source"]
+                if source_id.startswith("sentry:symx"):
+                    symx_has_this_symbol = True
+                elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
+                    old_has_this_symbol = True
+
+        # again, I miss a good Rust `match`
+        if symx_has_this_symbol:
+            if old_has_this_symbol:
+                both_have_symbol += 1
+            else:
+                symx_has_symbol += 1
+        elif old_has_this_symbol:
+            old_has_symbol += 1
+        else:
+            neither_has_symbol += 1
+
+            # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is supposed
+            # to be a system symbol, and maybe also log those cases specifically as internal messages.
+            # For now, we are only interested in rough numbers.
+
+    if eligible_symbols:
+        metrics.incr(
+            "apple_symbol_availability", amount=neither_has_symbol, tags={"availability": "neither"}
+        )
+        metrics.incr(
+            "apple_symbol_availability", amount=both_have_symbol, tags={"availability": "both"}
+        )
+        metrics.incr(
+            "apple_symbol_availability", amount=old_has_symbol, tags={"availability": "old"}
+        )
+        metrics.incr(
+            "apple_symbol_availability", amount=symx_has_symbol, tags={"availability": "symx"}
+        )

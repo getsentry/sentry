@@ -1,5 +1,4 @@
 from sentry.models.group import Group
-from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
@@ -18,7 +17,7 @@ class SentryManagerTest(TestCase):
     def test_get_groups_by_external_issue(self):
         external_issue_key = "api-123"
         group = self.create_group()
-        integration_model = Integration.objects.create(
+        integration_model = self.create_provider_integration(
             provider="jira",
             external_id="some_id",
             name="Hello world",

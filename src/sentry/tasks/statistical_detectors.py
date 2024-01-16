@@ -162,15 +162,16 @@ class EndpointRegressionDetector(RegressionDetector):
     kind = "endpoint"
     regression_type = RegressionType.ENDPOINT
     min_change = 200  # 200ms in ms
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
             kind=cls.kind,
-            min_data_points=6,
+            min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
             threshold=0.2,
@@ -203,15 +204,16 @@ class FunctionRegressionDetector(RegressionDetector):
     kind = "function"
     regression_type = RegressionType.FUNCTION
     min_change = 100_000_000  # 100ms in ns
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
             kind=cls.kind,
-            min_data_points=6,
+            min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
             threshold=0.2,
@@ -249,6 +251,8 @@ def detect_transaction_trends(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    EndpointRegressionDetector.configure_tags()
 
     projects = get_detector_enabled_projects(
         project_ids,
@@ -288,6 +292,8 @@ def detect_transaction_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    EndpointRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project
@@ -329,6 +335,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
+    FunctionRegressionDetector.configure_tags()
+
     projects = get_detector_enabled_projects(
         project_ids,
         feature_name="organizations:profiling-statistical-detectors-ema",
@@ -366,6 +374,8 @@ def detect_function_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    FunctionRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project

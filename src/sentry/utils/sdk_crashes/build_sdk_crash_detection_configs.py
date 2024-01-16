@@ -7,12 +7,15 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectio
 
 
 def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
-    configs = [_build_config(SdkName.Cocoa), _build_config(SdkName.ReactNative)]
+    configs = [
+        _build_config(sdk_name=SdkName.Cocoa, has_allowlist=False),
+        _build_config(sdk_name=SdkName.ReactNative, has_allowlist=True),
+    ]
 
     return [config for config in configs if config is not None]
 
 
-def _build_config(sdk_name: SdkName) -> Optional[SDKCrashDetectionConfig]:
+def _build_config(sdk_name: SdkName, has_allowlist: bool) -> Optional[SDKCrashDetectionConfig]:
     options_prefix = f"issues.sdk_crash_detection.{sdk_name.value}"
 
     project_id = options.get(f"{options_prefix}.project_id")
@@ -24,6 +27,13 @@ def _build_config(sdk_name: SdkName) -> Optional[SDKCrashDetectionConfig]:
     if not sample_rate:
         return None
 
+    organization_allowlist: Optional[list[int]] = None
+    if has_allowlist:
+        organization_allowlist = options.get(f"{options_prefix}.organization_allowlist")
+
     return SDKCrashDetectionConfig(
-        sdk_name=sdk_name, project_id=project_id, sample_rate=sample_rate
+        sdk_name=sdk_name,
+        project_id=project_id,
+        sample_rate=sample_rate,
+        organization_allowlist=organization_allowlist,
     )

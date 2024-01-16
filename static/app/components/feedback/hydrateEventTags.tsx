@@ -10,6 +10,7 @@ export default function hydrateEventTags(
   const eventTags = eventData.tags;
 
   const unorderedTags = {
+    ...eventTags.reduce((combined, tag) => ({...combined, [tag.key]: tag.value}), {}),
     ...(context.browser?.name ? {'browser.name': context.browser.name} : {}),
     ...(context.browser?.version ? {'browser.version': context.browser.version} : {}),
     ...(context.device?.brand ? {'device.brand': context.device?.brand} : {}),

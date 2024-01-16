@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry.issues.issue_velocity import (
     DEFAULT_TTL,
     FALLBACK_TTL,
-    LEGACY_STALE_DATE_KEY,
     STALE_DATE_KEY,
     STRING_TO_DATETIME,
     THRESHOLD_KEY,
@@ -85,9 +84,8 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
                     },
                 )
 
-        # with 5 issues that are older than a week, p99 should be approximately the hourly event
-        # rate of the most frequent issue
-        expected_threshold = 6 / WEEK_IN_HOURS
+        # approximate calculation of 95th percentile for small sample
+        expected_threshold = 6 * 0.95 / WEEK_IN_HOURS
         actual_threshold = calculate_threshold(self.project)
 
         # clickhouse's quantile function is approximate
@@ -234,21 +232,6 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             threshold = get_latest_threshold(self.project)
             mock_update.assert_not_called()
             assert threshold == 0
-
-    @patch("sentry.issues.issue_velocity.calculate_threshold", return_value=2)
-    def test_legacy_date_format_compatibility(self, mock_calculation):
-        """Tests that the logic does not break if a stale date was stored with the legacy format."""
-        redis_client = get_redis_client()
-        redis_client.set(THRESHOLD_KEY.format(project_id=self.project.id), 1)
-        redis_client.set(LEGACY_STALE_DATE_KEY.format(project_id=self.project.id), 20231220)
-        threshold = get_latest_threshold(self.project)
-        assert threshold == 2
-
-        # the legacy stale date key is not updated but the current version of the stale date key is
-        assert (
-            redis_client.get(LEGACY_STALE_DATE_KEY.format(project_id=self.project.id)) == "20231220"
-        )
-        assert redis_client.get(STALE_DATE_KEY.format(project_id=self.project.id)) is not None
 
     @patch("sentry.issues.issue_velocity.calculate_threshold")
     def test_update_threshold_simple(self, mock_calculation):

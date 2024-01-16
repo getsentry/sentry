@@ -116,7 +116,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_ignore_issues(self, mock_now):
+    def test_archive_issues(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
@@ -126,7 +126,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.page.wait_for_stream()
 
         self.page.select_issue(1)
-        self.page.ignore_issues()
+        self.page.archive_issues()
 
         group1.update(status=GroupStatus.IGNORED, substatus=None)
 
@@ -136,7 +136,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_ignore_issues_multi_projects(self, mock_now):
+    def test_archive_issues_multi_projects(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=timezone.utc)
         self.create_issues()
 
@@ -147,7 +147,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_for_stream()
 
             self.page.select_issue(1)
-            self.page.ignore_issues()
+            self.page.archive_issues()
 
             group1.update(status=GroupStatus.IGNORED, substatus=None)
 
