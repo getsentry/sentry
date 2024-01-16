@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import {useDDMContext} from 'sentry/views/ddm/context';
 
 const indexToChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -33,6 +34,10 @@ export function QuerySymbol({
   index,
   ...props
 }: React.ComponentProps<typeof Symbol> & {index: number}) {
+  const {showQuerySymbols} = useDDMContext();
+  if (!showQuerySymbols) {
+    return null;
+  }
   return (
     <Symbol {...props}>
       <span>{getQuerySymbol(index)}</span>

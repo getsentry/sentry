@@ -16,11 +16,10 @@ class MetricSpansSerializer(Serializer):
             "projectId": span_payload.get("project_id"),
             "transactionId": span_payload.get("transaction_id"),
             "traceId": span_payload.get("trace_id"),
-            "spanId": span_payload.get("span_id"),
             "profileId": span_payload.get("profile_id"),
             "segmentName": span_payload.get("segment_name"),
-            "op": span_payload.get("op"),
-            "description": span_payload.get("description"),
+            "spansNumber": span_payload.get("spans_number"),
+            "spansSummary": span_payload.get("spansSummary"),
             "duration": span_payload.get("duration"),
             "timestamp": span_payload.get("timestamp"),
         }

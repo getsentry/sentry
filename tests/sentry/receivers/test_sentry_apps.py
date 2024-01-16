@@ -318,9 +318,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
 
     def test_notify_after_issue_archived(self, delay):
 
-        with Feature(
-            {"organizations:sentry-functions": True, "organizations:escalating-issues": True}
-        ):
+        with Feature({"organizations:sentry-functions": True}):
             self.update_issue({"status": "ignored"})
             sub_data = {}
             with assume_test_silo_mode(SiloMode.CONTROL):

@@ -52,7 +52,6 @@ MATCHERS = {
 
 
 def _get_function_name(frame_data: dict, platform: Optional[str]):
-
     function_name = get_function_name_for_frame(frame_data, platform)
 
     return function_name or "<unknown>"
@@ -115,14 +114,12 @@ InstanceKey = Tuple[str, str, bool]
 
 
 class FrameMatch(Match):
-
     # Global registry of matchers
     instances: Dict[InstanceKey, Match] = {}
     field: Any = None
 
     @classmethod
     def from_key(cls, key: str, pattern: str, negated: bool) -> Match:
-
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
@@ -134,7 +131,6 @@ class FrameMatch(Match):
 
     @classmethod
     def _from_key(cls, key: str, pattern: str, negated: bool) -> Match:
-
         subclass = {
             "package": PackageMatch,
             "path": PathMatch,
@@ -213,12 +209,10 @@ class PathLikeMatch(FrameMatch):
 
 
 class PackageMatch(PathLikeMatch):
-
     field = "package"
 
 
 class PathMatch(PathLikeMatch):
-
     field = "path"
 
 
@@ -237,11 +231,10 @@ class FamilyMatch(FrameMatch):
 class InAppMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ref_val = get_rule_bool(self.pattern)
+        self._ref_val = bool(get_rule_bool(self.pattern))
 
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        ref_val = self._ref_val
-        return ref_val is not None and ref_val == match_frame["in_app"]
+        return self._ref_val == match_frame["in_app"]
 
 
 class FrameFieldMatch(FrameMatch):
@@ -256,17 +249,14 @@ class FrameFieldMatch(FrameMatch):
 
 
 class FunctionMatch(FrameFieldMatch):
-
     field = "function"
 
 
 class ModuleMatch(FrameFieldMatch):
-
     field = "module"
 
 
 class CategoryMatch(FrameFieldMatch):
-
     field = "category"
 
 
@@ -286,49 +276,46 @@ class ExceptionFieldMatch(FrameMatch):
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
-
     field_path = ["type"]
 
 
 class ExceptionValueMatch(ExceptionFieldMatch):
-
     field_path = ["value"]
 
 
 class ExceptionMechanismMatch(ExceptionFieldMatch):
-
     field_path = ["mechanism", "type"]
 
 
 class CallerMatch(Match):
-    def __init__(self, caller: FrameMatch):
-        self.caller = caller
+    def __init__(self, inner: FrameMatch):
+        self.inner = inner
 
     @property
     def description(self) -> str:
-        return f"[ {self.caller.description} ] |"
+        return f"[ {self.inner.description} ] |"
 
     def _to_config_structure(self, version):
-        return f"[{self.caller._to_config_structure(version)}]|"
+        return f"[{self.inner._to_config_structure(version)}]|"
 
     def matches_frame(self, frames, idx, platform, exception_data, cache):
-        return idx > 0 and self.caller.matches_frame(
+        return idx > 0 and self.inner.matches_frame(
             frames, idx - 1, platform, exception_data, cache
         )
 
 
 class CalleeMatch(Match):
-    def __init__(self, caller: FrameMatch):
-        self.caller = caller
+    def __init__(self, inner: FrameMatch):
+        self.inner = inner
 
     @property
     def description(self) -> str:
-        return f"| [ {self.caller.description} ]"
+        return f"| [ {self.inner.description} ]"
 
     def _to_config_structure(self, version):
-        return f"|[{self.caller._to_config_structure(version)}]"
+        return f"|[{self.inner._to_config_structure(version)}]"
 
     def matches_frame(self, frames, idx, platform, exception_data, cache):
-        return idx < len(frames) - 1 and self.caller.matches_frame(
+        return idx < len(frames) - 1 and self.inner.matches_frame(
             frames, idx + 1, platform, exception_data, cache
         )

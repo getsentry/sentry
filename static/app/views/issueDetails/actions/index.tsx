@@ -20,11 +20,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {
-  IconEllipsis,
-  IconSubscribed,
-  IconUnsubscribed,
-} from 'sentry/icons';
+import {IconEllipsis, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -364,9 +360,6 @@ export function Actions(props: Props) {
   });
   return (
     <ActionWrapper>
-      {organization.features.includes('issue-details-new-experience-toggle') ? (
-        <NewIssueExperienceButton />
-      ) : null}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -376,17 +369,17 @@ export function Actions(props: Props) {
         }}
         items={[
           ...(isIgnored
-              ? []
-              : [
-                  {
-                    key: 'Archive',
-                    className: 'hidden-sm hidden-md hidden-lg',
-                    label: t('Archive'),
-                    isSubmenu: true,
-                    disabled,
-                    children: archiveDropdownItems,
-                  },
-                ]),
+            ? []
+            : [
+                {
+                  key: 'Archive',
+                  className: 'hidden-sm hidden-md hidden-lg',
+                  label: t('Archive'),
+                  isSubmenu: true,
+                  disabled,
+                  children: archiveDropdownItems,
+                },
+              ]),
           {
             key: 'open-in-discover',
             className: 'hidden-sm hidden-md hidden-lg',
@@ -446,6 +439,9 @@ export function Actions(props: Props) {
           },
         ]}
       />
+      {organization.features.includes('issue-details-new-experience-toggle') ? (
+        <NewIssueExperienceButton />
+      ) : null}
       <SubscribeAction
         className="hidden-xs"
         disabled={disabled}
@@ -495,13 +491,11 @@ export function Actions(props: Props) {
             })
           }
         >
-          {isIgnored
-              ? t('Archived')
-            : t('Resolved')}
+          {isIgnored ? t('Archived') : t('Resolved')}
         </ActionButton>
       ) : (
         <Fragment>
-          {(
+          {
             <GuideAnchor target="issue_details_archive_button" position="bottom">
               <ArchiveActions
                 className="hidden-xs"
@@ -512,7 +506,7 @@ export function Actions(props: Props) {
                 disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
               />
             </GuideAnchor>
-          )}
+          }
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
               disableResolveInRelease={!resolveInReleaseCap.enabled}
