@@ -36,8 +36,8 @@ from sentry.snuba.metrics.naming_layer.mri import (
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
-# Maximum number of unique spans returned by the database.
-MAX_NUMBER_OF_SPANS = 10
+# Maximum number of unique results returned by the database.
+MAX_NUMBER_OF_RESULTS = 10
 # Sentry tag values that are converted to columns in Snuba. The conversion happens here:
 # https://github.com/getsentry/snuba/blob/master/rust_snuba/src/processors/spans.rs#L239
 SENTRY_TAG_TO_COLUMN_NAME = {
@@ -198,8 +198,8 @@ class MetricsSummariesSpansSource(SpansSource):
         query = Query(
             match=Entity(EntityKey.Spans.value),
             select=[
+                # TODO: switch to segment_id.
                 Column("transaction_id"),
-                Function("any", [Column("timestamp")], alias="any_timestamp"),
             ],
             where=[
                 Condition(Column("project_id"), Op.IN, [project.id for project in self.projects]),
@@ -208,8 +208,6 @@ class MetricsSummariesSpansSource(SpansSource):
                 Condition(Column("span_id"), Op.IN, list(span_ids)),
             ],
             groupby=[Column("transaction_id")],
-            orderby=[OrderBy(Column("any_timestamp"), Direction.DESC)],
-            limit=Limit(MAX_NUMBER_OF_SPANS),
         )
 
         request = Request(
@@ -294,6 +292,8 @@ class TransactionDurationSpansSource(SpansSource):
         if max_value:
             where += [Condition(Column("duration"), Op.LTE, max_value)]
 
+        # TODO: there might be the need to first obtain a set of transaction ids that have specific measurements and
+        #  then filter all spans with that transaction id.
         return get_indexed_spans(
             where=where,
             start=start,
@@ -384,13 +384,13 @@ def get_indexed_spans(
                 [Column("span_id"), Function("equals", [Column("is_segment"), 0])],
                 alias="spans_number",
             ),
-            # Calculates the duration of the transaction.
+            # Returns the duration of the transaction.
             Function(
                 "sumIf",
                 [Column("duration"), Function("equals", [Column("is_segment"), 1])],
                 alias="duration",
             ),
-            # Calculates the timestamp of the transaction.
+            # Returns the timestamp of the transaction.
             Function(
                 "anyIf",
                 [Column("timestamp"), Function("equals", [Column("is_segment"), 1])],
@@ -412,6 +412,7 @@ def get_indexed_spans(
         ],
         # For now, we order by descending duration.
         orderby=[OrderBy(Column("duration"), Direction.DESC)],
+        limit=Limit(MAX_NUMBER_OF_RESULTS),
     )
 
     request = Request(
