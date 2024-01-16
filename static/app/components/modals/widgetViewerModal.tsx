@@ -43,6 +43,7 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
+import {isSupportedDisplayType} from 'sentry/utils/metrics';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import {createOnDemandFilterWarning} from 'sentry/utils/onDemandMetrics';
@@ -940,7 +941,8 @@ function WidgetViewerModal(props: Props) {
                 chartZoomOptions={chartZoomOptions}
               />
             ) : widget.widgetType === WidgetType.METRICS &&
-              hasDDMExperimentalFeature(organization) ? (
+              hasDDMExperimentalFeature(organization) &&
+              isSupportedDisplayType(widget.displayType) ? (
               <MetricWidgetChartContainer widget={widget} selection={selection} />
             ) : (
               <MemoizedWidgetCardChartContainer
