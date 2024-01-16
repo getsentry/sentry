@@ -609,11 +609,10 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert any(data_point["release"] == "release_even" for data_point in result["data"])
         assert any(data_point["project_id"] == self.project.id for data_point in result["data"])
 
-    @pytest.mark.skip(reason="This is not implemented in MQL")
     def test_failure_rate(self) -> None:
         query = MetricsQuery(
             query=Formula(
-                ArithmeticOperator.DIVIDE,
+                ArithmeticOperator.DIVIDE.value,
                 [
                     Timeseries(
                         metric=Metric(
