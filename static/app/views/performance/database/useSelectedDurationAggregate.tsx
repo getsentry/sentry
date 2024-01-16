@@ -33,20 +33,26 @@ export function useSelectedDurationAggregate(): Result {
 
   const location = useLocation<Query>();
 
-  let selectedAggregate: Aggregate;
   const aggregateFromURL = decodeScalar(
     location.query.aggregate,
     previouslySelectedAggregate
   );
 
-  // `availableAggregates` is typed `as const` so I have to cast to unknown to allow comparison to string
-  if ((availableAggregates as unknown as string[]).includes(aggregateFromURL)) {
-    selectedAggregate = aggregateFromURL as Aggregate;
-  } else {
-    selectedAggregate = DEFAULT_DURATION_AGGREGATE;
-  }
+  const selectedAggregate = isAnAvailableAggregate(aggregateFromURL, availableAggregates)
+    ? aggregateFromURL
+    : DEFAULT_DURATION_AGGREGATE;
 
   return [selectedAggregate, setSelectedAggregate];
+}
+
+function isAnAvailableAggregate(
+  maybeAggregate: string,
+  availableAggregates: Aggregate[]
+): maybeAggregate is Aggregate {
+  // Manually widen `availableAggregates` to allow the comparison to string
+  return (availableAggregates as unknown as string[]).includes(
+    maybeAggregate as Aggregate
+  );
 }
 
 const KEY = 'performance-database-default-aggregation-function';
