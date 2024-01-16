@@ -26,11 +26,12 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
                 ]
             },
         }
-        self.original_message = {
+        self.original_message: dict = {
             "type": "message",
             "text": "[internal] IntegrationError",
             "blocks": [
                 {
+                    "block_id": "",
                     "type": "section",
                     "text": {"type": "mrkdwn", "text": "IntegrationError", "verbatim": False},
                 },
