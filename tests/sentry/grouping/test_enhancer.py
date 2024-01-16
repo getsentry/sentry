@@ -14,7 +14,7 @@ def dump_obj(obj):
     if not isinstance(getattr(obj, "__dict__", None), dict):
         return obj
     rv: dict[str, Any] = {}
-    for (key, value) in obj.__dict__.items():
+    for key, value in obj.__dict__.items():
         if key.startswith("_"):
             continue
         elif isinstance(value, list):
@@ -77,7 +77,7 @@ def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cac
 
     match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-    return rule.get_matching_frame_actions(match_frames, platform, exception_data, cache)
+    return rule.get_matching_frame_actions(match_frames, exception_data, cache)
 
 
 def test_basic_path_matching():
