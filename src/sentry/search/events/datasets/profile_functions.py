@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Mapping, Optional, Union
@@ -291,20 +292,47 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "examples",
                     snql_aggregate=lambda _, alias: Function(
-                        "arrayMap",
+                        # The worst may collide with one of the examples, so make sure to filter it out.
+                        "arrayDistinct",
                         [
-                            # TODO: should this transform be moved to snuba?
-                            Lambda(
-                                ["x"],
-                                Function(
-                                    "replaceAll", [Function("toString", [Identifier("x")]), "-", ""]
-                                ),
-                            ),
                             Function(
-                                "arrayPushFront",
+                                "arrayFilter",
                                 [
-                                    Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
-                                    Function("argMaxMerge", [SnQLColumn("worst")]),
+                                    # Filter out the profile ids for processed profiles
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "notEquals",
+                                            [Identifier("x"), uuid.UUID(int=0).hex],
+                                        ),
+                                    ),
+                                    Function(
+                                        "arrayMap",
+                                        [
+                                            # TODO: should this transform be moved to snuba?
+                                            Lambda(
+                                                ["x"],
+                                                Function(
+                                                    "replaceAll",
+                                                    [
+                                                        Function("toString", [Identifier("x")]),
+                                                        "-",
+                                                        "",
+                                                    ],
+                                                ),
+                                            ),
+                                            Function(
+                                                "arrayPushFront",
+                                                [
+                                                    Function(
+                                                        "groupUniqArrayMerge(5)",
+                                                        [SnQLColumn("examples")],
+                                                    ),
+                                                    Function("argMaxMerge", [SnQLColumn("worst")]),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
                                 ],
                             ),
                         ],
