@@ -341,7 +341,10 @@ class Dashboard extends Component<Props, State> {
 
     const widget = this.props.dashboard.widgets[index];
 
-    if (widget.widgetType === WidgetType.METRICS) {
+    if (
+      widget.widgetType === WidgetType.METRICS &&
+      hasDDMExperimentalFeature(organization)
+    ) {
       this.handleStartEditMetricWidget(index);
       return;
     }
