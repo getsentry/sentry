@@ -3,6 +3,7 @@ from unittest import mock
 from urllib.parse import urlencode
 
 from django.test import override_settings
+from pytest import fixture
 
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.superuser import COOKIE_NAME, Superuser
@@ -10,7 +11,6 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import APITestCase, AuthProviderTestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
@@ -169,7 +169,11 @@ class AuthVerifyEndpointTest(APITestCase):
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
-    @with_feature("organizations:u2f-superuser-form")
+    @fixture(autouse=True)
+    def setup_u2f_and_feature_flag(self):
+        with self.feature("organizations:u2f-superuser-form"):
+            yield
+
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
     def test_superuser_sso_user_no_password_saas_product(self, validate_response, is_available):
@@ -200,7 +204,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 200
             assert COOKIE_NAME in response.cookies
 
-    @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
     def test_superuser_expired_sso_user_no_password_saas_product(
@@ -249,7 +252,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             }
             assert COOKIE_NAME not in response.cookies
 
-    @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
     def test_superuser_expired_sso_user_no_password_saas_product_customer_domain(
@@ -308,7 +310,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             }
             assert COOKIE_NAME not in response.cookies
 
-    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_sso_user_no_u2f_saas_product(self):
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -332,7 +333,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 400
             assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
-    @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
     def test_superuser_sso_user_has_password_saas_product(self, validate_response, is_available):
@@ -361,7 +361,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 200
             assert COOKIE_NAME in response.cookies
 
-    @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
     def test_superuser_no_sso_user_has_password_saas_product(self, validate_response, is_available):
@@ -385,7 +384,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 401
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_user_has_password_self_hosted(self):
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
@@ -403,7 +401,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 200
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_user_no_password_or_u2f_self_hosted(self):
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
@@ -420,29 +417,14 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 400
             assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     # su form is disabled by overriding local dev setting which skip checks
     @mock.patch("sentry.api.endpoints.auth_index.DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True)
-    @with_feature("organizations:u2f-superuser-form")
-    def test_superuser_no_sso_user_has_password_su_form_off_saas(self):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
-
-        user = self.create_user("foo@example.com", is_superuser=True)
-
-        with mock.patch.object(Superuser, "org_id", None):
-            self.login_as(user)
-            response = self.client.put(
-                self.path,
-                data={
-                    "password": "admin",
-                    "isSuperuserModal": True,
-                },
-            )
-            assert response.status_code == 200
-
-    # su form is disabled by overriding local dev setting which skip checks
-    @mock.patch("sentry.api.endpoints.auth_index.DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True)
-    @with_feature("organizations:u2f-superuser-form")
-    def test_superuser_no_sso_su_form_off_no_password_or_u2f_saas(self):
+    @mock.patch("sentry.api.endpoints.auth_index.has_completed_sso", return_value=True)
+    @mock.patch("sentry.auth.superuser.has_completed_sso", return_value=True)
+    def test_superuser_no_sso_user_no_password_or_u2f_sso_disabled_local_dev_saas(
+        self, mock_endpoint_has_completed_sso, mock_superuser_has_completed_sso
+    ):
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
@@ -455,11 +437,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 400
-            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
+            assert response.status_code == 200
+            assert COOKIE_NAME in response.cookies
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_user_has_password_su_form_on_self_hosted(self):
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
@@ -477,7 +458,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 200
 
     @override_settings(SENTRY_SELF_HOSTED=True)
-    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_su_form_on_no_password_or_u2f_self_hosted(self):
         AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
@@ -494,7 +474,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 400
             assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
-    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_with_referrer(self):
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
@@ -518,7 +497,6 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.status_code == 401
             assert self.client.session["_next"] == "http://testserver/bar"
 
-    @with_feature("organizations:u2f-superuser-form")
     def test_superuser_no_sso_with_bad_referrer(self):
         org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
