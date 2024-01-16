@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -308,6 +308,45 @@ describe('Screen Summary', function () {
           })
         );
       });
+    });
+
+    it('renders the top level metrics data correctly', async function () {
+      eventsMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          data: [
+            {
+              'avg_if(measurements.time_to_initial_display,release,com.example.vu.android@2.10.5)': 1000,
+              'avg_if(measurements.time_to_initial_display,release,com.example.vu.android@2.10.3+42)': 2000,
+              'avg_if(measurements.time_to_full_display,release,com.example.vu.android@2.10.5)': 3000,
+              'avg_if(measurements.time_to_full_display,release,com.example.vu.android@2.10.3+42)': 4000,
+              'count()': 20,
+            },
+          ],
+        },
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.starfish.mobile-screen-totals'}),
+        ],
+      });
+
+      render(<ScreenLoadSpans />, {organization});
+
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalled();
+      });
+
+      const blocks = [
+        {header: 'TTID (2.10.5)', value: '1.00s'},
+        {header: 'TTID (2.10.… (42))', value: '2.00s'},
+        {header: 'TTFD (2.10.5)', value: '3.00s'},
+        {header: 'TTFD (2.10.… (42))', value: '4.00s'},
+        {header: 'Count', value: '20'},
+      ];
+
+      for (const block of blocks) {
+        const blockEl = screen.getByRole('heading', {name: block.header}).closest('div');
+        await within(blockEl!).findByText(block.value);
+      }
     });
   });
 });
