@@ -295,12 +295,8 @@ class OrganizationEndpoint(Endpoint):
         if project_slugs and project_ids:
             raise ParseError(detail="Cannot query for both ids and slugs")
 
-        if project_slugs:
-            slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
-            ids = None
-        else:
-            slugs = None
-            ids = project_ids or self.get_requested_project_ids_unchecked(request)
+        slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
+        ids = project_ids or self.get_requested_project_ids_unchecked(request)
 
         if project_ids is None and slugs:
             # If we're querying for project slugs specifically
@@ -312,7 +308,7 @@ class OrganizationEndpoint(Endpoint):
         else:
             # If we are explicitly querying for projects via id
             # Or we're querying for an empty set of ids
-            if ALL_ACCESS_PROJECT_ID in ids:
+            if ids and ALL_ACCESS_PROJECT_ID in ids:
                 # All projects i have access to
                 include_all_accessible = True
             elif ids:
