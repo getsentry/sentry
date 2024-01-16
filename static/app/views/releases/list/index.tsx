@@ -199,7 +199,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       release: releaseVersions,
     };
     if (selection.projects.length) {
-      query.project = this.getSelectedProjectSlugs();
+      query.projectSlug = this.getSelectedProjectSlugs();
     }
     if (selection.environments.length) {
       query.environment = selection.environments;

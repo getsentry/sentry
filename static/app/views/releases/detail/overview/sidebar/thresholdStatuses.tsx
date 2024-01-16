@@ -38,7 +38,7 @@ function ThresholdStatuses({project, release, organization, selectedEnvs}: Props
       start: start.toISOString(),
       end: end.toISOString(),
       release: [releaseVersion],
-      project: [project.slug],
+      projectSlug: [project.slug],
     };
     if (selectedEnvs.length) {
       query.environment = selectedEnvs;
