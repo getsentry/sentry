@@ -746,7 +746,7 @@ def capture_apple_symbol_stats(json):
 
         # again, I miss a good Rust `match`
         if symx_has_this_symbol:
-            if old_has_symbol:
+            if old_has_this_symbol:
                 both_have_symbol += 1
             else:
                 symx_has_symbol += 1

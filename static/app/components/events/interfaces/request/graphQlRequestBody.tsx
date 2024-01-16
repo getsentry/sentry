@@ -1,6 +1,5 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import uniq from 'lodash/uniq';
 import Prism from 'prismjs';
@@ -51,7 +50,7 @@ function getErrorLineNumbers(errors: GraphQlError[]): number[] {
 function formatErrorAlertMessage(error: GraphQlError) {
   const {locations, message} = error;
 
-  if (!locations || isEmpty(locations)) {
+  if (!locations || locations.length === 0) {
     return message;
   }
 
@@ -64,9 +63,11 @@ function formatErrorAlertMessage(error: GraphQlError) {
 }
 
 function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
-  const errorsWithMessage = errors.filter(error => !isEmpty(error.message));
+  const errorsWithMessage = errors.filter(
+    error => error.message && error.message.length > 0
+  );
 
-  if (isEmpty(errorsWithMessage)) {
+  if (errorsWithMessage.length === 0) {
     return null;
   }
 

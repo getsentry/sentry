@@ -45,6 +45,7 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
+  isValidLayout,
   METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
   Position,
@@ -547,7 +548,6 @@ class Dashboard extends Component<Props, State> {
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
     }
-
     return {
       ...position,
       w: DEFAULT_WIDGET_WIDTH,
@@ -573,6 +573,10 @@ class Dashboard extends Component<Props, State> {
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditingDashboard;
+
+    const displayInlineAddWidget =
+      hasDDMExperimentalFeature(organization) &&
+      isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
       <GridLayout
@@ -601,15 +605,14 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || hasDDMExperimentalFeature(organization)) &&
-          !widgetLimitReached && (
-            <AddWidgetWrapper
-              key={ADD_WIDGET_BUTTON_DRAG_ID}
-              data-grid={this.addWidgetLayout}
-            >
-              <AddWidget onAddWidget={this.handleStartAdd} />
-            </AddWidgetWrapper>
-          )}
+        {(isEditingDashboard || displayInlineAddWidget) && !widgetLimitReached && (
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
+            <AddWidget onAddWidget={this.handleStartAdd} />
+          </AddWidgetWrapper>
+        )}
       </GridLayout>
     );
   }

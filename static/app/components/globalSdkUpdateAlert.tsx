@@ -33,7 +33,7 @@ function InnerGlobalSdkUpdateAlert(
 
   const handleSnoozePrompt = useCallback(() => {
     promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       feature: 'sdk_updates',
       status: 'snoozed',
     });
@@ -53,7 +53,7 @@ function InnerGlobalSdkUpdateAlert(
     let isUnmounted = false;
 
     promptsCheck(api, {
-      organizationId: organization.id,
+      organization,
       feature: 'sdk_updates',
     }).then(prompt => {
       if (isUnmounted) {
