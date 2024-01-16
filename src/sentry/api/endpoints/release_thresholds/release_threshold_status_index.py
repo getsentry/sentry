@@ -366,10 +366,13 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
+                query_window = query_windows_by_type[threshold_type]
                 sessions_data = fetch_sessions_data(
+                    end=query_window["end"],
                     request=request,
                     organization=organization,
                     params=filter_params,
+                    start=query_window["start"],
                 )
                 for ethreshold in category_thresholds:
                     # TODO: may need to fetch sessions data for each threshold individually

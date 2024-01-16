@@ -95,7 +95,11 @@ def _get_interval(start: datetime | None, end: datetime | None):
 
 
 def fetch_sessions_data(
-    request: Request, organization: Organization | RpcOrganization, params: FilterParams
+    request: Request,
+    organization: Organization | RpcOrganization,
+    params: FilterParams,
+    end: datetime,
+    start: datetime,
 ):
     # NOTE: implementation derived from organization_sessions GET endpoint
     # TODO: make fetch generic for other session types
@@ -103,22 +107,23 @@ def fetch_sessions_data(
         request_get: dict[str, Any] = request.GET
         query_params: MultiValueDict[str, Any] = MultiValueDict(request_get)
         # TODO: group by environment as well
-        query_params.setlist("groupBy", ["project", "release", "session.status"])
+        query_params.setlist("groupBy", ["project", "release", "session.status", "environment"])
         query_params.setlist("field", ["sum(session)"])  # alternatively count_unique(user)
         query_params["query"] = " OR ".join(
             [f"release:{version}" for version in query_params.getlist("release")]
         )
         # TODO: utilize start/end for thresholds - NOT request params
-        interval = _get_interval(params["start"], params["end"])
+        # interval = _get_interval(params["start"], params["end"])
+        interval = "1hr"
         query_params["interval"] = interval
-        # HACK to prevent front-end crash when release health is sessions-based:
-        if not release_health.backend.is_metrics_based() and interval == "10s":
-            query_params["interval"] = "1m"
+        query_params["start"] = start
+        query_params["end"] = end
 
         # crash free rates are on a dynamic INTERVAL basis
         # TODO: determine how this affects results for new releases
         query_config = release_health.backend.sessions_query_config(organization)
 
+        # NOTE: params start/end are overwritten by query start/end
         query = QueryDefinition(
             query=query_params,
             params=params,
