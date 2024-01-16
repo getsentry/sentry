@@ -79,7 +79,7 @@ def set_filter_state(filter_id, project, state):
         if state is None:
             state = {}
 
-        option_val = "0"
+        option_val: object = "0"
         if "active" in state:
             if state["active"]:
                 option_val = "1"

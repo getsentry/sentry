@@ -304,7 +304,6 @@ module = [
     "sentry.incidents.models",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
-    "sentry.ingest.inbound_filters",
     "sentry.integrations.aws_lambda.integration",
     "sentry.integrations.base",
     "sentry.integrations.bitbucket.client",
