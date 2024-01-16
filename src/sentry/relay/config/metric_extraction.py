@@ -1,5 +1,6 @@
 import logging
 import random
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
 
@@ -210,35 +211,71 @@ def _get_widget_metric_specs(
     widget_queries = DashboardWidgetQuery.objects.filter(
         widget__dashboard__organization=project.organization,
         widget__widget_type=DashboardWidgetTypes.DISCOVER,
-    ).prefetch_related("dashboardwidgetqueryondemand_set")
+    ).prefetch_related("dashboardwidgetqueryondemand_set", "widget")
 
     metrics.incr(
         "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
     )
 
+    ignored_widget_ids: Dict[int, bool] = {}
+    specs_for_widget: Dict[int, list[HashedMetricSpec]] = defaultdict(list)
     specs: List[HashedMetricSpec] = []
+
+    total_spec_count = 0
+
     with metrics.timer("on_demand_metrics.widget_spec_convert"):
-        for widget in widget_queries:
-            widget_specs = convert_widget_query_to_metric(project, widget, prefilling)
-            specs.extend(widget_specs)
+        for widget_query in widget_queries:
+            widget_specs = convert_widget_query_to_metric(project, widget_query, prefilling)
+
+            if not widget_specs:
+                # Skip checking any widget queries that don't have specs,
+                # they don't affect decisions about the widget.
+                continue
+
+            total_spec_count += 1
+            specs_for_widget[widget_query.widget.id] += widget_specs
 
             can_widget_query_use_stateful_extraction = _can_widget_query_use_stateful_extraction(
-                widget, widget_specs
+                widget_query, widget_specs
             )
+
             if options.get("on_demand_metrics.widgets.use_stateful_extraction"):
-                if not can_widget_query_use_stateful_extraction:
-                    # Return no specs if any extraction is blocked for a widget that should have specs.
-                    return []
+                if can_widget_query_use_stateful_extraction:
+                    extraction_enabled = _widget_query_stateful_extraction_enabled(widget_query)
+                    if not extraction_enabled:
+                        # Return no specs if any extraction is blocked for a widget that should have specs.
+                        ignored_widget_ids[widget_query.widget.id] = True
+                else:
+                    # Stateful extraction cannot be used in some cases (eg. newly created or recently modified widgets).
+                    # We skip cardinality checks for those cases, however, and assume extraction is allowed temporarily.
+                    continue
+            else:
+                # TODO: Remove this cardinality check after above option is enabled permanently.
+                if not _is_widget_query_low_cardinality(widget_query, project):
+                    metrics.incr("on_demand_metrics.widget_query.high_cardinality", sample_rate=1.0)
+                    ignored_widget_ids[widget_query.widget.id] = True
 
-            # TODO: Remove this cardinality check after above option is enabled permanently.
-            if widget_specs and not _is_widget_query_low_cardinality(widget, project):
-                # High cardinality widgets don't have metrics specs created
-                return []
-
+    metrics.incr("on_demand_metrics.widget_query_specs.pre_trim", amount=total_spec_count)
+    specs = _trim_disabled_widgets(ignored_widget_ids, specs_for_widget)
+    metrics.incr("on_demand_metrics.widget_query_specs.post_disabled_trim", amount=len(specs))
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
     specs = _trim_if_above_limit(specs, max_widget_specs, project, "widgets")
 
+    metrics.incr("on_demand_metrics.widget_query_specs", amount=len(specs))
     return specs
+
+
+def _trim_disabled_widgets(
+    ignored_widgets: Dict[int, bool], specs_for_widget: Dict[int, list[HashedMetricSpec]]
+) -> list[HashedMetricSpec]:
+    """Specifically remove only widget specs that share a widget (spec limit, cardinality limit)."""
+    enabled_specs: List[HashedMetricSpec] = []
+
+    for widget_id, specs in specs_for_widget.items():
+        if not ignored_widgets[widget_id]:
+            enabled_specs.extend(specs)
+
+    return enabled_specs
 
 
 def _trim_if_above_limit(
@@ -361,35 +398,70 @@ def convert_widget_query_to_metric(
 def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
-    if not metrics_specs:
-        # If no specs then it can be ignored for on-demand, we want to not skip the entire widget.
-        return True
+    """Stateful extraction for metrics is not always used, in cases where a query has been recently modified.
+    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries."""
     spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 
-    if len(on_demand_entries) != 1:
-        # There should only be one on demand entry
+    if len(on_demand_entries) == 0:
+        # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
+        metrics.incr(
+            "on_demand_metrics.on_demand_spec.skip_recently_modified",
+            amount=len(metrics_specs),
+            sample_rate=1.0,
+        )
+        return False
+    elif len(on_demand_entries) > 1:
+        # There should only be one on demand entry.
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("widget_query", widget_query.id)
             sentry_sdk.capture_message(
                 f"Wrong number of relations ({len(on_demand_entries)}) for widget_query: {widget_query.id}"
             )
-        metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_relations", sample_rate=1.0)
+        metrics.incr(
+            "on_demand_metrics.on_demand_spec.failed_on_demand_relations",
+            amount=len(metrics_specs),
+            sample_rate=1.0,
+        )
         return False
 
     on_demand_entry = on_demand_entries[0]
     on_demand_hashes = on_demand_entry.spec_hashes
 
     if set(spec_hashes) != set(on_demand_hashes):
-        # Spec hashes should match. TODO:This can be removed after the existing cardinality check in this task is removed.
+        # Spec hashes should match.
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("spec_hashes", spec_hashes)
             scope.set_extra("on_demand_hashes", on_demand_hashes)
+            scope.set_extra("spec_entries", metrics_specs)
+            scope.set_extra("on_demand_entries", on_demand_entries)
             sentry_sdk.capture_message(f"Hashes don't match for widget_query: {widget_query.id}")
-        metrics.incr("on_demand_metrics.on_demand_spec.failed_on_demand_hashes", sample_rate=1.0)
+        metrics.incr(
+            "on_demand_metrics.on_demand_spec.failed_on_demand_hashes",
+            amount=len(metrics_specs),
+            sample_rate=1.0,
+        )
         return False
 
     return True
+
+
+def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery) -> bool:
+    """Separate from the check on whether to use stateful extraction in the first place,
+    this assumes stateful extraction can be used, and returns the enabled state."""
+    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+
+    if len(on_demand_entries) != 1:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("on_demand_entries", on_demand_entries)
+            sentry_sdk.capture_exception(
+                Exception("Skipped extraction due to mismatched on_demand entries")
+            )
+        return False
+
+    on_demand_entry = on_demand_entries[0]
+
+    return on_demand_entry.extraction_enabled()
 
 
 def _get_widget_cardinality_query_ttl():
