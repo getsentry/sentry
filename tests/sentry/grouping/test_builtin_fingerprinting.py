@@ -39,11 +39,63 @@ def test_default_bases(default_bases):
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "Hydration failed because the initial UI does not match what was rendered on the server.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating this Suspense boundary. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    ["message", "Text content does not match server-rendered HTML."],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
         ]
     }
 
 
-def test_built_in_chunkload_rules_base(default_bases):
+def test_built_in_nextjs_rules_base(default_bases):
     rules = FingerprintingRules(rules=[], bases=default_bases)
 
     assert rules._to_config_structure() == {"rules": [], "version": 1}
@@ -59,12 +111,64 @@ def test_built_in_chunkload_rules_base(default_bases):
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "Hydration failed because the initial UI does not match what was rendered on the server.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating this Suspense boundary. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    ["message", "Text content does not match server-rendered HTML."],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
         ],
         "version": 1,
     }
 
 
-def test_built_in_chunkload_rules_from_empty_config_string(default_bases):
+def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
     rules = FingerprintingRules.from_config_string("", bases=default_bases)
 
     assert rules._to_config_structure() == {"rules": [], "version": 1}
@@ -80,12 +184,64 @@ def test_built_in_chunkload_rules_from_empty_config_string(default_bases):
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
             },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "Hydration failed because the initial UI does not match what was rendered on the server.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating this Suspense boundary. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    ["message", "Text content does not match server-rendered HTML."],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
         ],
         "version": 1,
     }
 
 
-def test_built_in_chunkload_rules_from_config_string_with_custom(default_bases):
+def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
     rules = FingerprintingRules.from_config_string(
         "error.type:DatabaseUnavailable -> DatabaseUnavailable",
         bases=default_bases,
@@ -115,6 +271,58 @@ def test_built_in_chunkload_rules_from_config_string_with_custom(default_bases):
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "Hydration failed because the initial UI does not match what was rendered on the server.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating this Suspense boundary. Switched to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    [
+                        "message",
+                        "There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.",
+                    ],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [
+                    ["sdk", "sentry.javascript.nextjs"],
+                    ["message", "Text content does not match server-rendered HTML."],
+                ],
+                "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
             },
         ],
@@ -187,6 +395,13 @@ class BuiltInFingerprintingTest(TestCase):
             "platform": "javascript",
             "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"},
         }
+        self.hydration_error_trace = {
+            "fingerprint": ["my-route", "{{ default }}"],
+            "message": "Text content does not match server-rendered HTML.",
+            "platform": "javascript",
+            "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"},
+            "tags": {"transaction": "/"},
+        }
 
     def _get_event_for_trace(self, stacktrace):
         mgr = EventManager(data=stacktrace, grouping_config=GROUPING_CONFIG)
@@ -249,3 +464,89 @@ class BuiltInFingerprintingTest(TestCase):
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         assert event.data["fingerprint"] == ["my-route", "{{ default }}"]
         assert event.data.get("_fingerprint_info") is None
+
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_built_in_hydration_rules_same_transactions(self):
+        """
+        With the flag enabled, hydration errors with the same transaction should be grouped and
+        the built-in rules for hydration errors should be applied.
+        """
+
+        event_message1 = self.store_event(data=self.hydration_error_trace, project_id=self.project)
+        data_message2 = self.hydration_error_trace.copy()
+        data_message2[
+            "message"
+        ] = "Hydration failed because the initial UI does not match what was rendered on the server."
+        event_message2 = self.store_event(data=data_message2, project_id=self.project)
+
+        assert event_message1.data.data["fingerprint"] == ["hydrationerror", "{{tags.transaction}}"]
+        assert event_message1.data.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+            "matchers": [
+                ["sdk", "sentry.javascript.nextjs"],
+                ["message", self.hydration_error_trace["message"]],
+            ],
+        }
+        assert event_message2.data.data["fingerprint"] == ["hydrationerror", "{{tags.transaction}}"]
+        assert event_message2.data.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+            "matchers": [
+                ["sdk", "sentry.javascript.nextjs"],
+                ["message", data_message2["message"]],
+            ],
+        }
+
+        assert event_message1.group == event_message2.group
+
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_built_in_hydration_rules_different_transactions(self):
+        """
+        With the flag enabled, hydration errors with different transactions should not be grouped and
+        the built-in rules for hydration errors should be applied.
+        """
+
+        event_transaction_slash = self.store_event(
+            data=self.hydration_error_trace, project_id=self.project
+        )
+        data_transaction_text = self.hydration_error_trace.copy()
+        data_transaction_text["transaction"] = "/text/"
+        event_transaction_text = self.store_event(
+            data=data_transaction_text, project_id=self.project
+        )
+
+        assert event_transaction_slash.data.data["fingerprint"] == [
+            "hydrationerror",
+            "{{tags.transaction}}",
+        ]
+        assert event_transaction_slash.data.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+            "matchers": [
+                ["sdk", "sentry.javascript.nextjs"],
+                ["message", self.hydration_error_trace["message"]],
+            ],
+        }
+        assert event_transaction_text.data.data["fingerprint"] == [
+            "hydrationerror",
+            "{{tags.transaction}}",
+        ]
+        assert event_transaction_text.data.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+            "matchers": [
+                ["sdk", "sentry.javascript.nextjs"],
+                ["message", self.hydration_error_trace["message"]],
+            ],
+        }
+
+        assert event_transaction_slash.group != event_transaction_text.group
+
+    def test_built_in_hydration_rules_disabled(self):
+        """
+        With flag disabled, the built-in rules for hydration errors should be ignored.
+        """
+        event = self.store_event(data=self.hydration_error_trace, project_id=self.project)
+        assert event.data.data["fingerprint"] == ["my-route", "{{ default }}"]
+        assert event.data.data.get("_fingerprint_info") is None
