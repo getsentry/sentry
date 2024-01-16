@@ -561,7 +561,7 @@ def augment_transactions_with_spans(
         ],
         orderby=["timestamp", "id"],
         limit=10000,
-    ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS)
+    ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
 
     parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
     for transaction in transactions:
