@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from selenium.webdriver.common.by import By
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -43,7 +43,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
             },
         )
         self.integration.add_organization(self.org, self.user)
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
             idp=self.idp,

@@ -32,10 +32,10 @@ pytestmark = pytest.mark.sentry_metrics
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
-    def test_resolve_metrics_query(self):
+    def test_resolve_metrics_query(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -63,7 +63,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
         assert reverse_mapping.tag_keys == set()
 
-    def test_resolve_formula_metrics_query(self):
+    def test_resolve_formula_metrics_query(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -97,7 +97,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
         assert reverse_mapping.tag_keys == set()
 
-    def test_resolve_metrics_query_with_groupby(self):
+    def test_resolve_metrics_query_with_groupby(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -140,7 +140,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert mappings["transaction"] == expected_transaction_id
         assert reverse_mapping.tag_keys == set()
 
-    def test_resolve_formula_metrics_query_with_groupby(self):
+    def test_resolve_formula_metrics_query_with_groupby(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -210,7 +210,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert mappings["status_code"] == expected_status_code_id
         assert reverse_mapping.tag_keys == set()
 
-    def test_resolve_metrics_query_with_filters(self):
+    def test_resolve_metrics_query_with_filters(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -272,7 +272,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert mappings["device"] == expected_device_id
         assert reverse_mapping.tag_keys == set()
 
-    def test_resolve_formula_metrics_query_with_filters(self):
+    def test_resolve_formula_metrics_query_with_filters(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             project_id=self.project.id,
@@ -372,7 +372,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         assert mappings["status_code"] == expected_status_code_id
         assert reverse_mapping.tag_keys == set()
 
-    def test_resolve_metrics_query_with_filters_release_health(self):
+    def test_resolve_metrics_query_with_filters_release_health(self) -> None:
         self.store_release_health_metric(
             name=SessionMRI.RAW_DURATION.value,
             project_id=self.project.id,
