@@ -172,12 +172,11 @@ export function MetricWidgetChartContainer({selection, widget}) {
       datetime={selection.datetime}
       projects={selection.projects}
       environments={selection.environments}
-      onChange={() => {}}
       mri={metricWidgetQueryParams.mri}
       op={metricWidgetQueryParams.op}
       query={metricWidgetQueryParams.query}
       groupBy={metricWidgetQueryParams.groupBy}
-      displayType={metricWidgetQueryParams.displayType as any as MetricDisplayType}
+      displayType={toMetricDisplayType(metricWidgetQueryParams.displayType)}
     />
   );
 }
