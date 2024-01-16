@@ -353,7 +353,7 @@ def test_mechanism_matching_no_frames():
 
     # Matcher matches:
     (matcher,) = rule._exception_matchers
-    assert matcher.matches_frame([], None, "python", exception_data, {})
+    assert matcher.matches_frame([], None, exception_data, {})
 
 
 def test_range_matching():
