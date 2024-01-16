@@ -1,4 +1,3 @@
-import random
 from typing import Mapping
 
 import msgpack
@@ -17,8 +16,8 @@ def process_message(message: Message[KafkaPayload]) -> None:
     msg_payload = message.payload.value
     message_dict = msgpack.unpackb(msg_payload, use_list=False)
 
-    if message_dict.get("sampled", True) or random.random() < options.get(
-        "profiling.profile_metrics.unsampled_profiles.sample_rate"
+    if message_dict.get("sampled", True) or options.get(
+        "profiling.profile_metrics.unsampled_profiles.enabled"
     ):
         process_profile_task.s(payload=msg_payload).apply_async()
 
