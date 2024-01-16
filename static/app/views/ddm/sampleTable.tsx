@@ -9,6 +9,7 @@ import GridEditable, {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -108,7 +109,7 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
           <Link
             to={normalizeUrl(
               `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
-                ...location.query,
+                ...extractSelectionParameters(location.query),
                 project: project?.id,
                 transaction: row.segmentName,
                 referrer: 'metrics',
