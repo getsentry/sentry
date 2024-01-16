@@ -5,8 +5,10 @@ import styled from '@emotion/styled';
 import {Button, ButtonProps} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -109,7 +111,7 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
     const menuItems = [
       {
         key: DataSet.EVENTS,
-        label: t('Errors and Trasactions'),
+        label: t('Errors and Transactions'),
         onAction: () => handleAction(DataSet.EVENTS),
       },
       {
@@ -154,7 +156,14 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
           {t('Add Widget')}
         </DropdownButton>
       )}
-      menuTitle={t('Dataset')}
+      menuTitle={
+        <MenuTitle>
+          {t('Dataset')}
+          <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#choose-your-dataset">
+            {t('Learn more')}
+          </ExternalLink>
+        </MenuTitle>
+      }
     />
   );
 }
@@ -168,4 +177,13 @@ const InnerWrapper = styled('div')<{onClick?: () => void}>`
   align-items: center;
   justify-content: center;
   cursor: ${p => (p.onClick ? 'pointer' : '')};
+`;
+
+const MenuTitle = styled('span')`
+  display: flex;
+  gap: ${space(1)};
+
+  & > a {
+    font-weight: normal;
+  }
 `;
