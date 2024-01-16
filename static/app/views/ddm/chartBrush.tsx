@@ -321,5 +321,5 @@ const FocusAreaRect = styled('div')<{
   outline-style: auto;
 
   /* requires overflow: hidden on FocusAreaWrapper */
-  box-shadow: 0px 0px 0px 9999px ${p => p.theme.surface400}C0;
+  box-shadow: 0px 0px 0px 9999px ${p => color(p.theme.surface400).alpha(0.75).string()};
 `;
