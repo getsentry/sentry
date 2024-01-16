@@ -7,7 +7,6 @@ import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -17,7 +16,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -25,6 +24,7 @@ import {Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPConsumer,
@@ -36,8 +36,9 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
+import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
-import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
@@ -70,6 +71,7 @@ type Props = WithRouterProps & {
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   index?: string;
+  isEditingWidget?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
@@ -79,6 +81,7 @@ type Props = WithRouterProps & {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  onUpdate?: (widget: Widget | null) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showContextMenu?: boolean;
   showStoredAlert?: boolean;
@@ -122,44 +125,14 @@ class WidgetCard extends Component<Props, State> {
     }
 
     return (
-      <ToolbarPanel>
-        <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
-          {!isMobile && (
-            <GrabbableButton
-              size="xs"
-              aria-label={t('Drag Widget')}
-              icon={<IconGrabbable />}
-              borderless
-              className={DRAG_HANDLE_CLASS}
-              {...draggableProps?.listeners}
-              {...draggableProps?.attributes}
-            />
-          )}
-          <Button
-            data-test-id="widget-edit"
-            aria-label={t('Edit Widget')}
-            size="xs"
-            borderless
-            onClick={onEdit}
-            icon={<IconEdit />}
-          />
-          <Button
-            aria-label={t('Duplicate Widget')}
-            size="xs"
-            borderless
-            onClick={onDuplicate}
-            icon={<IconCopy />}
-          />
-          <Button
-            data-test-id="widget-delete"
-            aria-label={t('Delete Widget')}
-            borderless
-            size="xs"
-            onClick={onDelete}
-            icon={<IconDelete />}
-          />
-        </IconContainer>
-      </ToolbarPanel>
+      <Toolbar
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onDuplicate={onDuplicate}
+        draggableProps={draggableProps}
+        hideToolbar={hideToolbar}
+        isMobile={isMobile}
+      />
     );
   }
 
@@ -292,6 +265,27 @@ class WidgetCard extends Component<Props, State> {
         )
     );
 
+    if (widget.widgetType === WidgetType.METRICS) {
+      if (hasDDMExperimentalFeature(organization)) {
+        return (
+          <MetricWidgetCard
+            index={this.props.index}
+            isEditingWidget={this.props.isEditingWidget}
+            isEditingDashboard={this.props.isEditingDashboard}
+            onEdit={this.props.onEdit}
+            onUpdate={this.props.onUpdate}
+            onDelete={this.props.onDelete}
+            onDuplicate={this.props.onDuplicate}
+            router={this.props.router}
+            location={this.props.location}
+            organization={organization}
+            selection={selection}
+            widget={widget}
+          />
+        );
+      }
+    }
+
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -306,7 +300,7 @@ class WidgetCard extends Component<Props, State> {
               disabled={Number(this.props.index) !== 0}
             >
               <WidgetCardPanel isDragging={false}>
-                <WidgetHeader>
+                <WidgetHeaderWrapper>
                   <WidgetHeaderDescription>
                     <WidgetTitleRow>
                       <Tooltip
@@ -336,32 +330,10 @@ class WidgetCard extends Component<Props, State> {
                         <WidgetDescription>{widget.description}</WidgetDescription>
                       </Tooltip>
                     )}
-                    <DashboardsMEPConsumer>
-                      {({}) => {
-                        // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
-                        // if (
-                        //   isMetricsData === false &&
-                        //   widget.widgetType === WidgetType.DISCOVER
-                        // ) {
-                        //   return (
-                        //     <Tooltip
-                        //       containerDisplayMode="inline-flex"
-                        //       title={t(
-                        //         'Based on your search criteria, the sampled events available may be limited and may not be representative of all events.'
-                        //       )}
-                        //     >
-                        //       <IconWarning color="warningText" />
-                        //     </Tooltip>
-                        //   );
-                        // }
-                        return null;
-                      }}
-                    </DashboardsMEPConsumer>
                   </WidgetHeaderDescription>
                   {this.renderContextMenu()}
-                </WidgetHeader>
+                </WidgetHeaderWrapper>
                 {hasSessionDuration && SESSION_DURATION_ALERT}
-
                 {isWidgetInvalid ? (
                   <Fragment>
                     {renderErrorMessage?.('Widget query condition is invalid.')}
@@ -473,47 +445,6 @@ export const WidgetCardPanel = styled(Panel, {
   flex-direction: column;
 `;
 
-const ToolbarPanel = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-
-  width: 100%;
-  height: 100%;
-
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-
-  background-color: ${p => p.theme.overlayBackgroundAlpha};
-  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
-`;
-
-const IconContainer = styled('div')`
-  display: flex;
-  margin: ${space(1)};
-  touch-action: none;
-`;
-
-const GrabbableButton = styled(Button)`
-  cursor: grab;
-`;
-
-const WidgetTitle = styled(HeaderTitle)`
-  ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
-`;
-
-const WidgetHeader = styled('div')`
-  padding: ${space(2)} ${space(1)} 0 ${space(3)};
-  min-height: 36px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
   margin-bottom: 0;
@@ -523,13 +454,7 @@ const StyledErrorPanel = styled(ErrorPanel)`
   padding: ${space(2)};
 `;
 
-const WidgetHeaderDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-`;
-
-const WidgetTitleRow = styled('span')`
+export const WidgetTitleRow = styled('span')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
@@ -538,4 +463,24 @@ const WidgetTitleRow = styled('span')`
 export const WidgetDescription = styled('small')`
   ${p => p.theme.overflowEllipsis}
   color: ${p => p.theme.gray300};
+`;
+
+const WidgetTitle = styled(HeaderTitle)`
+  ${p => p.theme.overflowEllipsis};
+  font-weight: normal;
+`;
+
+const WidgetHeaderWrapper = styled('div')`
+  padding: ${space(2)} ${space(1)} 0 ${space(3)};
+  min-height: 36px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const WidgetHeaderDescription = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
 `;

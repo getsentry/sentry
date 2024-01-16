@@ -1,12 +1,13 @@
 import {urlEncode} from '@sentry/utils';
 
+import {PageFilters} from 'sentry/types';
 import {
-  getFieldFromMetricsQuery,
+  emptyWidget,
   isCustomMetric,
   MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {DashboardWidgetSource, Widget, WidgetType} from 'sentry/views/dashboards/types';
 
 const getDDMWidgetName = (metricsQuery: MetricsQuery) => {
@@ -29,8 +30,12 @@ export function convertToDashboardWidget(
   };
 }
 
+export function defaultMetricWidget(selection: PageFilters) {
+  return convertToDashboardWidget({...selection, ...emptyWidget}, MetricDisplayType.LINE);
+}
+
 export function getWidgetQuery(metricsQuery: MetricsQuery) {
-  const field = getFieldFromMetricsQuery(metricsQuery);
+  const field = MRIToField(metricsQuery.mri, metricsQuery.op || '');
 
   return {
     name: '',
