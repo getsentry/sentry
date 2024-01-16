@@ -153,9 +153,17 @@ export function DomainSelector({
         });
       }}
       noOptionsMessage={() => t('No results')}
+      styles={{
+        control: provided => ({
+          ...provided,
+          minWidth: MIN_WIDTH,
+        }),
+      }}
     />
   );
 }
+
+const MIN_WIDTH = 300;
 
 const LIMIT = 100;
 

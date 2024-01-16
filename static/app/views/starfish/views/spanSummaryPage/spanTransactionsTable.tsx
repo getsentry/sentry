@@ -11,7 +11,6 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Sort} from 'sentry/utils/discover/fields';
@@ -25,6 +24,7 @@ import {
   renderHeadCell,
   SORTABLE_FIELDS,
 } from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
@@ -114,17 +114,19 @@ export function SpanTransactionsTable({span, endpoint, endpointMethod, sort}: Pr
       }
 
       return (
-        <Link
-          to={`${pathname}?${qs.stringify(query)}`}
-          onClick={() => {
-            router.replace({
-              pathname,
-              query,
-            });
-          }}
-        >
-          <Truncate value={label} maxLength={75} />
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link
+            to={`${pathname}?${qs.stringify(query)}`}
+            onClick={() => {
+              router.replace({
+                pathname,
+                query,
+              });
+            }}
+          >
+            {label}
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
