@@ -34,7 +34,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     parse_mri,
 )
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import raw_snql_query, bulk_snuba_queries
 
 # Maximum number of unique results returned by the database.
 MAX_NUMBER_OF_RESULTS = 10
@@ -61,10 +61,10 @@ class SpansSummary:
 
 
 @dataclass(frozen=True)
-class Span:
+class Segment:
     project_id: int
     trace_id: str
-    transaction_id: str
+    segment_id: str
     segment_name: str
     profile_id: Optional[str]
     spans_number: int
@@ -74,16 +74,16 @@ class Span:
 
 
 @dataclass(frozen=True)
-class MetricSpans:
+class MetricCorrelations:
     metric_mri: str
-    spans: Sequence[Span]
+    segments: Sequence[Segment]
 
     def __hash__(self):
         # For the serializer we need to implement a hashing function that uniquely identifies a metric.
         return hash(self.metric_mri)
 
 
-class SpansSource(ABC):
+class CorrelationsSource(ABC):
     def __init__(
         self,
         organization: Organization,
@@ -92,7 +92,7 @@ class SpansSource(ABC):
         self.organization = organization
         self.projects = projects
 
-    def get_spans(
+    def get_segments(
         self,
         metric_mri: str,
         query: Optional[str],
@@ -100,7 +100,7 @@ class SpansSource(ABC):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Sequence[Span]:
+    ) -> Sequence[Segment]:
         return self._get_spans(
             metric_mri=metric_mri,
             # TODO: when the environment support is added, inject here the environment condition after the AST is
@@ -126,11 +126,11 @@ class SpansSource(ABC):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Sequence[Span]:
+    ) -> Sequence[Segment]:
         raise NotImplementedError
 
 
-class MetricsSummariesSpansSource(SpansSource):
+class MetricsSummariesCorrelationsSource(CorrelationsSource):
     def _get_span_ids_from_metrics_summaries(
         self,
         metric_mri: str,
@@ -166,7 +166,6 @@ class MetricsSummariesSpansSource(SpansSource):
                 Condition(Column("metric_mri"), Op.EQ, metric_mri),
             ]
             + where,
-            # We group by to deduplicate the span id and apply the limit.
             groupby=[Column("span_id")],
         )
 
@@ -198,7 +197,7 @@ class MetricsSummariesSpansSource(SpansSource):
         query = Query(
             match=Entity(EntityKey.Spans.value),
             select=[
-                # TODO: switch to segment_id.
+                # TODO: switch to segment_id when the product is ready for it.
                 Column("transaction_id"),
             ],
             where=[
@@ -206,6 +205,8 @@ class MetricsSummariesSpansSource(SpansSource):
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("span_id"), Op.IN, list(span_ids)),
+                # We query only spans under the assumption that a metric can't be correlated to a segment.
+                Condition(Column("is_segment"), Op.EQ, 0)
             ],
             groupby=[Column("transaction_id")],
         )
@@ -233,7 +234,7 @@ class MetricsSummariesSpansSource(SpansSource):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Sequence[Span]:
+    ) -> Sequence[Segment]:
         # First, we fetch the spans we are interested in given the metric and the bounds.
         span_ids = self._get_span_ids_from_metrics_summaries(
             metric_mri=metric_mri,
@@ -252,7 +253,7 @@ class MetricsSummariesSpansSource(SpansSource):
         )
 
         # Third, we fetch additional details of the transactions in `transaction_ids`.
-        spans = get_indexed_spans(
+        spans = _get_segments(
             where=[Condition(Column("transaction_id"), Op.IN, list(transaction_ids))],
             start=start,
             end=end,
@@ -264,7 +265,7 @@ class MetricsSummariesSpansSource(SpansSource):
         return spans
 
 
-class TransactionDurationSpansSource(SpansSource):
+class TransactionDurationCorrelationsSource(CorrelationsSource):
     @classmethod
     def supports(cls, metric_mri: str) -> bool:
         return metric_mri == TransactionMRI.DURATION.value
@@ -277,7 +278,7 @@ class TransactionDurationSpansSource(SpansSource):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Sequence[Span]:
+    ) -> Sequence[Segment]:
         where = []
 
         transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
@@ -294,7 +295,7 @@ class TransactionDurationSpansSource(SpansSource):
 
         # TODO: there might be the need to first obtain a set of transaction ids that have specific measurements and
         #  then filter all spans with that transaction id.
-        return get_indexed_spans(
+        return _get_segments(
             where=where,
             start=start,
             end=end,
@@ -303,7 +304,7 @@ class TransactionDurationSpansSource(SpansSource):
         )
 
 
-class MeasurementsSpansSource(SpansSource):
+class MeasurementsCorrelationsSource(CorrelationsSource):
     def _extract_measurement_name(self, metric_mri: str) -> str:
         # We assume the `parse_mri` to never fail, since we have the guarantee that `supports` is called first.
         return cast(ParsedMRI, parse_mri(metric_mri)).name[13:]
@@ -324,7 +325,7 @@ class MeasurementsSpansSource(SpansSource):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Sequence[Span]:
+    ) -> Sequence[Segment]:
         where = []
 
         transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
@@ -348,7 +349,7 @@ class MeasurementsSpansSource(SpansSource):
 
         # TODO: there might be the need to first obtain a set of transaction ids that have specific measurements and
         #  then filter all spans with that transaction id.
-        return get_indexed_spans(
+        return _get_segments(
             where=where,
             start=start,
             end=end,
@@ -357,20 +358,13 @@ class MeasurementsSpansSource(SpansSource):
         )
 
 
-def get_indexed_spans(
+def _get_segments_aggregates_query(
     where: Optional[ConditionGroup],
     start: datetime,
     end: datetime,
-    organization: Organization,
     projects: Sequence[Project],
-):
-    """
-    Fetches indexed spans and performs some aggregate calculations on them.
-
-    The choice of not using query builders was deliberate, since we have to access columns that are not exposed via
-    the query builders because they are meant to be internal.
-    """
-    query = Query(
+) -> Query:
+    return Query(
         match=Entity(EntityKey.Spans.value),
         select=[
             Column("project_id"),
@@ -415,56 +409,115 @@ def get_indexed_spans(
         limit=Limit(MAX_NUMBER_OF_RESULTS),
     )
 
-    request = Request(
-        dataset=Dataset.SpansIndexed.value,
-        app_id="metrics",
-        query=query,
-        tenant_ids={"organization_id": organization.id},
+
+def _get_segments_spans_summaries_query(
+    where: Optional[ConditionGroup],
+    start: datetime,
+    end: datetime,
+    projects: Sequence[Project],
+) -> Query:
+    return Query(
+        match=Entity(EntityKey.Spans.value),
+        select=[
+            Column("transaction_id"),
+            Column("op"),
+            Function(
+                "sum",
+                [Column("duration")],
+                alias="duration",
+            ),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.IN, [project.id for project in projects]),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column("is_segment"), Op.EQ, 0),
+        ]
+        + (where or []),
+        groupby=[Column("transaction_id"), Column("op")],
     )
 
-    data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
 
-    return [
-        Span(
-            project_id=value["project_id"],
-            transaction_id=value["transaction_id"],
-            trace_id=value["trace_id"],
-            profile_id=value["profile_id"],
-            segment_name=value["segment_name"],
-            spans_number=value["spans_number"],
-            spans_summary=[],
-            duration=value["duration"],
-            timestamp=value["any_timestamp"],
+def _get_segments(
+    where: Optional[ConditionGroup],
+    start: datetime,
+    end: datetime,
+    organization: Organization,
+    projects: Sequence[Project],
+):
+    requests = []
+    for query in [
+        _get_segments_aggregates_query(where, start, end, projects),
+        _get_segments_spans_summaries_query(where, start, end, projects),
+    ]:
+        request = Request(
+            dataset=Dataset.SpansIndexed.value,
+            app_id="metrics",
+            query=query,
+            tenant_ids={"organization_id": organization.id},
         )
-        for value in data
-    ]
+        requests.append(request)
+
+    results = bulk_snuba_queries(requests, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)
+    if len(results) != 2:
+        raise Exception("Error while fetching segments for the metric")
+
+    # First, we build a reverse index on the span ops.
+    segment_ops = {}
+    for row in results[1]["data"]:
+        segment_ops.setdefault(row["transaction_id"], []).append((row["op"], row["duration"]))
+
+    # Second, we build the segment objects to return.
+    segments = []
+    for row in results[0]["data"]:
+        spans_summary = [
+            SpansSummary(span_op=op, span_duration=duration)
+            for op, duration in segment_ops.get(row["transaction_id"], [])
+        ]
+
+        segment = Segment(
+            project_id=row["project_id"],
+            # For now, we still use the old transaction_id.
+            segment_id=row["transaction_id"],
+            trace_id=row["trace_id"],
+            profile_id=row["profile_id"],
+            segment_name=row["segment_name"],
+            spans_number=row["spans_number"],
+            spans_summary=spans_summary,
+            duration=row["duration"],
+            timestamp=row["any_timestamp"],
+        )
+
+        segments.append(segment)
+
+    return segments
 
 
 # Ordered list (by priority) of spans sources that will be used to get the spans of a specific metric.
-SPANS_SOURCES = [
-    MeasurementsSpansSource,
-    TransactionDurationSpansSource,
-    MetricsSummariesSpansSource,
+CORRELATIONS_SOURCES = [
+    MeasurementsCorrelationsSource,
+    TransactionDurationCorrelationsSource,
+    MetricsSummariesCorrelationsSource,
 ]
 
 
-def get_spans_source(
+def get_correlations_source(
     metric_mri: str, organization: Organization, projects: Sequence[Project]
-) -> Optional[SpansSource]:
+) -> Optional[CorrelationsSource]:
     """
     Finds the first spans source that supports the `metric_mri`.
 
     In case multiple sources would apply to a `metric_mri` the first one is chosen.
     """
 
-    for source_clazz in SPANS_SOURCES:
-        if source_clazz.supports(metric_mri):
-            return source_clazz(organization=organization, projects=projects)  # type:ignore
+    for correlation_clazz in CORRELATIONS_SOURCES:
+        if correlation_clazz.supports(metric_mri):
+            return correlation_clazz(organization=organization, projects=projects)  # type:ignore
 
     return None
 
 
-def get_spans_of_metric(
+def get_correlations_of_metric(
     metric_mri: str,
     query: Optional[str],
     start: datetime,
@@ -473,21 +526,22 @@ def get_spans_of_metric(
     max_value: Optional[float],
     organization: Organization,
     projects: Sequence[Project],
-) -> MetricSpans:
+) -> MetricCorrelations:
     """
     Returns the spans in which the metric with `metric_mri` was emitted.
 
     The metric can be emitted within a span with different tag values. These are uniquely stored in the
     metrics_summaries entity.
     """
-    spans_source = get_spans_source(metric_mri, organization, projects)
-    if not spans_source:
+    correlations_source = get_correlations_source(metric_mri, organization, projects)
+    if not correlations_source:
         raise InvalidParams(
             f"The supplied metric {metric_mri} does not support fetching correlated spans"
         )
 
-    spans = spans_source.get_spans(metric_mri, query, start, end, min_value, max_value)
-    return MetricSpans(
+    return MetricCorrelations(
         metric_mri=metric_mri,
-        spans=spans,
+        segments=correlations_source.get_segments(
+            metric_mri, query, start, end, min_value, max_value
+        ),
     )
