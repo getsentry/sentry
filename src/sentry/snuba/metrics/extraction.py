@@ -97,7 +97,7 @@ class OnDemandMetricSpecVersioning:
         return cls.spec_versions
 
     @classmethod
-    def get_query_spec_version(cls: Any, organization_id: int, user: User) -> SpecVersion:
+    def get_query_spec_version(cls: Any, organization_id: int, user: Optional[User]) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
         flags_set = set()
         org = Organization.objects.get_from_cache(id=organization_id)
