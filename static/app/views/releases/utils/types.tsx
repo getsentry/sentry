@@ -11,7 +11,7 @@ export type ThresholdStatusesQuery = Omit<ThresholdQuery, 'project'> & {
   end: string;
   release: string[]; // list of release versions
   start: string;
-  project?: string[]; // list of project slugs
+  projectSlug?: string[]; // list of project slugs
 };
 
 export type ThresholdStatus = Threshold & {
