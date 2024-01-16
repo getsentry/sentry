@@ -635,6 +635,7 @@ class SlackActionEndpoint(Endpoint):
             "grace_period_warning",
             "integration_disabled_slack",
             "trial_end_warning",
+            "link_clicked",
         ):
             return self.respond()
 

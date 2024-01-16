@@ -76,6 +76,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
         if action.url:
             button["url"] = action.url
+            button["value"] = "link_clicked"
 
         return button
 
