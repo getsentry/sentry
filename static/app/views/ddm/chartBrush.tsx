@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
 import {IconClose, IconZoom} from 'sentry/icons';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {MetricRange} from 'sentry/utils/metrics';
@@ -32,6 +33,9 @@ interface UseFocusAreaBrushOptions {
 }
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
+
+const getBorderColor = () =>
+  ConfigStore.get('theme') === 'dark' ? theme.gray200 : theme.gray500;
 
 export function useFocusAreaBrush(
   chartRef: RefObject<ReactEchartsRef>,
@@ -115,7 +119,7 @@ export function useFocusAreaBrush(
         xAxisIndex: 0,
         brushStyle: {
           borderWidth: 2,
-          borderColor: theme.purple300,
+          borderColor: getBorderColor(),
           color: 'transparent',
         },
         inBrush: {
@@ -275,14 +279,6 @@ const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRa
 
 const CHART_HEIGHT = 256;
 
-const FocusAreaWrapper = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-`;
-
 const FocusAreaRectActions = styled('div')<{
   top: string;
 }>`
@@ -296,6 +292,15 @@ const FocusAreaRectActions = styled('div')<{
   pointer-events: auto;
 `;
 
+const FocusAreaWrapper = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+`;
+
 const FocusAreaRect = styled('div')<{
   height: string;
   left: string;
@@ -307,9 +312,14 @@ const FocusAreaRect = styled('div')<{
   left: ${p => p.left};
   width: ${p => p.width};
   height: ${p => p.height};
-  outline: 2px solid ${p => p.theme.purple300};
-  outline-offset: -1px;
+
   padding: ${space(1)};
   pointer-events: none;
   z-index: 1;
+
+  outline: 2px solid ${getBorderColor};
+  outline-style: auto;
+
+  /* requires overflow: hidden on FocusAreaWrapper */
+  box-shadow: 0px 0px 0px 9999px ${p => p.theme.surface400}C0;
 `;
