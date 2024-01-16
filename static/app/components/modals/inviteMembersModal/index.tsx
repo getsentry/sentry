@@ -12,11 +12,12 @@ import type {
 } from 'sentry/components/deprecatedAsyncComponent';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
+import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import {ORG_ROLES} from 'sentry/constants';
-import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
+import {IconAdd} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,7 +57,7 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
   State
 > {
   static childContextTypes = {
-    organization: SentryTypes.Organization,
+    organization: SentryPropTypeValidators.isOrganization,
   };
 
   get inviteTemplate(): InviteRow {
@@ -248,93 +249,8 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
     return this.invites.length > 0 && !this.hasDuplicateEmails;
   }
 
-  get statusMessage() {
-    const {sendingInvites, complete, inviteStatus} = this.state;
-
-    if (sendingInvites) {
-      return (
-        <StatusMessage>
-          <LoadingIndicator mini relative hideMessage size={16} />
-          {this.willInvite
-            ? t('Sending organization invitations\u2026')
-            : t('Sending invite requests\u2026')}
-        </StatusMessage>
-      );
-    }
-
-    if (complete) {
-      const statuses = Object.values(inviteStatus);
-      const sentCount = statuses.filter(i => i.sent).length;
-      const errorCount = statuses.filter(i => i.error).length;
-
-      if (this.willInvite) {
-        const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
-        const tctComponents = {
-          invites,
-          failed: errorCount,
-        };
-
-        return (
-          <StatusMessage status="success">
-            <IconCheckmark size="sm" />
-            {errorCount > 0
-              ? tct('Sent [invites], [failed] failed to send.', tctComponents)
-              : tct('Sent [invites]', tctComponents)}
-          </StatusMessage>
-        );
-      }
-      const inviteRequests = (
-        <strong>{tn('%s invite request', '%s invite requests', sentCount)}</strong>
-      );
-      const tctComponents = {
-        inviteRequests,
-        failed: errorCount,
-      };
-      return (
-        <StatusMessage status="success">
-          <IconCheckmark size="sm" />
-          {errorCount > 0
-            ? tct(
-                '[inviteRequests] pending approval, [failed] failed to send.',
-                tctComponents
-              )
-            : tct('[inviteRequests] pending approval', tctComponents)}
-        </StatusMessage>
-      );
-    }
-
-    if (this.hasDuplicateEmails) {
-      return (
-        <StatusMessage status="error">
-          <IconWarning size="sm" />
-          {t('Duplicate emails between invite rows.')}
-        </StatusMessage>
-      );
-    }
-
-    return null;
-  }
-
   get willInvite() {
     return this.props.organization.access?.includes('member:write');
-  }
-
-  get inviteButtonLabel() {
-    if (this.invites.length > 0) {
-      const numberInvites = this.invites.length;
-
-      // Note we use `t()` here because `tn()` expects the same # of string formatters
-      const inviteText =
-        numberInvites === 1 ? t('Send invite') : t('Send invites (%s)', numberInvites);
-      const requestText =
-        numberInvites === 1
-          ? t('Send invite request')
-          : t('Send invite requests (%s)', numberInvites);
-
-      return this.willInvite ? inviteText : requestText;
-    }
-
-    return this.willInvite ? t('Send invite') : t('Send invite request');
   }
 
   render() {
@@ -343,7 +259,6 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
 
     const disableInputs = sendingInvites || complete;
 
-    // eslint-disable-next-line react/prop-types
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <Fragment>
         <Heading>{t('Invite New Members')}</Heading>
@@ -398,7 +313,15 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
 
         <Footer>
           <FooterContent>
-            <div>{this.statusMessage}</div>
+            <div>
+              <InviteStatusMessage
+                complete={this.state.complete}
+                hasDuplicateEmails={this.hasDuplicateEmails}
+                inviteStatus={this.state.inviteStatus}
+                sendingInvites={this.state.sendingInvites}
+                willInvite={this.willInvite}
+              />
+            </div>
 
             <ButtonBar gap={1}>
               {complete ? (
@@ -431,15 +354,15 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
                   >
                     {t('Cancel')}
                   </Button>
-                  <Button
+                  <InviteButton
+                    invites={this.invites}
+                    willInvite={this.willInvite}
                     size="sm"
                     data-test-id="send-invites"
                     priority="primary"
                     disabled={!canSend || !this.isValidInvites || disableInputs}
                     onClick={sendInvites}
-                  >
-                    {this.inviteButtonLabel}
-                  </Button>
+                  />
                 </Fragment>
               )}
             </ButtonBar>
@@ -509,18 +432,6 @@ const FooterContent = styled('div')`
   align-items: center;
   justify-content: space-between;
   flex: 1;
-`;
-
-export const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.errorText : p.theme.textColor)};
-
-  > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.successText}`};
-  }
 `;
 
 export const modalCss = css`

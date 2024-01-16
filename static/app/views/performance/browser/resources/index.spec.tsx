@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
@@ -28,7 +28,7 @@ jest.mock('sentry/utils/useOrganization');
 const requestMocks: Record<string, jest.Mock> = {};
 
 describe('ResourcesLandingPage', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: [
       'starfish-browser-resource-module-ui',
       'starfish-view',
@@ -79,7 +79,6 @@ describe('ResourcesLandingPage', function () {
           "avg(span.self_time)",
           "spm()",
           "span.group",
-          "span.domain",
           "avg(http.response_content_length)",
           "project.id",
           "time_spent_percentage()",

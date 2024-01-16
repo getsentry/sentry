@@ -62,8 +62,6 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
 class _body_with_length:
     """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
 
-    request: HttpRequest
-
     def __init__(self, request: HttpRequest):
         self.request = request
 
@@ -138,17 +136,17 @@ def proxy_region_request(request: HttpRequest, region: Region) -> StreamingHttpR
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
+
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
     query_params = request.GET
     try:
-        assert not request._read_started  # type: ignore
         resp = external_request(
             request.method,
             url=target_url,
             headers=header_dict,
             params=dict(query_params) if query_params is not None else None,
-            data=_body_with_length(request),  # type: ignore
+            data=_body_with_length(request),
             stream=True,
             timeout=settings.GATEWAY_PROXY_TIMEOUT,
         )

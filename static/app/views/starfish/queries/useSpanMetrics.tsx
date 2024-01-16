@@ -11,16 +11,21 @@ import {
   SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
-export const useSpanMetrics = <T extends MetricsProperty[]>(
-  filters: SpanMetricsQueryFilters,
-  fields: T,
-  sorts?: Sort[],
-  limit?: number,
-  cursor?: string,
-  referrer: string = 'api.starfish.use-span-metrics'
+interface UseSpanMetricsOptions<Fields> {
+  cursor?: string;
+  fields?: Fields;
+  filters?: SpanMetricsQueryFilters;
+  limit?: number;
+  referrer?: string;
+  sorts?: Sort[];
+}
+
+export const useSpanMetrics = <Fields extends MetricsProperty[]>(
+  options: UseSpanMetricsOptions<Fields> = {}
 ) => {
+  const {fields = [], filters = {}, sorts = [], limit, cursor, referrer} = options;
+
   const location = useLocation();
 
   const eventView = getEventView(filters, fields, sorts, location);
@@ -38,7 +43,7 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
   // eslint-disable-next-line @typescript-eslint/ban-types
-  const data = (result?.data ?? []) as Pick<MetricsResponse, T[number]>[] | [];
+  const data = (result?.data ?? []) as Pick<MetricsResponse, Fields[number]>[] | [];
 
   return {
     ...result,
@@ -48,24 +53,12 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 };
 
 function getEventView(
-  filters: SpanMetricsQueryFilters,
+  filters: SpanMetricsQueryFilters = {},
   fields: string[] = [],
   sorts: Sort[] = [],
   location: Location
 ) {
-  const query = new MutableSearch('');
-
-  Object.entries(filters).forEach(([key, value]) => {
-    if (!value) {
-      return;
-    }
-
-    if (value === EMPTY_OPTION_VALUE) {
-      query.addFilterValue('!has', key);
-    }
-
-    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
-  });
+  const query = MutableSearch.fromQueryObject(filters);
 
   // TODO: This condition should be enforced everywhere
   // query.addFilterValue('has', 'span.description');
@@ -87,5 +80,3 @@ function getEventView(
 
   return eventView;
 }
-
-const ALLOWED_WILDCARD_FIELDS = ['span.description'];

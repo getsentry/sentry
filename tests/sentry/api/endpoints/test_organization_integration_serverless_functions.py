@@ -5,7 +5,6 @@ from django.test import override_settings
 from responses import matchers
 
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
-from sentry.models.integrations.integration import Integration
 from sentry.models.projectkey import ProjectKey
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -24,7 +23,7 @@ class AbstractServerlessTest(APITestCase):
         super().setUp()
         self.project = self.create_project(organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="aws_lambda",
                 metadata={
                     "region": "us-east-2",

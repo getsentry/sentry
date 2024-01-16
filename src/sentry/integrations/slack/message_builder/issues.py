@@ -62,9 +62,7 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(
-    identity: RpcIdentity, action: MessageAction, has_escalating: bool = False
-) -> str | None:
+def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -74,7 +72,7 @@ def build_action_text(
 
     # Resolve actions have additional 'parameters' after ':'
     status = STATUSES.get((action.value or "").split(":", 1)[0])
-    status = "archived" if status == "ignored" and has_escalating else status
+    status = "archived" if status == "ignored" else status
     # Action has no valid action text, ignore
     if not status:
         return None
@@ -181,18 +179,14 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def get_action_text(
-    text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
-) -> str:
+def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
     return (
         text
         + "\n"
         + "\n".join(
             [
                 action_text
-                for action_text in [
-                    build_action_text(identity, action, has_escalating) for action in actions
-                ]
+                for action_text in [build_action_text(identity, action) for action in actions]
                 if action_text
             ]
         )
@@ -208,11 +202,10 @@ def build_actions(
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
-    has_escalating = features.has("organizations:escalating-issues", project.organization)
     use_block_kit = features.has("organizations:slack-block-kit", project.organization)
 
     if actions and identity:
-        text = get_action_text(text, actions, identity, has_escalating)
+        text = get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
     status = group.get_status()
@@ -224,20 +217,24 @@ def build_actions(
         if status == GroupStatus.IGNORED:
             return MessageAction(
                 name="status",
-                label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
+                label="Mark as Ongoing",
                 value="unresolved:ongoing",
             )
 
         return MessageAction(
             name="status",
-            label="Archive" if has_escalating else "Ignore",
-            value="ignored:until_escalating" if has_escalating else "ignored:forever",
+            label="Archive",
+            value="ignored:until_escalating",
         )
 
     def _resolve_button(use_block_kit) -> MessageAction:
         if use_block_kit:
-            # TODO(CEO): handle if the issue is resolved - render a button that unresolves
-            # TODO(CEO): handle if not project.flags.has_releases in block kit - render a resolve button instead of a modal
+            if status == GroupStatus.RESOLVED:
+                return MessageAction(
+                    name="unresolved:ongoing", label="Unresolve", value="unresolved:ongoing"
+                )
+            if not project.flags.has_releases:
+                return MessageAction(name="status", label="Resolve", value="resolved")
             return MessageAction(
                 name="status",
                 label="Resolve",

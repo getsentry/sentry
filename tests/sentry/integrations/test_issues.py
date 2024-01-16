@@ -1,15 +1,16 @@
 from unittest import mock
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.activity import ActivityType
 
 
 @region_silo_test
@@ -19,7 +20,7 @@ class IssueSyncIntegration(TestCase):
         assert group.status == GroupStatus.UNRESOLVED
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", external_id="123456")
+            integration = self.create_provider_integration(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
             for oi in OrganizationIntegration.objects.filter(
@@ -48,6 +49,7 @@ class IssueSyncIntegration(TestCase):
         )
 
         installation = integration.get_installation(group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
 
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
             installation.sync_status_inbound(
@@ -56,6 +58,12 @@ class IssueSyncIntegration(TestCase):
             )
 
             assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+            activity = Activity.objects.get(group_id=group.id, type=ActivityType.SET_RESOLVED.value)
+            assert activity.data == {
+                "integration_id": integration.id,
+                "provider": integration.get_provider().name,
+                "provider_key": integration.get_provider().key,
+            }
 
     def test_status_sync_inbound_unresolve(self):
         group = self.group
@@ -65,7 +73,7 @@ class IssueSyncIntegration(TestCase):
         assert group.status == GroupStatus.RESOLVED
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", external_id="123456")
+            integration = self.create_provider_integration(provider="example", external_id="123456")
             integration.add_organization(group.organization, self.user)
 
             for oi in OrganizationIntegration.objects.filter(
@@ -94,6 +102,7 @@ class IssueSyncIntegration(TestCase):
         )
 
         installation = integration.get_installation(group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
 
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
             installation.sync_status_inbound(
@@ -102,6 +111,14 @@ class IssueSyncIntegration(TestCase):
             )
 
             assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+            activity = Activity.objects.get(
+                group_id=group.id, type=ActivityType.SET_UNRESOLVED.value
+            )
+            assert activity.data == {
+                "integration_id": integration.id,
+                "provider": integration.get_provider().name,
+                "provider_key": integration.get_provider().key,
+            }
 
 
 @region_silo_test
@@ -203,9 +220,12 @@ class IssueDefaultTest(TestCase):
 
     def test_store_issue_last_defaults_for_user_multiple_providers(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            other_integration = Integration.objects.create(provider=AliasedIntegrationProvider.key)
+            other_integration = self.create_provider_integration(
+                provider=AliasedIntegrationProvider.key
+            )
             other_integration.add_organization(self.organization, self.user)
         other_installation = other_integration.get_installation(self.organization.id)
+        assert isinstance(other_installation, ExampleIntegration)
 
         self.installation.store_issue_last_defaults(
             self.project, self.user, {"project": "xyz", "reportedBy": "userA"}
@@ -231,8 +251,9 @@ class IssueDefaultTest(TestCase):
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", external_id="4444")
+            integration = self.create_provider_integration(provider="example", external_id="4444")
             integration.add_organization(self.group.organization, self.user)
         installation = integration.get_installation(self.group.organization.id)
+        assert isinstance(installation, ExampleIntegration)
 
         assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}

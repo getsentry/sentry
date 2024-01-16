@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories
@@ -56,7 +56,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
                 organization=self.organization, scope_list=["org:write", "org:admin", "team:write"]
             )
 
-            with SiloMode.enter_single_process_silo_context(SiloMode.CONTROL):
+            with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 resp = self.get_response(
                     self.organization.slug,
                     name="hello world",

@@ -12,8 +12,6 @@ import toPercent from 'sentry/utils/number/toPercent';
 import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
-import ReplayPreview from '../../eventReplay/replayPreview';
-
 import * as DividerHandlerManager from './dividerHandlerManager';
 
 type PropType = {
@@ -114,23 +112,6 @@ function TraceViewHeader(props: PropType) {
                   height: `100px`,
                 }}
               />
-              <div
-                style={{
-                  overflow: 'hidden',
-                  position: 'relative',
-                  height: '100px',
-                  width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-                  left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-                }}
-              >
-                {event.contexts.replay?.replay_id && (
-                  <ReplayPreview
-                    replaySlug={event.contexts.replay?.replay_id ?? ''}
-                    orgSlug={props.organization.slug}
-                    eventTimestampMs={props.traceInfo.startTimestamp}
-                  />
-                )}
-              </div>
             </Fragment>
           );
         }}

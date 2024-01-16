@@ -20,11 +20,11 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import AppStartBreakdown, {
-  COLD_START_COLOR,
-  WARM_START_COLOR,
-} from 'sentry/views/starfish/views/appStartup/appStartBreakdown';
+import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+
+export const COLD_START_COLOR = '#F58C46';
+export const WARM_START_COLOR = '#F2B712';
 
 function AppStartBreakdownWidget({additionalFilters}) {
   const pageFilter = usePageFilters();
@@ -92,7 +92,19 @@ function AppStartBreakdownWidget({additionalFilters}) {
     return acc;
   }, {});
 
-  const keys = {coldStartKey: 'app.start.cold', warmStartKey: 'app.start.warm'};
+  const breakdownGroups = [
+    {
+      key: 'app.start.cold',
+      color: COLD_START_COLOR,
+      name: t('Cold Start'),
+    },
+    {
+      key: 'app.start.warm',
+      color: WARM_START_COLOR,
+      name: t('Warm Start'),
+    },
+  ];
+
   return (
     <MiniChartPanel
       title={t('App Start')}
@@ -108,7 +120,7 @@ function AppStartBreakdownWidget({additionalFilters}) {
     >
       <Legend>
         <LegendEntry>
-          <StyledStartTypeDot style={{backgroundColor: COLD_START_COLOR}} />{' '}
+          <StyledStartTypeDot style={{backgroundColor: COLD_START_COLOR}} />
           {t('Cold Start')}
         </LegendEntry>
         <LegendEntry>
@@ -120,13 +132,19 @@ function AppStartBreakdownWidget({additionalFilters}) {
         {primaryRelease && (
           <ReleaseAppStartBreakdown>
             <TextOverflow>{formatVersion(primaryRelease)}</TextOverflow>
-            <AppStartBreakdown {...keys} row={startsByReleaseSeries[primaryRelease]} />
+            <Breakdown
+              row={startsByReleaseSeries[primaryRelease]}
+              breakdownGroups={breakdownGroups}
+            />
           </ReleaseAppStartBreakdown>
         )}
         {secondaryRelease && (
           <ReleaseAppStartBreakdown>
             <TextOverflow>{formatVersion(secondaryRelease)}</TextOverflow>
-            <AppStartBreakdown {...keys} row={startsByReleaseSeries[secondaryRelease]} />
+            <Breakdown
+              row={startsByReleaseSeries[secondaryRelease]}
+              breakdownGroups={breakdownGroups}
+            />
           </ReleaseAppStartBreakdown>
         )}
       </AppStartBreakdownContent>

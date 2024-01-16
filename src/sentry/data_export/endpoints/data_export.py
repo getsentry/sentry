@@ -24,6 +24,13 @@ from ..models import ExportedData
 from ..processors.discover import DiscoverProcessor
 from ..tasks import assemble_download
 
+# To support more datasets we may need to change the QueryBuilder being used
+# for now only doing issuePlatform since the product is forcing our hand
+SUPPORTED_DATASETS = {
+    "discover": Dataset.Discover,
+    "issuePlatform": Dataset.IssuePlatform,
+}
+
 
 class DataExportQuerySerializer(serializers.Serializer):
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
@@ -86,6 +93,9 @@ class DataExportQuerySerializer(serializers.Serializer):
                 del query_info["statsPeriodEnd"]
             query_info["start"] = start.isoformat()
             query_info["end"] = end.isoformat()
+            dataset = query_info.get("dataset", "discover")
+            if dataset not in SUPPORTED_DATASETS:
+                raise serializers.ValidationError(f"{dataset} is not support for csv exports")
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
@@ -94,7 +104,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             )
             try:
                 builder = QueryBuilder(
-                    Dataset.Discover,
+                    SUPPORTED_DATASETS[dataset],
                     processor.params,
                     query=query_info["query"],
                     selected_columns=fields.copy(),
@@ -140,8 +150,8 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             data=request.data,
             context={
                 "organization": organization,
-                "get_projects_by_id": lambda project_query: self._get_projects_by_id(
-                    project_query, request, organization
+                "get_projects_by_id": lambda project_query: self.get_projects(
+                    request=request, organization=organization, project_ids=project_query
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
             },

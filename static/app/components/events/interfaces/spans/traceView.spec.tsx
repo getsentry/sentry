@@ -50,7 +50,7 @@ describe('TraceView', () => {
         5
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -74,7 +74,7 @@ describe('TraceView', () => {
         5
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -132,7 +132,7 @@ describe('TraceView', () => {
         })
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -153,7 +153,7 @@ describe('TraceView', () => {
 
       builder.addSpan(span);
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -195,7 +195,7 @@ describe('TraceView', () => {
         5
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -463,7 +463,7 @@ describe('TraceView', () => {
       const {rerender} = render(
         <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(builder1.getEvent())}
+          waterfallModel={new WaterfallModel(builder1.getEventFixture())}
         />
       );
       expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
@@ -484,7 +484,7 @@ describe('TraceView', () => {
       rerender(
         <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(builder2.getEvent())}
+          waterfallModel={new WaterfallModel(builder2.getEventFixture())}
         />
       );
 
@@ -505,7 +505,7 @@ describe('TraceView', () => {
       rerender(
         <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(builder3.getEvent())}
+          waterfallModel={new WaterfallModel(builder3.getEventFixture())}
         />
       );
 
@@ -531,7 +531,7 @@ describe('TraceView', () => {
       // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
       location.hash = spanTargetHash('0000000000000003');
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
@@ -559,7 +559,7 @@ describe('TraceView', () => {
 
       location.hash = spanTargetHash('0000000000000003');
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>

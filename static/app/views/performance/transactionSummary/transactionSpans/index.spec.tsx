@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
@@ -14,7 +14,7 @@ import {
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view'];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: [ProjectFixture()],
   });
@@ -44,7 +44,7 @@ describe('Performance > Transaction Spans', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({

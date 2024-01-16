@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum AngularVersion {
@@ -19,9 +20,9 @@ export enum AngularVersion {
   V12 = 'v12',
 }
 
-type PlaformOptionKey = 'siblingOption';
+type PlatformOptionKey = 'siblingOption';
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Angular Version'),
     items: [
@@ -30,7 +31,7 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
         value: AngularVersion.V12,
       },
       {
-        label: t('Angular 10 and 11'),
+        label: t('Angular 10 & 11'),
         value: AngularVersion.V10,
       },
     ],
@@ -286,6 +287,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
       ],
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],

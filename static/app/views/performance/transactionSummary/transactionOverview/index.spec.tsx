@@ -1,7 +1,7 @@
 import {browserHistory, InjectedRouter} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -28,8 +28,8 @@ import TransactionSummary from 'sentry/views/performance/transactionSummary/tran
 import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
-  Team({id: '1', slug: 'team1', name: 'Team 1'}),
-  Team({id: '2', slug: 'team2', name: 'Team 2'}),
+  TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
+  TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),
 ];
 
 function initializeData({
@@ -45,7 +45,7 @@ function initializeData({
 } = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const project = prj ?? ProjectFixture({teams});
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: projects ? projects : [project],
   });
@@ -143,7 +143,7 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -644,7 +644,7 @@ describe('Performance > TransactionSummary', function () {
           name: 'Project Name 2',
         }),
       ];
-      OrganizationStore.onUpdate(Organization({slug: 'org-slug'}), {
+      OrganizationStore.onUpdate(OrganizationFixture({slug: 'org-slug'}), {
         replace: true,
       });
       const {organization, router, routerContext} = initializeData({projects});
@@ -659,11 +659,7 @@ describe('Performance > TransactionSummary', function () {
           router={router}
           location={router.location}
         />,
-        {
-          context: routerContext,
-          organization,
-          projects: projects.map(project => project.id),
-        }
+        {context: routerContext, organization}
       );
 
       renderGlobalModal();

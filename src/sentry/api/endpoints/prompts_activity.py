@@ -42,7 +42,7 @@ class PromptsActivityEndpoint(Endpoint):
     }
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, **kwargs) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""
 
         features = request.GET.getlist("feature")
@@ -71,7 +71,7 @@ class PromptsActivityEndpoint(Endpoint):
         else:
             return Response({"features": featuredata})
 
-    def put(self, request: Request):
+    def put(self, request: Request, **kwargs):
         serializer = PromptsActivitySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

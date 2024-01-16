@@ -1,4 +1,4 @@
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

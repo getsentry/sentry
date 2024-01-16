@@ -3,6 +3,7 @@ import {action, computed, makeObservable, observable} from 'mobx';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import {ActiveOperationFilter} from './filter';
 import {
@@ -55,16 +56,19 @@ class SpanTreeModel {
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
   expandedSiblingGroups: Set<string> = new Set();
 
+  traceInfo: TraceInfo | undefined = undefined;
+
   constructor(
     parentSpan: SpanType,
     childSpans: SpanChildrenLookupType,
     api: Client,
-    isRoot: boolean = false
+    isRoot: boolean = false,
+    traceInfo?: TraceInfo
   ) {
     this.api = api;
     this.span = parentSpan;
     this.isRoot = isRoot;
-
+    this.traceInfo = traceInfo;
     const spanID = getSpanID(parentSpan);
     const spanChildren: Array<RawSpanType> = childSpans?.[spanID] ?? [];
 
@@ -76,7 +80,7 @@ class SpanTreeModel {
     delete childSpans[spanID];
 
     this.children = spanChildren.map(span => {
-      return new SpanTreeModel(span, childSpans, api);
+      return new SpanTreeModel(span, childSpans, api, false, this.traceInfo);
     });
 
     makeObservable(this, {
@@ -752,9 +756,10 @@ class SpanTreeModel {
                 SpanSubTimingMark.HTTP_RESPONSE_START
               ); // Response start is a better approximation
 
-              const spanTimeOffset = responseStart
-                ? responseStart - parsedTrace.traceEndTimestamp
-                : this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+              const spanTimeOffset =
+                responseStart && !this.traceInfo
+                  ? responseStart - parsedTrace.traceEndTimestamp
+                  : this.span.start_timestamp - parsedTrace.traceStartTimestamp;
 
               parsedTrace.traceStartTimestamp += spanTimeOffset;
               parsedTrace.traceEndTimestamp += spanTimeOffset;
@@ -772,7 +777,8 @@ class SpanTreeModel {
               rootSpan,
               parsedTrace.childSpans,
               this.api,
-              false
+              false,
+              this.traceInfo
             );
             this.embeddedChildren.push(parsedRootSpan);
             this.fetchEmbeddedChildrenState = 'idle';
@@ -807,8 +813,12 @@ class SpanTreeModel {
   generateTraceBounds = (): TraceBound => {
     return {
       spanId: this.span.span_id,
-      traceStartTimestamp: this.span.start_timestamp,
-      traceEndTimestamp: this.span.timestamp,
+      traceStartTimestamp: this.traceInfo
+        ? this.traceInfo.startTimestamp
+        : this.span.start_timestamp,
+      traceEndTimestamp: this.traceInfo
+        ? this.traceInfo.endTimestamp
+        : this.span.timestamp,
     };
   };
 }

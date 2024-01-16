@@ -197,9 +197,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 owners = owner_details.get(group.id)
                 data.update({"owners": owners})
 
-            if "forecast" in expand and features.has(
-                "organizations:escalating-issues", group.organization
-            ):
+            if "forecast" in expand:
                 fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
                 if fetched_forecast:
                     fetched_forecast = fetched_forecast.to_dict()
@@ -336,8 +334,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 "group_details:put client.ApiError",
             )
             return Response(e.body, status=e.status_code)
-        except Exception:
-            raise
 
     def delete(self, request: Request, group) -> Response:
         """
@@ -352,7 +348,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         from sentry.utils import snuba
 
         if group.issue_category != GroupCategory.ERROR:
-            raise ValidationError(detail="Only error issues can be deleted.", code=400)
+            raise ValidationError(detail="Only error issues can be deleted.")
 
         try:
             delete_group_list(request, group.project, [group], "delete")

@@ -1,6 +1,6 @@
-import {Group} from 'sentry-fixture/group';
-import {MetricRule} from 'sentry-fixture/metricRule';
-import {Project} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import RelatedIssues from './relatedIssues';
 
 describe('metric details -> RelatedIssues', () => {
-  const project = Project();
+  const project = ProjectFixture();
 
   it('adds environment to query parameters', async () => {
     const {routerContext, organization, router} = initializeOrg({
@@ -19,7 +19,7 @@ describe('metric details -> RelatedIssues', () => {
         },
       },
     });
-    const rule = MetricRule({
+    const rule = MetricRuleFixture({
       projects: [project.slug],
       environment: 'production',
     });
@@ -30,7 +30,7 @@ describe('metric details -> RelatedIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20.000Z&environment=production&groupStatsPeriod=auto&limit=5&project=2&sort=freq&start=2017-10-17T02%3A41%3A20.000Z',
-      body: [Group()],
+      body: [GroupFixture()],
     });
 
     render(

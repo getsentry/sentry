@@ -19,7 +19,11 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import AppStartBreakdown from 'sentry/views/starfish/views/appStartup/appStartBreakdown';
+import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
+import {
+  COLD_START_COLOR,
+  WARM_START_COLOR,
+} from 'sentry/views/starfish/views/appStartup/screenSummary/appStartBreakdownWidget';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 const MAX_TABLE_RELEASE_CHARS = 15;
@@ -100,7 +104,23 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
     }
 
     if (field === 'app_start_breakdown') {
-      return <AppStartBreakdown row={row} />;
+      return (
+        <Breakdown
+          row={row}
+          breakdownGroups={[
+            {
+              key: 'count_starts(measurements.app_start_cold)',
+              color: COLD_START_COLOR,
+              name: t('Cold Start'),
+            },
+            {
+              key: 'count_starts(measurements.app_start_warm)',
+              color: WARM_START_COLOR,
+              name: t('Warm Start'),
+            },
+          ]}
+        />
+      );
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);

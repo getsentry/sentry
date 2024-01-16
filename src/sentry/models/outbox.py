@@ -565,7 +565,7 @@ class OutboxBase(Model):
                     # If a non task flush process is running already, allow it to proceed without contention.
                     next_shard_row = None
                 else:
-                    raise e
+                    raise
 
             yield next_shard_row
 

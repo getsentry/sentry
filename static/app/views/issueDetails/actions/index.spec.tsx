@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -34,7 +34,7 @@ const group = GroupFixture({
   project,
 });
 
-const organization = Organization({
+const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],
@@ -211,7 +211,7 @@ describe('GroupActions', function () {
   });
 
   it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = Organization({
+    const org = OrganizationFixture({
       ...organization,
       access: [...organization.access, 'event:admin'],
     });
@@ -307,7 +307,6 @@ describe('GroupActions', function () {
   });
 
   it('can archive issue', async () => {
-    const org = {...organization, features: ['escalating-issues']};
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
       method: 'PUT',
@@ -318,10 +317,10 @@ describe('GroupActions', function () {
       <GroupActions
         group={group}
         project={project}
-        organization={org}
+        organization={organization}
         disabled={false}
       />,
-      {organization: org}
+      {organization}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));

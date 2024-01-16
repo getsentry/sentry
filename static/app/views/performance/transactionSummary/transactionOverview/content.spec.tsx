@@ -1,6 +1,6 @@
 import {InjectedRouter} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,7 +15,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 function initialize(project, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: [project],
   });
@@ -73,7 +73,7 @@ describe('Transaction Summary Content', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({

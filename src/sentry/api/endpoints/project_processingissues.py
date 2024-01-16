@@ -15,7 +15,7 @@ from sentry.reprocessing import trigger_reprocessing
 class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
 
     def delete(self, request: Request, project) -> Response:
@@ -30,8 +30,8 @@ class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project) -> Response:
