@@ -176,6 +176,36 @@ describe('getMetricsApiRequestQuery', () => {
       per_page: 10,
     });
   });
+
+  it('does not add a default orderBy if there is no field', () => {
+    const metric = {
+      field: '',
+      query: 'error',
+      groupBy: [],
+    };
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
+    };
+    const overrides = {};
+
+    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-02T00:00:00.000Z',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: '',
+      useCase: 'custom',
+      interval: '5m',
+      groupBy: [],
+      allowPrivate: true,
+      per_page: 10,
+    });
+  });
 });
 
 describe('getDDMInterval', () => {
