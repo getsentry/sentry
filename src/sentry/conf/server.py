@@ -1661,6 +1661,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable rate-limiting via relay for Monitors (crons)
+    "organizations:monitors-quota-rate-limit": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
