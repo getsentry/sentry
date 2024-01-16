@@ -12,7 +12,9 @@ export function useAvailableDurationAggregates(): Result {
   availableAggregates.push(DEFAULT_DURATION_AGGREGATE);
 
   if (organization.features?.includes('performance-database-view-percentiles')) {
-    availableAggregates.push(...(['p50', 'p75', 'p95', 'p99'] as Aggregate[]));
+    availableAggregates.push(
+      ...['p50' as const, 'p75' as const, 'p95' as const, 'p99' as const]
+    );
   }
 
   return availableAggregates;
