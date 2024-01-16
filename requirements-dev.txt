@@ -1,5 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
+sentry-devenv>=1.2.1
+
 covdefaults>=2.3.0
 docker>=6
 time-machine>=2.13.0
