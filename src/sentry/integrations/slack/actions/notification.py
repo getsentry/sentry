@@ -110,7 +110,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 }
                 if features.has("organizations:slack-block-kit", event.group.project.organization):
                     # temporarily log the payload so we can debug message failures
-                    log_params["payload"] = payload
+                    log_params["payload"] = json.dumps(payload)
 
                 self.logger.info(
                     "rule.fail.slack_post",
