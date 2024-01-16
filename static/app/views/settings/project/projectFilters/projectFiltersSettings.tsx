@@ -444,6 +444,9 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       new_state: value ? 'enabled' : 'disabled',
                     });
                   }}
+                  onSubmitSuccess={(
+                    response // This will update our project context
+                  ) => ProjectsStore.onUpdateSuccess(response)}
                 >
                   <FieldFromConfig
                     getData={getOptionsData}
@@ -476,6 +479,9 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       new_state: value ? 'enabled' : 'disabled',
                     });
                   }}
+                  onSubmitSuccess={(
+                    response // This will update our project context
+                  ) => ProjectsStore.onUpdateSuccess(response)}
                 >
                   <FieldFromConfig
                     getData={getOptionsData}
