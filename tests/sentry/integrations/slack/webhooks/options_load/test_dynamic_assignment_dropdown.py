@@ -32,7 +32,6 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
             "blocks": [
                 {
                     "type": "section",
-                    "block_id": json.dumps({"issue": 1}),
                     "text": {"type": "mrkdwn", "text": "IntegrationError", "verbatim": False},
                 },
                 {
@@ -76,6 +75,8 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         self.team5 = self.create_team(name="aaad", slug="aaad")  # not in project
 
         self.project = self.create_project(teams=[self.team1, self.team2, self.team3, self.team4])
+        self.group = self.create_group(project=self.project)
+        self.original_message["blocks"][0]["block_id"] = json.dumps({"issue": self.group.id})
 
         self.user1 = self.create_user(email="aaa@testing.com", name="Alice")
         self.create_member(organization=self.organization, user=self.user1, teams=[self.team4])
@@ -101,6 +102,7 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
         assert len(resp.data["option_groups"][1]["options"]) == 3
 
     def test_no_flag(self):
+        self.original_message["blocks"][0]["block_id"] = json.dumps({"issue": 1})
         resp = self.post_webhook(substring="bbb", original_message=self.original_message)
 
         assert resp.status_code == 400
