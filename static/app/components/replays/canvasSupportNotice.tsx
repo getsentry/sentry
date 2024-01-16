@@ -66,5 +66,5 @@ export function CanvasSupportNotice() {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};;
+  margin-bottom: ${space(1)};
 `;
