@@ -308,6 +308,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     "config": None,
                     "sourceUrl": None,
                     "integrations": serialized_integrations,
+                    "error": "no_code_mappings_for_project",
                 }
             )
 

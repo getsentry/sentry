@@ -160,6 +160,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "config": None,
             "sourceUrl": None,
             "integrations": [serialized_integration(self.integration)],
+            "error": "no_code_mappings_for_project",
         }
 
     def test_file_not_found_error(self):
