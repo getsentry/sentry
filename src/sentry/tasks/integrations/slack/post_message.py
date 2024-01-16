@@ -5,7 +5,6 @@ from typing import Any, Mapping
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -16,7 +15,6 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.post_message",
     queue="integrations",
     max_retries=0,
-    silo_mode=SiloMode.REGION,
 )
 def post_message(
     integration_id: int,
