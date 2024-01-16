@@ -32,6 +32,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -381,6 +382,19 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       apiEndpoint={`${filtersEndpoint}${filter.id}/`}
                       initialData={{[filter.id]: filter.active}}
                       saveOnBlur
+                      onFieldChange={(name, value) => {
+                        trackAnalytics('settings.inbound_filter_updated', {
+                          organization,
+                          project_id: parseInt(project.id as string, 10),
+                          filter: name,
+                          new_state:
+                            filter.id === 'legacy-browsers'
+                              ? value
+                              : value
+                              ? 'enabled'
+                              : 'disabled',
+                        });
+                      }}
                     >
                       {filter.id !== 'legacy-browsers' ? (
                         <FieldFromConfig
@@ -422,9 +436,14 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       project.options?.['filters:react-hydration-errors'],
                   }}
                   saveOnBlur
-                  onSubmitSuccess={(
-                    response // This will update our project context
-                  ) => ProjectsStore.onUpdateSuccess(response)}
+                  onFieldChange={(name, value) => {
+                    trackAnalytics('settings.inbound_filter_updated', {
+                      organization,
+                      project_id: parseInt(project.id as string, 10),
+                      filter: name,
+                      new_state: value ? 'enabled' : 'disabled',
+                    });
+                  }}
                 >
                   <FieldFromConfig
                     getData={getOptionsData}
@@ -449,9 +468,14 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       project.options?.['filters:chunk-load-error'],
                   }}
                   saveOnBlur
-                  onSubmitSuccess={(
-                    response // This will update our project context
-                  ) => ProjectsStore.onUpdateSuccess(response)}
+                  onFieldChange={(name, value) => {
+                    trackAnalytics('settings.inbound_filter_updated', {
+                      organization,
+                      project_id: parseInt(project.id as string, 10),
+                      filter: name,
+                      new_state: value ? 'enabled' : 'disabled',
+                    });
+                  }}
                 >
                   <FieldFromConfig
                     getData={getOptionsData}
