@@ -44,18 +44,6 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
   const items = useMemo(
     () => [
       {
-        leadingItems: [<IconDashboard key="icon" />],
-        key: 'add-dashboard',
-        label: t('Add to Dashboard'),
-        onAction: createDashboard,
-      },
-      {
-        leadingItems: [<IconSettings key="icon" />],
-        key: 'metrics-settings',
-        label: t('Metrics Settings'),
-        onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
-      },
-      {
         leadingItems: [<IconAdd isCircled key="icon" />],
         key: 'add-query',
         label: t('Add Query'),
@@ -67,6 +55,18 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
           Sentry.metrics.increment('ddm.widget.add');
           addWidget();
         },
+      },
+      {
+        leadingItems: [<IconDashboard key="icon" />],
+        key: 'add-dashboard',
+        label: t('Add to Dashboard'),
+        onAction: createDashboard,
+      },
+      {
+        leadingItems: [<IconSettings key="icon" />],
+        key: 'metrics-settings',
+        label: t('Metrics Settings'),
+        onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
     [addWidget, createDashboard, hasEmptyWidget, organization, router]
