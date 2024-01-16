@@ -10,9 +10,14 @@ from typing import Callable, Dict, List, Type
 from dateutil import parser
 from django.db import models
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    PrimaryKeyMap,
+    dependencies,
+    get_exportable_sentry_models,
+    get_model_name,
+)
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
-from sentry.backup.helpers import Side, get_exportable_sentry_models
+from sentry.backup.helpers import Side
 from sentry.utils.json import JSONData
 
 UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
@@ -759,7 +764,8 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token", "token_last_characters"),
+                HashObfuscatingComparator("refresh_token", "token"),
+                IgnoredComparator("token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],

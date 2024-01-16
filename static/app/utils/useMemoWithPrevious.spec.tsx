@@ -21,6 +21,7 @@ describe('useMemoWithPrevious', () => {
     const secondDependency = [];
 
     const {rerender, result} = reactHooks.renderHook(
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       ({fact, dep}) => useMemoWithPrevious(fact, [dep]),
       {
         initialProps: {

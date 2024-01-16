@@ -232,7 +232,8 @@ export function getFormatter({
     const {series, total} = seriesParams.filter(getFilter).reduce(
       (acc, serie) => {
         const formattedLabel = nameFormatter(
-          truncationFormatter(serie.seriesName ?? '', truncate)
+          truncationFormatter(serie.seriesName ?? '', truncate),
+          serie
         );
 
         const value = valueFormatter(getSeriesValue(serie, 1), serie.seriesName, serie);

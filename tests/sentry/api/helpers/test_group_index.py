@@ -16,7 +16,7 @@ from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.actor import ActorTuple
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
@@ -134,7 +134,8 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    def test_ignoring_group_archived_forever(self, send_robust: Mock) -> None:
+    @patch("sentry.issues.status_change.post_save")
+    def test_ignoring_group_archived_forever(self, post_save: Mock, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -153,6 +154,12 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
         assert send_robust.called
+        post_save.send.assert_called_with(
+            sender=Group,
+            instance=group,
+            created=False,
+            update_fields=["status", "substatus"],
+        )
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_ignored.send_robust")
@@ -241,7 +248,6 @@ class UpdateGroupsTest(TestCase):
         assert not GroupInbox.objects.filter(group=group).exists()
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignore_with_substatus_archived_until_escalating(self, send_robust: Mock) -> None:
         group = self.create_group()

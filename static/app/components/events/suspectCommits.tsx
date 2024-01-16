@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
 import type {CommitRowProps} from 'sentry/components/commitRow';
@@ -34,7 +33,7 @@ export function SuspectCommits({group, eventId, project, commitRow: CommitRow}: 
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
-    const commitsWithAuthors = flatMap(committers, ({commits, author}) =>
+    const commitsWithAuthors = committers.flatMap(({commits, author}) =>
       commits.map(commit => ({
         ...commit,
         author,

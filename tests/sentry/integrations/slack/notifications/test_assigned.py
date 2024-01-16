@@ -4,7 +4,7 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.models.activity import Activity
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
@@ -44,7 +44,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             },
         )
         integration2.add_organization(self.organization, self.user)
-        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
         identity2 = Identity.objects.create(
             external_id="UXXXXXXX2",
             idp=idp2,
@@ -92,7 +92,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             },
         )
         integration2.add_organization(org2, self.user)
-        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
         Identity.objects.create(
             external_id="UXXXXXXX2",
             idp=idp2,

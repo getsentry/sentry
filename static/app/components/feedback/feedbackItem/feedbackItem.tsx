@@ -8,17 +8,20 @@ import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/fee
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconChat, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -36,7 +39,9 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const replayId = eventData?.contexts?.feedback?.replay_id;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
+  const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
   const [isHidden, setIsHidden] = useState(true);
+  const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
   return (
     <Fragment>
@@ -74,7 +79,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Section>
         )}
 
-        {hasReplayId && replayId && (
+        {hasReplayId && replayId ? (
           <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
             <ErrorBoundary mini>
               <ReplaySection
@@ -83,6 +88,10 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
                 replayId={replayId}
               />
             </ErrorBoundary>
+          </Section>
+        ) : hasSentOneReplay || !platformSupported ? null : (
+          <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+            <ReplayInlineCTAPanel />
           </Section>
         )}
 
@@ -123,14 +132,6 @@ const Blockquote = styled('blockquote')`
   margin: 0 ${space(4)};
   position: relative;
 
-  &::before {
-    position: absolute;
-    color: ${p => p.theme.purple300};
-    content: '❝';
-    font-size: ${space(4)};
-    left: -${space(4)};
-    top: -0.4rem;
-  }
   &::after {
     position: absolute;
     border: 1px solid ${p => p.theme.purple300};
