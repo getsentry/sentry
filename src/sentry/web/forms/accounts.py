@@ -346,7 +346,7 @@ class RelocationForm(forms.Form):
             f"I agree to the <a href={settings.TERMS_URL}>Terms of Service</a> and <a href={settings.PRIVACY_URL}>Privacy Policy</a>"
         ),
         widget=forms.CheckboxInput(),
-        required=True,
+        required=False,
         initial=False,
     )
 
@@ -366,3 +366,10 @@ class RelocationForm(forms.Form):
         password = self.cleaned_data["password"]
         password_validation.validate_password(password, user=self.user)
         return password
+
+    def clean_tos_check(self):
+        value = self.cleaned_data.get("tos_check")
+        if not value:
+            raise forms.ValidationError(
+                _("You must agree to the Terms of Service and Privacy Policy before proceeding.")
+            )

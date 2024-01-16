@@ -168,9 +168,12 @@ class TestAccounts(TestCase):
 
         user.refresh_from_db()
         assert resp.has_header(header_name)
-        assert resp.templates[0].name == ("sentry/account/relocate/confirm.html")
         assert user.is_unclaimed
         assert resp.status_code == 200
+        assert (
+            b"You must agree to the Terms of Service and Privacy Policy before proceeding."
+            in resp.content
+        )
         assert resp[header_name] == "strict-origin-when-cross-origin"
 
     def test_relocate_recovery_invalid_password(self):
