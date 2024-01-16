@@ -72,7 +72,6 @@ type Props = {
   api: Client;
   dashboard: DashboardDetails;
   handleAddCustomWidget: (widget: Widget) => void;
-  handleAddMetricWidget: (layout?: Widget['layout']) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditingDashboard: boolean;
   location: Location;
@@ -85,6 +84,7 @@ type Props = {
   selection: PageFilters;
   widgetLimitReached: boolean;
   editingWidgetIndex?: number;
+  handleAddMetricWidget?: (layout?: Widget['layout']) => void;
   isPreview?: boolean;
   newWidget?: Widget;
   onEndEditMetricWidget?: (widgets: Widget[], isCancel?: boolean) => void;
@@ -218,7 +218,7 @@ class Dashboard extends Component<Props, State> {
       this.props;
 
     if (dataset === DataSet.METRICS) {
-      handleAddMetricWidget({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
+      handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
       return;
     }
 
