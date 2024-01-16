@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Mapping, Optional, Union
@@ -302,7 +303,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                                         ["x"],
                                         Function(
                                             "notEquals",
-                                            [Identifier("x"), "00000000000000000000000000000000"],
+                                            [Identifier("x"), uuid.UUID(int=0).hex],
                                         ),
                                     ),
                                     Function(
