@@ -232,6 +232,7 @@ const ChartContainer = styled('div')`
 const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  gap: ${space(2)};
   flex-wrap: wrap;
 `;
 
