@@ -67,9 +67,9 @@ describe('convertToDashboardWidget', () => {
       queries: [
         {
           name: '',
-          aggregates: ['p95(measurements.duration)'],
+          aggregates: ['p95(d:transactions/measurements.duration@second)'],
           columns: [],
-          fields: ['p95(measurements.duration)'],
+          fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
           orderby: '',
         },

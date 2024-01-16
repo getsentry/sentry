@@ -652,12 +652,9 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
  * and instead it should use the data provided by the backend
  */
 export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
-  let URLString;
-
-  URLString = span?.data?.url;
-  if (URLString) {
-    let url = span?.data?.url ?? '';
-    const query = span?.data?.['http.query'];
+  let url = span?.data?.url;
+  if (url) {
+    const query = span.data['http.query'];
     if (query) {
       url += `?${query}`;
     }
@@ -669,7 +666,6 @@ export const extractSpanURLString = (span: Span, baseURL?: string): URL | null =
   }
 
   const [_method, _url] = (span?.description ?? '').split(' ', 2);
-  URLString = _url;
 
   return safeURL(_url, baseURL) ?? null;
 };

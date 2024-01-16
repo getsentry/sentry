@@ -1529,12 +1529,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
     "organizations:enterprise-data-secrecy": False,
-    # Enable archive/escalating issue workflow
-    "organizations:escalating-issues": True,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
+    # Enable ingesting non-sampled profiles
+    "organizations:profiling-ingest-unsampled-profiles": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
@@ -3967,6 +3967,7 @@ REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
+    "sentry-api-0-prompts-activity",
     # Legacy monitor endpoints
     "sentry-api-0-monitor-ingest-check-in-index",
     # These paths are used by relay which is implicitly region scoped
@@ -3990,6 +3991,9 @@ REGION_PINNED_URL_NAMES = {
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
+
+# Disable DDM entirely
+SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

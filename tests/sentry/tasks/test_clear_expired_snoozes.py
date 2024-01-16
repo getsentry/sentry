@@ -8,7 +8,6 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.tasks.clear_expired_snoozes import clear_expired_snoozes
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.types.group import GroupSubStatus
 
 
@@ -50,7 +49,6 @@ class ClearExpiredSnoozesTest(TestCase):
 
         assert send_robust.called
 
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_simple_with_escalating_issues(self, send_robust):
         group1 = self.create_group(status=GroupStatus.IGNORED)

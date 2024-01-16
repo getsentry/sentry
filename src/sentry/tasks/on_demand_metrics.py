@@ -306,7 +306,6 @@ def _get_widget_query_low_cardinality(
     query_columns = widget_query.columns
 
     if not query_columns:
-
         return None
 
     with sentry_sdk.push_scope() as scope:
