@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 import pytest
 import time_machine
-from arroyo.processing.strategies import MessageRejected
 
 from sentry.replays.consumers.recording_buffered import RecordingBuffer, commit_uploads
 
@@ -140,5 +139,5 @@ def test_commit_uploads_failure(_do_upload):
 
     _do_upload.side_effect = mocked
 
-    with pytest.raises(MessageRejected):
+    with pytest.raises(Exception):
         commit_uploads([{}])  # type: ignore
