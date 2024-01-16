@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-MISSING_PASSWORD_OR_U2F_CODE = "no_password_or_u2f"
+MISSING_PASSWORD_OR_U2F_CODE = "missing_password_or_u2f"
 
 
 class AuthVerifyValidator(serializers.Serializer):
