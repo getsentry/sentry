@@ -483,6 +483,8 @@ class AuthLoginView(BaseView):
             user_id=request.user.id,
             slug=organization.slug,
             only_visible=False,
+            include_projects=False,
+            include_teams=False,
         )
         if org_context:
             if org_context.member and request.user and not is_active_superuser(request=request):
@@ -682,6 +684,8 @@ class AuthLoginView(BaseView):
                         user_id=request.user.id,
                         slug=organization.slug,
                         only_visible=False,
+                        include_projects=False,
+                        include_teams=False,
                     )
                     if org_context:
                         if org_context.member and request.user and not is_active_superuser(request):
