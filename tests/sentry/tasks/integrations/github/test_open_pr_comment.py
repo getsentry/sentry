@@ -638,7 +638,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonPatch.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
@@ -691,7 +691,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonPatch.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
@@ -751,7 +751,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonPatch.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
@@ -810,7 +810,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonPatch.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(

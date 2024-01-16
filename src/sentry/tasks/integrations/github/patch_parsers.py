@@ -3,14 +3,14 @@ from abc import abstractmethod
 from typing import Set
 
 
-class LanguagePatch:
+class LanguageParser:
     @staticmethod
     @abstractmethod
     def extract_functions_from_patch(self, patch: str) -> Set[str]:
         pass
 
 
-class PythonPatch(LanguagePatch):
+class PythonParser(LanguageParser):
     python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
 
     def extract_functions_from_patch(self, patch: str) -> Set[str]:
@@ -31,4 +31,4 @@ class PythonPatch(LanguagePatch):
         return set(re.findall(self.python_function_regex, patch, flags=re.M))
 
 
-PATCH_PARSERS = {"py": PythonPatch}
+PATCH_PARSERS = {"py": PythonParser}
