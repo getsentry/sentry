@@ -431,7 +431,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not language_parser:
             continue
 
-        function_names = language_parser().extract_functions_from_patch(file.patch)
+        function_names = language_parser.extract_functions_from_patch(file.patch)
 
         if not len(function_names):
             continue

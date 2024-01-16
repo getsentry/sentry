@@ -6,14 +6,13 @@ from typing import Set
 class LanguageParser:
     @staticmethod
     @abstractmethod
-    def extract_functions_from_patch(self, patch: str) -> Set[str]:
+    def extract_functions_from_patch(patch: str) -> Set[str]:
         pass
 
 
 class PythonParser(LanguageParser):
-    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
-
-    def extract_functions_from_patch(self, patch: str) -> Set[str]:
+    @staticmethod
+    def extract_functions_from_patch(patch: str) -> Set[str]:
         r"""
         Function header regex pattern
         ^           - Asserts the start of a line.
@@ -28,7 +27,8 @@ class PythonParser(LanguageParser):
         .*          - Matches any characters (except newline).
         $           - Asserts the end of a line.
         """
-        return set(re.findall(self.python_function_regex, patch, flags=re.M))
+        python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
+        return set(re.findall(python_function_regex, patch, flags=re.M))
 
 
 PATCH_PARSERS = {"py": PythonParser}
