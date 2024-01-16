@@ -364,11 +364,11 @@ function NewTraceDetailsContent(props: Props) {
 
     const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
     const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
-    if (isLoading || (isRootEventLoading && !onlyOrphanErrors)) {
+    const hasData = hasTraceData(traces, orphanErrors);
+    if (isLoading || (isRootEventLoading && hasData && !onlyOrphanErrors)) {
       return renderTraceLoading();
     }
 
-    const hasData = hasTraceData(traces, orphanErrors);
     if (error !== null || !hasData) {
       return (
         <TraceNotFound
