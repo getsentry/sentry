@@ -1,15 +1,9 @@
 import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import * as echarts from 'echarts/core';
 
-import {Button} from 'sentry/components/button';
-import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -18,11 +12,9 @@ import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 
 export function Queries() {
-  const organization = useOrganization();
-  const {widgets, updateWidget, addWidget, setSelectedWidgetIndex} = useDDMContext();
+  const {widgets, updateWidget, setSelectedWidgetIndex, showQuerySymbols} =
+    useDDMContext();
   const {selection} = usePageFilters();
-
-  const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -37,10 +29,10 @@ export function Queries() {
   );
 
   return (
-    <Wrapper>
+    <Wrapper showQuerySymbols={showQuerySymbols}>
       {widgets.map((widget, index) => (
         <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
-          <StyledQuerySymbol index={index} />
+          {showQuerySymbols && <StyledQuerySymbol index={index} />}
           <QueryBuilder
             onChange={data => handleChange(index, data)}
             metricsQuery={{
@@ -69,23 +61,6 @@ export function Queries() {
           />
         </Row>
       ))}
-      {/* placeholder for first grid column */}
-      <div />
-      <div>
-        <Button
-          disabled={hasEmptyWidget}
-          icon={<IconAdd size="xs" isCircled />}
-          onClick={() => {
-            trackAnalytics('ddm.widget.add', {
-              organization,
-            });
-            Sentry.metrics.increment('ddm.widget.add');
-            addWidget();
-          }}
-        >
-          {t('Add Query')}
-        </Button>
-      </div>
     </Wrapper>
   );
 }
@@ -94,11 +69,17 @@ const StyledQuerySymbol = styled(QuerySymbol)`
   margin-top: 10px;
 `;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{showQuerySymbols: boolean}>`
   padding-bottom: ${space(2)};
   display: grid;
-  grid-template-columns: min-content 1fr max-content;
+  grid-template-columns: 1fr max-content;
   gap: ${space(1)};
+
+  ${p =>
+    p.showQuerySymbols &&
+    `
+    grid-template-columns: min-content 1fr max-content;
+  `}
 `;
 
 const Row = styled('div')`

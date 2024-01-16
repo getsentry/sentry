@@ -19,6 +19,7 @@ export function MetricScratchpad() {
     focusArea,
     addFocusArea,
     removeFocusArea,
+    showQuerySymbols,
   } = useDDMContext();
   const {selection} = usePageFilters();
 
@@ -53,6 +54,7 @@ export function MetricScratchpad() {
           environments={selection.environments}
           addFocusArea={addFocusArea}
           removeFocusArea={removeFocusArea}
+          showQuerySymbols={showQuerySymbols}
           focusArea={focusArea}
         />
       ))}
