@@ -46,7 +46,7 @@ function ScreenSummary() {
   const {primaryRelease, secondaryRelease, transaction: transactionName} = location.query;
 
   const startupModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/starfish/appStartup/`,
+    pathname: `/organizations/${organization.slug}/performance/mobile/appStartup/`,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
