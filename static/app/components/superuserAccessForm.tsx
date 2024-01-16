@@ -43,8 +43,16 @@ class SuperuserAccessForm extends Component<Props, State> {
     superuserReason: '',
   };
 
-  componentDidMount() {
-    this.getAuthenticators();
+  async componentDidMount() {
+    const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
+
+    // If using staff and on local dev, skip U2F and immediately submit
+    if (this.props.hasStaff && disableU2FForSUForm && false) {
+      await this.handleSubmit(this.state);
+      return;
+    }
+
+    await this.getAuthenticators();
   }
 
   handleSubmitCOPS = () => {
@@ -90,6 +98,7 @@ class SuperuserAccessForm extends Component<Props, State> {
 
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     const {api} = this.props;
+
     let auth_url = '/staff-auth/';
     if (!this.props.hasStaff) {
       data.isSuperuserModal = true;
@@ -101,9 +110,13 @@ class SuperuserAccessForm extends Component<Props, State> {
       await api.requestPromise(auth_url, {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
-      this.setState({showAccessForms: true});
-      // u2fInterface relies on this
-      throw err;
+      if (!this.props.hasStaff) {
+        this.setState({showAccessForms: true});
+        // u2fInterface relies on this
+        throw err;
+      } else {
+        this.handleError(err);
+      }
     }
   };
 
@@ -169,7 +182,6 @@ class SuperuserAccessForm extends Component<Props, State> {
 
   render() {
     const {authenticators, error, errorType, showAccessForms} = this.state;
-    const hasStaff = this.props.hasStaff;
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
@@ -177,37 +189,53 @@ class SuperuserAccessForm extends Component<Props, State> {
 
     return (
       <ThemeAndStyleProvider>
-        <Form
-          submitLabel={hasStaff ? t('Authenticate') : t('Continue')}
-          onSubmit={this.handleSubmit}
-          initialData={{isSuperuserModal: true}}
-          extraButton={
-            hasStaff ? null : (
-              <BackWrapper>
-                <Button type="submit" onClick={this.handleSubmitCOPS}>
-                  {t('COPS/CSM')}
-                </Button>
-              </BackWrapper>
-            )
-          }
-          resetOnError
-        >
-          {error && (
-            <StyledAlert type="error" showIcon>
-              {errorType}
-            </StyledAlert>
-          )}
-          {!hasStaff && showAccessForms && (
-            <Hook name="component:superuser-access-category" />
-          )}
-          {!showAccessForms && (
+        {this.props.hasStaff ? (
+          <div>
+            {error && (
+              <StyledAlert type="error" showIcon>
+                {errorType}
+              </StyledAlert>
+            )}
+            {!authenticators.length && (
+              <StyledAlert type="error" showIcon>
+                {ErrorCodes.NO_AUTHENTICATOR}
+              </StyledAlert>
+            )}
             <U2fContainer
               authenticators={authenticators}
               displayMode="sudo"
               onTap={this.handleU2fTap}
             />
-          )}
-        </Form>
+          </div>
+        ) : (
+          <Form
+            submitLabel={t('Continue')}
+            onSubmit={this.handleSubmit}
+            initialData={{isSuperuserModal: true}}
+            extraButton={
+              <BackWrapper>
+                <Button type="submit" onClick={this.handleSubmitCOPS}>
+                  {t('COPS/CSM')}
+                </Button>
+              </BackWrapper>
+            }
+            resetOnError
+          >
+            {error && (
+              <StyledAlert type="error" showIcon>
+                {errorType}
+              </StyledAlert>
+            )}
+            {showAccessForms && <Hook name="component:superuser-access-category" />}
+            {!showAccessForms && (
+              <U2fContainer
+                authenticators={authenticators}
+                displayMode="sudo"
+                onTap={this.handleU2fTap}
+              />
+            )}
+          </Form>
+        )}
       </ThemeAndStyleProvider>
     );
   }
