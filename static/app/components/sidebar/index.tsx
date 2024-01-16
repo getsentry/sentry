@@ -282,7 +282,7 @@ function Sidebar({organization}: Props) {
                 <SidebarItem
                   {...sidebarItemProps}
                   label={t('App Startup')}
-                  to={`/organizations/${organization.slug}/performance/mobile/appStartup`}
+                  to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}
                   isAlpha

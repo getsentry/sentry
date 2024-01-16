@@ -148,7 +148,7 @@ export function SpanOperationTable({
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
       const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/performance/mobile/appStartup/spans/`
+        `/organizations/${organization.slug}/performance/mobile/app-startup/spans/`
       );
       const query = {
         ...location.query,
