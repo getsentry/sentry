@@ -49,6 +49,7 @@ import {
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import useRouter from 'sentry/utils/useRouter';
+import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 
 import {
   normalizeDateTimeParams,
@@ -186,6 +187,16 @@ export type MetricRange = {
   max?: number;
   min?: number;
   start?: DateString;
+};
+
+export const emptyWidget: MetricWidgetQueryParams = {
+  mri: 'd:transactions/duration@millisecond' satisfies MRI,
+  op: 'avg',
+  query: '',
+  groupBy: [],
+  sort: DEFAULT_SORT_STATE,
+  displayType: MetricDisplayType.LINE,
+  title: undefined,
 };
 
 export function getDdmUrl(
@@ -652,11 +663,7 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
 }
 
 export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy, title} = metricWidget;
-
-  if (title) {
-    return title;
-  }
+  const {mri, op, query, groupBy} = metricWidget;
 
   if (!op) {
     return '';
