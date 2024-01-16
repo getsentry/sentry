@@ -46,10 +46,11 @@ function transformData(data?: MultiSeriesEventsStats) {
 }
 
 interface Props {
+  chartHeight: number;
   additionalFilters?: string[];
 }
 
-function CountWidget({additionalFilters}: Props) {
+function CountWidget({additionalFilters, chartHeight}: Props) {
   const pageFilter = usePageFilters();
   const {
     primaryRelease,
@@ -104,7 +105,7 @@ function CountWidget({additionalFilters}: Props) {
       <Chart
         chartColors={[COLD_START_COLOR, WARM_START_COLOR]}
         data={Object.values(transformedSeries)}
-        height={90}
+        height={chartHeight}
         loading={isSeriesLoading}
         grid={{
           left: '0',
