@@ -227,6 +227,8 @@ export function getMetricsApiRequestQuery(
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
   const interval = getDDMInterval(datetime, useCase, overrides.fidelity);
 
+  const hasGroupBy = groupBy && groupBy.length > 0;
+
   const queryToSend = {
     ...getDateTimeParams(datetime),
     query,
@@ -236,7 +238,7 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
-    orderBy,
+    orderBy: hasGroupBy && !orderBy ? `-${field}` : orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // Max result groups for compatibility with old metrics layer
     // TODO(telemetry-experience): remove once everyone is on new metrics layer
