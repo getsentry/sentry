@@ -124,11 +124,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
     request.query = metrics_query
 
     use_mql_endpoint = float(options.get("snuba.use-mql-endpoint"))
-    if (
-        isinstance(request.query.query, Timeseries)  # TODO: Eventually support Formulas
-        and use_mql_endpoint
-        and random.random() < use_mql_endpoint
-    ):
+    if use_mql_endpoint and random.random() < use_mql_endpoint:
         return mql_query(request, start, end)
 
     return snql_query(request, start, end)
