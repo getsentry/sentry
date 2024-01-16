@@ -49,6 +49,7 @@ function ReplayView({toggleFullscreen}: Props) {
             <FluidHeight>
               <CanvasSupportNotice />
               <Panel>
+                <CanvasSupportNotice />
                 <ReplayPlayer />
               </Panel>
             </FluidHeight>
