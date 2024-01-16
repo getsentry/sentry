@@ -107,6 +107,7 @@ import {
   renderDiscoverGridHeaderCell,
   renderGridBodyCell,
   renderIssueGridHeaderCell,
+  renderMetricGridHeaderCell,
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
@@ -698,7 +699,15 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderMetricsTable: MetricWidgetQueries['props']['children'] = ({}) => {
+  const renderMetricsTable: MetricWidgetQueries['props']['children'] = ({
+    tableResults,
+    loading,
+    pageLinks,
+  }) => {
+    const links = parseLinkHeader(pageLinks ?? null);
+    const isFirstPage = links.previous?.results === false;
+    const data = tableResults?.[0]?.data ?? [];
+
     const mainField = props.widget.queries[0].aggregates[0];
     const parsedField = parseField(mainField);
     if (!parsedField) {
@@ -715,6 +724,7 @@ function WidgetViewerModal(props: Props) {
             <TabList.Item hidden={useCase !== 'custom'} key="codeLocation">
               {t('Code Location')}
             </TabList.Item>
+            <TabList.Item key="summary">{t('Summary')}</TabList.Item>
           </TabList>
           <MetricWidgetTabContent>
             <TabPanels>
@@ -723,6 +733,28 @@ function WidgetViewerModal(props: Props) {
               </TabPanels.Item>
               <TabPanels.Item key="codeLocation">
                 <CodeLocations mri={parsedField.mri} />
+              </TabPanels.Item>
+              <TabPanels.Item key="summary">
+                <GridEditable
+                  isLoading={loading}
+                  data={data}
+                  columnOrder={columnOrder}
+                  columnSortBy={columnSortBy}
+                  grid={{
+                    renderHeadCell: renderMetricGridHeaderCell() as (
+                      column: GridColumnOrder,
+                      columnIndex: number
+                    ) => React.ReactNode,
+                    renderBodyCell: renderGridBodyCell({
+                      ...props,
+                      location,
+                      tableData: tableResults?.[0],
+                      isFirstPage,
+                    }),
+                    onResizeColumn,
+                  }}
+                  location={location}
+                />
               </TabPanels.Item>
             </TabPanels>
           </MetricWidgetTabContent>

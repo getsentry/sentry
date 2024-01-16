@@ -78,7 +78,7 @@ export function useFocusAreaBrush(
   );
 
   const startBrush = useCallback(() => {
-    if (hasFocusArea) {
+    if (hasFocusArea || isDisabled) {
       return;
     }
 
@@ -90,7 +90,7 @@ export function useFocusAreaBrush(
       },
     });
     isDrawingRef.current = true;
-  }, [chartRef, hasFocusArea]);
+  }, [chartRef, hasFocusArea, isDisabled]);
 
   const handleRemove = useCallback(() => {
     onRemove();
