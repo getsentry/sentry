@@ -35,7 +35,7 @@ class SlackOptionsLoadRequest(SlackRequest):
         except (KeyError, IndexError, TypeError, ValueError):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
-        if self.data.get("type", None) not in VALID_PAYLOAD_TYPES:
+        if self.data.get("type") not in VALID_PAYLOAD_TYPES:
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         if "value" not in self.data:
