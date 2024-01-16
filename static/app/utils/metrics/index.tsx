@@ -715,3 +715,7 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
 
   return {start: startObj.toISOString(), end: now.toISOString()};
 }
+
+export function isSupportedDisplayType(displayType: unknown) {
+  return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
+}
