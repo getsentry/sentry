@@ -292,9 +292,9 @@ def test_spec_context_mapping() -> None:
 
 
 def test_spec_query_or_precedence_with_environment() -> None:
-    spec_version = OnDemandMetricSpecVersioning._get_query_spec_version_flags_set(
-        {"use_updated_env_logic"}
-    )
+    spec_version = OnDemandMetricSpecVersioning.spec_versions[1]
+    assert spec_version.flags == {"use_updated_env_logic"}
+    assert spec_version.version == 1
     spec_1 = OnDemandMetricSpec(
         "count()",
         "(transaction.duration:>1s OR http.status_code:200)",
@@ -330,9 +330,9 @@ def test_spec_query_or_precedence_with_environment() -> None:
 
 
 def test_spec_count_if_query_with_environment() -> None:
-    spec_version = OnDemandMetricSpecVersioning._get_query_spec_version_flags_set(
-        {"use_updated_env_logic"}
-    )
+    spec_version = OnDemandMetricSpecVersioning.spec_versions[1]
+    assert spec_version.flags == {"use_updated_env_logic"}
+    assert spec_version.version == 1
     spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)",
         "(http.method:GET AND endpoint:/hello)",
@@ -360,9 +360,9 @@ def test_spec_count_if_query_with_environment() -> None:
 
 
 def test_spec_complex_query_with_environment() -> None:
-    spec_version = OnDemandMetricSpecVersioning._get_query_spec_version_flags_set(
-        {"use_updated_env_logic"}
-    )
+    spec_version = OnDemandMetricSpecVersioning.spec_versions[1]
+    assert spec_version.flags == {"use_updated_env_logic"}
+    assert spec_version.version == 1
     spec = OnDemandMetricSpec(
         "count()",
         "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
@@ -702,8 +702,9 @@ def test_cleanup_with_environment_injection(query) -> None:
     # We test with both new and old env logic, in this case queries should be identical in both logics since we
     # scrape away parentheses.
     for updated_env_logic in (True, False):
-        flags_set = {"use_updated_env_logic"} if updated_env_logic else set()
-        spec_version = OnDemandMetricSpecVersioning._get_query_spec_version_flags_set(flags_set)
+        spec_index, flag_set = (1, {"use_updated_env_logic"}) if updated_env_logic else (0, set())
+        spec_version = OnDemandMetricSpecVersioning.spec_versions[spec_index]
+        assert spec_version.flags == flag_set
         spec = OnDemandMetricSpec(
             field,
             query,

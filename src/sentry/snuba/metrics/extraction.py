@@ -67,18 +67,16 @@ class OnDemandMetricSpecVersioning:
     If spec_versions only has one item that means we only have one metric spec being collected.
 
     In order to add a new spec version update spec_versions with the flags which you will use
-    within OnDemandMetricSpec.
-
-    You also need to create a mapping between a feature flag and
-    the internal flags intended to use (see feature_to_flags_map for details).
+    within OnDemandMetricSpec. You also need to adjust get_query_spec_version to return the spec
+    version you want for a specific feature flag.
 
     Once we're ready to abandon a version:
     - coalesce the spec_versions
-    - clear the associated feature/flags association from feature_to_flags_map
+    - clear the feature/flags mapping in get_query_spec_version
     - remove any associated customizations to OnDemandMetricSpec
 
-    When there's a single version we should not have any flags and feature_to_flags_map
-    should be empty.
+    When there's a single version we should not have any flags and get_query_spec_version
+    should return the default spec version.
     """
 
     spec_versions = [
@@ -86,9 +84,13 @@ class OnDemandMetricSpecVersioning:
         SpecVersion(1, {"use_updated_env_logic"}),
     ]
 
-    feature_to_flags_map = {
-        "organizations:on-demand-query-with-new-env-logic": {"use_updated_env_logic"},
-    }
+    @classmethod
+    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
+        """Return spec version based on feature flag enabled for an organization."""
+        org = Organization.objects.get_from_cache(id=organization_id)
+        if features.has("organizations:on-demand-query-with-new-env-logic", org):
+            return cls.spec_versions[1]
+        return cls.spec_versions[0]
 
     @classmethod
     def get_spec_versions(cls: Any) -> Sequence[SpecVersion]:
@@ -96,35 +98,7 @@ class OnDemandMetricSpecVersioning:
         return cls.spec_versions
 
     @classmethod
-    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
-        """Return spec version based on feature flag enabled for an organization."""
-        flags_set = set()
-        org = Organization.objects.get_from_cache(id=organization_id)
-        for feature_flag in cls.feature_to_flags_map.keys():
-            if features.has(feature_flag, org):
-                flags_set = cls.feature_to_flags_map[feature_flag]
-
-        return cls._find_spec_version(flags_set)
-
-    @classmethod
-    def _get_query_spec_version_flags_set(cls: Any, flags_set: set[str]) -> SpecVersion:
-        """Return spec version matching flags set."""
-        return cls._find_spec_version(flags_set)
-
-    @classmethod
-    def _find_spec_version(cls: Any, flags_set: set[str]) -> SpecVersion:
-        try:
-            return [
-                spec_version
-                for spec_version in cls.spec_versions
-                if spec_version.flags == flags_set
-            ][0]
-        except Exception:
-            logger.exception("Error finding that set of flags. Falling back to default.")
-            return cls._get_default_spec_version()
-
-    @classmethod
-    def _get_default_spec_version(cls: Any) -> SpecVersion:
+    def get_default_spec_version(cls: Any) -> SpecVersion:
         return cls.spec_versions[0]
 
 
@@ -1130,7 +1104,7 @@ class OnDemandMetricSpec:
         self.spec_version = (
             spec_version
             if spec_version
-            else OnDemandMetricSpecVersioning._get_default_spec_version()
+            else OnDemandMetricSpecVersioning.get_default_spec_version()
         )
 
         # Removes field if passed in selected_columns
