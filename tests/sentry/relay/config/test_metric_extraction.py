@@ -146,6 +146,8 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         config = get_metric_extraction_config(default_project)
 
         assert config
+        # We expect two specs since we collect both
+        # Once we do not run two versions we will need to change this test
         assert len(config["metrics"]) == 2
         # The new way parenthesizes correctly the environment expression, making the original expression resolve first
         # and then AND with the injected environment.

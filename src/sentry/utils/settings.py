@@ -3,7 +3,7 @@ from sentry.utils.imports import import_string
 PACKAGES = {
     "django.db.backends.postgresql_psycopg2": "psycopg2.extensions",
     "sentry.db.postgres": "psycopg2.extensions",
-    "django.core.cache.backends.memcached.MemcachedCache": "memcache",
+    "sentry.utils.memcached.MemcachedCache": "memcache",
     "django.core.cache.backends.memcached.PyLibMCCache": "pylibmc",
 }
 

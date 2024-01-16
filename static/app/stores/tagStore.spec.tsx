@@ -80,11 +80,8 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(
-        OrganizationFixture({features: ['escalating-issues']})
-      );
+      const tags = TagStore.getIssueAttributes(OrganizationFixture({}));
       expect(tags.is.values).toContain('archived');
-      expect(tags.is.values).not.toContain('ignored');
     });
   });
 

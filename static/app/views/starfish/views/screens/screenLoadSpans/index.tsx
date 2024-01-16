@@ -99,7 +99,11 @@ function ScreenLoadSpans() {
               <Breadcrumbs crumbs={crumbs} />
               <HeaderWrapper>
                 <Layout.Title>{transactionName}</Layout.Title>
-                {organization.features.includes('performance-screens-platform-selector') && project && isCrossPlatform(project) && <PlatformSelector />}
+                {organization.features.includes(
+                  'performance-screens-platform-selector'
+                ) &&
+                  project &&
+                  isCrossPlatform(project) && <PlatformSelector />}
               </HeaderWrapper>
             </Layout.HeaderContent>
           </Layout.Header>

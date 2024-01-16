@@ -725,7 +725,10 @@ def capture_apple_symbol_stats(json):
     symx_has_symbol = 0
 
     for module in json.get("modules") or ():
-        if module["debug_status"] == "unused" and module["unwind_status"] == "unused":
+        if (
+            module.get("debug_status", "unused") == "unused"
+            and module.get("unwind_status", "unused") == "unused"
+        ):
             continue
         if module["type"] != "macho":
             continue
@@ -743,7 +746,7 @@ def capture_apple_symbol_stats(json):
 
         # again, I miss a good Rust `match`
         if symx_has_this_symbol:
-            if old_has_symbol:
+            if old_has_this_symbol:
                 both_have_symbol += 1
             else:
                 symx_has_symbol += 1

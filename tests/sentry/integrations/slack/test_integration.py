@@ -248,7 +248,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         Identity.objects.create(
             external_id="UXXXXXXX4",
             idp=self.idp,
