@@ -178,7 +178,7 @@ comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"
 comment_updated = BetterSignal()  # ["project", "user", "group", "activity_data"]
 comment_deleted = BetterSignal()  # ["project", "user", "group", "activity_data"]
 
-terms_accepted = BetterSignal()  # ["organization", "organization_id", "user", "ip_address"]
+terms_accepted = BetterSignal()  # ["organization_id", "user", "ip_address"]
 team_created = (
     BetterSignal()
 )  # ["organization", "user", "team", "team_id", "organization_id", "user_id"]
