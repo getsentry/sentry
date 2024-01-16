@@ -2933,6 +2933,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
+            "platform": "linux/x86_64",
         }
     ),
     "bigtable": lambda settings, options: (
