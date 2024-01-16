@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
@@ -533,7 +532,8 @@ export function isWidgetUsingTransactionName(widget: Widget) {
 
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    isEmpty(dashboard.projects) &&
+    dashboard.projects &&
+    dashboard.projects.length === 0 &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
@@ -646,7 +646,7 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
   });
-  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
+  return Object.keys(dashboardFilters).length > 0 ? dashboardFilters : null;
 }
 
 export function dashboardFiltersToString(

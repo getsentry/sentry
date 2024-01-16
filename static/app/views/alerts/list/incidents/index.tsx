@@ -110,7 +110,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     // Check if they have already seen the prompt for the alert stream
     const prompt = await promptsCheck(this.api, {
-      organizationId: organization.id,
+      organization,
       feature: 'alert_stream',
     });
 
@@ -120,8 +120,8 @@ class IncidentsList extends DeprecatedAsyncComponent<
       // Prompt has not been seen, mark the prompt as seen immediately so they
       // don't see it again
       promptsUpdate(this.api, {
+        organization,
         feature: 'alert_stream',
-        organizationId: organization.id,
         status: 'dismissed',
       });
     }

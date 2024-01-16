@@ -121,29 +121,31 @@ describe('Actionable Items', () => {
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
-          Source: "my_app/main.dart",
-        },
-      },
-      {
-        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
-        data: {
-          Source: "http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart",
-        },
-      },
-      {
-        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
-        data: {
-          Source: "org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart",
+          Source: 'my_app/main.dart',
         },
       },
       {
         type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
         data: {
           Source:
-        "org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart",
+            'http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart',
         },
       },
-      ];
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          Source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          Source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
+        },
+      },
+    ];
 
     MockApiClient.addMockResponse({
       url,
@@ -162,9 +164,37 @@ describe('Actionable Items', () => {
 
     render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
 
-    expect(
-      await screen.findByText('Missing Sources Context (1)')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
+  });
+
+  it('handles unknown flutter source', async () => {
+    const eventErrors = [
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        // Missing Source key
+        data: {},
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {
+        errors: eventErrors,
+      },
+      method: 'GET',
+    });
+
+    const eventWithErrors = EventFixture({
+      errors: eventErrors,
+      sdk: {
+        name: 'sentry.dart.flutter',
+      },
+    });
+
+    render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
+
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
     expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 

@@ -49,7 +49,10 @@ def get_identity_or_404(
         organization_id if organization_id is not None else valid_organization_ids[0]
     )
     context = organization_service.get_organization_by_id(
-        id=selected_organization_id, user_id=user.id
+        id=selected_organization_id,
+        user_id=user.id,
+        include_projects=False,
+        include_teams=False,
     )
 
     if context is None:

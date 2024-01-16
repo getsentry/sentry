@@ -91,6 +91,13 @@ class SDKCrashDetection:
 
         sample_rate = config[0]["sample_rate"]
         project_id = config[0]["project_id"]
+        organization_allowlist = config[0].get("organization_allowlist", None)
+
+        if (
+            organization_allowlist is not None
+            and event.project.organization_id not in organization_allowlist
+        ):
+            return None
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
         if context is not None:
