@@ -8,8 +8,8 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectio
 
 def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
     configs = [
-        _build_config(SdkName.Cocoa, False),
-        _build_config(SdkName.ReactNative, True),
+        _build_config(sdk_name=SdkName.Cocoa, has_allowlist=False),
+        _build_config(sdk_name=SdkName.ReactNative, has_allowlist=True),
     ]
 
     return [config for config in configs if config is not None]
