@@ -10,6 +10,7 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -102,7 +103,7 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
     }
     if (key === 'segmentName') {
       return (
-        <TransactionNameWrapper>
+        <TextOverflow>
           <Tooltip title={project?.slug}>
             <StyledPlatformIcon platform={project?.platform || 'default'} />
           </Tooltip>
@@ -118,7 +119,7 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
           >
             {row.segmentName}
           </Link>
-        </TransactionNameWrapper>
+        </TextOverflow>
       );
     }
     if (key === 'duration') {
@@ -178,10 +179,6 @@ const AlignCenter = styled('span')`
   margin: auto;
   text-align: center;
   width: 100%;
-`;
-
-const TransactionNameWrapper = styled('span')`
-  display: inline-block;
 `;
 
 const DurationHeadCell = styled('span')`
