@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
@@ -8,6 +8,7 @@ import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
@@ -28,6 +29,7 @@ type State = {
   authenticators: Array<Authenticator>;
   error: boolean;
   errorType: string;
+  isLoading: boolean;
   showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
@@ -41,6 +43,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
+    isLoading: true,
   };
 
   async componentDidMount() {
@@ -53,6 +56,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     }
 
     await this.getAuthenticators();
+    this.setState({isLoading: false});
   }
 
   handleSubmitCOPS = () => {
@@ -181,7 +185,7 @@ class SuperuserAccessForm extends Component<Props, State> {
   }
 
   render() {
-    const {authenticators, error, errorType, showAccessForms} = this.state;
+    const {authenticators, error, errorType, showAccessForms, isLoading} = this.state;
     if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
       this.handleLogout();
       return null;
@@ -190,23 +194,27 @@ class SuperuserAccessForm extends Component<Props, State> {
     return (
       <ThemeAndStyleProvider>
         {this.props.hasStaff ? (
-          <div>
-            {error && (
-              <StyledAlert type="error" showIcon>
-                {errorType}
-              </StyledAlert>
-            )}
-            {!authenticators.length && (
-              <StyledAlert type="error" showIcon>
-                {ErrorCodes.NO_AUTHENTICATOR}
-              </StyledAlert>
-            )}
-            <U2fContainer
-              authenticators={authenticators}
-              displayMode="sudo"
-              onTap={this.handleU2fTap}
-            />
-          </div>
+          isLoading ? (
+            <LoadingIndicator />
+          ) : (
+            <React.Fragment>
+              {error && (
+                <StyledAlert type="error" showIcon>
+                  {errorType}
+                </StyledAlert>
+              )}
+              {!authenticators.length && (
+                <StyledAlert type="error" showIcon>
+                  {ErrorCodes.NO_AUTHENTICATOR}
+                </StyledAlert>
+              )}
+              <U2fContainer
+                authenticators={authenticators}
+                displayMode="sudo"
+                onTap={this.handleU2fTap}
+              />
+            </React.Fragment>
+          )
         ) : (
           <Form
             submitLabel={t('Continue')}
