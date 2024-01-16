@@ -223,7 +223,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
   }, [currentPlatform]);
 
-  // Old onboarding docs, fallback if new docs fail for some reasond
+  // Old onboarding docs, fallback if new docs fail for some reason
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,
