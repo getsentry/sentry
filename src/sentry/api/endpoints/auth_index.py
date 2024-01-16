@@ -141,7 +141,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
-        validator.is_valid(raise_exception=True)
+        # Disable exception for missing password or u2f code if we're running locally
+        validator.is_valid(raise_exception=not DISABLE_SSO_CHECK_FOR_LOCAL_DEV)
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
