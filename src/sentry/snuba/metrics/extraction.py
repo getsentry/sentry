@@ -25,7 +25,6 @@ import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
-from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
@@ -80,16 +79,13 @@ class OnDemandMetricSpecVersioning:
     """
 
     spec_versions = [
-        SpecVersion(0),
-        SpecVersion(1, {"use_updated_env_logic"}),
+        SpecVersion(1),
     ]
 
     @classmethod
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
-        org = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:on-demand-query-with-new-env-logic", org):
-            return cls.spec_versions[1]
+        _ = Organization.objects.get_from_cache(id=organization_id)
         return cls.spec_versions[0]
 
     @classmethod
@@ -1317,17 +1313,9 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.spec_version.flags == {"use_updated_env_logic"}:
-                conditions = [ParenExpression(children=conditions)] if conditions else []
-                # This transformation is equivalent to (new_conditions) AND (conditions).
-                extended_conditions = [ParenExpression(children=new_conditions)] + conditions
-            else:
-                # This transformation is not behaving correctly since it can violate precedence rules. Since we use
-                # an AND condition for the environment, it will bind with higher priority than an OR specified in the
-                # user query, effectively resulting in the wrong condition (e.g., (X AND Y) OR Z != X AND (Y OR Z)).
-                #
-                # This transformation is equivalent to new_conditions and conditions.
-                extended_conditions = new_conditions + conditions
+            conditions = [ParenExpression(children=conditions)] if conditions else []
+            # This transformation is equivalent to (new_conditions) AND (conditions).
+            extended_conditions = [ParenExpression(children=new_conditions)] + conditions
 
         return QueryParsingResult(conditions=extended_conditions)
 

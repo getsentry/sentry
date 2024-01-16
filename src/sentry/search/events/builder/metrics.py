@@ -55,7 +55,6 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
-    OnDemandMetricSpecVersioning,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -153,14 +152,12 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
-            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
             return OnDemandMetricSpec(
                 field=field,
                 query=self.query,
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
-                spec_version=spec_version,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
