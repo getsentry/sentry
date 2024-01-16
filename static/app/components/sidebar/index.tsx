@@ -322,13 +322,6 @@ function Sidebar({organization}: Props) {
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/database/`}
-          id="performance-database"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
