@@ -56,7 +56,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
       {
-        leadingItems: [<IconAdd key="icon" />],
+        leadingItems: [<IconAdd isCircled key="icon" />],
         key: 'add-query',
         label: t('Add Query'),
         disabled: hasEmptyWidget,
