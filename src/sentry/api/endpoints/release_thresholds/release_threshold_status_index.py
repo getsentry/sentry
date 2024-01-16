@@ -139,7 +139,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 request, organization, date_filter_optional=True, project_slugs=project_slug_list
             )
         except NoProjects:
-            raise NoProjects("No projects available")  # give it a description
+            raise NoProjects("No projects available")
 
         start: datetime | None = filter_params["start"]
         end: datetime | None = filter_params["end"]
