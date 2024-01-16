@@ -1,6 +1,12 @@
 from datetime import datetime
+from unittest.mock import patch
 
-from sentry.issues.attributes import GroupValues, _retrieve_group_values, _retrieve_snapshot_values
+from sentry.issues.attributes import (
+    GroupValues,
+    Operation,
+    _retrieve_group_values,
+    _retrieve_snapshot_values,
+)
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
@@ -69,3 +75,48 @@ class GroupAttributesTest(TestCase):
                 "owner_codeowners_team_id": None,
             }.items()
         )
+
+
+@region_silo_test
+class PostSaveLogGroupAttributesChangedTest(TestCase):
+    def test(self):
+        self.run_attr_test(self.group, [], "all")
+        self.run_attr_test(self.group, ["status"], "status")
+        self.run_attr_test(self.group, ["status", "last_seen"], "status")
+        self.run_attr_test(self.group, ["status", "substatus"], "status-substatus")
+
+    def run_attr_test(self, group, update_fields, expected_str):
+        with patch(
+            "sentry.issues.attributes._log_group_attributes_changed"
+        ) as _log_group_attributes_changed, patch(
+            "sentry.issues.attributes.send_snapshot_values"
+        ) as send_snapshot_values:
+            kwargs = {}
+            if update_fields:
+                kwargs["update_fields"] = update_fields
+            self.group.save(**kwargs)
+            _log_group_attributes_changed.assert_called_with(
+                Operation.UPDATED, "group", expected_str
+            )
+            send_snapshot_values.assert_called_with(None, group, False)
+
+    def test_new(self):
+        with patch(
+            "sentry.issues.attributes._log_group_attributes_changed"
+        ) as _log_group_attributes_changed, patch(
+            "sentry.issues.attributes.send_snapshot_values"
+        ) as send_snapshot_values:
+            new_group = self.create_group(self.project)
+            _log_group_attributes_changed.assert_called_with(Operation.CREATED, "group", None)
+
+            send_snapshot_values.assert_called_with(None, new_group, False)
+
+    def test_update(self):
+        with patch(
+            "sentry.issues.attributes._log_group_attributes_changed"
+        ) as _log_group_attributes_changed, patch(
+            "sentry.issues.attributes.send_snapshot_values"
+        ) as send_snapshot_values:
+            self.group.update(status=2)
+            _log_group_attributes_changed.assert_called_with(Operation.UPDATED, "group", "status")
+            send_snapshot_values.assert_called_with(None, self.group, False)
