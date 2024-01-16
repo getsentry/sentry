@@ -173,12 +173,17 @@ export type MetricSpan = {
   duration: number;
   profileId: string;
   projectId: number;
+  segmentName: string;
   spanId: string;
+  spansNumber: number;
   timestamp: string;
   traceId: string;
   transactionId: string;
-  // Not there yet but we will add it
-  replayId?: string;
+  replayId?: string; // Not there yet but will be added
+  spansSummary?: {
+    span_duration: number;
+    span_op: string;
+  };
 };
 
 export type MetricRange = {
