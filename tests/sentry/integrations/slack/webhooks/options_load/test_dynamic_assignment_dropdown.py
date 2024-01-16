@@ -1,4 +1,3 @@
-from sentry.integrations.slack.webhooks.options_load import UNSUPPORTED_MESSAGE
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -104,5 +103,4 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
     def test_no_flag(self):
         resp = self.post_webhook(substring="bbb", original_message=self.original_message)
 
-        assert resp.status_code == 200
-        assert resp.data["text"] == UNSUPPORTED_MESSAGE
+        assert resp.status_code == 400

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any, Mapping, Sequence
 
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,8 +19,6 @@ from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger
-
-UNSUPPORTED_MESSAGE = "There is no dynamic payload support for this type of request."
 
 
 @region_silo_endpoint
@@ -104,7 +103,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
                     "request_data": json.dumps(slack_request.data),
                 },
             )
-            return self.respond_with_text(UNSUPPORTED_MESSAGE)
+            return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
         payload = {"option_groups": self.get_filtered_option_groups(group, slack_request.substring)}
 
