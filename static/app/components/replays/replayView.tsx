@@ -46,10 +46,10 @@ function ReplayView({toggleFullscreen}: Props) {
           {!isFetching && replay?.hasProcessingErrors() ? (
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
-              <Panel>
-                <CanvasSupportNotice />
-                <ReplayPlayer />
-              </Panel>
+            <Panel>
+              <CanvasSupportNotice />
+              <ReplayPlayer />
+            </Panel>
           )}
         </PlayerContainer>
         {isFullscreen && isSidebarOpen ? (
