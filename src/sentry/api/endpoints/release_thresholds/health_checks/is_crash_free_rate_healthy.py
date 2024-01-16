@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, Tuple
+
+from dateutil import parser
 
 from sentry.models.release_threshold.constants import TriggerType
 
@@ -13,19 +16,58 @@ if TYPE_CHECKING:
     from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
 
 
-def get_crash_counts(
+def get_groups_totals(
     sessions_data: Dict[str, Any],
     release_version: str,
     project_id: int,
-) -> dict[str, Any]:
-    group: dict[str, Any] | None = next(
-        x
-        for x in sessions_data.get("groups", [])
-        if x.get("by", {}).get("release") == release_version
-        and x.get("by", {}).get("project") == project_id
-        and x.get("by", {}).get("session.status") == "crashed"
-    )
-    return (group or {}).get("totals", {})
+    field: str,
+    start_idx: int,
+    end_idx: int,
+    environment: str | None,
+    status: str | None,
+) -> int:
+    filters = ["release", "project"]
+    if environment:
+        filters.append("environment")
+    if status:
+        filters.append("session.status")
+    group_series: list[dict[str, Any]] = [
+        g.get("series", {})
+        for g in sessions_data.get("groups", [])
+        if g.get("by", {}).get("release") == release_version
+        and g.get("by", {}).get("project") == project_id
+        and (g.get("by", {}).get("environment") == environment if environment else True)
+        and (g.get("by", {}).get("session.status") == status if status else True)
+    ]
+    total = 0
+    for group in group_series:
+        series = group.get(field, [])
+        if len(series) < end_idx:
+            raise ValueError("foobar")
+        total += sum(series[start_idx : end_idx + 1])
+    return total
+
+
+def get_interval_indexes(intervals: list[str], start: datetime, end: datetime) -> Tuple[int, int]:
+    """
+    :param intervals: if timestamps from fetched sessions data
+    :param start: timestamp
+    :param end: timestamp
+
+    :return: If any subsection of the intervals fall within the given start/end, return the indexes of both the start and the end
+    """
+    start_idx = len(intervals)
+    end_idx = 0
+
+    for i, idx in enumerate(intervals):
+        interval_date = parser.parse(i).replace(tzinfo=None)
+        if start <= interval_date < end:
+            if idx < start_idx:
+                start_idx = idx
+            if end_idx < idx:
+                end_idx = idx
+
+    return start_idx, end_idx
 
 
 def is_crash_free_rate_healthy(
@@ -36,36 +78,42 @@ def is_crash_free_rate_healthy(
     """
     Derives percent from crash total over total count
 
-    NOTE: Logic is pulled from Frontend views/releases/list/releasesRequest::getCrashFreeRate
-
-    Response (is_healthy, metric_value)
+    NOTE: Logic mirrors Frontend views/releases/list/releasesRequest::getCrashFreeRate
     """
     field = "count_unique(user)" if display == CRASH_USERS_DISPLAY else "sum(session)"
     release_version = ethreshold["release"]
     project_id = ethreshold["project_id"]
-    crash_counts: dict[str, Any] = get_crash_counts(
-        sessions_data=sessions_data,
-        release_version=release_version,
+    environment = ethreshold["environment"]
+    intervals = sessions_data.get("intervals", [])
+    start_idx, end_idx = get_interval_indexes(
+        intervals=intervals, start=ethreshold["start"], end=ethreshold["end"]
+    )
+    crash_count = get_groups_totals(
+        end_idx=end_idx,
+        environment=environment,
+        field=field,
         project_id=project_id,
+        release_version=release_version,
+        sessions_data=sessions_data,
+        start_idx=start_idx,
+        status="crashed",
     )
-    crashes = crash_counts.get(field, 0)
 
-    totals: List[dict[str, Any]] = list(
-        filter(
-            lambda x: x.get("by", {}).get("release") == release_version
-            and x.get("by", {}).get("project") == project_id,
-            sessions_data.get("groups", []),
-        )
+    total_count = get_groups_totals(
+        end_idx=end_idx,
+        environment=environment,
+        field=field,
+        project_id=project_id,
+        release_version=release_version,
+        sessions_data=sessions_data,
+        start_idx=start_idx,
     )
-    total_count = max(sum([t.get("totals", {}).get(field, 0) for t in totals]), 1)
 
-    crash_free_percent = (1 - (crashes / total_count)) * 100
+    crash_free_percent = (1 - (crash_count / total_count)) * 100
 
-    is_healthy = (
-        crash_free_percent
-        < ethreshold["value"]  # we're healthy as long as we're under the threshold
-        if ethreshold["trigger_type"] == TriggerType.OVER
-        else crash_free_percent
-        > ethreshold["value"]  # we're healthy as long as we're over the threshold
-    )
-    return is_healthy, crash_free_percent
+    if ethreshold["trigger_type"] == TriggerType.OVER_STR:
+        # we're healthy as long as we're under the threshold
+        return crash_free_percent < ethreshold["value"], crash_free_percent
+
+    # we're healthy as long as we're over the threshold
+    return crash_free_percent > ethreshold["value"], crash_free_percent

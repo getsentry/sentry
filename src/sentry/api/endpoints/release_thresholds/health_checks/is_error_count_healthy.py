@@ -20,8 +20,6 @@ def is_error_count_healthy(
     """
     Iterate through timeseries given threshold window and determine health status
     enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier
-
-    Response: (is_healthy, metric_value)
     """
     total_count = 0
     threshold_environment: str | None = (

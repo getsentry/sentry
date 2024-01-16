@@ -78,22 +78,6 @@ ONE_WEEK = 10080
 TWENTY_FOUR_HOURS = 1440
 
 
-def _get_interval(start: datetime | None, end: datetime | None):
-    # NOTE: taken from releaseRequest.tsx
-    min_diff = (end - start).total_seconds() / 60 if (start and end) else 0
-
-    if min_diff >= TWO_WEEKS:
-        return "1d"
-    if min_diff >= ONE_WEEK:
-        return "6h"
-
-    if min_diff > TWENTY_FOUR_HOURS:
-        return "4h"
-
-    # TODO(sessions): sub-hour session resolution is still not possible
-    return "1h"
-
-
 def fetch_sessions_data(
     request: Request,
     organization: Organization | RpcOrganization,
@@ -101,12 +85,15 @@ def fetch_sessions_data(
     end: datetime,
     start: datetime,
 ):
-    # NOTE: implementation derived from organization_sessions GET endpoint
-    # TODO: make fetch generic for other session types
+    """
+    This implementation was derived from organization_sessions GET endpoint
+    NOTE: Params are derived from the request query and pulls the relevant project/environment objects
+    TODO: make fetch generic for other session types
+    TODO: capture potential issues with `interval` returning too many results
+    """
     with handle_query_errors():
         request_get: dict[str, Any] = request.GET
         query_params: MultiValueDict[str, Any] = MultiValueDict(request_get)
-        # TODO: group by environment as well
         query_params.setlist("groupBy", ["project", "release", "session.status", "environment"])
         query_params.setlist("field", ["sum(session)"])  # alternatively count_unique(user)
         query_params["query"] = " OR ".join(
