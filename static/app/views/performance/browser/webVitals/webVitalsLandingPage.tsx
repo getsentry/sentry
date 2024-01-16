@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -12,7 +13,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -20,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {SCORE_MIGRATION_TIMESTAMP} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
@@ -65,6 +67,10 @@ export default function WebVitalsLandingPage() {
       ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
       : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
+  const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
+    'DD MMMM YYYY'
+  );
+
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
       <Layout.Header>
@@ -107,9 +113,13 @@ export default function WebVitalsLandingPage() {
               {shouldUseStoredScores && !isDismissed && (
                 <StyledAlert type="info" showIcon>
                   <AlertContent>
-                    {t(
-                      'We changed how Performance Scores are calculated for your projects.'
-                    )}
+                    {
+                      // TODO: Add link to blog when ready
+                      tct(
+                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. Read more these improvements here.`,
+                        {scoreMigrationTimestampString}
+                      )
+                    }
                     <DismissButton
                       priority="link"
                       icon={<IconClose />}

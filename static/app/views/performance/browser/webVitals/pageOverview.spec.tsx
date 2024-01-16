@@ -76,7 +76,7 @@ describe('PageOverview', function () {
     });
     render(<PageOverview />);
     await screen.findByText(
-      'We changed how Performance Scores are calculated for your projects.'
+      'We made improvements to how Performance Scores are calculated for your projects. Starting on 17 December 2023, scores are updated to more accurately reflect user experiences. Read more these improvements here.'
     );
   });
 });
