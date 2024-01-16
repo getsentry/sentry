@@ -47,11 +47,12 @@ function Breakdown({
   breakdownGroups: BreakdownGroup[];
   row: Row;
 }) {
-  const total = breakdownGroups.reduce((acc, {key}) => acc + (row[key] ?? 0), 0);
+  const total = breakdownGroups.reduce((acc, {key}) => acc + (row?.[key] ?? 0), 0);
 
   if (total === 0) {
     return null;
   }
+
   return (
     <Tooltip
       title={
