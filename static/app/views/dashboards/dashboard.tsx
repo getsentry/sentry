@@ -29,6 +29,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
+import {defaultMetricWidget} from '../../utils/metrics/dashboard';
+
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
@@ -43,6 +45,8 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
+  isValidLayout,
+  METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
   Position,
 } from './layoutUtils';
@@ -81,9 +85,12 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widgetLimitReached: boolean;
+  editingWidgetIndex?: number;
   isPreview?: boolean;
   newWidget?: Widget;
+  onEndEditMetricWidget?: (widgets: Widget[], isCancel?: boolean) => void;
   onSetNewWidget?: () => void;
+  onStartEditMetricWidget?: (index: number) => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
 };
@@ -210,6 +217,11 @@ class Dashboard extends Component<Props, State> {
   handleStartAdd = (dataset?: DataSet) => {
     const {organization, router, location, paramDashboardId} = this.props;
 
+    if (dataset === DataSet.METRICS) {
+      this.handleAddMetricWidget();
+      return;
+    }
+
     if (paramDashboardId) {
       router.push(
         normalizeUrl({
@@ -237,6 +249,35 @@ class Dashboard extends Component<Props, State> {
 
     return;
   };
+
+  handleAddMetricWidget() {
+    const {
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+      selection,
+      onStartEditMetricWidget,
+    } = this.props;
+
+    const widgetLayout = this.addWidgetLayout;
+
+    const widgetCopy = cloneDeep(
+      assignTempId({
+        layout: {...widgetLayout, ...METRIC_WIDGET_MIN_SIZE},
+        ...defaultMetricWidget(selection),
+        widgetType: WidgetType.METRICS,
+      })
+    );
+
+    const nextList = generateWidgetsAfterCompaction([...dashboard.widgets, widgetCopy]);
+
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+    onStartEditMetricWidget?.(nextList.length - 1);
+  }
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
@@ -298,6 +339,13 @@ class Dashboard extends Component<Props, State> {
   handleEditWidget = (index: number) => () => {
     const {organization, router, location, paramDashboardId} = this.props;
 
+    const widget = this.props.dashboard.widgets[index];
+
+    if (widget.widgetType === WidgetType.METRICS) {
+      this.handleStartEditMetricWidget(index);
+      return;
+    }
+
     if (paramDashboardId) {
       router.push(
         normalizeUrl({
@@ -324,6 +372,28 @@ class Dashboard extends Component<Props, State> {
     return;
   };
 
+  handleStartEditMetricWidget = (index: number) => {
+    this.props.onStartEditMetricWidget?.(index);
+  };
+
+  onUpdate = (widget: Widget, index: number) => (newWidget: Widget | null) => {
+    if (widget.widgetType === WidgetType.METRICS) {
+      this.handleEndEditMetricWidget(widget, index)(newWidget);
+      return;
+    }
+  };
+
+  handleEndEditMetricWidget =
+    (widget: Widget, index: number) => (newWidget: Widget | null) => {
+      const widgets = [...this.props.dashboard.widgets];
+
+      if (newWidget) {
+        widgets[index] = {...widget, ...newWidget};
+      }
+
+      this.props.onEndEditMetricWidget?.(widgets, !newWidget);
+    };
+
   getWidgetIds() {
     return [
       ...this.props.dashboard.widgets.map((widget, index): string => {
@@ -335,8 +405,16 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
-      this.props;
+    const {
+      isEditingDashboard,
+      editingWidgetIndex,
+      widgetLimitReached,
+      isPreview,
+      dashboard,
+      location,
+    } = this.props;
+
+    const isEditingWidget = editingWidgetIndex === index;
 
     const widgetProps = {
       widget,
@@ -345,11 +423,28 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      onUpdate: this.onUpdate(widget, index),
       isPreview,
+      isEditingWidget,
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     const key = constructGridItemKey(widget);
+
+    // inline edited widgets span full width
+    if (isEditingWidget) {
+      return (
+        <WidgetWidthWrapper key={key} data-grid={widget.layout}>
+          <SortableWidget
+            {...widgetProps}
+            isMobile={isMobile}
+            windowWidth={windowWidth}
+            index={String(index)}
+          />
+        </WidgetWidthWrapper>
+      );
+    }
+
     return (
       <div key={key} data-grid={widget.layout}>
         <SortableWidget
@@ -453,7 +548,6 @@ class Dashboard extends Component<Props, State> {
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
     }
-
     return {
       ...position,
       w: DEFAULT_WIDGET_WIDTH,
@@ -475,9 +569,14 @@ class Dashboard extends Component<Props, State> {
     });
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditingDashboard;
+
+    const displayInlineAddWidget =
+      hasDDMExperimentalFeature(organization) &&
+      isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
       <GridLayout
@@ -506,15 +605,14 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || hasDDMExperimentalFeature(organization)) &&
-          !widgetLimitReached && (
-            <AddWidgetWrapper
-              key={ADD_WIDGET_BUTTON_DRAG_ID}
-              data-grid={this.addWidgetLayout}
-            >
-              <AddWidget onAddWidget={this.handleStartAdd} />
-            </AddWidgetWrapper>
-          )}
+        {(isEditingDashboard || displayInlineAddWidget) && !widgetLimitReached && (
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
+            <AddWidget onAddWidget={this.handleStartAdd} />
+          </AddWidgetWrapper>
+        )}
       </GridLayout>
     );
   }
@@ -549,4 +647,14 @@ const ResizeHandle = styled(Button)`
   .react-resizable-hide & {
     display: none;
   }
+`;
+
+const WidgetWidthWrapper = styled('div')`
+  position: absolute;
+  /* react-grid-layout adds left, right and width so we need to override */
+  left: 16px !important;
+  right: 16px !important;
+  width: auto !important;
+  /* minimal working z-index */
+  z-index: 6;
 `;

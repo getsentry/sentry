@@ -7,6 +7,7 @@ import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -23,10 +24,43 @@ import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseCompariso
 import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
-export const COLD_START_COLOR = '#F58C46';
-export const WARM_START_COLOR = '#F2B712';
+const SYSTEM_COLOR = '#D6567F';
+const APPLICATION_COLOR = '#444674';
 
-function AppStartBreakdownWidget({additionalFilters}) {
+const ANDROID_APPLICATION_SPAN_OPS = [
+  'contentprovider.load',
+  'application.load',
+  'activity.load',
+];
+
+const IOS_APPLICATION_SPAN_DESCRIPTIONS = ['Initial Frame Render'];
+
+// Since we don't collect a tag that indicates whether a span is system or
+// application, we're going to use the span.op and span.description to
+// determine whether a span is system or application.
+function aggregateSystemApplicationBreakdown(data: TableDataRow[]) {
+  return data.reduce((acc, row) => {
+    const spanOp = row['span.op'] as string;
+    const spanDescription = row['span.description'] as string;
+
+    let type: 'system' | 'application' = 'system';
+    if (
+      ANDROID_APPLICATION_SPAN_OPS.includes(spanOp) ||
+      IOS_APPLICATION_SPAN_DESCRIPTIONS.includes(spanDescription)
+    ) {
+      type = 'application';
+    }
+
+    acc[row.release] = {
+      ...acc[row.release],
+      [type]: (acc[row.release]?.[type] ?? 0) + (row['sum(span.self_time)'] ?? 0),
+    };
+
+    return acc;
+  }, {});
+}
+
+function SystemApplicationBreakdown({additionalFilters}) {
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {query: locationQuery} = location;
@@ -38,7 +72,9 @@ function AppStartBreakdownWidget({additionalFilters}) {
   } = useReleaseSelection();
 
   const query = new MutableSearch([
-    'span.op:[app.start.warm,app.start.cold]',
+    'span.op:[app.start.warm,app.start.cold,contentprovider.load,application.load,activity.load]',
+    '!span.description:"Cold Start"',
+    '!span.description:"Warm Start"',
     ...(additionalFilters ?? []),
   ]);
 
@@ -47,17 +83,13 @@ function AppStartBreakdownWidget({additionalFilters}) {
     query.addStringFilter(prepareQueryForLandingPage(searchQuery, false));
   }
 
-  const queryString = `${appendReleaseFilters(
-    query,
-    primaryRelease,
-    secondaryRelease
-  )} span.description:["Cold Start","Warm Start"]`;
+  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   const {data, isLoading} = useTableQuery({
     eventView: EventView.fromNewQueryWithPageFilters(
       {
         name: '',
-        fields: ['release', 'span.op', 'count()'],
+        fields: ['release', 'span.op', 'span.description', 'sum(span.self_time)'],
         topEvents: '2',
         query: queryString,
         dataset: DiscoverDatasets.SPANS_METRICS,
@@ -86,28 +118,24 @@ function AppStartBreakdownWidget({additionalFilters}) {
     );
   }
 
-  const startsByReleaseSeries = data.data.reduce((acc, row) => {
-    acc[row.release] = {...acc[row.release], [row['span.op']]: row['count()']};
-
-    return acc;
-  }, {});
+  const breakdownByReleaseData = aggregateSystemApplicationBreakdown(data.data);
 
   const breakdownGroups = [
     {
-      key: 'app.start.cold',
-      color: COLD_START_COLOR,
-      name: t('Cold Start'),
+      color: SYSTEM_COLOR,
+      key: 'system',
+      name: t('System'),
     },
     {
-      key: 'app.start.warm',
-      color: WARM_START_COLOR,
-      name: t('Warm Start'),
+      color: APPLICATION_COLOR,
+      key: 'application',
+      name: t('Application'),
     },
   ];
 
   return (
     <MiniChartPanel
-      title={t('App Start')}
+      title={t('System v. Application')}
       subtitle={
         primaryRelease
           ? t(
@@ -120,12 +148,11 @@ function AppStartBreakdownWidget({additionalFilters}) {
     >
       <Legend>
         <LegendEntry>
-          <StyledStartTypeDot style={{backgroundColor: COLD_START_COLOR}} />
-          {t('Cold Start')}
+          <StyledStartTypeDot style={{backgroundColor: SYSTEM_COLOR}} /> {t('System')}
         </LegendEntry>
         <LegendEntry>
-          <StyledStartTypeDot style={{backgroundColor: WARM_START_COLOR}} />
-          {t('Warm Start')}
+          <StyledStartTypeDot style={{backgroundColor: APPLICATION_COLOR}} />
+          {t('Application')}
         </LegendEntry>
       </Legend>
       <AppStartBreakdownContent>
@@ -133,7 +160,8 @@ function AppStartBreakdownWidget({additionalFilters}) {
           <ReleaseAppStartBreakdown>
             <TextOverflow>{formatVersion(primaryRelease)}</TextOverflow>
             <Breakdown
-              row={startsByReleaseSeries[primaryRelease]}
+              data-test-id="primary-release-breakdown"
+              row={breakdownByReleaseData[primaryRelease]}
               breakdownGroups={breakdownGroups}
             />
           </ReleaseAppStartBreakdown>
@@ -142,7 +170,8 @@ function AppStartBreakdownWidget({additionalFilters}) {
           <ReleaseAppStartBreakdown>
             <TextOverflow>{formatVersion(secondaryRelease)}</TextOverflow>
             <Breakdown
-              row={startsByReleaseSeries[secondaryRelease]}
+              data-test-id="secondary-release-breakdown"
+              row={breakdownByReleaseData[secondaryRelease]}
               breakdownGroups={breakdownGroups}
             />
           </ReleaseAppStartBreakdown>
@@ -152,7 +181,7 @@ function AppStartBreakdownWidget({additionalFilters}) {
   );
 }
 
-export default AppStartBreakdownWidget;
+export default SystemApplicationBreakdown;
 
 const ReleaseAppStartBreakdown = styled('div')`
   display: grid;

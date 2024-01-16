@@ -136,11 +136,11 @@ def proxy_region_request(request: HttpRequest, region: Region) -> StreamingHttpR
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
+
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
     query_params = request.GET
     try:
-        assert not request._read_started  # type: ignore
         resp = external_request(
             request.method,
             url=target_url,
