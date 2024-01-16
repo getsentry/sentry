@@ -578,7 +578,6 @@ module = [
     "sentry.web.frontend.oauth_authorize",
     "sentry.web.frontend.oauth_token",
     "sentry.web.frontend.organization_integration_setup",
-    "sentry.web.frontend.out",
     "sentry.web.frontend.pipeline_advancer",
     "sentry.web.frontend.project_event",
     "sentry.web.frontend.react_page",
