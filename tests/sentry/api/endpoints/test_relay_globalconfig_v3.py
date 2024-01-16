@@ -30,6 +30,7 @@ def call_endpoint(client, relay, private_key):
     return inner
 
 
+@pytest.mark.django_db
 def test_global_config():
     config = get_global_config()
     normalized = normalize_global_config(config)

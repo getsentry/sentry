@@ -63,6 +63,7 @@ EXPOSABLE_FEATURES = [
     "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
+    "organizations:profiling-ingest-unsampled-profiles",
     "organizations:custom-metrics",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
