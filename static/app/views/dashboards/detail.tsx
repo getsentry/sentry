@@ -1,6 +1,7 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -26,7 +27,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -37,6 +38,7 @@ import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDeman
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {
   cloneDashboard,
@@ -49,6 +51,7 @@ import {
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
+import {defaultMetricWidget} from '../../utils/metrics/dashboard';
 import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 import {DiscoverQueryPageSource} from '../performance/utils';
@@ -63,7 +66,9 @@ import {DEFAULT_STATS_PERIOD} from './data';
 import FiltersBar from './filtersBar';
 import {
   assignDefaultLayout,
+  assignTempId,
   calculateColumnDepths,
+  generateWidgetsAfterCompaction,
   getDashboardLayout,
 } from './layoutUtils';
 import DashboardTitle from './title';
@@ -102,6 +107,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   projects: Project[];
   route: PlainRoute;
+  selection: PageFilters;
   children?: React.ReactNode;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -509,6 +515,26 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  handleAddMetricWidget = (layout?: Widget['layout']) => {
+    const {dashboard, selection} = this.props;
+
+    const widgetCopy = cloneDeep(
+      assignTempId({
+        layout,
+        ...defaultMetricWidget(selection),
+        widgetType: WidgetType.METRICS,
+      })
+    );
+
+    const nextList = generateWidgetsAfterCompaction([...dashboard.widgets, widgetCopy]);
+
+    this.onUpdateWidget(nextList);
+    if (!this.isEditingDashboard) {
+      this.handleUpdateWidgetList(nextList);
+    }
+    this.handleStartEditMetricWidget(nextList.length - 1);
+  };
+
   onAddWidget = (dataset: DataSet) => {
     const {
       organization,
@@ -517,6 +543,11 @@ class DashboardDetail extends Component<Props, State> {
       location,
       params: {dashboardId},
     } = this.props;
+
+    if (dataset === DataSet.METRICS) {
+      this.handleAddMetricWidget();
+      return;
+    }
     this.setState({
       modifiedDashboard: cloneDashboard(dashboard),
     });
@@ -768,6 +799,7 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          handleAddMetricWidget={this.handleAddMetricWidget}
                           editingWidgetIndex={this.state.editingWidgetIndex}
                           onStartEditMetricWidget={this.handleStartEditMetricWidget}
                           onEndEditMetricWidget={this.handleEndEditMetricWidget}
@@ -974,6 +1006,7 @@ class DashboardDetail extends Component<Props, State> {
                                   onUpdate={this.onUpdateWidget}
                                   handleUpdateWidgetList={this.handleUpdateWidgetList}
                                   handleAddCustomWidget={this.handleAddCustomWidget}
+                                  handleAddMetricWidget={this.handleAddMetricWidget}
                                   onStartEditMetricWidget={
                                     this.handleStartEditMetricWidget
                                   }
@@ -1030,4 +1063,4 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-export default withProjects(withApi(withOrganization(DashboardDetail)));
+export default withPageFilters(withProjects(withApi(withOrganization(DashboardDetail))));
