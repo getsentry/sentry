@@ -166,7 +166,18 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
       seriesName: t('Mark Line'),
       data: [],
       markLine: MarkLine({
-        lineStyle: {color: theme.blue400, type: 'solid', width: 1},
+        lineStyle: {
+          color: theme.gray300,
+          type: 'dashed',
+          width: 1,
+          opacity: 0.8,
+        },
+        label: {
+          show: true,
+          formatter: () => t('Score Migration'),
+          position: 'insideMiddleBottom',
+          color: theme.gray300,
+        },
         data: [{xAxis: SCORE_MIGRATION_TIMESTAMP}],
       }),
     });
