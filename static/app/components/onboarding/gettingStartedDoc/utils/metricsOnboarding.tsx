@@ -118,7 +118,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:4.17.0] of [codeNode:@sentry/node], [codeDeno:@sentry/deno] or [codeBun:@sentry/bun].',
+        'You need a minimum version [codeVersion:7.91.0] of [codeNode:@sentry/node], [codeDeno:@sentry/deno] or [codeBun:@sentry/bun].',
         {
           codeVersion: <code />,
           codeNode: <code />,
@@ -292,6 +292,95 @@ export const getPythonMetricsOnboarding = ({
             {
               docsLink: (
                 <ExternalLink href="https://develop.sentry.dev/delightful-developer-metrics/sending-metrics-sdk/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+});
+
+const getDotnetConfigureSnippet = (params: DocsParams) => `
+SentrySdk.Init(options =>
+  {
+    options.Dsn = "${params.dsn}";
+    options.ExperimentalMetrics = new ExperimentalMetricsOptions
+    {
+      EnableCodeLocations = true
+    };
+  });`;
+
+const getDotnetVerifySnippet = () => `
+SentrySdk.Metrics.Increment(
+  "drank-drinks",
+  tags:new Dictionary<string, string> {{"kind", "coffee"}}
+);`;
+
+export const getDotnetMetricsOnboarding = ({
+  packageName,
+}: {
+  packageName: string;
+}): OnboardingConfig => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:4.0.0-beta.8] of the .NET SDK installed',
+        {
+          codeVersion: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'powershell',
+          code: `dotnet add package ${packageName} -v 4.0.0-beta.8`,
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'Once the SDK is installed or updated, you can enable the experimental metrics feature and code locations being emitted in your SDK init.'
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getDotnetConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getDotnetVerifySnippet(),
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://github.com/getsentry/sentry-laravel/discussions/823" />
               ),
             }
           ),

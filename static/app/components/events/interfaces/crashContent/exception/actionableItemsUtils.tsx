@@ -133,10 +133,11 @@ export function shouldErrorBeShown(error: EventErrorData, event: Event) {
     event.sdk?.name === 'sentry.dart.flutter' &&
     error.type === JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT
   ) {
-    const source = error.data?.source;
+    const source: string | undefined = error.data?.source;
     if (
-      source.includes('org-dartlang-sdk:///dart-sdk/lib/_internal') ||
-      source.includes('flutter/packages/flutter/lib')
+      source &&
+      (source.includes('org-dartlang-sdk:///dart-sdk/lib/_internal') ||
+        source.includes('flutter/packages/flutter/lib'))
     ) {
       return false;
     }

@@ -9,11 +9,10 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {MRI} from 'sentry/types';
 import {
+  emptyWidget,
   getAbsoluteDateTimeRange,
   getDefaultMetricDisplayType,
-  MetricDisplayType,
   MetricWidgetQueryParams,
   useInstantRef,
   useUpdateQuery,
@@ -40,6 +39,7 @@ interface DDMContextValue {
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
   setSelectedWidgetIndex: (index: number) => void;
+  showQuerySymbols: boolean;
   updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   widgets: MetricWidgetQueryParams[];
 }
@@ -57,6 +57,7 @@ export const DDMContext = createContext<DDMContextValue>({
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
   setSelectedWidgetIndex: () => {},
+  showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
 });
@@ -64,16 +65,6 @@ export const DDMContext = createContext<DDMContextValue>({
 export function useDDMContext() {
   return useContext(DDMContext);
 }
-
-const emptyWidget: MetricWidgetQueryParams = {
-  mri: 'd:transactions/duration@millisecond' satisfies MRI,
-  op: 'avg',
-  query: '',
-  groupBy: [],
-  sort: DEFAULT_SORT_STATE,
-  displayType: MetricDisplayType.LINE,
-  title: undefined,
-};
 
 export function useMetricWidgets() {
   const router = useRouter();
@@ -295,6 +286,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeFocusArea: handleRemoveFocusArea,
       setDefaultQuery,
       isDefaultQuery,
+      showQuerySymbols: widgets.length > 1,
     }),
     [
       handleAddWidget,

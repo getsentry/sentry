@@ -55,15 +55,20 @@ SENTRY_TAG_TO_COLUMN_NAME = {
 
 
 @dataclass(frozen=True)
+class SpansSummary:
+    span_op: str
+    span_duration: int
+
+
+@dataclass(frozen=True)
 class Span:
     project_id: int
-    transaction_id: Optional[str]
     trace_id: str
-    span_id: str
-    profile_id: Optional[str]
+    transaction_id: str
     segment_name: str
-    op: str
-    description: str
+    profile_id: Optional[str]
+    spans_number: int
+    spans_summary: Sequence[SpansSummary]
     duration: int
     timestamp: datetime
 
@@ -136,8 +141,7 @@ class MetricsSummariesSpansSource(SpansSource):
         max_value: Optional[float],
     ) -> Set[str]:
         """
-        Returns a set of cardinality at most `MAX_NUMBER_OF_SPANS` containing the ids of the spans in which `metric_mri`
-        was emitted.
+        Returns a set containing the ids of the spans in which `metric_mri` was emitted.
 
         In order to honor the filters that the user has in a widget, we take the `query` and parse it to extract a
         series of Snuba conditions that we apply on the tags of the metric summary. For example, if you are filtering by
@@ -164,7 +168,6 @@ class MetricsSummariesSpansSource(SpansSource):
             + where,
             # We group by to deduplicate the span id and apply the limit.
             groupby=[Column("span_id")],
-            limit=Limit(MAX_NUMBER_OF_SPANS),
         )
 
         request = Request(
@@ -180,6 +183,46 @@ class MetricsSummariesSpansSource(SpansSource):
 
         return {value["span_id"] for value in data}
 
+    def _get_transaction_ids_of_spans(
+        self,
+        span_ids: Set[str],
+        start: datetime,
+        end: datetime,
+    ) -> Set[str]:
+        """
+        Returns a set containing the ids of the transactions that contain at least one span from `span_ids`.
+        """
+        if not span_ids:
+            return set()
+
+        query = Query(
+            match=Entity(EntityKey.Spans.value),
+            select=[
+                Column("transaction_id"),
+                Function("any", [Column("timestamp")], alias="any_timestamp"),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, [project.id for project in self.projects]),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("span_id"), Op.IN, list(span_ids)),
+            ],
+            groupby=[Column("transaction_id")],
+            orderby=[OrderBy(Column("any_timestamp"), Direction.DESC)],
+            limit=Limit(MAX_NUMBER_OF_SPANS),
+        )
+
+        request = Request(
+            dataset=Dataset.SpansIndexed.value,
+            app_id="metrics",
+            query=query,
+            tenant_ids={"organization_id": self.organization.id},
+        )
+
+        data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
+
+        return {value["transaction_id"] for value in data}
+
     @classmethod
     def supports(cls, metric_mri: str) -> bool:
         return is_mri(metric_mri)
@@ -193,6 +236,7 @@ class MetricsSummariesSpansSource(SpansSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Span]:
+        # First, we fetch the spans we are interested in given the metric and the bounds.
         span_ids = self._get_span_ids_from_metrics_summaries(
             metric_mri=metric_mri,
             conditions=transform_to_tags(conditions),
@@ -201,16 +245,25 @@ class MetricsSummariesSpansSource(SpansSource):
             min_value=min_value,
             max_value=max_value,
         )
-        if not span_ids:
-            return []
 
-        return get_indexed_spans(
-            where=[Condition(Column("span_id"), Op.IN, list(span_ids))],
+        # Second, we fetch a set of transaction ids in which the `span_ids` belong.
+        transaction_ids = self._get_transaction_ids_of_spans(
+            span_ids=span_ids,
+            start=start,
+            end=end,
+        )
+
+        # Third, we fetch additional details of the transactions in `transaction_ids`.
+        spans = get_indexed_spans(
+            where=[Condition(Column("transaction_id"), Op.IN, list(transaction_ids))],
             start=start,
             end=end,
             organization=self.organization,
             projects=self.projects,
         )
+
+        # Fourth, we compute the transaction summary for each transaction.
+        return spans
 
 
 class TransactionDurationSpansSource(SpansSource):
@@ -242,10 +295,7 @@ class TransactionDurationSpansSource(SpansSource):
             where += [Condition(Column("duration"), Op.LTE, max_value)]
 
         return get_indexed_spans(
-            where=[
-                Condition(Column("is_segment"), Op.GTE, 1),
-            ]
-            + where,
+            where=where,
             start=start,
             end=end,
             organization=self.organization,
@@ -296,11 +346,10 @@ class MeasurementsSpansSource(SpansSource):
         if max_value:
             where += [Condition(Column(f"measurements[{measurement_name}]"), Op.LTE, max_value)]
 
+        # TODO: there might be the need to first obtain a set of transaction ids that have specific measurements and
+        #  then filter all spans with that transaction id.
         return get_indexed_spans(
-            where=[
-                Condition(Column("is_segment"), Op.GTE, 1),
-            ]
-            + where,
+            where=where,
             start=start,
             end=end,
             organization=self.organization,
@@ -316,7 +365,7 @@ def get_indexed_spans(
     projects: Sequence[Project],
 ):
     """
-    Fetches top N most recent indexed spans.
+    Fetches indexed spans and performs some aggregate calculations on them.
 
     The choice of not using query builders was deliberate, since we have to access columns that are not exposed via
     the query builders because they are meant to be internal.
@@ -325,15 +374,28 @@ def get_indexed_spans(
         match=Entity(EntityKey.Spans.value),
         select=[
             Column("project_id"),
-            Column("transaction_id"),
             Column("trace_id"),
-            Column("span_id"),
-            Column("profile_id"),
+            Column("transaction_id"),
             Column("segment_name"),
-            Column("op"),
-            Column("description"),
-            Column("duration"),
-            Column("timestamp"),
+            Column("profile_id"),
+            # Counts the number of spans inside a transaction.
+            Function(
+                "countIf",
+                [Column("span_id"), Function("equals", [Column("is_segment"), 0])],
+                alias="spans_number",
+            ),
+            # Calculates the duration of the transaction.
+            Function(
+                "sumIf",
+                [Column("duration"), Function("equals", [Column("is_segment"), 1])],
+                alias="duration",
+            ),
+            # Calculates the timestamp of the transaction.
+            Function(
+                "anyIf",
+                [Column("timestamp"), Function("equals", [Column("is_segment"), 1])],
+                alias="any_timestamp",
+            ),
         ],
         where=[
             Condition(Column("project_id"), Op.IN, [project.id for project in projects]),
@@ -341,9 +403,15 @@ def get_indexed_spans(
             Condition(Column("timestamp"), Op.LT, end),
         ]
         + (where or []),
-        # We want to get the newest spans.
-        orderby=[OrderBy(Column("timestamp"), Direction.DESC)],
-        limit=Limit(MAX_NUMBER_OF_SPANS),
+        groupby=[
+            Column("project_id"),
+            Column("trace_id"),
+            Column("transaction_id"),
+            Column("segment_name"),
+            Column("profile_id"),
+        ],
+        # For now, we order by descending duration.
+        orderby=[OrderBy(Column("duration"), Direction.DESC)],
     )
 
     request = Request(
@@ -360,13 +428,12 @@ def get_indexed_spans(
             project_id=value["project_id"],
             transaction_id=value["transaction_id"],
             trace_id=value["trace_id"],
-            span_id=value["span_id"],
             profile_id=value["profile_id"],
             segment_name=value["segment_name"],
-            op=value["op"],
-            description=value["description"],
+            spans_number=value["spans_number"],
+            spans_summary=[],
             duration=value["duration"],
-            timestamp=value["timestamp"],
+            timestamp=value["any_timestamp"],
         )
         for value in data
     ]

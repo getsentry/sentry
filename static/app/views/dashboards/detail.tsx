@@ -110,6 +110,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   dashboardState: DashboardState;
+  editingWidgetIndex: number;
   modifiedDashboard: DashboardDetails | null;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
@@ -119,6 +120,7 @@ class DashboardDetail extends Component<Props, State> {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
     widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+    editingWidgetIndex: -1,
     setData: data => {
       this.setState(data);
     },
@@ -479,6 +481,34 @@ class DashboardDetail extends Component<Props, State> {
     this.onUpdateWidget([...newModifiedDashboard.widgets, widget]);
   };
 
+  handleStartEditMetricWidget = (index: number) => {
+    this.setState({editingWidgetIndex: index});
+  };
+
+  handleEndEditMetricWidget = (widgets: Widget[], isCancel = false) => {
+    if (isCancel) {
+      this.setState({
+        dashboardState: DashboardState.VIEW,
+        modifiedDashboard: null,
+        editingWidgetIndex: -1,
+      });
+      return;
+    }
+
+    this.setState(
+      (state: State) => ({
+        ...state,
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        dashboardState: DashboardState.EDIT,
+        modifiedDashboard: {
+          ...(state.modifiedDashboard || this.props.dashboard),
+          widgets,
+        },
+      }),
+      this.onCommit
+    );
+  };
+
   onAddWidget = (dataset: DataSet) => {
     const {
       organization,
@@ -565,16 +595,23 @@ class DashboardDetail extends Component<Props, State> {
             });
             return;
           }
+          const isInlineEdit = this.state.editingWidgetIndex !== -1;
+          if (isInlineEdit) {
+            this.setState({
+              dashboardState: DashboardState.VIEW,
+            });
+          }
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
-              addSuccessMessage(t('Dashboard updated'));
+              !isInlineEdit && addSuccessMessage(t('Dashboard updated'));
               trackAnalytics('dashboards2.edit.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,
+                editingWidgetIndex: -1,
               });
 
               if (dashboard && newDashboard.id !== dashboard.id) {
@@ -627,6 +664,21 @@ class DashboardDetail extends Component<Props, State> {
         widgets,
       },
     }));
+  };
+
+  onUpdateMetricWidget = (widgets: Widget[]) => {
+    this.setState(
+      (state: State) => ({
+        ...state,
+        widgetLimitReached: widgets.length >= MAX_WIDGETS,
+        dashboardState: DashboardState.EDIT,
+        modifiedDashboard: {
+          ...(state.modifiedDashboard || this.props.dashboard),
+          widgets,
+        },
+      }),
+      () => this.onCommit()
+    );
   };
 
   renderWidgetBuilder() {
@@ -716,6 +768,9 @@ class DashboardDetail extends Component<Props, State> {
                           onUpdate={this.onUpdateWidget}
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
+                          editingWidgetIndex={this.state.editingWidgetIndex}
+                          onStartEditMetricWidget={this.handleStartEditMetricWidget}
+                          onEndEditMetricWidget={this.handleEndEditMetricWidget}
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
@@ -919,6 +974,11 @@ class DashboardDetail extends Component<Props, State> {
                                   onUpdate={this.onUpdateWidget}
                                   handleUpdateWidgetList={this.handleUpdateWidgetList}
                                   handleAddCustomWidget={this.handleAddCustomWidget}
+                                  onStartEditMetricWidget={
+                                    this.handleStartEditMetricWidget
+                                  }
+                                  onEndEditMetricWidget={this.handleEndEditMetricWidget}
+                                  editingWidgetIndex={this.state.editingWidgetIndex}
                                   router={router}
                                   location={location}
                                   newWidget={newWidget}
