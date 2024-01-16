@@ -153,9 +153,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
-            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(
-                organization_id=self.organization_id, user=None
-            )
+            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
             return OnDemandMetricSpec(
                 field=field,
                 query=self.query,

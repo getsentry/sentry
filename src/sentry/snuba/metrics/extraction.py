@@ -42,7 +42,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.models.user import User
 from sentry.search.events import fields
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.constants import VITAL_THRESHOLDS
@@ -97,12 +96,12 @@ class OnDemandMetricSpecVersioning:
         return cls.spec_versions
 
     @classmethod
-    def get_query_spec_version(cls: Any, organization_id: int, user: Optional[User]) -> SpecVersion:
+    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
         flags_set = set()
         org = Organization.objects.get_from_cache(id=organization_id)
         for feature_flag in cls.feature_to_flags_map.keys():
-            if features.has_for_batch(feature_flag, org, [], user):
+            if features.has(feature_flag, org):
                 flags_set = cls.feature_to_flags_map[feature_flag]
 
         return cls._find_spec_version(flags_set)
