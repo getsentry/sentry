@@ -49,14 +49,11 @@ export function CanvasSupportNotice() {
         />
       }
     >
-      {tct(
-        'We now support Canvas in SDK Version 7.94.0. Learn more [link:here].',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
-          ),
-        }
-      )}
+      {tct('We now support Canvas in SDK Version 7.94.0. Learn more [link:here].', {
+        link: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
+        ),
+      })}
     </StyledAlert>
   );
 }
