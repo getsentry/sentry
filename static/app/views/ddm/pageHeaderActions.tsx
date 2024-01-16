@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
+  IconAdd,
   IconBookmark,
   IconDashboard,
   IconEllipsis,
@@ -12,6 +14,7 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
@@ -33,10 +36,26 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const createDashboard = useCreateDashboard();
-  const {isDefaultQuery, setDefaultQuery, widgets} = useDDMContext();
+  const {addWidget, isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols} =
+    useDDMContext();
+
+  const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
 
   const items = useMemo(
     () => [
+      {
+        leadingItems: [<IconAdd isCircled key="icon" />],
+        key: 'add-query',
+        label: t('Add Query'),
+        disabled: hasEmptyWidget,
+        onAction: () => {
+          trackAnalytics('ddm.widget.add', {
+            organization,
+          });
+          Sentry.metrics.increment('ddm.widget.add');
+          addWidget();
+        },
+      },
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashboard',
@@ -50,7 +69,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
-    [createDashboard, router]
+    [addWidget, createDashboard, hasEmptyWidget, organization, router]
   );
 
   const alertItems = useMemo(
@@ -66,7 +85,9 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
           op: widget.op,
         });
         return {
-          leadingItems: [<QuerySymbol key="icon" index={index} />],
+          leadingItems: showQuerySymbols
+            ? [<QuerySymbol key="icon" index={index} />]
+            : [],
           key: `add-alert-${index}`,
           label: widget.mri
             ? middleEllipsis(MRIToField(widget.mri, widget.op!), 60, /\.|-|_/)
@@ -83,6 +104,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       selection.datetime,
       selection.environments,
       selection.projects,
+      showQuerySymbols,
       widgets,
     ]
   );
@@ -101,16 +123,27 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       >
         {isDefaultQuery ? t('Remove Default') : t('Save as default')}
       </Button>
-      <DropdownMenu
-        items={alertItems}
-        triggerLabel={t('Create Alert')}
-        triggerProps={{
-          size: 'sm',
-          showChevron: false,
-          icon: <IconSiren direction="down" size="xs" />,
-        }}
-        position="bottom-end"
-      />
+      {alertItems.length === 1 ? (
+        <Button
+          size="sm"
+          icon={<IconSiren />}
+          disabled={!alertItems[0].onAction}
+          onClick={alertItems[0].onAction}
+        >
+          {t('Create Alert')}
+        </Button>
+      ) : (
+        <DropdownMenu
+          items={alertItems}
+          triggerLabel={t('Create Alert')}
+          triggerProps={{
+            size: 'sm',
+            showChevron: false,
+            icon: <IconSiren direction="down" size="sm" />,
+          }}
+          position="bottom-end"
+        />
+      )}
       <DropdownMenu
         items={items}
         triggerProps={{

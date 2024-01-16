@@ -129,9 +129,16 @@ export function shouldErrorBeShown(error: EventErrorData, event: Event) {
     return false;
   }
   // Hide unactionable source context errors that happen in flutter web: https://github.com/getsentry/sentry-dart/issues/1764
-  if (event.sdk?.name === "sentry.dart.flutter" && error.type === JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT) {
-    const source = error.data?.Source;
-    if (source.includes("org-dartlang-sdk:///dart-sdk/lib/_internal") || source.includes("flutter/packages/flutter/lib")) {
+  if (
+    event.sdk?.name === 'sentry.dart.flutter' &&
+    error.type === JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT
+  ) {
+    const source: string | undefined = error.data?.source;
+    if (
+      source &&
+      (source.includes('org-dartlang-sdk:///dart-sdk/lib/_internal') ||
+        source.includes('flutter/packages/flutter/lib'))
+    ) {
       return false;
     }
   }

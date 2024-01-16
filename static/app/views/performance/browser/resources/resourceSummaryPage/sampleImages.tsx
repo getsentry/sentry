@@ -179,6 +179,19 @@ function ImageContainer(props: {
   const {fileName, size, src, showImage = true} = props;
   const isRelativeUrl = src.startsWith('/');
 
+  const handleError = () => {
+    setHasError(true);
+    Sentry.metrics.increment('performance.resource.image_load', 1, {
+      tags: {status: 'error'},
+    });
+  };
+
+  const handleLoad = () => {
+    Sentry.metrics.increment('performance.resource.image_load', 1, {
+      tags: {status: 'success'},
+    });
+  };
+
   return (
     <div style={{width: '100%', wordWrap: 'break-word'}}>
       {showImage && !isRelativeUrl && !hasError ? (
@@ -190,7 +203,8 @@ function ImageContainer(props: {
         >
           <img
             data-test-id="sample-image"
-            onError={() => setHasError(true)}
+            onError={handleError}
+            onLoad={handleLoad}
             src={src}
             style={{
               width: '100%',

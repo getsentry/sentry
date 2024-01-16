@@ -1,11 +1,14 @@
+import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {Button, ButtonProps} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -94,24 +97,54 @@ export default AddWidget;
 export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonProps) {
   const organization = useOrganization();
 
-  const datasetChoices = new Map<string, string>();
-  datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
-  datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
+  const handleAction = useCallback(
+    (dataset: DataSet) => {
+      trackAnalytics('dashboards_views.widget_library.opened', {
+        organization,
+      });
+      onAddWidget(dataset);
+    },
+    [organization, onAddWidget]
+  );
 
-  if (organization.features.includes('dashboards-rh-widget')) {
-    datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
+  const items: MenuItemProps[] = useMemo(() => {
+    const menuItems = [
+      {
+        key: DataSet.EVENTS,
+        label: t('Errors and Transactions'),
+        onAction: () => handleAction(DataSet.EVENTS),
+      },
+      {
+        key: DataSet.ISSUES,
+        label: t('Issues'),
+        details: t('States, Assignment, Time, etc.'),
+        onAction: () => handleAction(DataSet.ISSUES),
+      },
+    ];
 
-  if (hasDDMFeature(organization)) {
-    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
-  }
+    if (organization.features.includes('dashboards-rh-widget')) {
+      menuItems.push({
+        key: DataSet.RELEASES,
+        label: t('Releases'),
+        details: t('Sessions, Crash rates, etc.'),
+        onAction: () => handleAction(DataSet.RELEASES),
+      });
+    }
+
+    if (hasDDMFeature(organization)) {
+      menuItems.push({
+        key: DataSet.METRICS,
+        label: t('Custom Metrics'),
+        onAction: () => handleAction(DataSet.METRICS),
+      });
+    }
+
+    return menuItems;
+  }, [handleAction, organization]);
 
   return (
-    <CompactSelect
-      options={[...datasetChoices.entries()].map(([value, label]) => ({
-        label,
-        value,
-      }))}
+    <DropdownMenu
+      items={items}
       trigger={triggerProps => (
         <DropdownButton
           {...triggerProps}
@@ -123,12 +156,14 @@ export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonPro
           {t('Add Widget')}
         </DropdownButton>
       )}
-      onChange={({value: dataset}) => {
-        trackAnalytics('dashboards_views.widget_library.opened', {
-          organization,
-        });
-        onAddWidget(dataset as DataSet);
-      }}
+      menuTitle={
+        <MenuTitle>
+          {t('Dataset')}
+          <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#choose-your-dataset">
+            {t('Learn more')}
+          </ExternalLink>
+        </MenuTitle>
+      }
     />
   );
 }
@@ -142,4 +177,13 @@ const InnerWrapper = styled('div')<{onClick?: () => void}>`
   align-items: center;
   justify-content: center;
   cursor: ${p => (p.onClick ? 'pointer' : '')};
+`;
+
+const MenuTitle = styled('span')`
+  display: flex;
+  gap: ${space(1)};
+
+  & > a {
+    font-weight: normal;
+  }
 `;

@@ -1533,6 +1533,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
+    # Enable ingesting non-sampled profiles
+    "organizations:profiling-ingest-unsampled-profiles": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
@@ -1911,6 +1913,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Enable browser starfish webvitals module to use backend provided performance scores
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable mobile starfish app start module view
+    "organizations:starfish-mobile-appstart": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
