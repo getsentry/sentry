@@ -31,7 +31,8 @@ export function CanvasSupportNotice() {
   }
 
   // If we're already recording canvas, or no canvas elements detected, then do not show alert
-  if (this.getSDKOptions().shouldRecordCanvas || !replay?.hasCanvasElementInReplay()) {
+  // @ts-expect-error TODO Update SDK
+  if (replay?.getSDKOptions().shouldRecordCanvas || !replay?.hasCanvasElementInReplay()) {
     return null;
   }
 
@@ -50,7 +51,7 @@ export function CanvasSupportNotice() {
       }
     >
       {tct('This replay contains a [code:canvas] element. Support for recording [code:canvas] data was added in SDK version 7.94.0. [link:Learn more].', {
-        canvas: <code>,
+        canvas: <code />,
         link: (
           <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
         ),
