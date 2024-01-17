@@ -62,7 +62,7 @@ describe('convertToDashboardWidget', () => {
     ).toEqual({
       title: 'p95(measurements.duration)',
       displayType: DisplayType.BAR,
-      widgetType: 'discover',
+      widgetType: 'custom-metrics',
       limit: 1,
       queries: [
         {

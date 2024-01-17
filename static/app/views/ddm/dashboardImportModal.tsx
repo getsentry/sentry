@@ -1,7 +1,8 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import TextArea from 'sentry/components/forms/controls/textarea';
@@ -11,28 +12,32 @@ import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import {parseDashboard, ParseResult} from 'sentry/utils/metrics/dashboardImport';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  assignDefaultLayout,
+  getInitialColumnDepths,
+} from 'sentry/views/dashboards/layoutUtils';
 import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-export function useDashboardImport() {
-  const organization = useOrganization();
-
-  return useMemo(() => {
-    return function () {
-      return openModal(
-        deps => (
-          <OrganizationContext.Provider value={organization}>
-            <DDMContextProvider>
-              <DashboardImportModal {...deps} />
-            </DDMContextProvider>
-          </OrganizationContext.Provider>
-        ),
-        {modalCss}
-      );
-    };
-  }, [organization]);
+export function openDashboardImport(organization: Organization) {
+  return openModal(
+    deps => (
+      <OrganizationContext.Provider value={organization}>
+        <DDMContextProvider>
+          <DashboardImportModal {...deps} />
+        </DDMContextProvider>
+      </OrganizationContext.Provider>
+    ),
+    {modalCss}
+  );
 }
 
 type FormState = {
@@ -43,7 +48,12 @@ type FormState = {
 };
 
 function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
+  const api = useApi();
+  const router = useRouter();
   const {metricsMeta} = useDDMContext();
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
+
   const [formState, setFormState] = useState<FormState>({
     step: 'initial',
     dashboard: '',
@@ -65,6 +75,36 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
       }));
     }
   }, [formState.isValid, formState.dashboard, metricsMeta]);
+
+  const handleCreateDashboard = useCallback(async () => {
+    const title = formState.importResult?.title ?? 'Metrics Dashboard';
+
+    const importedWidgets = (formState.importResult?.widgets ?? [])
+      .filter(widget => !!widget.mri)
+      .map(widget =>
+        convertToDashboardWidget({...widget, ...selection}, widget.displayType)
+      )
+      // Only import the first 30 widgets because of dashboard widget limit
+      .slice(0, 30);
+
+    const newDashboard = {
+      id: 'temp-id-imported-dashboard',
+      title: `${title} (Imported)`,
+      description: formState.importResult?.description ?? '',
+      filters: {},
+      dateCreated: '',
+      widgets: assignDefaultLayout(importedWidgets, getInitialColumnDepths()),
+      ...selection,
+    };
+
+    const dashboard = await createDashboard(api, organization.slug, newDashboard);
+
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
+      })
+    );
+  }, [formState.importResult, selection, organization, api, router]);
 
   return (
     <Fragment>
@@ -127,9 +167,11 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
           <Button
             priority="primary"
             disabled={!formState.isValid}
-            onClick={handleImportDashboard}
+            onClick={
+              formState.step === 'initial' ? handleImportDashboard : handleCreateDashboard
+            }
           >
-            {formState.step === 'initial' ? t('Import') : t('Add Widgets')}
+            {formState.step === 'initial' ? t('Import') : t('Create Dashboard')}
           </Button>
         </Tooltip>
       </Footer>
