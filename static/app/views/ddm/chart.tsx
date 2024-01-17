@@ -240,11 +240,11 @@ const ChartWrapper = styled('div')`
 `;
 
 const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: calc(100% - 56px);
+  height: calc(100% - 29px);
   width: ${p => p.width}%;
   position: absolute;
-  right: 21px;
-  top: 18px;
+  right: 0px;
+  top: 5px;
   pointer-events: none;
   background: linear-gradient(
     90deg,
