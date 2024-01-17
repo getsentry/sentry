@@ -22,7 +22,5 @@ brew 'watchman'
 # If it's installed in the early steps of the setup process, it just leads to confusion.
 # brew 'direnv'
 
-tap 'homebrew/cask'
-
 # required for acceptance testing
 cask 'chromedriver'
