@@ -23,7 +23,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.utils import metrics
 
 from .constants import CRASH_SESSIONS_DISPLAY
-from .health_checks import is_crash_free_rate_healthy, is_error_count_healthy
+from .health_checks import is_crash_free_rate_healthy_check, is_error_count_healthy
 from .utils import fetch_sessions_data, get_errors_counts_timeseries_by_project_and_release
 
 logger = logging.getLogger("sentry.release_threshold_status")
@@ -375,7 +375,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     start=query_window["start"],
                 )
                 for ethreshold in category_thresholds:
-                    is_healthy, rate = is_crash_free_rate_healthy(
+                    is_healthy, rate = is_crash_free_rate_healthy_check(
                         ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
                     )
                     ethreshold.update({"is_healthy": is_healthy, "metric_value": rate})

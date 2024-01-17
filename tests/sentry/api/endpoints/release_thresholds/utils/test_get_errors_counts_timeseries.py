@@ -4,7 +4,7 @@ from unittest import mock
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 
-from sentry.api.endpoints.release_thresholds.utils import (
+from sentry.api.endpoints.release_thresholds.utils import (  # fetch_sessions_data
     get_errors_counts_timeseries_by_project_and_release,
 )
 from sentry.testutils.cases import TestCase
@@ -45,3 +45,8 @@ class GetErrorCountTimeseriesTest(TestCase):
         env_condition = Condition(Column("environment"), Op.IN, env_list)
         call_conditions = mock_snql_query.call_args[1]["request"].query.where
         assert env_condition in call_conditions
+
+
+class FetchSessionsdataTest(TestCase):
+    def test_constructs_query(self):
+        pass

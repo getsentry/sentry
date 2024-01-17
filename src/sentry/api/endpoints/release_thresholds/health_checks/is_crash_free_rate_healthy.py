@@ -23,7 +23,7 @@ def get_groups_totals(
     field: str,
     start_idx: int,
     end_idx: int,
-    environment: str | None,
+    environment: str | None = None,
     status: str | None = None,
 ) -> int:
     filters = ["release", "project"]
@@ -72,7 +72,7 @@ def get_interval_indexes(intervals: list[str], start: datetime, end: datetime) -
     return start_idx, end_idx
 
 
-def is_crash_free_rate_healthy(
+def is_crash_free_rate_healthy_check(
     ethreshold: EnrichedThreshold,
     sessions_data: Dict[str, Any],
     display: str,
@@ -81,6 +81,7 @@ def is_crash_free_rate_healthy(
     Derives percent from crash total over total count
 
     NOTE: Logic mirrors Frontend views/releases/list/releasesRequest::getCrashFreeRate
+    NOTE: if 'environment' not provided, will tally sums for _all_ sessions data as opposed to only sessions with environment of 'None'
     """
     field = "count_unique(user)" if display == CRASH_USERS_DISPLAY else "sum(session)"
     release_version = ethreshold["release"]
