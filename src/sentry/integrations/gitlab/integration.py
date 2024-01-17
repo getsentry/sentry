@@ -378,8 +378,10 @@ class GitlabIntegrationProvider(IntegrationProvider):
             access_token=access_token,
             verify_ssl=installation_data["verify_ssl"],
         )
+
+        requested_group = installation_data["group"]
         try:
-            resp = client.get_group(installation_data["group"])
+            resp = client.get_group(requested_group)
             return resp.json
         except ApiError as e:
             self.get_logger().info(
@@ -387,13 +389,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 extra={
                     "base_url": installation_data["url"],
                     "verify_ssl": installation_data["verify_ssl"],
-                    "group": installation_data["group"],
+                    "group": requested_group,
                     "include_subgroups": installation_data["include_subgroups"],
                     "error_message": str(e),
                     "error_status": e.code,
                 },
             )
-            raise IntegrationError("The requested GitLab group could not be found.")
+            raise IntegrationError(
+                f"The requested GitLab group {requested_group} could not be found."
+            )
 
     def get_pipeline_views(self):
         return [
