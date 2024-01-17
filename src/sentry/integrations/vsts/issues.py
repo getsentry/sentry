@@ -10,6 +10,7 @@ from sentry.models.activity import Activity
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 
 if TYPE_CHECKING:
@@ -107,6 +108,7 @@ class VstsIssueSync(IssueSyncMixin):
     def get_create_issue_config_no_group(self, project: str) -> Sequence[Mapping[str, Any]]:
         return self.get_create_issue_config(None, None, project=project)
 
+    @all_silo_function
     def get_create_issue_config(
         self, group: Optional["Group"], user: Optional[RpcUser], **kwargs: Any
     ) -> Sequence[Mapping[str, Any]]:

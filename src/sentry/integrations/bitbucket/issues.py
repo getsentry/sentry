@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, List, Sequence
 
 from django.urls import reverse
@@ -5,6 +7,7 @@ from django.urls import reverse
 from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models.group import Group
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 
 ISSUE_TYPES = (
@@ -31,8 +34,12 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["repo"]
 
-    def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
+    @all_silo_function
+    def get_create_issue_config(
+        self, group: Group | None, user: User, **kwargs
+    ) -> List[Dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
+
         fields = super().get_create_issue_config(group, user, **kwargs)
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)

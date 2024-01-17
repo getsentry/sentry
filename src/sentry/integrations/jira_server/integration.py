@@ -25,6 +25,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.pipeline import PipelineView
@@ -32,6 +33,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -686,7 +688,8 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             raise IntegrationError(no_projects_error_message)
         return jira_projects
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    @all_silo_function
+    def get_create_issue_config(self, group: Group | None, user: RpcUser, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
