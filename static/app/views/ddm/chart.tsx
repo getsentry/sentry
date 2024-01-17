@@ -126,7 +126,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
-        grid: {top: 5, bottom: 2, left: 0, right: 0},
+        grid: {top: 5, bottom: 0, left: 0, right: 0},
 
         tooltip: {
           formatter: (params, asyncTicket) => {
