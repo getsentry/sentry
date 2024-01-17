@@ -32,13 +32,6 @@ class SDKCrashDetectorConfig:
 
 
 class SDKCrashDetector:
-    """
-    This class is still a work in progress. The plan is that every SDK has to define a subclass of
-    this base class to get SDK crash detection up and running. We most likely will have to pull
-    out some logic of the CocoaSDKCrashDetector into this class when adding the SDK crash detection
-    for another SDK.
-    """
-
     def __init__(
         self,
         config: SDKCrashDetectorConfig,
