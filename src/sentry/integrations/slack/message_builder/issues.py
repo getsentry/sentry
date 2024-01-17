@@ -299,6 +299,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         recipient: RpcActor | None = None,
         is_unfurl: bool = False,
         skip_fallback: bool = False,
+        mentions: str | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -313,6 +314,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.recipient = recipient
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
+        self.mentions = mentions
 
     @property
     def escape_text(self) -> bool:
@@ -406,6 +408,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if tags:
             blocks.append(self.get_tags_block(tags))
 
+        # add mentions
+        if self.mentions:
+            mentions_text = f"Mentions: {self.mentions}"
+            blocks.append(self.get_markdown_block(mentions_text))
+
         # build footer block
         timestamp = None
         if not self.issue_details:
@@ -452,6 +459,7 @@ def build_group_attachment(
     issue_details: bool = False,
     is_unfurl: bool = False,
     notification_uuid: str | None = None,
+    mentions: str | None = None,
 ) -> Union[SlackBlock, SlackAttachment]:
 
     return SlackIssuesMessageBuilder(
@@ -464,4 +472,5 @@ def build_group_attachment(
         link_to_event,
         issue_details,
         is_unfurl=is_unfurl,
+        mentions=mentions,
     ).build(notification_uuid=notification_uuid)
