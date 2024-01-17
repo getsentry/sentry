@@ -17,6 +17,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
 import {useIndexedResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useIndexedResourceQuery';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
@@ -25,19 +26,24 @@ type Props = {groupId: string; projectId?: number};
 
 export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 
-const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
+const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_OP} =
+  SpanIndexedField;
 const imageWidth = '200px';
 const imageHeight = '180px';
 
 function SampleImages({groupId, projectId}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
+  const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
   const {data: settings, isLoading: isSettingsLoading} =
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
   const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
-    queryConditions: [`${SPAN_GROUP}:${groupId}`],
+    queryConditions: [
+      `${SPAN_GROUP}:${groupId}`,
+      ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),
+    ],
     sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
     limit: 100,
     referrer: 'api.performance.resources.sample-images',

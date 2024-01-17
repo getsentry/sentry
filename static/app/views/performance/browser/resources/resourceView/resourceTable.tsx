@@ -129,6 +129,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
           <SpanDescriptionCell
             moduleName={ModuleName.HTTP}
             projectId={row[PROJECT_ID]}
+            spanOp={row[SPAN_OP]}
             description={row[SPAN_DESCRIPTION]}
             group={row[SPAN_GROUP]}
           />
