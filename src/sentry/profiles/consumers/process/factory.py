@@ -12,11 +12,10 @@ from sentry.profiles.task import process_profile_task
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
-    msg_payload = message.payload.value
     sampled = is_sampled(message.payload.headers)
 
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        process_profile_task.s(payload=msg_payload, sampled=sampled).apply_async()
+        process_profile_task.s(payload=message.payload.value, sampled=sampled).apply_async()
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
