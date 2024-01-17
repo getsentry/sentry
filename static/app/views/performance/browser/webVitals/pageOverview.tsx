@@ -243,7 +243,7 @@ export default function PageOverview() {
                   <AlertContent>
                     <span>
                       {tct(
-                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences.[link:Read more about these improvements].`,
+                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. [link:Read more about these improvements].`,
                         {
                           scoreMigrationTimestampString,
                           link: (
