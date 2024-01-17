@@ -23,7 +23,7 @@ class BaseQuerySet(QuerySet, abc.ABC):
         return qs
 
     def _clone(self) -> "BaseQuerySet":
-        qs = super()._clone()
+        qs = super()._clone()  # type: ignore[misc]
         qs._send_post_update_signal = self._send_post_update_signal
         return qs
 
