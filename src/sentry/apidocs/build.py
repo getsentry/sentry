@@ -104,7 +104,7 @@ OPENAPI_TAGS = [
     },
     {
         "name": "Crons",
-        "x-sidebar-name": "Crons (Beta)",
+        "x-sidebar-name": "Crons",
         "description": "Endpoints for Crons",
         "x-display-description": False,
         "externalDocs": {
