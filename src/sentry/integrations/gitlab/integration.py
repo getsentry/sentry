@@ -265,7 +265,7 @@ class InstallationForm(forms.Form):
     )
     client_secret = forms.CharField(
         label=_("GitLab Application Secret"),
-        widget=forms.TextInput(attrs={"placeholder": _("XXXXXXXXXXXXXXXXXXXXXXXXXXX")}),
+        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
     )
 
     def clean_url(self):
@@ -456,6 +456,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
+            },
+            "post_install_data": {
+                "redirect_url_format": absolute_uri("/settings/{org_slug}/integrations/gitlab/"),
             },
         }
         return integration
