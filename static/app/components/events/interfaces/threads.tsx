@@ -267,7 +267,7 @@ export function Threads({
                       title={getThreadStateHelpText(threadStateDisplay)}
                     />
                   )}
-                  {<LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>}
+                  <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
                 </ThreadStateWrapper>
               </EventDataSection>
             )}

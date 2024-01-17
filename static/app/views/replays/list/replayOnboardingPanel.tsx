@@ -299,17 +299,15 @@ export function SetupReplaysCTA({
       <StyledWidgetContainer>
         <StyledHeaderContainer>
           {t('FAQ')}
-          {
-            <QuestionTooltip
-              size="xs"
-              isHoverable
-              title={tct('See a [link:full list of FAQs].', {
-                link: (
-                  <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
-                ),
-              })}
-            />
-          }
+          <QuestionTooltip
+            size="xs"
+            isHoverable
+            title={tct('See a [link:full list of FAQs].', {
+              link: (
+                <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
+              ),
+            })}
+          />
         </StyledHeaderContainer>
         <Accordion
           items={FAQ}

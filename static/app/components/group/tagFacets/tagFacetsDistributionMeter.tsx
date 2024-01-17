@@ -181,7 +181,7 @@ function TagFacetsDistributionMeter({
                     {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
                   </LegendText>
                 </Tooltip>
-                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
               </LegendRow>
             );
 
