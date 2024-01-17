@@ -1961,3 +1961,11 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# killswitch for profile metrics
+register(
+    "profiling.profile_metrics.unsampled_profiles.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
