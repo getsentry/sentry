@@ -21,12 +21,12 @@ export default function TagsSection({tags}: Props) {
         maxVisibleItems={3}
         collapseButton={({onCollapse}) => (
           <StyledButton priority="primary" size="xs" onClick={onCollapse}>
-            {t('Collapse')}
+            {t('Collapse tags')}
           </StyledButton>
         )}
         expandButton={({onExpand}) => (
           <StyledButton priority="primary" size="xs" onClick={onExpand}>
-            {t('Expand')}
+            {t('See all tags')}
           </StyledButton>
         )}
       >
@@ -48,5 +48,5 @@ export default function TagsSection({tags}: Props) {
 
 const StyledButton = styled(Button)`
   margin-top: ${space(1)};
-  width: 70px;
+  width: 150px;
 `;
