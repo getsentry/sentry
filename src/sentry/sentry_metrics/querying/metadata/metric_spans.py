@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional, Sequence, Set, Tuple, cast
 
+import sentry_sdk
 from snuba_sdk import (
     Column,
     Condition,
@@ -34,7 +35,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     parse_mri,
 )
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
+from sentry.utils.snuba import SnubaError, bulk_snuba_queries, raw_snql_query
 
 # Maximum number of unique results returned by the database.
 MAX_NUMBER_OF_RESULTS = 10
@@ -52,6 +53,10 @@ SENTRY_TAG_TO_COLUMN_NAME = {
     "user": "user",
     "status": "status",
 }
+
+
+class CorrelationsQueryExecutionError(Exception):
+    pass
 
 
 @dataclass(frozen=True)
@@ -491,7 +496,7 @@ def _get_segments(
     return segments
 
 
-# Ordered list (by priority) of spans sources that will be used to get the spans of a specific metric.
+# Ordered list (by priority) of correlations sources that will be used to get the correlations of a specific metric.
 CORRELATIONS_SOURCES = [
     MeasurementsCorrelationsSource,
     TransactionDurationCorrelationsSource,
@@ -537,9 +542,16 @@ def get_correlations_of_metric(
             f"The supplied metric {metric_mri} does not support fetching correlated spans"
         )
 
-    return MetricCorrelations(
-        metric_mri=metric_mri,
-        segments=correlations_source.get_segments(
+    try:
+        segments = correlations_source.get_segments(
             metric_mri, query, start, end, min_value, max_value
-        ),
-    )
+        )
+        return MetricCorrelations(
+            metric_mri=metric_mri,
+            segments=segments,
+        )
+    except SnubaError as e:
+        sentry_sdk.capture_exception(e)
+        raise CorrelationsQueryExecutionError(
+            f"A database error occurred while fetching correlations for {metric_mri}: {type(e).__name__}"
+        )
