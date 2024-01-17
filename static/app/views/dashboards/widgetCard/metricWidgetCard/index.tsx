@@ -154,7 +154,11 @@ export function MetricWidgetCard({
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
         <MetricWidgetChartWrapper>
-          <MetricWidgetChartContainer selection={selection} widget={widget} />
+          <MetricWidgetChartContainer
+            selection={selection}
+            widget={widget}
+            editorParams={metricWidgetQueryParams}
+          />
         </MetricWidgetChartWrapper>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
@@ -162,8 +166,11 @@ export function MetricWidgetCard({
   );
 }
 
-export function MetricWidgetChartContainer({selection, widget}) {
-  const metricWidgetQueryParams = convertFromWidget(widget);
+export function MetricWidgetChartContainer({selection, widget, editorParams}) {
+  const metricWidgetQueryParams = {
+    ...convertFromWidget(widget),
+    ...editorParams,
+  };
 
   return (
     <MetricWidgetBody
