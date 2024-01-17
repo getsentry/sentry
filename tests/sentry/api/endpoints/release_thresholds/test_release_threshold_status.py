@@ -383,7 +383,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, project=[self.project2.slug]
+            self.organization.slug, start=yesterday, end=now, projectSlug=[self.project2.slug]
         )
 
         assert len(response.data.keys()) == 1

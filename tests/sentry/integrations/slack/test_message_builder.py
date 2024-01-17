@@ -230,25 +230,24 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             link_to_event=True,
         )
 
-        with self.feature("organizations:escalating-issues"):
-            test_message = build_test_message(
-                teams={self.team},
-                users={self.user},
-                timestamp=group.last_seen,
-                group=group,
-            )
-            test_message["actions"] = [
-                action
-                if action["text"] != "Ignore"
-                else {
-                    "name": "status",
-                    "text": "Archive",
-                    "type": "button",
-                    "value": "ignored:until_escalating",
-                }
-                for action in test_message["actions"]
-            ]
-            assert SlackIssuesMessageBuilder(group).build() == test_message
+        test_message = build_test_message(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+        )
+        test_message["actions"] = [
+            action
+            if action["text"] != "Ignore"
+            else {
+                "name": "status",
+                "text": "Archive",
+                "type": "button",
+                "value": "ignored:until_escalating",
+            }
+            for action in test_message["actions"]
+        ]
+        assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
@@ -285,23 +284,22 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             link_to_event=True,
         )
 
-        with self.feature("organizations:escalating-issues"):
-            test_message = build_test_message_blocks(
-                teams={self.team},
-                users={self.user},
-                timestamp=group.last_seen,
-                group=group,
-            )
+        test_message = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+        )
 
-            for section in test_message["blocks"]:
-                if section["type"] == "actions":
-                    for element in section["elements"]:
-                        if "ignore" in element["action_id"]:
-                            element["action_id"] = "ignored:until_escalating"
-                            element["value"] = "ignored:until_escalating"
-                            element["text"]["text"] = "Archive"
+        for section in test_message["blocks"]:
+            if section["type"] == "actions":
+                for element in section["elements"]:
+                    if "ignore" in element["action_id"]:
+                        element["action_id"] = "ignored:until_escalating"
+                        element["value"] = "ignored:until_escalating"
+                        element["text"]["text"] = "Archive"
 
-            assert SlackIssuesMessageBuilder(group).build() == test_message
+        assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
@@ -907,10 +905,9 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.IGNORED
         group.save()
 
-        with self.feature({"organizations:escalating-issues": True}):
-            res = build_actions(
-                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-            )
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
 
         expected = {
             "label": "Mark as Ongoing",
@@ -922,9 +919,7 @@ class ActionsTest(TestCase):
             res[0],
             expected,
         )
-        with self.feature("organizations:escalating-issues"), self.feature(
-            "organizations:slack-block-kit"
-        ):
+        with self.feature("organizations:slack-block-kit"):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
@@ -966,10 +961,9 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.UNRESOLVED
         group.save()
 
-        with self.feature({"organizations:escalating-issues": True}):
-            res = build_actions(
-                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-            )
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
         expected = {
             "label": "Archive",
             "name": "status",
@@ -980,9 +974,7 @@ class ActionsTest(TestCase):
             res[0],
             expected,
         )
-        with self.feature("organizations:slack-block-kit"), self.feature(
-            "organizations:escalating-issues"
-        ):
+        with self.feature("organizations:slack-block-kit"):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )

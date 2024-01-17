@@ -1529,12 +1529,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
     "organizations:enterprise-data-secrecy": False,
-    # Enable archive/escalating issue workflow
-    "organizations:escalating-issues": True,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
+    # Enable ingesting non-sampled profiles
+    "organizations:profiling-ingest-unsampled-profiles": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
@@ -1661,6 +1661,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable rate-limiting via relay for Monitors (crons)
+    "organizations:monitors-quota-rate-limit": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -1913,6 +1915,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Enable browser starfish webvitals module to use backend provided performance scores
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable mobile starfish app start module view
+    "organizations:starfish-mobile-appstart": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
@@ -3028,7 +3032,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "23.12.1"
+SELF_HOSTED_STABLE_VERSION = "24.1.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3967,6 +3971,7 @@ REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
+    "sentry-api-0-prompts-activity",
     # Legacy monitor endpoints
     "sentry-api-0-monitor-ingest-check-in-index",
     # These paths are used by relay which is implicitly region scoped
@@ -3990,6 +3995,9 @@ REGION_PINNED_URL_NAMES = {
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
+
+# Disable DDM entirely
+SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

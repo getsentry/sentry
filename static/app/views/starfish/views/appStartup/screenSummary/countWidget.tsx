@@ -18,7 +18,7 @@ import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQue
 import {
   COLD_START_COLOR,
   WARM_START_COLOR,
-} from 'sentry/views/starfish/views/appStartup/appStartBreakdown';
+} from 'sentry/views/starfish/views/appStartup/screenSummary/appStartBreakdownWidget';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 const SPAN_OP_TO_STRING = {
@@ -46,10 +46,11 @@ function transformData(data?: MultiSeriesEventsStats) {
 }
 
 interface Props {
+  chartHeight: number;
   additionalFilters?: string[];
 }
 
-function CountWidget({additionalFilters}: Props) {
+function CountWidget({additionalFilters, chartHeight}: Props) {
   const pageFilter = usePageFilters();
   const {
     primaryRelease,
@@ -104,7 +105,7 @@ function CountWidget({additionalFilters}: Props) {
       <Chart
         chartColors={[COLD_START_COLOR, WARM_START_COLOR]}
         data={Object.values(transformedSeries)}
-        height={90}
+        height={chartHeight}
         loading={isSeriesLoading}
         grid={{
           left: '0',
