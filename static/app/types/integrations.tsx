@@ -181,14 +181,13 @@ export interface CodecovResponse {
   lineCoverage?: LineCoverage[];
 }
 
-export type StacktraceLinkResult = {
+export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
-  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   sourceUrl?: string;
-};
+}
 
 export type StacktraceErrorMessage =
   | 'file_not_found'

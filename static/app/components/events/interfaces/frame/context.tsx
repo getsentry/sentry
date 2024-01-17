@@ -6,6 +6,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
+import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,7 +18,6 @@ import {
   Coverage,
   Frame,
   LineCoverage,
-  Organization,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -25,8 +25,8 @@ import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
 
@@ -35,7 +35,6 @@ import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
-import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -51,7 +50,6 @@ type Props = {
   hasContextVars?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
-  organization?: Organization;
   registersMeta?: Record<any, any>;
 };
 
@@ -81,11 +79,11 @@ function Context({
   components,
   frame,
   event,
-  organization,
   className,
   frameMeta,
   registersMeta,
 }: Props) {
+  const organization = useOrganization({allowNull: true});
   const {user} = useLegacyStore(ConfigStore);
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
 
@@ -99,7 +97,7 @@ function Context({
     [projects, event]
   );
 
-  const {data, isLoading} = useStacktraceLink(
+  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,
@@ -124,11 +122,11 @@ function Context({
     : frame?.context?.filter(l => l[0] === activeLineNumber);
 
   const hasCoverageData =
-    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+    !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
   const [lineCoverage = [], hasCoverage] =
-    hasCoverageData && data!.codecov?.lineCoverage && !!activeLineNumber! && contextLines
-      ? getLineCoverage(contextLines, data!.codecov?.lineCoverage)
+    hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines
+      ? getLineCoverage(contextLines, coverage.lineCoverage)
       : [];
 
   useRouteAnalyticsParams(
@@ -239,7 +237,7 @@ function Context({
   );
 }
 
-export default withOrganization(Context);
+export default Context;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
