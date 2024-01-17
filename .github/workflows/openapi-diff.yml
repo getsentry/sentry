@@ -1,0 +1,60 @@
+name: openapi-diff
+on:
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+
+jobs:
+  check-diff:
+    name: build api
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        if: steps.changes.outputs.api_docs == 'true'
+
+      - name: Checkout getsentry/sentry-api-schema
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          ref: 'main'
+          repository: getsentry/sentry-api-schema
+          path: sentry-api-schema
+
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+        if: steps.changes.outputs.api_docs == 'true'
+
+      - name: Build OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
+        # install ts-node for ts build scripts to execute properly without potentially installing
+        # conflicting deps when running scripts locally
+        # see: https://github.com/getsentry/sentry/pull/32328/files
+        run: |
+          yarn add ts-node && make build-api-docs
+
+      - name: Compare OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          npx json-diff@0.5.4 --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json

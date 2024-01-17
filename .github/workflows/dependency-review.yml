@@ -1,0 +1,19 @@
+name: 'Dependency Review'
+on:
+  pull_request:
+    branches: ['master']
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Dependency Review
+        uses: actions/dependency-review-action@c74b580d73376b7750d3d2a50bfb8adc2c937507 # v3.1.5
+        with:
+          # Possible values: "critical", "high", "moderate", "low"
+          fail-on-severity: high

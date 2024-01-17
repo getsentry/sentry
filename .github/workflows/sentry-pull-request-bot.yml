@@ -1,0 +1,74 @@
+name: sentry pull request bot
+
+# Note this event happens on Issue comments AND PR comments,
+# we make sure that we only respond to PR comments.
+on:
+  issue_comment:
+    types: [created, edited]
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  # TODO(billy): Move this into an external action as we add more functionality
+  test-getsentry:
+    name: test getsentry
+    runs-on: ubuntu-22.04
+
+    # Ensure this bot only responds for pull requests and only for the main repository
+    if: >-
+      (github.event.issue.pull_request.url != '' || github.event.pull_request.id != '') &&
+      (contains(github.event.comment.body, '#test-getsentry') || contains(github.event.pull_request.body, '#test-getsentry')) &&
+      github.repository == 'getsentry/sentry'
+
+    steps:
+      - name: Check getsentry membership
+        id: org
+        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
+        with:
+          script: |
+            try {
+              const result = await github.rest.orgs.checkMembershipForUser({
+                org: 'getsentry',
+                username: context.payload.sender.login,
+              })
+              return result.status == 204;
+            } catch {
+              return false;
+            }
+
+      - name: Fetch getsentry token
+        if: steps.org.outputs.result == 'true'
+        id: getsentry
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - name: Wait for PR merge commit
+        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
+        id: mergecommit
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          script: |
+            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/wait-for-merge-commit`).waitForMergeCommit({
+              github,
+              context,
+              core,
+            });
+
+      - name: Dispatch getsentry tests
+        if: steps.org.outputs.result == 'true'
+        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: 'getsentry',
+              repo: 'getsentry',
+              workflow_id: 'acceptance.yml',
+              ref: 'master',
+              inputs: {
+                'sentry-sha': '${{ steps.mergecommit.outputs.mergeCommitSha }}',
+                'sentry-pr-sha': '${{ github.event.pull_request.head.sha }}',
+              }
+            })

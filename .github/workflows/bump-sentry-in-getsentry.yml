@@ -1,0 +1,56 @@
+name: bump sentry in getsentry
+
+# Serializes the execution of this workflow.
+concurrency:
+  group: ${{ github.workflow }}
+
+on:
+  push:
+    branches:
+      - master
+
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
+jobs:
+  bump-sentry:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          # For getsentry/bin/bump-sentry, sentry needs to be at ../sentry relative to getsentry.
+          path: sentry
+
+      - name: checkout getsentry
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          repository: 'getsentry/getsentry'
+          path: getsentry
+          # This PAT (Personal Access Token) belongs to getsentry-bot,
+          # who can write to getsentry and is SAML+SSO ready.
+          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+
+      - name: bump-sentry ${{ github.sha }}
+        run: |
+          cd getsentry
+
+          python -S -m bin.bump_sentry ${{ github.sha }}
+
+          # If getsentry is pushed to by any other means while we were here,
+          # we won't be able to push.
+          for i in 1 2 3 4 5; do
+              git push origin master && exit 0
+              # There's a little bit of network delay here that suffices
+              # as a small sleep.
+              git \
+                -c user.name=getsentry-bot \
+                -c user.email=bot@sentry.io \
+                pull --rebase origin master
+          done
+
+          # 5th and final attempt.
+          git push origin master

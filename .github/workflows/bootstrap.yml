@@ -1,0 +1,17 @@
+name: bootstrap
+on:
+  schedule:
+    # Run on Mondays in hopes to fix things before new engineers run the script
+    # It's far more likely that somethings regresses because there's new software released than
+    # by our code changes regressing it
+    - cron: '0 3 * * 1'
+
+jobs:
+  bootstrap-script:
+    name: bootstrap
+    runs-on: macos-13
+    timeout-minutes: 30
+    steps:
+      - name: Run bootstrap scripts
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/master/bootstrap.sh)

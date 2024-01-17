@@ -1,0 +1,72 @@
+name: meta(labels)
+on:
+  pull_request:
+    paths:
+      - .github/labels.yml
+  push:
+    branches:
+      - master
+    paths:
+      - .github/labels.yml
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+
+jobs:
+  sync:
+    name: syncs repository labels
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+
+      - name: Install github-label-sync
+        run: yarn global add github-label-sync@2.2.0
+
+      - name: Run github-label-sync
+        run: |
+          github-label-sync \
+            --access-token ${{ secrets.GITHUB_TOKEN }} \
+            --labels .github/labels.yml \
+            ${{ github.event_name == 'pull_request' && '--dry-run' || '' }} \
+            ${{ github.repository }} \
+            2>&1 | tee sync-report.txt
+
+      - name: Read sync output into variable
+        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
+        if: github.event_name == 'pull_request'
+        id: github-label-sync
+        with:
+          script: |
+            const fs = require('fs');
+            return fs.readFileSync('sync-report.txt','utf8').toString();
+          result-encoding: string
+
+      - name: Find previous dry-run comment
+        uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
+        if: github.event_name == 'pull_request'
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- LABELS_UPDATE -->'
+
+      - name: Add or update dry-run comment
+        uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
+        if: github.event_name == 'pull_request'
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          edit-mode: replace
+          body: >
+            <!-- LABELS_UPDATE -->
+
+            🏷  The following changes will be made to the repository labels
+
+            ```
+            ${{ steps.github-label-sync.outputs.result }}
+            ```

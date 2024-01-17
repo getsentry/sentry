@@ -1,0 +1,208 @@
+name: frontend
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      eslint_config: ${{ steps.changes.outputs.eslint_config }}
+      frontend: ${{ steps.changes.outputs.frontend_all }}
+      frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
+      frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
+      frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
+      yarn_lockfile: ${{ steps.changes.outputs.yarn_lockfile }}
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+
+      - name: Check for frontend file changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+          list-files: shell
+
+  typescript-and-lint:
+    if: needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
+    name: typescript and lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        continue-on-error: true
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+
+      - name: Install dependencies
+        id: dependencies
+        run: yarn install --frozen-lockfile
+
+      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      - name: setup matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/tsc.json"
+          echo "::add-matcher::.github/eslint-stylish.json"
+
+      - name: eslint logic
+        id: eslint
+        if: (github.ref == 'refs/heads/master' || needs.files-changed.outputs.eslint_config == 'true' || needs.files-changed.outputs.yarn_lockfile == 'true')
+        run: echo "all-files=true" >> "$GITHUB_OUTPUT"
+
+      # Lint entire frontend if:
+      # - this is on main branch
+      # - eslint configuration in repo has changed
+      # - yarn lockfile has changed (i.e. we bump our eslint config)
+      - name: eslint
+        if: steps.eslint.outputs.all-files == 'true'
+        env:
+          # Run relax config on main branch (and stricter config for changed files)
+          SENTRY_ESLINT_RELAXED: 1
+        run: |
+          yarn lint
+          yarn lint:css
+
+      # Otherwise... only lint modified files
+      # Note `eslint --fix` will not fail when it auto fixes files
+      - name: eslint (changed files only)
+        if: steps.eslint.outputs.all-files != 'true'
+        run: |
+          yarn eslint --fix ${{ needs.files-changed.outputs.frontend_modified_lintable_files }}
+
+      - name: stylelint (changed files only)
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
+        run: |
+          yarn stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
+
+      # Check (and error) for dirty working tree for forks
+      # Reason being we need a different token to auto commit changes and
+      # forks do not have access to said token
+      - name: Check for dirty git working tree (forks)
+        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master'
+        run: |
+          git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
+
+      # If working tree is dirty, commit and update if we have a token
+      - name: Commit any eslint fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
+        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          message: ':hammer_and_wrench: apply eslint style fixes'
+
+      - name: tsc
+        id: tsc
+        if: steps.dependencies.outcome == 'success'
+        run: yarn tsc -p config/tsconfig.ci.json
+
+  frontend-jest-tests:
+    if: needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
+    name: Jest
+    # If you change the runs-on image, you must also change the runner in jest-balance.yml
+    # so that the balancer runs in the same environment as the tests.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
+        instance: [0, 1, 2, 3]
+
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        name: Checkout sentry
+
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+          #      Otherwise, if there are other things in the matrix, using strategy.job-total
+          #      wouldn't be correct. Also, if this increases, make sure to also increase
+          #      `flags.frontend.after_n_builds` in `codecov.yml`.
+          CI_NODE_TOTAL: 4
+          CI_NODE_INDEX: ${{ matrix.instance }}
+          # Disable testing-library from printing out any of of the DOM to
+          # stdout. No one actually looks through this in CI, they're just
+          # going to run it locally.
+          #
+          # This quiets up the logs quite a bit.
+          DEBUG_PRINT_LIMIT: 0
+        run: |
+          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+
+      # We only upload coverage data for FE changes since it conflicts with
+      # codecov's carry forward functionality.
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations.
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+        if: ${{ always() && needs.files-changed.outputs.frontend_all == 'true' }}
+        with:
+          files: .artifacts/coverage/*
+          type: frontend
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # This check runs once all dependant jobs have passed
+  # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
+  # This check is the only required Github check
+  frontend-required-check:
+    needs: [files-changed, frontend-jest-tests, typescript-and-lint]
+    name: Frontend
+    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      # If any jobs we depend on fail, we will fail since this is a required check
+      # NOTE: A timeout is considered a failure
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1

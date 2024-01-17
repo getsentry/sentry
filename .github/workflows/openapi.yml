@@ -1,0 +1,78 @@
+name: openapi
+on:
+  push:
+    branches:
+      - master
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+
+jobs:
+  build_and_deref_json:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - name: Getsentry Token
+        id: getsentry
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Check for python file changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        if: steps.changes.outputs.api_docs == 'true'
+
+      - name: Checkout getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          ref: 'main'
+          repository: getsentry/sentry-api-schema
+          path: sentry-api-schema
+          token: ${{ steps.getsentry.outputs.token }}
+
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+        if: steps.changes.outputs.api_docs == 'true'
+
+      - name: Build OpenAPI Derefed JSON
+        if: steps.changes.outputs.api_docs == 'true'
+        # install ts-node for ts build scripts to execute properly without potentially installing
+        # conflicting deps when running scripts locally
+        # see: https://github.com/getsentry/sentry/pull/32328/files
+        run: |
+          yarn add ts-node && make build-api-docs
+
+      - name: Copy artifact into getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          cp tests/apidocs/openapi-derefed.json sentry-api-schema
+
+      - name: Copy publish status into getsentry/sentry-api-schema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          cp src/sentry/apidocs/api_ownership_stats_dont_modify.json sentry-api-schema
+
+      - name: Git Commit & Push
+        uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          repository: sentry-api-schema
+          branch: main
+          commit_message: Generated
+          commit_user_email: bot@getsentry.com
+          commit_user_name: openapi-getsentry-bot

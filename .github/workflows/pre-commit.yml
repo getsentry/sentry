@@ -1,0 +1,87 @@
+name: pre-commit
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  # workaround: secrets cannot be directly referenced in `if`
+  # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#example-using-secrets
+  SECRET_ACCESS: ${{toJSON(secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY != null)}}
+
+jobs:
+  lint:
+    name: pre-commit lint
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - # get a non-default github token so that any changes are verified by CI
+        if: env.SECRET_ACCESS == 'true'
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        id: token
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - name: Get changed files
+        id: changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        with:
+          # Enable listing of files matching each filter.
+          # Paths to files will be available in `${FILTER_NAME}_files` output variable.
+          list-files: json
+
+          # It doesn't make sense to lint deleted files.
+          # Therefore we specify we are only interested in added or modified files.
+          filters: |
+            all:
+              - added|modified: '**/*'
+
+      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+        with:
+          python-version: 3.10.13
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-dev-frozen.txt
+          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+      - uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        with:
+          path: ~/.cache/pre-commit
+          key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Setup pre-commit
+        # We don't use make setup-git because we're only interested in installing
+        # requirements-dev.txt as a fast path.
+        # We don't need pre-commit install --install-hooks since we're just interested
+        # in running the hooks.
+        run: |
+          pre-commit install-hooks
+
+      - name: Run pre-commit on PR commits
+        run: |
+          jq '.[]' --raw-output <<< '${{steps.changes.outputs.all_files}}' |
+            # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
+            xargs pre-commit run --files
+
+      - name: Apply any pre-commit fixed files
+        # note: this runs "always" or else it's skipped when pre-commit fails
+        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
+        uses: getsentry/action-github-commit@748c31dd78cffe76f51bef49a0be856b6effeda7 # v1.1.0
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          message: ':hammer_and_wrench: apply pre-commit fixes'

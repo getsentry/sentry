@@ -1,0 +1,133 @@
+# Also note that this name *MUST* match the filename because GHA
+# only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
+# and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
+name: acceptance
+on:
+  push:
+    branches:
+      - master
+      - releases/**
+  pull_request:
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+      backend_all: ${{ steps.changes.outputs.backend_all }}
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  acceptance:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
+    name: acceptance
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3, 4]
+        pg-version: ['14']
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 5
+      TEST_GROUP_STRATEGY: roundrobin
+
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        name: Checkout sentry
+
+      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
+
+      - name: Step configurations
+        id: config
+        run: |
+          echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
+          echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
+
+      - name: webpack cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        with:
+          path: ${{ steps.config.outputs.webpack-path }}
+          key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
+
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: webpack
+        env:
+          # this is fine to not have for forks, it shouldn't fail
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
+        run: |
+          yarn build-acceptance
+
+      - name: Build chartcuterie configuration module
+        run: |
+          make build-chartcuterie-config
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          snuba: true
+          chartcuterie: true
+          pg-version: ${{ matrix.pg-version }}
+
+      - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        run: make run-acceptance
+
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+        if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  acceptance-required-checks:
+    # this is a required check so we need this job to always run and report a status.
+    if: always()
+    name: Acceptance
+    needs: [acceptance, files-changed]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
+    steps:
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1

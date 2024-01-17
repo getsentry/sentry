@@ -1,0 +1,69 @@
+# Adds labels to pull requests for the type of change the PR makes
+name: meta(labels)
+
+on:
+  pull_request_target:
+
+jobs:
+  label-pullrequest:
+    permissions:
+      contents: read
+      pull-requests: write
+    name: labels pull requests (frontend / backend)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        with:
+          persist-credentials: false
+
+      - name: Check for file changes
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Add frontend label
+        uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
+        if: steps.changes.outputs.frontend_src == 'true'
+        with:
+          labels: 'Scope: Frontend'
+
+      - name: Add backend label
+        uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
+        if: steps.changes.outputs.backend_src == 'true'
+        with:
+          labels: 'Scope: Backend'
+
+      - name: Find previous frontend/backend warning comment
+        uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- FRONTEND_BACKEND_WARNING -->'
+
+      - name: Add frontend/backend warning comment
+        uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
+        if: >
+          steps.changes.outputs.frontend_src == 'true' &&
+          steps.changes.outputs.backend_src == 'true' &&
+          steps.fc.outputs.comment-id == 0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: >
+            <!-- FRONTEND_BACKEND_WARNING -->
+
+            🚨 **Warning:** This pull request contains Frontend and Backend changes!
+
+
+            It's discouraged to make changes to Sentry's Frontend and Backend
+            in a single pull request. The Frontend and Backend are **not**
+            atomically deployed. If the changes are interdependent of each
+            other, they **must** be separated into two pull requests and be made
+            forward or backwards compatible, such that the Backend or Frontend
+            can be safely deployed independently.
+
+
+            Have questions? Please ask in the [`#discuss-dev-infra`
+            channel](https://app.slack.com/client/T024ZCV9U/CTJL7358X).
