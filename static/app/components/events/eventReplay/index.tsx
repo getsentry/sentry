@@ -49,8 +49,7 @@ function EventReplayContent({
   }
 
   const platform = group?.project.platform ?? 'other';
-  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
-  if (newOnboarding && !replayId && replayBackendPlatforms.includes(platform)) {
+  if (!replayId && replayBackendPlatforms.includes(platform)) {
     // if backend project, show new onboarding panel
     return (
       <ErrorBoundary mini>
