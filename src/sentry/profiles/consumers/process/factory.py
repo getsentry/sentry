@@ -1,4 +1,4 @@
-from typing import Dict, Mapping
+from typing import Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -13,8 +13,7 @@ from sentry.profiles.task import process_profile_task
 
 def process_message(message: Message[KafkaPayload]) -> None:
     msg_payload = message.payload.value
-    msg_headers = get_headers_dict(message.payload.headers)
-    sampled = msg_headers.get("sampled", "true") == "true"
+    sampled = is_sampled(message.payload.headers)
 
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         process_profile_task.s(payload=msg_payload, sampled=sampled).apply_async()
@@ -40,10 +39,9 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
 
-def get_headers_dict(headers) -> Dict[str, str]:
-    h = dict()
+def is_sampled(headers) -> bool:
     for k, v in headers:
-        if isinstance(v, bytes):
-            v = str(v, encoding="utf-8")
-        h[k] = v
-    return h
+        if k == "sampled":
+            if isinstance(v, bytes):
+                return str(v, encoding="utf-8") == "true"
+    return True
