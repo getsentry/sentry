@@ -172,7 +172,7 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
         ) ?? 0;
 
       if (totalDuration === 0) {
-        return <ColorBar colorStops={[]} />;
+        return <NoValue>{t('(no value)')}</NoValue>;
       }
 
       const preparedSpans = sortAndLimitSpans(row.spansSummary, 5);
@@ -262,4 +262,8 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 
 const StyledColorBar = styled(ColorBar)`
   margin-bottom: 0px;
+`;
+
+const NoValue = styled('span')`
+  color: ${p => p.theme.gray300};
 `;
