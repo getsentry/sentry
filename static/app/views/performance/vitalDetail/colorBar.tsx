@@ -10,16 +10,17 @@ type ColorStop = {
   renderBarStatus?: (barStatus: ReactNode, key: string) => ReactNode;
 };
 
-type Props = {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   colorStops: ColorStop[];
   barHeight?: number;
-};
+}
 
 function ColorBar(props: Props) {
   return (
     <VitalBar
       barHeight={props.barHeight}
       fractions={props.colorStops.map(({percent}) => percent)}
+      {...props}
     >
       {props.colorStops.map(colorStop => {
         const barStatus = <BarStatus color={colorStop.color} key={colorStop.color} />;
