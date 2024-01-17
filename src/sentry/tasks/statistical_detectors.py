@@ -445,7 +445,7 @@ def emit_function_regression_issue(
     ]
 
     result = functions.query(
-        selected_columns=["project.id", "fingerprint", "worst()"],
+        selected_columns=["project.id", "fingerprint", "examples()"],
         query="is_application:1",
         params=params,
         orderby=["project.id"],
@@ -457,7 +457,11 @@ def emit_function_regression_issue(
         conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
     )
 
-    examples = {(row["project.id"], row["fingerprint"]): row["worst()"] for row in result["data"]}
+    examples = {
+        (row["project.id"], row["fingerprint"]): row["examples()"][0]
+        for row in result["data"]
+        if row["examples()"]
+    }
 
     payloads = []
 
