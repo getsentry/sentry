@@ -270,7 +270,43 @@ class CrashFreeRateThresholdCheckTest(TestCase):
     def test_is_crash_free_rate_catches_interval_idx_error(
         self, mock_get_groups_totals, mock_get_interval_indexes
     ):
-        pass
+        now = datetime.utcnow()
+
+        mock_get_interval_indexes.return_value = 0, 10
+
+        def side_effect(**kwargs):
+            raise IndexError
+
+        mock_get_groups_totals.side_effect = side_effect
+
+        # current threshold within series
+        mock_threshold: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            "trigger_type": TriggerType.UNDER_STR,
+            "value": 99,  # crash free rate
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
+        }
+        is_healthy, metric_value = is_crash_free_rate_healthy_check(
+            ethreshold=mock_threshold,
+            sessions_data=self.sessions_data,
+            display=CRASH_SESSIONS_DISPLAY,
+        )
+
+        assert mock_get_interval_indexes.call_count == 1
+        assert mock_get_groups_totals.call_count == 1
+        assert not is_healthy
+        assert metric_value == 0
 
     @patch(
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
@@ -281,4 +317,35 @@ class CrashFreeRateThresholdCheckTest(TestCase):
     def test_get_group_catches_totals_errors(
         self, mock_get_groups_totals, mock_get_interval_indexes
     ):
-        pass
+        now = datetime.utcnow()
+
+        mock_get_interval_indexes.return_value = 10, 0
+
+        # current threshold within series
+        mock_threshold: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            "trigger_type": TriggerType.UNDER_STR,
+            "value": 99,  # crash free rate
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
+        }
+        is_healthy, metric_value = is_crash_free_rate_healthy_check(
+            ethreshold=mock_threshold,
+            sessions_data=self.sessions_data,
+            display=CRASH_SESSIONS_DISPLAY,
+        )
+
+        assert mock_get_interval_indexes.call_count == 1
+        assert mock_get_groups_totals.call_count == 0
+        assert not is_healthy
+        assert metric_value == 0

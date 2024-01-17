@@ -10,7 +10,7 @@ from sentry.models.release_threshold.constants import TriggerType
 
 from ..constants import CRASH_USERS_DISPLAY
 
-logger = logging.getLogger("sentry.release_threshold_status")
+logger = logging.getLogger("sentry.release_threshold_status.is_crash_free_rate_healthy")
 
 if TYPE_CHECKING:
     from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
@@ -43,6 +43,10 @@ def get_groups_totals(
     for group in group_series:
         series = group.get(field, [])
         if len(series) < start_idx or len(series) < end_idx:
+            logger.warning(
+                "Error calculating session totals",
+                extra={"start_idx": start_idx, "end_idx": end_idx, "series_length": len(series)},
+            )
             raise IndexError("Start/End indexes are out of range for series")
         total += sum(series[start_idx : end_idx + 1])
     return total
@@ -93,10 +97,10 @@ def is_crash_free_rate_healthy_check(
             intervals=intervals, start=ethreshold["start"], end=ethreshold["end"]
         )
         if start_idx > end_idx:
-            raise ValueError("")
+            logger.warning("Threshold window not within provided session data")
+            raise ValueError("Threshold window not within provided session data")
     except ValueError:
-        # TODO: determine how to handle threshold range not within fetched intervals
-        pass
+        return False, 0
 
     try:
         crash_count = get_groups_totals(
@@ -110,8 +114,7 @@ def is_crash_free_rate_healthy_check(
             status="crashed",
         )
     except IndexError:
-        # TODO: determine how to handle threshold range not within fetched intervals
-        pass
+        return False, 0
 
     try:
         total_count = get_groups_totals(
@@ -124,8 +127,7 @@ def is_crash_free_rate_healthy_check(
             start_idx=start_idx,
         )
     except IndexError:
-        # TODO: determine how to handle threshold range not within fetched intervals
-        pass
+        return False, 0
 
     crash_free_percent = (1 - (crash_count / total_count)) * 100
 
