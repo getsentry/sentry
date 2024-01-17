@@ -176,7 +176,7 @@ const useDefaultQuery = () => {
   > | null>('ddm:default-query', null);
 
   useEffect(() => {
-    if (defaultQuery) {
+    if (defaultQuery && router.location.query.widgets === undefined) {
       router.replace({...router.location, query: defaultQuery});
     }
     // Only call on page load
