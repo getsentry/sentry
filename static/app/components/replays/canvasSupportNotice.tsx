@@ -50,12 +50,15 @@ export function CanvasSupportNotice() {
         />
       }
     >
-      {tct('This replay contains a [code:canvas] element. Support for recording [code:canvas] data was added in SDK version 7.94.0. [link:Learn more].', {
-        canvas: <code />,
-        link: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
-        ),
-      })}
+      {tct(
+        'This replay contains a [code:canvas] element. Support for recording [code:canvas] data was added in SDK version 7.94.0. [link:Learn more].',
+        {
+          canvas: <code />,
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
+          ),
+        }
+      )}
     </StyledAlert>
   );
 }
