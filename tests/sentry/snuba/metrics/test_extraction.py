@@ -6,7 +6,6 @@ from sentry.api.event_search import ParenExpression, parse_search_query
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
-    OnDemandMetricSpecVersioning,
     SearchQueryConverter,
     apdex_tag_spec,
     cleanup_search_query,
@@ -292,20 +291,15 @@ def test_spec_context_mapping() -> None:
 
 
 def test_spec_query_or_precedence_with_environment() -> None:
-    spec_version = OnDemandMetricSpecVersioning.spec_versions[1]
-    assert spec_version.flags == {"use_updated_env_logic"}
-    assert spec_version.version == 1
     spec_1 = OnDemandMetricSpec(
         "count()",
         "(transaction.duration:>1s OR http.status_code:200)",
         "dev",
-        spec_version=spec_version,
     )
     spec_2 = OnDemandMetricSpec(
         "count()",
         "transaction.duration:>1s OR http.status_code:200",
         "dev",
-        spec_version=spec_version,
     )
 
     assert spec_1._metric_type == "c"
@@ -330,14 +324,10 @@ def test_spec_query_or_precedence_with_environment() -> None:
 
 
 def test_spec_count_if_query_with_environment() -> None:
-    spec_version = OnDemandMetricSpecVersioning.spec_versions[1]
-    assert spec_version.flags == {"use_updated_env_logic"}
-    assert spec_version.version == 1
     spec = OnDemandMetricSpec(
         "count_if(transaction.duration,equals,300)",
         "(http.method:GET AND endpoint:/hello)",
         "production",
-        spec_version=spec_version,
     )
 
     assert spec._metric_type == "c"
@@ -360,14 +350,10 @@ def test_spec_count_if_query_with_environment() -> None:
 
 
 def test_spec_complex_query_with_environment() -> None:
-    spec_version = OnDemandMetricSpecVersioning.spec_versions[1]
-    assert spec_version.flags == {"use_updated_env_logic"}
-    assert spec_version.version == 1
     spec = OnDemandMetricSpec(
         "count()",
         "transaction.duration:>1s AND http.status_code:200 OR os.browser:Chrome",
         "staging",
-        spec_version=spec_version,
     )
 
     assert spec._metric_type == "c"
@@ -699,26 +685,18 @@ def test_cleanup_with_environment_injection(query) -> None:
     transformed_query = f"({query}) AND (event.type:transaction)"
     environment = "production"
 
-    # We test with both new and old env logic, in this case queries should be identical in both logics since we
-    # scrape away parentheses.
-    for updated_env_logic in (True, False):
-        spec_index, flag_set = (1, {"use_updated_env_logic"}) if updated_env_logic else (0, set())
-        spec_version = OnDemandMetricSpecVersioning.spec_versions[spec_index]
-        assert spec_version.flags == flag_set
-        spec = OnDemandMetricSpec(
-            field,
-            query,
-            environment=environment,
-            spec_version=spec_version,
-        )
-        transformed_spec = OnDemandMetricSpec(
-            field,
-            transformed_query,
-            environment=environment,
-            spec_version=spec_version,
-        )
+    spec = OnDemandMetricSpec(
+        field,
+        query,
+        environment=environment,
+    )
+    transformed_spec = OnDemandMetricSpec(
+        field,
+        transformed_query,
+        environment=environment,
+    )
 
-        assert spec.query_hash == transformed_spec.query_hash
+    assert spec.query_hash == transformed_spec.query_hash
 
 
 @django_db_all

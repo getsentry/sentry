@@ -33,7 +33,6 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -3038,51 +3037,41 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             specs.append(spec)
 
         expected_environments = ((None, 100), ("prod", 200), ("dev", 100))
-        feature_flags = [{}, {}, {"organizations:on-demand-query-with-new-env-logic": True}]
-        expected_flag_set = [set(), set(), {"use_updated_env_logic"}]
-        for (environment, value), spec, feat_flag, flag_set in zip(
-            expected_environments, specs, feature_flags, expected_flag_set
-        ):
-            with Feature(feat_flag):
-                params = (
-                    self.params
-                    if environment is None
-                    else {**self.params, "environment": [environment]}
-                )
-                query = AlertMetricsQueryBuilder(
-                    params,
-                    granularity=3600,
+        for (environment, value), spec in zip(expected_environments, specs):
+            params = (
+                self.params
+                if environment is None
+                else {**self.params, "environment": [environment]}
+            )
+            query = AlertMetricsQueryBuilder(
+                params,
+                granularity=3600,
+                query=query_s,
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    use_metrics_layer=False,
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                    skip_time_conditions=False,
+                ),
+            )
+            assert query._on_demand_metric_spec_map == {
+                "count(measurements.fp)": OnDemandMetricSpec(
+                    field=field,
                     query=query_s,
-                    dataset=Dataset.PerformanceMetrics,
-                    selected_columns=[field],
-                    config=QueryBuilderConfig(
-                        use_metrics_layer=False,
-                        on_demand_metrics_enabled=True,
-                        on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
-                        skip_time_conditions=False,
-                    ),
+                    environment=environment,
+                    spec_type=MetricSpecType.SIMPLE_QUERY,
+                    spec_version=OnDemandMetricSpecVersioning.get_default_spec_version(),
                 )
-                spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(
-                    self.organization.id
-                )
-                # Since the org does not have the feature flag it will return an empty set
-                assert spec_version.flags == flag_set
-                assert query._on_demand_metric_spec_map == {
-                    "count(measurements.fp)": OnDemandMetricSpec(
-                        field=field,
-                        query=query_s,
-                        environment=environment,
-                        spec_type=MetricSpecType.SIMPLE_QUERY,
-                        spec_version=spec_version,
-                    )
-                }
+            }
 
-                result = query.run_query("test_query")
+            result = query.run_query("test_query")
 
-                assert result["data"] == [{"c:transactions/on_demand@none": float(value)}]
-                meta = result["meta"]
-                assert len(meta) == 1
-                assert meta[0]["name"] == "c:transactions/on_demand@none"
+            assert result["data"] == [{"c:transactions/on_demand@none": float(value)}]
+            meta = result["meta"]
+            assert len(meta) == 1
+            assert meta[0]["name"] == "c:transactions/on_demand@none"
 
     def test_run_query_with_on_demand_failure_rate(self):
         field = "failure_rate()"
