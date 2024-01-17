@@ -18,7 +18,6 @@ import {
   Coverage,
   Frame,
   LineCoverage,
-  Organization,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -26,8 +25,8 @@ import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
 
@@ -51,7 +50,6 @@ type Props = {
   hasContextVars?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
-  organization?: Organization;
   registersMeta?: Record<any, any>;
 };
 
@@ -81,11 +79,11 @@ function Context({
   components,
   frame,
   event,
-  organization,
   className,
   frameMeta,
   registersMeta,
 }: Props) {
+  const organization = useOrganization({allowNull: true});
   const {user} = useLegacyStore(ConfigStore);
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
 
@@ -239,7 +237,7 @@ function Context({
   );
 }
 
-export default withOrganization(Context);
+export default Context;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
