@@ -1856,8 +1856,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable the new zero state UI
-    "organizations:session-replay-new-zero-state": False,
     # Enable View Sample Replay button on the Replay-List empty-state page
     "organizations:session-replay-onboarding-cta-button": False,
     # Enable data scrubbing of replay recording payloads in Relay.
