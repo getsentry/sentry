@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
@@ -23,15 +22,9 @@ type Props = {
   data: Event | Group;
   organization: Organization;
   showAssignee?: boolean;
-  showInboxTime?: boolean;
 };
 
-function EventOrGroupExtraDetails({
-  data,
-  showAssignee,
-  showInboxTime,
-  organization,
-}: Props) {
+function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
   const {
     id,
     lastSeen,
@@ -45,7 +38,6 @@ function EventOrGroupExtraDetails({
     project,
     lifetime,
     isUnhandled,
-    inbox,
     status,
     substatus,
   } = data as Group;
@@ -57,8 +49,7 @@ function EventOrGroupExtraDetails({
 
   return (
     <GroupExtra>
-      {inbox && <InboxReason inbox={inbox} showDateAdded={showInboxTime} />}
-      {<GroupStatusBadge status={status} substatus={substatus} />}
+      <GroupStatusBadge status={status} substatus={substatus} />
       {shortId && (
         <InboxShortId
           shortId={shortId}
