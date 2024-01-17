@@ -37,7 +37,7 @@ DARWIN = sys.platform == "darwin"
 # 12.3.1: arm64
 APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 
-USE_COLIMA = bool(shutil.which("colima"))
+USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 
 if USE_COLIMA:
     RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
