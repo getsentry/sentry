@@ -10,15 +10,9 @@ interface UseStacktraceLinkProps {
   projectSlug: string | undefined;
 }
 
-const stacktraceLinkQueryKey = (
-  orgSlug: string,
-  projectSlug: string | undefined,
-  query: any
-): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/stacktrace-link/`, {query}];
-
-function useStacktraceLink(
-  {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,
-  options: Partial<UseApiQueryOptions<StacktraceLinkResult>> = {}
+export function buildStacktraceLinkQuery(
+  event: UseStacktraceLinkProps['event'],
+  frame: UseStacktraceLinkProps['frame']
 ) {
   const query = {
     file: frame.filename,
@@ -31,7 +25,20 @@ function useStacktraceLink(
     lineNo: frame.lineNo,
     groupId: event.groupID,
   };
+  return query;
+}
 
+const stacktraceLinkQueryKey = (
+  orgSlug: string,
+  projectSlug: string | undefined,
+  query: any
+): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/stacktrace-link/`, {query}];
+
+function useStacktraceLink(
+  {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,
+  options: Partial<UseApiQueryOptions<StacktraceLinkResult>> = {}
+) {
+  const query = buildStacktraceLinkQuery(event, frame);
   return useApiQuery<StacktraceLinkResult>(
     stacktraceLinkQueryKey(orgSlug, projectSlug, query),
     {

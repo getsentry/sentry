@@ -6,6 +6,7 @@ import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
+import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,7 +36,6 @@ import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
-import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -99,7 +99,7 @@ function Context({
     [projects, event]
   );
 
-  const {data, isLoading} = useStacktraceLink(
+  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,
@@ -124,11 +124,11 @@ function Context({
     : frame?.context?.filter(l => l[0] === activeLineNumber);
 
   const hasCoverageData =
-    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+    !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
   const [lineCoverage = [], hasCoverage] =
-    hasCoverageData && data!.codecov?.lineCoverage && !!activeLineNumber! && contextLines
-      ? getLineCoverage(contextLines, data!.codecov?.lineCoverage)
+    hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines
+      ? getLineCoverage(contextLines, coverage.lineCoverage)
       : [];
 
   useRouteAnalyticsParams(
