@@ -270,6 +270,8 @@ def process_commit_context(
                         frames=in_app_frames,
                         organization_id=project.organization_id,
                         project_id=project_id,
+                        platform=event_platform,
+                        sdk_name=sdk_name,
                         extra=basic_logging_details,
                     )
                 except ApiError:
@@ -301,6 +303,8 @@ def process_commit_context(
                 found_contexts, installation = find_commit_context_for_event(
                     code_mappings=code_mappings,
                     frame=frame,
+                    platform=event_platform,
+                    sdk_name=sdk_name,
                     extra={
                         **basic_logging_details,
                     },

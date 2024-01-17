@@ -453,7 +453,6 @@ class TestCommitContext(TestCommitContextMixin):
     def test_multiple_matching_code_mappings_but_only_1_repository_has_the_commit_in_db(
         self, mock_get_commit_context
     ):
-
         self.integration_2 = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -467,7 +466,7 @@ class TestCommitContext(TestCommitContextMixin):
             integration_id=self.integration_2.id,
         )
         self.code_mapping_2 = self.create_code_mapping(
-            repo=self.repo_2, project=self.project, stack_root="src", source_root="src"
+            repo=self.repo_2, project=self.project, stack_root="sentry", source_root="sentry"
         )
 
         self.commit_author_2 = self.create_commit_author(

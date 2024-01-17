@@ -152,7 +152,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 serialized_config = serialize(result["current_config"]["config"], request.user)
                 provider = serialized_config["provider"]["key"]
                 scope.set_tag("integration_provider", provider)  # e.g. github
-                scope.set_tag("stacktrace_link.munged", result["is_munged"])
 
                 if not result["source_url"]:
                     error = result["current_config"]["outcome"].get("error")
