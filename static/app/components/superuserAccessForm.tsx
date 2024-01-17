@@ -36,15 +36,19 @@ type State = {
 };
 
 class SuperuserAccessForm extends Component<Props, State> {
-  state: State = {
-    authenticators: [],
-    error: false,
-    errorType: '',
-    showAccessForms: true,
-    superuserAccessCategory: '',
-    superuserReason: '',
-    isLoading: true,
-  };
+  constructor(props) {
+    super(props);
+    this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
+    this.state = {
+      authenticators: [],
+      error: false,
+      errorType: '',
+      showAccessForms: true,
+      superuserAccessCategory: '',
+      superuserReason: '',
+      isLoading: true,
+    };
+  }
 
   async componentDidMount() {
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
@@ -56,8 +60,14 @@ class SuperuserAccessForm extends Component<Props, State> {
     }
 
     await this.getAuthenticators();
+    // Set the error state if there are no authenticators and U2F is on
+    if (!this.state.authenticators.length && !disableU2FForSUForm) {
+      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
+    }
     this.setState({isLoading: false});
   }
+
+  authUrl: string;
 
   handleSubmitCOPS = () => {
     this.setState({
@@ -89,7 +99,7 @@ class SuperuserAccessForm extends Component<Props, State> {
       // If U2F is disabled, authenticate immediately
     } else {
       try {
-        await api.requestPromise(this.props.hasStaff ? '/staff-auth/' : '/auth/', {
+        await api.requestPromise(this.authUrl, {
           method: 'PUT',
           data,
         });
@@ -103,15 +113,13 @@ class SuperuserAccessForm extends Component<Props, State> {
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     const {api} = this.props;
 
-    let auth_url = '/staff-auth/';
     if (!this.props.hasStaff) {
       data.isSuperuserModal = true;
       data.superuserAccessCategory = this.state.superuserAccessCategory;
       data.superuserReason = this.state.superuserReason;
-      auth_url = '/auth/';
     }
     try {
-      await api.requestPromise(auth_url, {method: 'PUT', data});
+      await api.requestPromise(this.authUrl, {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
       this.handleError(err);
@@ -198,11 +206,6 @@ class SuperuserAccessForm extends Component<Props, State> {
               {error && (
                 <StyledAlert type="error" showIcon>
                   {errorType}
-                </StyledAlert>
-              )}
-              {!authenticators.length && !error && (
-                <StyledAlert type="error" showIcon>
-                  {ErrorCodes.NO_AUTHENTICATOR}
                 </StyledAlert>
               )}
               <U2fContainer
