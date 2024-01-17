@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {
+  emptyWidget,
   getDefaultMetricDisplayType,
   getReadableMetricType,
   isAllowedOp,
@@ -19,6 +20,7 @@ import {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics';
 import {formatMRI} from 'sentry/utils/metrics/mri';
+import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
@@ -32,8 +34,8 @@ type QueryBuilderProps = {
   metricsQuery: MetricsQuerySubject;
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   projects: number[];
+  fixedWidth?: boolean;
   powerUserMode?: boolean;
-  size?: 'sm' | 'xs';
 };
 
 const isShownByDefault = (metric: MetricMeta) =>
@@ -53,6 +55,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
+  const breakpoints = useBreakpoints();
 
   useEffect(() => {
     if (mriModeKeyPressed && !powerUserMode) {
@@ -85,7 +88,7 @@ export const QueryBuilder = memo(function QueryBuilder({
       !isMetaLoading &&
       !displayedMetrics.find(metric => metric.mri === metricsQuery.mri)
     ) {
-      onChange({mri: '' as MRI, op: '', groupBy: []});
+      onChange({mri: emptyWidget.mri, op: emptyWidget.op, groupBy: []});
     }
   }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
@@ -97,7 +100,7 @@ export const QueryBuilder = memo(function QueryBuilder({
     mri: metricsQuery.mri,
   });
 
-  const handleMRIChange = ({value}: SelectOption<MRI>) => {
+  const handleMRIChange = ({value}) => {
     const availableOps = getOpsForMRI(value, meta);
     const selectedOp = availableOps.includes((metricsQuery.op ?? '') as MetricsOperation)
       ? metricsQuery.op
@@ -117,7 +120,7 @@ export const QueryBuilder = memo(function QueryBuilder({
     });
   };
 
-  const handleOpChange = ({value}: SelectOption<MetricsOperation>) => {
+  const handleOpChange = ({value}) => {
     incrementQueryMetric('ddm.widget.operation', {op: value});
     onChange({
       op: value,
@@ -154,17 +157,22 @@ export const QueryBuilder = memo(function QueryBuilder({
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
-        <CompactSelect
+        <MetricSelect
           searchable
           sizeLimit={100}
           size="md"
-          triggerLabel={middleEllipsis(formatMRI(metricsQuery.mri) ?? '', 35, /\.|-|_/)}
+          triggerLabel={middleEllipsis(
+            formatMRI(metricsQuery.mri) ?? '',
+            breakpoints.large ? (breakpoints.xlarge ? 70 : 45) : 30,
+            /\.|-|_/
+          )}
+          placeholder={t('Select a metric')}
           options={mriOptions}
           value={metricsQuery.mri}
           onChange={handleMRIChange}
         />
         <FlexBlock>
-          <CompactSelect
+          <OpSelect
             size="md"
             triggerProps={{prefix: t('Op')}}
             options={
@@ -174,7 +182,7 @@ export const QueryBuilder = memo(function QueryBuilder({
               })) ?? []
             }
             disabled={!metricsQuery.mri}
-            value={metricsQuery.op as MetricsOperation}
+            value={metricsQuery.op}
             onChange={handleOpChange}
           />
           <CompactSelect
@@ -227,7 +235,21 @@ const FlexBlock = styled('div')`
   flex-wrap: wrap;
 `;
 
+const MetricSelect = styled(CompactSelect)`
+  min-width: 200px;
+  & > button {
+    width: 100%;
+  }
+`;
+
+const OpSelect = styled(CompactSelect)`
+  width: 120px;
+  & > button {
+    width: 100%;
+  }
+`;
+
 const SearchBarWrapper = styled('div')`
   flex: 1;
-  min-width: 300px;
+  min-width: 200px;
 `;
