@@ -73,6 +73,6 @@ class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
                                 "outcome": result["current_config"]["outcome"],
                             }
                         )
-                return Response(codecov_data)
+                        return Response(codecov_data)
 
         return Response({"error": error, "config": serialized_config}, status=400)
