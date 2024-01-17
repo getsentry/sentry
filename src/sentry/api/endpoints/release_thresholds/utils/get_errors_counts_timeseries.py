@@ -84,6 +84,7 @@ def fetch_sessions_data(
     params: FilterParams,
     end: datetime,
     start: datetime,
+    field: str | None = "sum(session)",  # alternatively count_unique(user)
 ):
     """
     This implementation was derived from organization_sessions GET endpoint
@@ -95,12 +96,10 @@ def fetch_sessions_data(
         request_get: dict[str, Any] = request.GET
         query_params: MultiValueDict[str, Any] = MultiValueDict(request_get)
         query_params.setlist("groupBy", ["project", "release", "session.status", "environment"])
-        query_params.setlist("field", ["sum(session)"])  # alternatively count_unique(user)
+        query_params.setlist("field", [field])
         query_params["query"] = " OR ".join(
             [f"release:{version}" for version in query_params.getlist("release")]
         )
-        # TODO: utilize start/end for thresholds - NOT request params
-        # interval = _get_interval(params["start"], params["end"])
         interval = "1hr"
         query_params["interval"] = interval
         query_params["start"] = start

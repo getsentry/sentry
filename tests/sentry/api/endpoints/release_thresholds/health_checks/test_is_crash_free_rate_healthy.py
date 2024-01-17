@@ -306,7 +306,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         assert mock_get_interval_indexes.call_count == 1
         assert mock_get_groups_totals.call_count == 1
         assert not is_healthy
-        assert metric_value == 0
+        assert metric_value == -1
 
     @patch(
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_interval_indexes"
@@ -348,4 +348,4 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         assert mock_get_interval_indexes.call_count == 1
         assert mock_get_groups_totals.call_count == 0
         assert not is_healthy
-        assert metric_value == 0
+        assert metric_value == -1

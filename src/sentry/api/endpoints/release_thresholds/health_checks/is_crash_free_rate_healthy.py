@@ -26,11 +26,6 @@ def get_groups_totals(
     environment: str | None = None,
     status: str | None = None,
 ) -> int:
-    filters = ["release", "project"]
-    if environment:
-        filters.append("environment")
-    if status:
-        filters.append("session.status")
     group_series: list[dict[str, Any]] = [
         g.get("series", {})
         for g in sessions_data.get("groups", [])
@@ -100,7 +95,7 @@ def is_crash_free_rate_healthy_check(
             logger.warning("Threshold window not within provided session data")
             raise ValueError("Threshold window not within provided session data")
     except ValueError:
-        return False, 0
+        return False, -1
 
     try:
         crash_count = get_groups_totals(
@@ -114,7 +109,7 @@ def is_crash_free_rate_healthy_check(
             status="crashed",
         )
     except IndexError:
-        return False, 0
+        return False, -1
 
     try:
         total_count = get_groups_totals(
@@ -127,7 +122,7 @@ def is_crash_free_rate_healthy_check(
             start_idx=start_idx,
         )
     except IndexError:
-        return False, 0
+        return False, -1
 
     crash_free_percent = (1 - (crash_count / total_count)) * 100
 
