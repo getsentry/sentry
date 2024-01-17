@@ -47,7 +47,7 @@ def test_recording_buffer_commit_default():
 
 def test_recording_buffer_commit_deadline():
     buffer = RecordingBuffer(
-        max_buffer_row_count=1_000_000,  # Never triggers commit.
+        max_buffer_message_count=1_000_000,  # Never triggers commit.
         max_buffer_size_in_bytes=1_000_000,  # Never triggers commit.
         max_buffer_time_in_seconds=5,
     )
@@ -90,7 +90,7 @@ def test_recording_buffer_commit_next_state():
     traveller = time_machine.travel(now)
     traveller.start()
     buffer = RecordingBuffer(
-        max_buffer_row_count=1_000_000,  # Never triggers commit.
+        max_buffer_message_count=1_000_000,  # Never triggers commit.
         max_buffer_size_in_bytes=1_000_000,  # Never triggers commit.
         max_buffer_time_in_seconds=5,
     )
