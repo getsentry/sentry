@@ -232,7 +232,7 @@ class IntegrationPipeline(Pipeline):
             self.organization, self.request.user, default_auth_id=default_auth_id
         )
 
-        extra = data.get("post_install_data")
+        extra = data.get("post_install_data", {})
         # If a particular provider has a redirect for a successful install, use that instead of the generic success
         redirect_url_format = extra.get("redirect_url_format", None)
         if redirect_url_format is not None:
