@@ -1,6 +1,5 @@
-from typing import Mapping
+from typing import Dict, Mapping
 
-import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -14,12 +13,11 @@ from sentry.profiles.task import process_profile_task
 
 def process_message(message: Message[KafkaPayload]) -> None:
     msg_payload = message.payload.value
-    message_dict = msgpack.unpackb(msg_payload, use_list=False)
+    msg_headers = get_headers_dict(message.payload.headers)
+    sampled = msg_headers.get("sampled", "true") == "true"
 
-    if message_dict.get("sampled", True) or options.get(
-        "profiling.profile_metrics.unsampled_profiles.enabled"
-    ):
-        process_profile_task.s(payload=msg_payload).apply_async()
+    if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
+        process_profile_task.s(payload=msg_payload, sampled=sampled).apply_async()
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -40,3 +38,12 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             health_checker=self.health_checker,
             next_step=next_step,
         )
+
+
+def get_headers_dict(headers) -> Dict[str, str]:
+    h = dict()
+    for k, v in headers.items():
+        if isinstance(v, "bytes"):
+            v = str(v, encoding="utf-8")
+        h[k] = v
+    return h
