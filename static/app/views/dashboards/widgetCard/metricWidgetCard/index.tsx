@@ -9,11 +9,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MRI, Organization, PageFilters} from 'sentry/types';
-import {
-  MetricDisplayType,
-  MetricWidgetQueryParams,
-  stringifyMetricWidget,
-} from 'sentry/utils/metrics';
+import {MetricWidgetQueryParams, stringifyMetricWidget} from 'sentry/utils/metrics';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -22,7 +18,10 @@ import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
 import {MetricWidgetBody} from 'sentry/views/ddm/widget';
 
-import {convertToDashboardWidget} from '../../../../utils/metrics/dashboard';
+import {
+  convertToDashboardWidget,
+  toMetricDisplayType,
+} from '../../../../utils/metrics/dashboard';
 import {parseField} from '../../../../utils/metrics/mri';
 import {Widget} from '../../types';
 
@@ -103,7 +102,8 @@ export function MetricWidgetCard({
     );
   }
 
-  const stringifiedMetricWidget = stringifyMetricWidget(metricWidgetQueryParams);
+  const stringifiedMetricWidget =
+    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams);
 
   return (
     <DashboardsMEPContext.Provider
@@ -154,7 +154,11 @@ export function MetricWidgetCard({
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
         <MetricWidgetChartWrapper>
-          <MetricWidgetChartContainer selection={selection} widget={widget} />
+          <MetricWidgetChartContainer
+            selection={selection}
+            widget={widget}
+            editorParams={metricWidgetQueryParams}
+          />
         </MetricWidgetChartWrapper>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
@@ -162,8 +166,21 @@ export function MetricWidgetCard({
   );
 }
 
-export function MetricWidgetChartContainer({selection, widget}) {
-  const metricWidgetQueryParams = convertFromWidget(widget);
+type MetricWidgetChartContainerProps = {
+  selection: PageFilters;
+  widget: Widget;
+  editorParams?: Partial<MetricWidgetQueryParams>;
+};
+
+export function MetricWidgetChartContainer({
+  selection,
+  widget,
+  editorParams = {},
+}: MetricWidgetChartContainerProps) {
+  const metricWidgetQueryParams = {
+    ...convertFromWidget(widget),
+    ...editorParams,
+  };
 
   return (
     <MetricWidgetBody
@@ -225,10 +242,3 @@ const MetricWidgetChartWrapper = styled('div')`
   width: 100%;
   padding: ${space(2)};
 `;
-
-function toMetricDisplayType(displayType: string): MetricDisplayType {
-  if (Object.values(MetricDisplayType).includes(displayType as MetricDisplayType)) {
-    return displayType as MetricDisplayType;
-  }
-  return MetricDisplayType.LINE;
-}

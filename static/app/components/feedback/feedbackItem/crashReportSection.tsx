@@ -46,7 +46,7 @@ export default function CrashReportSection({
         data={groupData}
         size="normal"
       />
-      <EventOrGroupExtraDetails data={groupData} showInboxTime />
+      <EventOrGroupExtraDetails data={groupData} />
     </IssueDetailsContainer>
   );
 }

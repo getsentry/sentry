@@ -197,6 +197,11 @@ def test_client_config_links_regionurl():
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://us.testserver"
 
+    with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION="eu"):
+        result = get_client_config(request)
+        assert result["links"]
+        assert result["links"]["regionUrl"] == "http://eu.testserver"
+
 
 @django_db_all
 @control_silo_test(

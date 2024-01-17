@@ -37,9 +37,10 @@ const {
 } = BrowserStarfishFields;
 
 export const DEFAULT_RESOURCE_TYPES = [
-  'resource.script',
-  'resource.css',
-  'resource.font',
+  ResourceSpanOps.SCRIPT,
+  ResourceSpanOps.CSS,
+  ResourceSpanOps.FONT,
+  ResourceSpanOps.IMAGE,
 ];
 
 type Option = {
