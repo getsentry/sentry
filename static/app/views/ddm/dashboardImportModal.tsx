@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -27,25 +27,6 @@ import {
 import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-export function useDashboardImport() {
-  const organization = useOrganization();
-
-  return useMemo(() => {
-    return function () {
-      return openModal(
-        deps => (
-          <OrganizationContext.Provider value={organization}>
-            <DDMContextProvider>
-              <DashboardImportModal {...deps} />
-            </DDMContextProvider>
-          </OrganizationContext.Provider>
-        ),
-        {modalCss}
-      );
-    };
-  }, [organization]);
-}
-
 export function openDashboardImport(organization: Organization) {
   return openModal(
     deps => (
@@ -67,11 +48,11 @@ type FormState = {
 };
 
 function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
+  const api = useApi();
+  const router = useRouter();
   const {metricsMeta} = useDDMContext();
   const {selection} = usePageFilters();
-  const api = useApi();
   const organization = useOrganization();
-  const router = useRouter();
 
   const [formState, setFormState] = useState<FormState>({
     step: 'initial',
@@ -97,6 +78,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
 
   const handleCreateDashboard = useCallback(async () => {
     const title = formState.importResult?.title ?? 'Metrics Dashboard';
+
     const importedWidgets = (formState.importResult?.widgets ?? [])
       .filter(widget => !!widget.mri)
       .map(widget =>
@@ -106,14 +88,13 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
       .slice(0, 30);
 
     const newDashboard = {
+      id: 'temp-id-imported-dashboard',
       title: `${title} (Imported)`,
       description: formState.importResult?.description ?? '',
+      filters: {},
+      dateCreated: '',
       widgets: assignDefaultLayout(importedWidgets, getInitialColumnDepths()),
       ...selection,
-      filters: {},
-      utc: selection.datetime.utc ?? false,
-      id: 'temp-id-imported-dashboard',
-      dateCreated: '',
     };
 
     const dashboard = await createDashboard(api, organization.slug, newDashboard);

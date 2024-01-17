@@ -3,7 +3,12 @@ import {urlEncode} from '@sentry/utils';
 import {PageFilters} from 'sentry/types';
 import {emptyWidget, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
 import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
-import {DashboardWidgetSource, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 
 const getDDMWidgetName = (metricsQuery: MetricsQuery) => {
   return `${metricsQuery.op}(${formatMRI(metricsQuery.mri)})`;
@@ -13,14 +18,28 @@ export function convertToDashboardWidget(
   metricsQuery: MetricsQuery,
   displayType?: MetricDisplayType
 ): Widget {
+  // @ts-expect-error TODO: pass interval
   return {
     title: metricsQuery.title || getDDMWidgetName(metricsQuery),
-    // @ts-expect-error this is a valid widget type
-    displayType,
+    displayType: toDisplayType(displayType),
     widgetType: WidgetType.METRICS,
     limit: !metricsQuery.groupBy?.length ? 1 : 10,
     queries: [getWidgetQuery(metricsQuery)],
   };
+}
+
+export function toMetricDisplayType(displayType: unknown): MetricDisplayType {
+  if (Object.values(MetricDisplayType).includes(displayType as MetricDisplayType)) {
+    return displayType as MetricDisplayType;
+  }
+  return MetricDisplayType.LINE;
+}
+
+export function toDisplayType(displayType: unknown): DisplayType {
+  if (Object.values(DisplayType).includes(displayType as DisplayType)) {
+    return displayType as DisplayType;
+  }
+  return DisplayType.LINE;
 }
 
 export function defaultMetricWidget(selection: PageFilters) {
