@@ -40,6 +40,7 @@ function ResourceSummary() {
   const organization = useOrganization();
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
+  const selectedSpanOp = filters[SPAN_OP];
   const {
     query: {transaction},
   } = useLocation();
@@ -60,11 +61,18 @@ function ResourceSummary() {
       'project.id',
     ],
   });
-  const spanMetrics = data[0] ?? {};
+  const spanMetrics = selectedSpanOp
+    ? data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {}
+    : data[0] ?? {};
+
+  const uniqueSpanOps = new Set(data.map(item => item[SPAN_OP]));
+
   const isImage =
+    filters[SPAN_OP] === ResourceSpanOps.IMAGE ||
     IMAGE_FILE_EXTENSIONS.includes(
       spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
-    ) || spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE;
+    ) ||
+    (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
