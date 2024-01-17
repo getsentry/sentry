@@ -11,6 +11,7 @@ import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregat
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -240,13 +241,17 @@ export default function PageOverview() {
               {shouldUseStoredScores && !isDismissed && (
                 <StyledAlert type="info" showIcon>
                   <AlertContent>
-                    {
-                      // TODO: Add link to blog when ready
-                      tct(
-                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. Read more these improvements here.`,
-                        {scoreMigrationTimestampString}
-                      )
-                    }
+                    <span>
+                      {tct(
+                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. [link:Read more about these improvements].`,
+                        {
+                          scoreMigrationTimestampString,
+                          link: (
+                            <ExternalLink href="https://sentry.engineering/blog/how-we-improved-performance-score-accuracy" />
+                          ),
+                        }
+                      )}
+                    </span>
                     <DismissButton
                       priority="link"
                       icon={<IconClose />}
