@@ -59,7 +59,7 @@ function ScreenSummary() {
   } = location.query;
 
   const startupModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/starfish/appStartup/`,
+    pathname: `/organizations/${organization.slug}/performance/mobile/app-startup/`,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
