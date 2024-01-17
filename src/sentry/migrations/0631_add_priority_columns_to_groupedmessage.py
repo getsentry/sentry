@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 
-from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.new_migrations.migrations import CheckedMigration
 
 
@@ -42,7 +41,7 @@ class Migration(CheckedMigration):
                 migrations.AlterField(
                     model_name="group",
                     name="priority",
-                    field=BoundedPositiveIntegerField(null=True),
+                    field=models.PositiveSmallIntegerField(null=True),
                 ),
                 migrations.AlterField(
                     model_name="group",
