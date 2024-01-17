@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import inspect
 import logging
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Mapping, Optional, Sequence, Tuple
 
@@ -15,31 +14,17 @@ from sentry.integrations.mixins.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
+from sentry.utils.event_frames import EventFrame
 
 logger = logging.getLogger("sentry.tasks.process_commit_context")
-
-
-@dataclass(frozen=True)
-class EventFrame:
-    lineno: int
-    in_app: bool
-    abs_path: Optional[str] = None
-    filename: Optional[str] = None
-    function: Optional[str] = None
-    munged_filename: Optional[str] = None
-    module: Optional[str] = None
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> EventFrame:
-        return cls(**{k: v for k, v in data.items() if k in inspect.signature(cls).parameters})
 
 
 def find_commit_context_for_event_all_frames(
@@ -47,6 +32,8 @@ def find_commit_context_for_event_all_frames(
     frames: Sequence[Mapping[str, Any]],
     organization_id: int,
     project_id: int,
+    platform: str,
+    sdk_name: Optional[str],
     extra: Mapping[str, Any],
 ) -> tuple[Optional[FileBlameInfo], Optional[IntegrationInstallation]]:
     """
@@ -67,7 +54,11 @@ def find_commit_context_for_event_all_frames(
         integration_to_files_mapping,
         num_successfully_mapped_frames,
     ) = _generate_integration_to_files_mapping(
-        frames=valid_frames, code_mappings=code_mappings, extra=extra
+        frames=valid_frames,
+        code_mappings=code_mappings,
+        platform=platform,
+        sdk_name=sdk_name,
+        extra=extra,
     )
 
     file_blames, integration_to_install_mapping = _get_blames_from_all_integrations(
@@ -101,6 +92,8 @@ def find_commit_context_for_event_all_frames(
         file_blames=file_blames,
         num_successfully_mapped_frames=num_successfully_mapped_frames,
         selected_provider=selected_provider,
+        platform=platform,
+        sdk_name=sdk_name,
     )
 
     return (selected_blame, selected_install)
@@ -109,6 +102,8 @@ def find_commit_context_for_event_all_frames(
 def find_commit_context_for_event(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frame: Mapping[str, Any],
+    platform: str,
+    sdk_name: Optional[str],
     extra: Mapping[str, Any],
 ) -> tuple[List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
     """
@@ -142,7 +137,12 @@ def find_commit_context_for_event(
             )
             continue
 
-        src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
+        src_path = convert_stacktrace_frame_path_to_source_path(
+            frame=EventFrame.from_dict(frame),
+            code_mapping=code_mapping,
+            platform=platform,
+            sdk_name=sdk_name,
+        )
 
         # src_path can be none if the stacktrace_path is an invalid filepath
         if not src_path:
@@ -278,6 +278,8 @@ def get_or_create_commit_from_blame(
 def _generate_integration_to_files_mapping(
     frames: Sequence[EventFrame],
     code_mappings: Sequence[RepositoryProjectPathConfig],
+    platform: str,
+    sdk_name: Optional[str],
     extra: Mapping[str, Any],
 ) -> tuple[dict[str, list[SourceLineInfo]], int]:
     """
@@ -302,7 +304,11 @@ def _generate_integration_to_files_mapping(
                 )
                 continue
 
-            if not stacktrace_path.startswith(code_mapping.stack_root):
+            src_path = convert_stacktrace_frame_path_to_source_path(
+                frame=frame, platform=platform, sdk_name=sdk_name, code_mapping=code_mapping
+            )
+
+            if not src_path:
                 logger.info(
                     "process_commit_context_all_frames.code_mapping_stack_root_mismatch",
                     extra={
@@ -313,8 +319,6 @@ def _generate_integration_to_files_mapping(
                     },
                 )
                 continue
-
-            src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
 
             num_successfully_mapped_frames += 1
             logger.info(
@@ -427,11 +431,13 @@ def _record_commit_context_all_frames_analytics(
     file_blames: Sequence[FileBlameInfo],
     num_successfully_mapped_frames: int,
     selected_provider: Optional[str],
+    platform: str,
+    sdk_name: Optional[str],
 ):
     if not selected_blame:
         reason = _get_failure_reason(
             num_successfully_mapped_frames=num_successfully_mapped_frames,
-            has_old_blames=most_recent_blame and not selected_blame,
+            has_old_blames=most_recent_blame is not None and not selected_blame,
         )
         metrics.incr(
             "tasks.process_commit_context_all_frames.aborted",
@@ -465,9 +471,11 @@ def _record_commit_context_all_frames_analytics(
             i
             for i, frame in enumerate(frames)
             if frame.lineno == selected_blame.lineno
-            and get_source_code_path_from_stacktrace_path(
-                get_stacktrace_path_from_event_frame(asdict(frame)) or "",
-                selected_blame.code_mapping,
+            and convert_stacktrace_frame_path_to_source_path(
+                frame=frame,
+                platform=platform,
+                sdk_name=sdk_name,
+                code_mapping=selected_blame.code_mapping,
             )
             == selected_blame.path
         ),
