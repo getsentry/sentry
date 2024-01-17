@@ -3,9 +3,11 @@ import {
   formatMetricsUsingUnitAndOp,
   formatMetricUsingFixedUnit,
   formattingSupportedMetricUnits,
+  getAbsoluteDateTimeRange,
   getDateTimeParams,
   getDDMInterval,
   getMetricsApiRequestQuery,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 
 describe('formatMetricsUsingUnitAndOp', () => {
@@ -54,6 +56,7 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '2h',
       groupBy: ['project'],
+      orderBy: '-sessions',
       allowPrivate: true,
       per_page: 10,
     });
@@ -79,6 +82,7 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '30m',
       groupBy: ['project'],
+      orderBy: '-sessions',
       allowPrivate: true,
       per_page: 10,
     });
@@ -105,6 +109,99 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '5m',
       groupBy: ['environment'],
+      orderBy: '-sessions',
+      allowPrivate: true,
+      per_page: 10,
+    });
+  });
+
+  it('does not add a default orderBy if one is already present', () => {
+    const metric = {
+      field: 'sessions',
+      query: 'error',
+      groupBy: ['project'],
+      orderBy: 'foo',
+    };
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
+    };
+    const overrides = {};
+
+    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-02T00:00:00.000Z',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: 'sessions',
+      useCase: 'custom',
+      interval: '5m',
+      groupBy: ['project'],
+      orderBy: 'foo',
+      allowPrivate: true,
+      per_page: 10,
+    });
+  });
+
+  it('does not add a default orderBy if there are no groups', () => {
+    const metric = {
+      field: 'sessions',
+      query: 'error',
+      groupBy: [],
+    };
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
+    };
+    const overrides = {};
+
+    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-02T00:00:00.000Z',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: 'sessions',
+      useCase: 'custom',
+      interval: '5m',
+      groupBy: [],
+      allowPrivate: true,
+      per_page: 10,
+    });
+  });
+
+  it('does not add a default orderBy if there is no field', () => {
+    const metric = {
+      field: '',
+      query: 'error',
+      groupBy: [],
+    };
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
+    };
+    const overrides = {};
+
+    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-02T00:00:00.000Z',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: '',
+      useCase: 'custom',
+      interval: '5m',
+      groupBy: [],
       allowPrivate: true,
       per_page: 10,
     });
@@ -191,5 +288,67 @@ describe('getDateTimeParams', () => {
       start: '2023-01-01T00:00:00.000Z',
       end: '2023-01-31T00:00:00.000Z',
     });
+  });
+});
+
+describe('stringifyMetricWidget', () => {
+  it('should format metric widget object into a string', () => {
+    const result = stringifyMetricWidget({
+      op: 'avg',
+      mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
+      groupBy: ['result'],
+      query: 'result:success',
+    });
+
+    expect(result).toEqual(
+      'avg(sentry.process_profile.symbolicate.process){result:success} by result'
+    );
+  });
+
+  it('defaults to an empty string', () => {
+    const result = stringifyMetricWidget({
+      op: '',
+      mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
+      groupBy: [],
+      query: '',
+    });
+
+    expect(result).toEqual('');
+  });
+});
+
+describe('getAbsoluteDateTimeRange', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+  });
+
+  it('should return the correct object with "start" and "end" when period is not provided', () => {
+    const datetime = {
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-01T00:00:00.000Z',
+      period: null,
+      utc: true,
+    };
+    const result = getAbsoluteDateTimeRange(datetime);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-01T00:00:00.000Z',
+    });
+  });
+
+  it('should return the correct object with "start" and "end" when period is provided', () => {
+    const datetime = {start: null, end: null, period: '7d', utc: true};
+    const result = getAbsoluteDateTimeRange(datetime);
+
+    expect(result).toEqual({
+      start: '2023-12-25T00:00:00.000Z',
+      end: '2024-01-01T00:00:00.000Z',
+    });
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
   });
 });

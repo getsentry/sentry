@@ -92,7 +92,7 @@ function getSuggestedReason(owner: IssueOwner) {
  * ```ts
  *   actor: <
  *    type,              # Either user or team
- *    SentryTypes.User,  # API expanded user object
+ *    {User},            # API expanded user object
  *    {email, id, name}  # Sentry user which is *not* expanded
  *    {email, name}      # Unidentified user (from commits)
  *    {id, name},        # Sentry team (check `type`)

@@ -17,7 +17,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 class EventIdLookupEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     enforce_rate_limit = True
     rate_limits = {

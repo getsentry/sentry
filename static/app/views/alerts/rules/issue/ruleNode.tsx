@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
+import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
@@ -279,6 +280,16 @@ function RuleNode({
       onReset,
     };
 
+    if (name === 'environment') {
+      return (
+        <ChoiceField
+          {...merge(fieldProps, {
+            fieldConfig: {choices: project.environments.map(env => [env, env])},
+          })}
+        />
+      );
+    }
+
     switch (fieldConfig.type) {
       case 'choice':
         return <ChoiceField {...fieldProps} />;
@@ -316,10 +327,7 @@ function RuleNode({
       label = 'Send a notification to {targetType}';
     }
 
-    if (
-      data.id === IssueAlertConditionType.REAPPEARED_EVENT &&
-      organization.features.includes('escalating-issues')
-    ) {
+    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
       label = t('The issue changes state from archived to escalating');
     }
 

@@ -117,12 +117,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
-        mock_client._request = MagicMock(return_value=mock_response)
+        mock_client.request = MagicMock(return_value=mock_response)
         mock_get_client.return_value = mock_client
 
         proxy_response = self.client.get(self.path, **headers)
 
-        prepared_request = mock_client._request.call_args.kwargs["prepared_request"]
+        prepared_request = mock_client.request.call_args.kwargs["prepared_request"]
         assert prepared_request.url == "https://example.com/api/chat.postMessage"
         assert prepared_request.headers == {
             "Cookie": "",
@@ -167,12 +167,12 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
 
         mock_client.base_url = "https://example.com/api"
         mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
-        mock_client._request = MagicMock(return_value=mock_response)
+        mock_client.request = MagicMock(return_value=mock_response)
         mock_get_client.return_value = mock_client
 
         proxy_response = self.client.get(self.path, **headers)
 
-        prepared_request = mock_client._request.call_args.kwargs["prepared_request"]
+        prepared_request = mock_client.request.call_args.kwargs["prepared_request"]
         assert prepared_request.url == "https://foobar.example.com/api/chat.postMessage"
         assert prepared_request.headers == {
             "Cookie": "",

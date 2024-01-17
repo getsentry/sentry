@@ -33,7 +33,6 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
@@ -49,7 +48,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -1665,7 +1664,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    @with_feature("organizations:escalating-issues")
     def test_inbox_fields_issue_states(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2085,25 +2083,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
             query="is:unresolved",
         )
 
-        with Feature("organizations:escalating-issues"):
-            response1 = get_query_response(
-                query="is:ongoing"
-            )  # (status=unresolved, substatus=(ongoing))
-            response2 = get_query_response(
-                query="is:unresolved"
-            )  # (status=unresolved, substatus=*)
-            response3 = get_query_response(
-                query="is:unresolved is:ongoing !is:regressed"
-            )  # (status=unresolved, substatus=(ongoing, !regressed))
-            response4 = get_query_response(
-                query="is:unresolved is:ongoing !is:ignored"
-            )  # (status=unresolved, substatus=(ongoing, !ignored))
-            response5 = get_query_response(
-                query="!is:regressed is:unresolved"
-            )  # (status=unresolved, substatus=(!regressed))
-            response6 = get_query_response(
-                query="!is:until_escalating"
-            )  # (status=(!unresolved), substatus=(!until_escalating))
+        response1 = get_query_response(
+            query="is:ongoing"
+        )  # (status=unresolved, substatus=(ongoing))
+        response2 = get_query_response(query="is:unresolved")  # (status=unresolved, substatus=*)
+        response3 = get_query_response(
+            query="is:unresolved is:ongoing !is:regressed"
+        )  # (status=unresolved, substatus=(ongoing, !regressed))
+        response4 = get_query_response(
+            query="is:unresolved is:ongoing !is:ignored"
+        )  # (status=unresolved, substatus=(ongoing, !ignored))
+        response5 = get_query_response(
+            query="!is:regressed is:unresolved"
+        )  # (status=unresolved, substatus=(!regressed))
+        response6 = get_query_response(
+            query="!is:until_escalating"
+        )  # (status=(!unresolved), substatus=(!until_escalating))
 
         assert (
             response0.status_code
@@ -2138,17 +2133,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
             self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
         )
 
-        with Feature("organizations:escalating-issues"):
-            response1 = get_query_response(query="is:escalating")
-            response2 = get_query_response(query="is:new")
-            response3 = get_query_response(query="is:regressed")
-            response4 = get_query_response(query="is:forever")
-            response5 = get_query_response(query="is:until_condition_met")
-            response6 = get_query_response(query="is:until_escalating")
-            response7 = get_query_response(query="is:resolved")
-            response8 = get_query_response(query="is:ignored")
-            response9 = get_query_response(query="is:muted")
-            response10 = get_query_response(query="!is:unresolved")
+        response1 = get_query_response(query="is:escalating")
+        response2 = get_query_response(query="is:new")
+        response3 = get_query_response(query="is:regressed")
+        response4 = get_query_response(query="is:forever")
+        response5 = get_query_response(query="is:until_condition_met")
+        response6 = get_query_response(query="is:until_escalating")
+        response7 = get_query_response(query="is:resolved")
+        response8 = get_query_response(query="is:ignored")
+        response9 = get_query_response(query="is:muted")
+        response10 = get_query_response(query="!is:unresolved")
 
         assert (
             response1.status_code
@@ -2313,7 +2307,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         org = self.organization
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
         event = self.store_event(
             data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
@@ -2369,7 +2363,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         with assume_test_silo_mode(SiloMode.CONTROL):
             org = self.organization
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
             OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id

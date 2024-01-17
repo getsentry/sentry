@@ -1,5 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {CodeOwnerFixture} from 'sentry-fixture/codeOwner';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,10 +8,10 @@ import {CodeOwnerErrors} from './codeownerErrors';
 
 describe('CodeownerErrors', () => {
   const project = ProjectFixture();
-  const org = Organization();
+  const org = OrganizationFixture();
 
   it('should render errors', async () => {
-    const codeowner = TestStubs.CodeOwner({
+    const codeowner = CodeOwnerFixture({
       errors: {
         missing_user_emails: ['santry@example.com'],
         missing_external_users: [],
@@ -39,7 +40,7 @@ describe('CodeownerErrors', () => {
   });
 
   it('should deduplicate errors', () => {
-    const codeowner = TestStubs.CodeOwner({
+    const codeowner = CodeOwnerFixture({
       errors: {
         missing_user_emails: ['santry@example.com'],
         missing_external_users: [],

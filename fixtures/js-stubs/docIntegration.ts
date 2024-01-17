@@ -1,6 +1,6 @@
-import {type DocIntegration as TDocIntegration} from 'sentry/types';
+import {type DocIntegration} from 'sentry/types';
 
-export function DocIntegration(params = {}): TDocIntegration {
+export function DocIntegrationFixture(params = {}): DocIntegration {
   return {
     name: 'Sample Doc',
     slug: 'sample-doc',

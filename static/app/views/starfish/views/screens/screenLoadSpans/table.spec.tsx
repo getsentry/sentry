@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('ScreenLoadSpansTable', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['performance-screens-view', 'mobile-ttid-ttfd-contribution'],
   });
   jest.mocked(useOrganization).mockReturnValue(organization);

@@ -38,7 +38,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {MetricSearchBar} from 'sentry/views/ddm/queryBuilder';
+import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 import {getProjectOptions} from '../utils';
 
@@ -482,9 +482,16 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     <SearchContainer>
                       <StyledSearchBar
                         disallowWildcard={dataset === Dataset.SESSIONS}
+                        disallowFreeText={[
+                          Dataset.GENERIC_METRICS,
+                          Dataset.TRANSACTIONS,
+                        ].includes(dataset)}
                         invalidMessages={{
                           [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                             'The wildcard operator is not supported here.'
+                          ),
+                          [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
                           ),
                         }}
                         customInvalidTagMessage={item => {

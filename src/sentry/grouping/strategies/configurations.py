@@ -194,11 +194,13 @@ register_strategy_config(
         * Added new language/platform specific stack trace grouping enhancements rules
           that should make the default grouping experience better.
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
+        * Added ChukloadErrors via new built-in fingerprinting support.
     """,
     initial_context={
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",
+    fingerprinting_bases=["sentry.javascript.nextjs@2023-12-22"],
 )
 
 

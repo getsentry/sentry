@@ -279,25 +279,12 @@ function buildRoutes() {
         )}
         key="org-join-request"
       />
-      {usingCustomerDomain && (
-        <Route
-          path="/relocation/"
-          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
-          key="orgless-relocation"
-        >
-          <IndexRedirect to="welcome/" />
-          <Route
-            path=":step/"
-            component={make(() => import('sentry/views/relocation'))}
-          />
-        </Route>
-      )}
       <Route
-        path="/relocation/:orgId/"
-        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
-        key="org-relocation"
+        path="/relocation/"
+        component={make(() => import('sentry/views/relocation'))}
+        key="orgless-relocation"
       >
-        <IndexRedirect to="welcome/" />
+        <IndexRedirect to="get-started/" />
         <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {usingCustomerDomain && (
@@ -575,6 +562,19 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
+      <Route path="metrics/" name={t('Metrics')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
+        />
+        <Route
+          name={t('Metrics Details')}
+          path=":mri/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
+          )}
+        />
+      </Route>
+
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -1745,6 +1745,19 @@ function buildRoutes() {
             path="spans/"
             component={make(
               () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+            )}
+          />
+        </Route>
+        <Route path="app-startup/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/starfish/modules/mobile/appStartup')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/starfish/views/appStartup/screenSummary')
             )}
           />
         </Route>

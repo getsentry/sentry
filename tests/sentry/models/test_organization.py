@@ -95,13 +95,16 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_flags_have_changed(self):
         org = self.create_organization()
         update_tracked_data(org)
+        org.flags.allow_joinleave = True  # Only flag that defaults to True
         org.flags.early_adopter = True
         org.flags.codecov_access = True
         org.flags.require_2fa = True
+        org.flags.disable_member_project_creation = True
+        assert flag_has_changed(org, "allow_joinleave") is False
         assert flag_has_changed(org, "early_adopter")
         assert flag_has_changed(org, "codecov_access")
-        assert flag_has_changed(org, "allow_joinleave") is False
-        assert flag_has_changed(org, "require_2fa") is True
+        assert flag_has_changed(org, "require_2fa")
+        assert flag_has_changed(org, "disable_member_project_creation")
 
     def test_has_changed(self):
         org = self.create_organization()

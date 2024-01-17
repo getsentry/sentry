@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -19,6 +18,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.utils import get_timeout_at
 from sentry.quotas.base import SeatAssignmentResult
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -169,29 +169,6 @@ class UpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert not monitor.is_muted
-
-    def test_deprecated_status_mute(self):
-        monitor = self._create_monitor()
-
-        # Mute via status
-        resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "muted"}
-        )
-        assert resp.data["slug"] == monitor.slug
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert monitor.is_muted
-        assert monitor.status == ObjectStatus.ACTIVE
-
-        # Unmute via status
-        resp = self.get_success_response(
-            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
-        )
-        assert resp.data["slug"] == monitor.slug
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        assert not monitor.is_muted
-        assert monitor.status == ObjectStatus.ACTIVE
 
     def test_timezone(self):
         monitor = self._create_monitor()

@@ -14,6 +14,8 @@ import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +35,26 @@ const getInstallConfig = () => [
     ),
     language: 'bash',
     code: `npx @sentry/wizard@latest -i nextjs`,
+  },
+];
+
+const getManualInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/nextjs',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/nextjs',
+      },
+    ],
   },
 ];
 
@@ -140,14 +162,21 @@ const replayOnboarding: OnboardingConfig = {
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/nextjs";`,
                 dsn: params.dsn,
+                mask: params.replayOptions?.mask,
+                block: params.replayOptions?.block,
               }),
             },
           ],
         },
       ],
-      additionalInfo: tct(
-        'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it into [sentryServer:sentry.server.config.js] or [sentryEdge:sentry.edge.config.js] may break your build.',
-        {sentryClient: <code />, sentryServer: <code />, sentryEdge: <code />}
+      additionalInfo: (
+        <Fragment>
+          {tracePropagationMessage}
+          {tct(
+            'Alert: The Replay integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it into [sentryServer:sentry.server.config.js] or [sentryEdge:sentry.edge.config.js] may break your build.',
+            {sentryClient: <code />, sentryServer: <code />, sentryEdge: <code />}
+          )}
+        </Fragment>
       ),
     },
   ],
@@ -158,6 +187,9 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({
+    getInstallConfig: getManualInstallConfig,
+  }),
 };
 
 export default docs;

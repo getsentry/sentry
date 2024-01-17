@@ -1,6 +1,6 @@
 import {User} from 'sentry/types';
 
-export function UserDetails(params: Partial<User> = {}): User {
+export function UserDetailsFixture(params: Partial<User> = {}): User {
   return {
     username: 'billyfirefoxusername@test.com',
     emails: [
@@ -31,6 +31,7 @@ export function UserDetails(params: Partial<User> = {}): User {
       defaultIssueEvent: 'recommended',
       avatarType: 'gravatar',
       theme: 'light',
+      issueDetailsNewExperienceQ42023: false,
     },
     avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
     lastLogin: '2018-01-25T19:57:46.973Z',

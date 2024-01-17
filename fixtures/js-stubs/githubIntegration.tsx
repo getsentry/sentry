@@ -1,15 +1,13 @@
-import {OrganizationIntegration} from 'sentry/types';
+import {GroupIntegration} from 'sentry/types';
 
-export function GitHubIntegration(
-  params: Partial<OrganizationIntegration> = {}
-): OrganizationIntegration {
+export function GitHubIntegrationFixture(
+  params: Partial<GroupIntegration> = {}
+): GroupIntegration {
   return {
     domainName: 'github.com/test-integration',
     icon: 'http://example.com/integration_icon.png',
     id: '1',
     name: 'Test Integration',
-    configOrganization: [],
-    configData: {},
     provider: {
       name: 'GitHub',
       key: 'github',
@@ -26,10 +24,9 @@ export function GitHubIntegration(
       canDisable: false,
       slug: '',
     },
+    externalIssues: [],
     accountType: '',
-    externalId: '',
     gracePeriodEnd: '',
-    organizationId: '',
     organizationIntegrationStatus: 'active',
     status: 'active',
     ...params,

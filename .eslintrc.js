@@ -24,7 +24,6 @@ module.exports = {
     expect: false,
     sinon: false,
     MockApiClient: true,
-    TestStubs: true,
     tick: true,
     jest: true,
   },

@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Location, Query} from 'history';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -41,7 +41,7 @@ function initialize({
   project = project || ProjectFixture();
   query = query || {};
   const data = initializeOrg({
-    organization: Organization({
+    organization: OrganizationFixture({
       features,
       projects: project ? [project] : [],
     }),
@@ -170,7 +170,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
 
@@ -178,10 +178,14 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   it('render no access without feature', function () {

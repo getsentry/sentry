@@ -19,14 +19,14 @@ from sentry.issues.issue_velocity import (
 )
 from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import region_silo_test
-from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 WEEK_IN_HOURS = 7 * 24
 
 
 @region_silo_test
-class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
+class IssueVelocityTests(TestCase, SnubaTestCase):
     def setUp(self):
         self.now = timezone.now()
         self.utcnow = datetime.utcnow()
@@ -37,18 +37,22 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         Tests threshold calculation for a single issue with the minimum number of events
         in the past week.
         """
-        self.store_search_issue(
+        self.store_event(
             project_id=self.project.id,
-            user_id=self.user.id,
-            fingerprints=["group-1"],
-            insert_time=(self.now - timedelta(days=8)),
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(days=8)),
+                "user": {"id": self.user.id, "email": self.user.email},
+            },
         )
         for _ in range(2):
-            self.store_search_issue(
+            self.store_event(
                 project_id=self.project.id,
-                user_id=self.user.id,
-                fingerprints=["group-1"],
-                insert_time=(self.now - timedelta(days=1)),
+                data={
+                    "fingerprint": ["group-1"],
+                    "timestamp": iso_format(self.now - timedelta(days=1)),
+                    "user": {"id": self.user.id, "email": self.user.email},
+                },
             )
 
         threshold = calculate_threshold(self.project)
@@ -61,24 +65,27 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         """
         for i in range(5):
             # ensure the velocity for each issue is calculated using the whole week
-            self.store_search_issue(
+            self.store_event(
                 project_id=self.project.id,
-                user_id=self.user.id,
-                fingerprints=[f"group-{i}"],
-                insert_time=(self.now - timedelta(days=8)),
+                data={
+                    "fingerprint": [f"group-{i}"],
+                    "timestamp": iso_format(self.now - timedelta(days=8)),
+                    "user": {"id": self.user.id, "email": self.user.email},
+                },
             )
             for _ in range(i + 2):
                 # fill with events that happened in the previous week
-                self.store_search_issue(
+                self.store_event(
                     project_id=self.project.id,
-                    user_id=self.user.id,
-                    fingerprints=[f"group-{i}"],
-                    insert_time=(self.now - timedelta(days=1)),
+                    data={
+                        "fingerprint": [f"group-{i}"],
+                        "timestamp": iso_format(self.now - timedelta(days=1)),
+                        "user": {"id": self.user.id, "email": self.user.email},
+                    },
                 )
 
-        # with 5 issues that are older than a week, p90 should be approximately in between the
-        # first and second most frequent issues, which in this case have 6 and 5 events respectively
-        expected_threshold = ((6 / WEEK_IN_HOURS) + (5 / WEEK_IN_HOURS)) / 2
+        # approximate calculation of 95th percentile for small sample
+        expected_threshold = 6 * 0.95 / WEEK_IN_HOURS
         actual_threshold = calculate_threshold(self.project)
 
         # clickhouse's quantile function is approximate
@@ -92,13 +99,14 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         and when they were first seen to calculate frequency instead of the full week in hours.
         """
         for _ in range(2):
-            self.store_search_issue(
+            self.store_event(
                 project_id=self.project.id,
-                user_id=self.user.id,
-                fingerprints=["group-1"],
-                insert_time=(self.now - timedelta(days=1)),
+                data={
+                    "fingerprint": ["group-1"],
+                    "timestamp": iso_format(self.now - timedelta(days=1)),
+                    "user": {"id": self.user.id, "email": self.user.email},
+                },
             )
-
         threshold = calculate_threshold(self.project)
         assert threshold == 2 / 24
 
@@ -106,18 +114,22 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         """
         Tests that issues with only one event in the past week are excluded from the calculation.
         """
-        self.store_search_issue(
+        self.store_event(
             project_id=self.project.id,
-            user_id=self.user.id,
-            fingerprints=["group-1"],
-            insert_time=(self.now - timedelta(days=8)),
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(days=8)),
+                "user": {"id": self.user.id, "email": self.user.email},
+            },
         )
 
-        self.store_search_issue(
+        self.store_event(
             project_id=self.project.id,
-            user_id=self.user.id,
-            fingerprints=["group-1"],
-            insert_time=(self.now - timedelta(days=1)),
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(days=1)),
+                "user": {"id": self.user.id, "email": self.user.email},
+            },
         )
 
         threshold = calculate_threshold(self.project)
@@ -128,18 +140,22 @@ class IssueVelocityTests(TestCase, SnubaTestCase, SearchIssueTestMixin):
         """
         Tests that issues that were first seen within the past hour are excluded from the calculation.
         """
-        self.store_search_issue(
+        self.store_event(
             project_id=self.project.id,
-            user_id=self.user.id,
-            fingerprints=["group-1"],
-            insert_time=(self.now - timedelta(minutes=2)),
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(minutes=1)),
+                "user": {"id": self.user.id, "email": self.user.email},
+            },
         )
 
-        self.store_search_issue(
+        self.store_event(
             project_id=self.project.id,
-            user_id=self.user.id,
-            fingerprints=["group-1"],
-            insert_time=(self.now - timedelta(minutes=1)),
+            data={
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(minutes=1)),
+                "user": {"id": self.user.id, "email": self.user.email},
+            },
         )
 
         threshold = calculate_threshold(self.project)

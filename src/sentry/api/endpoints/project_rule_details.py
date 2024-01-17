@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     actionMatch = serializers.ChoiceField(
         choices=(
             ("all", "All conditions must evaluate to true."),
@@ -345,7 +345,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_sentry_app_action_creators_for_issues(actions=kwargs.get("actions"))
+            trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
 
             updated_rule = Updater.run(rule=rule, request=request, **kwargs)
 

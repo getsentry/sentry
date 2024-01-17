@@ -11,6 +11,8 @@ import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -212,11 +214,14 @@ const replayOnboarding: OnboardingConfig = {
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/astro";`,
                 dsn: params.dsn,
+                mask: params.replayOptions?.mask,
+                block: params.replayOptions?.block,
               }),
             },
           ],
         },
       ],
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],
@@ -226,6 +231,7 @@ const replayOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;

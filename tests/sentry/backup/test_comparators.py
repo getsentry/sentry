@@ -7,6 +7,7 @@ from sentry.backup.comparators import (
     DatetimeEqualityComparator,
     DateUpdatedComparator,
     EmailObfuscatingComparator,
+    EqualOrRemovedComparator,
     ForeignKeyComparator,
     HashObfuscatingComparator,
     IgnoredComparator,
@@ -544,6 +545,190 @@ def test_good_email_obfuscating_comparator_scrubbed():
         "b...@...ng.com",
         "c...@...le.com",
     ]
+
+
+def test_good_equal_or_removed_comparator_equal():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": "foo",
+        },
+    }
+
+    assert not cmp.existence(id, present, present)
+    assert not cmp.compare(id, present, present)
+
+
+def test_good_equal_or_removed_comparator_not_equal():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    left: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": "foo",
+        },
+    }
+    right: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": "bar",
+        },
+    }
+
+    assert not cmp.existence(id, left, right)
+
+    res = cmp.compare(id, left, right)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].kind == ComparatorFindingKind.EqualOrRemovedComparator
+    assert res[0].on == id
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "my_field" in res[0].reason
+    assert "foo" in res[0].reason
+    assert "bar" in res[0].reason
+
+
+def test_good_equal_or_removed_comparator_neither_side_existing():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    assert not cmp.existence(id, missing, missing)
+
+
+def test_good_equal_or_removed_comparator_only_right_side_missing():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": "foo",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    assert not cmp.existence(id, present, missing)
+    assert not cmp.compare(id, present, missing)
+
+
+def test_bad_equal_or_removed_comparator_only_left_side_missing():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": "foo",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {},
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.EqualOrRemovedComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "my_field" in res[0].reason
+
+
+def test_good_equal_or_removed_comparator_both_sides_nulled():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    nulled: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": None,
+        },
+    }
+    assert not cmp.existence(id, nulled, nulled)
+
+
+def test_good_equal_or_removed_comparator_only_right_side_nulled():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": "foo",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": None,
+        },
+    }
+    assert not cmp.existence(id, present, missing)
+    assert not cmp.compare(id, present, missing)
+
+
+def test_bad_equal_or_removed_comparator_only_left_side_nulled():
+    cmp = EqualOrRemovedComparator("my_field")
+    id = InstanceID("sentry.test", 0)
+    present: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": "foo",
+        },
+    }
+    missing: JSONData = {
+        "model": "test",
+        "ordinal": 1,
+        "pk": 1,
+        "fields": {
+            "my_field": None,
+        },
+    }
+    res = cmp.existence(id, missing, present)
+    assert res
+    assert len(res) == 1
+
+    assert res[0]
+    assert res[0].on == id
+    assert res[0].kind == ComparatorFindingKind.EqualOrRemovedComparatorExistenceCheck
+    assert res[0].left_pk == 1
+    assert res[0].right_pk == 1
+    assert "left" in res[0].reason
+    assert "my_field" in res[0].reason
 
 
 def test_good_hash_obfuscating_comparator():

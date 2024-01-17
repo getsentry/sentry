@@ -41,9 +41,8 @@ from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors.algorithm import (
-    MovingAverageDetectorState,
+    DetectorAlgorithm,
     MovingAverageRelativeChangeDetector,
-    MovingAverageRelativeChangeDetectorConfig,
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
@@ -162,20 +161,24 @@ class EndpointRegressionDetector(RegressionDetector):
     source = "transaction"
     kind = "endpoint"
     regression_type = RegressionType.ENDPOINT
-    config = MovingAverageRelativeChangeDetectorConfig(
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-    state_cls = MovingAverageDetectorState
-    detector_cls = MovingAverageRelativeChangeDetector
     min_change = 200  # 200ms in ms
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
-    def make_detector_store(cls) -> DetectorStore:
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
+        return MovingAverageRelativeChangeDetector(
+            source=cls.source,
+            kind=cls.kind,
+            min_data_points=18,
+            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
+            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
+            threshold=0.2,
+        )
+
+    @classmethod
+    def detector_store_factory(cls) -> DetectorStore:
         return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
 
     @classmethod
@@ -200,20 +203,24 @@ class FunctionRegressionDetector(RegressionDetector):
     source = "profile"
     kind = "function"
     regression_type = RegressionType.FUNCTION
-    config = MovingAverageRelativeChangeDetectorConfig(
-        min_data_points=6,
-        short_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 21),
-        long_moving_avg_factory=lambda: ExponentialMovingAverage(2 / 41),
-        threshold=0.2,
-    )
-    state_cls = MovingAverageDetectorState
-    detector_cls = MovingAverageRelativeChangeDetector
     min_change = 100_000_000  # 100ms in ns
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.3
+    escalation_rel_threshold = 0.75
 
     @classmethod
-    def make_detector_store(cls) -> DetectorStore:
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
+        return MovingAverageRelativeChangeDetector(
+            source=cls.source,
+            kind=cls.kind,
+            min_data_points=18,
+            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
+            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
+            threshold=0.2,
+        )
+
+    @classmethod
+    def detector_store_factory(cls) -> DetectorStore:
         return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
@@ -244,6 +251,8 @@ def detect_transaction_trends(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    EndpointRegressionDetector.configure_tags()
 
     projects = get_detector_enabled_projects(
         project_ids,
@@ -283,6 +292,8 @@ def detect_transaction_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    EndpointRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project
@@ -324,6 +335,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
+    FunctionRegressionDetector.configure_tags()
+
     projects = get_detector_enabled_projects(
         project_ids,
         feature_name="organizations:profiling-statistical-detectors-ema",
@@ -361,6 +374,8 @@ def detect_function_change_points(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    FunctionRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project
@@ -430,7 +445,7 @@ def emit_function_regression_issue(
     ]
 
     result = functions.query(
-        selected_columns=["project.id", "fingerprint", "worst()"],
+        selected_columns=["project.id", "fingerprint", "examples()"],
         query="is_application:1",
         params=params,
         orderby=["project.id"],
@@ -442,7 +457,11 @@ def emit_function_regression_issue(
         conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
     )
 
-    examples = {(row["project.id"], row["fingerprint"]): row["worst()"] for row in result["data"]}
+    examples = {
+        (row["project.id"], row["fingerprint"]): row["examples()"][0]
+        for row in result["data"]
+        if row["examples()"]
+    }
 
     payloads = []
 

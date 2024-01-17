@@ -518,7 +518,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Please ensure third-party app access via OAuth is enabled \n"
                     "in the organization's security policy."
                 )
-            raise e
+            raise
 
         subscription_id = subscription["id"]
         return subscription_id, shared_secret

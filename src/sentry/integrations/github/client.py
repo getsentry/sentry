@@ -168,8 +168,10 @@ class GithubProxyClient(IntegrationProxyClient):
             )
             return prepared_request
 
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
         prepared_request.headers["Authorization"] = f"Bearer {token}"
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
+            prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
         return prepared_request
 
@@ -615,16 +617,27 @@ class GitHubClientMixin(GithubProxyClient):
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> str:
+    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
         """
         from base64 import b64decode
 
-        contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
-        encoded_content = contents["content"]
-        return b64decode(encoded_content).decode("utf-8")
+        headers = {"Content-Type": "application/raw; charset=utf-8"} if codeowners else {}
+        contents = self.get(
+            path=f"/repos/{repo.name}/contents/{path}",
+            params={"ref": ref},
+            raw_response=True if codeowners else False,
+            headers=headers,
+        )
+
+        result = (
+            contents.content.decode("utf-8")
+            if codeowners
+            else b64decode(contents["content"]).decode("utf-8")
+        )
+        return result
 
     def get_blame_for_file(
         self, repo: Repository, path: str, ref: str, lineno: int
@@ -700,20 +713,27 @@ class GitHubClientMixin(GithubProxyClient):
             "organization_integration_id": self.org_integration_id,
         }
         metrics.incr("integrations.github.get_blame_for_files")
-        rate_limit = self.get_rate_limit(specific_resource="graphql")
-        if rate_limit.remaining < MINIMUM_REQUESTS:
-            metrics.incr("integrations.github.get_blame_for_files.not_enough_requests_remaining")
-            logger.error(
-                "sentry.integrations.github.get_blame_for_files.rate_limit",
-                extra={
-                    "provider": "github",
-                    "specific_resource": "graphql",
-                    "remaining": rate_limit.remaining,
-                    "next_window": rate_limit.next_window(),
-                    "organization_integration_id": self.org_integration_id,
-                },
-            )
-            raise ApiRateLimitedError("Not enough requests remaining for GitHub")
+        try:
+            rate_limit = self.get_rate_limit(specific_resource="graphql")
+        except ApiError:
+            # Some GitHub instances don't enforce rate limiting and will respond with a 404
+            pass
+        else:
+            if rate_limit.remaining < MINIMUM_REQUESTS:
+                metrics.incr(
+                    "integrations.github.get_blame_for_files.not_enough_requests_remaining"
+                )
+                logger.error(
+                    "sentry.integrations.github.get_blame_for_files.rate_limit",
+                    extra={
+                        "provider": "github",
+                        "specific_resource": "graphql",
+                        "remaining": rate_limit.remaining,
+                        "next_window": rate_limit.next_window(),
+                        "organization_integration_id": self.org_integration_id,
+                    },
+                )
+                raise ApiRateLimitedError("Not enough requests remaining for GitHub")
 
         file_path_mapping = generate_file_path_mapping(files)
         data = create_blame_query(file_path_mapping, extra=log_info)

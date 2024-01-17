@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef, Fragment, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -12,7 +12,7 @@ import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils'
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {MRI, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   AGGREGATIONS,
@@ -21,8 +21,10 @@ import {
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
+import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
@@ -309,7 +311,11 @@ class ColumnEditCollection extends Component<Props, State> {
     });
 
     // Issue column in Issue widgets are fixed (cannot be moved or deleted)
-    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
+    if (
+      targetIndex >= 0 &&
+      targetIndex !== draggingTargetIndex &&
+      !this.isFixedMetricsColumn(targetIndex)
+    ) {
       this.setState({draggingTargetIndex: targetIndex});
     }
   };
@@ -326,6 +332,11 @@ class ColumnEditCollection extends Component<Props, State> {
       column.kind === 'field' &&
       column.field === FieldKey.ISSUE
     );
+  };
+
+  isFixedMetricsColumn = (columnIndex: number) => {
+    const {source} = this.props;
+    return source === WidgetType.METRICS && columnIndex === 0;
   };
 
   isRemainingReleaseHealthAggregate = (columnIndex: number) => {
@@ -435,6 +446,7 @@ class ColumnEditCollection extends Component<Props, State> {
       filterPrimaryOptions,
       noFieldsMessage,
       showAliasField,
+      source,
     } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
@@ -480,21 +492,42 @@ class ColumnEditCollection extends Component<Props, State> {
           ) : singleColumn && showAliasField ? null : (
             <span />
           )}
-          <QueryField
-            fieldOptions={fieldOptions}
-            gridColumns={gridColumns}
-            fieldValue={col}
-            onChange={value => this.handleUpdateColumn(i, value)}
-            error={this.state.error.get(i)}
-            takeFocus={i === this.props.columns.length - 1}
-            otherColumns={columns}
-            shouldRenderTag
-            disabled={disabled}
-            filterPrimaryOptions={filterPrimaryOptions}
-            filterAggregateParameters={filterAggregateParameters}
-            noFieldsMessage={noFieldsMessage}
-            skipParameterPlaceholder={showAliasField}
-          />
+          {source === WidgetType.METRICS && !this.isFixedMetricsColumn(i) ? (
+            <MetricTagQueryField
+              mri={
+                columns[0].kind === FieldValueKind.FUNCTION
+                  ? columns[0].function[1]
+                  : // We should never get here because the first column should always be function for metrics
+                    undefined
+              }
+              gridColumns={gridColumns}
+              fieldValue={col}
+              onChange={value => this.handleUpdateColumn(i, value)}
+              error={this.state.error.get(i)}
+              takeFocus={i === this.props.columns.length - 1}
+              otherColumns={columns}
+              shouldRenderTag
+              disabled={disabled}
+              noFieldsMessage={noFieldsMessage}
+              skipParameterPlaceholder={showAliasField}
+            />
+          ) : (
+            <QueryField
+              fieldOptions={fieldOptions}
+              gridColumns={gridColumns}
+              fieldValue={col}
+              onChange={value => this.handleUpdateColumn(i, value)}
+              error={this.state.error.get(i)}
+              takeFocus={i === this.props.columns.length - 1}
+              otherColumns={columns}
+              shouldRenderTag
+              disabled={disabled}
+              filterPrimaryOptions={filterPrimaryOptions}
+              filterAggregateParameters={filterAggregateParameters}
+              noFieldsMessage={noFieldsMessage}
+              skipParameterPlaceholder={showAliasField}
+            />
+          )}
           {showAliasField && (
             <AliasField singleColumn={singleColumn}>
               <AliasInput
@@ -572,9 +605,6 @@ class ColumnEditCollection extends Component<Props, State> {
             })
           );
 
-    // TODO(ddm): support multiple columns and equations, then remove this check
-    const showActionButtons = source !== WidgetType.METRICS;
-
     return (
       <div className={className}>
         {this.renderGhost({gridColumns, singleColumn})}
@@ -605,6 +635,14 @@ class ColumnEditCollection extends Component<Props, State> {
               gridColumns,
             });
           }
+          if (this.isFixedMetricsColumn(i)) {
+            return this.renderItem(col, i, {
+              singleColumn,
+              canDelete: false,
+              canDrag: false,
+              gridColumns,
+            });
+          }
           return this.renderItem(col, i, {
             singleColumn,
             canDelete,
@@ -612,20 +650,21 @@ class ColumnEditCollection extends Component<Props, State> {
             gridColumns,
           });
         })}
-        {showActionButtons && (
-          <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-            <Actions gap={1} showAliasField={showAliasField}>
-              <Button
-                size="sm"
-                aria-label={t('Add a Column')}
-                onClick={this.handleAddColumn}
-                title={title}
-                disabled={!canAdd}
-                icon={<IconAdd isCircled />}
-              >
-                {t('Add a Column')}
-              </Button>
-              {source !== WidgetType.ISSUE && source !== WidgetType.RELEASE && (
+        <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
+          <Actions gap={1} showAliasField={showAliasField}>
+            <Button
+              size="sm"
+              aria-label={t('Add a Column')}
+              onClick={this.handleAddColumn}
+              title={title}
+              disabled={!canAdd}
+              icon={<IconAdd isCircled />}
+            >
+              {t('Add a Column')}
+            </Button>
+            {WidgetType.ISSUE &&
+              source !== WidgetType.RELEASE &&
+              source !== WidgetType.METRICS && (
                 <Button
                   size="sm"
                   aria-label={t('Add an Equation')}
@@ -637,12 +676,43 @@ class ColumnEditCollection extends Component<Props, State> {
                   {t('Add an Equation')}
                 </Button>
               )}
-            </Actions>
-          </RowContainer>
-        )}
+          </Actions>
+        </RowContainer>
       </div>
     );
   }
+}
+
+interface MetricTagQueryFieldProps
+  extends Omit<React.ComponentProps<typeof QueryField>, 'fieldOptions'> {
+  mri?: string;
+}
+
+const EMPTY_ARRAY = [];
+function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
+  const {projects} = usePageFilters().selection;
+  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, projects);
+
+  const fieldOptions = useMemo(() => {
+    return data.reduce(
+      (acc, tag) => {
+        acc[`tag:${tag.key}`] = {
+          label: tag.key,
+          value: {
+            kind: FieldValueKind.TAG,
+            meta: {
+              dataType: 'string',
+              name: tag.key,
+            },
+          },
+        };
+        return acc;
+      },
+      {} as Record<string, FieldValueOption>
+    );
+  }, [data]);
+
+  return <QueryField fieldOptions={fieldOptions} {...props} />;
 }
 
 const Actions = styled(ButtonBar)<{showAliasField?: boolean}>`

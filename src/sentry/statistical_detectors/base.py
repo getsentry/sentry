@@ -50,7 +50,6 @@ class DetectorState(ABC):
     def empty(cls) -> DetectorState:
         ...
 
-
-@dataclass(frozen=True)
-class DetectorConfig(ABC):
-    ...
+    @abstractmethod
+    def get_moving_avg(self) -> float:
+        ...

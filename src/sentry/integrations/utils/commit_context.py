@@ -316,18 +316,6 @@ def _generate_integration_to_files_mapping(
 
             src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
 
-            # src_path can be none if the stacktrace_path is an invalid filepath
-            if not src_path:
-                logger.info(
-                    "process_commit_context_all_frames.no_src_path",
-                    extra={
-                        **extra,
-                        "code_mapping_id": code_mapping.id,
-                        "stacktrace_path": stacktrace_path,
-                    },
-                )
-                continue
-
             num_successfully_mapped_frames += 1
             logger.info(
                 "process_commit_context_all_frames.found_stacktrace_and_src_paths",
@@ -419,7 +407,7 @@ def _get_blames_from_all_integrations(
                             extra={**log_info, "code": e.code, "error_message": e.text},
                         )
                     # Rate limit and other API errors should be raised to the task to trigger a retry
-                    raise e
+                    raise
             except Exception:
                 logger.exception(
                     "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
