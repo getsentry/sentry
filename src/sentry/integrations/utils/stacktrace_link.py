@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, TypedDict
+from typing import List, Optional, TypedDict
 
 from typing_extensions import NotRequired
 
 from sentry import analytics
+from sentry.api.endpoints.project_stacktrace_link import StacktraceLinkContext
 from sentry.api.utils import Timer
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
@@ -94,7 +95,7 @@ class StacktraceLinkOutcome(TypedDict):
 
 def get_stacktrace_config(
     configs: List[RepositoryProjectPathConfig],
-    ctx: Dict[str, Optional[str]],
+    ctx: StacktraceLinkContext,
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {
         "source_url": None,
