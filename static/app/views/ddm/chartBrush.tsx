@@ -247,7 +247,7 @@ function BrushRectOverlay({
       <FocusAreaWrapper ref={wrapperRef}>
         <FocusAreaRect top={top} left={left} width={width} height={height} />
       </FocusAreaWrapper>
-      <FocusAreaRectActions top={top + height} left={left}>
+      <FocusAreaRectActions top={top} rectHeight={height} left={left}>
         <Button
           size="xs"
           onClick={onZoom}
@@ -289,10 +289,11 @@ const CHART_HEIGHT = 275;
 
 const FocusAreaRectActions = styled('div')<{
   left: string;
+  rectHeight: string;
   top: string;
 }>`
   position: absolute;
-  top: ${p => p.top};
+  top: calc(${p => p.top} + ${p => p.rectHeight});
   left: ${p => p.left};
   display: flex;
   gap: ${space(0.5)};
