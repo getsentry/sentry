@@ -398,14 +398,26 @@ class MutableQueryExpression:
         self._query = query
         self._visitors: List[QueryExpressionVisitor[QueryExpression]] = []
 
-    def add_mutation(
+    def add_visitor(
         self, visitor: QueryExpressionVisitor[QueryExpression]
     ) -> "MutableQueryExpression":
+        """
+        Adds a visitor to the query expression.
+
+        The visitor can both perform mutations or not on the expression tree.
+        """
         self._visitors.append(visitor)
 
         return self
 
     def get_mutated(self) -> QueryExpression:
+        """
+        Returns the mutated query expression after running all the visitors
+        in the order of definition.
+
+        Order preservation does matter, since downstream visitors might work under the
+        assumption that upstream visitors have already been run.
+        """
         query = self._query
         for visitor in self._visitors:
             query = visitor.visit(query)
@@ -520,9 +532,9 @@ class QueryParser:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
             yield (
                 field,
-                self._parse_mql(mql_query).add_mutation(ValidationVisitor())
+                self._parse_mql(mql_query).add_visitor(ValidationVisitor())
                 # We purposefully want to inject environments after the final query expression tree is expanded.
-                .add_mutation(EnvironmentsInjectionVisitor(environments)).get_mutated(),
+                .add_visitor(EnvironmentsInjectionVisitor(environments)).get_mutated(),
             )
 
 
