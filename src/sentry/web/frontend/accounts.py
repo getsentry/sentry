@@ -123,6 +123,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                     user.username = form.cleaned_data["username"]
                     user.is_unclaimed = False
                     # Relocation form required users to accept TOS and privacy policy
+                    # TODO(team-ospo/#228): Include imported org slugs here
                     terms_accepted.send_robust(
                         user=request.user,
                         organization=None,
