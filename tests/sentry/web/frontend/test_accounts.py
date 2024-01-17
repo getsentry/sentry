@@ -156,6 +156,8 @@ class TestAccounts(TestCase):
         assert resp[header_name] == "strict-origin-when-cross-origin"
         rpc_org1_context = organization_service.get_organization_by_id(id=org1.id)
         rpc_org2_context = organization_service.get_organization_by_id(id=org2.id)
+        assert rpc_org1_context is not None
+        assert rpc_org2_context is not None
         assert terms_accepted_signal_mock.call_count == 2
         terms_accepted_signal_mock.assert_has_calls(
             [
@@ -206,6 +208,7 @@ class TestAccounts(TestCase):
         assert resp[header_name] == "strict-origin-when-cross-origin"
         rpc_org_context = organization_service.get_organization_by_id(id=org.id)
         assert terms_accepted_signal_mock.call_count == 1
+        assert rpc_org_context is not None
         terms_accepted_signal_mock.assert_called_with(
             user=user,
             organization=rpc_org_context.organization,
