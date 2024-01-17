@@ -23,7 +23,7 @@ export default function InitializationModule() {
   const organization = useOrganization();
 
   return (
-    <Feature features="starfish-view">
+    <Feature features="starfish-mobile-appstart" organization={organization}>
       <SentryDocumentTitle title={ROUTE_NAMES['app-startup']} orgSlug={organization.slug}>
         <Layout.Page>
           <PageErrorProvider>

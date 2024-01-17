@@ -87,7 +87,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
             to={normalizeUrl(
               `/organizations/${
                 organization.slug
-              }/starfish/appStartup/spans/?${qs.stringify({
+              }/performance/mobile/app-startup/spans/?${qs.stringify({
                 ...location.query,
                 project: row['project.id'],
                 transaction: row.transaction,
