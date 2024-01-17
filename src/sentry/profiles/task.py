@@ -59,12 +59,12 @@ def process_profile_task(
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
+    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
+        return
+
     if payload:
         message_dict = msgpack.unpackb(payload, use_list=False)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
-
-        if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-            return
 
         assert profile is not None
 
