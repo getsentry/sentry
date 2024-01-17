@@ -73,8 +73,8 @@ class DiscordClient(ApiClient):
             deny_value = get_deny_value(permission_overwrites, self.application_id)
             return deny_value == "0"
 
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")
+        except Exception:
+            logger.exception("Failed to get channel permissions")
             return False
 
     def set_application_command(self, command: object) -> None:
@@ -115,7 +115,7 @@ class DiscordClient(ApiClient):
         """
         Send a message to the specified channel.
         """
-        if self.is_bot_blocked_by_overrides(channel_id=channel_id):
+        if not self.is_bot_blocked_by_overrides(channel_id=channel_id):
             self.post(
                 MESSAGE_URL.format(channel_id=channel_id),
                 data=message.build(notification_uuid=notification_uuid),
