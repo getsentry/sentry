@@ -24,7 +24,7 @@ def get_groups_totals(
     start_idx: int,
     end_idx: int,
     environment: str | None,
-    status: str | None,
+    status: str | None = None,
 ) -> int:
     filters = ["release", "project"]
     if environment:
@@ -61,7 +61,7 @@ def get_interval_indexes(intervals: list[str], start: datetime, end: datetime) -
     start_idx = len(intervals)
     end_idx = 0
 
-    for i, idx in enumerate(intervals):
+    for idx, i in enumerate(intervals):
         interval_date = parser.parse(i).replace(tzinfo=None)
         if start <= interval_date < end:
             if idx < start_idx:
@@ -76,7 +76,7 @@ def is_crash_free_rate_healthy(
     ethreshold: EnrichedThreshold,
     sessions_data: Dict[str, Any],
     display: str,
-) -> Tuple[bool, int]:  # (is_healthy, metric_value)
+) -> Tuple[bool, float]:  # (is_healthy, metric_value)
     """
     Derives percent from crash total over total count
 
@@ -100,7 +100,7 @@ def is_crash_free_rate_healthy(
     try:
         crash_count = get_groups_totals(
             end_idx=end_idx,
-            environment=environment,
+            environment=environment.get("name") if environment else None,
             field=field,
             project_id=project_id,
             release_version=release_version,
@@ -115,7 +115,7 @@ def is_crash_free_rate_healthy(
     try:
         total_count = get_groups_totals(
             end_idx=end_idx,
-            environment=environment,
+            environment=environment.get("name") if environment else None,
             field=field,
             project_id=project_id,
             release_version=release_version,
