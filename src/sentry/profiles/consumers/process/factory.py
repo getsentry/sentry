@@ -42,7 +42,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 def get_headers_dict(headers) -> Dict[str, str]:
     h = dict()
-    for k, v in headers.items():
+    for k, v in headers:
         if isinstance(v, "bytes"):
             v = str(v, encoding="utf-8")
         h[k] = v
