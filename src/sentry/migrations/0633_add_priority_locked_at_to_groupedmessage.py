@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0631_add_priority_columns_to_groupedmessage"),
+        ("sentry", "0632_apitoken_backfill_last_chars"),
     ]
 
     operations = [
