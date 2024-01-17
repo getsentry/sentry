@@ -69,6 +69,10 @@ logger = logging.getLogger(__name__)
 RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
 
 
+class BufferCommitFailed(Exception):
+    ...
+
+
 class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     This consumer processes replay recordings, which are compressed payloads split up into
@@ -332,7 +336,7 @@ def commit_uploads(upload_events: list[UploadEvent]) -> None:
     # Raising an exception crashes the process and forces a restart from the last committed
     # offset. No rate-limiting is applied.
     if has_errors:
-        raise Exception("Could not upload one or more recordings.")
+        raise BufferCommitFailed("Could not upload one or more recordings.")
 
 
 def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -> None:

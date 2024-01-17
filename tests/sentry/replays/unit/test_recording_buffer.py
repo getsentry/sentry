@@ -4,7 +4,11 @@ from unittest.mock import patch
 import pytest
 import time_machine
 
-from sentry.replays.consumers.recording_buffered import RecordingBuffer, commit_uploads
+from sentry.replays.consumers.recording_buffered import (
+    BufferCommitFailed,
+    RecordingBuffer,
+    commit_uploads,
+)
 
 
 def test_recording_buffer_commit_default():
@@ -139,5 +143,5 @@ def test_commit_uploads_failure(_do_upload):
 
     _do_upload.side_effect = mocked
 
-    with pytest.raises(Exception):
+    with pytest.raises(BufferCommitFailed):
         commit_uploads([{}])  # type: ignore
