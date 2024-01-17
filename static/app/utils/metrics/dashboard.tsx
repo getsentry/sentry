@@ -1,12 +1,7 @@
 import {urlEncode} from '@sentry/utils';
 
 import {PageFilters} from 'sentry/types';
-import {
-  emptyWidget,
-  isCustomMetric,
-  MetricDisplayType,
-  MetricsQuery,
-} from 'sentry/utils/metrics';
+import {emptyWidget, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
 import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {DashboardWidgetSource, Widget, WidgetType} from 'sentry/views/dashboards/types';
 
@@ -18,13 +13,11 @@ export function convertToDashboardWidget(
   metricsQuery: MetricsQuery,
   displayType?: MetricDisplayType
 ): Widget {
-  const isCustomMetricQuery = isCustomMetric(metricsQuery);
-
   return {
     title: getDDMWidgetName(metricsQuery),
     // @ts-expect-error this is a valid widget type
     displayType,
-    widgetType: isCustomMetricQuery ? WidgetType.METRICS : WidgetType.DISCOVER,
+    widgetType: WidgetType.METRICS,
     limit: !metricsQuery.groupBy?.length ? 1 : 10,
     queries: [getWidgetQuery(metricsQuery)],
   };
