@@ -146,12 +146,8 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        # We expect two specs since we collect both
-        # Once we do not run two versions we will need to change this test
-        assert len(config["metrics"]) == 2
-        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
-        # expression, we will prioritize our filter.
-        assert config["metrics"][1] == {
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {
                 "inner": [
@@ -169,27 +165,6 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": "ca87c609"}],
-        }
-        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
-        # and then AND with the injected environment.
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {
-                "inner": [
-                    {
-                        "inner": [
-                            {"name": "event.environment", "op": "eq", "value": "development"},
-                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
-                        ],
-                        "op": "and",
-                    },
-                    {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
-                ],
-                "op": "or",
-            },
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "47bc817d"}],
         }
 
 
@@ -245,7 +220,7 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
 
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 0",
+            "Spec version 1",
             "Too many (2) on demand metric alerts for project bar",
         ]
 
@@ -495,7 +470,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
 
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 0",
+            "Spec version 1",
             "Too many (2) on demand metric widgets for project bar",
         ]
 
