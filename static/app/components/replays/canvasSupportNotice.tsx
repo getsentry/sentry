@@ -7,6 +7,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -57,7 +58,7 @@ export function CanvasSupportNotice() {
         {
           canvas: <code />,
           link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
+            <ExternalLink onClick={() => {trackAnalytics('replay.canvas-detected-banner-clicked', {organization});}} href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
           ),
         }
       )}
