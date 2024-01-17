@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-# to avoid a circular import
-import logging
+from typing import Dict, List
 
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.shared_integrations.response.mapping import MappingApiResponse
 
-logger = logging.getLogger("sentry.integrations.discord")
+from .utils import logger
 
 DISCORD_BASE_URL = "https://discord.com/api/v10"
 
@@ -38,6 +38,44 @@ class DiscordClient(ApiClient):
 
     def prepare_auth_header(self) -> dict[str, str]:
         return {"Authorization": f"Bot {self.bot_token}"}
+
+    def is_bot_blocked_by_overrides(self, channel_id: str) -> bool:
+        """
+        Determines if the bot is blocked from operating in a given channel due to user-set permission overrides.
+
+        :param channel_id: The ID of the channel to check.
+        :return: True if the bot is blocked by overrides, False otherwise.
+        :raises ApiError: If the response is not a valid JSON or if necessary data is missing.
+        """
+
+        def get_deny_value(permission_overwrites: List[Dict], bot_member_id: str):
+            """
+            Gets the value from the `deny` field in the channel's permission overwrite object
+            https://discord.com/developers/docs/resources/channel#overwrite-object
+            """
+            for overwrite_obj in permission_overwrites:
+                if overwrite_obj.get("id") == bot_member_id:
+                    return overwrite_obj.get("deny")
+            return None
+
+        try:
+            channel = self.get_channel(channel_id)
+
+            if not isinstance(channel, MappingApiResponse):
+                logger.error("Expected MappingApiResponse, got unexpected response type.")
+                return False
+
+            permission_overwrites = channel.get("permission_overwrites")
+            if not isinstance(permission_overwrites, list):
+                logger.error("Invalid or missing 'permission_overwrites' in response.")
+                return False
+
+            deny_value = get_deny_value(permission_overwrites, self.application_id)
+            return deny_value == "0"
+
+        except Exception as e:
+            logger.error(f"An error occurred: {e}")
+            return False
 
     def set_application_command(self, command: object) -> None:
         self.post(
@@ -77,9 +115,17 @@ class DiscordClient(ApiClient):
         """
         Send a message to the specified channel.
         """
-        self.post(
-            MESSAGE_URL.format(channel_id=channel_id),
-            data=message.build(notification_uuid=notification_uuid),
-            timeout=5,
-            headers=self.prepare_auth_header(),
-        )
+        if self.is_bot_blocked_by_overrides(channel_id=channel_id):
+            self.post(
+                MESSAGE_URL.format(channel_id=channel_id),
+                data=message.build(notification_uuid=notification_uuid),
+                timeout=5,
+                headers=self.prepare_auth_header(),
+            )
+        else:
+            logger.warning(
+                "discord.send.message.missing.permissions",
+                extra={"channel_id": channel_id, "notification_uuid": notification_uuid},
+            )
+
+        # TODO: When false, send notification to user/org that their integration is broken due to permission overrides
