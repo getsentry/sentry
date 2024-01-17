@@ -9,6 +9,7 @@ from sentry import analytics
 from sentry.api.utils import Timer
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -114,7 +115,7 @@ def try_path_munging(
 class StacktraceLinkConfig(TypedDict):
     config: RepositoryProjectPathConfig
     outcome: ReposityLinkOutcome
-    repository: str
+    repository: Repository
 
 
 class StacktraceLinkOutcome(TypedDict):
