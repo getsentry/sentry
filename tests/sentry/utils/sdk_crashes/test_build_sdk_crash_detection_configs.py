@@ -1,8 +1,9 @@
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.sdk_crashes.build_sdk_crash_detection_configs import (
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    SDKCrashDetectionConfig,
+    SdkName,
     build_sdk_crash_detection_configs,
 )
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
 
 
 @override_options(

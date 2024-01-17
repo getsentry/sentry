@@ -33,9 +33,7 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
-from sentry.utils.sdk_crashes.build_sdk_crash_detection_configs import (
-    build_sdk_crash_detection_configs,
-)
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
