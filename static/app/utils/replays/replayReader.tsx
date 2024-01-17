@@ -318,14 +318,6 @@ export default class ReplayReader {
    * application. Needed to inform them that we now support canvas in replays.
    */
   hasCanvasElementInReplay = memoize(() => {
-    const sdkOptions = this.getSDKOptions();
-    // @ts-expect-error TODO: Update SDK
-    if (sdkOptions?.shouldRecordCanvas) {
-      // Return false to ignore this condition, as they are already using the
-      // new canvas integration
-      return false;
-    }
-
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
 
