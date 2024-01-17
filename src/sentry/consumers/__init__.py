@@ -63,7 +63,7 @@ def ingest_replay_recordings_buffered_options() -> List[click.Option]:
     """Return a list of ingest-replay-recordings-buffered options."""
     options = [
         click.Option(
-            ["--max-buffer-row-count", "max_buffer_row_count"],
+            ["--max-buffer-message-count", "max_buffer_message_count"],
             type=int,
             default=100,
         ),

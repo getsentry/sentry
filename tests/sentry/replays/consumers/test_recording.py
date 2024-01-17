@@ -184,7 +184,7 @@ class RecordingBufferedTestCase(RecordingTestCase):
     def processing_factory(self):
         # The options don't matter because we're calling join which commits regardless.
         return RecordingBufferedStrategyFactory(
-            max_buffer_row_count=1000,
+            max_buffer_message_count=1000,
             max_buffer_size_in_bytes=1000,
             max_buffer_time_in_seconds=1000,
         )
