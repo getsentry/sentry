@@ -5,9 +5,9 @@ import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
+  IconClose,
   IconCopy,
   IconDashboard,
-  IconDelete,
   IconEllipsis,
   IconSettings,
   IconSiren,
@@ -106,9 +106,9 @@ export function MetricQueryContextMenu({
         },
       },
       {
-        leadingItems: [<IconDelete key="icon" />],
+        leadingItems: [<IconClose key="icon" />],
         key: 'delete',
-        label: t('Delete'),
+        label: t('Remove Query'),
         disabled: !canDelete,
         onAction: () => {
           Sentry.metrics.increment('ddm.widget.delete');
