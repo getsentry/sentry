@@ -1,3 +1,40 @@
+"""Replay recording consumer implementation.
+
+# Configuration
+
+The consumer implementation offers three configuration parameters which control the size of the
+buffer.  Those options are:
+
+**max_buffer_message_count:**
+
+This option limits the number of processed messages held in memory at a given time.
+
+**max_buffer_size_in_bytes:**
+
+This option limits the amount of recording-bytes held in memory at a given time.
+
+**max_buffer_time_in_seconds:**
+
+This option limits the amount of time a message will wait in the buffer before being committed. If
+this value exceeds the Kafka commit interval then the Kafka offsets will not be committed until the
+buffer has been flushed and fully committed.
+
+# Errors
+
+All deterministic errors must be handled otherwise the consumer will deadlock and progress will
+be impossible. Unhandled errors will crash the process and force a restart from the last committed
+offset.
+
+An unhandled, intermittent error rate which exceeds one-per-second will deadlock any consumer
+implementation which commits at one second intervals. To fix this case either the message
+processing rate of the consumer must be slowed, the error must be handled, or the commit interval
+must be decreased.
+
+The cost of unwinding an error is determined by the throughput of the consumer implementation. If
+consumer throughput is high an error will force the reprocessing of a larger number of messages
+than if throughput is low. The number of messages being operated on in parallel is material only
+insofar as it impacts the throughput of the consumer.
+"""
 from __future__ import annotations
 
 import logging
@@ -40,11 +77,11 @@ class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def __init__(
         self,
-        max_buffer_row_count: int,
+        max_buffer_message_count: int,
         max_buffer_size_in_bytes: int,
         max_buffer_time_in_seconds: int,
     ) -> None:
-        self.max_buffer_row_count = max_buffer_row_count
+        self.max_buffer_message_count = max_buffer_message_count
         self.max_buffer_size_in_bytes = max_buffer_size_in_bytes
         self.max_buffer_time_in_seconds = max_buffer_time_in_seconds
 
@@ -55,7 +92,7 @@ class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         return RecordingBufferStrategy(
             buffer=RecordingBuffer(
-                self.max_buffer_row_count,
+                self.max_buffer_message_count,
                 self.max_buffer_size_in_bytes,
                 self.max_buffer_time_in_seconds,
             ),
@@ -142,7 +179,7 @@ class InitialSegmentEvent(TypedDict):
 class RecordingBuffer:
     def __init__(
         self,
-        max_buffer_row_count: int,
+        max_buffer_message_count: int,
         max_buffer_size_in_bytes: int,
         max_buffer_time_in_seconds: int,
     ) -> None:
@@ -150,7 +187,7 @@ class RecordingBuffer:
         self.initial_segment_events: list[InitialSegmentEvent] = []
         self.replay_action_events: list[ReplayActionsEvent] = []
 
-        self.max_buffer_row_count = max_buffer_row_count
+        self.max_buffer_message_count = max_buffer_message_count
         self.max_buffer_size_in_bytes = max_buffer_size_in_bytes
         self.max_buffer_time_in_seconds = max_buffer_time_in_seconds
         self.reset()
@@ -190,7 +227,7 @@ class RecordingBuffer:
     @property
     def has_exceeded_max_message_count(self) -> bool:
         """Return "True" if we have accumulated the configured number of messages."""
-        return len(self.upload_events) >= self.max_buffer_row_count
+        return len(self.upload_events) >= self.max_buffer_message_count
 
     @property
     def has_exceeded_buffer_byte_size(self) -> bool:
@@ -323,4 +360,8 @@ def _do_upload(upload_event: UploadEvent) -> None:
             retention_days=upload_event["retention_days"],
         )
         recording_data = upload_event["payload"]
+
+        # If an error occurs this will retry up to five times by default.
+        #
+        # Refer to `src.sentry.filestore.gcs.GCS_RETRIES`.
         storage.set(recording_metadata, recording_data)
