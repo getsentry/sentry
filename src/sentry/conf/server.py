@@ -1436,6 +1436,8 @@ SENTRY_EARLY_FEATURES = {
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables the staff cookie on requests
     "auth:enterprise-staff-cookie": False,
+    # Enables superuser read vs. write separation
+    "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
