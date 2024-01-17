@@ -37,7 +37,7 @@ DARWIN = sys.platform == "darwin"
 # 12.3.1: arm64
 APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
 
-USE_COLIMA = bool(shutil.which("colima"))
+USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 
 if USE_COLIMA:
     RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
@@ -118,7 +118,9 @@ def get_or_create(
         return getattr(client, thing + "s").create(name)
 
 
-def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 5) -> None:
+def retryable_pull(
+    client: docker.DockerClient, image: str, max_attempts: int = 5, platform: str | None = None
+) -> None:
     from docker.errors import APIError
 
     current_attempt = 0
@@ -129,7 +131,10 @@ def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 
     # See https://github.com/docker/docker-py/issues/2101 for more information
     while True:
         try:
-            client.images.pull(image)
+            if platform:
+                client.images.pull(image, platform=platform)
+            else:
+                client.images.pull(image)
         except APIError:
             if current_attempt + 1 >= max_attempts:
                 raise
@@ -428,7 +433,7 @@ def _start_service(
         options["environment"][key] = value.format(containers=containers)
 
     click.secho(f"> Pulling image '{options['image']}'", fg="green")
-    retryable_pull(client, options["image"])
+    retryable_pull(client, options["image"], platform=options.get("platform"))
 
     for mount in list(options.get("volumes", {}).keys()):
         if "/" not in mount:

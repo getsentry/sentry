@@ -153,6 +153,7 @@ export function SpanOperationTable({
       const query = {
         ...location.query,
         transaction,
+        spanOp: row[SpanMetricsField.SPAN_OP],
         spanGroup: row[SpanMetricsField.SPAN_GROUP],
         spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
       };
