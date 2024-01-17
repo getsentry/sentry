@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import itertools
 import logging
-import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
@@ -37,6 +36,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.integrations.github.patch_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import (
     ISSUE_LOCKED_ERROR_MESSAGE,
     RATE_LIMITED_MESSAGE,
@@ -189,7 +189,7 @@ def safe_for_comment(
     for file in pr_files:
         filename = file["filename"]
         # don't count the file if it was added or is not a Python file
-        if file["status"] == "added" or not filename.endswith(".py"):
+        if file["status"] == "added" or filename.split(".")[-1] not in PATCH_PARSERS:
             continue
 
         changed_file_count += 1
@@ -222,27 +222,6 @@ def get_pr_files(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
 
     return pullrequest_files
-
-
-# currently Python only
-def get_file_functions(patch: str) -> Set[str]:
-    r"""
-    Function header regex pattern
-    ^           - Asserts the start of a line.
-    @@.*@@      - Matches a string that starts with two "@" characters, followed by any characters
-                (except newline), and ends with two "@" characters.
-    \s+         - Matches one or more whitespace characters (spaces, tabs, etc.).
-    def         - Matches the literal characters "def".
-    \\s+         - Matches one or more whitespace characters.
-    (?P<fnc>.*) - This is a named capturing group that captures any characters (except newline)
-                and assigns them to the named group "fnc".
-    \(          - Matches an opening parenthesis "(".
-    .*          - Matches any characters (except newline).
-    $           - Asserts the end of a line.
-    """
-
-    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
-    return set(re.findall(python_function_regex, patch, flags=re.M))
 
 
 def get_projects_and_filenames_from_source_file(
@@ -448,7 +427,11 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        function_names = get_file_functions(file.patch)
+        language_parser = PATCH_PARSERS.get(file.filename.split(".")[-1], None)
+        if not language_parser:
+            continue
+
+        function_names = language_parser.extract_functions_from_patch(file.patch)
 
         if not len(function_names):
             continue
