@@ -17,13 +17,17 @@ def catch_signal(signal):
 
 class TestSendPostUpdateSignal(TestCase):
     def test_not_triggered(self):
-        with catch_signal(post_update) as handler:
+        with catch_signal(post_update) as handler, override_options(
+            {"groups.enable-post-update-signal": True}
+        ):
             self.group.message = "hi"
             self.group.save()
 
         assert not handler.called
 
-        with catch_signal(post_update) as handler:
+        with catch_signal(post_update) as handler, override_options(
+            {"groups.enable-post-update-signal": True}
+        ):
             self.group.update(message="hi")
 
         assert not handler.called
