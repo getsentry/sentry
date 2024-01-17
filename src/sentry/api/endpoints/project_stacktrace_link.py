@@ -173,6 +173,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             )
             return Response(
                 {
+                    "error": error,
                     "config": serialized_config,
                     "sourceUrl": result["source_url"],
                     "attemptedUrl": attempted_url,
