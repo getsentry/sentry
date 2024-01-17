@@ -45,7 +45,6 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             title = tag["title"]
             value = tag["value"]
             fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
-
         return {"type": "section", "fields": fields}
 
     @staticmethod

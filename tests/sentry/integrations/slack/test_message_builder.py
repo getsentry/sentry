@@ -47,6 +47,8 @@ def build_test_message_blocks(
     group: Group,
     event: Event | None = None,
     link_to_event: bool = False,
+    tags: dict[str, str] | None = None,
+    mentions: str | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -65,44 +67,64 @@ def build_test_message_blocks(
     event_date = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
         to_timestamp(timestamp), "{date_pretty}", "{time}"
     )
-    return {
-        "blocks": [
+    blocks = [
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": f"<{title_link}|*{formatted_title}*>  \n"},
+            "block_id": f'{{"issue":{group.id}}}',
+        },
+    ]
+    if tags:
+        tags_section = {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*{key}:*\n{value}"} for key, value in tags.items()
+            ],
+        }
+        blocks.append(tags_section)
+
+    if mentions:
+        mentions_text = f"Mentions: {mentions}"
+        mentions_section = {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": mentions_text},
+        }
+        blocks.append(mentions_section)
+    context = {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
+    }
+    blocks.append(context)
+
+    actions = {
+        "type": "actions",
+        "elements": [
             {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": f"<{title_link}|*{formatted_title}*>  \n"},
-                "block_id": f'{{"issue":{group.id}}}',
+                "type": "button",
+                "action_id": "resolve_dialog",
+                "text": {"type": "plain_text", "text": "Resolve"},
+                "value": "resolve_dialog",
             },
             {
-                "type": "context",
-                "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
+                "type": "button",
+                "action_id": "ignored:until_escalating",
+                "text": {"type": "plain_text", "text": "Archive"},
+                "value": "ignored:until_escalating",
             },
             {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "action_id": "resolve_dialog",
-                        "text": {"type": "plain_text", "text": "Resolve"},
-                        "value": "resolve_dialog",
-                    },
-                    {
-                        "type": "button",
-                        "action_id": "ignored:until_escalating",
-                        "text": {"type": "plain_text", "text": "Archive"},
-                        "value": "ignored:until_escalating",
-                    },
-                    {
-                        "type": "external_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select Assignee...",
-                            "emoji": True,
-                        },
-                        "action_id": "assign",
-                    },
-                ],
+                "type": "external_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Assignee...",
+                    "emoji": True,
+                },
+                "action_id": "assign",
             },
         ],
+    }
+    blocks.append(actions)
+    return {
+        "blocks": blocks,
         "text": f"[{project.slug}] {title}",
     }
 
@@ -177,7 +199,6 @@ def build_test_message(
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
-
         assert SlackIssuesMessageBuilder(group).build() == build_test_message(
             teams={self.team},
             users={self.user},
@@ -229,9 +250,21 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
-        group = self.create_group(project=self.project)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
+        tags = {"level": "error"}
+        mentions = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
@@ -239,8 +272,41 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             timestamp=group.last_seen,
             group=group,
         )
+        # add tags to message
+        assert SlackIssuesMessageBuilder(
+            group, event, tags={"level"}
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+            tags=tags,
+            event=event,
+        )
+        # add mentions to message
+        assert SlackIssuesMessageBuilder(
+            group, event, mentions=mentions
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+            mentions=mentions,
+            event=event,
+        )
+        # add tags and mentions to message
+        assert SlackIssuesMessageBuilder(
+            group, event, tags={"level"}, mentions=mentions
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+            tags=tags,
+            mentions=mentions,
+            event=event,
+        )
 
-        event = self.store_event(data={}, project_id=self.project.id)
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group)
         ).build() == build_test_message_blocks(

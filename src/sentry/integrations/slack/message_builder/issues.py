@@ -386,7 +386,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             )
 
         # build up the blocks for newer issue alert formatting #
-
         tags = get_tags(event_for_tags, self.tags)
         # build title block
         title_link = get_title_link(
