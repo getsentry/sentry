@@ -42,5 +42,5 @@ def is_sampled(headers) -> bool:
     for k, v in headers:
         if k == "sampled":
             if isinstance(v, bytes):
-                return str(v, encoding="utf-8") == "true"
+                return v.decode("utf-8") == "true"
     return True
