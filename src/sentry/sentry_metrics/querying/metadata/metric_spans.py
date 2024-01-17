@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Sequence, Set, cast
+from typing import Dict, List, Optional, Sequence, Set, Tuple, cast
 
 from snuba_sdk import (
     Column,
@@ -34,7 +34,7 @@ from sentry.snuba.metrics.naming_layer.mri import (
     parse_mri,
 )
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import raw_snql_query, bulk_snuba_queries
+from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 # Maximum number of unique results returned by the database.
 MAX_NUMBER_OF_RESULTS = 10
@@ -205,8 +205,6 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("span_id"), Op.IN, list(span_ids)),
-                # We query only spans under the assumption that a metric can't be correlated to a segment.
-                Condition(Column("is_segment"), Op.EQ, 0)
             ],
             groupby=[Column("transaction_id")],
         )
@@ -463,12 +461,12 @@ def _get_segments(
         raise Exception("Error while fetching segments for the metric")
 
     # First, we build a reverse index on the span ops.
-    segment_ops = {}
+    segment_ops: Dict[str, List[Tuple[str, int]]] = {}
     for row in results[1]["data"]:
         segment_ops.setdefault(row["transaction_id"], []).append((row["op"], row["duration"]))
 
     # Second, we build the segment objects to return.
-    segments = []
+    segments: List[Segment] = []
     for row in results[0]["data"]:
         spans_summary = [
             SpansSummary(span_op=op, span_duration=duration)

@@ -1322,6 +1322,15 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_metric_summary(self, metric_summary):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
+                data=json.dumps([metric_summary]),
+            ).status_code
+            == 200
+        )
+
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -1392,10 +1401,9 @@ class SnubaTestCase(BaseTestCase):
 
 
 class BaseSpansTestCase(SnubaTestCase):
-
     def _random_span_id(self):
-        random_number = random.randint(0, 100)
-        return hex(random_number)
+        random_number = random.randint(0, 100000000)
+        return hex(random_number)[2:]
 
     def store_segment(
         self,
@@ -1439,9 +1447,9 @@ class BaseSpansTestCase(SnubaTestCase):
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
 
-        self._snuba_insert(payload, "spans")
+        self.store_span(payload)
 
-    def store_span(
+    def store_indexed_span(
         self,
         project_id: int,
         trace_id: str,
@@ -1486,16 +1494,10 @@ class BaseSpansTestCase(SnubaTestCase):
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self._snuba_insert(payload, "spans")
+            self.store_span(payload)
 
         if "_metrics_summary" in payload:
-            self._snuba_insert(payload, "metrics_summaries")
-
-    def _snuba_insert(self, payload, entity):
-        response = requests.post(
-            settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert", data=json.dumps([payload])
-        )
-        assert response.status_code == 200
+            self.store_metric_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
