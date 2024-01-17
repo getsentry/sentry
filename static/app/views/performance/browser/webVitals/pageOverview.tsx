@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import moment from 'moment';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -10,23 +11,29 @@ import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregat
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconChevron, IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {PageOverviewSidebar} from 'sentry/views/performance/browser/webVitals/components/pageOverviewSidebar';
-import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {
+  PerformanceScoreBreakdownChart,
+  SCORE_MIGRATION_TIMESTAMP,
+} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/performance/browser/webVitals/pageSamplePerformanceTable';
@@ -39,6 +46,11 @@ import {
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
+import {
+  AlertContent,
+  DismissButton,
+  StyledAlert,
+} from 'sentry/views/performance/browser/webVitals/webVitalsLandingPage';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 
 import {transactionSummaryRouteWithQuery} from '../../transactionSummary/utils';
@@ -105,6 +117,12 @@ export default function PageOverview() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
+  const user = ConfigStore.get('user');
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.slug}-${user.id}:performance-score-migration-message-dismissed`,
+  });
+
   const query = decodeScalar(location.query.query);
 
   const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
@@ -136,6 +154,10 @@ export default function PageOverview() {
       : shouldUseStoredScores
       ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
       : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
+
+  const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
+    'DD MMMM YYYY'
+  );
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
@@ -216,6 +238,30 @@ export default function PageOverview() {
                   <DatePageFilter />
                 </PageFilterBar>
               </TopMenuContainer>
+              {shouldUseStoredScores && !isDismissed && (
+                <StyledAlert type="info" showIcon>
+                  <AlertContent>
+                    <span>
+                      {tct(
+                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. [link:Read more about these improvements].`,
+                        {
+                          scoreMigrationTimestampString,
+                          link: (
+                            <ExternalLink href="https://sentry.engineering/blog/how-we-improved-performance-score-accuracy" />
+                          ),
+                        }
+                      )}
+                    </span>
+                    <DismissButton
+                      priority="link"
+                      icon={<IconClose />}
+                      onClick={dismiss}
+                      aria-label={t('Dismiss Alert')}
+                      title={t('Dismiss Alert')}
+                    />
+                  </AlertContent>
+                </StyledAlert>
+              )}
               <Flex>
                 <PerformanceScoreBreakdownChart transaction={transaction} />
               </Flex>

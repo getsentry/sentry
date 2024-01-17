@@ -105,7 +105,10 @@ interface TooltipOption
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
   markerFormatter?: (marker: string, label?: string) => string;
-  nameFormatter?: (name: string) => string;
+  nameFormatter?: (
+    name: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
   /**
    * Array containing data that is used to display indented sublabels.
    */

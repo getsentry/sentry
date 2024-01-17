@@ -125,9 +125,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         series: seriesToShow,
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
-        height,
         colors: seriesToShow.map(s => s.color),
-        grid: {top: 20, bottom: 20, left: 15, right: 25},
+        grid: {top: 5, bottom: 0, left: 0, right: 0},
+
         tooltip: {
           formatter: (params, asyncTicket) => {
             if (focusAreaBrush.isDrawingRef.current) {
@@ -236,14 +236,15 @@ function getWidthFactor(bucketSize: number) {
 
 const ChartWrapper = styled('div')`
   position: relative;
+  height: 100%;
 `;
 
 const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: calc(100% - 56px);
+  height: calc(100% - 29px);
   width: ${p => p.width}%;
   position: absolute;
-  right: 21px;
-  top: 18px;
+  right: 0px;
+  top: 5px;
   pointer-events: none;
   background: linear-gradient(
     90deg,
