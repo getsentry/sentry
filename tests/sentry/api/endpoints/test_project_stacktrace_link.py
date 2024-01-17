@@ -160,6 +160,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "config": None,
             "sourceUrl": None,
             "integrations": [serialized_integration(self.integration)],
+            "error": "no_code_mappings_for_project",
         }
 
     def test_file_not_found_error(self):
@@ -198,7 +199,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
+    @patch("sentry.integrations.utils.stacktrace_link.munged_filename_and_frames")
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_not_found_and_munge_frame_fallback_not_found(self, mock_integration, mock_munger):
         mock_integration.return_value = None
@@ -224,7 +225,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
         )
 
-    @patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
+    @patch("sentry.integrations.utils.stacktrace_link.munged_filename_and_frames")
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_not_found_munge_frame_fallback_success(self, mock_integration, mock_munger):
         mock_integration.side_effect = [None, "https://github.com/repo/path/to/munged/file.py"]
@@ -265,7 +266,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @patch("sentry.analytics.record")
-    @patch("sentry.api.endpoints.project_stacktrace_link.Timer")
+    @patch("sentry.integrations.utils.stacktrace_link.Timer")
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_timer_duration_for_analytics(self, mock_integration, mock_timer, mock_record):
         mock_integration.return_value = "https://github.com/"
