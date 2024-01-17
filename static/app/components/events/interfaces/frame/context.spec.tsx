@@ -102,9 +102,7 @@ describe('Frame - Context', function () {
           hasContextSource
           frame={testFrame}
           event={event}
-          organization={OrganizationFixture({
-            features: ['issue-details-stacktrace-syntax-highlighting'],
-          })}
+          organization={org}
           registers={{}}
           components={[]}
         />

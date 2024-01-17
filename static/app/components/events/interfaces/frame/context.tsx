@@ -4,7 +4,6 @@ import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
 import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
@@ -88,10 +87,6 @@ function Context({
   registersMeta,
 }: Props) {
   const {user} = useLegacyStore(ConfigStore);
-  const hasSyntaxHighlighting =
-    organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
-    false;
-
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
 
   // This is the old design. Only show if the feature flag is not enabled for this organization.
@@ -171,7 +166,7 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {frame.context && hasSyntaxHighlighting && lines.length > 0 ? (
+      {frame.context && lines.length > 0 ? (
         <CodeWrapper className={prismClassName}>
           <pre className={prismClassName}>
             <code className={prismClassName}>
@@ -224,44 +219,6 @@ function Context({
           </pre>
         </CodeWrapper>
       ) : null}
-
-      {frame.context && !hasSyntaxHighlighting
-        ? contextLines.map((line, index) => {
-            const isActive = activeLineNumber === line[0];
-            const hasComponents = isActive && components.length > 0;
-            const showStacktraceLink = hasStacktraceLink && isActive;
-
-            return (
-              <ContextLine
-                key={index}
-                line={line}
-                isActive={isActive}
-                coverage={lineCoverage[index]}
-              >
-                {hasComponents && (
-                  <ErrorBoundary mini>
-                    <OpenInContextLine
-                      key={index}
-                      lineNo={line[0]}
-                      filename={frame.filename || ''}
-                      components={components}
-                    />
-                  </ErrorBoundary>
-                )}
-                {showStacktraceLink && (
-                  <ErrorBoundary customComponent={null}>
-                    <StacktraceLink
-                      key={index}
-                      line={line[1]}
-                      frame={frame}
-                      event={event}
-                    />
-                  </ErrorBoundary>
-                )}
-              </ContextLine>
-            );
-          })
-        : null}
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
