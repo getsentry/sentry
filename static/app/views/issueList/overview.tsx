@@ -1301,7 +1301,6 @@ class IssueListOverview extends Component<Props, State> {
                     groupIds={groupIds}
                     displayReprocessingLayout={displayReprocessingActions}
                     query={query}
-                    sort={this.getSort()}
                     selectedProjectIds={selection.projects}
                     loading={issuesLoading}
                     error={error}
