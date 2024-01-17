@@ -1296,9 +1296,9 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "mri": "c:transactions/on_demand@none",
             "field": None,
             "tags": [
-                {"key": "query_hash", "value": "ac241f56"},
-                {"key": "networkId", "field": "event.tags.networkId"},
                 {"key": "environment", "field": "event.environment"},
+                {"key": "networkId", "field": "event.tags.networkId"},
+                {"key": "query_hash", "value": "ac241f56"},
             ],
             "condition": {
                 "op": "and",
