@@ -544,6 +544,7 @@ class Group(Model):
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
     priority = BoundedPositiveIntegerField(null=True)
+    priority_locked = models.BooleanField(default=False)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
