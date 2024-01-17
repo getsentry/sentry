@@ -4,6 +4,8 @@ import uuid
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
     _parse_classes,
@@ -13,6 +15,12 @@ from sentry.replays.usecases.ingest.dom_index import (
     parse_replay_actions,
 )
 from sentry.utils import json
+
+
+@pytest.fixture(autouse=True)
+def patch_rage_click_issue():
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.report_rage_click_issue") as m:
+        yield m
 
 
 def test_get_user_actions():
@@ -106,6 +114,7 @@ def test_parse_replay_actions():
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "div",
@@ -159,7 +168,7 @@ def test_parse_replay_actions():
     assert len(action["event_hash"]) == 36
 
 
-def test_parse_replay_dead_click_actions():
+def test_parse_replay_dead_click_actions(patch_rage_click_issue):
     events = [
         {
             "type": 5,
@@ -175,6 +184,7 @@ def test_parse_replay_dead_click_actions():
                         "endReason": "timeout",
                         "timeafterclickms": 7000.0,
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "a",
@@ -209,6 +219,7 @@ def test_parse_replay_dead_click_actions():
                         "endReason": "timeout",
                         "timeafterclickms": 7000.0,
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "a",
@@ -240,6 +251,7 @@ def test_parse_replay_dead_click_actions():
                     "category": "ui.slowClickDetected",
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
+                        "url": "https://www.sentry.io",
                         "clickCount": 5,
                         "endReason": "timeout",
                         "timeAfterClickMs": 7000.0,
@@ -264,8 +276,9 @@ def test_parse_replay_dead_click_actions():
             },
         },
     ]
-    replay_actions = parse_replay_actions(1, "1", 30, events)
 
+    replay_actions = parse_replay_actions(1, "1", 30, events)
+    assert patch_rage_click_issue.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
@@ -324,6 +337,7 @@ def test_parse_replay_rage_click_actions():
                         "timeafterclickms": 7000.0,
                         "clickcount": 5,
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "a",
@@ -397,6 +411,7 @@ def test_parse_request_response_latest():
                     "startTimestamp": 1680009712.507,
                     "endTimestamp": 1680009712.671,
                     "data": {
+                        "url": "https://www.sentry.io",
                         "method": "POST",
                         "statusCode": 200,
                         "request": {
@@ -442,6 +457,7 @@ def test_parse_request_response_no_info():
                     "startTimestamp": 1680009712.507,
                     "endTimestamp": 1680009712.671,
                     "data": {
+                        "url": "https://www.sentry.io",
                         "method": "POST",
                         "statusCode": 200,
                     },
@@ -466,6 +482,7 @@ def test_parse_request_response_old_format_request_only():
                     "startTimestamp": 1680009712.507,
                     "endTimestamp": 1680009712.671,
                     "data": {
+                        "url": "https://www.sentry.io",
                         "method": "POST",
                         "statusCode": 200,
                         "requestBodySize": 1002,
