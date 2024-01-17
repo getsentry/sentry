@@ -118,13 +118,13 @@ def process_async_webhooks(
         )
     except SiloClientError as e:
         metrics.incr(
-            "integration_proxy.control.process_async_wehbook.failure",
+            "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "silo_client_error", "destination_region": region.name},
         )
         sentry_sdk.capture_exception(e)
     except ApiHostError as err:
         metrics.incr(
-            "integration_proxy.control.process_async_wehbook.failure",
+            "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "host_error", "destination_region": region.name},
         )
         with sentry_sdk.push_scope() as scope:
@@ -147,7 +147,7 @@ def process_async_webhooks(
         return
     except ApiConflictError as e:
         metrics.incr(
-            "integration_proxy.control.process_async_wehbook.failure",
+            "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "conflict", "destination_region": region.name},
         )
         logger.warning(
@@ -160,7 +160,7 @@ def process_async_webhooks(
         )
     except (ApiTimeoutError, ApiConnectionResetError):
         metrics.incr(
-            "integration_proxy.control.process_async_wehbook.failure",
+            "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "timeout_reset", "destination_region": region.name},
         )
         raise
@@ -181,7 +181,7 @@ def process_async_webhooks(
         # discard these associated webhook outbox messages. If we do not discard them, then these outbox messages
         # will be re-processed causing a backlog on the ControlOutbox table.
         metrics.incr(
-            "integration_proxy.control.process_async_wehbook.failure",
+            "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "discard", "destination_region": region.name},
         )
 
