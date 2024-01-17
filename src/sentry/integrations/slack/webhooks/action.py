@@ -292,7 +292,7 @@ class SlackActionEndpoint(Endpoint):
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "text": {"type": "mrkdwn", "text": "Resolve"},
                     "accessory": {
                         "type": "static_select",
                         "initial_option": {
