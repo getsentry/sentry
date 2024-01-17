@@ -1,4 +1,12 @@
-import {RefObject, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
@@ -235,19 +243,20 @@ function BrushRectOverlay({
   const {left, top, width, height} = position;
 
   return (
-    <FocusAreaWrapper ref={wrapperRef}>
-      <FocusAreaRect top={top} left={left} width={width} height={height}>
-        <FocusAreaRectActions top={height}>
-          <Button
-            size="xs"
-            onClick={onZoom}
-            icon={<IconZoom isZoomIn />}
-            aria-label="zoom"
-          />
-          <Button size="xs" onClick={onRemove} icon={<IconClose />} aria-label="remove" />
-        </FocusAreaRectActions>
-      </FocusAreaRect>
-    </FocusAreaWrapper>
+    <Fragment>
+      <FocusAreaWrapper ref={wrapperRef}>
+        <FocusAreaRect top={top} left={left} width={width} height={height} />
+      </FocusAreaWrapper>
+      <FocusAreaRectActions top={top} rectHeight={height} left={left}>
+        <Button
+          size="xs"
+          onClick={onZoom}
+          icon={<IconZoom isZoomIn />}
+          aria-label="zoom"
+        />
+        <Button size="xs" onClick={onRemove} icon={<IconClose />} aria-label="remove" />
+      </FocusAreaRectActions>
+    </Fragment>
   );
 }
 
@@ -276,15 +285,17 @@ const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRa
   };
 };
 
-const CHART_HEIGHT = 256;
+const CHART_HEIGHT = 275;
 
 const FocusAreaRectActions = styled('div')<{
+  left: string;
+  rectHeight: string;
   top: string;
 }>`
   position: absolute;
-  top: ${p => p.top};
+  top: calc(${p => p.top} + ${p => p.rectHeight});
+  left: ${p => p.left};
   display: flex;
-  left: 0;
   gap: ${space(0.5)};
   padding: ${space(0.5)};
   z-index: 2;
@@ -293,7 +304,7 @@ const FocusAreaRectActions = styled('div')<{
 
 const FocusAreaWrapper = styled('div')`
   position: absolute;
-  top: 0;
+  top: 0px;
   left: 0;
   height: 100%;
   width: 100%;

@@ -63,7 +63,6 @@ type Props = {
   narrowGroups?: boolean;
   query?: string;
   queryFilterDescription?: string;
-  showInboxTime?: boolean;
   showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
@@ -83,7 +82,6 @@ function BaseGroupRow({
   memberList,
   query,
   queryFilterDescription,
-  showInboxTime,
   source,
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
@@ -430,7 +428,7 @@ function BaseGroupRow({
           size="normal"
           source={referrer}
         />
-        <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
+        <EventOrGroupExtraDetails data={group} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 

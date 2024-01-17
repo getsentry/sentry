@@ -18,6 +18,7 @@ import {
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
@@ -29,6 +30,7 @@ import {
   MobileSortKeys,
 } from 'sentry/views/starfish/views/screens/constants';
 import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
+import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 
 import AppStartWidgets from './widgets';
 
@@ -36,17 +38,28 @@ type Query = {
   primaryRelease: string;
   project: string;
   secondaryRelease: string;
+  spanDescription: string;
+  spanGroup: string;
+  spanOp: string;
   transaction: string;
 };
 
 function ScreenSummary() {
   const organization = useOrganization();
   const location = useLocation<Query>();
+  const router = useRouter();
 
-  const {primaryRelease, secondaryRelease, transaction: transactionName} = location.query;
+  const {
+    primaryRelease,
+    secondaryRelease,
+    transaction: transactionName,
+    spanGroup,
+    spanDescription,
+    spanOp,
+  } = location.query;
 
   const startupModule: LocationDescriptor = {
-    pathname: `/organizations/${organization.slug}/starfish/appStartup/`,
+    pathname: `/organizations/${organization.slug}/performance/mobile/app-startup/`,
     query: {
       ...omit(location.query, [
         QueryParameterNames.SPANS_SORT,
@@ -213,6 +226,26 @@ function ScreenSummary() {
                   secondaryRelease={secondaryRelease}
                 />
               </ErrorBoundary>
+              {spanGroup && spanOp && (
+                <ScreenLoadSpanSamples
+                  groupId={spanGroup}
+                  transactionName={transactionName}
+                  spanDescription={spanDescription}
+                  spanOp={spanOp}
+                  onClose={() => {
+                    router.replace({
+                      pathname: router.location.pathname,
+                      query: omit(
+                        router.location.query,
+                        'spanGroup',
+                        'transactionMethod',
+                        'spanDescription',
+                        'spanOp'
+                      ),
+                    });
+                  }}
+                />
+              )}
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>

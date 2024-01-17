@@ -427,14 +427,6 @@ class Endpoint(APIView):
         count_hits=None,
         **paginator_kwargs,
     ):
-        # XXX(epurkhiser): This is an experiment that overrides all paginated
-        # API requests so that we can more easily debug on the frontend the
-        # experiemce customers have when they have lots of entites.
-        override_limit = request.COOKIES.get("__sentry_dev_pagination_limit", None)
-        if override_limit is not None:
-            default_per_page = int(override_limit)
-            max_per_page = int(override_limit)
-
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)

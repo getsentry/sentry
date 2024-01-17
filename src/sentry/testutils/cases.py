@@ -4,6 +4,7 @@ import hashlib
 import importlib.metadata
 import inspect
 import os.path
+import random
 import re
 import time
 from contextlib import contextmanager
@@ -1321,6 +1322,15 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_metric_summary(self, metric_summary):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
+                data=json.dumps([metric_summary]),
+            ).status_code
+            == 200
+        )
+
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -1391,37 +1401,85 @@ class SnubaTestCase(BaseTestCase):
 
 
 class BaseSpansTestCase(SnubaTestCase):
-    def store_span(
+    def _random_span_id(self):
+        random_number = random.randint(0, 100000000)
+        return hex(random_number)[2:]
+
+    def store_segment(
         self,
         project_id: int,
-        span_id: str = "98230207e6e4a6ad",
-        trace_id: str = "b2565c0df13c4c00a654d2209e06e4bd",
-        transaction_id: Optional[str] = None,
+        trace_id: str,
+        transaction_id: str,
+        span_id: Optional[str] = None,
         profile_id: Optional[str] = None,
-        transaction: str = None,
-        is_segment: bool = False,
-        duration_ms: int = 10,
+        transaction: Optional[str] = None,
+        duration: int = 10,
         tags: Optional[Mapping[str, Any]] = None,
         measurements: Optional[Mapping[str, Union[int, float]]] = None,
         timestamp: Optional[datetime] = None,
-        store_only_summary: bool = False,
-        store_metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
-        store_transaction_and_span: bool = False,
     ):
+        if span_id is None:
+            span_id = self._random_span_id()
         if timestamp is None:
             timestamp = datetime.now(tz=timezone.utc)
 
         payload = {
-            "duration_ms": int(duration_ms),
-            "exclusive_time_ms": 5,
-            "is_segment": is_segment,
             "project_id": project_id,
-            "received": datetime.now(tz=timezone.utc).timestamp(),
-            "retention_days": 90,
-            "sentry_tags": {"transaction": transaction or "/hello"},
             "span_id": span_id,
-            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "trace_id": trace_id,
+            "duration_ms": int(duration),
+            "exclusive_time_ms": 5,
+            "is_segment": True,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "sentry_tags": {"transaction": transaction or "/hello"},
+            "retention_days": 90,
+        }
+
+        if tags:
+            payload["tags"] = tags
+        if transaction_id:
+            payload["event_id"] = transaction_id
+        if profile_id:
+            payload["profile_id"] = profile_id
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
+
+        self.store_span(payload)
+
+    def store_indexed_span(
+        self,
+        project_id: int,
+        trace_id: str,
+        transaction_id: str,
+        span_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        transaction: Optional[str] = None,
+        op: Optional[str] = None,
+        duration: int = 10,
+        tags: Optional[Mapping[str, Any]] = None,
+        timestamp: Optional[datetime] = None,
+        store_only_summary: bool = False,
+        store_metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+    ):
+        if span_id is None:
+            span_id = self._random_span_id()
+        if timestamp is None:
+            timestamp = datetime.now(tz=timezone.utc)
+
+        payload = {
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "duration_ms": int(duration),
+            "exclusive_time_ms": 5,
+            "is_segment": False,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "sentry_tags": {"transaction": transaction or "/hello", "op": op or "http"},
+            "retention_days": 90,
         }
 
         if tags:
@@ -1432,31 +1490,14 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["profile_id"] = profile_id
         if store_metrics_summary:
             payload["_metrics_summary"] = store_metrics_summary
-        if measurements:
-            payload["measurements"] = {
-                measurement: {"value": value} for measurement, value in measurements.items()
-            }
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            if store_transaction_and_span:
-                # To simplify the testing, the span duration is half the duration of the transaction.
-                for is_segment, duration in ((True, duration_ms), (False, duration_ms / 2)):
-                    self._snuba_insert(
-                        {**payload, "is_segment": is_segment, "duration_ms": int(duration)}, "spans"
-                    )
-            else:
-                self._snuba_insert(payload, "spans")
+            self.store_span(payload)
 
         if "_metrics_summary" in payload:
-            self._snuba_insert(payload, "metrics_summaries")
-
-    def _snuba_insert(self, payload, entity):
-        response = requests.post(
-            settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert", data=json.dumps([payload])
-        )
-        assert response.status_code == 200
+            self.store_metric_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):

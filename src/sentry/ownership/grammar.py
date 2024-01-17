@@ -411,17 +411,6 @@ def convert_codeowners_syntax(
     return result
 
 
-def get_source_code_path_from_stacktrace_path(
-    stacktrace_path: str, code_mapping: RepositoryProjectPathConfig
-) -> str:
-    path_with_source_root = stacktrace_path.replace(
-        code_mapping.stack_root, code_mapping.source_root, 1
-    )
-    # flatten multiple '/' if not protocol
-    formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_source_root)
-    return formatted_path
-
-
 def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, ActorTuple]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned

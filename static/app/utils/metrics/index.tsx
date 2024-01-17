@@ -182,9 +182,9 @@ export type MetricSpan = {
   transactionId: string;
   replayId?: string; // Not there yet but will be added
   spansSummary?: {
-    span_duration: number;
-    span_op: string;
-  };
+    spanDuration: number;
+    spanOp: string;
+  }[];
 };
 
 export type MetricRange = {
