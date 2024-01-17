@@ -252,7 +252,14 @@ def _get_widget_on_demand_specs(
 
     widget_specs = convert_widget_query_to_metric(project_for_query, widget_query, True)
 
-    return widget_specs
+    unique_specs = []
+    hashes = set()
+    for hashed_metric_spec in widget_specs:
+        if hashed_metric_spec[0] not in hashes:
+            unique_specs.append(hashed_metric_spec)
+            hashes.add(hashed_metric_spec[0])
+
+    return unique_specs
 
 
 def _set_widget_on_demand_state(

@@ -96,7 +96,7 @@ describe('SpanOpSelector', function () {
 
     expect(screen.getByRole('link', {name: 'Application Init'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/starfish/appStartup/spans/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&transaction=foo-bar'
+      '/organizations/org-slug/performance/mobile/app-startup/spans/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
     );
   });
 

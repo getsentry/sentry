@@ -24,7 +24,12 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, MetricSpecType, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    MetricSpecType,
+    OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
+)
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -3051,6 +3056,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                     skip_time_conditions=False,
                 ),
             )
+            assert query._on_demand_metric_spec_map == {
+                "count(measurements.fp)": OnDemandMetricSpec(
+                    field=field,
+                    query=query_s,
+                    environment=environment,
+                    spec_type=MetricSpecType.SIMPLE_QUERY,
+                    spec_version=OnDemandMetricSpecVersioning.get_default_spec_version(),
+                )
+            }
 
             result = query.run_query("test_query")
 
