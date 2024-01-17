@@ -292,8 +292,12 @@ class OrganizationEndpoint(Endpoint):
         to fetching projects via project_id list.
         """
         qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        if project_slugs and project_ids:
+            raise ParseError(detail="Cannot query for both ids and slugs")
+
         slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
         ids = project_ids or self.get_requested_project_ids_unchecked(request)
+
         if project_ids is None and slugs:
             # If we're querying for project slugs specifically
             if ALL_ACCESS_PROJECTS_SLUG in slugs:
