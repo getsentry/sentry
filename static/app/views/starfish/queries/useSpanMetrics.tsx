@@ -1,10 +1,9 @@
-import {Location} from 'history';
-
+import {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   MetricsProperty,
   MetricsResponse,
@@ -26,9 +25,9 @@ export const useSpanMetrics = <Fields extends MetricsProperty[]>(
 ) => {
   const {fields = [], filters = {}, sorts = [], limit, cursor, referrer} = options;
 
-  const location = useLocation();
+  const pageFilters = usePageFilters();
 
-  const eventView = getEventView(filters, fields, sorts, location);
+  const eventView = getEventView(filters, fields, sorts, pageFilters.selection);
 
   const enabled = Object.values(filters).every(value => Boolean(value));
 
@@ -56,14 +55,11 @@ function getEventView(
   filters: SpanMetricsQueryFilters = {},
   fields: string[] = [],
   sorts: Sort[] = [],
-  location: Location
+  pageFilters: PageFilters
 ) {
   const query = MutableSearch.fromQueryObject(filters);
 
-  // TODO: This condition should be enforced everywhere
-  // query.addFilterValue('has', 'span.description');
-
-  const eventView = EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       query: query.formatString(),
@@ -71,7 +67,7 @@ function getEventView(
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
-    location
+    pageFilters
   );
 
   if (sorts.length > 0) {

@@ -8,6 +8,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
+import {Aggregate} from 'sentry/views/starfish/types';
 
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',
@@ -23,7 +24,7 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
 
 export const DEFAULT_INTERVAL = '10m';
 
-export const DEFAULT_DURATION_AGGREGATE = 'avg';
+export const DEFAULT_DURATION_AGGREGATE: Aggregate = 'avg';
 
 export const CHART_HEIGHT = 160;
 
