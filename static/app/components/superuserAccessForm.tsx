@@ -114,13 +114,9 @@ class SuperuserAccessForm extends Component<Props, State> {
       await api.requestPromise(auth_url, {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
-      if (!this.props.hasStaff) {
-        this.setState({showAccessForms: true});
-        // u2fInterface relies on this
-        throw err;
-      } else {
-        this.handleError(err);
-      }
+      this.handleError(err);
+      // u2fInterface relies on this
+      throw err;
     }
   };
 
