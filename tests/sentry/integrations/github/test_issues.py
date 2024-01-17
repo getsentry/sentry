@@ -304,7 +304,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_link_issue(self):
-        issue_id = 321
+        issue_id = "321"
 
         responses.add(
             responses.GET,
@@ -390,6 +390,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         ]
         # link an issue
         data = {"params": {"repo": "getsentry/hello"}}
+        assert event.group is not None
         resp = self.install.get_link_issue_config(group=event.group, **data)
         assert resp[0]["choices"] == [
             ("getsentry/hello", "hello"),
@@ -436,6 +437,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
         assert event.group is not None
         group = event.group
+        assert self.install.org_integration is not None
         integration_service.update_organization_integration(
             org_integration_id=self.install.org_integration.id,
             config={
@@ -474,6 +476,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
         assert event.group is not None
         group = event.group
+        assert self.install.org_integration is not None
         integration_service.update_organization_integration(
             org_integration_id=self.install.org_integration.id,
             config={
@@ -497,6 +500,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
+        assert event.group is not None
         fields = self.install.get_link_issue_config(event.group)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
         assert repo_field["default"] == ""
