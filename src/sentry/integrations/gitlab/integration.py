@@ -458,7 +458,9 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "data": oauth_data,
             },
             "post_install_data": {
-                "redirect_url_format": absolute_uri("/settings/{org_slug}/integrations/gitlab/"),
+                "redirect_url_format": absolute_uri(
+                    f"/settings/{{org_slug}}/integrations/{self.key}/"
+                ),
             },
         }
         return integration
