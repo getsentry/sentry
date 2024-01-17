@@ -1989,3 +1989,10 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enable sending a post update signal after we update groups using a queryset update
+register(
+    "groups.enable-post-update-signal",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)

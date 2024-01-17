@@ -21,7 +21,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore, eventtypes, tagstore
+from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
@@ -298,6 +298,13 @@ def get_recommended_event_for_environments(
 
 class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .enable_post_update_signal(options.get("groups.enable-post-update-signal"))
+        )
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
