@@ -246,23 +246,21 @@ function ActionSet({
           }}
         />
       )}
-      {
-        <GuideAnchor
-          target="issue_stream_archive_button"
-          position="bottom"
+      <GuideAnchor
+        target="issue_stream_archive_button"
+        position="bottom"
+        disabled={ignoreDisabled}
+      >
+        <ArchiveActions
+          onUpdate={onUpdate}
+          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          confirmMessage={() =>
+            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+          }
+          confirmLabel={label('archive')}
           disabled={ignoreDisabled}
-        >
-          <ArchiveActions
-            onUpdate={onUpdate}
-            shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-            confirmMessage={() =>
-              confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
-            }
-            confirmLabel={label('archive')}
-            disabled={ignoreDisabled}
-          />
-        </GuideAnchor>
-      }
+        />
+      </GuideAnchor>
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}

@@ -34,14 +34,8 @@ export default storyBook(Alert, story => {
           alert:
         </p>
         <Alert>
-          {
-            <Fragment>
-              Sentry is cool!{' '}
-              <ExternalLink href="https://sentry.io/welcome/">
-                Learn more here.
-              </ExternalLink>
-            </Fragment>
-          }
+          Sentry is cool!{' '}
+          <ExternalLink href="https://sentry.io/welcome/">Learn more here.</ExternalLink>
         </Alert>
       </Fragment>
     );
