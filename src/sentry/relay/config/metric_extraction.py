@@ -27,7 +27,9 @@ from sentry.snuba.metrics.extraction import (
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
     RuleCondition,
+    SpecVersion,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
@@ -51,7 +53,7 @@ _MAX_ON_DEMAND_WIDGETS = 100
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
 _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
 
-HashedMetricSpec = Tuple[str, MetricSpec]
+HashedMetricSpec = Tuple[str, MetricSpec, SpecVersion]
 
 
 class HighCardinalityWidgetException(Exception):
@@ -77,6 +79,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
     enabled_features = on_demand_metrics_feature_flags(project.organization)
+    sentry_sdk.set_tag("organization_id", project.organization_id)
 
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
@@ -144,35 +147,12 @@ def _get_alert_metric_specs(
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
             )
 
-            if result := _convert_snuba_query_to_metric(
-                project, alert_snuba_query, prefilling, use_updated_env_logic=True
-            ):
-                _log_on_demand_metric_spec(
-                    project_id=project.id,
-                    spec_for="alert",
-                    spec=result,
-                    id=alert.id,
-                    field=alert_snuba_query.aggregate,
-                    query=alert_snuba_query.query,
-                    prefilling=prefilling,
-                )
-                metrics.incr(
-                    "on_demand_metrics.on_demand_spec.for_alert",
-                    tags={"prefilling": prefilling},
-                )
-                specs.append(result)
-
-            # In case the query has an environment, we want to extract with the old environment logic, since we found
-            # a bug in the old logic and this requires us to extract the same metric in parallel but with a different
-            # query hash.
-            if alert_snuba_query.environment_id is not None:
-                if result := _convert_snuba_query_to_metric(
-                    project, alert_snuba_query, prefilling, use_updated_env_logic=False
-                ):
+            if results := _convert_snuba_query_to_metrics(project, alert_snuba_query, prefilling):
+                for spec in results:
                     _log_on_demand_metric_spec(
                         project_id=project.id,
                         spec_for="alert",
-                        spec=result,
+                        spec=spec,
                         id=alert.id,
                         field=alert_snuba_query.aggregate,
                         query=alert_snuba_query.query,
@@ -182,17 +162,10 @@ def _get_alert_metric_specs(
                         "on_demand_metrics.on_demand_spec.for_alert",
                         tags={"prefilling": prefilling},
                     )
-                    specs.append(result)
+                    specs.append(spec)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
-    if len(specs) > max_alert_specs:
-        sentry_sdk.set_tag("organization_id", project.organization_id)
-        # Do not log for Sentry
-        if project.organization.id != 1:
-            logger.error(
-                "Too many (%s) on demand metric alerts for project %s", len(specs), project.slug
-            )
-        specs = specs[:max_alert_specs]
+    specs = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
 
@@ -240,16 +213,41 @@ def _get_widget_metric_specs(
                 return []
 
     max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
-    if len(specs) > max_widget_specs:
-        sentry_sdk.set_tag("organization_id", project.organization_id)
-        # Do not log for Sentry
-        if project.organization.id != 1:
-            logger.error(
-                "Too many (%s) on demand metric widgets for project %s", len(specs), project.slug
-            )
-        specs = specs[:max_widget_specs]
+    specs = _trim_if_above_limit(specs, max_widget_specs, project, "widgets")
 
     return specs
+
+
+def _trim_if_above_limit(
+    specs: Sequence[HashedMetricSpec],
+    max_specs: int,
+    project: Project,
+    widget_type: str,
+) -> list[HashedMetricSpec]:
+    """Trim specs per version if above max limit"""
+    return_specs = []
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+
+    for version, specs_for_version in specs_per_version.items():
+        if len(specs_for_version) > max_specs:
+            # Do not log for Sentry
+            if project.organization.id != 1:
+                logger.error(
+                    "Spec version %s: Too many (%s) on demand metric %s for project %s",
+                    version,
+                    len(specs_for_version),
+                    widget_type,
+                    project.slug,
+                )
+
+            return_specs += specs_for_version[:max_specs]
+        else:
+            return_specs += specs_for_version
+
+    return return_specs
 
 
 @metrics.wraps("on_demand_metrics._merge_metric_specs")
@@ -258,7 +256,7 @@ def _merge_metric_specs(
 ) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     metrics: Dict[str, MetricSpec] = {}
-    for query_hash, spec in alert_specs + widget_specs:
+    for query_hash, spec, _ in alert_specs + widget_specs:
         already_present = metrics.get(query_hash)
         if already_present and already_present != spec:
             logger.error(
@@ -274,22 +272,21 @@ def _merge_metric_specs(
     return [metric for metric in metrics.values()]
 
 
-def _convert_snuba_query_to_metric(
-    project: Project, snuba_query: SnubaQuery, prefilling: bool, use_updated_env_logic: bool
-) -> Optional[HashedMetricSpec]:
+def _convert_snuba_query_to_metrics(
+    project: Project, snuba_query: SnubaQuery, prefilling: bool
+) -> Optional[Sequence[HashedMetricSpec]]:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
     """
     environment = snuba_query.environment.name if snuba_query.environment is not None else None
-    return _convert_aggregate_and_query_to_metric(
+    return _convert_aggregate_and_query_to_metrics(
         project,
         snuba_query.dataset,
         snuba_query.aggregate,
         snuba_query.query,
         environment,
         prefilling,
-        use_updated_env_logic=use_updated_env_logic,
     )
 
 
@@ -314,7 +311,7 @@ def convert_widget_query_to_metric(
             "on_demand_metrics.before_widget_spec_generation",
             tags={"prefilling": prefilling},
         )
-        if result := _convert_aggregate_and_query_to_metric(
+        if results := _convert_aggregate_and_query_to_metrics(
             project,
             # there is an internal check to make sure we extract metrics only for performance dataset
             # however widgets do not have a dataset field, so we need to pass it explicitly
@@ -326,20 +323,21 @@ def convert_widget_query_to_metric(
             groupbys=widget_query.columns,
             spec_type=MetricSpecType.DYNAMIC_QUERY,
         ):
-            _log_on_demand_metric_spec(
-                project_id=project.id,
-                spec_for="widget",
-                spec=result,
-                id=widget_query.id,
-                field=aggregate,
-                query=widget_query.conditions,
-                prefilling=prefilling,
-            )
-            metrics.incr(
-                "on_demand_metrics.on_demand_spec.for_widget",
-                tags={"prefilling": prefilling},
-            )
-            metrics_specs.append(result)
+            for spec in results:
+                _log_on_demand_metric_spec(
+                    project_id=project.id,
+                    spec_for="widget",
+                    spec=spec,
+                    id=widget_query.id,
+                    field=aggregate,
+                    query=widget_query.conditions,
+                    prefilling=prefilling,
+                )
+                metrics.incr(
+                    "on_demand_metrics.on_demand_spec.for_widget",
+                    tags={"prefilling": prefilling},
+                )
+                metrics_specs.append(spec)
 
     return metrics_specs
 
@@ -498,7 +496,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
     return True
 
 
-def _convert_aggregate_and_query_to_metric(
+def _convert_aggregate_and_query_to_metrics(
     project: Project,
     dataset: str,
     aggregate: str,
@@ -507,10 +505,12 @@ def _convert_aggregate_and_query_to_metric(
     prefilling: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
     groupbys: Optional[Sequence[str]] = None,
-    use_updated_env_logic: bool = False,
-) -> Optional[HashedMetricSpec]:
+) -> Optional[Sequence[HashedMetricSpec]]:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
+
+    Extra metric specs will be returned if we need to maintain various versions of it.
+    This makes it easier to maintain multiple spec versions when a mistake is made.
     """
     try:
         # We can avoid injection of the environment in the query, since it's supported by standard, thus it won't change
@@ -519,26 +519,29 @@ def _convert_aggregate_and_query_to_metric(
         if not should_use_on_demand_metrics(dataset, aggregate, query, groupbys, prefilling):
             return None
 
-        on_demand_spec = OnDemandMetricSpec(
-            field=aggregate,
-            query=query,
-            environment=environment,
-            groupbys=groupbys,
-            spec_type=spec_type,
-            use_updated_env_logic=use_updated_env_logic,
-        )
-
-        metric_spec = on_demand_spec.to_metric_spec(project)
-        # TODO: switch to validate_rule_condition
-        if (condition := metric_spec.get("condition")) is not None:
-            validate_sampling_condition(json.dumps(condition))
-        else:
-            metrics.incr(
-                "on_demand_metrics.missing_condition_spec",
-                tags={"prefilling": prefilling},
+        metric_specs_and_hashes = []
+        # Create as many specs as we support
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            on_demand_spec = OnDemandMetricSpec(
+                field=aggregate,
+                query=query,
+                environment=environment,
+                groupbys=groupbys,
+                spec_type=spec_type,
+                spec_version=spec_version,
             )
+            metric_spec = on_demand_spec.to_metric_spec(project)
+            # TODO: switch to validate_rule_condition
+            if (condition := metric_spec.get("condition")) is not None:
+                validate_sampling_condition(json.dumps(condition))
+            else:
+                metrics.incr(
+                    "on_demand_metrics.missing_condition_spec",
+                    tags={"prefilling": prefilling},
+                )
 
-        return on_demand_spec.query_hash, metric_spec
+            metric_specs_and_hashes.append((on_demand_spec.query_hash, metric_spec, spec_version))
+        return metric_specs_and_hashes
     except ValueError:
         # raised by validate_sampling_condition or metric_spec lacking "condition"
         metrics.incr(
@@ -574,7 +577,7 @@ def _log_on_demand_metric_spec(
     query: str,
     prefilling: bool,
 ) -> None:
-    spec_query_hash, spec_dict = spec
+    spec_query_hash, spec_dict, spec_version = spec
 
     logger.info(
         "on_demand_metrics.on_demand_metric_spec",
@@ -586,6 +589,7 @@ def _log_on_demand_metric_spec(
             "spec_for": spec_for,
             "spec_query_hash": spec_query_hash,
             "spec": spec_dict,
+            "spec_version": spec_version,
             "prefilling": prefilling,
         },
     )

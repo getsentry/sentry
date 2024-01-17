@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from unittest import mock
 
 import pytest
@@ -24,7 +24,12 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, MetricSpecType, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import (
+    QUERY_HASH_KEY,
+    MetricSpecType,
+    OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
+)
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
@@ -39,7 +44,7 @@ def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
 
 
 def _metric_percentile_definition(
-    org_id, quantile, field="transaction.duration", alias=None
+    org_id: int, quantile: str, field: str = "transaction.duration", alias: Optional[str] = None
 ) -> Function:
     if alias is None:
         alias = f"p{quantile}_{field.replace('.', '_')}"
@@ -67,7 +72,7 @@ def _metric_percentile_definition(
     )
 
 
-def _metric_conditions(org_id, metrics) -> List[Condition]:
+def _metric_conditions(org_id: int, metrics: list[str]) -> List[Condition]:
     def _resolve_must_succeed(*a, **k):
         ret = indexer.resolve(*a, **k)
         assert ret is not None
@@ -3051,6 +3056,15 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                     skip_time_conditions=False,
                 ),
             )
+            assert query._on_demand_metric_spec_map == {
+                "count(measurements.fp)": OnDemandMetricSpec(
+                    field=field,
+                    query=query_s,
+                    environment=environment,
+                    spec_type=MetricSpecType.SIMPLE_QUERY,
+                    spec_version=OnDemandMetricSpecVersioning.get_default_spec_version(),
+                )
+            }
 
             result = query.run_query("test_query")
 

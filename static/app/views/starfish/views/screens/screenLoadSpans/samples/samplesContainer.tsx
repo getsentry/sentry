@@ -18,7 +18,11 @@ import {DurationCell} from 'sentry/views/starfish/components/tableCells/duration
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {DEFAULT_PLATFORM,PLATFORM_LOCAL_STORAGE_KEY, PLATFORM_QUERY_PARAM} from 'sentry/views/starfish/views/screens/platformSelector';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
@@ -34,6 +38,7 @@ type Props = {
   release?: string;
   sectionSubtitle?: string;
   sectionTitle?: string;
+  spanOp?: string;
   transactionMethod?: string;
 };
 
@@ -43,6 +48,7 @@ export function ScreenLoadSampleContainer({
   transactionMethod,
   release,
   project,
+  spanOp,
 }: Props) {
   const router = useRouter();
   const location = useLocation();
@@ -52,11 +58,13 @@ export function ScreenLoadSampleContainer({
 
   const organization = useOrganization();
 
-  const hasPlatformSelectFeature = organization.features.includes('performance-screens-platform-selector');
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
+  );
   const platform =
-        decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
-        localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
-        DEFAULT_PLATFORM;
+    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSetHighlightedSpanId = useCallback(
@@ -81,6 +89,10 @@ export function ScreenLoadSampleContainer({
 
   if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
     filters['os.name'] = platform;
+  }
+
+  if (spanOp) {
+    filters['span.op'] = spanOp;
   }
 
   const {data} = useSpanMetrics({
@@ -147,7 +159,11 @@ export function ScreenLoadSampleContainer({
         onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
         highlightedSpanId={highlightedSpanId}
         release={release}
-        platform={(project && isCrossPlatform(project) && hasPlatformSelectFeature) ? platform : undefined}
+        platform={
+          project && isCrossPlatform(project) && hasPlatformSelectFeature
+            ? platform
+            : undefined
+        }
       />
       <SampleTable
         highlightedSpanId={highlightedSpanId}

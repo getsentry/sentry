@@ -26,10 +26,8 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.builder.utils import (
@@ -57,6 +55,7 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
+    OnDemandMetricSpecVersioning,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -154,21 +153,17 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
-            # This feature flag is used to control the rollout of the new environment logic which fixes the previous
-            # implementation. The usage of this flag should be that it is set to true only when the extraction of the
-            # new environment specs has been running for at least 14 days.
-            use_updated_env_logic = features.has(
-                "organizations:on-demand-query-with-new-env-logic",
-                Organization.objects.get_from_cache(id=self.organization_id),
-            )
-
+            # Instead of calling OnDemandMetricSpec without a spec_version (defaulting to the least),
+            # we keep this logic here to make future spec versions easier to roll out since it will
+            # save us to look where to add this logic again
+            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
             return OnDemandMetricSpec(
                 field=field,
                 query=self.query,
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
-                use_updated_env_logic=use_updated_env_logic,
+                spec_version=spec_version,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)

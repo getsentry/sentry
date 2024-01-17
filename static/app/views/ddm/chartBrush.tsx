@@ -1,6 +1,16 @@
-import {RefObject, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import color from 'color';
 import {EChartsOption} from 'echarts';
 import moment from 'moment';
 
@@ -9,7 +19,6 @@ import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {MetricRange} from 'sentry/utils/metrics';
-import theme from 'sentry/utils/theme';
 
 import {DateTimeObject} from '../../components/charts/utils';
 
@@ -48,6 +57,8 @@ export function useFocusAreaBrush(
 
   const isDrawingRef = useRef(false);
 
+  const theme = useTheme();
+
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
       if (isDisabled) {
@@ -78,7 +89,7 @@ export function useFocusAreaBrush(
   );
 
   const startBrush = useCallback(() => {
-    if (hasFocusArea) {
+    if (hasFocusArea || isDisabled) {
       return;
     }
 
@@ -90,7 +101,7 @@ export function useFocusAreaBrush(
       },
     });
     isDrawingRef.current = true;
-  }, [chartRef, hasFocusArea]);
+  }, [chartRef, hasFocusArea, isDisabled]);
 
   const handleRemove = useCallback(() => {
     onRemove();
@@ -115,7 +126,7 @@ export function useFocusAreaBrush(
         xAxisIndex: 0,
         brushStyle: {
           borderWidth: 2,
-          borderColor: theme.purple300,
+          borderColor: theme.gray500,
           color: 'transparent',
         },
         inBrush: {
@@ -127,7 +138,7 @@ export function useFocusAreaBrush(
         z: 10,
       } as EChartsOption['brush'],
     };
-  }, [onBrushEnd]);
+  }, [onBrushEnd, theme.gray500]);
 
   if (hasFocusArea) {
     return {
@@ -232,19 +243,20 @@ function BrushRectOverlay({
   const {left, top, width, height} = position;
 
   return (
-    <FocusAreaWrapper ref={wrapperRef}>
-      <FocusAreaRect top={top} left={left} width={width} height={height}>
-        <FocusAreaRectActions top={height}>
-          <Button
-            size="xs"
-            onClick={onZoom}
-            icon={<IconZoom isZoomIn />}
-            aria-label="zoom"
-          />
-          <Button size="xs" onClick={onRemove} icon={<IconClose />} aria-label="remove" />
-        </FocusAreaRectActions>
-      </FocusAreaRect>
-    </FocusAreaWrapper>
+    <Fragment>
+      <FocusAreaWrapper ref={wrapperRef}>
+        <FocusAreaRect top={top} left={left} width={width} height={height} />
+      </FocusAreaWrapper>
+      <FocusAreaRectActions top={top} rectHeight={height} left={left}>
+        <Button
+          size="xs"
+          onClick={onZoom}
+          icon={<IconZoom isZoomIn />}
+          aria-label="zoom"
+        />
+        <Button size="xs" onClick={onRemove} icon={<IconClose />} aria-label="remove" />
+      </FocusAreaRectActions>
+    </Fragment>
   );
 }
 
@@ -273,27 +285,30 @@ const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRa
   };
 };
 
-const CHART_HEIGHT = 256;
-
-const FocusAreaWrapper = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-`;
+const CHART_HEIGHT = 275;
 
 const FocusAreaRectActions = styled('div')<{
+  left: string;
+  rectHeight: string;
   top: string;
 }>`
   position: absolute;
-  top: ${p => p.top};
+  top: calc(${p => p.top} + ${p => p.rectHeight});
+  left: ${p => p.left};
   display: flex;
-  left: 0;
   gap: ${space(0.5)};
   padding: ${space(0.5)};
   z-index: 2;
   pointer-events: auto;
+`;
+
+const FocusAreaWrapper = styled('div')`
+  position: absolute;
+  top: 0px;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const FocusAreaRect = styled('div')<{
@@ -307,9 +322,14 @@ const FocusAreaRect = styled('div')<{
   left: ${p => p.left};
   width: ${p => p.width};
   height: ${p => p.height};
-  outline: 2px solid ${p => p.theme.purple300};
-  outline-offset: -1px;
+
   padding: ${space(1)};
   pointer-events: none;
   z-index: 1;
+
+  outline: 2px solid ${p => p.theme.gray500};
+  outline-style: auto;
+
+  /* requires overflow: hidden on FocusAreaWrapper */
+  box-shadow: 0px 0px 0px 9999px ${p => color(p.theme.surface400).alpha(0.75).toString()};
 `;

@@ -1529,12 +1529,12 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:dynamic-sampling": False,
     # Enables data secrecy mode
     "organizations:enterprise-data-secrecy": False,
-    # Enable archive/escalating issue workflow
-    "organizations:escalating-issues": True,
     # Enable archive/escalating issue workflow in MS Teams
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
+    # Enable ingesting non-sampled profiles
+    "organizations:profiling-ingest-unsampled-profiles": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
@@ -1547,6 +1547,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:global-views": False,
     # Enable grouping of ChunkLoadErrors
     "organizations:group-chunk-load-errors": False,
+    # Enable built-in grouping fingerprint rules
+    "organizations:grouping-built-in-fingerprint-rules": False,
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
@@ -1659,6 +1661,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable rate-limiting via relay for Monitors (crons)
+    "organizations:monitors-quota-rate-limit": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -1681,8 +1685,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
-    # Query on demand metrics with the new environment logic
-    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1911,6 +1913,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Enable browser starfish webvitals module to use backend provided performance scores
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable mobile starfish app start module view
+    "organizations:starfish-mobile-appstart": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
@@ -2927,6 +2931,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
+            # we don't build linux/arm64 snuba images anymore
+            # apple silicon users should have working emulation under colima 0.6.2
+            # or docker desktop
+            "platform": "linux/amd64",
         }
     ),
     "bigtable": lambda settings, options: (
@@ -3026,7 +3034,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "23.12.1"
+SELF_HOSTED_STABLE_VERSION = "24.1.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3965,6 +3973,10 @@ REGION_PINNED_URL_NAMES = {
     # These paths have organization scoped aliases
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
+    "sentry-api-0-prompts-activity",
+    # Legacy monitor endpoints
+    "sentry-api-0-monitor-ingest-check-in-index",
+    "sentry-api-0-monitor-ingest-check-in-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
@@ -3986,6 +3998,9 @@ REGION_PINNED_URL_NAMES = {
 # Shared resource ids for accounting
 EVENT_PROCESSING_STORE = "rc_processing_redis"
 COGS_EVENT_STORE_LABEL = "bigtable_nodestore"
+
+# Disable DDM entirely
+SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True")
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

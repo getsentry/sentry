@@ -281,16 +281,11 @@ function buildRoutes() {
       />
       <Route
         path="/relocation/"
-        component={
-          make(() => import('sentry/views/relocation'))
-        }
+        component={make(() => import('sentry/views/relocation'))}
         key="orgless-relocation"
       >
         <IndexRedirect to="get-started/" />
-        <Route
-          path=":step/"
-          component={make(() => import('sentry/views/relocation'))}
-        />
+        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
       </Route>
       {usingCustomerDomain && (
         <Route
@@ -1750,6 +1745,19 @@ function buildRoutes() {
             path="spans/"
             component={make(
               () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+            )}
+          />
+        </Route>
+        <Route path="app-startup/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/starfish/modules/mobile/appStartup')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/starfish/views/appStartup/screenSummary')
             )}
           />
         </Route>

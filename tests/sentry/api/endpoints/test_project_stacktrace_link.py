@@ -160,6 +160,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "config": None,
             "sourceUrl": None,
             "integrations": [serialized_integration(self.integration)],
+            "error": "no_code_mappings_for_project",
         }
 
     def test_file_not_found_error(self):
@@ -215,7 +216,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @patch("sentry.analytics.record")
-    @patch("sentry.api.endpoints.project_stacktrace_link.Timer")
+    @patch("sentry.integrations.utils.stacktrace_link.Timer")
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_timer_duration_for_analytics(self, mock_integration, mock_timer, mock_record):
         mock_integration.return_value = "https://github.com/"

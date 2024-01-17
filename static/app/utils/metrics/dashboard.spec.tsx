@@ -62,14 +62,14 @@ describe('convertToDashboardWidget', () => {
     ).toEqual({
       title: 'p95(measurements.duration)',
       displayType: DisplayType.BAR,
-      widgetType: 'discover',
+      widgetType: 'custom-metrics',
       limit: 1,
       queries: [
         {
           name: '',
-          aggregates: ['p95(measurements.duration)'],
+          aggregates: ['p95(d:transactions/measurements.duration@second)'],
           columns: [],
-          fields: ['p95(measurements.duration)'],
+          fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
           orderby: '',
         },

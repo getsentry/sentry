@@ -12,6 +12,7 @@ from typing import Any, Generator, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -282,6 +283,13 @@ def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
         region_name = get_local_region().name
+    # TODO(hybridcloud) Remove this once the silo split is complete.
+    if (
+        region_name is None
+        and SiloMode.get_current_mode() == SiloMode.MONOLITH
+        and settings.SENTRY_REGION
+    ):
+        region_name = settings.SENTRY_REGION
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
