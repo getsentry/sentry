@@ -286,8 +286,8 @@ def test_get_metric_extraction_config_single_widget(default_project: Project) ->
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "a312e0db"},
             ],
         }
 
@@ -312,8 +312,8 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "a312e0db"},
             ],
         }
         assert config["metrics"][1] == {
@@ -322,8 +322,8 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "10acc97f"},
             ],
         }
 
@@ -351,8 +351,8 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "a312e0db"},
             ],
         }
         assert config["metrics"][1] == {
@@ -367,8 +367,8 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "e2977925"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "e2977925"},
             ],
         }
         assert config["metrics"][2] == {
@@ -383,8 +383,8 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "c50b5bc7"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "c50b5bc7"},
             ],
         }
 
@@ -411,8 +411,8 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "10acc97f"},
             ],
         }
 
@@ -436,8 +436,8 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "a312e0db"},
             ],
         }
         assert config["metrics"][1] == {
@@ -446,8 +446,8 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "10acc97f"},
             ],
         }
 
@@ -540,8 +540,8 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project: Projec
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": "a312e0db"},
             ],
         }
         assert config["metrics"][1] == {
@@ -550,8 +550,8 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project: Projec
             "field": "event.duration",
             "mri": "d:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
                 {"key": "environment", "field": "event.environment"},
+                {"key": "query_hash", "value": "10acc97f"},
             ],
         }
 
@@ -571,6 +571,7 @@ def test_get_metric_extraction_config_with_failure_count(default_project: Projec
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
+                {"key": "environment", "field": "event.environment"},
                 {
                     "condition": {
                         "inner": {
@@ -584,7 +585,6 @@ def test_get_metric_extraction_config_with_failure_count(default_project: Projec
                     "value": "true",
                 },
                 {"key": "query_hash", "value": "c3a2ddea"},
-                {"key": "environment", "field": "event.environment"},
             ],
         }
 
@@ -608,6 +608,7 @@ def test_get_metric_extraction_config_with_apdex(default_project: Project) -> No
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
+                {"key": "query_hash", "value": "4445a852"},
                 {
                     "condition": {"name": "event.duration", "op": "lte", "value": threshold},
                     "key": "satisfaction",
@@ -629,7 +630,6 @@ def test_get_metric_extraction_config_with_apdex(default_project: Project) -> No
                     "key": "satisfaction",
                     "value": "frustrated",
                 },
-                {"key": "query_hash", "value": "4445a852"},
             ],
         }
 
@@ -661,6 +661,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
+                    {"key": "environment", "field": "event.environment"},
                     {
                         "condition": {
                             "name": f"event.{measurement}.value",
@@ -671,7 +672,6 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": "30cb4ba5"},
-                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -682,6 +682,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
+                    {"key": "environment", "field": "event.environment"},
                     {
                         "condition": {
                             "inner": [
@@ -702,7 +703,6 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": "f207c139"},
-                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -713,6 +713,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
+                    {"key": "environment", "field": "event.environment"},
                     {
                         "condition": {
                             "name": f"event.{measurement}.value",
@@ -723,7 +724,6 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": "051c26d1"},
-                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -734,6 +734,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
+                    {"key": "environment", "field": "event.environment"},
                     {
                         "condition": {
                             "name": f"event.{measurement}.value",
@@ -744,7 +745,6 @@ def test_get_metric_extraction_config_with_count_web_vitals(
                         "value": "matches_hash",
                     },
                     {"key": "query_hash", "value": "511aaa66"},
-                    {"key": "environment", "field": "event.environment"},
                 ],
             }
 
@@ -782,13 +782,17 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                 "field": "event.user.id",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
+                    {"key": "environment", "field": "event.environment"},
+                    {"key": "query_hash", "value": "1394a552"},
                     {
-                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
+                        "condition": {
+                            "name": "event.duration",
+                            "op": "gt",
+                            "value": float(threshold * 4),
+                        },
                         "key": "satisfaction",
                         "value": "frustrated",
                     },
-                    {"key": "query_hash", "value": "1394a552"},
-                    {"key": "environment", "field": "event.environment"},
                 ],
             }
         ]
@@ -820,15 +824,15 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                 "field": "event.user.id",
                 "mri": "s:transactions/on_demand@none",
                 "tags": [
+                    {"key": "custom", "field": "event.tags.custom"},
+                    {"key": "environment", "field": "event.environment"},
+                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
+                    {"key": "query_hash", "value": "565e1845"},
                     {
                         "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
                         "key": "satisfaction",
                         "value": "frustrated",
                     },
-                    {"key": "query_hash", "value": "565e1845"},
-                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
-                    {"key": "custom", "field": "event.tags.custom"},
-                    {"key": "environment", "field": "event.environment"},
                 ],
             }
         ]
@@ -856,10 +860,10 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "d9f30df7"},
-                    {"key": "user.id", "field": "event.user.id"},
-                    {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
+                    {"key": "query_hash", "value": "d9f30df7"},
+                    {"key": "release", "field": "event.release"},
+                    {"key": "user.id", "field": "event.user.id"},
                 ],
             }
         ]
@@ -918,8 +922,8 @@ def test_get_metric_extraction_config_with_no_tag_spec(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [
-                {"key": "query_hash", "value": query_hash},
                 {"field": "event.environment", "key": "environment"},
+                {"key": "query_hash", "value": query_hash},
             ],
         }
 
