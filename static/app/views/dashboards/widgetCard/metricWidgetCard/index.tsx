@@ -166,7 +166,17 @@ export function MetricWidgetCard({
   );
 }
 
-export function MetricWidgetChartContainer({selection, widget, editorParams}) {
+type MetricWidgetChartContainerProps = {
+  selection: PageFilters;
+  widget: Widget;
+  editorParams?: Partial<MetricWidgetQueryParams>;
+};
+
+export function MetricWidgetChartContainer({
+  selection,
+  widget,
+  editorParams = {},
+}: MetricWidgetChartContainerProps) {
   const metricWidgetQueryParams = {
     ...convertFromWidget(widget),
     ...editorParams,
