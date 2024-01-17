@@ -4,7 +4,7 @@ from snuba_sdk import Column, Condition, Timeseries
 from snuba_sdk.conditions import BooleanCondition, BooleanOp, ConditionGroup
 from snuba_sdk.mql.mql import parse_mql
 
-from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
 
 def transform_to_tags(

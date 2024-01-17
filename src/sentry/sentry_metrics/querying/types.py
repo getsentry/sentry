@@ -1,8 +1,6 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Generic, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
-from snuba_sdk import Formula, Metric, Timeseries
+from snuba_sdk import Formula, Timeseries
 
 # Type representing the aggregate value from Snuba, which can be null, int, float or list.
 ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
@@ -18,40 +16,3 @@ GroupKey = Tuple[Group, ...]
 GroupsCollection = Sequence[Sequence[Group]]
 # Type representing the possible expressions for a query.
 QueryExpression = Union[Timeseries, Formula]
-
-T = TypeVar("T")
-
-
-class ArgumentType(Generic[T], ABC):
-    @abstractmethod
-    def validate(self, value: T) -> bool:
-        raise NotImplementedError()
-
-
-class IntArg(ArgumentType[int]):
-    def validate(self, value: T) -> bool:
-        return isinstance(value, int)
-
-
-class StringArg(ArgumentType[str]):
-    def validate(self, value: T) -> bool:
-        return isinstance(value, str)
-
-
-class MetricArg(ArgumentType[Metric]):
-    def validate(self, value: T) -> bool:
-        return isinstance(value, Metric)
-
-
-@dataclass(frozen=True)
-class Placeholder:
-    pass
-
-
-@dataclass(frozen=True)
-class Argument(Generic[T], Placeholder):
-    position: int
-    type: ArgumentType[T]
-
-    def validate(self, value: T) -> bool:
-        return self.type.validate(value)

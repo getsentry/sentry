@@ -268,8 +268,15 @@ class QueryResult:
 
     @property
     def query_name(self) -> str:
-        query = self.series_executable_query or self.totals_executable_query
-        return query.identifier
+        if self.series_executable_query:
+            return self.series_executable_query.identifier
+
+        if self.totals_executable_query:
+            return self.totals_executable_query.identifier
+
+        raise InvalidMetricsQueryError(
+            "Unable to determine the query name for a result with no queries"
+        )
 
     @property
     def modified_start(self) -> datetime:
@@ -393,14 +400,14 @@ class QueryResult:
         return self
 
 
-class MutableQueryExpression:
+class VisitableQueryExpression:
     def __init__(self, query: QueryExpression):
         self._query = query
         self._visitors: List[QueryExpressionVisitor[QueryExpression]] = []
 
     def add_visitor(
         self, visitor: QueryExpressionVisitor[QueryExpression]
-    ) -> "MutableQueryExpression":
+    ) -> "VisitableQueryExpression":
         """
         Adds a visitor to the query expression.
 
@@ -410,7 +417,7 @@ class MutableQueryExpression:
 
         return self
 
-    def get_mutated(self) -> QueryExpression:
+    def get(self) -> QueryExpression:
         """
         Returns the mutated query expression after running all the visitors
         in the order of definition.
@@ -493,7 +500,7 @@ class QueryParser:
 
         return mql
 
-    def _parse_mql(self, mql: str) -> MutableQueryExpression:
+    def _parse_mql(self, mql: str) -> VisitableQueryExpression:
         """
         Parses the field with the MQL grammar.
         """
@@ -512,7 +519,7 @@ class QueryParser:
 
             raise InvalidMetricsQueryError("The supplied query is not valid")
 
-        return MutableQueryExpression(query=query)
+        return VisitableQueryExpression(query=query)
 
     def generate_queries(
         self, environments: Sequence[Environment]
@@ -534,7 +541,7 @@ class QueryParser:
                 field,
                 self._parse_mql(mql_query).add_visitor(ValidationVisitor())
                 # We purposefully want to inject environments after the final query expression tree is expanded.
-                .add_visitor(EnvironmentsInjectionVisitor(environments)).get_mutated(),
+                .add_visitor(EnvironmentsInjectionVisitor(environments)).get(),
             )
 
 
