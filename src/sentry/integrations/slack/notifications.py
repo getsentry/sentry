@@ -139,7 +139,7 @@ def _notify_recipient(
             post_message_task = post_message_control
 
         log_params = {
-            "notification": notification,
+            "notification": str(notification),
             "recipient": recipient.id,
             "channel_id": channel,
         }
