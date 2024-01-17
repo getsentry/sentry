@@ -131,7 +131,10 @@ def retryable_pull(
     # See https://github.com/docker/docker-py/issues/2101 for more information
     while True:
         try:
-            client.images.pull(image, platform=platform)
+            if platform:
+                client.images.pull(image, platform=platform)
+            else:
+                client.images.pull(image)
         except APIError:
             if current_attempt + 1 >= max_attempts:
                 raise
