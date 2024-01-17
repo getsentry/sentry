@@ -1244,7 +1244,7 @@ class OnDemandMetricSpec:
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": self.mri,
             "field": self.field_to_extract,
-            "tags": extended_tags_conditions,
+            "tags": sorted(extended_tags_conditions, key=lambda x: x["key"]),
         }
 
         condition = self.condition
