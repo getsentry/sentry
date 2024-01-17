@@ -1,3 +1,4 @@
+import gc
 from datetime import datetime
 from itertools import chain
 
@@ -69,6 +70,17 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
                 "to pass via pickle (%r, reason is %s) in argument %s"
                 % (task, bad_object, reason, name)
             )
+
+
+@signals.worker_before_create_process.connect
+def celery_prefork_freeze_gc(**kwargs: object) -> None:
+    # prefork: move all current objects to "permanent" gc generation (usually
+    # modules / functions / etc.) preventing them from being paged in during
+    # garbage collection (which writes to objects)
+    #
+    # docs suggest disabling gc up until this point (to reduce holes in
+    # allocated blocks).  that can be a future improvement if this helps
+    gc.freeze()
 
 
 class SentryTask(Task):

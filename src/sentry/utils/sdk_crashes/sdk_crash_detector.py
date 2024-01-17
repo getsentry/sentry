@@ -24,7 +24,7 @@ class SDKCrashDetectorConfig:
 
     min_sdk_version: str
 
-    system_library_paths: Set[str]
+    system_library_path_patterns: Set[str]
 
     sdk_frame_config: SDKFrameConfig
 
@@ -32,13 +32,6 @@ class SDKCrashDetectorConfig:
 
 
 class SDKCrashDetector:
-    """
-    This class is still a work in progress. The plan is that every SDK has to define a subclass of
-    this base class to get SDK crash detection up and running. We most likely will have to pull
-    out some logic of the CocoaSDKCrashDetector into this class when adding the SDK crash detection
-    for another SDK.
-    """
-
     def __init__(
         self,
         config: SDKCrashDetectorConfig,
@@ -134,9 +127,9 @@ class SDKCrashDetector:
 
     def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
         for field in self.fields_containing_paths:
-            for system_library_path in self.config.system_library_paths:
+            for pattern in self.config.system_library_path_patterns:
                 field_with_path = frame.get(field)
-                if field_with_path and field_with_path.startswith(system_library_path):
+                if field_with_path and glob_match(field_with_path, pattern, ignorecase=True):
                     return True
 
         return False

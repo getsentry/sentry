@@ -480,6 +480,9 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
+from .endpoints.project_performance_general_settings import (
+    ProjectPerformanceGeneralSettingsEndpoint,
+)
 from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
@@ -2003,6 +2006,11 @@ ORGANIZATION_URLS = [
         OrganizationUnsubscribeIssue.as_view(),
         name="sentry-api-0-organization-unsubscribe-issue",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/prompts-activity/$",
+        PromptsActivityEndpoint.as_view(),
+        name="sentry-api-0-organization-prompts-activity",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2483,6 +2491,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance-issues/configure/$",
         ProjectPerformanceIssueSettingsEndpoint.as_view(),
         name="sentry-api-0-project-performance-issue-settings",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance/configure/$",
+        ProjectPerformanceGeneralSettingsEndpoint.as_view(),
+        name="sentry-api-0-project-performance-general-settings",
     ),
     # Load plugin project urls
     re_path(

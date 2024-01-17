@@ -160,7 +160,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
+    # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50
+    # Number of groups returned (applies to new endpoint).
+    default_limit = 20
 
     def _new_get(self, request: Request, organization) -> Response:
         # We first parse the interval and date, since this is dependent on the query params.
@@ -168,9 +171,19 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         interval = int(3600 if interval is None else interval.total_seconds())
         start, end = get_date_range_from_params(request.GET)
 
-        try:
-            limit = request.GET.get("limit")
+        limit = request.GET.get("limit")
+        if not limit:
+            limit = self.default_limit
+        else:
+            try:
+                limit = int(limit)
+            except ValueError:
+                return Response(
+                    status=400,
+                    data={"detail": "The provided `limit` is invalid, an integer is required"},
+                )
 
+        try:
             results = run_metrics_query(
                 fields=request.GET.getlist("field", []),
                 interval=interval,
@@ -184,7 +197,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query=request.GET.get("query"),
                 group_bys=request.GET.getlist("groupBy"),
                 order_by=request.GET.get("orderBy"),
-                limit=int(limit) if limit else None,
+                limit=limit,
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})

@@ -1,6 +1,6 @@
 import logging
 from typing import Any, Mapping
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 import responses
@@ -83,7 +83,7 @@ class BaseProjectStacktraceLink(APITestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration = self.create_provider_integration(provider="example", name="Example")
             self.integration.add_organization(self.organization, self.user)
             self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
@@ -160,6 +160,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "config": None,
             "sourceUrl": None,
             "integrations": [serialized_integration(self.integration)],
+            "error": "no_code_mappings_for_project",
         }
 
     def test_file_not_found_error(self):
@@ -198,7 +199,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
+    @patch("sentry.integrations.utils.stacktrace_link.munged_filename_and_frames")
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_not_found_and_munge_frame_fallback_not_found(self, mock_integration, mock_munger):
         mock_integration.return_value = None
@@ -224,7 +225,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
         )
 
-    @patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
+    @patch("sentry.integrations.utils.stacktrace_link.munged_filename_and_frames")
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_not_found_munge_frame_fallback_success(self, mock_integration, mock_munger):
         mock_integration.side_effect = [None, "https://github.com/repo/path/to/munged/file.py"]
@@ -263,6 +264,40 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.integrations.utils.stacktrace_link.Timer")
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_timer_duration_for_analytics(self, mock_integration, mock_timer, mock_record):
+        mock_integration.return_value = "https://github.com/"
+        mock_duration = PropertyMock(return_value=5)
+        type(mock_timer.return_value.__enter__.return_value).duration = mock_duration
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": self.filepath, "groupId": 1, "absPath": self.filepath},
+        )
+
+        mock_record.assert_any_call(
+            "function_timer.timed",
+            function_name="get_stacktrace_link",
+            duration=5,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id="1",
+            frame_abs_path=self.filepath,
+        )
+        mock_record.assert_any_call(
+            "integration.stacktrace.linked",
+            provider="example",
+            config_id=str(self.code_mapping1.id),
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            filepath=self.filepath,
+            status="success",
+            link_fetch_iterations=1,
+        )
 
 
 @region_silo_test

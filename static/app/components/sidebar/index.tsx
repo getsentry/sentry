@@ -322,13 +322,6 @@ function Sidebar({organization}: Props) {
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/database/`}
-          id="performance-database"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
@@ -399,7 +392,8 @@ function Sidebar({organization}: Props) {
         label={t('Crons')}
         to={`/organizations/${organization.slug}/crons/`}
         id="crons"
-        isBeta
+        // TODO(davidenwang): Remove isBeta completely after GA Jan 11th
+        isBeta={organization.features.includes('crons-disable-new-projects')}
       />
     </Feature>
   );

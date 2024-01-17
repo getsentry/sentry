@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
+from sentry import options
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import functions
@@ -23,7 +24,7 @@ def query_profiles_data(
         params=params,
         query=query,
         selected_columns=selected_columns,
-        limit=100,
+        limit=options.get("profiling.flamegraph.profile-set.size"),
     )
 
     builder.add_conditions(

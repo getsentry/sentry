@@ -468,6 +468,12 @@ class MonitorCheckIn(Model):
             # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
             # used for latest on api endpoints
+            models.Index(
+                fields=["monitor", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="api_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
@@ -534,6 +540,8 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     def ensure_environment(
         self, project: Project, monitor: Monitor, environment_name: str | None
     ) -> MonitorEnvironment:
+        from sentry.monitors.rate_limit import update_monitor_quota
+
         if not environment_name:
             environment_name = "production"
 
@@ -543,9 +551,15 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        return MonitorEnvironment.objects.get_or_create(
+        monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
-        )[0]
+        )
+
+        # recompute per-project monitor check-in rate limit quota
+        if created:
+            update_monitor_quota(monitor_env)
+
+        return monitor_env
 
 
 @region_silo_only_model
