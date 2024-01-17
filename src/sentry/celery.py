@@ -1,7 +1,8 @@
+import gc
 from datetime import datetime
 from itertools import chain
 
-from celery import Celery, Task
+from celery import Celery, Task, signals
 from celery.worker.request import Request
 from django.conf import settings
 from django.db import models
@@ -71,6 +72,17 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
             )
 
 
+@signals.worker_before_create_process.connect
+def celery_prefork_freeze_gc(**kwargs: object) -> None:
+    # prefork: move all current objects to "permanent" gc generation (usually
+    # modules / functions / etc.) preventing them from being paged in during
+    # garbage collection (which writes to objects)
+    #
+    # docs suggest disabling gc up until this point (to reduce holes in
+    # allocated blocks).  that can be a future improvement if this helps
+    gc.freeze()
+
+
 class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
@@ -99,6 +111,11 @@ class SentryRequest(Request):
 
 class SentryCelery(Celery):
     task_cls = SentryTask
+
+
+@signals.worker_process_init.connect
+def record_worker_init(*args, **kwargs):
+    metrics.incr("sentry.jobs.process.start")
 
 
 app = SentryCelery("sentry")

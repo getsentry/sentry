@@ -27,6 +27,9 @@ class MovingAverageDetectorState(DetectorState):
     FIELD_MOVING_AVG_SHORT = "S"
     FIELD_MOVING_AVG_LONG = "L"
 
+    def get_moving_avg(self) -> float:
+        return self.moving_avg_long
+
     def to_redis_dict(self) -> Mapping[str | bytes, bytes | float | int | str]:
         d: MutableMapping[str | bytes, bytes | float | int | str] = {
             self.FIELD_COUNT: self.count,
@@ -54,7 +57,7 @@ class MovingAverageDetectorState(DetectorState):
         )
 
     def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
-        value = self.moving_avg_long
+        value = self.get_moving_avg()
 
         rel_change = (value - target) / target
         if rel_change < rel_threshold:
@@ -65,13 +68,13 @@ class MovingAverageDetectorState(DetectorState):
     def should_escalate(
         self, baseline: float, regressed: float, min_change: float, rel_threshold: float
     ) -> bool:
-        value = self.moving_avg_long
+        value = self.get_moving_avg()
 
         change = value - regressed
         if change < min_change:
             return False
 
-        rel_change = change / baseline
+        rel_change = change / (regressed - baseline)
         if rel_change > rel_threshold:
             return True
 

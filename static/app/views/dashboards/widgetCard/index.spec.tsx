@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -24,7 +24,7 @@ jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
-    organization: Organization({
+    organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
       projects: [ProjectFixture()],
     }),
@@ -102,7 +102,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -129,7 +129,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -154,7 +154,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -188,7 +188,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -224,7 +224,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -261,7 +261,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -291,7 +291,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -319,7 +319,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -347,7 +347,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={mock}
         onDuplicate={() => undefined}
@@ -375,7 +375,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -410,7 +410,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -445,7 +445,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -491,7 +491,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={tableWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -524,7 +524,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -552,7 +552,7 @@ describe('Dashboards > WidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -592,7 +592,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0]}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -663,7 +663,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -759,7 +759,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -789,7 +789,7 @@ describe('Dashboards > WidgetCard', function () {
         }}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}

@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -131,7 +131,7 @@ function initializeTrendsData(
   const features = extraFeatures
     ? ['transaction-event', 'performance-view', ...extraFeatures]
     : ['transaction-event', 'performance-view'];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: _projects,
   });
@@ -184,7 +184,7 @@ describe('Performance > Trends', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({

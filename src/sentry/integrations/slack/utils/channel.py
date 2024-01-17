@@ -134,7 +134,7 @@ def get_channel_id_with_timeout(
         prefix = "#"
     except ApiError as e:
         if str(e) != "channel_not_found":
-            raise e
+            raise
         # Check if user
         cursor = ""
         while True:
@@ -146,7 +146,7 @@ def get_channel_id_with_timeout(
                     "rule.slack.user_list_rate_limited",
                     extra={"error": str(e), "integration_id": integration.id},
                 )
-                raise e
+                raise
             except ApiError as e:
                 logger.info(
                     "rule.slack.user_list_other_error",

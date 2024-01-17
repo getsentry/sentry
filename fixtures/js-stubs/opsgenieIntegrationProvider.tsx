@@ -1,6 +1,6 @@
 import {IntegrationProvider} from 'sentry/types';
 
-export function OpsgenieIntegrationProvider(
+export function OpsgenieIntegrationProviderFixture(
   params: Partial<IntegrationProvider> = {}
 ): IntegrationProvider {
   return {

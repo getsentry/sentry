@@ -1,9 +1,9 @@
-import * as Sentry from '@sentry/react';
-
+import {MRI} from 'sentry/types';
 import {
   getDateTimeParams,
   MetricMetaCodeLocation,
   MetricRange,
+  MetricSpan,
 } from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,9 +16,10 @@ type ApiResponse = {
 type MetricsDDMMetaOpts = MetricRange & {
   codeLocations?: boolean;
   metricSpans?: boolean;
+  query?: string;
 };
 
-function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts) {
+function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -26,15 +27,24 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
   const dateTimeParams =
     start || end ? {start, end} : getDateTimeParams(selection.datetime);
 
-  const {data, isLoading, isError, refetch} = useApiQuery<ApiResponse>(
+  const minMaxParams =
+    // remove non-numeric values
+    options.min && options.max && !isNaN(options.min) && !isNaN(options.max)
+      ? {min: options.min, max: options.max}
+      : {};
+
+  const queryInfo = useApiQuery<ApiResponse>(
     [
       `/organizations/${organization.slug}/ddm/meta/`,
       {
         query: {
           metric: mri,
           project: selection.projects,
-          ...options,
+          codeLocations: options.codeLocations,
+          metricSpans: options.metricSpans,
+          query: options.query,
           ...dateTimeParams,
+          ...minMaxParams,
         },
       },
     ],
@@ -44,18 +54,21 @@ function useMetricsDDMMeta(mri: string | undefined, options: MetricsDDMMetaOpts)
     }
   );
 
-  if (!data) {
-    return {data, isLoading};
+  if (!queryInfo.data) {
+    return queryInfo;
   }
 
-  mapToNewResponseShape(data);
-  deduplicateCodeLocations(data);
-  sortCodeLocations(data);
+  const data = sortCodeLocations(
+    deduplicateCodeLocations(mapToNewResponseShape(queryInfo.data, mri))
+  );
 
-  return {data, isLoading, isError, refetch};
+  return {...queryInfo, data};
 }
 
-export function useMetricsSpans(mri: string | undefined, options: MetricRange = {}) {
+export function useMetricsSpans(
+  mri: MRI | undefined,
+  options: Omit<MetricsDDMMetaOpts, 'metricSpans'> = {}
+) {
   return useMetricsDDMMeta(mri, {
     ...options,
     metricSpans: true,
@@ -63,22 +76,28 @@ export function useMetricsSpans(mri: string | undefined, options: MetricRange = 
 }
 
 export function useMetricsCodeLocations(
-  mri: string | undefined,
-  options: MetricRange = {}
+  mri: MRI | undefined,
+  options: Omit<MetricsDDMMetaOpts, 'codeLocations'> = {}
 ) {
   return useMetricsDDMMeta(mri, {...options, codeLocations: true});
 }
 
-const mapToNewResponseShape = (data: ApiResponse) => {
+const mapToNewResponseShape = (
+  data: ApiResponse & {metricSpans?: MetricSpan[]},
+  mri: MRI | undefined
+) => {
   // If the response is already in the new shape, do nothing
   if (data.metrics) {
-    return;
+    return data;
   }
+
+  const newData = {...data};
   // @ts-expect-error codeLocations is defined in the old response shape
-  data.metrics = (data.codeLocations ?? [])?.map(codeLocation => {
+  newData.metrics = (data.codeLocations ?? [])?.map(codeLocation => {
     return {
       mri: codeLocation.mri,
       timestamp: codeLocation.timestamp,
+      metricSpans: data.metricSpans,
       codeLocations: (codeLocation.frames ?? []).map(frame => {
         return {
           function: frame.function,
@@ -94,22 +113,35 @@ const mapToNewResponseShape = (data: ApiResponse) => {
     };
   });
 
-  // @ts-expect-error metricsSpans is defined in the old response shape
-  if (data.metricsSpans?.length) {
-    Sentry.captureMessage('Non-empty metric spans response');
+  if (!newData.metrics.length && data.metricSpans?.length && mri) {
+    newData.metrics = data.metricSpans.map(metricSpan => {
+      return {
+        mri,
+        // TODO(ddm): Api has inconsistent timestamp formats between codeLocations and metricSpans
+        timestamp: new Date(metricSpan.timestamp).getTime(),
+        metricSpans: data.metricSpans,
+        codeLocations: [],
+      };
+    });
   }
+
+  return newData;
 };
 
 const sortCodeLocations = (data: ApiResponse) => {
-  data.metrics.sort((a, b) => {
+  const newData = {...data};
+  newData.metrics = [...data.metrics].sort((a, b) => {
     return b.timestamp - a.timestamp;
   });
+  return newData;
 };
 
 const deduplicateCodeLocations = (data: ApiResponse) => {
-  data.metrics = data.metrics.filter((element, index) => {
+  const newData = {...data};
+  newData.metrics = data.metrics.filter((element, index) => {
     return !data.metrics.slice(0, index).some(e => equalCodeLocations(e, element));
   });
+  return newData;
 };
 
 const equalCodeLocations = (a: MetricMetaCodeLocation, b: MetricMetaCodeLocation) => {

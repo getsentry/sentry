@@ -322,7 +322,7 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
@@ -330,12 +330,55 @@ interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+  type: GroupActivityType.SET_RESOLVED;
+}
+
+/**
+ * An integration marks an issue as resolved
+ */
+interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_RESOLVED;
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
+  data: {
+    forecast: number;
+  };
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+/**
+ * An integration marks an issue as unresolved
+ */
+interface GroupActivitySetUnresolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -516,7 +559,10 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
+  | GroupActivitySetResolvedIntegration
   | GroupActivitySetUnresolved
+  | GroupActivitySetUnresolvedForecast
+  | GroupActivitySetUnresolvedIntegration
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease

@@ -1,9 +1,9 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntry as EventEntryFixture} from 'sentry-fixture/eventEntry';
-import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -25,7 +25,7 @@ describe('SharedGroupDetails', function () {
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
+        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
       }),
     });
     MockApiClient.addMockResponse({
@@ -35,7 +35,7 @@ describe('SharedGroupDetails', function () {
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
+        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
       }),
     });
   });

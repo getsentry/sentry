@@ -7,7 +7,6 @@ from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
-from sentry.models.integrations.integration import Integration
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -263,7 +262,7 @@ class FetchCommitsTest(TestCase):
         org = self.create_organization(owner=self.user, name="baz")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org)
 
         repo = Repository.objects.create(

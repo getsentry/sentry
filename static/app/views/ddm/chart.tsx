@@ -12,7 +12,11 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  isCumulativeOp,
+  MetricDisplayType,
+} from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
 import {FocusArea, useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
@@ -22,13 +26,14 @@ import {getFormatter} from '../../components/charts/components/tooltip';
 import {Series} from './widget';
 
 type ChartProps = {
-  addFocusArea: (area: FocusArea) => void;
   displayType: MetricDisplayType;
   focusArea: FocusArea | null;
-  removeFocusArea: () => void;
   series: Series[];
   widgetIndex: number;
+  addFocusArea?: (area: FocusArea) => void;
+  height?: number;
   operation?: string;
+  removeFocusArea?: () => void;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -46,6 +51,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       addFocusArea,
       focusArea,
       removeFocusArea,
+      height,
     },
     forwardedRef
   ) => {
@@ -67,13 +73,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const focusAreaBrush = useFocusAreaBrush(
       chartRef,
       focusArea,
-      addFocusArea,
-      removeFocusArea,
-      handleZoom,
       {
         widgetIndex,
-        isDisabled: !isHovered,
-      }
+        isDisabled: !isHovered || !addFocusArea || !removeFocusArea || !handleZoom,
+        useFullYAxis: isCumulativeOp(operation),
+      },
+      addFocusArea,
+      removeFocusArea,
+      handleZoom
     );
 
     // TODO(ddm): Try to do this in a more elegant way
@@ -97,7 +104,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
     const isSubMinuteBucket = bucketSize < 60_000;
     const seriesLength = seriesToShow[0]?.data.length;
-    const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
+    const displayFogOfWar = isCumulativeOp(operation);
 
     const chartProps = useMemo(() => {
       const formatters = {
@@ -109,15 +116,18 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 10,
       };
+      const heightOptions = height ? {height} : {autoHeightResize: true};
+
       return {
+        ...heightOptions,
         ...focusAreaBrush.options,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
-        height: 300,
         colors: seriesToShow.map(s => s.color),
-        grid: {top: 20, bottom: 20, left: 15, right: 25},
+        grid: {top: 5, bottom: 0, left: 0, right: 0},
+
         tooltip: {
           formatter: (params, asyncTicket) => {
             if (focusAreaBrush.isDrawingRef.current) {
@@ -161,6 +171,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       operation,
       seriesToShow,
       unit,
+      height,
     ]);
 
     return (
@@ -169,7 +180,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         {displayType === MetricDisplayType.LINE ? (
           <LineChart {...chartProps} />
         ) : displayType === MetricDisplayType.AREA ? (
-          <AreaChart {...chartProps} />
+          <AreaChart stacked {...chartProps} />
         ) : (
           <BarChart stacked animation={false} {...chartProps} />
         )}
@@ -225,15 +236,15 @@ function getWidthFactor(bucketSize: number) {
 
 const ChartWrapper = styled('div')`
   position: relative;
-  height: 300px;
+  height: 100%;
 `;
 
 const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: 244px;
+  height: calc(100% - 29px);
   width: ${p => p.width}%;
   position: absolute;
-  right: 21px;
-  top: 18px;
+  right: 0px;
+  top: 5px;
   pointer-events: none;
   background: linear-gradient(
     90deg,

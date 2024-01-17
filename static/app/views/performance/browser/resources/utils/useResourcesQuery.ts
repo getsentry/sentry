@@ -1,6 +1,7 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -8,13 +9,13 @@ import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/performance/browser/resources/shared/constants';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {
   ModuleFilters,
   useResourceModuleFilters,
 } from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {
   SPAN_DOMAIN,
@@ -88,7 +89,6 @@ export const useResourcesQuery = ({
         `avg(${SPAN_SELF_TIME})`,
         'spm()',
         SPAN_GROUP,
-        SPAN_DOMAIN,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         'project.id',
         `${TIME_SPENT_PERCENTAGE}()`,
@@ -126,11 +126,6 @@ export const useResourcesQuery = ({
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
     [SPAN_GROUP]: row[SPAN_GROUP].toString(),
-    [RESOURCE_RENDER_BLOCKING_STATUS]: row[RESOURCE_RENDER_BLOCKING_STATUS] as
-      | ''
-      | 'non-blocking'
-      | 'blocking',
-    [SPAN_DOMAIN]: row[SPAN_DOMAIN][0]?.toString(),
     [PROJECT_ID]: row[PROJECT_ID] as number,
     [`avg(http.response_content_length)`]: row[
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`
@@ -156,10 +151,10 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
 };
 
 const SPAN_OP_FILTER = {
-  'resource.script': [`${SPAN_OP}:resource.script`],
-  'resource.css': [`${FILE_EXTENSION}:css`],
-  'resource.font': [`${FILE_EXTENSION}:[${FONT_FILE_EXTENSIONS.join(',')}]`],
-  'resource.img': [
+  [ResourceSpanOps.SCRIPT]: [`${SPAN_OP}:${ResourceSpanOps.SCRIPT}`],
+  [ResourceSpanOps.CSS]: [`${FILE_EXTENSION}:css`],
+  [ResourceSpanOps.FONT]: [`${FILE_EXTENSION}:[${FONT_FILE_EXTENSIONS.join(',')}]`],
+  [ResourceSpanOps.IMAGE]: [
     `${FILE_EXTENSION}:[${IMAGE_FILE_EXTENSIONS.join(',')}]`,
     `${SPAN_OP}:resource.img`,
   ],

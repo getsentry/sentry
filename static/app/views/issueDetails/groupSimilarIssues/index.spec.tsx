@@ -1,5 +1,5 @@
-import {Groups} from 'sentry-fixture/groups';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupsFixture} from 'sentry-fixture/groups';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -42,7 +42,7 @@ describe('Issues Similar View', function () {
   ];
 
   const mockData = {
-    similar: Groups().map((issue, i) => [issue, scores[i]]),
+    similar: GroupsFixture().map((issue, i) => [issue, scores[i]]),
   };
 
   const router = RouterFixture();
@@ -117,5 +117,28 @@ describe('Issues Similar View', function () {
     expect(MockNavigate).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/321/similar/'
     );
+  });
+
+  it('correctly shows merge count', async function () {
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByTestId('similar-item-row'));
+    expect(screen.getByText('Merge (1)')).toBeInTheDocument();
+
+    // Correctly show "Merge (0)" when the item is un-clicked
+    await userEvent.click(await screen.findByTestId('similar-item-row'));
+    expect(screen.getByText('Merge (0)')).toBeInTheDocument();
   });
 });

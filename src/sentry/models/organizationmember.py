@@ -20,7 +20,9 @@ from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -684,3 +686,16 @@ class OrganizationMember(ReplicatedRegionModel):
             organization_id=shard_identifier,
             mapping=rpc_org_member_update,
         )
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # If the inviter didn't make it into the import, just null them out rather than evicting
+        # this user from the organization due to their absence.
+        if (
+            self.inviter_id is not None
+            and pk_map.get_pk(NormalizedModelName("sentry.user"), self.inviter_id) is None
+        ):
+            self.inviter_id = None
+
+        return super().normalize_before_relocation_import(pk_map, scope, flags)

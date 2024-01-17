@@ -321,11 +321,11 @@ class BaseApiClient(TrackResponseMixin):
                     raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
                 # If it's not something we recognize, let the caller deal with it
-                raise e
+                raise
 
             self.track_response_data(resp.status_code, span, None, resp, extra=extra)
 
-            self.record_response(resp)
+            self.record_response_for_disabling_integration(resp)
 
             if resp.status_code == 204:
                 return {}
@@ -411,7 +411,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self, response: Response):
+    def record_response_for_disabling_integration(self, response: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
@@ -481,7 +481,6 @@ class BaseApiClient(TrackResponseMixin):
                 and rpc_integration.provider == "gitlab"
             )
         ):
-
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )

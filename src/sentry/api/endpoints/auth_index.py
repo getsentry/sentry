@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,20 +18,19 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
+from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models.authenticator import Authenticator
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
-from sentry.utils.auth import has_completed_sso, initiate_login
+from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
-
-DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
 
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
@@ -38,19 +38,10 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
 
 
 @control_silo_endpoint
-class AuthIndexEndpoint(Endpoint):
-    publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
-    }
+class BaseAuthIndexEndpoint(Endpoint):
     """
-    Manage session authentication
-
-    Intended to be used by the internal Sentry application to handle
-    authentication methods from JS endpoints by relying on internal sessions
-    and simple HTTP authentication.
+    Base endpoint to manage session authentication. Shared between
+    AuthIndexEndpoint and StaffAuthIndexEndpoint (in getsentry)
     """
 
     owner = ApiOwner.ENTERPRISE
@@ -58,8 +49,15 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
+    def get(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        user = promote_request_rpc_user(request)
+        return Response(serialize(user, user, DetailedSelfUserSerializer()))
+
     @staticmethod
-    def _reauthenticate_with_sso(request, org_id):
+    def _reauthenticate_with_sso(request: Request, org_id: int) -> None:
         """
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
@@ -75,7 +73,7 @@ class AuthIndexEndpoint(Endpoint):
         )
 
     @staticmethod
-    def _verify_user_via_inputs(validator, request):
+    def _verify_user_via_inputs(validator: AuthVerifyValidator, request: Request) -> bool:
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
@@ -113,9 +111,26 @@ class AuthIndexEndpoint(Endpoint):
             return authenticated
         return False
 
+
+@control_silo_endpoint
+class AuthIndexEndpoint(BaseAuthIndexEndpoint):
+    publish_status = {
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    """
+    Manage session authentication
+
+    Intended to be used by the internal Sentry application to handle
+    authentication methods from JS endpoints by relying on internal sessions
+    and simple HTTP authentication.
+    """
+
     def _validate_superuser(
         self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool
-    ):
+    ) -> bool:
         """
         For a superuser, they need to be validated before we can grant an active superuser session.
         If the user has a password or u2f device, authenticate the password/challenge that was sent is valid.
@@ -126,8 +141,8 @@ class AuthIndexEndpoint(Endpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
-        # TODO Look at AuthVerifyValidator
-        validator.is_valid()
+        # Disable exception for missing password or u2f code if we're running locally
+        validator.is_valid(raise_exception=not DISABLE_SSO_CHECK_FOR_LOCAL_DEV)
 
         authenticated = (
             self._verify_user_via_inputs(validator, request)
@@ -136,21 +151,11 @@ class AuthIndexEndpoint(Endpoint):
         )
 
         if Superuser.org_id:
-            if (
-                not has_completed_sso(request, Superuser.org_id)
-                and not DISABLE_SSO_CHECK_FOR_LOCAL_DEV
-            ):
+            if not has_completed_sso(request, Superuser.org_id):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
 
         return authenticated
-
-    def get(self, request: Request) -> Response:
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        user = promote_request_rpc_user(request)
-        return Response(serialize(user, user, DetailedSelfUserSerializer()))
 
     def post(self, request: Request) -> Response:
         """
@@ -197,7 +202,7 @@ class AuthIndexEndpoint(Endpoint):
 
         return self.get(request)
 
-    def put(self, request: Request):
+    def put(self, request: Request) -> Response:
         """
         Verify a User
         `````````````
@@ -214,8 +219,10 @@ class AuthIndexEndpoint(Endpoint):
         validator = AuthVerifyValidator(data=request.data)
 
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
-            if not validator.is_valid():
-                return self.respond(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                validator.is_valid(raise_exception=True)
+            except ValidationError:
+                return Response({"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400)
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
@@ -242,7 +249,10 @@ class AuthIndexEndpoint(Endpoint):
                         return Response(
                             {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
                         )
-            authenticated = self._validate_superuser(validator, request, verify_authenticator)
+            try:
+                authenticated = self._validate_superuser(validator, request, verify_authenticator)
+            except ValidationError:
+                return Response({"detail": {"code": MISSING_PASSWORD_OR_U2F_CODE}}, status=400)
 
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
@@ -252,12 +262,10 @@ class AuthIndexEndpoint(Endpoint):
             auth.login(request._request, promote_request_rpc_user(request))
             metrics.incr(
                 "sudo_modal.success",
-                sample_rate=1.0,
             )
         except auth.AuthUserPasswordExpired:
             metrics.incr(
                 "sudo_modal.failure",
-                sample_rate=1.0,
             )
             return Response(
                 {

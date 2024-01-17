@@ -30,6 +30,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
+from sentry.api.utils import handle_query_errors
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -551,7 +552,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             organization,
             actor=request.user,
         )
-        with self.handle_query_errors():
+        with handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params, limit)
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
@@ -1023,7 +1024,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             result = discover.query(
                 selected_columns=[
                     "count_unique(project_id) as projects",

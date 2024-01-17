@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -47,8 +48,6 @@ import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
-import {RELEASE_LEVEL as WEBVITALS_RELEASE_LEVEL} from 'sentry/views/performance/browser/webVitals/settings';
-import {SCREENS_RELEASE_LEVEL} from 'sentry/views/performance/mobile/settings';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -118,7 +117,9 @@ function Sidebar({organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const hasSuperuserSession = isActiveSuperuser();
+
+  // Avoid showing superuser UI on self-hosted instances
+  const hasSuperuserSession = isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
 
   useOpenOnboardingSidebar();
 
@@ -258,9 +259,6 @@ function Sidebar({organization}: Props) {
               <Feature features="starfish-browser-webvitals" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  isAlpha={WEBVITALS_RELEASE_LEVEL === 'alpha'}
-                  isBeta={WEBVITALS_RELEASE_LEVEL === 'beta'}
-                  isNew={WEBVITALS_RELEASE_LEVEL === 'new'}
                   label={
                     <GuideAnchor target="performance-webvitals">
                       {t('Web Vitals')}
@@ -274,9 +272,6 @@ function Sidebar({organization}: Props) {
               <Feature features="performance-screens-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  isAlpha={SCREENS_RELEASE_LEVEL === 'alpha'}
-                  isBeta={SCREENS_RELEASE_LEVEL === 'beta'}
-                  isNew={SCREENS_RELEASE_LEVEL === 'new'}
                   label={t('Mobile')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
@@ -286,7 +281,6 @@ function Sidebar({organization}: Props) {
               <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
-                  isNew
                   label={<GuideAnchor target="starfish">{t('Resources')}</GuideAnchor>}
                   to={`/organizations/${organization.slug}/performance/browser/resources`}
                   id="performance-browser-resources"
@@ -326,13 +320,6 @@ function Sidebar({organization}: Props) {
         id="starfish"
         exact
       >
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/database/`}
-          id="performance-database"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
         <SidebarItem
           {...sidebarItemProps}
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
@@ -405,7 +392,8 @@ function Sidebar({organization}: Props) {
         label={t('Crons')}
         to={`/organizations/${organization.slug}/crons/`}
         id="crons"
-        isBeta
+        // TODO(davidenwang): Remove isBeta completely after GA Jan 11th
+        isBeta={organization.features.includes('crons-disable-new-projects')}
       />
     </Feature>
   );
@@ -513,6 +501,8 @@ function Sidebar({organization}: Props) {
             user={config.user}
             config={config}
           />
+
+          {hasSuperuserSession && <Hook name="component:superuser-warning" />}
         </DropdownSidebarSection>
 
         <PrimaryItems>

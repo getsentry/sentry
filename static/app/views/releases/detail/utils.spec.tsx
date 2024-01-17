@@ -1,4 +1,4 @@
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 

@@ -17,7 +17,7 @@ import {CrumbLink} from '.';
 type Props = RouteComponentProps<{projectId?: string}, {}>;
 
 function OrganizationCrumb({params, routes, route, ...props}: Props) {
-  const organizations = useLegacyStore(OrganizationsStore);
+  const {organizations} = useLegacyStore(OrganizationsStore);
   const organization = useOrganization();
 
   const handleSelect = (item: {value: Organization}) => {

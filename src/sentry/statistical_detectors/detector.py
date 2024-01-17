@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import heapq
+import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import DefaultDict, Generator, Iterable, List, Optional, Set, Tuple
 
 import sentry_sdk
 
 from sentry import options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.issues.ingest import process_occurrence_data
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
@@ -26,9 +29,12 @@ from sentry.statistical_detectors.algorithm import DetectorAlgorithm
 from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
 from sentry.statistical_detectors.store import DetectorStore
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
+
+logger = logging.getLogger("sentry.statistical_detectors.tasks")
 
 
 @dataclass(frozen=True)
@@ -46,8 +52,14 @@ class RegressionDetector(ABC):
     kind: str
     regression_type: RegressionType
     min_change: int
+    buffer_period: timedelta
     resolution_rel_threshold: float
     escalation_rel_threshold: float
+
+    @classmethod
+    def configure_tags(cls):
+        sentry_sdk.set_tag("regression.source", cls.source)
+        sentry_sdk.set_tag("regression.kind", cls.source)
 
     @classmethod
     @abstractmethod
@@ -319,6 +331,9 @@ class RegressionDetector(ABC):
                     and bundle.state.should_auto_resolve(
                         group.baseline, cls.resolution_rel_threshold
                     )
+                    # enforce a buffer window within which the issue cannot
+                    # auto resolve to avoid the issue state changing frequently
+                    and group.date_regressed + cls.buffer_period <= timestamp
                 ):
                     group.active = False
                     group.date_resolved = timestamp
@@ -353,7 +368,9 @@ class RegressionDetector(ABC):
         timestamp: datetime,
         batch_size=100,
     ) -> Generator[TrendBundle, None, None]:
-        groups_to_escalate = []
+        escalated = 0
+
+        candidates = []
 
         for bundle in bundles:
             group = bundle.regression_group
@@ -367,30 +384,108 @@ class RegressionDetector(ABC):
                         cls.min_change,
                         cls.escalation_rel_threshold,
                     )
+                    # enforce a buffer window within which the issue cannot
+                    # escalate to avoid the issue state changing frequently
+                    and group.date_regressed + cls.buffer_period <= timestamp
                 ):
-                    groups_to_escalate.append(group)
-
-                # For now, keep passing on the bundle.
-                # Eventually, should redirect these bundles to escalation
-                yield bundle
+                    candidates.append(bundle)
+                else:
+                    yield bundle
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
-        # TODO: mark the groups as escalated
+        escalated_groups = []
+        groups_to_escalate = []
+
+        for bundle in cls._filter_escalating_groups(candidates, batch_size=batch_size):
+            state = bundle.state
+            group = bundle.regression_group
+
+            if state is None or group is None:
+                continue
+
+            escalated += 1
+
+            # mark the existing regression group as inactive
+            # as we want to create a new one for the escalation
+            group.active = False
+            group.date_resolved = timestamp
+            groups_to_escalate.append(group)
+
+            # the escalation will use the current timestamp and
+            # the current moving average as the new regression
+            escalated_groups.append(
+                RegressionGroup(
+                    type=cls.regression_type.value,
+                    date_regressed=timestamp,
+                    version=group.version + 1,
+                    active=True,
+                    project_id=group.project_id,
+                    fingerprint=group.fingerprint,
+                    baseline=group.regressed,
+                    regressed=state.get_moving_avg(),
+                )
+            )
+
+            status_change = cls.make_status_change_message(
+                bundle.payload, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
+            )
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.STATUS_CHANGE,
+                status_change=status_change,
+            )
+
+        RegressionGroup.objects.bulk_update(groups_to_escalate, ["active", "date_resolved"])
+        RegressionGroup.objects.bulk_create(escalated_groups)
 
         metrics.incr(
             "statistical_detectors.objects.escalated",
-            amount=len(groups_to_escalate),
+            amount=escalated,
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
+
+    @classmethod
+    def _filter_escalating_groups(
+        cls,
+        bundles_to_escalate: List[TrendBundle],
+        batch_size=100,
+    ) -> Generator[TrendBundle, None, None]:
+        for bundles in chunked(bundles_to_escalate, batch_size):
+            pairs = {
+                generate_issue_group_key(
+                    bundle.payload.project_id, cls.regression_type, bundle.payload.group
+                ): bundle
+                for bundle in bundles
+            }
+
+            issue_groups = bulk_get_groups_from_fingerprints(
+                [(project_id, [fingerprint]) for project_id, fingerprint in pairs]
+            )
+
+            for key, bundle in pairs.items():
+                issue_group = issue_groups.get(key)
+                if issue_group is None:
+                    sentry_sdk.capture_message("Missing issue group for regression issue")
+                    continue
+
+                if (
+                    issue_group.status == GroupStatus.UNRESOLVED
+                    and issue_group.substatus == GroupSubStatus.ONGOING
+                ):
+                    yield bundle
+                elif (
+                    issue_group.status == GroupStatus.IGNORED
+                    and issue_group.substatus == GroupSubStatus.UNTIL_ESCALATING
+                ):
+                    yield bundle
 
     @classmethod
     def get_regression_versions(
         cls,
         regressions: Generator[BreakpointData, None, None],
         batch_size=100,
-    ) -> Generator[Tuple[int, BreakpointData], None, None]:
+    ) -> Generator[Tuple[int, datetime | None, BreakpointData], None, None]:
         active_regressions = 0
 
         for regression_chunk in chunked(regressions, batch_size):
@@ -414,9 +509,9 @@ class RegressionDetector(ABC):
                 group = existing_regression_groups.get((project_id, fingerprint))
 
                 if group is None:
-                    yield 1, regression
+                    yield 0, None, regression
                 elif not group.active:
-                    yield group.version + 1, regression
+                    yield group.version, group.date_regressed, regression
                 else:
                     # There is an active regression group already, so skip it
                     active_regressions += 1
@@ -437,14 +532,26 @@ class RegressionDetector(ABC):
         versioned_regressions = cls.get_regression_versions(regressions)
 
         for regression_chunk in chunked(versioned_regressions, batch_size):
-            RegressionGroup.objects.bulk_create(
-                [
+            regression_groups = []
+
+            for version, prev_date_regressed, regression in regression_chunk:
+                date_regressed = datetime.utcfromtimestamp(regression["breakpoint"]).replace(
+                    tzinfo=timezone.utc
+                )
+
+                # enforce a buffer window after the date regressed after which the issue
+                # cannot be changed to regressed again to avoid the issue state changing frequently
+                if (
+                    prev_date_regressed is not None
+                    and prev_date_regressed + cls.buffer_period > date_regressed
+                ):
+                    continue
+
+                regression_groups.append(
                     RegressionGroup(
                         type=cls.regression_type.value,
-                        date_regressed=datetime.utcfromtimestamp(regression["breakpoint"]).replace(
-                            tzinfo=timezone.utc
-                        ),
-                        version=version,
+                        date_regressed=date_regressed,
+                        version=version + 1,
                         active=True,
                         project_id=int(regression["project"]),
                         fingerprint=generate_fingerprint(
@@ -453,12 +560,11 @@ class RegressionDetector(ABC):
                         baseline=regression["aggregate_range_1"],
                         regressed=regression["aggregate_range_2"],
                     )
-                    for version, regression in regression_chunk
-                ]
-            )
+                )
 
-            for _, regression in regression_chunk:
                 yield regression
+
+            RegressionGroup.objects.bulk_create(regression_groups)
 
 
 def generate_fingerprint(regression_type: RegressionType, name: str | int) -> str:
@@ -468,3 +574,13 @@ def generate_fingerprint(regression_type: RegressionType, name: str | int) -> st
         return f"{int(name):x}"
     else:
         raise ValueError(f"Unsupported RegressionType: {regression_type}")
+
+
+def generate_issue_group_key(
+    project_id: int, regression_type: RegressionType, name: str | int
+) -> Tuple[int, str]:
+    data = {
+        "fingerprint": [generate_fingerprint(regression_type, name)],
+    }
+    process_occurrence_data(data)
+    return project_id, data["fingerprint"][0]

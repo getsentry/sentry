@@ -475,13 +475,17 @@ def test_individual_attachments(
         assert not attachments
     else:
         (attachment,) = attachments
-        file = File.objects.get(id=attachment.file_id)
-        assert file.type == chunks[1]
-        assert file.headers == {"Content-Type": chunks[2]}
+        assert attachment.name == "foo.txt"
         assert attachment.group_id == group_id
-        file_contents = file.getfile()
+        assert attachment.content_type == chunks[2]
+
+        if attachment.file_id:
+            file = File.objects.get(id=attachment.file_id)
+            assert file.type == chunks[1]
+            assert file.headers == {"Content-Type": chunks[2]}
+
+        file_contents = attachment.getfile()
         assert file_contents.read() == b"".join(chunks[0])
-        assert file_contents.name == "foo.txt"
 
 
 @django_db_all

@@ -1,5 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
+sentry-devenv>=1.2.1
+
 covdefaults>=2.3.0
 docker>=6
 time-machine>=2.13.0
@@ -52,6 +54,6 @@ types-pytz
 types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
-types-requests
+types-requests>=2.31.0.20231231
 types-setuptools
 types-simplejson>=3.17.7.2
