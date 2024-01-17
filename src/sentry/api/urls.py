@@ -2633,7 +2633,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/statistical-detector/$",
         ProjectStatisticalDetectors.as_view(),
-        name="sentry-api-0-project-profiling-flamegraph",
+        name="sentry-api-0-project-statistical-detector",
     ),
 ]
 
