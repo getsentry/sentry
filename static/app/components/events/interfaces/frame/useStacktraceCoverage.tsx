@@ -11,10 +11,10 @@ interface UseStacktraceCoverageProps {
   projectSlug: string | undefined;
 }
 
-const stacktraceLinkQueryKey = (
+const stacktraceCoverageQueryKey = (
   orgSlug: string,
   projectSlug: string | undefined,
-  query: any
+  query: ReturnType<typeof buildStacktraceLinkQuery>
 ): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/stacktrace-coverage/`, {query}];
 
 export function useStacktraceCoverage(
@@ -23,11 +23,10 @@ export function useStacktraceCoverage(
 ) {
   const query = buildStacktraceLinkQuery(event, frame);
   return useApiQuery<CodecovResponse>(
-    stacktraceLinkQueryKey(orgSlug, projectSlug, query),
+    stacktraceCoverageQueryKey(orgSlug, projectSlug, query),
     {
       staleTime: Infinity,
       retry: false,
-      refetchOnWindowFocus: false,
       ...options,
     }
   );
