@@ -345,7 +345,9 @@ export class WidgetParser {
         this.errors.push(
           `widget.request.query.filter - unsupported value: ${value}, using ${stripped}`
         );
-        filters.push({key: key.trim(), value: stripped.trim()});
+        if (stripped) {
+          filters.push({key: key.trim(), value: stripped.trim()});
+        }
         continue;
       }
 
