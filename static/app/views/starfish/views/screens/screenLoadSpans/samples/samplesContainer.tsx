@@ -38,6 +38,7 @@ type Props = {
   release?: string;
   sectionSubtitle?: string;
   sectionTitle?: string;
+  spanOp?: string;
   transactionMethod?: string;
 };
 
@@ -47,6 +48,7 @@ export function ScreenLoadSampleContainer({
   transactionMethod,
   release,
   project,
+  spanOp,
 }: Props) {
   const router = useRouter();
   const location = useLocation();
@@ -87,6 +89,10 @@ export function ScreenLoadSampleContainer({
 
   if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
     filters['os.name'] = platform;
+  }
+
+  if (spanOp) {
+    filters['span.op'] = spanOp;
   }
 
   const {data} = useSpanMetrics({
