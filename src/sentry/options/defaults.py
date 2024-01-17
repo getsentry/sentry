@@ -834,6 +834,9 @@ register(
 # Whether to use `zstd` instead of `zlib` for the attachment cache.
 register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Whether to use `zstd` instead of `zlib` for encoded grouping enhancers.
+register("enhancers.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Set of projects that will always store `EventAttachment` blobs directly.
 register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Percentage sample rate for `EventAttachment`s that should use direct blob storage.

@@ -9,12 +9,13 @@ from typing import Any, Sequence
 
 import msgpack
 import sentry_sdk
+import zstandard
 from django.core.cache import cache
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
-from sentry import projectoptions
+from sentry import options, projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
@@ -112,7 +113,6 @@ class StacktraceState:
 
 
 class Enhancements:
-
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
@@ -181,7 +181,6 @@ class Enhancements:
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside
         for rule in self._updater_rules:
-
             for idx, action in rule.get_matching_frame_actions(
                 match_frames, platform, exception_data, in_memory_cache
             ):
@@ -256,6 +255,13 @@ class Enhancements:
             rv["rules"] = [x.as_dict() for x in self.rules]
         return rv
 
+    def iter_rules(self):
+        for base in self.bases:
+            base = ENHANCEMENT_BASES.get(base)
+            if base:
+                yield from base.iter_rules()
+        yield from self.rules
+
     def _to_config_structure(self):
         return [
             self.version,
@@ -264,18 +270,14 @@ class Enhancements:
         ]
 
     def dumps(self):
-        return (
-            base64.urlsafe_b64encode(zlib.compress(msgpack.dumps(self._to_config_structure())))
-            .decode("ascii")
-            .strip("=")
-        )
+        encoded = msgpack.dumps(self._to_config_structure())
 
-    def iter_rules(self):
-        for base in self.bases:
-            base = ENHANCEMENT_BASES.get(base)
-            if base:
-                yield from base.iter_rules()
-        yield from self.rules
+        if options.get("enhancers.use-zstd"):
+            compressed = zstandard.compress(encoded)
+        else:
+            compressed = zlib.compress(encoded)
+
+        return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
     def _from_config_structure(cls, data):
@@ -294,9 +296,14 @@ class Enhancements:
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
-            return cls._from_config_structure(
-                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
-            )
+            compressed = base64.urlsafe_b64decode(padded)
+
+            if compressed.startswith(b"\x28\xb5\x2f\xfd"):
+                encoded = zstandard.decompress(compressed)
+            else:
+                encoded = zlib.decompress(compressed)
+
+            return cls._from_config_structure(msgpack.loads(encoded, raw=False))
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
