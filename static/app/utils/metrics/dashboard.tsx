@@ -14,7 +14,7 @@ export function convertToDashboardWidget(
   displayType?: MetricDisplayType
 ): Widget {
   return {
-    title: getDDMWidgetName(metricsQuery),
+    title: metricsQuery.title || getDDMWidgetName(metricsQuery),
     // @ts-expect-error this is a valid widget type
     displayType,
     widgetType: WidgetType.METRICS,

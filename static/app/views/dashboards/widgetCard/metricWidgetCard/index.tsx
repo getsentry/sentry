@@ -103,7 +103,8 @@ export function MetricWidgetCard({
     );
   }
 
-  const stringifiedMetricWidget = stringifyMetricWidget(metricWidgetQueryParams);
+  const stringifiedMetricWidget =
+    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams);
 
   return (
     <DashboardsMEPContext.Provider
