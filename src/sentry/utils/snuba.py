@@ -959,7 +959,8 @@ def _bulk_snuba_query(
             ]
 
     results = []
-    for response, _, reverse in query_results:
+    for index, item in enumerate(query_results):
+        response, _, reverse = item
         try:
             body = json.loads(response.data)
             if SNUBA_INFO:
@@ -981,6 +982,12 @@ def _bulk_snuba_query(
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
+            if use_mql:
+                error_request = snuba_param_list[index][0]
+                error_request = (
+                    error_request.serialize_mql()
+                )  # never used, only for sentry visibility
+
             if body.get("error"):
                 error = body["error"]
                 if response.status == 429:
