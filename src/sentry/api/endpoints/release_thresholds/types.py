@@ -20,4 +20,4 @@ class EnrichedThreshold(SerializedThreshold):
     project_slug: str
     project_id: int
     start: datetime
-    metric_value: int | None
+    metric_value: int | float | None
