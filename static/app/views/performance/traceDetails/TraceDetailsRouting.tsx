@@ -4,6 +4,7 @@ import {LocationDescriptorObject} from 'history';
 
 import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Event} from 'sentry/types';
 import {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,6 +23,7 @@ function TraceDetailsRouting(props: Props) {
   const {metaResults, event, children} = props;
   const organization = useOrganization();
   const location = useLocation();
+  const datetimeSelection = normalizeDateTimeParams(location.query);
 
   useEffect(() => {
     const traceId = event.contexts?.trace?.trace_id ?? '';
@@ -34,19 +36,17 @@ function TraceDetailsRouting(props: Props) {
       const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
         organization,
         traceId,
-        event.title,
+        datetimeSelection,
         location.query
       );
 
       browserHistory.replace({
         pathname: traceDetailsLocation.pathname,
-        query: {
-          transaction: traceDetailsLocation.query?.transaction,
-        },
+        query: traceDetailsLocation.query,
         hash: transactionTargetHash(event.eventID) + location.hash,
       });
     }
-  }, [event, metaResults, location, organization]);
+  }, [event, metaResults, location, organization, datetimeSelection]);
 
   if (
     metaResults?.isLoading &&
