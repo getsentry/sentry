@@ -42,8 +42,8 @@ def get_groups_totals(
     total = 0
     for group in group_series:
         series = group.get(field, [])
-        if len(series) < end_idx:
-            raise ValueError("foobar")
+        if len(series) < start_idx or len(series) < end_idx:
+            raise IndexError("Start/End indexes are out of range for series")
         total += sum(series[start_idx : end_idx + 1])
     return total
 
@@ -55,6 +55,8 @@ def get_interval_indexes(intervals: list[str], start: datetime, end: datetime) -
     :param end: timestamp
 
     :return: If any subsection of the intervals fall within the given start/end, return the indexes of both the start and the end
+
+    TODO: raise if start/end not contained within intervals?
     """
     start_idx = len(intervals)
     end_idx = 0
@@ -85,29 +87,44 @@ def is_crash_free_rate_healthy(
     project_id = ethreshold["project_id"]
     environment = ethreshold["environment"]
     intervals = sessions_data.get("intervals", [])
-    start_idx, end_idx = get_interval_indexes(
-        intervals=intervals, start=ethreshold["start"], end=ethreshold["end"]
-    )
-    crash_count = get_groups_totals(
-        end_idx=end_idx,
-        environment=environment,
-        field=field,
-        project_id=project_id,
-        release_version=release_version,
-        sessions_data=sessions_data,
-        start_idx=start_idx,
-        status="crashed",
-    )
+    try:
+        start_idx, end_idx = get_interval_indexes(
+            intervals=intervals, start=ethreshold["start"], end=ethreshold["end"]
+        )
+        if start_idx > end_idx:
+            raise ValueError("")
+    except ValueError:
+        # TODO: determine how to handle threshold range not within fetched intervals
+        pass
 
-    total_count = get_groups_totals(
-        end_idx=end_idx,
-        environment=environment,
-        field=field,
-        project_id=project_id,
-        release_version=release_version,
-        sessions_data=sessions_data,
-        start_idx=start_idx,
-    )
+    try:
+        crash_count = get_groups_totals(
+            end_idx=end_idx,
+            environment=environment,
+            field=field,
+            project_id=project_id,
+            release_version=release_version,
+            sessions_data=sessions_data,
+            start_idx=start_idx,
+            status="crashed",
+        )
+    except IndexError:
+        # TODO: determine how to handle threshold range not within fetched intervals
+        pass
+
+    try:
+        total_count = get_groups_totals(
+            end_idx=end_idx,
+            environment=environment,
+            field=field,
+            project_id=project_id,
+            release_version=release_version,
+            sessions_data=sessions_data,
+            start_idx=start_idx,
+        )
+    except IndexError:
+        # TODO: determine how to handle threshold range not within fetched intervals
+        pass
 
     crash_free_percent = (1 - (crash_count / total_count)) * 100
 
