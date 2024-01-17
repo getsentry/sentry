@@ -115,7 +115,7 @@ class SentryCelery(Celery):
 
 @signals.worker_process_init.connect
 def record_worker_init(*args, **kwargs):
-    metrics.incr("sentry.jobs.process.start")
+    metrics.incr("jobs.process.start")
 
 
 app = SentryCelery("sentry")
