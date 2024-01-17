@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import configure_scope
+from sentry_sdk import configure_scope, start_span
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -52,27 +52,27 @@ class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
         if not configs:
             return Response({"detail": "No code mappings found for this project"}, status=400)
 
-        error = None
+        result = get_stacktrace_config(configs, ctx)
+        error = result["error"]
         serialized_config = None
 
-        with configure_scope() as scope:
-            result = get_stacktrace_config(configs, ctx)
-            error = result["error"]
-
-            # Post-processing before exiting scope context
-            if result["current_config"]:
+        # Post-processing before exiting scope context
+        if result["current_config"]:
+            with configure_scope() as scope:
                 serialized_config = serialize(result["current_config"]["config"], request.user)
                 provider = serialized_config["provider"]["key"]
                 # Use the provider key to split up stacktrace-link metrics by integration type
                 scope.set_tag("integration_provider", provider)  # e.g. github
-                with metrics.timer("issues.stacktrace.fetch_codecov_data"):
-                    codecov_data = fetch_codecov_data(
-                        config={
-                            "repository": result["current_config"]["repository"],
-                            "config": serialized_config,
-                            "outcome": result["current_config"]["outcome"],
-                        }
-                    )
+
+                with start_span(op="fetch_codecov_data"):
+                    with metrics.timer("issues.stacktrace.fetch_codecov_data"):
+                        codecov_data = fetch_codecov_data(
+                            config={
+                                "repository": result["current_config"]["repository"],
+                                "config": serialized_config,
+                                "outcome": result["current_config"]["outcome"],
+                            }
+                        )
                 return Response(codecov_data)
 
         return Response({"error": error, "config": serialized_config}, status=400)
