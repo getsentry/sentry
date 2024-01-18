@@ -87,14 +87,15 @@ class StreamGroupSerializerTestCase(
 
 
 @region_silo_test
-class ExternalIssueSerializerTest(TestCase, APITestCase):
-    def test_simple(self):
+class ExternalIssueSerializerTestCase(TestCase, APITestCase):
+    def test_external_issue_serializer(self):
         group = self.create_group()
         integration = self.create_integration(
-            organization=self.organization,
-            external_id="example:1",
-            provider="example",
-            name="Example",
+            organization=group.organization,
+            provider="jira",
+            external_id="some_id",
+            name="Jira",
+            metadata={"base_url": "https://example.com"},
         )
         external_issue = self.create_integration_external_issue(
             group=group,
@@ -103,8 +104,11 @@ class ExternalIssueSerializerTest(TestCase, APITestCase):
             title="this is an example title",
             description="this is an example description",
         )
+        req = self.make_request()
         result = serialize(
-            [group], request=self.make_request(), serializer=ExternalIssueSerializer(group)
+            [group],
+            request=req,
+            serializer=ExternalIssueSerializer(groups=[group]),
         )
 
         assert result[0]["external_issues"][0]["description"] == external_issue.description

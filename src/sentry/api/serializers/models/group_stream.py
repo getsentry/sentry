@@ -164,8 +164,8 @@ class GroupStatsMixin:
 
 
 class ExternalIssueSerializer(Serializer):
-    def __init__(self, group: Group) -> None:
-        self.group = group
+    def __init__(self, groups: List[Group]) -> None:
+        self.groups = groups
 
     def get_attrs(
         self, item_list: List[Group], user: User, **kwargs: Any
@@ -175,13 +175,14 @@ class ExternalIssueSerializer(Serializer):
                 "linked_id", flat=True
             ),
         )
-
         issues_by_integration = defaultdict(list)
         for ei in external_issues:
             integration = integration_service.get_integration(integration_id=ei.integration_id)
             if integration is None:
                 continue
-            installation = integration.get_installation(organization_id=self.group.organization.id)
+            installation = integration.get_installation(
+                organization_id=self.groups[0].organization.id
+            )
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"
             ):
