@@ -11,7 +11,7 @@ export default function useReplayCountForIssues() {
     dataSource: 'discover',
     fieldName: 'issue.id',
     organization,
-    statsPeriod: '90d',
+    statsPeriod: '14d',
   });
 
   return {
