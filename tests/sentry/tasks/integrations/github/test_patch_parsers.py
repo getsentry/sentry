@@ -26,7 +26,11 @@ class ParserTestCase(TestCase):
 
 @@44,38@@ export default function world({argument}) {
 
+@@44,38@@ async function there()
+
 @@44,38@@ export const blue = (argument) => {
+
+@@44,38@@ export const green = (argument) =>
 
 @@44,38@@ export const ocean = async (argument) => {
 
@@ -43,6 +47,8 @@ class ParserTestCase(TestCase):
             "blue",
             "planet",
             "constructor",
+            "there",
+            "green",
         }
 
     def test_javascript(self):
