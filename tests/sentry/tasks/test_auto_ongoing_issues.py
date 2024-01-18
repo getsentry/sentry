@@ -261,8 +261,10 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             "auto_transition_issues_new_to_ongoing started",
             extra={
                 "first_seen_lte": 1688582400,
-                "first_seen_lte_datetime": datetime(2023, 7, 5, 18, 40, tzinfo=timezone.utc),
-                "issue_first_seen": datetime(2023, 7, 5, 17, 40, tzinfo=timezone.utc),
+                "first_seen_lte_datetime": datetime(
+                    2023, 7, 5, 18, 40, tzinfo=timezone.utc
+                ).isoformat(),
+                "issue_first_seen": datetime(2023, 7, 5, 17, 40, tzinfo=timezone.utc).isoformat(),
             },
         )
 
