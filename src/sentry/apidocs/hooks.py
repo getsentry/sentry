@@ -239,7 +239,7 @@ def _validate_request_body(
         schema = content["application/json"]["schema"]
 
     # Dereference schema if needed and raise error on schema component collisions
-    schema = dereference_schema(schema, schema_components, endpoint_name)
+    schema = dereference_schema(schema, schema_components)
 
     for body_param, param_data in schema["properties"].items():
         # Ensure body parameters have a description. Our API docs don't
