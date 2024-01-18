@@ -77,7 +77,9 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
             return self.get_default_missing_integration_response()
 
-        return self.get_response_from_outbox_creation(regions=regions)
+        return self.get_response_from_outbox_creation_for_integration(
+            regions=regions, integration=integration
+        )
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:
