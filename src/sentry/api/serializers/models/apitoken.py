@@ -33,7 +33,10 @@ class ApiTokenSerializer(Serializer):
 
             data["refreshToken"] = obj.refresh_token
 
-        data["tokenLastCharacters"] = (
-            obj.token_last_characters if obj.token_last_characters else obj.token[-4:]
-        )
+        """
+        While this is a nullable column at the db level, this should never be empty. If it is, it's a sign that the
+        token was created through improper channels, and might actually be invalid. If that's the case, it can be
+        considered a security risk, and better for this to throw an exception than to leak a dangerous token.
+        """
+        data["tokenLastCharacters"] = obj.token_last_characters
         return data
