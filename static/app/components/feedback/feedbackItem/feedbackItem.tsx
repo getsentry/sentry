@@ -6,21 +6,17 @@ import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashRep
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
-import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
-import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconChat, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
-import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -31,15 +27,8 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const {feedbackHasReplay} = useReplayCountForFeedbacks();
-  const hasReplayId = feedbackHasReplay(feedbackItem.id);
-
   const url = eventData?.tags.find(tag => tag.key === 'url');
-  const replayId = eventData?.contexts?.feedback?.replay_id;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
-
-  const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
-  const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
   return (
     <Fragment>
@@ -77,21 +66,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Section>
         )}
 
-        {hasReplayId && replayId ? (
-          <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
-            <ErrorBoundary mini>
-              <ReplaySection
-                eventTimestampMs={new Date(feedbackItem.firstSeen).getTime()}
-                organization={organization}
-                replayId={replayId}
-              />
-            </ErrorBoundary>
-          </Section>
-        ) : hasSentOneReplay || !platformSupported ? null : (
-          <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
-            <ReplayInlineCTAPanel />
-          </Section>
-        )}
+        <Section icon={<IconPlay size="xs" />} title={t('Linked Replay')}>
+          <FeedbackReplay
+            eventData={eventData}
+            feedbackItem={feedbackItem}
+            organization={organization}
+          />
+        </Section>
 
         <Section icon={<IconTag size="xs" />} title={t('Tags')}>
           <TagsSection tags={tags} />
