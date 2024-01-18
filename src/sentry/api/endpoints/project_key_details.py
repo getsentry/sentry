@@ -175,7 +175,6 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_SLUG,
             ProjectParams.key_id("The ID of the key to delete."),
         ],
-        request=None,
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,
