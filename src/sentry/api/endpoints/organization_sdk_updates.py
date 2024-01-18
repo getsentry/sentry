@@ -71,6 +71,8 @@ def serialize(data, projects):
 
 @region_silo_endpoint
 class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
