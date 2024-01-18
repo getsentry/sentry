@@ -58,4 +58,4 @@ jobs:
           install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
       - name: devenv sync
         run: |
-            devenv --nocoderoot sync
+          devenv --nocoderoot sync
