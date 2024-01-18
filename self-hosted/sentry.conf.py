@@ -118,6 +118,7 @@ if memcached:
             "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
             "LOCATION": [memcached + ":" + memcached_port],
             "TIMEOUT": 3600,
+            "OPTIONS": {"ignore_exc": True},
         }
     }
 
