@@ -1,3 +1,4 @@
+import itertools
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List
@@ -125,16 +126,20 @@ def test_run_detection_options(
         run_detection()
 
     if expected_performance_project:
-        assert detect_transaction_trends.delay.called
-        detect_transaction_trends.delay.assert_has_calls([mock.call([], [project.id], timestamp)])
+        assert detect_transaction_trends.apply_async.called
+        detect_transaction_trends.apply_async.assert_has_calls(
+            [mock.call(args=[[], [project.id], timestamp], countdown=7)]
+        )
     else:
-        assert not detect_transaction_trends.delay.called
+        assert not detect_transaction_trends.apply_async.called
 
     if expected_profiling_project:
-        assert detect_function_trends.delay.called
-        detect_function_trends.delay.assert_has_calls([mock.call([project.id], timestamp)])
+        assert detect_function_trends.apply_async.called
+        detect_function_trends.apply_async.assert_has_calls(
+            [mock.call(args=[[project.id], timestamp], countdown=7)]
+        )
     else:
-        assert not detect_function_trends.delay.called
+        assert not detect_function_trends.apply_async.called
 
 
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
@@ -169,26 +174,28 @@ def test_run_detection_options_multiple_batches(
 
     # total of 9 projects, broken into batches of 5 means batch sizes of 5 + 4
 
-    assert detect_transaction_trends.delay.called
-    detect_transaction_trends.delay.assert_has_calls(
+    assert detect_transaction_trends.apply_async.called
+    detect_transaction_trends.apply_async.assert_has_calls(
         [
             mock.call(
-                [],
-                [project.id for project in projects[:5]],
-                timestamp,
-            ),
-            mock.call(
-                [],
-                [project.id for project in projects[5:]],
-                timestamp,
-            ),
+                args=[
+                    [],
+                    [project.id for project in projects[i : i + 5]],
+                    timestamp,
+                ],
+                countdown=countdown,
+            )
+            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=7, step=7))
         ]
     )
-    assert detect_function_trends.delay.called
-    detect_function_trends.delay.assert_has_calls(
+    assert detect_function_trends.apply_async.called
+    detect_function_trends.apply_async.assert_has_calls(
         [
-            mock.call([project.id for project in projects[:5]], timestamp),
-            mock.call([project.id for project in projects[5:]], timestamp),
+            mock.call(
+                args=[[project.id for project in projects[i : i + 5]], timestamp],
+                countdown=countdown,
+            )
+            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=7, step=7))
         ]
     )
 
