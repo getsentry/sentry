@@ -1,5 +1,7 @@
 import time
+from typing import cast
 
+from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -26,4 +28,4 @@ def test_report_rage_click_issue_a_tag():
         }
     }
 
-    report_rage_click_issue(project_id=project.id, replay_id="", event=event)
+    report_rage_click_issue(project_id=project.id, replay_id="", event=cast(SentryEvent, event))

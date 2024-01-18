@@ -9,7 +9,7 @@ from sentry.replays.usecases.issue import new_issue_occurrence
 logger = logging.getLogger()
 
 
-def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent) -> bool:
+def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent):
     payload = event["data"]["payload"]
 
     # Seconds since epoch is UTC.
