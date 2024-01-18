@@ -499,7 +499,7 @@ def augment_transactions_with_spans(
     params: Mapping[str, str],
 ) -> Sequence[SnubaTransaction]:
     """Augment the list of transactions with parent, error and problem data"""
-    trace_parent_spans = set()
+    trace_parent_spans = set()  # parent span ids of segment spans
     transaction_problem_map = {}
     problem_project_map = {}
     problems = []
@@ -528,6 +528,7 @@ def augment_transactions_with_spans(
             if transaction["trace.parent_span"].startswith("00")
             else transaction["trace.parent_span"]
         )
+        # parent span ids of the segment spans
         trace_parent_spans.add(transaction["trace.parent_span.stripped"])
 
     for project, occurrences in problem_project_map.items():
@@ -550,6 +551,9 @@ def augment_transactions_with_spans(
     if len(query_spans) == 0:
         return transactions
 
+    # Fetch parent span ids of segment spans and their corresponding
+    # transaction id so we can link parent/child transactions in
+    # a trace.
     parents_results = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
@@ -565,6 +569,9 @@ def augment_transactions_with_spans(
 
     parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
     for transaction in transactions:
+        # For a given transaction, if parent span id exists in the tranaction (so this is
+        # not a root span), see if the indexed spans data can tell us what the parent
+        # transaction id is.
         if "trace.parent_span.stripped" in transaction:
             if parent := parent_map.get(transaction["trace.parent_span.stripped"]):
                 transaction["trace.parent_transaction"] = parent["transaction.id"]
@@ -702,12 +709,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization.slug}
 
-        # Look for the roots
+        # Look for all root transactions in the trace (i.e., transactions
+        # that explicitly have no parent span id)
         roots: List[SnubaTransaction] = []
         for item in transactions:
             if is_root(item):
                 roots.append(item)
             else:
+                # This is okay because the query does an order by on -root
                 break
         if len(roots) > 1:
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
@@ -1188,6 +1197,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if detailed:
             raise ParseError("Cannot return a detailed response using Spans")
 
+        # A trace can have multiple roots, so we want to visit
+        # all roots in a trace and build their children.
+        # A root segment is one that doesn't have a parent span id
+        # but here is identified by the attribute "root" = 1 on
+        # a SnubaTransaction object.
         root_traces = self.visit_transactions(
             roots,
             transactions,
@@ -1196,15 +1210,27 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             visited_errors,
         )
 
+        # At this point all the roots have their tree built. Remaining
+        # transactions are either orphan transactions or children of
+        # orphan transactions. Orphan transactions (unlike roots) have
+        # a parent_id but the parent_id wasn't found (dropped span).
+        # We get a sorted list of these transactions by start timestamp.
         remaining_transactions = self.calculate_remaining_transactions(
             transactions, visited_transactions
         )
-        # Calculate the orphans with roots first
+
+        # Determine orphan transactions. `trace.parent_transaction` on a
+        # transaction is set when the indexed spans dataset has a row for
+        # the parent span id for this transaction. Since we already considered
+        # the root spans cases, the remaining spans with no parent transaction
+        # id are orphan transactions.
         orphan_roots = [
             orphan
             for orphan in remaining_transactions
             if orphan["trace.parent_transaction"] is None
         ]
+
+        # Build the trees for all the orphan transactions.
         orphans = self.visit_transactions(
             orphan_roots,
             remaining_transactions,
@@ -1212,7 +1238,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             visited_transactions,
             visited_errors,
         )
-        # Then whatever transactions are remaining should be added
+
+        # Remaining are transactions with parent transactions but those
+        # parents don't map to any of the existing transactions.
         remaining_transactions = self.calculate_remaining_transactions(
             transactions, visited_transactions
         )
@@ -1274,14 +1302,20 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             if "trace.transaction" in error and error["trace.transaction"] == parent.event["id"]:
                 visited_errors.add(error["id"])
                 parent.errors.append(self.serialize_error(error))
+
+        # Loop through all the transactions to see if any of them are
+        # children.
         for transaction in transactions:
             if transaction["id"] in visited_transactions:
                 continue
             if transaction["trace.parent_transaction"] == parent.event["id"]:
+                # If transaction is a child, establish that relationship and add it
+                # to visited_transactions.
                 visited_transactions.add(transaction["id"])
                 new_child = TraceEvent(
                     transaction, parent.event["id"], generation, span_serialized=True
                 )
+                # Repeat adding children until there are none.
                 self.add_children(
                     new_child,
                     transactions,
