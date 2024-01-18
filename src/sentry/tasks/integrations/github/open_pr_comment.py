@@ -40,7 +40,7 @@ from sentry.tasks.integrations.github.constants import (
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.tasks.integrations.github.patch_parsers import PATCH_PARSERS
+from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import format_comment_url, get_pr_comment
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
