@@ -11,7 +11,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {formatMetricsUsingUnitAndOp, SortState} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  MetricWidgetQueryParams,
+  SortState,
+} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
@@ -26,7 +30,7 @@ export const SummaryTable = memo(function SummaryTable({
   sort = DEFAULT_SORT_STATE as SortState,
   setHoveredSeries,
 }: {
-  onRowClick: (seriesName: string) => void;
+  onRowClick: (series: MetricWidgetQueryParams['focusedSeries']) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   operation?: string;
@@ -168,6 +172,7 @@ export const SummaryTable = memo(function SummaryTable({
           ({
             name,
             seriesName,
+            groupBy,
             color,
             hidden,
             unit,
@@ -183,7 +188,10 @@ export const SummaryTable = memo(function SummaryTable({
                 <CellWrapper
                   onClick={() => {
                     if (hasMultipleSeries) {
-                      onRowClick(seriesName);
+                      onRowClick({
+                        seriesName,
+                        groupBy,
+                      });
                     }
                   }}
                   onMouseEnter={() => {
