@@ -1,6 +1,9 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="group.priority_locked is removed in the next migration")
 class AddPriorityColumnTests(TestMigrations):
     migrate_from = "0630_better_monitor_latest_index"
     migrate_to = "0631_add_priority_columns_to_groupedmessage"
