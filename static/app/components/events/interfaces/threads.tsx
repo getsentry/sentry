@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import isNil from 'lodash/isNil';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
@@ -65,7 +64,7 @@ function getIntendedStackView(
 }
 
 export function getThreadStateIcon(state: ThreadStates | undefined) {
-  if (isNil(state)) {
+  if (state === null || state === undefined) {
     return null;
   }
   switch (state) {
@@ -137,7 +136,7 @@ export function Threads({
       heldLocks,
     } = activeThread ?? {};
 
-    if (isNil(id) || !name) {
+    if (id === null || id === undefined || !name) {
       return null;
     }
 
@@ -146,7 +145,7 @@ export function Threads({
 
     return (
       <Pills>
-        {!isNil(id) && <Pill name={t('id')} value={String(id)} />}
+        <Pill name={t('id')} value={id} />
         {!!name?.trim() && <Pill name={t('name')} value={name} />}
         {current !== undefined && <Pill name={t('was active')} value={current} />}
         {crashed !== undefined && (
@@ -154,7 +153,7 @@ export function Threads({
             {crashed ? t('yes') : t('no')}
           </Pill>
         )}
-        {!isNil(threadStateDisplay) && (
+        {threadStateDisplay !== undefined && (
           <Pill name={t('state')} value={threadStateDisplay} />
         )}
         {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
@@ -232,7 +231,7 @@ export function Threads({
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
-  const hideThreadTags = isNil(activeThreadId) || !activeThreadName;
+  const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
   return (
     <Fragment>
@@ -267,7 +266,7 @@ export function Threads({
                       title={getThreadStateHelpText(threadStateDisplay)}
                     />
                   )}
-                  {<LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>}
+                  <LockReason>{getLockReason(activeThread?.heldLocks)}</LockReason>
                 </ThreadStateWrapper>
               </EventDataSection>
             )}

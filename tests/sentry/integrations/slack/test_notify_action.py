@@ -10,6 +10,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -73,6 +74,23 @@ class SlackNotifyActionTest(RuleTestCase):
         assert (
             rule.render_label()
             == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
+        )
+
+    @with_feature("organizations:slack-formatting-update")
+    def test_render_label_with_mentions(self):
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "one, two",
+                "mentions": "fix this @colleen",
+            }
+        )
+
+        assert (
+            rule.render_label()
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and mentions fix this @colleen in notification"
         )
 
     def test_render_label_without_integration(self):
