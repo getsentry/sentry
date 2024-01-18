@@ -14,19 +14,17 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.release_thresholds.health_checks.is_error_count_healthy import (
-    is_error_count_healthy,
-)
-from sentry.api.endpoints.release_thresholds.utils import (
-    get_errors_counts_timeseries_by_project_and_release,
-)
 from sentry.api.serializers import serialize
-from sentry.api.utils import get_date_range_from_params
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.utils import metrics
+
+from .constants import CRASH_SESSIONS_DISPLAY
+from .health_checks import is_crash_free_rate_healthy_check, is_error_count_healthy
+from .utils import fetch_sessions_data, get_errors_counts_timeseries_by_project_and_release
 
 logger = logging.getLogger("sentry.release_threshold_status")
 
@@ -125,10 +123,26 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         # NOTE: start/end parameters determine window to query for releases
         # This is NOT the window to query snuba for event data - nor the individual threshold windows
         # ========================================================================
-        data = request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
-        start: datetime
-        end: datetime
-        start, end = get_date_range_from_params(params=data)
+        serializer = ReleaseThresholdStatusIndexSerializer(
+            data=request.query_params,
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        environments_list = serializer.validated_data.get(
+            "environment"
+        )  # list of environment names
+        project_slug_list = serializer.validated_data.get("projectSlug")
+        releases_list = serializer.validated_data.get("release")  # list of release versions
+        try:
+            filter_params = self.get_filter_params(
+                request, organization, date_filter_optional=True, project_slugs=project_slug_list
+            )
+        except NoProjects:
+            raise NoProjects("No projects available")
+
+        start: datetime | None = filter_params["start"]
+        end: datetime | None = filter_params["end"]
         logger.info(
             "Checking release status health",
             extra={
@@ -137,16 +151,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             },
         )
         metrics.incr("release.threshold_health_status.attempt")
-
-        serializer = ReleaseThresholdStatusIndexSerializer(
-            data=request.query_params,
-        )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        environments_list = serializer.validated_data.get("environment")
-        project_slug_list = serializer.validated_data.get("projectSlug")
-        releases_list = serializer.validated_data.get("release")
 
         # ========================================================================
         # Step 2: Fetch releases, prefetch projects & release_thresholds
@@ -362,10 +366,38 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
-                for ethreshold in category_thresholds:
-                    release_threshold_health[ethreshold["key"]].append(
-                        ethreshold
-                    )  # so we can fill all thresholds under the same key
+                query_window = query_windows_by_type[threshold_type]
+                sessions_data = {}
+                try:
+                    sessions_data = fetch_sessions_data(
+                        end=query_window["end"],
+                        request=request,
+                        organization=organization,
+                        params=filter_params,
+                        start=query_window["start"],
+                    )
+                except Exception as exc:
+                    # TODO: handle InvalidPararms
+                    # sentry.exceptions.InvalidParams: Your interval and date range would create too many results. Use a larger interval, or a smaller date range.
+                    logger.exception(str(exc))
+                logger.info(
+                    "fetching sessions data",
+                    extra={
+                        "start": query_window["start"],
+                        "end": query_window["end"],
+                        "project_ids": project_id_list,
+                        "releases": release_value_list,
+                        "environments": environments_list,
+                        "error_count_data": error_counts,
+                    },
+                )
+                if sessions_data:
+                    for ethreshold in category_thresholds:
+                        is_healthy, rate = is_crash_free_rate_healthy_check(
+                            ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
+                        )
+                        ethreshold.update({"is_healthy": is_healthy, "metric_value": rate})
+                        release_threshold_health[ethreshold["key"]].append(ethreshold)
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_USER_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_user_rate")
                 for ethreshold in category_thresholds:

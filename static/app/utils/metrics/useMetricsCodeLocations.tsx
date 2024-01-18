@@ -1,9 +1,9 @@
 import {MRI} from 'sentry/types';
 import {
   getDateTimeParams,
+  MetricCorrelation,
   MetricMetaCodeLocation,
   MetricRange,
-  MetricSpan,
 } from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -66,7 +66,7 @@ function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
   return {...queryInfo, data};
 }
 
-export function useMetricsSpans(
+export function useCorrelatedSamples(
   mri: MRI | undefined,
   options: Omit<MetricsDDMMetaOpts, 'metricSpans'> = {}
 ) {
@@ -84,7 +84,7 @@ export function useMetricsCodeLocations(
 }
 
 const mapToNewResponseShape = (
-  data: ApiResponse & {metricSpans?: MetricSpan[]},
+  data: ApiResponse & {metricSpans?: MetricCorrelation[]},
   mri: MRI | undefined
 ) => {
   // If the response is already in the new shape, do nothing
