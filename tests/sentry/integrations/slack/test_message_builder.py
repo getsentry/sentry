@@ -284,28 +284,30 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
         )
         # add mentions to message
-        assert SlackIssuesMessageBuilder(
-            group, event, mentions=mentions
-        ).build() == build_test_message_blocks(
-            teams={self.team},
-            users={self.user},
-            timestamp=group.last_seen,
-            group=group,
-            mentions=mentions,
-            event=event,
-        )
+        with self.feature("organizations:slack-formatting-update"):
+            assert SlackIssuesMessageBuilder(
+                group, event, mentions=mentions
+            ).build() == build_test_message_blocks(
+                teams={self.team},
+                users={self.user},
+                timestamp=group.last_seen,
+                group=group,
+                mentions=mentions,
+                event=event,
+            )
         # add tags and mentions to message
-        assert SlackIssuesMessageBuilder(
-            group, event, tags={"level"}, mentions=mentions
-        ).build() == build_test_message_blocks(
-            teams={self.team},
-            users={self.user},
-            timestamp=group.last_seen,
-            group=group,
-            tags=tags,
-            mentions=mentions,
-            event=event,
-        )
+        with self.feature("organizations:slack-formatting-update"):
+            assert SlackIssuesMessageBuilder(
+                group, event, tags={"level"}, mentions=mentions
+            ).build() == build_test_message_blocks(
+                teams={self.team},
+                users={self.user},
+                timestamp=group.last_seen,
+                group=group,
+                tags=tags,
+                mentions=mentions,
+                event=event,
+            )
 
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group)

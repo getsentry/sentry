@@ -408,7 +408,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_tags_block(tags))
 
         # add mentions
-        if self.mentions:
+        if (
+            features.has("organizations:slack-formatting-update", self.group.project.organization)
+            and self.mentions
+        ):
             mentions_text = f"Mentions: {self.mentions}"
             blocks.append(self.get_markdown_block(mentions_text))
 

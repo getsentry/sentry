@@ -29,7 +29,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
-        if features.has("organizations:slack-block-kit", self.project.organization):
+        if features.has("organizations:slack-formatting-update", self.project.organization):
             self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and mentions {mentions} in notification"
         self.form_fields = {
             "workspace": {
@@ -40,7 +40,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
-        if features.has("organizations:slack-block-kit", self.project.organization):
+        if features.has("organizations:slack-formatting-update", self.project.organization):
             self.form_fields["mentions"] = {
                 "type": "string",
                 "placeholder": "e.g. @colleen, @on-call-team",
@@ -135,7 +135,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def render_label(self) -> str:
         tags = self.get_tags_list()
 
-        if features.has("organizations:slack-block-kit", self.project.organization):
+        if features.has("organizations:slack-formatting-update", self.project.organization):
             self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and mentions {mentions} in notification"
             return self.label.format(
                 workspace=self.get_integration_name(),
