@@ -220,7 +220,6 @@ def dereference_schema(
         # The reference always takes the form of #/components/schemas/{schema_name}
         schema_name = schema["$ref"].split("/")[-1]
         schema = schema_components[schema_name]
-
     return schema
 
 
@@ -245,11 +244,9 @@ def _validate_request_body(
     for body_param, param_data in schema["properties"].items():
         # Ensure body parameters have a description. Our API docs don't
         # display body params without a description, so it's easy to miss them.
-        # We should be explicitly excluding them as better
-        # practice however.
+        # We should be explicitly excluding them as better practice however.
 
-        # There is an edge case where a body param might be
-        # reference that we should ignore for now
+        # There is an edge case where a body param might be reference that we should ignore for now
         if "description" not in param_data and "$ref" not in param_data:
             raise SentryApiBuildError(
                 f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}. You can either:
