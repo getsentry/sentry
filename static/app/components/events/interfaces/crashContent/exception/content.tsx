@@ -208,7 +208,9 @@ export function Content({
                 'Install Git providers (GitHub, Gitlab…) to enable features like code mapping and stack trace linking.'
               )}
             </IntegationBannerDescription>
-            <LinkButton to="/settings/account/identities/">{t('Get Started')}</LinkButton>
+            <LinkButton to="/settings/account/identities/" size="sm">
+              {t('Get Started')}
+            </LinkButton>
           </div>
           <IntegrationBannerImage src={addIntegrationProvider} />
           <CloseButton
@@ -287,7 +289,7 @@ const IntegationBannerTitle = styled('div')`
 `;
 
 const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(1.5)};
   max-width: 340px;
 `;
 
@@ -295,10 +297,12 @@ const IntegrationBannerImage = styled('img')`
   position: absolute;
   display: block;
   bottom: 0px;
-  right: 5rem;
-  object-fit: cover;
-  z-index: 1;
+  right: 4rem;
   pointer-events: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
 `;
 
 const CloseButton = styled(Button)`
