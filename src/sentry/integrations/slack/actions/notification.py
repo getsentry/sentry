@@ -136,7 +136,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         tags = self.get_tags_list()
 
         if features.has("organizations:slack-formatting-update", self.project.organization):
-            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and mentions {mentions} in notification"
             return self.label.format(
                 workspace=self.get_integration_name(),
                 channel=self.get_option("channel"),
@@ -145,7 +144,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 mentions=self.get_option("mentions", ""),
             )
 
-        self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
         return self.label.format(
             workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
