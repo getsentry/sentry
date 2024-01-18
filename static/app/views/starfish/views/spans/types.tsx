@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {RATE_UNIT_TITLE, RateUnits} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 
 export type DataKey =
   | 'change'
@@ -41,7 +41,7 @@ export const DataTitles: Record<DataKey, string> = {
 
 export const getThroughputTitle = (
   spanOp?: string,
-  throughputUnit = RateUnits.PER_MINUTE
+  throughputUnit = RateUnit.PER_MINUTE
 ) => {
   if (spanOp?.startsWith('db')) {
     return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
@@ -62,7 +62,7 @@ export const getDurationChartTitle = (spanOp?: string) => {
 
 export const getThroughputChartTitle = (
   spanOp?: string,
-  throughputUnit = RateUnits.PER_MINUTE
+  throughputUnit = RateUnit.PER_MINUTE
 ) => {
   if (spanOp?.startsWith('db')) {
     return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
