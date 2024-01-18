@@ -3,7 +3,6 @@ import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
-import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
@@ -49,6 +48,7 @@ import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

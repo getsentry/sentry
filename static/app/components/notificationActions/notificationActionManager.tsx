@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-import capitalize from 'lodash/capitalize';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -13,6 +12,7 @@ import {
   NotificationAction,
   NotificationActionService,
 } from 'sentry/types/notificationActions';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type NotificationActionManagerProps = {
   /**

@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -21,6 +20,7 @@ import {
   Organization,
 } from 'sentry/types';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {capitalize} from 'sentry/utils/string/capitalize';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 

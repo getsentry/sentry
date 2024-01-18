@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import AlertBadge from 'sentry/components/alertBadge';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
@@ -16,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {
   Action,

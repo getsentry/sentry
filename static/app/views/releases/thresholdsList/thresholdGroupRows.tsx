@@ -1,6 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 
 import {APIRequestMethod} from 'sentry/api';
@@ -12,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
