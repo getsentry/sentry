@@ -367,6 +367,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
                 query_window = query_windows_by_type[threshold_type]
+                sessions_data = {}
                 try:
                     sessions_data = fetch_sessions_data(
                         end=query_window["end"],
@@ -376,6 +377,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         start=query_window["start"],
                     )
                 except Exception as exc:
+                    # TODO: handle InvalidPararms
+                    # sentry.exceptions.InvalidParams: Your interval and date range would create too many results. Use a larger interval, or a smaller date range.
                     logger.exception(str(exc))
                 logger.info(
                     "fetching sessions data",
@@ -388,12 +391,13 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                         "error_count_data": error_counts,
                     },
                 )
-                for ethreshold in category_thresholds:
-                    is_healthy, rate = is_crash_free_rate_healthy_check(
-                        ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
-                    )
-                    ethreshold.update({"is_healthy": is_healthy, "metric_value": rate})
-                    release_threshold_health[ethreshold["key"]].append(ethreshold)
+                if sessions_data:
+                    for ethreshold in category_thresholds:
+                        is_healthy, rate = is_crash_free_rate_healthy_check(
+                            ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
+                        )
+                        ethreshold.update({"is_healthy": is_healthy, "metric_value": rate})
+                        release_threshold_health[ethreshold["key"]].append(ethreshold)
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_USER_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_user_rate")
                 for ethreshold in category_thresholds:
