@@ -89,7 +89,10 @@ from sentry.testutils.pytest.fixtures import django_db_all
     ],
 )
 def test_should_use_on_demand(agg, query, result) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+    assert (
+        should_use_on_demand_metrics(Dataset.PerformanceMetrics, {"field": agg, "query": query})
+        is result
+    )
 
 
 @pytest.mark.parametrize(
@@ -120,13 +123,16 @@ def test_should_use_on_demand(agg, query, result) -> None:
     ],
 )
 def test_should_use_on_demand_with_mri(agg, query, result) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+    assert (
+        should_use_on_demand_metrics(Dataset.PerformanceMetrics, {"field": agg, "query": query})
+        is result
+    )
 
 
 def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
     return (
         OnDemandMetricSpec(agg, query)
-        if should_use_on_demand_metrics(dataset, agg, query)
+        if should_use_on_demand_metrics(dataset, {"field": agg, "query": query})
         else None
     )
 

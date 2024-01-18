@@ -563,13 +563,11 @@ class SupportedBy:
 
 def should_use_on_demand_metrics(
     dataset: Optional[Union[str, Dataset]],
-    aggregate: str,
-    query: Optional[str],
-    groupbys: Optional[Sequence[str]] = None,
+    metric_spec_input: dict[str, Any],
     prefilling: bool = False,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
-    groupbys = groupbys or []
+    groupbys = metric_spec_input.get("groupbys", [])
     supported_datasets = [Dataset.PerformanceMetrics]
     # In case we are running a prefill, we want to support also transactions, since our goal is to start extracting
     # metrics that will be needed after a query is converted from using transactions to metrics.
@@ -579,7 +577,7 @@ def should_use_on_demand_metrics(
     if not dataset or Dataset(dataset) not in supported_datasets:
         return False
 
-    components = _extract_aggregate_components(aggregate)
+    components = _extract_aggregate_components(metric_spec_input["field"])
     if components is None:
         return False
 
@@ -590,7 +588,7 @@ def should_use_on_demand_metrics(
         return False
 
     aggregate_supported_by = _get_aggregate_supported_by(function, args)
-    query_supported_by = _get_query_supported_by(query)
+    query_supported_by = _get_query_supported_by(metric_spec_input.get("query"))
     groupbys_supported_by = _get_groupbys_support(groupbys)
 
     supported_by = SupportedBy.combine(
