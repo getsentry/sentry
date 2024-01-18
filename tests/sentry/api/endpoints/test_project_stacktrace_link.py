@@ -199,56 +199,6 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @patch("sentry.integrations.utils.stacktrace_link.munged_filename_and_frames")
-    @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_not_found_and_munge_frame_fallback_not_found(self, mock_integration, mock_munger):
-        mock_integration.return_value = None
-        mock_munger.return_value = None
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-            },
-        )
-
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert not response.data["sourceUrl"]
-        assert response.data["error"] == "file_not_found"
-        assert response.data["integrations"] == [serialized_integration(self.integration)]
-        assert (
-            response.data["attemptedUrl"]
-            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
-        )
-
-    @patch("sentry.integrations.utils.stacktrace_link.munged_filename_and_frames")
-    @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_not_found_munge_frame_fallback_success(self, mock_integration, mock_munger):
-        mock_integration.side_effect = [None, "https://github.com/repo/path/to/munged/file.py"]
-        mock_munger.return_value = (
-            "munged_filename",
-            [{"munged_filename": "usr/src/getsentry/file.py"}],
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "any",
-                "module": "any",
-                "package": "any",
-            },
-        )
-        assert mock_integration.call_count == 2
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert response.data["sourceUrl"] == "https://github.com/repo/path/to/munged/file.py"
-        assert response.data["integrations"] == [serialized_integration(self.integration)]
-
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_no_stack_root_match(self, mock_integration):
         # Pretend that the file was not found in the repository
@@ -311,19 +261,26 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
             stack_root="usr/src/getsentry/",
             source_root="src/getsentry/",
         )
-        self.cocoa_code_mapping = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="SampleProject/",
-            source_root="",
-        )
         self.flutter_code_mapping = self.create_code_mapping(
             organization_integration=self.oi,
             project=self.project,
             repo=self.repo,
             stack_root="a/b/",
             source_root="",
+        )
+        self.cocoa_code_mapping_filename = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="AppDelegate",
+            source_root="src/AppDelegate",
+        )
+        self.cocoa_code_mapping_abs_path = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/Users/user/code/SwiftySampleProject/",
+            source_root="src/",
         )
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
@@ -343,21 +300,95 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_cocoa_worked(self, mock_integration):
-        file_path = "SampleProject/Classes/App Delegate/AppDelegate.swift"
+    def test_munge_android_failed_stack_root_mismatch(self, mock_integration):
+        """
+        Returns a stack_root_mismatch if module doesn't match stack root
+        """
+        file_path = "src/getsentry/file.java"
         mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             qs_params={
+                "file": "file.java",
+                "module": "foo.src.getsentry.file",  # Should not match code mapping
+                "platform": "java",
+            },
+        )
+
+        assert not response.data["config"]
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "stack_root_mismatch"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_cocoa_abs_path_success(self, mock_integration):
+        """
+        Cocoa events with code mappings referencing the abs_path should apply correctly.
+        """
+        filename = "AppDelegate.swift"
+        mock_integration.side_effect = [f"{example_base_url}/src/{filename}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
                 "file": "AppDelegate.swift",
-                "absPath": f"/Users/user/code/SwiftySampleProject/{file_path}",
+                "absPath": f"/Users/user/code/SwiftySampleProject/{filename}",
                 "package": "SampleProject",
                 "platform": "cocoa",
             },
         )
-        assert response.data["config"] == self.expected_configurations(self.cocoa_code_mapping)
-        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+        mock_integration.assert_called_with(self.repo, f"src/{filename}", "master", None)
+        assert response.data["config"] == self.expected_configurations(
+            self.cocoa_code_mapping_abs_path
+        )
+        assert response.data["sourceUrl"] == f"{example_base_url}/src/{filename}"
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_cocoa_filename_success(self, mock_integration):
+        """
+        Cocoa events with code mappings that match the file should apply correctly.
+        """
+        filename = "AppDelegate.swift"
+        mock_integration.side_effect = [f"{example_base_url}/src/{filename}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "AppDelegate.swift",
+                "absPath": f"/Foo/user/code/SwiftySampleProject/{filename}",
+                "package": "SampleProject",
+                "platform": "cocoa",
+            },
+        )
+        mock_integration.assert_called_with(self.repo, f"src/{filename}", "master", None)
+        assert response.data["config"] == self.expected_configurations(
+            self.cocoa_code_mapping_filename
+        )
+        assert response.data["sourceUrl"] == f"{example_base_url}/src/{filename}"
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_cocoa_failed_stack_root_mismatch(self, mock_integration):
+        """
+        Should return stack_root_mismatch if stack root doesn't match file or abs_path
+        """
+        filename = "OtherFile.swift"
+        mock_integration.side_effect = [f"{example_base_url}/src/{filename}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": filename,
+                "absPath": f"/Foo/user/code/SwiftySampleProject/{filename}",
+                "package": "SampleProject",
+                "platform": "cocoa",
+            },
+        )
+
+        assert not response.data["config"]
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "stack_root_mismatch"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_munge_flutter_worked(self, mock_integration):

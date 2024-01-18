@@ -133,7 +133,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
                 {hasReplayId && (
                   <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                    {<IconPlay size="xs" />}
+                    <IconPlay size="xs" />
                   </Tooltip>
                 )}
 

@@ -4,9 +4,9 @@ import keyBy from 'lodash/keyBy';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
+import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,7 +18,6 @@ import {
   Coverage,
   Frame,
   LineCoverage,
-  Organization,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
@@ -26,8 +25,8 @@ import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import {parseAssembly} from '../utils';
 
@@ -36,7 +35,6 @@ import ContextLineNumber from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {OpenInContextLine} from './openInContextLine';
-import useStacktraceLink from './useStacktraceLink';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -52,7 +50,6 @@ type Props = {
   hasContextVars?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
-  organization?: Organization;
   registersMeta?: Record<any, any>;
 };
 
@@ -82,16 +79,12 @@ function Context({
   components,
   frame,
   event,
-  organization,
   className,
   frameMeta,
   registersMeta,
 }: Props) {
+  const organization = useOrganization({allowNull: true});
   const {user} = useLegacyStore(ConfigStore);
-  const hasSyntaxHighlighting =
-    organization?.features?.includes('issue-details-stacktrace-syntax-highlighting') ??
-    false;
-
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
 
   // This is the old design. Only show if the feature flag is not enabled for this organization.
@@ -104,7 +97,7 @@ function Context({
     [projects, event]
   );
 
-  const {data, isLoading} = useStacktraceLink(
+  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,
@@ -129,11 +122,11 @@ function Context({
     : frame?.context?.filter(l => l[0] === activeLineNumber);
 
   const hasCoverageData =
-    !isLoading && data?.codecov?.status === CodecovStatusCode.COVERAGE_EXISTS;
+    !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
 
   const [lineCoverage = [], hasCoverage] =
-    hasCoverageData && data!.codecov?.lineCoverage && !!activeLineNumber! && contextLines
-      ? getLineCoverage(contextLines, data!.codecov?.lineCoverage)
+    hasCoverageData && coverage?.lineCoverage && !!activeLineNumber! && contextLines
+      ? getLineCoverage(contextLines, coverage.lineCoverage)
       : [];
 
   useRouteAnalyticsParams(
@@ -171,7 +164,7 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {frame.context && hasSyntaxHighlighting && lines.length > 0 ? (
+      {frame.context && lines.length > 0 ? (
         <CodeWrapper className={prismClassName}>
           <pre className={prismClassName}>
             <code className={prismClassName}>
@@ -225,44 +218,6 @@ function Context({
         </CodeWrapper>
       ) : null}
 
-      {frame.context && !hasSyntaxHighlighting
-        ? contextLines.map((line, index) => {
-            const isActive = activeLineNumber === line[0];
-            const hasComponents = isActive && components.length > 0;
-            const showStacktraceLink = hasStacktraceLink && isActive;
-
-            return (
-              <ContextLine
-                key={index}
-                line={line}
-                isActive={isActive}
-                coverage={lineCoverage[index]}
-              >
-                {hasComponents && (
-                  <ErrorBoundary mini>
-                    <OpenInContextLine
-                      key={index}
-                      lineNo={line[0]}
-                      filename={frame.filename || ''}
-                      components={components}
-                    />
-                  </ErrorBoundary>
-                )}
-                {showStacktraceLink && (
-                  <ErrorBoundary customComponent={null}>
-                    <StacktraceLink
-                      key={index}
-                      line={line[1]}
-                      frame={frame}
-                      event={event}
-                    />
-                  </ErrorBoundary>
-                )}
-              </ContextLine>
-            );
-          })
-        : null}
-
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
           <FrameVariables data={frame.vars ?? {}} meta={frameMeta?.vars} />
@@ -282,7 +237,7 @@ function Context({
   );
 }
 
-export default withOrganization(Context);
+export default Context;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

@@ -1,13 +1,38 @@
-from typing import Mapping, Optional
+from typing import Callable, Mapping, Optional, Sequence
 
 from snuba_sdk import Column, Condition, Timeseries
-from snuba_sdk.conditions import BooleanCondition, BooleanOp, ConditionGroup
+from snuba_sdk.conditions import BooleanCondition, BooleanOp, ConditionGroup, Op
 from snuba_sdk.mql.mql import parse_mql
 
-from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
+from sentry.models.environment import Environment
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
 
-def transform_to_tags(
+def _visit_conditions(
+    conditions: ConditionGroup, block: Callable[[Condition], Optional[ConditionGroup]]
+) -> ConditionGroup:
+    """
+    Traverses a group of conditions, applies a function on each terminal condition and returns a transformed group.
+    """
+    transformed_conditions = []
+    for condition in conditions:
+        if isinstance(condition, BooleanCondition):
+            transformed_conditions.append(
+                BooleanCondition(
+                    op=condition.op,
+                    conditions=_visit_conditions(condition.conditions, block),
+                )
+            )
+        elif isinstance(condition, Condition):
+            if (conditions_to_replace := block(condition)) is not None:
+                transformed_conditions += conditions_to_replace
+            else:
+                transformed_conditions.append(condition)
+
+    return transformed_conditions
+
+
+def transform_conditions_to_tags(
     conditions: Optional[ConditionGroup], check_sentry_tags: bool = False
 ) -> Optional[ConditionGroup]:
     """
@@ -19,46 +44,36 @@ def transform_to_tags(
     if conditions is None:
         return None
 
-    transformed_conditions = []
-    for condition in conditions:
-        if isinstance(condition, BooleanCondition):
-            transformed_conditions.append(
-                BooleanCondition(
-                    op=condition.op,
-                    conditions=transform_to_tags(condition.conditions, check_sentry_tags),
-                )
-            )
-        elif isinstance(condition, Condition) and isinstance(condition.lhs, Column):
-            # We assume that all incoming conditions are on tags, since we do not allow filtering by project in the
-            # query filters.
+    def _transform_to_tags(condition: Condition) -> Optional[ConditionGroup]:
+        if not isinstance(condition.lhs, Column):
+            return None
+
+        # We assume that all incoming conditions are on tags, since we do not allow filtering by project in the
+        # query filters.
+        tag_column = f"tags[{condition.lhs.name}]"
+        sentry_tag_column = f"sentry_tags[{condition.lhs.name}]"
+
+        if check_sentry_tags:
             tag_column = f"tags[{condition.lhs.name}]"
-            sentry_tag_column = f"sentry_tags[{condition.lhs.name}]"
-
-            if check_sentry_tags:
-                tag_column = f"tags[{condition.lhs.name}]"
-                # We might have tags across multiple nested structures such as `tags` and `sentry_tags` for this reason
-                # we want to emit a condition that spans both.
-                transformed_conditions.append(
-                    BooleanCondition(
-                        op=BooleanOp.OR,
-                        conditions=[
-                            Condition(
-                                lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs
-                            ),
-                            Condition(
-                                lhs=Column(name=sentry_tag_column),
-                                op=condition.op,
-                                rhs=condition.rhs,
-                            ),
-                        ],
-                    )
+            # We might have tags across multiple nested structures such as `tags` and `sentry_tags` for this reason
+            # we want to emit a condition that spans both.
+            return [
+                BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        Condition(lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs),
+                        Condition(
+                            lhs=Column(name=sentry_tag_column),
+                            op=condition.op,
+                            rhs=condition.rhs,
+                        ),
+                    ],
                 )
-            else:
-                transformed_conditions.append(
-                    Condition(lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs)
-                )
+            ]
+        else:
+            return [Condition(lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs)]
 
-    return transformed_conditions
+    return _visit_conditions(conditions, _transform_to_tags)
 
 
 def transform_conditions_with(
@@ -74,34 +89,44 @@ def transform_conditions_with(
     if not mappings:
         return conditions
 
-    transformed_conditions = []
-    for condition in conditions:
-        if isinstance(condition, BooleanCondition):
-            transformed_conditions.append(
-                BooleanCondition(
-                    op=condition.op,
-                    conditions=transform_conditions_with(condition.conditions, mappings),
-                )
+    def _transform_conditions_with(condition: Condition) -> Optional[ConditionGroup]:
+        if not isinstance(condition.lhs, Column):
+            return None
+
+        return [
+            Condition(
+                lhs=Column(name=mappings.get(condition.lhs.key, condition.lhs.name)),
+                op=condition.op,
+                rhs=condition.rhs,
             )
-        elif isinstance(condition, Condition) and isinstance(condition.lhs, Column):
-            new_value = condition.lhs.name
-            if (mapped_value := mappings.get(condition.lhs.key)) is not None:
-                new_value = mapped_value
+        ]
 
-            transformed_conditions.append(
-                Condition(lhs=Column(name=new_value), op=condition.op, rhs=condition.rhs)
-            )
-
-    return transformed_conditions
+    return _visit_conditions(conditions, _transform_conditions_with)
 
 
-def get_snuba_conditions_from_query(query: str) -> Optional[ConditionGroup]:
+def add_environments_condition(
+    conditions: Optional[ConditionGroup], environments: Sequence[Environment]
+) -> Optional[ConditionGroup]:
+    """
+    Adds the environment filter inside a condition group in the form (environment_condition AND existing_conditions).
+    """
+    if not environments:
+        return conditions
+
+    environments_names = [environment.name for environment in environments]
+    return [Condition(Column("environment"), Op.IN, environments_names)] + (conditions or [])
+
+
+def get_snuba_conditions_from_query(query: Optional[str]) -> Optional[ConditionGroup]:
     """
     Returns a set of Snuba conditions from a query string which is assumed to contain filters in the MQL grammar.
 
     Since MQL does not support parsing only filters, we have to create a phantom query to feed the parser,
     in order for it to correctly resolve a `Timeseries` out of which we extract the `filters`.
     """
+    if not query:
+        return None
+
     # We want to create a phantom query to feed into the parser in order to be able to extract the conditions
     # from the returned timeseries.
     phantom_query = f"count(phantom){{{query}}}"
