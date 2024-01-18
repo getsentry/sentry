@@ -24,7 +24,10 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const contentId = `sidebar-accordion-${id}-content`;
 
   const isActive = isItemActive(itemProps);
-  const hasActiveChildren = Children.toArray(children).some(child => {
+
+  const someChildren = recursivelyFindChildren(children, 'SidebarItem');
+
+  const hasActiveChildren = Children.toArray(someChildren).some(child => {
     if (isValidElement(child)) {
       return isItemActive(child.props);
     }
@@ -77,6 +80,65 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 }
 
 export {SidebarAccordion};
+
+function recursivelyFindChildren(
+  children: React.ReactNode,
+  componentName: string,
+  found: Array<React.ReactNode> = []
+): React.ReactNode {
+  Children.toArray(children).forEach(child => {
+    if (!isAReactElement(child)) {
+      return;
+    }
+
+    if (child && child?.props && child?.props?.children) {
+      recursivelyFindChildren(child.props.children, componentName, found);
+      return;
+    }
+
+    if (typeof child.type === 'string') {
+      if (child.type === componentName) {
+        found.push(child);
+      }
+    } else {
+      if (child?.type?.name === componentName) {
+        found.push(child);
+      }
+    }
+
+    return;
+  });
+
+  return found;
+}
+
+function isAReactElement(element: React.ReactNode): element is React.ReactElement {
+  if (typeof element === 'string' || typeof element === 'number') {
+    return false;
+  }
+
+  if (element === null) {
+    return false;
+  }
+
+  if (element === undefined) {
+    return false;
+  }
+
+  if (typeof element === 'boolean') {
+    return false;
+  }
+
+  if (!('props' in element)) {
+    return false;
+  }
+
+  if (!('type' in element)) {
+    return false;
+  }
+
+  return true;
+}
 
 const SidebarAccordionWrapper = styled('div')`
   display: flex;
