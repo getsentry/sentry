@@ -519,9 +519,9 @@ def project_with_team(extra_team: bool = False):
 
 
 class ProjectExamples:
-    BASE_KEY = [
+    CLIENT_KEY_RESPONSE = [
         OpenApiExample(
-            "Client key with rate limiting",
+            "Retrieve a client key with rate limiting",
             value=key_with_rate_limiting,
             status_codes=["200", "201"],
             response_only=True,
@@ -553,15 +553,6 @@ class ProjectExamples:
                 key_with_rate_limiting,
                 key_wo_rate_limiting,
             ],
-            status_codes=["200"],
-            response_only=True,
-        ),
-    ]
-
-    RETREVE_CLIENT_KEY = [
-        OpenApiExample(
-            "Retrieve an Existing Client Key",
-            value=key_wo_rate_limiting,
             status_codes=["200"],
             response_only=True,
         ),
