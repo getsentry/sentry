@@ -45,7 +45,6 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             title = tag["title"]
             value = tag["value"]
             fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
-
         return {"type": "section", "fields": fields}
 
     @staticmethod
@@ -62,6 +61,18 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_external_select_action(action, initial_option):
+        action = {
+            "type": "external_select",
+            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
+            "action_id": action.name,
+        }
+        if initial_option:
+            action["initial_option"] = initial_option
+
+        return action
+
+    @staticmethod
     def get_button_action(action):
         button = {
             "type": "button",
@@ -76,6 +87,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
         if action.url:
             button["url"] = action.url
+            button["value"] = "link_clicked"
 
         return button
 

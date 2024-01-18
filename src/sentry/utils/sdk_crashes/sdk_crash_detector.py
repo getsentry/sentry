@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Any, Mapping, Sequence, Set
 
 from packaging.version import InvalidVersion, Version
@@ -6,42 +5,13 @@ from packaging.version import InvalidVersion, Version
 from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.path_replacer import PathReplacer
-
-
-@dataclass
-class SDKFrameConfig:
-    function_patterns: Set[str]
-
-    filename_patterns: Set[str]
-
-    path_replacer: PathReplacer
-
-
-@dataclass
-class SDKCrashDetectorConfig:
-    sdk_names: Sequence[str]
-
-    min_sdk_version: str
-
-    system_library_path_patterns: Set[str]
-
-    sdk_frame_config: SDKFrameConfig
-
-    sdk_crash_ignore_functions_matchers: Set[str]
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 
 
 class SDKCrashDetector:
-    """
-    This class is still a work in progress. The plan is that every SDK has to define a subclass of
-    this base class to get SDK crash detection up and running. We most likely will have to pull
-    out some logic of the CocoaSDKCrashDetector into this class when adding the SDK crash detection
-    for another SDK.
-    """
-
     def __init__(
         self,
-        config: SDKCrashDetectorConfig,
+        config: SDKCrashDetectionConfig,
     ):
         self.config = config
 

@@ -118,7 +118,10 @@ export type SortState = {
 
 export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
-  focusedSeries?: string;
+  focusedSeries?: {
+    seriesName: string;
+    groupBy?: Record<string, string>;
+  };
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
   sort?: SortState;
@@ -167,10 +170,10 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
-  metricSpans?: MetricSpan[];
+  metricSpans?: MetricCorrelation[];
 };
 
-export type MetricSpan = {
+export type MetricCorrelation = {
   duration: number;
   profileId: string;
   projectId: number;
@@ -180,11 +183,10 @@ export type MetricSpan = {
   timestamp: string;
   traceId: string;
   transactionId: string;
-  replayId?: string; // Not there yet but will be added
   spansSummary?: {
-    span_duration: number;
-    span_op: string;
-  };
+    spanDuration: number;
+    spanOp: string;
+  }[];
 };
 
 export type MetricRange = {
@@ -254,7 +256,7 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
-    orderBy: hasGroupBy && !orderBy ? `-${field}` : orderBy,
+    orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // Max result groups for compatibility with old metrics layer
     // TODO(telemetry-experience): remove once everyone is on new metrics layer
@@ -714,4 +716,8 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   );
 
   return {start: startObj.toISOString(), end: now.toISOString()};
+}
+
+export function isSupportedDisplayType(displayType: unknown) {
+  return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
 }

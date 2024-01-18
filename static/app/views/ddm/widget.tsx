@@ -144,28 +144,30 @@ export const MetricWidget = memo(
               onChange={handleDisplayTypeChange}
             />
           </MetricWidgetHeader>
-          {widget.mri ? (
-            <MetricWidgetBody
-              widgetIndex={index}
-              datetime={datetime}
-              projects={projects}
-              environments={environments}
-              onChange={handleChange}
-              addFocusArea={addFocusArea}
-              focusArea={focusArea}
-              removeFocusArea={removeFocusArea}
-              chartHeight={300}
-              {...widget}
-            />
-          ) : (
-            <StyledMetricWidgetBody>
-              <EmptyMessage
-                icon={<IconSearch size="xxl" />}
-                title={t('Nothing to show!')}
-                description={t('Choose a metric to display data.')}
+          <MetricWidgetBodyWrapper>
+            {widget.mri ? (
+              <MetricWidgetBody
+                widgetIndex={index}
+                datetime={datetime}
+                projects={projects}
+                environments={environments}
+                onChange={handleChange}
+                addFocusArea={addFocusArea}
+                focusArea={focusArea}
+                removeFocusArea={removeFocusArea}
+                chartHeight={300}
+                {...widget}
               />
-            </StyledMetricWidgetBody>
-          )}
+            ) : (
+              <StyledMetricWidgetBody>
+                <EmptyMessage
+                  icon={<IconSearch size="xxl" />}
+                  title={t('Nothing to show!')}
+                  description={t('Choose a metric to display data.')}
+                />
+              </StyledMetricWidgetBody>
+            )}
+          </MetricWidgetBodyWrapper>
         </PanelBody>
       </MetricWidgetPanel>
     );
@@ -223,10 +225,11 @@ export const MetricWidgetBody = memo(
     }, []);
 
     const toggleSeriesVisibility = useCallback(
-      (seriesName: string) => {
+      (series: MetricWidgetQueryParams['focusedSeries']) => {
         setHoveredSeries('');
         onChange?.({
-          focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
+          focusedSeries:
+            focusedSeries?.seriesName === series?.seriesName ? undefined : series,
         });
       },
       [focusedSeries, onChange, setHoveredSeries]
@@ -237,7 +240,7 @@ export const MetricWidgetBody = memo(
         data &&
         getChartSeries(data, {
           mri,
-          focusedSeries,
+          focusedSeries: focusedSeries?.seriesName,
           groupBy: metricsQuery.groupBy,
           displayType,
         })
@@ -329,6 +332,7 @@ export function getChartSeries(
     return {
       values: Object.values(g.series)[0],
       name: getSeriesName(g, data.groups.length === 1, groupBy),
+      groupBy: g.by,
       transaction: g.by.transaction,
       release: g.by.release,
     };
@@ -338,6 +342,7 @@ export function getChartSeries(
 
   return sortSeries(series, displayType).map((item, i) => ({
     seriesName: item.name,
+    groupBy: item.groupBy,
     unit,
     color: colorFn(colors[i % colors.length])
       .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
@@ -357,6 +362,7 @@ export function getChartSeries(
 
 function sortSeries(
   series: {
+    groupBy: Record<string, string>;
     name: string;
     release: string;
     transaction: string;
@@ -395,6 +401,7 @@ export type Series = {
   data: {name: number; value: number}[];
   seriesName: string;
   unit: string;
+  groupBy?: Record<string, string>;
   hidden?: boolean;
   release?: string;
   transaction?: string;
@@ -429,10 +436,16 @@ const MetricWidgetPanel = styled(Panel)<{
 
 const StyledMetricWidgetBody = styled('div')`
   padding: ${space(1)};
+  gap: ${space(3)};
   display: flex;
   flex-direction: column;
   justify-content: center;
   height: 100%;
+`;
+
+const MetricWidgetBodyWrapper = styled('div')`
+  padding: ${space(1)};
+  padding-bottom: 0;
 `;
 
 const MetricWidgetHeader = styled('div')`

@@ -30,7 +30,7 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias, RateUnits} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, RateUnit} from 'sentry/utils/discover/fields';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {TableColumn} from 'sentry/views/discover/table/types';
@@ -222,7 +222,7 @@ function EndpointList({
     // as `"rate"` and its unit as `"1/second"
     if (field === 'tps()') {
       return (
-        <ThroughputCell rate={dataRow[field] as number} unit={RateUnits.PER_SECOND} />
+        <ThroughputCell rate={dataRow[field] as number} unit={RateUnit.PER_SECOND} />
       );
     }
 

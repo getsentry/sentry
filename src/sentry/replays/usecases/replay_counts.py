@@ -3,9 +3,9 @@ from __future__ import annotations
 import dataclasses
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Generator
 
-from sentry.api.event_search import parse_search_query
+from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
@@ -131,14 +131,10 @@ def _get_replay_ids(
 def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
     parsed_query = parse_search_query(query)
 
-    select_column_conditions = [
-        cond for cond in parsed_query if cond.key.name in ["issue.id", "transaction", "replay_id"]
-    ]
-
+    select_column_conditions = list(extract_columns_recursive(parsed_query))
     if len(select_column_conditions) > 1:
         raise ValueError("Must provide only one of: issue.id, transaction, replay_id")
-
-    if len(select_column_conditions) == 0:
+    elif len(select_column_conditions) == 0:
         raise ValueError("Must provide at least one issue.id, transaction, or replay_id")
 
     condition = select_column_conditions[0]
@@ -152,3 +148,12 @@ def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
         raise ValueError("Too many values provided")
 
     return condition.key.name, condition.value.raw_value
+
+
+def extract_columns_recursive(query: list[Any]) -> Generator[SearchFilter, None, None]:
+    for condition in query:
+        if isinstance(condition, SearchFilter):
+            if condition.key.name in ("issue.id", "transaction", "replay_id"):
+                yield condition
+        elif isinstance(condition, ParenExpression):
+            yield from extract_columns_recursive(condition.children)

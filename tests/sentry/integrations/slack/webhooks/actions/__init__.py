@@ -117,7 +117,7 @@ class BaseEventTest(APITestCase):
                     {
                         "type": "section",
                         "block_id": "a6HD+",
-                        "text": {"type": "mrkdwn", "text": "Resolve in", "verbatim": False},
+                        "text": {"type": "mrkdwn", "text": "Resolve", "verbatim": False},
                         "accessory": {
                             "type": "static_select",
                             "action_id": "static_select-action",

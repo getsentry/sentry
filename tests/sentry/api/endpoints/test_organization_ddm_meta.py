@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Sequence, cast
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from django.utils import timezone
@@ -334,28 +334,44 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
         transaction_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
-        span_id = "98230207e6e4a6ad"
-        self.store_span(
+
+        self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             trace_id=trace_id,
             transaction_id=transaction_id,
-            span_id=span_id,
-            store_transaction_and_span=True,
-            store_metrics_summary={
-                mri: [
-                    {
-                        "min": 10.0,
-                        "max": 100.0,
-                        "sum": 110.0,
-                        "count": 2,
-                        "tags": {
-                            "transaction": "/hello",
-                        },
-                    }
-                ]
-            },
+            duration=30,
         )
+        span_id_1 = "98230207e6e4a6ad"
+        span_id_2 = "10230207e8e4a6ef"
+        span_id_3 = "22330201e8e4a6ab"
+        for span_id, span_op, span_duration in (
+            (span_id_1, "db", 10),
+            (span_id_2, "http", 20),
+            (span_id_3, "rpc", 2),
+        ):
+            self.store_indexed_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                span_id=span_id,
+                op=span_op,
+                duration=span_duration,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {
+                                "transaction": "/hello",
+                            },
+                        }
+                    ]
+                },
+            )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -368,12 +384,103 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id
-        assert metric_spans[0]["duration"] == 10
-        assert metric_spans[0]["spansNumber"] == 1
+        assert metric_spans[0]["duration"] == 30
+        assert metric_spans[0]["spansNumber"] == 3
+        assert sorted(metric_spans[0]["spansDetails"], key=lambda value: value["spanDuration"]) == [
+            {
+                "spanId": span_id_3,
+                "spanDuration": 2,
+                "spanTimestamp": ANY,
+            },
+            {
+                "spanId": span_id_1,
+                "spanDuration": 10,
+                "spanTimestamp": ANY,
+            },
+            {
+                "spanId": span_id_2,
+                "spanDuration": 20,
+                "spanTimestamp": ANY,
+            },
+        ]
+        assert sorted(metric_spans[0]["spansSummary"], key=lambda value: value["spanOp"]) == [
+            {"spanDuration": 10, "spanOp": "db"},
+            {"spanDuration": 20, "spanOp": "http"},
+            {"spanDuration": 2, "spanOp": "rpc"},
+        ]
+
+    def test_get_metric_spans_with_environment(self):
+        mri = "g:custom/page_load@millisecond"
+
+        self.create_environment(project=self.project, name="prod")
+
+        trace_id = uuid.uuid4().hex
+        transaction_id_1 = uuid.uuid4().hex
+        transaction_id_2 = uuid.uuid4().hex
+
+        for transaction_id, environment, duration in (
+            (transaction_id_1, None, 20),
+            (transaction_id_2, "prod", 30),
+        ):
+            span_tags = {}
+            if environment:
+                span_tags["environment"] = environment
+
+            self.store_segment(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                duration=duration,
+            )
+            self.store_indexed_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": span_tags,
+                        }
+                    ]
+                },
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["transactionId"] == transaction_id_2
+        assert metric_spans[1]["transactionId"] == transaction_id_1
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            environment="prod",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["transactionId"] == transaction_id_2
 
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
 
+        trace_id = uuid.uuid4().hex
         transaction_id_1 = uuid.uuid4().hex
         span_id_1 = "98230207e6e4a6ad"
         transaction_id_2 = uuid.uuid4().hex
@@ -385,12 +492,21 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 (transaction_id_2, span_id_2, 120.0, 200.0),
             )
         ):
-            self.store_span(
+            self.store_segment(
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 + i),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                duration=10,
+            )
+            self.store_indexed_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5 + i),
+                trace_id=trace_id,
                 transaction_id=transaction_id,
                 span_id=span_id,
-                store_transaction_and_span=True,
+                op="db",
+                duration=5,
                 store_metrics_summary={
                     mri: [
                         {
@@ -439,9 +555,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         mri = "g:custom/page_load@millisecond"
 
         span_id_1 = "98230207e6e4a6ad"
-        self.store_span(
+        self.store_indexed_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
             span_id=span_id_1,
             store_metrics_summary={
                 mri: [
@@ -459,9 +577,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         )
 
         span_id_2 = "10220507e6f4e6ad"
-        self.store_span(
+        self.store_indexed_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=10),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
             span_id=span_id_2,
             store_metrics_summary={
                 mri: [
@@ -507,9 +627,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
         data = [("98230207e6e4a6ad", "/hello"), ("10220507e6f4e6ad", "/world")]
         for index, (span_id, transaction) in enumerate(data):
-            self.store_span(
+            self.store_indexed_span(
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 - index),
+                trace_id=uuid.uuid4().hex,
+                transaction_id=uuid.uuid4().hex,
                 span_id=span_id,
                 store_metrics_summary={
                     mri: [
@@ -549,17 +671,21 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
         span_id_1 = "10220507e6f4e6ad"
         # We store an additional span just to show that we return only the spans matching the summary of a metric.
-        self.store_span(
+        self.store_indexed_span(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
             span_id=span_id_1,
         )
 
         span_id_2 = "98230207e6e4a6ad"
         for transaction, store_only_summary in (("/hello", False), ("/world", True)):
-            self.store_span(
+            self.store_indexed_span(
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5),
+                trace_id=uuid.uuid4().hex,
+                transaction_id=uuid.uuid4().hex,
                 span_id=span_id_2,
                 store_metrics_summary={
                     mri: [
@@ -631,12 +757,13 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             ("96b41c8d77b591ab", "/api/users", "OnePlus"),
         ]
         for index, (span_id, transaction, device) in enumerate(data):
-            self.store_span(
+            self.store_segment(
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 - index),
+                trace_id=uuid.uuid4().hex,
+                transaction_id=uuid.uuid4().hex,
                 span_id=span_id,
-                is_segment=True,
-                duration_ms=100,
+                duration=100,
                 transaction=transaction,
                 tags={"device": device},
             )
@@ -688,12 +815,13 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
         span_id = "98230207e6e4a6ad"
         transaction = "/api/users"
-        self.store_span(
+        self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
             span_id=span_id,
-            is_segment=True,
-            duration_ms=100,
+            duration=100,
             transaction=transaction,
         )
 
@@ -741,11 +869,12 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             (fcp_mri, "fcp", "16bd1c7d77b591ab", "/api/customers", "iPhone"),
         ]
         for index, (mri, measurement, span_id, transaction, device) in enumerate(data):
-            self.store_span(
+            self.store_segment(
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5 - index),
+                trace_id=uuid.uuid4().hex,
+                transaction_id=uuid.uuid4().hex,
                 span_id=span_id,
-                is_segment=True,
                 transaction=transaction,
                 tags={"device": device},
                 measurements={measurement: 100},
@@ -799,13 +928,12 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         mri = TransactionMRI.MEASUREMENTS_APP_START_COLD.value
 
         span_id = "98230207e6e4a6ad"
-        transaction = "/api/users"
-        self.store_span(
+        self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
             span_id=span_id,
-            is_segment=True,
-            transaction=transaction,
             measurements={"app_start_cold": 100},
         )
 
@@ -845,17 +973,17 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     def test_get_metric_spans_with_measurement_with_zero_edge_case(self):
         mri = TransactionMRI.MEASUREMENTS_FRAMES_FROZEN.value
 
-        self.store_span(
+        self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
-            span_id="98230207e6e4a6ad",
-            is_segment=True,
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
         )
-        self.store_span(
+        self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
-            span_id="16bd1c7d77b591ab",
-            is_segment=True,
+            trace_id=uuid.uuid4().hex,
+            transaction_id=uuid.uuid4().hex,
             measurements={"frames_frozen": 0},
         )
 

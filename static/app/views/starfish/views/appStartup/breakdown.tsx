@@ -26,7 +26,7 @@ export function TooltipContents({
   total: number;
 }) {
   return (
-    <TooltipContentWrapper>
+    <TooltipContentWrapper data-test-id="breakdown-tooltip-content">
       {breakdownGroups.map(({key, color, name}) => (
         <StartupType key={key}>
           <StartupNameContainer>
@@ -43,22 +43,25 @@ export function TooltipContents({
 function Breakdown({
   row,
   breakdownGroups,
+  ['data-test-id']: dataTestId,
 }: {
   breakdownGroups: BreakdownGroup[];
   row: Row;
+  ['data-test-id']?: string;
 }) {
-  const total = breakdownGroups.reduce((acc, {key}) => acc + (row[key] ?? 0), 0);
+  const total = breakdownGroups.reduce((acc, {key}) => acc + (row?.[key] ?? 0), 0);
 
   if (total === 0) {
     return null;
   }
+
   return (
     <Tooltip
       title={
         <TooltipContents row={row} total={total} breakdownGroups={breakdownGroups} />
       }
     >
-      <RelativeOpsBreakdown>
+      <RelativeOpsBreakdown data-test-id={dataTestId}>
         {breakdownGroups.map(({key, color}) => (
           <div
             key={key}

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
@@ -134,9 +134,9 @@ export function SpanSummaryView({groupId}: Props) {
               isLineChart
               definedAxisTicks={4}
               aggregateOutputFormat="rate"
-              rateUnit={RateUnits.PER_MINUTE}
+              rateUnit={RateUnit.PER_MINUTE}
               tooltipFormatterOptions={{
-                valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
+                valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
               }}
             />
           </ChartPanel>

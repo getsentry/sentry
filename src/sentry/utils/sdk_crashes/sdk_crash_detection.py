@@ -3,17 +3,11 @@ from __future__ import annotations
 import random
 from typing import Any, Mapping, Optional, Sequence
 
-import sentry_sdk
-
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.configs import (
-    cocoa_sdk_crash_detector_config,
-    react_native_sdk_crash_detector_config,
-)
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -40,16 +34,13 @@ class SDKCrashDetection:
     def __init__(
         self,
         sdk_crash_reporter: SDKCrashReporter,
-        sdk_crash_detectors: Mapping[SdkName, SDKCrashDetector],
     ):
         """
         Initializes the SDK crash detection.
 
         :param sdk_crash_reporter: Stores the stripped crash event to a Sentry project.
-        :param sdk_crash_detectors: A mapping of SDK name to SDK crash detector. The name of the SDK must match the sdk_name of th SDKCrashDetectionConfig.
         """
         self.sdk_crash_reporter = sdk_crash_reporter
-        self.sdk_crash_detectors = sdk_crash_detectors
 
     def detect_sdk_crash(
         self, event: Event | GroupEvent, configs: Sequence[SDKCrashDetectionConfig]
@@ -59,17 +50,17 @@ class SDKCrashDetection:
         project specified with project_id in the configs.
 
         :param event: The event to check for an SDK crash.
-        :param configs: The list of configs per SDK.
+        :param configs: The list of configs, one for each SDK.
         """
 
         is_error = event.group and event.group.issue_category == GroupCategory.ERROR
         if not is_error:
             return None
 
+        sdk_detectors = list(map(lambda config: SDKCrashDetector(config=config), configs))
+
         sdk_crash_detectors = [
-            (sdk_name, detector)
-            for sdk_name, detector in self.sdk_crash_detectors.items()
-            if detector.should_detect_sdk_crash(event.data)
+            detector for detector in sdk_detectors if detector.should_detect_sdk_crash(event.data)
         ]
 
         if not sdk_crash_detectors:
@@ -77,21 +68,11 @@ class SDKCrashDetection:
 
         # Only report the first matching SDK crash detector. We don't want to report the same
         # event multiple times.
-        sdk_name, sdk_crash_detector = sdk_crash_detectors[0]
+        sdk_crash_detector = sdk_crash_detectors[0]
 
-        config = [x for x in configs if x["sdk_name"] == sdk_name]
-        if not config:
-            sentry_sdk.capture_message(f"No config found for sdk_name={sdk_name}")
-            return None
-
-        if len(config) > 1:
-            sentry_sdk.capture_message(
-                "Multiple configs found for sdk_name={sdk_name}. Taking first one."
-            )
-
-        sample_rate = config[0]["sample_rate"]
-        project_id = config[0]["project_id"]
-        organization_allowlist = config[0].get("organization_allowlist", None)
+        sample_rate = sdk_crash_detector.config.sample_rate
+        project_id = sdk_crash_detector.config.project_id
+        organization_allowlist = sdk_crash_detector.config.organization_allowlist
 
         if (
             organization_allowlist is not None
@@ -135,14 +116,4 @@ class SDKCrashDetection:
 
 
 _crash_reporter = SDKCrashReporter()
-
-_cocoa_sdk_crash_detector = SDKCrashDetector(config=cocoa_sdk_crash_detector_config)
-_react_native_sdk_crash_detector = SDKCrashDetector(config=react_native_sdk_crash_detector_config)
-
-sdk_crash_detection = SDKCrashDetection(
-    _crash_reporter,
-    {
-        SdkName.Cocoa: _cocoa_sdk_crash_detector,
-        SdkName.ReactNative: _react_native_sdk_crash_detector,
-    },
-)
+sdk_crash_detection = SDKCrashDetection(_crash_reporter)

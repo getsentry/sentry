@@ -59,10 +59,6 @@ function getBadgeProperties(
   return undefined;
 }
 
-/**
- * A replacement for the inbox badge that uses the group substatus
- * instead of the group inbox reason.
- */
 export function GroupStatusBadge(props: SubstatusBadgeProps) {
   const badge = getBadgeProperties(props.status, props.substatus);
   if (!badge) {

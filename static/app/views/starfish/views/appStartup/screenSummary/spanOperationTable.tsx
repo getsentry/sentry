@@ -147,13 +147,13 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      // TODO(nar), change out URL when moving tabs
       const pathname = normalizeUrl(
-        `/organizations/${organization.slug}/starfish/appStartup/spans/`
+        `/organizations/${organization.slug}/performance/mobile/app-startup/spans/`
       );
       const query = {
         ...location.query,
         transaction,
+        spanOp: row[SpanMetricsField.SPAN_OP],
         spanGroup: row[SpanMetricsField.SPAN_GROUP],
         spanDescription: row[SpanMetricsField.SPAN_DESCRIPTION],
       };

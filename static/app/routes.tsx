@@ -22,8 +22,8 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
+import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
@@ -290,7 +290,7 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
+          component={errorHandler(withDomainRequired(OrganizationLayout))}
           key="orgless-onboarding"
         >
           <IndexRedirect to="welcome/" />
@@ -302,7 +302,7 @@ function buildRoutes() {
       )}
       <Route
         path="/onboarding/:orgId/"
-        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
+        component={withDomainRedirect(errorHandler(OrganizationLayout))}
         key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
@@ -1745,6 +1745,19 @@ function buildRoutes() {
             path="spans/"
             component={make(
               () => import('sentry/views/starfish/views/screens/screenLoadSpans')
+            )}
+          />
+        </Route>
+        <Route path="app-startup/">
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/starfish/modules/mobile/appStartup')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/starfish/views/appStartup/screenSummary')
             )}
           />
         </Route>

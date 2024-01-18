@@ -12,7 +12,7 @@ import {Event, EventsStatsData, Group, IssueType, PageFilters} from 'sentry/type
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -140,7 +140,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
         axisLabel: {
           color: theme.chartLabel,
           formatter: (value: number) =>
-            axisLabelFormatter(value, 'rate', true, undefined, RateUnits.PER_SECOND),
+            axisLabelFormatter(value, 'rate', true, undefined, RateUnit.PER_SECOND),
         },
         splitLine: {show: false},
         splitNumber: 1,
@@ -152,7 +152,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
     <SidebarSection.Wrap data-test-id="throughput">
       <SidebarSection.Title>{t('Change in Throughput')}</SidebarSection.Title>
       {stats.series.length > 0 ? (
-        <CurrentLabel>{formatRate(throughputAfter, RateUnits.PER_SECOND)}</CurrentLabel>
+        <CurrentLabel>{formatRate(throughputAfter, RateUnit.PER_SECOND)}</CurrentLabel>
       ) : (
         <CurrentLabel>{'\u2014'}</CurrentLabel>
       )}
@@ -161,7 +161,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
           {t(
             'Up %s from %s',
             `+${formatPercentage(throughputDelta)}`,
-            formatRate(throughputBefore, RateUnits.PER_SECOND)
+            formatRate(throughputBefore, RateUnit.PER_SECOND)
           )}
         </CompareLabel>
       ) : throughputDelta && throughputDelta < 0 ? (
@@ -169,12 +169,12 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
           {t(
             'Down %s from %s',
             formatPercentage(throughputDelta),
-            formatRate(throughputBefore, RateUnits.PER_SECOND)
+            formatRate(throughputBefore, RateUnit.PER_SECOND)
           )}
         </CompareLabel>
       ) : stats.series.length > 0 ? (
         <CompareLabel>
-          {t('Unchanged from', formatRate(throughputBefore, RateUnits.PER_SECOND))}
+          {t('Unchanged from', formatRate(throughputBefore, RateUnit.PER_SECOND))}
         </CompareLabel>
       ) : (
         <CompareLabel>{'\u2014'}</CompareLabel>

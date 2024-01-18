@@ -146,11 +146,7 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        # We expect two specs since we collect both
-        # Once we do not run two versions we will need to change this test
-        assert len(config["metrics"]) == 2
-        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
-        # and then AND with the injected environment.
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {
@@ -169,27 +165,6 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": "ca87c609"}],
-        }
-        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
-        # expression, we will prioritize our filter.
-        assert config["metrics"][1] == {
-            "category": "transaction",
-            "condition": {
-                "inner": [
-                    {
-                        "inner": [
-                            {"name": "event.environment", "op": "eq", "value": "development"},
-                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
-                        ],
-                        "op": "and",
-                    },
-                    {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
-                ],
-                "op": "or",
-            },
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "47bc817d"}],
         }
 
 
@@ -244,7 +219,10 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
         assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
-        assert out.split(": ")[-1] == "Too many (2) on demand metric alerts for project bar\n"
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric alerts for project bar",
+        ]
 
 
 @django_db_all
@@ -475,6 +453,32 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
 
 
 @django_db_all
+def test_get_metric_extraction_config_alert_and_widget_deduplicated(
+    default_project: Project,
+) -> None:
+    # metrics should be deduplicated across widgets
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        # The columns between these two widgets are in a different order and
+        # two specs should be the same metric
+        create_widget(
+            ["count()"],
+            "issue:FOO",
+            default_project,
+            columns=["release", "country_code"],
+        )
+        create_widget(
+            ["count()"],
+            "issue:FOO",
+            default_project,
+            title="Foo",
+            columns=["country_code", "release"],
+        )
+        config = get_metric_extraction_config(default_project)
+        assert config
+        assert len(config["metrics"]) == 1
+
+
+@django_db_all
 @override_options({"on_demand.max_widget_specs": 1})
 def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
     capfd: Any,
@@ -491,7 +495,10 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
         assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
-        assert out.split(": ")[-1] == "Too many (2) on demand metric widgets for project bar\n"
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
 
 
 @django_db_all

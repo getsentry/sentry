@@ -79,9 +79,17 @@ export function ActionSelector({
           },
         });
       }}
+      styles={{
+        control: provided => ({
+          ...provided,
+          minWidth: MIN_WIDTH,
+        }),
+      }}
     />
   );
 }
+
+const MIN_WIDTH = 230;
 
 const HTTP_ACTION_OPTIONS = [
   {value: '', label: 'All'},

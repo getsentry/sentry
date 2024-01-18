@@ -33,9 +33,7 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
-from sentry.utils.sdk_crashes.build_sdk_crash_detection_configs import (
-    build_sdk_crash_detection_configs,
-)
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
@@ -961,7 +959,13 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_window": snooze.user_window,
             }
 
-            manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+            # issues snoozed with a specific time duration should be marked ONGOING when the window expires
+            reason = (
+                GroupInboxReason.ONGOING
+                if snooze.until is not None
+                else GroupInboxReason.ESCALATING
+            )
+            manage_issue_states(group, reason, event, snooze_details)
 
             snooze.delete()
 

@@ -1436,6 +1436,8 @@ SENTRY_EARLY_FEATURES = {
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables the staff cookie on requests
     "auth:enterprise-staff-cookie": False,
+    # Enables superuser read vs. write separation
+    "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
@@ -1607,8 +1609,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-new-experience-toggle": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
-    # Enables syntax highlighting in the stack trace
-    "organizations:issue-details-stacktrace-syntax-highlighting": False,
     # Enables the new Stacktrace Link UI in frame header
     "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
@@ -1659,6 +1659,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:mobile-cpu-memory-in-transactions": False,
     # Enable Monitors (Crons) view
     "organizations:monitors": False,
+    # Enable rate-limiting via relay for Monitors (crons)
+    "organizations:monitors-quota-rate-limit": False,
     # Enables higher limit for alert rules
     "organizations:more-slow-alerts": False,
     # Enables region provisioning for individual users
@@ -1681,8 +1683,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
-    # Query on demand metrics with the new environment logic
-    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1854,8 +1854,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable the new zero state UI
-    "organizations:session-replay-new-zero-state": False,
     # Enable View Sample Replay button on the Replay-List empty-state page
     "organizations:session-replay-onboarding-cta-button": False,
     # Enable data scrubbing of replay recording payloads in Relay.
@@ -1890,6 +1888,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:spike-protection-decay-heuristic": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
+    # Enable new Slack message formatting
+    "organizations:slack-formatting-update": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1911,6 +1911,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-browser-webvitals-pageoverview-v2": False,
     # Enable browser starfish webvitals module to use backend provided performance scores
     "organizations:starfish-browser-webvitals-use-backend-scores": False,
+    # Enable mobile starfish app start module view
+    "organizations:starfish-mobile-appstart": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
     # Enable the new experimental starfish view
@@ -1976,6 +1978,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:minidump": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
+    # Enable ingesting non-sampled profiles
+    "projects:profiling-ingest-unsampled-profiles": False,
     # Enable alternative version of group creation that is supposed to be less racy.
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
@@ -2779,7 +2783,8 @@ def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]
 # platform.processor() changed at some point between these:
 # 11.2.3: arm
 # 12.3.1: arm64
-APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
+# ubuntu: aarch64
+ARM64 = platform.processor() in {"arm", "arm64", "aarch64"}
 
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
@@ -2872,7 +2877,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-            if not APPLE_ARM64
+            if not ARM64
             # altinity provides clickhouse support to other companies
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
@@ -2927,6 +2932,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "only_if": "snuba" in settings.SENTRY_EVENTSTREAM
             or "kafka" in settings.SENTRY_EVENTSTREAM,
+            # we don't build linux/arm64 snuba images anymore
+            # apple silicon users should have working emulation under colima 0.6.2
+            # or docker desktop
+            "platform": "linux/amd64",
         }
     ),
     "bigtable": lambda settings, options: (
@@ -3026,7 +3035,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "23.12.1"
+SELF_HOSTED_STABLE_VERSION = "24.1.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3966,8 +3975,35 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
     "sentry-api-0-prompts-activity",
+    # Unprefixed issue URLs
+    "sentry-api-0-group-details",
+    "sentry-api-0-group-activities",
+    "sentry-api-0-group-events",
+    "sentry-api-0-group-event-details",
+    "sentry-api-0-group-notes",
+    "sentry-api-0-group-note-details",
+    "sentry-api-0-group-hashes",
+    "sentry-api-0-group-hashes-split",
+    "sentry-api-0-group-reprocessing",
+    "sentry-api-0-group-stats",
+    "sentry-api-0-group-tags",
+    "sentry-api-0-group-tag-key-details",
+    "sentry-api-0-group-tag-key-values",
+    "sentry-api-0-group-user-reports",
+    "sentry-api-0-group-attachments",
+    "sentry-api-0-group-similar",
+    "sentry-api-0-group-external-issues",
+    "sentry-api-0-group-external-issues-details",
+    "sentry-api-0-group-integrations",
+    "sentry-api-0-group-integration-details",
+    "sentry-api-0-group-current-release",
+    "sentry-api-0-group-participants",
+    "sentry-api-0-shared-group-details",
+    # Unscoped profiling URLs
+    "sentry-api-0-profiling-project-profile",
     # Legacy monitor endpoints
     "sentry-api-0-monitor-ingest-check-in-index",
+    "sentry-api-0-monitor-ingest-check-in-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",

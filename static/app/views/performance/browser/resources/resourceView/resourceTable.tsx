@@ -2,7 +2,6 @@ import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
-import {PLATFORM_TO_ICON} from 'platformicons/build/platformIcon';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -10,13 +9,18 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import {FONT_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
+import {
+  FONT_FILE_EXTENSIONS,
+  IMAGE_FILE_EXTENSIONS,
+} from 'sentry/views/performance/browser/resources/shared/constants';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -115,31 +119,17 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    const getIcon = (
-      spanOp: string,
-      fileExtension: string
-    ): keyof typeof PLATFORM_TO_ICON | 'unknown' => {
-      if (spanOp === 'resource.script') {
-        return 'javascript';
-      }
-      if (fileExtension === 'css') {
-        return 'css';
-      }
-      if (FONT_FILE_EXTENSIONS.includes(fileExtension)) {
-        return 'font';
-      }
-      return 'unknown';
-    };
 
     if (key === SPAN_DESCRIPTION) {
       const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
 
       return (
         <DescriptionWrapper>
-          <PlatformIcon platform={getIcon(row[SPAN_OP], fileExtension) || 'unknown'} />
+          <ResourceIcon fileExtension={fileExtension} spanOp={row[SPAN_OP]} />
           <SpanDescriptionCell
             moduleName={ModuleName.HTTP}
             projectId={row[PROJECT_ID]}
+            spanOp={row[SPAN_OP]}
             description={row[SPAN_DESCRIPTION]}
             group={row[SPAN_GROUP]}
           />
@@ -171,7 +161,11 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     }
     if (key === 'time_spent_percentage()') {
       return (
-        <TimeSpentCell percentage={row[key]} total={row[`sum(${SPAN_SELF_TIME})`]} />
+        <TimeSpentCell
+          percentage={row[key]}
+          total={row[`sum(${SPAN_SELF_TIME})`]}
+          op={row[SPAN_OP]}
+        />
       );
     }
     return <span>{row[key]}</span>;
@@ -210,6 +204,24 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
+}
+
+function ResourceIcon(props: {fileExtension: string; spanOp: string}) {
+  const {spanOp, fileExtension} = props;
+
+  if (spanOp === ResourceSpanOps.SCRIPT) {
+    return <PlatformIcon platform="javascript" />;
+  }
+  if (fileExtension === 'css') {
+    return <PlatformIcon platform="css" />;
+  }
+  if (FONT_FILE_EXTENSIONS.includes(fileExtension)) {
+    return <PlatformIcon platform="font" />;
+  }
+  if (spanOp === ResourceSpanOps.IMAGE || IMAGE_FILE_EXTENSIONS.includes(fileExtension)) {
+    return <IconImage color="black" legacySize="20px" />;
+  }
+  return <PlatformIcon platform="unknown" />;
 }
 
 export default ResourceTable;

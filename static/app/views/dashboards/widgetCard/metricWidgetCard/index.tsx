@@ -9,11 +9,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MRI, Organization, PageFilters} from 'sentry/types';
-import {
-  MetricDisplayType,
-  MetricWidgetQueryParams,
-  stringifyMetricWidget,
-} from 'sentry/utils/metrics';
+import {MetricWidgetQueryParams, stringifyMetricWidget} from 'sentry/utils/metrics';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -22,7 +18,10 @@ import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
 import {MetricWidgetBody} from 'sentry/views/ddm/widget';
 
-import {convertToDashboardWidget} from '../../../../utils/metrics/dashboard';
+import {
+  convertToDashboardWidget,
+  toMetricDisplayType,
+} from '../../../../utils/metrics/dashboard';
 import {parseField} from '../../../../utils/metrics/mri';
 import {Widget} from '../../types';
 
@@ -60,18 +59,8 @@ export function MetricWidgetCard({
   router,
   index,
 }: Props) {
-  const query = widget.queries[0];
-  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
-
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
-    useState<MetricWidgetQueryParams>({
-      mri: parsed.mri,
-      op: parsed.op,
-      query: query.conditions,
-      groupBy: query.columns,
-      title: widget.title,
-      displayType: toMetricDisplayType(widget.displayType),
-    });
+    useState<MetricWidgetQueryParams>(convertFromWidget(widget));
 
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
@@ -105,7 +94,7 @@ export function MetricWidgetCard({
     onUpdate?.(null);
   }, [onUpdate]);
 
-  if (!parsed) {
+  if (!metricWidgetQueryParams.mri) {
     return (
       <ErrorPanel height="200px">
         <IconWarning color="gray300" size="lg" />
@@ -113,7 +102,8 @@ export function MetricWidgetCard({
     );
   }
 
-  const stringifiedMetricWidget = stringifyMetricWidget(metricWidgetQueryParams);
+  const stringifiedMetricWidget =
+    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams);
 
   return (
     <DashboardsMEPContext.Provider
@@ -163,24 +153,63 @@ export function MetricWidgetCard({
             )}
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
-
-        <MetricWidgetBody
-          widgetIndex={0}
-          focusArea={null}
-          datetime={selection.datetime}
-          projects={selection.projects}
-          environments={selection.environments}
-          onChange={() => {}}
-          mri={metricWidgetQueryParams.mri}
-          op={metricWidgetQueryParams.op}
-          query={metricWidgetQueryParams.query}
-          groupBy={metricWidgetQueryParams.groupBy}
-          displayType={metricWidgetQueryParams.displayType as any as MetricDisplayType}
-        />
+        <MetricWidgetChartWrapper>
+          <MetricWidgetChartContainer
+            selection={selection}
+            widget={widget}
+            editorParams={metricWidgetQueryParams}
+          />
+        </MetricWidgetChartWrapper>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
     </DashboardsMEPContext.Provider>
   );
+}
+
+type MetricWidgetChartContainerProps = {
+  selection: PageFilters;
+  widget: Widget;
+  editorParams?: Partial<MetricWidgetQueryParams>;
+};
+
+export function MetricWidgetChartContainer({
+  selection,
+  widget,
+  editorParams = {},
+}: MetricWidgetChartContainerProps) {
+  const metricWidgetQueryParams = {
+    ...convertFromWidget(widget),
+    ...editorParams,
+  };
+
+  return (
+    <MetricWidgetBody
+      widgetIndex={0}
+      focusArea={null}
+      datetime={selection.datetime}
+      projects={selection.projects}
+      environments={selection.environments}
+      mri={metricWidgetQueryParams.mri}
+      op={metricWidgetQueryParams.op}
+      query={metricWidgetQueryParams.query}
+      groupBy={metricWidgetQueryParams.groupBy}
+      displayType={toMetricDisplayType(metricWidgetQueryParams.displayType)}
+    />
+  );
+}
+
+function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
+  const query = widget.queries[0];
+  const parsed = parseField(query.aggregates[0]) || {mri: '' as MRI, op: ''};
+
+  return {
+    mri: parsed.mri,
+    op: parsed.op,
+    query: query.conditions,
+    groupBy: query.columns,
+    title: widget.title,
+    displayType: toMetricDisplayType(widget.displayType),
+  };
 }
 
 const WidgetHeaderWrapper = styled('div')`
@@ -208,9 +237,8 @@ const WidgetTitle = styled(HeaderTitle)`
   font-weight: normal;
 `;
 
-function toMetricDisplayType(displayType: string): MetricDisplayType {
-  if (Object.values(MetricDisplayType).includes(displayType as MetricDisplayType)) {
-    return displayType as MetricDisplayType;
-  }
-  return MetricDisplayType.LINE;
-}
+const MetricWidgetChartWrapper = styled('div')`
+  height: 100%;
+  width: 100%;
+  padding: ${space(2)};
+`;

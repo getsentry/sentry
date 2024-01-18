@@ -1,35 +1,29 @@
-import {Component} from 'react';
-
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {Organization} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
+
+import useOrganization from './useOrganization';
 
 type InjectedOrganizationProps = {
   organization?: Organization;
 };
 
-const withOrganization = <P extends InjectedOrganizationProps>(
+function withOrganization<P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  class extends Component<
-    Omit<P, keyof InjectedOrganizationProps> & InjectedOrganizationProps
-  > {
-    static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
-    static contextTypes = {
-      organization: SentryPropTypeValidators.isOrganization,
-    };
+) {
+  type Props = Omit<P, keyof InjectedOrganizationProps> &
+    Partial<InjectedOrganizationProps>;
 
-    render() {
-      const {organization, ...props} = this.props;
-      return (
-        <WrappedComponent
-          {...({
-            organization: organization ?? this.context.organization,
-            ...props,
-          } as P)}
-        />
-      );
-    }
-  };
+  function Wrapper(props: Props) {
+    const organization = useOrganization();
+
+    const allProps = {organization, ...props} as P;
+
+    return <WrappedComponent {...allProps} />;
+  }
+
+  Wrapper.displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
+
+  return Wrapper;
+}
 
 export default withOrganization;

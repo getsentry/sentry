@@ -19,6 +19,7 @@ import SampleImages from 'sentry/views/performance/browser/resources/resourceSum
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -32,12 +33,14 @@ const {
   HTTP_RESPONSE_CONTENT_LENGTH,
   HTTP_RESPONSE_TRANSFER_SIZE,
   RESOURCE_RENDER_BLOCKING_STATUS,
+  SPAN_OP,
 } = SpanMetricsField;
 
 function ResourceSummary() {
   const organization = useOrganization();
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
+  const selectedSpanOp = filters[SPAN_OP];
   const {
     query: {transaction},
   } = useLocation();
@@ -52,15 +55,24 @@ function ResourceSummary() {
       `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
       `sum(${SPAN_SELF_TIME})`,
       'spm()',
+      SPAN_OP,
       SPAN_DESCRIPTION,
       'time_spent_percentage()',
       'project.id',
     ],
   });
-  const spanMetrics = data[0] ?? {};
-  const isImage = IMAGE_FILE_EXTENSIONS.includes(
-    spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
-  );
+  const spanMetrics = selectedSpanOp
+    ? data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {}
+    : data[0] ?? {};
+
+  const uniqueSpanOps = new Set(data.map(item => item[SPAN_OP]));
+
+  const isImage =
+    filters[SPAN_OP] === ResourceSpanOps.IMAGE ||
+    IMAGE_FILE_EXTENSIONS.includes(
+      spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
+    ) ||
+    (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
   return (
     <ModulePageProviders
       title={[t('Performance'), t('Resources'), t('Resource Summary')].join(' — ')}
@@ -115,6 +127,7 @@ function ResourceSummary() {
               throughput={spanMetrics['spm()']}
               timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
               timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
+              spanOp={spanMetrics[SPAN_OP]}
             />
           </HeaderContainer>
           {isImage && (

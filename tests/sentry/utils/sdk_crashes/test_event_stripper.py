@@ -1,4 +1,4 @@
-import copy
+from typing import Sequence
 
 import pytest
 
@@ -7,13 +7,14 @@ from fixtures.sdk_crash_detection.crash_event_cocoa import (
     get_crash_event_with_frames,
     get_frames,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.configs import (
-    cocoa_sdk_crash_detector_config,
-    react_native_sdk_crash_detector_config,
-)
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    SDKCrashDetectionConfig,
+    build_sdk_crash_detection_configs,
+)
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -26,8 +27,22 @@ def store_event(default_project, factories):
 
 
 @pytest.fixture
-def store_and_strip_event(store_event):
-    def inner(data, config=cocoa_sdk_crash_detector_config):
+def configs() -> Sequence[SDKCrashDetectionConfig]:
+    with override_options(
+        {
+            "issues.sdk_crash_detection.cocoa.project_id": 1234,
+            "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+            "issues.sdk_crash_detection.react-native.project_id": 2,
+            "issues.sdk_crash_detection.react-native.sample_rate": 0.2,
+            "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
+        }
+    ):
+        return build_sdk_crash_detection_configs()
+
+
+@pytest.fixture
+def store_and_strip_event(configs, store_event):
+    def inner(data, config=configs[0]):
         event = store_event(data=data)
         return strip_event_data(event.data, SDKCrashDetector(config=config))
 
@@ -89,29 +104,25 @@ def test_strip_event_data_strips_sdk(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_strips_value_if_not_simple_type(store_event):
+def test_strip_event_data_strips_value_if_not_simple_type(store_event, configs):
     event = store_event(data=get_crash_event())
     event.data["type"] = {"foo": "bar"}
 
-    stripped_event_data = strip_event_data(
-        event.data, SDKCrashDetector(config=cocoa_sdk_crash_detector_config)
-    )
+    stripped_event_data = strip_event_data(event.data, SDKCrashDetector(config=configs[0]))
 
     assert stripped_event_data.get("type") is None
 
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_simple_types(store_event):
+def test_strip_event_data_keeps_simple_types(store_event, configs):
     event = store_event(data=get_crash_event())
     event.data["type"] = True
     event.data["datetime"] = 0.1
     event.data["timestamp"] = 1
     event.data["platform"] = "cocoa"
 
-    stripped_event_data = strip_event_data(
-        event.data, SDKCrashDetector(config=cocoa_sdk_crash_detector_config)
-    )
+    stripped_event_data = strip_event_data(event.data, SDKCrashDetector(config=configs[0]))
 
     assert stripped_event_data.get("type") is True
     assert stripped_event_data.get("datetime") == 0.1
@@ -130,7 +141,7 @@ def test_strip_event_data_keeps_simple_exception_properties(store_and_strip_even
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_exception_mechanism(store_event):
+def test_strip_event_data_keeps_exception_mechanism(store_event, configs):
     event = store_event(data=get_crash_event())
 
     # set extra data that should be stripped
@@ -150,9 +161,7 @@ def test_strip_event_data_keeps_exception_mechanism(store_event):
         value="bar",
     )
 
-    stripped_event_data = strip_event_data(
-        event.data, SDKCrashDetector(config=cocoa_sdk_crash_detector_config)
-    )
+    stripped_event_data = strip_event_data(event.data, SDKCrashDetector(config=configs[0]))
 
     mechanism = get_path(stripped_event_data, "exception", "values", 0, "mechanism")
 
@@ -309,7 +318,7 @@ def test_strip_frames_sdk_frames(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event):
+def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event, configs):
     frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
 
     sentry_sdk_frame = frames[-1]
@@ -326,7 +335,7 @@ def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event):
 
     event_data = get_crash_event_with_frames(frames)
 
-    config = copy.deepcopy(react_native_sdk_crash_detector_config)
+    config = configs[1]
     stripped_event_data = store_and_strip_event(data=event_data, config=config)
 
     stripped_frames = get_path(

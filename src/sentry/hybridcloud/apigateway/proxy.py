@@ -30,6 +30,7 @@ from sentry.types.region import (
     get_region_by_name,
     get_region_for_organization,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class _body_with_length:
         return self.request.read(size)
 
 
-def proxy_request(request: HttpRequest, org_slug: str) -> HttpResponseBase:
+def proxy_request(request: HttpRequest, org_slug: str, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a remote location given an org_slug"""
 
     try:
@@ -84,11 +85,11 @@ def proxy_request(request: HttpRequest, org_slug: str) -> HttpResponseBase:
         logger.info("region_resolution_error", extra={"org_slug": org_slug, "error": str(e)})
         return HttpResponse(status=404)
 
-    return proxy_region_request(request, region)
+    return proxy_region_request(request, region, url_name)
 
 
 def proxy_sentryappinstallation_request(
-    request: HttpRequest, installation_uuid: str
+    request: HttpRequest, installation_uuid: str, url_name: str
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a remote location given a sentryapp installation uuid"""
     try:
@@ -111,10 +112,10 @@ def proxy_sentryappinstallation_request(
         )
         return HttpResponse(status=404)
 
-    return proxy_region_request(request, region)
+    return proxy_region_request(request, region, url_name)
 
 
-def proxy_sentryapp_request(request: HttpRequest, app_slug: str) -> HttpResponseBase:
+def proxy_sentryapp_request(request: HttpRequest, app_slug: str, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
     try:
         sentry_app = SentryApp.objects.get(slug=app_slug)
@@ -129,10 +130,12 @@ def proxy_sentryapp_request(request: HttpRequest, app_slug: str) -> HttpResponse
         logger.info("region_resolution_error", extra={"app_slug": app_slug, "error": str(e)})
         return HttpResponse(status=404)
 
-    return proxy_region_request(request, region)
+    return proxy_region_request(request, region, url_name)
 
 
-def proxy_region_request(request: HttpRequest, region: Region) -> StreamingHttpResponse:
+def proxy_region_request(
+    request: HttpRequest, region: Region, url_name: str
+) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
@@ -140,16 +143,19 @@ def proxy_region_request(request: HttpRequest, region: Region) -> StreamingHttpR
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
     query_params = request.GET
+
+    metric_tags = {"region": region.name, "url_name": url_name}
     try:
-        resp = external_request(
-            request.method,
-            url=target_url,
-            headers=header_dict,
-            params=dict(query_params) if query_params is not None else None,
-            data=_body_with_length(request),
-            stream=True,
-            timeout=settings.GATEWAY_PROXY_TIMEOUT,
-        )
+        with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
+            resp = external_request(
+                request.method,
+                url=target_url,
+                headers=header_dict,
+                params=dict(query_params) if query_params is not None else None,
+                data=_body_with_length(request),
+                stream=True,
+                timeout=settings.GATEWAY_PROXY_TIMEOUT,
+            )
     except Timeout:
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
