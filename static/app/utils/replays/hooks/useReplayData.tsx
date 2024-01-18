@@ -106,20 +106,12 @@ function useReplayData({
   const [attachments, setAttachments] = useState<unknown[]>([]);
   const attachmentMap = useRef<Map<string, unknown[]>>(new Map()); // Map keys are always iterated by insertion order
   const [errors, setErrors] = useState<ReplayError[]>([]);
-  // const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
   // Fetch every field of the replay. We're overfetching, not every field is used
-  // const fetchReplay = useCallback(async () => {
-  //   const response = await api.requestPromise(makeFetchReplayApiUrl(orgSlug, replayId));
-  //   const mappedRecord = mapResponseToReplayRecord(response.data);
-  //   setReplayRecord(mappedRecord);
-  //   setState(prev => ({...prev, fetchingReplay: false}));
-  // }, [api, orgSlug, replayId]);
-
   const {
     data: replayData,
     isFetching: isFetchingReplay,
-    error,
+    error: fetchReplayError,
   } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
     staleTime: Infinity,
   });
@@ -239,7 +231,7 @@ function useReplayData({
   return {
     attachments,
     errors,
-    fetchError: error ?? state.fetchError,
+    fetchError: fetchReplayError ?? state.fetchError,
     fetching: state.fetchingAttachments || state.fetchingErrors || isFetchingReplay,
     projectSlug,
     onRetry: clearQueryCache,

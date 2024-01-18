@@ -17,7 +17,6 @@ import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-jest.useFakeTimers();
 jest.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
@@ -171,7 +170,6 @@ describe('useReplayData', () => {
       },
     });
 
-    jest.runAllTimers();
     await waitForNextUpdate();
 
     expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1);
@@ -260,7 +258,6 @@ describe('useReplayData', () => {
       },
     });
 
-    jest.runAllTimers();
     await waitForNextUpdate();
 
     expect(mockedErrorsCall1).toHaveBeenCalledTimes(1);
@@ -341,7 +338,6 @@ describe('useReplayData', () => {
     expect(mockedSegmentsCall).not.toHaveBeenCalledTimes(1);
     expect(result.current).toEqual(expectedReplayData);
 
-    jest.advanceTimersByTime(10);
     await waitForNextUpdate();
 
     // Afterwards we see the attachments & errors requests are made
@@ -357,7 +353,6 @@ describe('useReplayData', () => {
       })
     );
 
-    jest.advanceTimersByTime(100);
     await waitForNextUpdate();
 
     // Next we see that some rrweb data has arrived
@@ -369,7 +364,6 @@ describe('useReplayData', () => {
       })
     );
 
-    jest.advanceTimersByTime(250);
     await waitForNextUpdate();
 
     // Finally we see fetching is complete, errors are here too
