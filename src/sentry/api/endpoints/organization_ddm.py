@@ -21,20 +21,20 @@ from sentry.sentry_metrics.querying.metadata.code_locations import (
     get_metric_code_locations,
 )
 from sentry.sentry_metrics.querying.metadata.correlations import (
-    Correlations,
+    MetricCorrelations,
     get_metric_correlations,
 )
 
 
-class MetaType(Enum):
+class MetricMetaType(Enum):
     CODE_LOCATIONS = "codeLocations"
     # TODO: change name when we settled on the naming.
     CORRELATIONS = "metricSpans"
 
 
-META_TYPE_SERIALIZER = {
-    MetaType.CODE_LOCATIONS.value: CodeLocationsSerializer(),
-    MetaType.CORRELATIONS.value: CorrelationsSerializer(),
+METRIC_META_TYPE_SERIALIZER = {
+    MetricMetaType.CODE_LOCATIONS.value: CodeLocationsSerializer(),
+    MetricMetaType.CORRELATIONS.value: CorrelationsSerializer(),
 }
 
 
@@ -46,16 +46,17 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     """
-    Get metadata for one or more metrics for a given set of projects in a time interval.
+    Get metadata of a metric for a given set of projects in a time interval.
     The current metadata supported for metrics is:
     - Code locations -> these are the code location in which the metric was emitted.
-    - Spans -> these are the spans in which the metric was emitted.
+    - Correlations -> these are the correlations that we found for this metric.
+    For now segments with spans are supported.
     """
 
-    def _extract_meta_types(self, request: Request) -> Sequence[MetaType]:
+    def _extract_metric_meta_types(self, request: Request) -> Sequence[MetricMetaType]:
         meta_types = []
 
-        for meta_type in MetaType:
+        for meta_type in MetricMetaType:
             if request.GET.get(meta_type.value) == "true":
                 meta_types.append(meta_type)
 
@@ -84,7 +85,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         projects: Sequence[Project],
         start: datetime,
         end: datetime,
-    ) -> Correlations:
+    ) -> MetricCorrelations:
         min_value = float(request.GET["min"]) if request.GET.get("min") else None
         max_value = float(request.GET["max"]) if request.GET.get("max") else None
 
@@ -109,16 +110,16 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_params(request.GET)
         projects = self.get_projects(request, organization)
 
-        for meta_type in self._extract_meta_types(request):
+        for meta_type in self._extract_metric_meta_types(request):
             data: Any = {}
 
-            if meta_type == MetaType.CODE_LOCATIONS:
+            if meta_type == MetricMetaType.CODE_LOCATIONS:
                 data = self._get_metric_code_locations(request, organization, projects, start, end)
-            elif meta_type == MetaType.CORRELATIONS:
+            elif meta_type == MetricMetaType.CORRELATIONS:
                 data = self._get_metric_correlations(request, organization, projects, start, end)
 
             response[meta_type.value] = serialize(
-                data, request.user, META_TYPE_SERIALIZER[meta_type.value]
+                data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]
             )
 
         return Response(response, status=200)
