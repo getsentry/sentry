@@ -23,14 +23,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     form_cls = SlackNotifyServiceForm
     prompt = "Send a Slack notification"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     provider = "slack"
     integration_key = "workspace"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
-        if features.has("organizations:slack-formatting-update", self.project.organization):
-            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and mentions {mentions} in notification"
         self.form_fields = {
             "workspace": {
                 "type": "choice",
@@ -136,6 +134,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         tags = self.get_tags_list()
 
         if features.has("organizations:slack-formatting-update", self.project.organization):
+            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and mentions {mentions} in notification"
             return self.label.format(
                 workspace=self.get_integration_name(),
                 channel=self.get_option("channel"),
