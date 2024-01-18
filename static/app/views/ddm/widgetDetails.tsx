@@ -54,7 +54,13 @@ export function WidgetDetails() {
             <TabPanels.Item key={Tab.SAMPLES}>
               <SampleTable
                 mri={selectedWidget?.mri}
-                query={selectedWidget?.query}
+                query={
+                  selectedWidget?.focusedSeries
+                    ? `${selectedWidget.query} ${selectedWidget.focusedSeries
+                        .split(', ')
+                        .join(' ')}`.trim()
+                    : selectedWidget?.query
+                }
                 {...focusArea?.range}
               />
             </TabPanels.Item>
