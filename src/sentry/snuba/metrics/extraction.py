@@ -904,6 +904,10 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
+def are_specs_equal(spec_1: MetricSpec, spec_2: MetricSpec) -> bool:
+    return _deep_sorted(spec_1) == _deep_sorted(spec_2)
+
+
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
@@ -1244,7 +1248,7 @@ class OnDemandMetricSpec:
             "category": DataCategory.TRANSACTION.api_name(),
             "mri": self.mri,
             "field": self.field_to_extract,
-            "tags": sorted(extended_tags_conditions, key=lambda x: x["key"]),
+            "tags": extended_tags_conditions,
         }
 
         condition = self.condition
