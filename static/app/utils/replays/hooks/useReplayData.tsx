@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -22,7 +23,7 @@ type State = {
    */
   fetchingAttachments: boolean;
   fetchingErrors: boolean;
-  fetchingReplay: boolean;
+  // fetchingReplay: boolean;
 };
 
 type Options = {
@@ -63,7 +64,7 @@ const INITIAL_STATE: State = Object.freeze({
   fetchError: undefined,
   fetchingAttachments: true,
   fetchingErrors: true,
-  fetchingReplay: true,
+  // fetchingReplay: true,
 });
 
 /**
@@ -99,12 +100,33 @@ function useReplayData({
   const projects = useProjects();
 
   const api = useApi();
+  const queryClient = useQueryClient();
 
   const [state, setState] = useState<State>(INITIAL_STATE);
   const [attachments, setAttachments] = useState<unknown[]>([]);
   const attachmentMap = useRef<Map<string, unknown[]>>(new Map()); // Map keys are always iterated by insertion order
   const [errors, setErrors] = useState<ReplayError[]>([]);
-  const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
+  // const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
+
+  // Fetch every field of the replay. We're overfetching, not every field is used
+  // const fetchReplay = useCallback(async () => {
+  //   const response = await api.requestPromise(makeFetchReplayApiUrl(orgSlug, replayId));
+  //   const mappedRecord = mapResponseToReplayRecord(response.data);
+  //   setReplayRecord(mappedRecord);
+  //   setState(prev => ({...prev, fetchingReplay: false}));
+  // }, [api, orgSlug, replayId]);
+
+  const {
+    data: replayData,
+    isFetching: isFetchingReplay,
+    error,
+  } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
+    staleTime: Infinity,
+  });
+  const replayRecord = useMemo(
+    () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
+    [replayData?.data]
+  );
 
   const projectSlug = useMemo(() => {
     if (!replayRecord) {
@@ -112,14 +134,6 @@ function useReplayData({
     }
     return projects.projects.find(p => p.id === replayRecord.project_id)?.slug ?? null;
   }, [replayRecord, projects.projects]);
-
-  // Fetch every field of the replay. We're overfetching, not every field is used
-  const fetchReplay = useCallback(async () => {
-    const response = await api.requestPromise(makeFetchReplayApiUrl(orgSlug, replayId));
-    const mappedRecord = mapResponseToReplayRecord(response.data);
-    setReplayRecord(mappedRecord);
-    setState(prev => ({...prev, fetchingReplay: false}));
-  }, [api, orgSlug, replayId]);
 
   const fetchAttachments = useCallback(async () => {
     if (!replayRecord || !projectSlug) {
@@ -185,19 +199,10 @@ function useReplayData({
     setState(prev => ({...prev, fetchingErrors: false}));
   }, [api, orgSlug, replayRecord, errorsPerPage]);
 
-  const onError = useCallback(error => {
-    Sentry.captureException(error);
-    setState(prev => ({...prev, fetchError: error}));
+  const onError = useCallback(err => {
+    Sentry.captureException(err);
+    setState(prev => ({...prev, fetchError: err}));
   }, []);
-
-  const loadData = useCallback(
-    () => fetchReplay().catch(onError),
-    [fetchReplay, onError]
-  );
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   useEffect(() => {
     if (state.fetchError) {
@@ -213,19 +218,33 @@ function useReplayData({
     fetchAttachments().catch(onError);
   }, [state.fetchError, fetchAttachments, onError]);
 
+  const clearQueryCache = useCallback(() => {
+    () => {
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${orgSlug}/replays/${replayId}/`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        ],
+      });
+      // The next one isn't optimized
+      // This statement will invalidate the cache of fetched error events for replayIds
+      queryClient.invalidateQueries({
+        queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
+      });
+    };
+  }, [orgSlug, replayId, projectSlug, queryClient]);
+
   return {
     attachments,
     errors,
-    fetchError: state.fetchError,
-    fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
-    onRetry: loadData,
+    fetchError: error ?? state.fetchError,
+    fetching: state.fetchingAttachments || state.fetchingErrors || isFetchingReplay,
     projectSlug,
+    onRetry: clearQueryCache,
     replayRecord,
   };
-}
-
-function makeFetchReplayApiUrl(orgSlug: string, replayId: string) {
-  return `/organizations/${orgSlug}/replays/${replayId}/`;
 }
 
 async function fetchReplayErrors(

@@ -1,3 +1,4 @@
+import {ReactNode} from 'react';
 import {duration} from 'moment';
 import {
   ReplayConsoleEventFixture,
@@ -8,8 +9,10 @@ import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -28,6 +31,12 @@ jest.mocked(useProjects).mockReturnValue({
   onSearch: () => Promise.resolve(),
   placeholders: [],
 });
+
+function wrapper({children}: {children?: ReactNode}) {
+  return (
+    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+  );
+}
 
 function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
   const HYDRATED_REPLAY = ReplayRecordFixture({
@@ -59,6 +68,10 @@ describe('useReplayData', () => {
       error_ids: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
+      body: {data: mockReplayResponse},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {
         data: [],
@@ -77,6 +90,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -149,6 +163,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -237,6 +252,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -302,6 +318,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
