@@ -25,6 +25,7 @@ import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
+from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
@@ -80,12 +81,15 @@ class OnDemandMetricSpecVersioning:
 
     spec_versions = [
         SpecVersion(1),
+        SpecVersion(2, {"use_new_unicode_and_env_logic"}),
     ]
 
     @classmethod
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
-        _ = Organization.objects.get_from_cache(id=organization_id)
+        org = Organization.objects.get_from_cache(id=organization_id)
+        if features.has("organizations:on-demand-query-with-new-env-logic", org):
+            return cls.spec_versions[1]
         return cls.spec_versions[0]
 
     @classmethod
@@ -1162,7 +1166,11 @@ class OnDemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         str_to_hash = self._query_str_for_hash
-        hash = hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        if self.spec_version.flags == {"use_new_unicode_and_env_logic"}:
+            hash = hashlib.shake_128(bytes(str_to_hash, encoding="utf-8")).hexdigest(4)
+        else:
+            hash = hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+
         with sentry_sdk.start_span(op="OnDemandMetricSpec.query_hash", description=hash) as span:
             span.set_tag("str_to_hash", str_to_hash)
         return hash

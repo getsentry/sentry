@@ -554,6 +554,9 @@ def _convert_aggregate_and_query_to_metrics(
                 )
 
             metric_specs_and_hashes.append((on_demand_spec.query_hash, metric_spec, spec_version))
+        except UnicodeEncodeError:
+            # This is a known issue that will go away once we migrated away from the buggy code
+            continue
         except ValueError:
             # raised by validate_sampling_condition or metric_spec lacking "condition"
             metrics.incr("on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling})
