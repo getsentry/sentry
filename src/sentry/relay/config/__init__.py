@@ -52,6 +52,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
+    "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-all-modules",
@@ -63,7 +64,6 @@ EXPOSABLE_FEATURES = [
     "organizations:user-feedback-ingest",
     "organizations:session-replay-recording-scrubbing",
     "organizations:device-class-synthesis",
-    "organizations:profiling-ingest-unsampled-profiles",
     "organizations:custom-metrics",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
