@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import isNil from 'lodash/isNil';
 
 import {Tag} from 'sentry/actionCreators/events';
 import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
@@ -242,7 +241,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
     : {}; // all items
 
   // only include environment if it is not null/undefined
-  if (params.query && !isNil(params.environment)) {
+  if (params.query && params.environment !== null && params.environment !== undefined) {
     p.environment = params.environment;
   }
 
@@ -254,7 +253,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   // only include date filters if they are not null/undefined
   if (params.query) {
     ['start', 'end', 'period', 'utc'].forEach(prop => {
-      if (!isNil(params[prop])) {
+      if (params[prop] !== null && params[prop] !== undefined) {
         p[prop === 'period' ? 'statsPeriod' : prop] = params[prop];
       }
     });
