@@ -4,7 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import OrganizationCreate from 'sentry/views/organizationCreate';
+import OrganizationCreate, {
+  DATA_STORAGE_DOCS_LINK,
+} from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
   let oldRegions: any[] = [];
@@ -156,6 +158,9 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
+    const link = screen.getByText<HTMLAnchorElement>('Learn More');
+    expect(link).toBeInTheDocument();
+    expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(screen.getByText('Create Organization'));
 
@@ -213,6 +218,9 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
+    const link = screen.getByText<HTMLAnchorElement>('Learn More');
+    expect(link).toBeInTheDocument();
+    expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Data Storage Location'}),
