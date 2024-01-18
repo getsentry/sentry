@@ -250,7 +250,7 @@ def _trim_disabled_widgets(
     enabled_specs: List[HashedMetricSpec] = []
 
     for widget_id, specs in specs_for_widget.items():
-        if not ignored_widgets[widget_id]:
+        if not ignored_widgets.get(widget_id, None):
             enabled_specs.extend(specs)
 
     return enabled_specs
