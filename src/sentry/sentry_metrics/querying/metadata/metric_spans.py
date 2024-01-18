@@ -67,8 +67,8 @@ class SpanDetail:
     Details of an individual span which is inside a segment.
     """
 
-    span_id: int
-    span_duration: str
+    span_id: str
+    span_duration: int
     span_timestamp: datetime
 
 
@@ -219,7 +219,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         span_ids: Set[str],
         start: datetime,
         end: datetime,
-    ) -> Mapping[str, Tuple[str, int, datetime]]:
+    ) -> Mapping[str, Sequence[Tuple[str, int, datetime]]]:
         """
         Returns a mapping of the transaction id and all the correlated spans inside that segment.
         """
@@ -251,7 +251,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
 
-        segments_spans = {}
+        segments_spans: Dict[str, List[Tuple[str, int, datetime]]] = {}
         for value in data:
             segments_spans.setdefault(value["transaction_id"], []).append(
                 (value["span_id"], value["duration"], value["timestamp"])
@@ -495,7 +495,7 @@ def _get_segments(
     end: datetime,
     organization: Organization,
     projects: Sequence[Project],
-):
+) -> Sequence[Segment]:
     requests = []
     # TODO: the time bounds are the same across queries and this can lead to issues since the span can have a specific
     #  time which is within the supplied bounds but the transaction might have different time bounds, which will result
