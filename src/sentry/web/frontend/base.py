@@ -281,7 +281,11 @@ class OrganizationMixin:
             if using_customer_domain and request.user and request.user.is_authenticated:
                 requesting_org_slug = request.subdomain
                 org_context = organization_service.get_organization_by_slug(
-                    slug=requesting_org_slug, only_visible=False, user_id=request.user.id
+                    slug=requesting_org_slug,
+                    only_visible=False,
+                    user_id=request.user.id,
+                    include_projects=False,
+                    include_teams=False,
                 )
                 if org_context and org_context.organization:
                     if org_context.organization.status == OrganizationStatus.PENDING_DELETION:
@@ -546,8 +550,8 @@ class AbstractOrganizationView(BaseView, abc.ABC):
             # Require auth if we there is an organization associated with the slug that we just cannot access
             # for some reason.
             return (
-                organization_service.get_organization_by_slug(
-                    user_id=None, slug=organization_slug, only_visible=True
+                organization_service.check_organization_by_slug(
+                    slug=organization_slug, only_visible=True
                 )
                 is not None
             )

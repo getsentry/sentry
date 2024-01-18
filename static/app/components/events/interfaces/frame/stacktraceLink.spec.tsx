@@ -42,7 +42,7 @@ describe('StacktraceLink', function () {
     MockApiClient.clearMockResponses();
     promptActivity = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/prompts-activity/',
+      url: `/organizations/${org.slug}/prompts-activity/`,
       body: {},
     });
     ProjectsStore.loadInitialData([project]);
@@ -77,7 +77,7 @@ describe('StacktraceLink', function () {
     );
     expect(promptActivity).toHaveBeenCalledTimes(1);
     expect(promptActivity).toHaveBeenCalledWith(
-      '/prompts-activity/',
+      `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
         query: {
           feature: 'stacktrace_link',
@@ -95,7 +95,7 @@ describe('StacktraceLink', function () {
     });
     const dismissPrompt = MockApiClient.addMockResponse({
       method: 'PUT',
-      url: `/prompts-activity/`,
+      url: `/organizations/${org.slug}/prompts-activity/`,
       body: {},
     });
     const {container} = render(<StacktraceLink frame={frame} event={event} line="" />, {
@@ -114,7 +114,7 @@ describe('StacktraceLink', function () {
     });
 
     expect(dismissPrompt).toHaveBeenCalledWith(
-      `/prompts-activity/`,
+      `/organizations/${org.slug}/prompts-activity/`,
       expect.objectContaining({
         data: {
           feature: 'stacktrace_link',
@@ -215,6 +215,7 @@ describe('StacktraceLink', function () {
     const organization = {
       ...org,
       codecovAccess: true,
+      features: ['codecov-integration'],
     };
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
@@ -222,11 +223,14 @@ describe('StacktraceLink', function () {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
-        codecov: {
-          status: CodecovStatusCode.COVERAGE_EXISTS,
-          lineCoverage: [[233, 0]],
-          coverageUrl: 'https://app.codecov.io/gh/path/to/file.py',
-        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
+      body: {
+        status: CodecovStatusCode.COVERAGE_EXISTS,
+        lineCoverage: [[233, 0]],
+        coverageUrl: 'https://app.codecov.io/gh/path/to/file.py',
       },
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
@@ -252,6 +256,7 @@ describe('StacktraceLink', function () {
     const organization = {
       ...org,
       codecovAccess: true,
+      features: ['codecov-integration'],
     };
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
@@ -259,8 +264,11 @@ describe('StacktraceLink', function () {
         config,
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
-        codecov: {status: CodecovStatusCode.NO_COVERAGE_DATA},
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
+      body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: RouterContextFixture(),
@@ -289,6 +297,10 @@ describe('StacktraceLink', function () {
         sourceUrl: 'https://github.com/username/path/to/file.py',
         integrations: [integration],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
+      body: {},
     });
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: RouterContextFixture(),

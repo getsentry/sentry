@@ -356,7 +356,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             type: 'boolean',
             label: t('Enable Comments on Open Pull Requests'),
             help: t(
-              'Allow Sentry to comment on open pull requests to show recent error and performance issues for the code being changed.'
+              'Allow Sentry to comment on open pull requests to show recent error issues for the code being changed.'
             ),
             disabled: !hasIntegration,
             disabledReason: t(

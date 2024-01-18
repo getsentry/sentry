@@ -49,6 +49,7 @@ type MetricWidgetProps = {
   isSelected?: boolean;
   onSelect?: (index: number) => void;
   removeFocusArea?: () => void;
+  showQuerySymbols?: boolean;
 };
 
 export const MetricWidget = memo(
@@ -64,6 +65,7 @@ export const MetricWidget = memo(
     hasSiblings = false,
     addFocusArea,
     removeFocusArea,
+    showQuerySymbols,
     focusArea = null,
   }: MetricWidgetProps) => {
     const handleChange = useCallback(
@@ -109,7 +111,7 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const widgetTitle = stringifyMetricWidget(metricsQuery);
+    const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
 
     return (
       <MetricWidgetPanel
@@ -120,7 +122,7 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            <QuerySymbol index={index} />
+            {showQuerySymbols && <QuerySymbol index={index} />}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
@@ -142,28 +144,30 @@ export const MetricWidget = memo(
               onChange={handleDisplayTypeChange}
             />
           </MetricWidgetHeader>
-          {widget.mri ? (
-            <MetricWidgetBody
-              widgetIndex={index}
-              datetime={datetime}
-              projects={projects}
-              environments={environments}
-              onChange={handleChange}
-              addFocusArea={addFocusArea}
-              focusArea={focusArea}
-              removeFocusArea={removeFocusArea}
-              chartHeight={300}
-              {...widget}
-            />
-          ) : (
-            <StyledMetricWidgetBody>
-              <EmptyMessage
-                icon={<IconSearch size="xxl" />}
-                title={t('Nothing to show!')}
-                description={t('Choose a metric to display data.')}
+          <MetricWidgetBodyWrapper>
+            {widget.mri ? (
+              <MetricWidgetBody
+                widgetIndex={index}
+                datetime={datetime}
+                projects={projects}
+                environments={environments}
+                onChange={handleChange}
+                addFocusArea={addFocusArea}
+                focusArea={focusArea}
+                removeFocusArea={removeFocusArea}
+                chartHeight={300}
+                {...widget}
               />
-            </StyledMetricWidgetBody>
-          )}
+            ) : (
+              <StyledMetricWidgetBody>
+                <EmptyMessage
+                  icon={<IconSearch size="xxl" />}
+                  title={t('Nothing to show!')}
+                  description={t('Choose a metric to display data.')}
+                />
+              </StyledMetricWidgetBody>
+            )}
+          </MetricWidgetBodyWrapper>
         </PanelBody>
       </MetricWidgetPanel>
     );
@@ -172,14 +176,14 @@ export const MetricWidget = memo(
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   focusArea: FocusArea | null;
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   chartHeight?: number;
+  onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   removeFocusArea?: () => void;
 }
 
-const MetricWidgetBody = memo(
+export const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,
@@ -223,7 +227,7 @@ const MetricWidgetBody = memo(
     const toggleSeriesVisibility = useCallback(
       (seriesName: string) => {
         setHoveredSeries('');
-        onChange({
+        onChange?.({
           focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
         });
       },
@@ -244,7 +248,7 @@ const MetricWidgetBody = memo(
 
     const handleSortChange = useCallback(
       newSort => {
-        onChange({sort: newSort});
+        onChange?.({sort: newSort});
       },
       [onChange]
     );
@@ -427,9 +431,16 @@ const MetricWidgetPanel = styled(Panel)<{
 
 const StyledMetricWidgetBody = styled('div')`
   padding: ${space(1)};
+  gap: ${space(3)};
   display: flex;
   flex-direction: column;
   justify-content: center;
+  height: 100%;
+`;
+
+const MetricWidgetBodyWrapper = styled('div')`
+  padding: ${space(1)};
+  padding-bottom: 0;
 `;
 
 const MetricWidgetHeader = styled('div')`
