@@ -22,7 +22,13 @@ const constructQueryString = (queryObject: Record<string, string>) => {
 };
 
 export function WidgetDetails() {
-  const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
+  const {
+    selectedWidgetIndex,
+    widgets,
+    focusArea,
+    highlightedSample,
+    setHighlightedSample,
+  } = useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
   // the tray is minimized when the main content is maximized
   const selectedWidget = widgets[selectedWidgetIndex] as
@@ -34,6 +40,10 @@ export function WidgetDetails() {
   if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
     setSelectedTab(Tab.SAMPLES);
   }
+
+  const handleSampleRowHover = (sample: string | null) => {
+    setHighlightedSample(sample);
+  };
 
   return (
     <TrayWrapper>
@@ -68,6 +78,8 @@ export function WidgetDetails() {
                     : selectedWidget?.query
                 }
                 {...focusArea?.range}
+                highlightedRow={highlightedSample}
+                onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>

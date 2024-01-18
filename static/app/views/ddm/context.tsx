@@ -31,6 +31,7 @@ interface DDMContextValue {
   addWidget: () => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusArea | null;
+  highlightedSample: string | null;
   isDefaultQuery: boolean;
   isLoading: boolean;
   metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
@@ -38,6 +39,7 @@ interface DDMContextValue {
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
+  setHighlightedSample: (sample: string | null) => void;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
   updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
@@ -60,6 +62,8 @@ export const DDMContext = createContext<DDMContextValue>({
   showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
+  highlightedSample: null,
+  setHighlightedSample: () => {},
 });
 
 export function useDDMContext() {
@@ -204,6 +208,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     useMetricWidgets();
   const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
+  const [highlightedSample, setHighlightedSample] = useState<string | null>(null);
+
   const pageFilters = usePageFilters().selection;
   const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
 
@@ -289,6 +295,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       setDefaultQuery,
       isDefaultQuery,
       showQuerySymbols: widgets.length > 1,
+      highlightedSample,
+      setHighlightedSample,
     }),
     [
       handleAddWidget,
@@ -304,6 +312,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       handleRemoveFocusArea,
       setDefaultQuery,
       isDefaultQuery,
+      highlightedSample,
+      setHighlightedSample,
     ]
   );
 

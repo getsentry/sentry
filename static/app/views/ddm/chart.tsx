@@ -5,9 +5,11 @@ import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import {BarChart} from 'sentry/components/charts/barChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
+import {transformToBarSeries} from 'sentry/components/charts/barChart';
+import BaseChart, {BaseChartProps} from 'sentry/components/charts/baseChart';
+import {transformToLineSeries} from 'sentry/components/charts/lineChart';
+import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -22,7 +24,8 @@ import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
-import {Series} from './widget';
+import {useSampleHandlers} from './useSampleHandlers';
+import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
   displayType: MetricDisplayType;
@@ -31,9 +34,15 @@ type ChartProps = {
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   height?: number;
+  onSampleClick?: SampleCallback;
+  onSampleMouseOut?: (sample?: Sample) => void;
+  onSampleMouseOver?: SampleCallback;
   operation?: string;
   removeFocusArea?: () => void;
+  sampleSeries?: ScatterSeriesType[];
 };
+
+type SampleCallback = (sample: Sample) => void;
 
 // We need to enable canvas renderer for echarts before we use it here.
 // Once we use it in more places, this should probably move to a more global place
@@ -51,6 +60,10 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       focusArea,
       removeFocusArea,
       height,
+      sampleSeries,
+      onSampleClick,
+      onSampleMouseOut,
+      onSampleMouseOver,
     },
     forwardedRef
   ) => {
@@ -86,16 +99,25 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     });
 
     const unit = series[0]?.unit;
-    const seriesToShow = useMemo(
-      () =>
-        series
-          .filter(s => !s.hidden)
-          .map(s => ({
-            ...s,
-            silent: true,
-          })),
-      [series]
-    );
+
+    const seriesToShow = useMemo(() => {
+      return series
+        .filter(s => !s.hidden)
+        .map(s => ({...s, silent: displayType === MetricDisplayType.BAR}));
+    }, [series, displayType]);
+
+    const {
+      handleSampleClick,
+      handleSampleMouseOut,
+      handleSampleMouseOver,
+      handleSampleHighlight,
+    } = useSampleHandlers({
+      numOfTimeseries: seriesToShow.length,
+      sampleSeries,
+      onClick: onSampleClick,
+      onMouseOut: onSampleMouseOut,
+      onMouseOver: onSampleMouseOver,
+    });
 
     // TODO(ddm): This assumes that all series have the same bucket size
     const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
@@ -104,7 +126,13 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const displayFogOfWar = isCumulativeOp(operation);
 
     const chartProps = useMemo(() => {
-      const formatters = {
+      const sampleFormatters = {
+        isGroupedByDate: true,
+        addSecondsToTimeFormat: isSubMinuteBucket,
+        limit: 1,
+      };
+
+      const timeseriesFormatters = {
         valueFormatter: (value: number) =>
           formatMetricsUsingUnitAndOp(value, unit, operation),
         isGroupedByDate: true,
@@ -113,17 +141,24 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 10,
       };
+
       const heightOptions = height ? {height} : {autoHeightResize: true};
 
       return {
         ...heightOptions,
         ...focusAreaBrush.options,
+
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
+        onMouseOver: handleSampleMouseOver,
+        onMouseOut: handleSampleMouseOut,
+        onClick: handleSampleClick,
+        onHighlight: handleSampleHighlight,
+
         tooltip: {
           formatter: (params, asyncTicket) => {
             if (focusAreaBrush.isDrawingRef.current) {
@@ -135,8 +170,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
               return element.classList.contains('echarts-for-react');
             });
 
+            if (params.seriesType === 'scatter') {
+              return getFormatter(sampleFormatters)(params, asyncTicket);
+            }
             if (hoveredEchartElement === chartRef?.current?.ele) {
-              return getFormatter(formatters)(params, asyncTicket);
+              return getFormatter(timeseriesFormatters)(params, asyncTicket);
             }
             return '';
           },
@@ -168,18 +206,19 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       seriesToShow,
       unit,
       height,
+      handleSampleClick,
+      handleSampleMouseOut,
+      handleSampleMouseOver,
     ]);
 
     return (
       <ChartWrapper>
         {focusAreaBrush.overlay}
-        {displayType === MetricDisplayType.LINE ? (
-          <LineChart {...chartProps} />
-        ) : displayType === MetricDisplayType.AREA ? (
-          <AreaChart stacked {...chartProps} />
-        ) : (
-          <BarChart stacked animation={false} {...chartProps} />
-        )}
+        <CombinedChart
+          {...chartProps}
+          displayType={displayType}
+          scatterSeries={sampleSeries}
+        />
         {displayFogOfWar && (
           <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
         )}
@@ -187,6 +226,70 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     );
   }
 );
+
+type CombinedChartProps = BaseChartProps & {
+  displayType: MetricDisplayType;
+  series: Series[];
+  scatterSeries?: ScatterSeriesType[];
+};
+
+function CombinedChart({
+  displayType,
+  series,
+  scatterSeries = [],
+  ...chartProps
+}: CombinedChartProps) {
+  const combinedSeries = useMemo(() => {
+    if (displayType === MetricDisplayType.LINE) {
+      return [
+        ...transformToLineSeries({series}),
+        ...transformToScatterSeries({series: scatterSeries, displayType}),
+      ];
+    }
+
+    if (displayType === MetricDisplayType.BAR) {
+      return [
+        ...transformToBarSeries({series, stacked: true, animation: false}),
+        ...transformToScatterSeries({series: scatterSeries, displayType}),
+      ];
+    }
+
+    if (displayType === MetricDisplayType.AREA) {
+      return [
+        ...transformToAreaSeries({series, stacked: true, colors: chartProps.colors}),
+        ...transformToScatterSeries({series: scatterSeries, displayType}),
+      ];
+    }
+
+    return [];
+  }, [displayType, scatterSeries, series, chartProps.colors]);
+
+  return <BaseChart {...chartProps} series={combinedSeries} />;
+}
+
+function transformToScatterSeries({
+  series,
+  displayType,
+}: {
+  displayType: MetricDisplayType;
+  series: Series[];
+}) {
+  return series.map(({seriesName, data: seriesData, ...options}) => {
+    if (displayType === MetricDisplayType.BAR) {
+      return ScatterSeries({
+        ...options,
+        name: seriesName,
+        data: seriesData?.map(({value, name}) => ({value: [name, value]})),
+      });
+    }
+
+    return ScatterSeries({
+      ...options,
+      name: seriesName,
+      data: seriesData?.map(({value, name}) => [name, value]),
+    });
+  });
+}
 
 function FogOfWar({
   bucketSize,

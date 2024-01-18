@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
@@ -52,6 +52,8 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
 }
 
 export type SamplesTableProps = MetricRange & {
+  onRowHover: (sample: string | null) => void;
+  highlightedRow?: string | null;
   mri?: MRI;
   query?: string;
 };
@@ -68,7 +70,12 @@ const columnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'profileId', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
 ];
 
-export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
+export function SampleTable({
+  mri,
+  highlightedRow,
+  onRowHover,
+  ...metricMetaOptions
+}: SamplesTableProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -102,15 +109,22 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
     if (!row[key]) {
       return <AlignCenter>{'\u2014'}</AlignCenter>;
     }
+
     const project = projects.find(p => parseInt(p.id, 10) === row.projectId);
     const eventSlug = generateEventSlug({
       id: row.transactionId,
       project: project?.slug,
     });
 
+    const highlighted = row.transactionId === highlightedRow;
+
     if (key === 'transactionId') {
       return (
-        <span>
+        <BodyCell
+          rowId={row.transactionId}
+          onHover={onRowHover}
+          highlighted={highlighted}
+        >
           <Link
             to={getTransactionDetailsUrl(
               organization.slug,
@@ -123,37 +137,55 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
           >
             {row.transactionId.slice(0, 8)}
           </Link>
-        </span>
+        </BodyCell>
       );
     }
     if (key === 'segmentName') {
       return (
-        <TextOverflow>
-          <Tooltip title={project?.slug}>
-            <StyledPlatformIcon platform={project?.platform || 'default'} />
-          </Tooltip>
-          <Link
-            to={normalizeUrl(
-              `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
-                ...extractSelectionParameters(location.query),
-                project: project?.id,
-                transaction: row.segmentName,
-                referrer: 'metrics',
-              })}`
-            )}
-          >
-            {row.segmentName}
-          </Link>
-        </TextOverflow>
+        <BodyCell
+          rowId={row.transactionId}
+          onHover={onRowHover}
+          highlighted={highlighted}
+        >
+          <TextOverflow>
+            <Tooltip title={project?.slug}>
+              <StyledPlatformIcon platform={project?.platform || 'default'} />
+            </Tooltip>
+            <Link
+              to={normalizeUrl(
+                `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
+                  ...extractSelectionParameters(location.query),
+                  project: project?.id,
+                  transaction: row.segmentName,
+                  referrer: 'metrics',
+                })}`
+              )}
+            >
+              {row.segmentName}
+            </Link>
+          </TextOverflow>
+        </BodyCell>
       );
     }
     if (key === 'duration') {
       // We get duration in miliseconds, but getDuration expects seconds
-      return <span>{getDuration(row.duration / 1000, 2, true)}</span>;
+      return (
+        <BodyCell
+          rowId={row.transactionId}
+          onHover={onRowHover}
+          highlighted={highlighted}
+        >
+          {getDuration(row.duration / 1000, 2, true)}
+        </BodyCell>
+      );
     }
     if (key === 'traceId') {
       return (
-        <span>
+        <BodyCell
+          rowId={row.transactionId}
+          onHover={onRowHover}
+          highlighted={highlighted}
+        >
           <Link
             to={normalizeUrl(
               `/organizations/${organization.slug}/performance/trace/${row.traceId}/`
@@ -161,7 +193,7 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
           >
             {row.traceId.slice(0, 8)}
           </Link>
-        </span>
+        </BodyCell>
       );
     }
     if (key === 'spansSummary') {
@@ -224,7 +256,12 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
         </AlignCenter>
       );
     }
-    return <span>{row[col.key]}</span>;
+
+    return (
+      <BodyCell rowId={row.transactionId} onHover={onRowHover} highlighted={highlighted}>
+        {row[col.key]}
+      </BodyCell>
+    );
   }
 
   return (
@@ -242,6 +279,34 @@ export function SampleTable({mri, ...metricMetaOptions}: SamplesTableProps) {
     />
   );
 }
+
+function BodyCell({children, rowId, highlighted, onHover}: any) {
+  const handleMouseOver = useCallback(() => {
+    onHover(rowId);
+  }, [onHover, rowId]);
+
+  const handleMouseOut = useCallback(() => {
+    onHover(null);
+  }, [onHover]);
+
+  return (
+    <BodyCellWrapper
+      onMouseOver={handleMouseOver}
+      onMouseOut={handleMouseOut}
+      highlighted={highlighted}
+    >
+      {children}
+    </BodyCellWrapper>
+  );
+}
+
+const BodyCellWrapper = styled('span')<{highlighted?: boolean}>`
+  font-weight: ${p => (p.highlighted ? 'bold' : 'normal')};
+
+  :hover {
+    font-weight: bold;
+  }
+`;
 
 const AlignCenter = styled('span')`
   display: block;
