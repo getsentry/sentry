@@ -7,10 +7,12 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -74,9 +76,9 @@ class JiraServerRequestParserTest(TestCase):
         assert response.status_code == 202
         assert response.content == b""
         assert len(responses.calls) == 0
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.JIRA_SERVER,
+            expected_shard_id=self.integration.id,
             region_names=[region.name],
         )
 
