@@ -297,6 +297,8 @@ export const releaseHealth: PlatformKey[] = [
   'native-crashpad',
   'native-breakpad',
   'native-qt',
+  'electron',
+  'javascript-electron',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
