@@ -212,5 +212,9 @@ lint-js:
 	bin/lint --js --parseable
 	@echo ""
 
+mypy-edited-files:
+	@echo "--> Running mypy on edited files"
+	git diff --name-only HEAD | grep '\.py$$' | xargs -r mypy
+	@echo ""
 
 .PHONY: build
