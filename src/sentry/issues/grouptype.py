@@ -168,8 +168,6 @@ class GroupType:
 
         When the feature flag is removed, we can remove the organization parameter from this method.
         """
-        if not features.has("organizations:issue-platform-crons-sd", organization):
-            return True
         return cls.enable_escalation_detection
 
     @classmethod

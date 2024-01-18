@@ -1617,12 +1617,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
     "organizations:issue-platform": False,
-    # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": False,
-    # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": False,
-    # Enable additional logging for issue platform
-    "organizations:issue-platform-extra-logging": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
