@@ -104,7 +104,7 @@ class Segment:
 
 
 @dataclass(frozen=True)
-class MetricCorrelations:
+class Correlations:
     metric_mri: str
     segments: Sequence[Segment]
 
@@ -577,7 +577,7 @@ def get_correlations_source(
     return None
 
 
-def get_correlations_of_metric(
+def get_metric_correlations(
     metric_mri: str,
     query: Optional[str],
     start: datetime,
@@ -587,7 +587,7 @@ def get_correlations_of_metric(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment],
-) -> MetricCorrelations:
+) -> Correlations:
     """
     Returns the spans in which the metric with `metric_mri` was emitted.
 
@@ -604,7 +604,7 @@ def get_correlations_of_metric(
         segments = correlations_source.get_segments(
             metric_mri, query, start, end, min_value, max_value, environments
         )
-        return MetricCorrelations(
+        return Correlations(
             metric_mri=metric_mri,
             segments=segments,
         )
