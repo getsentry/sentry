@@ -1812,20 +1812,19 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["configs"] == [
-            {
-                "sdk_name": SdkName.Cocoa,
-                "project_id": 1234,
-                "sample_rate": 1.0,
-                "organization_allowlist": None,
-            },
-            {
-                "sdk_name": SdkName.ReactNative,
-                "project_id": 12345,
-                "sample_rate": 1.0,
-                "organization_allowlist": [1],
-            },
-        ]
+
+        assert len(args["configs"]) == 2
+        cocoa_config = args["configs"][0]
+        assert cocoa_config.sdk_name == SdkName.Cocoa
+        assert cocoa_config.project_id == 1234
+        assert cocoa_config.sample_rate == 1.0
+        assert cocoa_config.organization_allowlist is None
+
+        react_native_config = args["configs"][1]
+        assert react_native_config.sdk_name == SdkName.ReactNative
+        assert react_native_config.project_id == 12345
+        assert react_native_config.sample_rate == 1.0
+        assert react_native_config.organization_allowlist == [1]
 
     @with_feature("organizations:sdk-crash-detection")
     @override_options(
