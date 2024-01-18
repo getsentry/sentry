@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class StacktraceLinkContext(TypedDict):
     file: str
+    filename: str
     platform: str | None
     abs_path: str | None
     commit_id: str | None
@@ -38,6 +39,8 @@ class StacktraceLinkContext(TypedDict):
 def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
     return {
         "file": parameters.get("file", ""),
+        # XXX: Temp change to support try_path_munging until refactored
+        "filename": parameters.get("file", ""),
         "commit_id": parameters.get("commitId"),
         "platform": parameters.get("platform"),
         "sdk_name": parameters.get("sdkName"),
