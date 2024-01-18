@@ -483,3 +483,86 @@ export function formatRate(
     RATE_UNIT_LABELS[unit]
   }`;
 }
+
+export function formatSpanOperation(
+  operation?: string,
+  length: 'short' | 'long' = 'short'
+) {
+  if (length === 'long') {
+    return getLongSpanOperationDescription(operation);
+  }
+
+  return getShortSpanOperationDescription(operation);
+}
+
+function getLongSpanOperationDescription(operation?: string) {
+  if (operation?.startsWith('http')) {
+    return t('URL request');
+  }
+
+  if (operation === 'db.redis') {
+    return t('cache query');
+  }
+
+  if (operation?.startsWith('db')) {
+    return t('database query');
+  }
+
+  if (operation?.startsWith('task')) {
+    return t('application task');
+  }
+
+  if (operation?.startsWith('serialize')) {
+    return t('serializer');
+  }
+
+  if (operation?.startsWith('middleware')) {
+    return t('middleware');
+  }
+
+  if (operation === 'resource') {
+    return t('resource');
+  }
+
+  if (operation === 'resource.script') {
+    return t('JavaScript file');
+  }
+
+  if (operation === 'resource.css') {
+    return t('stylesheet');
+  }
+
+  if (operation === 'resource.img') {
+    return t('image');
+  }
+
+  return t('span');
+}
+
+function getShortSpanOperationDescription(operation?: string) {
+  if (operation?.startsWith('http')) {
+    return t('request');
+  }
+
+  if (operation?.startsWith('db')) {
+    return t('query');
+  }
+
+  if (operation?.startsWith('task')) {
+    return t('task');
+  }
+
+  if (operation?.startsWith('serialize')) {
+    return t('serializer');
+  }
+
+  if (operation?.startsWith('middleware')) {
+    return t('middleware');
+  }
+
+  if (operation?.startsWith('resource')) {
+    return t('resource');
+  }
+
+  return t('span');
+}
