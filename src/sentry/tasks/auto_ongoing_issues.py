@@ -35,14 +35,17 @@ def log_error_if_queue_has_items(func):
     def inner(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            assert backend is not None, "queues monitoring is not enabled"
-            queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
-            if queue_size > 0:
-                logger.info(
-                    "%s queue size greater than 0.",
-                    CELERY_ISSUE_STATES_QUEUE.name,
-                    extra={"size": queue_size, "task": func.__name__},
-                )
+            try:
+                assert backend is not None, "queues monitoring is not enabled"
+                queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
+                if queue_size > 0:
+                    logger.info(
+                        "%s queue size greater than 0.",
+                        CELERY_ISSUE_STATES_QUEUE.name,
+                        extra={"size": queue_size, "task": func.__name__},
+                    )
+            except Exception:
+                logger.exception("Failed to determine queue size")
 
             func(*args, **kwargs)
 
