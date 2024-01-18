@@ -234,8 +234,8 @@ def _trim_if_above_limit(
 
     for version, specs_for_version in specs_per_version.items():
         if len(specs_for_version) > max_specs:
-            # Do not log for Sentry
-            if project.organization.id != 1:
+            # Certain orgs may be above the limit, however, we do not want to be informed
+            if project.organization.id not in options.get("on_demand.silence_orgs_above_max_limit"):
                 logger.error(
                     "Spec version %s: Too many (%s) on demand metric %s for project %s",
                     version,

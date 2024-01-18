@@ -1675,6 +1675,13 @@ register(
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+#
+register(
+    "on_demand.silence_orgs_above_max_limit",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "on_demand.max_widget_cardinality.count",
     default=10000,
