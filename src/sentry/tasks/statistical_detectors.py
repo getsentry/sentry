@@ -116,7 +116,7 @@ def run_detection() -> None:
     projects = dispatch_performance_projects(projects, now)
     projects = dispatch_profiling_projects(projects, now)
 
-    # make sure to consume the iterator
+    # make sure to consume the generator
     for _ in projects:
         pass
 
