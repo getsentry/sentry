@@ -58,7 +58,12 @@ export function CanvasSupportNotice() {
         {
           canvas: <code />,
           link: (
-            <ExternalLink onClick={() => {trackAnalytics('replay.canvas-detected-banner-clicked', {organization});}} href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
+            <ExternalLink
+              onClick={() => {
+                trackAnalytics('replay.canvas-detected-banner-clicked', {organization});
+              }}
+              href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording"
+            />
           ),
         }
       )}
