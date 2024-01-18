@@ -3501,53 +3501,6 @@ KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 # We use the email with Jira 2-way sync in order to match the user
 JIRA_USE_EMAIL_SCOPE = False
 
-"""
-Fields are:
- - south_app_name: Which app to apply the conversion to
- - south_migration: The south migration to map to the new name. If None, then always
-   apply
- - django_app_name: The new app name to apply the conversion to
- - django_migration: Which django migration to 'fake' as run.
- - south_migration_required: Whether the south migration is required to proceed.
- - south_migration_required_error: Error message explaining what is going wrong.
-"""
-SOUTH_MIGRATION_CONVERSIONS = (
-    (
-        "sentry",
-        "0472_auto__add_field_sentryapp_author",
-        "sentry",
-        "0001_initial",
-        True,
-        "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
-    ),
-    (
-        "sentry",
-        "0516_auto__del_grouptagvalue__del_unique_grouptagvalue_group_id_key_value__",
-        "sentry",
-        "0002_912_to_recent",
-        False,
-        "",
-    ),
-    (
-        "sentry",
-        "0518_auto__chg_field_sentryappwebhookerror_response_code",
-        "sentry",
-        "0003_auto_20191022_0122",
-        False,
-        "",
-    ),
-    ("sentry.nodestore", "0001_initial", "nodestore", "0001_initial", False, None),
-    ("nodestore", "0001_initial", "nodestore", "0001_initial", False, None),
-    (
-        "social_auth",
-        "0004_auto__del_unique_usersocialauth_provider_uid__add_unique_usersocialaut",
-        "social_auth",
-        "0001_initial",
-        True,
-        "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
-    ),
-)
-
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
