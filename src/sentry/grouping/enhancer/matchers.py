@@ -72,11 +72,11 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     for key in list(match_frame.keys()):
         value = match_frame[key]
         if isinstance(value, (bytes, str)):
-            if key in ("package", "path"):
-                value = match_frame[key] = value.lower()
-
             if isinstance(value, str):
-                match_frame[key] = value.encode("utf-8")
+                value = match_frame[key] = value.encode("utf-8")
+
+            if key in ("package", "path"):
+                value = match_frame[key] = value.lower().replace(b"\\", b"/")
 
     return match_frame
 
