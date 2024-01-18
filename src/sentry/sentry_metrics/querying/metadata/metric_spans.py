@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Dict, List, Optional, Sequence, Set, Tuple, cast
+from typing import Dict, List, Mapping, Optional, Sequence, Set, Tuple, cast
 
 import sentry_sdk
 from snuba_sdk import (
@@ -62,22 +62,45 @@ class CorrelationsQueryExecutionError(Exception):
 
 
 @dataclass(frozen=True)
-class SpansSummary:
-    span_op: str
+class SpanDetail:
+    """
+    Details of an individual span which is inside a segment.
+    """
+
+    span_id: str
     span_duration: int
+    span_timestamp: datetime
+
+
+@dataclass(frozen=True)
+class SpanSummary:
+    """
+    Summary of the durations of the spans grouped by op.
+    """
+
+    span_op: str
+    total_duration: int
 
 
 @dataclass(frozen=True)
 class Segment:
+    """
+    Segment which is correlated to a certain metric.
+    """
+
     project_id: int
     trace_id: str
     segment_id: str
     segment_name: str
     profile_id: Optional[str]
     spans_number: int
-    spans_summary: Sequence[SpansSummary]
+    spans_details: Sequence[SpanDetail]
+    spans_summary: Sequence[SpanSummary]
     duration: int
     timestamp: datetime
+
+    def add_spans_details(self, spans_details: Sequence[SpanDetail]) -> "Segment":
+        return replace(self, spans_details=spans_details)
 
 
 @dataclass(frozen=True)
@@ -191,23 +214,25 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         return {value["span_id"] for value in data}
 
-    def _get_transaction_ids_of_spans(
+    def _get_segments_spans(
         self,
         span_ids: Set[str],
         start: datetime,
         end: datetime,
-    ) -> Set[str]:
+    ) -> Mapping[str, Sequence[Tuple[str, int, datetime]]]:
         """
-        Returns a set containing the ids of the transactions that contain at least one span from `span_ids`.
+        Returns a mapping of the transaction id and all the correlated spans inside that segment.
         """
         if not span_ids:
-            return set()
+            return {}
 
         query = Query(
             match=Entity(EntityKey.Spans.value),
             select=[
-                # TODO: switch to segment_id when the product is ready for it.
                 Column("transaction_id"),
+                Column("span_id"),
+                Column("duration"),
+                Column("timestamp"),
             ],
             where=[
                 Condition(Column("project_id"), Op.IN, [project.id for project in self.projects]),
@@ -215,7 +240,6 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("span_id"), Op.IN, list(span_ids)),
             ],
-            groupby=[Column("transaction_id")],
         )
 
         request = Request(
@@ -227,7 +251,13 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
 
-        return {value["transaction_id"] for value in data}
+        segments_spans: Dict[str, List[Tuple[str, int, datetime]]] = {}
+        for value in data:
+            segments_spans.setdefault(value["transaction_id"], []).append(
+                (value["span_id"], value["duration"], value["timestamp"])
+            )
+
+        return segments_spans
 
     @classmethod
     def supports(cls, metric_mri: str) -> bool:
@@ -254,24 +284,32 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
             max_value=max_value,
         )
 
-        # Second, we fetch a set of transaction ids in which the `span_ids` belong.
-        transaction_ids = self._get_transaction_ids_of_spans(
+        # Second, we fetch all the segments which contain the span ids.
+        segments_spans = self._get_segments_spans(
             span_ids=span_ids,
             start=start,
             end=end,
         )
 
-        # Third, we fetch additional details of the transactions in `transaction_ids`.
-        spans = _get_segments(
-            where=[Condition(Column("transaction_id"), Op.IN, list(transaction_ids))],
+        # Third, we fetch the segments details together with aggregates
+        segments = _get_segments(
+            where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
             start=start,
             end=end,
             organization=self.organization,
             projects=self.projects,
         )
 
-        # Fourth, we compute the transaction summary for each transaction.
-        return spans
+        # Fourth, we merge span details with the fetched segments.
+        extended_segments = []
+        for segment in segments:
+            segment_spans_details = [
+                SpanDetail(span_id=span_id, span_duration=duration, span_timestamp=timestamp)
+                for span_id, duration, timestamp in segments_spans.get(segment.segment_id, [])
+            ]
+            extended_segments.append(segment.add_spans_details(segment_spans_details))
+
+        return extended_segments
 
 
 class TransactionDurationCorrelationsSource(CorrelationsSource):
@@ -457,8 +495,15 @@ def _get_segments(
     end: datetime,
     organization: Organization,
     projects: Sequence[Project],
-):
+) -> Sequence[Segment]:
     requests = []
+    # TODO: the time bounds are the same across queries and this can lead to issues since the span can have a specific
+    #  time which is within the supplied bounds but the transaction might have different time bounds, which will result
+    #  in data not being returned in specific cases.
+    #  E.g., say you are querying from 10:10 to 10:15 and you get a span with timestamp 10:15. The transaction of that
+    #  span has a timestamp of 10:16, in that case, we won't be able to fetch that transaction since we will apply
+    #  the [10:10, 10:15) filter. The solution to this problem is to perform the queries below without timebounds but
+    #  this is not allowed by Snuba.
     for query in [
         _get_segments_aggregates_query(where, start, end, projects),
         _get_segments_spans_summaries_query(where, start, end, projects),
@@ -484,8 +529,8 @@ def _get_segments(
     segments: List[Segment] = []
     for row in results[0]["data"]:
         spans_summary = [
-            SpansSummary(span_op=op, span_duration=duration)
-            for op, duration in segment_ops.get(row["transaction_id"], [])
+            SpanSummary(span_op=op, total_duration=total_duration)
+            for op, total_duration in segment_ops.get(row["transaction_id"], [])
         ]
 
         segment = Segment(
@@ -496,6 +541,9 @@ def _get_segments(
             profile_id=row["profile_id"],
             segment_name=row["segment_name"],
             spans_number=row["spans_number"],
+            # By default, we don't have span details, since they can be optionally injected only if the queried metric
+            # is a custom metric.
+            spans_details=[],
             spans_summary=spans_summary,
             duration=row["duration"],
             timestamp=row["any_timestamp"],

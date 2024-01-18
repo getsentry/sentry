@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Sequence, cast
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from django.utils import timezone
@@ -342,12 +342,20 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             transaction_id=transaction_id,
             duration=30,
         )
-        for span_op, span_duration in (("db", 10), ("http", 20), ("rpc", 2)):
+        span_id_1 = "98230207e6e4a6ad"
+        span_id_2 = "10230207e8e4a6ef"
+        span_id_3 = "22330201e8e4a6ab"
+        for span_id, span_op, span_duration in (
+            (span_id_1, "db", 10),
+            (span_id_2, "http", 20),
+            (span_id_3, "rpc", 2),
+        ):
             self.store_indexed_span(
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5),
                 trace_id=trace_id,
                 transaction_id=transaction_id,
+                span_id=span_id,
                 op=span_op,
                 duration=span_duration,
                 store_metrics_summary={
@@ -378,6 +386,23 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert metric_spans[0]["transactionId"] == transaction_id
         assert metric_spans[0]["duration"] == 30
         assert metric_spans[0]["spansNumber"] == 3
+        assert sorted(metric_spans[0]["spansDetails"], key=lambda value: value["spanDuration"]) == [
+            {
+                "spanId": span_id_3,
+                "spanDuration": 2,
+                "spanTimestamp": ANY,
+            },
+            {
+                "spanId": span_id_1,
+                "spanDuration": 10,
+                "spanTimestamp": ANY,
+            },
+            {
+                "spanId": span_id_2,
+                "spanDuration": 20,
+                "spanTimestamp": ANY,
+            },
+        ]
         assert sorted(metric_spans[0]["spansSummary"], key=lambda value: value["spanOp"]) == [
             {"spanDuration": 10, "spanOp": "db"},
             {"spanDuration": 20, "spanOp": "http"},
