@@ -4,9 +4,11 @@ from drf_spectacular.utils import OpenApiExample
 class OrganizationExamples:
     LIST_PROJECTS = [
         OpenApiExample(
-            "Success",
+            "List an organization's projects",
             value=[
                 {
+                    "slug": "prime-mover",
+                    "name": "Prime Mover",
                     "dateCreated": "2018-11-06T21:19:58.536Z",
                     "firstEvent": None,
                     "access": [],
@@ -14,10 +16,8 @@ class OrganizationExamples:
                     "id": "3",
                     "isBookmarked": False,
                     "isMember": True,
-                    "name": "Prime Mover",
                     "platform": "",
                     "platforms": [],
-                    "slug": "prime-mover",
                     "team": {
                         "id": "2",
                         "name": "Powerful Abolitionist",
@@ -51,7 +51,7 @@ class OrganizationExamples:
 
     RETRIEVE_EVENT_COUNTS_V2 = [
         OpenApiExample(
-            "Successful response",
+            "Retrieve event counts v2",
             value={
                 "start": "2022-02-14T19:00:00Z",
                 "end": "2022-02-28T18:03:00Z",
@@ -115,7 +115,7 @@ class OrganizationExamples:
 
     UPDATE_ORG_MEMBER = [
         OpenApiExample(
-            "Update Successful",
+            "Update organization member",
             value={
                 "id": "57377908164",
                 "email": "sirpenguin@antarcticarocks.com",

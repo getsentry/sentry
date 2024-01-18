@@ -77,7 +77,6 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_SLUG,
             GlobalParams.TEAM_SLUG,
         ],
-        request=None,
         responses={
             200: ProjectWithTeamSerializer,
             403: RESPONSE_FORBIDDEN,

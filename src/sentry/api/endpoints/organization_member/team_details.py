@@ -382,7 +382,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the organization member to delete from the team"),
             GlobalParams.TEAM_SLUG,
         ],
-        request=None,
         responses={
             200: BaseTeamSerializer,
             400: RESPONSE_BAD_REQUEST,

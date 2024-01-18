@@ -475,7 +475,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     @extend_schema(
         operation_id="Delete an Individual Team",
         parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
-        request=None,
         responses={
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,

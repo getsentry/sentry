@@ -306,7 +306,6 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.ORG_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),
         ],
-        request=None,
         responses={
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,

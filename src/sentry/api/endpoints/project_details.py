@@ -880,7 +880,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Delete a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-        request=None,
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,
