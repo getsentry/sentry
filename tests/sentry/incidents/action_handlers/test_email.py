@@ -31,6 +31,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 
 from . import FireTest
 
@@ -75,6 +76,7 @@ class EmailActionHandlerTest(FireTest):
         )
 
 
+@region_silo_test
 class EmailActionHandlerGetTargetsTest(TestCase):
     @cached_property
     def incident(self):
@@ -160,21 +162,22 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == []
 
     def test_team_alert_disabled(self):
-        NotificationSettingOption.objects.create(
-            user_id=self.user.id,
-            scope_type="project",
-            scope_identifier=self.project.id,
-            type="alerts",
-            value="never",
-        )
-        disabled_user = self.create_user()
-        NotificationSettingOption.objects.create(
-            user_id=disabled_user.id,
-            scope_type="user",
-            scope_identifier=disabled_user.id,
-            type="alerts",
-            value="never",
-        )
+        with assume_test_silo_mode_of(NotificationSettingOption):
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="project",
+                scope_identifier=self.project.id,
+                type="alerts",
+                value="never",
+            )
+            disabled_user = self.create_user()
+            NotificationSettingOption.objects.create(
+                user_id=disabled_user.id,
+                scope_type="user",
+                scope_identifier=disabled_user.id,
+                type="alerts",
+                value="never",
+            )
 
         new_user = self.create_user()
         self.create_team_membership(team=self.team, user=new_user)
@@ -187,13 +190,14 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
     def test_user_email_routing(self):
         new_email = "marcos@sentry.io"
-        UserOption.objects.create(
-            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
-        )
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.create(
+                user=self.user, project_id=self.project.id, key="mail:email", value=new_email
+            )
 
-        useremail = UserEmail.objects.get(email=self.user.email)
-        useremail.email = new_email
-        useremail.save()
+            useremail = UserEmail.objects.get(email=self.user.email)
+            useremail.email = new_email
+            useremail.save()
 
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -207,16 +211,17 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
         new_user = self.create_user(new_email)
 
-        useremail = UserEmail.objects.get(email=self.user.email)
-        useremail.email = new_email
-        useremail.save()
+        with assume_test_silo_mode_of(UserEmail):
+            useremail = UserEmail.objects.get(email=self.user.email)
+            useremail.email = new_email
+            useremail.save()
 
-        UserOption.objects.create(
-            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
-        )
-        UserOption.objects.create(
-            user=new_user, project_id=self.project.id, key="mail:email", value=new_email
-        )
+            UserOption.objects.create(
+                user=self.user, project_id=self.project.id, key="mail:email", value=new_email
+            )
+            UserOption.objects.create(
+                user=new_user, project_id=self.project.id, key="mail:email", value=new_email
+            )
 
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
