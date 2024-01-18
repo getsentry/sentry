@@ -58,6 +58,7 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.utils import json
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
@@ -170,6 +171,17 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             project_id = get_path(group, "by", "project_id")
             assert project_id is not None
             totals = get_path(group, "totals", "rate")
+            if totals is None:
+                logger.info(
+                    "sentry.release_health.metrics._get_crash_free_rate_data.totals_is_none",
+                    extra={
+                        "group": json.dumps(group),
+                        "project_id": json.dumps(project_id),
+                        "organization_id": org_id,
+                        "query": json.dumps(query),
+                        "timeseries_for_query": json.dumps(result),
+                    },
+                )
             assert totals is not None
             ret_val[project_id] = totals * 100
 
