@@ -118,7 +118,10 @@ export type SortState = {
 
 export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
-  focusedSeries?: string;
+  focusedSeries?: {
+    seriesName: string;
+    groupBy?: Record<string, string>;
+  };
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
   sort?: SortState;
