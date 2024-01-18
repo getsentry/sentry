@@ -1,4 +1,3 @@
-from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -69,7 +68,7 @@ class DiscordIssueAlertTest(RuleTestCase):
             json={"permission_overwrites": [{"id": self.discord_integration.id, "deny": "0"}]},
         )
 
-    def get_post_call_request_body(self, response_calls: list[Any]):
+    def get_post_call_request_body(self, response_calls):
         """
         Helper method to get the body
 
