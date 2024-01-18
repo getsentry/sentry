@@ -17,12 +17,11 @@ import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inv
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
-import withLatestContext from 'sentry/utils/withLatestContext';
+import withOrganization from 'sentry/utils/withOrganization';
 
 import InviteRowControl from './inviteRowControl';
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
@@ -56,10 +55,6 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
   InviteMembersModalProps,
   State
 > {
-  static childContextTypes = {
-    organization: SentryPropTypeValidators.isOrganization,
-  };
-
   get inviteTemplate(): InviteRow {
     return {
       emails: new Set(),
@@ -72,14 +67,6 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
    * Used for analytics tracking of the modals usage.
    */
   sessionId = '';
-
-  getChildContext() {
-    // Expose organization via context to descendants
-    // e.g. TeamSelector relies on it being present
-    return {
-      organization: this.props.organization,
-    };
-  }
 
   componentDidMount() {
     super.componentDidMount();
@@ -440,4 +427,4 @@ export const modalCss = css`
   margin: 50px auto;
 `;
 
-export default withLatestContext(InviteMembersModal);
+export default withOrganization(InviteMembersModal);
