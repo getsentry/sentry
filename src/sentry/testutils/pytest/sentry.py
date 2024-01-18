@@ -96,9 +96,6 @@ def pytest_configure(config: pytest.Config) -> None:
         except FileExistsError:
             pass
 
-    # HACK: Only needed for testing!
-    os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
-
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sentry.conf.server")
 
     # override docs which are typically synchronized from an upstream server
