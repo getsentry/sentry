@@ -1,11 +1,11 @@
 import logging
 import random
 import statistics
+import string
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-import matplotlib.pyplot as plt
 import pytest
 import sentry_kafka_schemas
 from arroyo.backends.kafka import KafkaPayload
@@ -40,7 +40,7 @@ MOCK_USE_CASE_AGG_OPTION = {UseCaseID.TRANSACTIONS: AggregationOption.TEN_SECOND
 
 
 pytestmark = pytest.mark.sentry_metrics
-BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
+BROKER_TIMESTAMP = int(datetime.now(tz=timezone.utc).second)
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
     "name": SessionMRI.RAW_SESSION.value,
@@ -354,47 +354,57 @@ def test_extract_strings_with_multiple_use_case_ids():
 
 
 @pytest.mark.django_db
-def test_graph_batch_perf():
-    make_dist_payload = lambda value_len: {
-        "name": "d:custom/duration@second",
-        "tags": {
-            "environment": "production",
-            "session.status": "healthy",
-            "metric_e2e_custom_dist_k_custom": "metric_e2e_dist_v",
-            "aaa": "aajdfklajflkdjaklfjli",
-            "bbb": "jfdlakjfoeijiojfa",
-            "fjdakljfkldjai": "fjdaljfkdla",
-        },
-        "timestamp": BROKER_TIMESTAMP,
-        "type": "d",
-        "value": [random.random() for _ in range(value_len)],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-    step = 1
+def test_batch_perf():
+    step = 8
     hi = 16_000
     lo = 10
     reps = 4
+    msgs = [
+        (
+            {
+                "name": "d:custom/duration@second",
+                "tags": {
+                    "environment": "production",
+                    "session.status": "healthy",
+                    "metric_e2e_custom_dist_k_custom": "metric_e2e_dist_v",
+                    "aaa": "aajdfklajflkdjaklfjli",
+                    "bbb": "jfdlakjfoeijiojfa",
+                    "fjdakljfkldjai": "fjdaljfkdla",
+                },
+                "timestamp": BROKER_TIMESTAMP,
+                "type": "d",
+                "value": "",
+                "org_id": 1,
+                "retention_days": 90,
+                "project_id": 3,
+            },
+            [("namespace", b"custom")],
+        )
+        for _ in range(50)
+    ]
     x = []
     y = []
     print("\n**************** STARTING TEST ****************")  # noqa
     for val_len in range(lo, hi, step):
         print(f"Current value length: {val_len}", end="\r")  # noqa
         raw = []
-        for _ in range(reps):
-            outer_message = _construct_outer_message(
-                [(make_dist_payload(val_len), [("namespace", b"custom")]) for _ in range(50)]
+        for msg, _ in msgs:
+            msg["value"] += "".join(
+                [
+                    random.choice(string.ascii_lowercase)
+                    for _ in range(val_len * 8 - len(msg["value"]))
+                ]
             )
+            assert len(msg["value"]) == val_len * 8
+        for _ in range(reps):
+            outer_message = _construct_outer_message(msgs)
             start = datetime.now()
             IndexerBatch(
                 outer_message,
                 False,
                 False,
                 tags_validator=GenericMetricsTagsValidator().is_allowed,
-                schema_validator=MetricsSchemaValidator(
-                    INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
-                ).validate,
+                schema_validator=MetricsSchemaValidator(INGEST_CODEC, None).validate,
             )
             end = datetime.now()
             raw.append((end - start).total_seconds() * 1000)
@@ -402,8 +412,7 @@ def test_graph_batch_perf():
         y.append(statistics.median(raw))
 
     print("\r**************** DONE ****************\n")  # noqa
-    plt.scatter(x, y, marker=".", s=6)
-    plt.show()
+    print({"x": x, "y": y})  # noqa
 
 
 @pytest.mark.django_db

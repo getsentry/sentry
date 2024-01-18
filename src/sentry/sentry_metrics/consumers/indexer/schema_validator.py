@@ -1,4 +1,3 @@
-import random
 from typing import Any, Optional
 
 from sentry_kafka_schemas.codecs import Codec
@@ -40,9 +39,4 @@ class MetricsSchemaValidator:
             self.schema_validation_rules = {}
 
     def validate(self, use_case_id: str, message: IngestMetric) -> None:
-        if not self.input_codec:
-            return None
-
-        validation_sample_rate = self.schema_validation_rules.get(use_case_id, 1.0)
-        if random.random() <= validation_sample_rate:
-            return self.input_codec.validate(message)
+        return self.input_codec.validate(message)
