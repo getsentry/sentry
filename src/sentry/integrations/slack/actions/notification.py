@@ -41,7 +41,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         if features.has("organizations:slack-formatting-update", self.project.organization):
             self.form_fields["mentions"] = {
                 "type": "string",
-                "placeholder": "e.g. @colleen, @on-call-team",
+                "placeholder": "e.g. @jane, @on-call-team",
             }
 
     def after(
