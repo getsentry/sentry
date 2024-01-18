@@ -4,12 +4,13 @@ from unittest import mock
 from sentry import tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import (
+    ExternalIssueSerializer,
     StreamGroupSerializer,
     StreamGroupSerializerSnuba,
 )
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.environment import Environment
-from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -83,3 +84,29 @@ class StreamGroupSerializerTestCase(
         assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
+
+
+@region_silo_test
+class ExternalIssueSerializerTest(TestCase, APITestCase):
+    def test_simple(self):
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="example:1",
+            provider="example",
+            name="Example",
+        )
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="APP-123",
+            title="this is an example title",
+            description="this is an example description",
+        )
+        result = serialize(
+            [group], request=self.make_request(), serializer=ExternalIssueSerializer(group)
+        )
+
+        assert result[0]["external_issues"][0]["description"] == external_issue.description
+        assert result[0]["external_issues"][0]["title"] == external_issue.title
+        assert result[0]["external_issues"][0]["key"] == external_issue.key

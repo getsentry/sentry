@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import functools
 from abc import abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
+from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -23,12 +25,17 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import resolve_column, resolve_conditions
 
@@ -154,6 +161,49 @@ class GroupStatsMixin:
                 }
 
             return self.query_tsdb(item_list, query_params, user=user, **kwargs)
+
+
+class ExternalIssueSerializer(Serializer):
+    def __init__(self, group: Group) -> None:
+        self.group = group
+
+    def get_attrs(
+        self, item_list: List[Group], user: User, **kwargs: Any
+    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
+        external_issues = ExternalIssue.objects.filter(
+            id__in=GroupLink.objects.filter(id__in=[item.id for item in item_list]).values_list(
+                "linked_id", flat=True
+            ),
+        )
+
+        issues_by_integration = defaultdict(list)
+        for ei in external_issues:
+            integration = integration_service.get_integration(integration_id=ei.integration_id)
+            if integration is None:
+                continue
+            installation = integration.get_installation(organization_id=self.group.organization.id)
+            if hasattr(installation, "get_issue_url") and hasattr(
+                installation, "get_issue_display_name"
+            ):
+                issues_by_integration[ei.integration_id].append(
+                    {
+                        "id": str(ei.id),
+                        "key": ei.key,
+                        "url": installation.get_issue_url(ei.key),
+                        "title": ei.title,
+                        "description": ei.description,
+                        "displayName": installation.get_issue_display_name(ei),
+                    }
+                )
+
+        return {
+            item: {"external_issues": issues_by_integration.get(item.id, [])} for item in item_list
+        }
+
+    def serialize(
+        self, obj: Group, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+        return attrs
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
@@ -420,6 +470,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("pluginIssues"):
             result["pluginIssues"] = attrs["pluginIssues"]
+
+        if self._expand("integrationIssues"):
+            result["integrationIssues"] = attrs["integrationIssues"]
 
         return result
 
