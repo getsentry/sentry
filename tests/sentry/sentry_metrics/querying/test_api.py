@@ -4,10 +4,10 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import (
+from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
-    run_metrics_query,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI

@@ -5,7 +5,7 @@ from snuba_sdk.conditions import BooleanCondition, BooleanOp, ConditionGroup, Op
 from snuba_sdk.mql.mql import parse_mql
 
 from sentry.models.environment import Environment
-from sentry.sentry_metrics.querying.api import InvalidMetricsQueryError
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
 
 def _visit_conditions(
