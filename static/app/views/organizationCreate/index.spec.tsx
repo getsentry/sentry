@@ -59,6 +59,7 @@ describe('OrganizationCreate', function () {
     expect(
       screen.getByText('Relocating from self-hosted?', {exact: false})
     ).toBeInTheDocument();
+    expect(screen.getByText('here')).toHaveAttribute('href', '/relocation/');
 
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(
