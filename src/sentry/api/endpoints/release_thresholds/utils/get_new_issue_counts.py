@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List
 
-from django.db.models import Q
+from django.db.models import Count, Q
 
 from sentry.models.group import Group
 
@@ -27,5 +27,9 @@ def get_new_issue_counts(
             groupenvironment__environment__name__in=environments_list,
         )
 
-    qs = Group.objects.filter(issue_group_query)
+    qs = (
+        Group.objects.filter(issue_group_query)
+        .values("project__id", "first_release__version", "groupenvironment__environment__name")
+        .annotate(count=Count("first_release__version"))
+    )
     return qs
