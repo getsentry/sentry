@@ -483,9 +483,18 @@ class MonitorCheckInMissed(GroupType):
 
 @dataclass(frozen=True)
 class ReplayDeadClickType(GroupType):
+    # This is not currently used
     type_id = 5001
     slug = "replay_click_dead"
     description = "Dead Click Detected"
+    category = GroupCategory.REPLAY.value
+
+
+@dataclass(frozen=True)
+class ReplayRageClickType(GroupType):
+    type_id = 5002
+    slug = "replay_click_rage"
+    description = "Rage Click Detected"
     category = GroupCategory.REPLAY.value
 
 
