@@ -36,6 +36,17 @@ describe('OrganizationCreate', function () {
     render(<OrganizationCreate />);
   });
 
+  it('does not render relocation url for self-hosted', function () {
+    ConfigStore.set('termsUrl', 'https://example.com/terms');
+    ConfigStore.set('privacyUrl', 'https://example.com/privacy');
+    ConfigStore.set('isSelfHosted', true);
+    render(<OrganizationCreate />);
+
+    expect(() =>
+      screen.getByText('Relocating from self-hosted?', {exact: false})
+    ).toThrow();
+  });
+
   it('creates a new org', async function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -44,8 +55,13 @@ describe('OrganizationCreate', function () {
     });
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
+    ConfigStore.set('isSelfHosted', false);
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
+    expect(
+      screen.getByText('Relocating from self-hosted?', {exact: false})
+    ).toBeInTheDocument();
+    expect(screen.getByText('here')).toHaveAttribute('href', '/relocation/');
 
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(
