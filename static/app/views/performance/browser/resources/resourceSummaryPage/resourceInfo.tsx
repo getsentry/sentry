@@ -18,6 +18,7 @@ type Props = {
   avgDecodedContentLength: number;
   avgDuration: number;
   avgTransferSize: number;
+  spanOp: string;
   throughput: number;
   timeSpentPercentage: number;
   timeSpentTotal: number;
@@ -32,6 +33,7 @@ function ResourceInfo(props: Props) {
     throughput,
     timeSpentPercentage,
     timeSpentTotal,
+    spanOp,
   } = props;
 
   const tooltips = {
@@ -104,7 +106,11 @@ function ResourceInfo(props: Props) {
           <DurationCell milliseconds={avgDuration} />
         </Block>
         <Block title={DataTitles.timeSpent}>
-          <TimeSpentCell percentage={timeSpentPercentage} total={timeSpentTotal} />
+          <TimeSpentCell
+            percentage={timeSpentPercentage}
+            total={timeSpentTotal}
+            op={spanOp}
+          />
         </Block>
       </BlockContainer>
       {hasNoData && (
