@@ -115,7 +115,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -1811,7 +1811,13 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # add severity to metadata for alert filtering
-    group_data["metadata"].update(_get_severity_metadata_for_group(event))
+    severity = _get_severity_metadata_for_group(event)
+    group_data["metadata"].update(severity)
+
+    if features.has("projects:issue-priority", project, actor=None):
+        priority = _get_priority_for_group(severity, kwargs)
+        kwargs.update({"priority": priority})
+        group_data["metadata"].update({"initial_priority": priority})
 
     return Group.objects.create(
         project=project,
@@ -2047,6 +2053,34 @@ def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
             return {}
 
     return {}
+
+
+def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, Any]) -> int:
+    """
+    Returns priority for an event based on severity score and log level.
+    """
+    level = kwargs.get("level", None)
+    severity_score = severity.get("severity", None)
+
+    if level in [logging.INFO, logging.DEBUG]:
+        return PriorityLevel.LOW
+
+    elif level == logging.FATAL:
+        return PriorityLevel.HIGH
+
+    elif level == logging.WARNING:
+        if not severity_score or severity_score < 0.1:
+            return PriorityLevel.MEDIUM
+
+        return PriorityLevel.HIGH  # severity_score >= 0.1
+    elif level == logging.ERROR:
+        if not severity_score or severity_score >= 0.1:
+            return PriorityLevel.HIGH
+
+        return PriorityLevel.MEDIUM  # severity_score < 0.1
+
+    logger.warning("unknown log level %s or severity score %s", level, severity_score)
+    return PriorityLevel.MEDIUM
 
 
 def _get_severity_score(event: Event) -> Tuple[float, str]:
