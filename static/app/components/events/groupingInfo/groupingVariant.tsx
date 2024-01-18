@@ -136,22 +136,6 @@ class GroupVariant extends Component<Props, State> {
         ]);
         addFingerprintInfo(data, variant);
         break;
-      case EventGroupVariantType.BUILT_IN_FINGERPRINT:
-        data.push([
-          t('Type'),
-          <TextWithQuestionTooltip key="type">
-            {variant.type}
-            <QuestionTooltip
-              size="xs"
-              position="top"
-              title={t(
-                'Overrides the default grouping by a Sentry defined fingerprinting rule'
-              )}
-            />
-          </TextWithQuestionTooltip>,
-        ]);
-        addFingerprintInfo(data, variant);
-        break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
         data.push([
