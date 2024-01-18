@@ -174,7 +174,7 @@ class EndpointRegressionDetector(RegressionDetector):
             min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
-            threshold=0.2,
+            threshold=0.15,
         )
 
     @classmethod
@@ -216,7 +216,7 @@ class FunctionRegressionDetector(RegressionDetector):
             min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
-            threshold=0.2,
+            threshold=0.15,
         )
 
     @classmethod
@@ -288,6 +288,12 @@ def detect_transaction_trends(
     max_retries=0,
 )
 def detect_transaction_change_points(
+    transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+) -> None:
+    _detect_transaction_change_points(transactions, start, *args, **kwargs)
+
+
+def _detect_transaction_change_points(
     transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
@@ -372,6 +378,12 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
 def detect_function_change_points(
     functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
+    _detect_function_change_points(functions_list, start, *args, **kwargs)
+
+
+def _detect_function_change_points(
+    functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
+) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -445,7 +457,7 @@ def emit_function_regression_issue(
     ]
 
     result = functions.query(
-        selected_columns=["project.id", "fingerprint", "worst()"],
+        selected_columns=["project.id", "fingerprint", "examples()"],
         query="is_application:1",
         params=params,
         orderby=["project.id"],
@@ -457,7 +469,11 @@ def emit_function_regression_issue(
         conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
     )
 
-    examples = {(row["project.id"], row["fingerprint"]): row["worst()"] for row in result["data"]}
+    examples = {
+        (row["project.id"], row["fingerprint"]): row["examples()"][0]
+        for row in result["data"]
+        if row["examples()"]
+    }
 
     payloads = []
 

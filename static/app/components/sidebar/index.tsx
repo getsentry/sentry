@@ -278,6 +278,16 @@ function Sidebar({organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
+              <Feature features="starfish-mobile-appstart" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={t('App Startup')}
+                  to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
+                  id="performance-mobile-app-startup"
+                  icon={<SubitemDot collapsed />}
+                  isAlpha
+                />
+              </Feature>
               <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
@@ -322,23 +332,9 @@ function Sidebar({organization}: Props) {
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/database/`}
-          id="performance-database"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('App Startup')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/appStartup`}
-          id="performance-mobile-app-startup"
           icon={<SubitemDot collapsed={collapsed} />}
         />
       </SidebarAccordion>

@@ -6,10 +6,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
 import {SpanDescriptionLink} from 'sentry/views/starfish/components/spanDescriptionLink';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 const formatter = new SQLishFormatter();
+
+const {SPAN_OP} = SpanMetricsField;
 
 interface Props {
   description: string;
@@ -18,12 +20,14 @@ interface Props {
   endpoint?: string;
   endpointMethod?: string;
   group?: string;
+  spanOp?: string;
 }
 
 export function SpanDescriptionCell({
   description: rawDescription,
   group,
   moduleName,
+  spanOp,
   endpoint,
   endpointMethod,
   projectId,
@@ -45,6 +49,7 @@ export function SpanDescriptionCell({
       group={group}
       projectId={projectId}
       endpoint={endpoint}
+      spanOp={spanOp}
       endpointMethod={endpointMethod}
       description={formatterDescription}
     />
@@ -81,6 +86,7 @@ export function SpanDescriptionCell({
                 group={group}
                 shortDescription={rawDescription}
                 language="http"
+                filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
               />
             </Fragment>
           }

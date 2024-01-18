@@ -49,6 +49,7 @@ import {
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import useRouter from 'sentry/utils/useRouter';
+import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 
 import {
   normalizeDateTimeParams,
@@ -117,7 +118,10 @@ export type SortState = {
 
 export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
-  focusedSeries?: string;
+  focusedSeries?: {
+    seriesName: string;
+    groupBy?: Record<string, string>;
+  };
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
   sort?: SortState;
@@ -173,12 +177,17 @@ export type MetricSpan = {
   duration: number;
   profileId: string;
   projectId: number;
+  segmentName: string;
   spanId: string;
+  spansNumber: number;
   timestamp: string;
   traceId: string;
   transactionId: string;
-  // Not there yet but we will add it
-  replayId?: string;
+  replayId?: string; // Not there yet but will be added
+  spansSummary?: {
+    spanDuration: number;
+    spanOp: string;
+  }[];
 };
 
 export type MetricRange = {
@@ -186,6 +195,16 @@ export type MetricRange = {
   max?: number;
   min?: number;
   start?: DateString;
+};
+
+export const emptyWidget: MetricWidgetQueryParams = {
+  mri: 'd:transactions/duration@millisecond' satisfies MRI,
+  op: 'avg',
+  query: '',
+  groupBy: [],
+  sort: DEFAULT_SORT_STATE,
+  displayType: MetricDisplayType.LINE,
+  title: undefined,
 };
 
 export function getDdmUrl(
@@ -227,6 +246,8 @@ export function getMetricsApiRequestQuery(
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
   const interval = getDDMInterval(datetime, useCase, overrides.fidelity);
 
+  const hasGroupBy = groupBy && groupBy.length > 0;
+
   const queryToSend = {
     ...getDateTimeParams(datetime),
     query,
@@ -236,7 +257,7 @@ export function getMetricsApiRequestQuery(
     useCase,
     interval,
     groupBy,
-    orderBy,
+    orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
     allowPrivate: true, // TODO(ddm): reconsider before widening audience
     // Max result groups for compatibility with old metrics layer
     // TODO(telemetry-experience): remove once everyone is on new metrics layer
@@ -652,11 +673,7 @@ function swapObjectKeys(obj: Record<string, unknown> | undefined, newKeys: strin
 }
 
 export function stringifyMetricWidget(metricWidget: MetricsQuerySubject): string {
-  const {mri, op, query, groupBy, title} = metricWidget;
-
-  if (title) {
-    return title;
-  }
+  const {mri, op, query, groupBy} = metricWidget;
 
   if (!op) {
     return '';
@@ -700,4 +717,8 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
   );
 
   return {start: startObj.toISOString(), end: now.toISOString()};
+}
+
+export function isSupportedDisplayType(displayType: unknown) {
+  return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
 }

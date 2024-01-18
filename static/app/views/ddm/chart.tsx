@@ -1,6 +1,5 @@
 import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useHover} from '@react-aria/interactions';
 import * as Sentry from '@sentry/react';
 import * as echarts from 'echarts/core';
 import {CanvasRenderer} from 'echarts/renderers';
@@ -58,10 +57,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const router = useRouter();
     const chartRef = useRef<ReactEchartsRef>(null);
 
-    const {hoverProps, isHovered} = useHover({
-      isDisabled: false,
-    });
-
     const handleZoom = useCallback(
       (range: DateTimeObject) => {
         Sentry.metrics.increment('ddm.enhance.zoom');
@@ -75,7 +70,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       focusArea,
       {
         widgetIndex,
-        isDisabled: !isHovered || !addFocusArea || !removeFocusArea || !handleZoom,
+        isDisabled: !addFocusArea || !removeFocusArea || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
       },
       addFocusArea,
@@ -83,7 +78,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       handleZoom
     );
 
-    // TODO(ddm): Try to do this in a more elegant way
     useEffect(() => {
       const echartsInstance = chartRef?.current?.getEchartsInstance();
       if (echartsInstance && !echartsInstance.group) {
@@ -96,8 +90,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       () =>
         series
           .filter(s => !s.hidden)
-          .map(s => ({...s, silent: displayType === MetricDisplayType.BAR})),
-      [series, displayType]
+          .map(s => ({
+            ...s,
+            silent: true,
+          })),
+      [series]
     );
 
     // TODO(ddm): This assumes that all series have the same bucket size
@@ -125,9 +122,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         series: seriesToShow,
         renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
         isGroupedByDate: true,
-        height,
         colors: seriesToShow.map(s => s.color),
-        grid: {top: 20, bottom: 20, left: 15, right: 25},
+        grid: {top: 5, bottom: 0, left: 0, right: 0},
         tooltip: {
           formatter: (params, asyncTicket) => {
             if (focusAreaBrush.isDrawingRef.current) {
@@ -175,7 +171,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     ]);
 
     return (
-      <ChartWrapper {...hoverProps} onMouseDownCapture={focusAreaBrush.startBrush}>
+      <ChartWrapper onMouseDownCapture={focusAreaBrush.startBrush}>
         {focusAreaBrush.overlay}
         {displayType === MetricDisplayType.LINE ? (
           <LineChart {...chartProps} />
@@ -236,14 +232,15 @@ function getWidthFactor(bucketSize: number) {
 
 const ChartWrapper = styled('div')`
   position: relative;
+  height: 100%;
 `;
 
 const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: calc(100% - 56px);
+  height: calc(100% - 29px);
   width: ${p => p.width}%;
   position: absolute;
-  right: 21px;
-  top: 18px;
+  right: 0px;
+  top: 5px;
   pointer-events: none;
   background: linear-gradient(
     90deg,

@@ -45,7 +45,6 @@ from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -1235,7 +1234,6 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 [],
             )
 
-    @with_feature("organizations:escalating-issues")
     def test_group_substatus_header(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -1618,14 +1616,14 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.digests")
     @mock.patch("sentry.mail.adapter.logger")
     def test_digest(self, mock_logger, digests):
-        digests.enabled.return_value = True
+        digests.backend.enabled.return_value = True
 
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
-        assert digests.add.call_count == 1
+        assert digests.backend.add.call_count == 1
         assert event.group
         mock_logger.info.assert_called_with(
             "mail.adapter.notification.%s",
@@ -1646,13 +1644,13 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest_with_perf_issue(self, digests):
-        digests.enabled.return_value = True
+        digests.backend.enabled.return_value = True
         event = self.create_performance_issue()
         rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
-        assert digests.add.call_count == 1
+        assert digests.backend.add.call_count == 1
 
     def test_notify_includes_uuid(self):
         event = self.store_event(data={}, project_id=self.project.id)

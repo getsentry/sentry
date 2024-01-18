@@ -1,4 +1,5 @@
 import type {Client} from 'sentry/api';
+import type {OrganizationSummary} from 'sentry/types';
 import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 
 type PromptsUpdateParams = {
@@ -6,10 +7,7 @@ type PromptsUpdateParams = {
    * The prompt feature name
    */
   feature: string;
-  /**
-   * The numeric organization ID as a string
-   */
-  organizationId: string;
+  organization: OrganizationSummary;
   status: 'snoozed' | 'dismissed';
   /**
    * The numeric project ID as a string
@@ -21,10 +19,11 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  return api.requestPromise('/prompts-activity/', {
+  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
+  return api.requestPromise(url, {
     method: 'PUT',
     data: {
-      organization_id: params.organizationId,
+      organization_id: params.organization.id,
       project_id: params.projectId,
       feature: params.feature,
       status: params.status,
@@ -37,10 +36,7 @@ type PromptCheckParams = {
    * The prompt feature name
    */
   feature: string;
-  /**
-   * The numeric organization ID as a string
-   */
-  organizationId: string;
+  organization: OrganizationSummary;
   /**
    * The numeric project ID as a string
    */
@@ -70,11 +66,11 @@ export async function promptsCheck(
 ): Promise<PromptData> {
   const query = {
     feature: params.feature,
-    organization_id: params.organizationId,
+    organization_id: params.organization.id,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
-
-  const response: PromptResponse = await api.requestPromise('/prompts-activity/', {
+  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
+  const response: PromptResponse = await api.requestPromise(url, {
     query,
   });
 
@@ -90,22 +86,25 @@ export async function promptsCheck(
 
 export const makePromptsCheckQueryKey = ({
   feature,
-  organizationId,
+  organization,
   projectId,
-}: PromptCheckParams): ApiQueryKey => [
-  '/prompts-activity/',
-  {query: {feature, organization_id: organizationId, project_id: projectId}},
-];
+}: PromptCheckParams): ApiQueryKey => {
+  const url = `/organizations/${organization.slug}/prompts-activity/`;
+  return [
+    url,
+    {query: {feature, organization_id: organization.id, project_id: projectId}},
+  ];
+};
 
 /**
  * @param organizationId org numerical id, not the slug
  */
 export function usePromptsCheck(
-  {feature, organizationId, projectId}: PromptCheckParams,
+  {feature, organization, projectId}: PromptCheckParams,
   options: Partial<UseApiQueryOptions<PromptResponse>> = {}
 ) {
   return useApiQuery<PromptResponse>(
-    makePromptsCheckQueryKey({feature, organizationId, projectId}),
+    makePromptsCheckQueryKey({feature, organization, projectId}),
     {
       staleTime: 120000,
       ...options,
@@ -119,15 +118,18 @@ export function usePromptsCheck(
 export async function batchedPromptsCheck<T extends readonly string[]>(
   api: Client,
   features: T,
-  params: {organizationId: string; projectId?: string}
+  params: {
+    organization: OrganizationSummary;
+    projectId?: string;
+  }
 ): Promise<{[key in T[number]]: PromptData}> {
   const query = {
     feature: features,
-    organization_id: params.organizationId,
+    organization_id: params.organization.id,
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
-
-  const response: PromptResponse = await api.requestPromise('/prompts-activity/', {
+  const url = `/organizations/${params.organization.slug}/prompts-activity/`;
+  const response: PromptResponse = await api.requestPromise(url, {
     query,
   });
   const responseFeatures = response?.features;
