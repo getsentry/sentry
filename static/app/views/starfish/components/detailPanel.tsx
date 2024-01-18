@@ -2,9 +2,11 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import localStorage from 'sentry/utils/localStorage';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
@@ -20,8 +22,25 @@ type DetailState = {
   collapsed: boolean;
 };
 
+const SLIDEOUT_STORAGE_KEY = 'starfish-panel-slideout-direction';
+
+function getSlideOutDirection(): 'Up' | 'Left' {
+  const localValue = localStorage.getItem(SLIDEOUT_STORAGE_KEY) || 'Left';
+  if (localValue !== 'Up' && localValue !== 'Left') {
+    return 'Left';
+  }
+  return localValue;
+}
+
+function setSlideOutDirection(direction: 'Up' | 'Left') {
+  localStorage.setItem(SLIDEOUT_STORAGE_KEY, direction);
+}
+
 export default function Detail({children, detailKey, onClose, onOpen}: DetailProps) {
   const [state, setState] = useState<DetailState>({collapsed: true});
+  const [slideDirection, setSlideDirection] = useState<'Up' | 'Left'>(
+    getSlideOutDirection()
+  );
   const escapeKeyPressed = useKeyPress('Escape');
 
   // Any time the key prop changes (due to user interaction), we want to open the panel
@@ -32,6 +51,10 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
       setState({collapsed: true});
     }
   }, [detailKey]);
+
+  useEffect(() => {
+    setSlideOutDirection(slideDirection);
+  }, [slideDirection]);
 
   const panelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(panelRef, () => {
@@ -52,8 +75,35 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
   }, [escapeKeyPressed]);
 
   return (
-    <SlideOverPanel collapsed={state.collapsed} ref={panelRef} onOpen={onOpen}>
+    <SlideOverPanel
+      slideDirection={slideDirection}
+      collapsed={state.collapsed}
+      ref={panelRef}
+      onOpen={onOpen}
+    >
       <CloseButtonWrapper>
+        <PanelButton
+          priority="link"
+          size="zero"
+          borderless
+          aria-label={t('Slide from the bottom')}
+          disabled={slideDirection === 'Up'}
+          icon={<IconPanel size="sm" direction="down" />}
+          onClick={() => {
+            setSlideDirection('Up');
+          }}
+        />
+        <PanelButton
+          priority="link"
+          size="zero"
+          borderless
+          aria-label={t('Slide from the right')}
+          disabled={slideDirection === 'Left'}
+          icon={<IconPanel size="sm" direction="right" />}
+          onClick={() => {
+            setSlideDirection('Left');
+          }}
+        />
         <CloseButton
           priority="link"
           size="zero"
@@ -72,6 +122,14 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
 }
 
 const CloseButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+  &:hover {
+    color: ${p => p.theme.gray400};
+  }
+  z-index: 100;
+`;
+
+const PanelButton = styled(Button)`
   color: ${p => p.theme.gray300};
   &:hover {
     color: ${p => p.theme.gray400};
