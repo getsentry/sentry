@@ -12,6 +12,7 @@ import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Flex} from 'sentry/components/profiling/flex';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconChat, IconFire, IconLink, IconPlay, IconTag} from 'sentry/icons';
@@ -97,7 +98,20 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           <TagsSection tags={tags} />
         </Section>
 
-        <Section icon={<IconChat size="xs" />} title={t('Activity')}>
+        <Section
+          icon={<IconChat size="xs" />}
+          title={
+            <Fragment>
+              {t('Activity')}
+              <QuestionTooltip
+                size="xs"
+                title={t(
+                  'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
+                )}
+              />
+            </Fragment>
+          }
+        >
           <FeedbackActivitySection feedbackItem={feedbackItem} />
         </Section>
       </OverflowPanelItem>

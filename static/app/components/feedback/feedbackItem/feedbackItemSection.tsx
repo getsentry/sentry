@@ -34,7 +34,7 @@ export default function Section({
   contentRight,
 }: {
   children: ReactNode;
-  title: string;
+  title: ReactNode;
   contentRight?: ReactNode;
   icon?: ReactNode;
 }) {
