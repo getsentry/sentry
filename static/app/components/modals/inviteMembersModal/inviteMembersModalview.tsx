@@ -7,6 +7,7 @@ import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
+import InviteRowControl from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import {
   InviteRow,
@@ -19,8 +20,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-import InviteRowControl from './inviteRowControl';
 
 interface Props {
   Footer: ModalRenderProps['Footer'];

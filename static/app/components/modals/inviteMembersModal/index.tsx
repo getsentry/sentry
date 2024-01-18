@@ -8,13 +8,16 @@ import type {
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
+import {
+  InviteRow,
+  InviteStatus,
+  NormalizedInvite,
+} from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
 export interface InviteMembersModalProps extends AsyncComponentProps, ModalRenderProps {
   organization: Organization;
