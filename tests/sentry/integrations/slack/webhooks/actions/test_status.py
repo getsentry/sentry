@@ -90,7 +90,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def get_assign_status_action(self, type, text, id):
         return {
-            "type": "static_select",
+            "type": "external_select",
             "action_id": "assign",
             "block_id": "qBjgd",
             "selected_option": {

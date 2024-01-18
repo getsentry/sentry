@@ -125,6 +125,7 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
                 == f"http://testserver/organizations/{self.organization.slug}/releases/"
                 f"{release.version}/?project={project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification.notification_uuid}"
             )
+            assert blocks[2]["elements"][i]["value"] == "link_clicked"
         assert first_project is not None
 
         # footer project is the first project in the actions list

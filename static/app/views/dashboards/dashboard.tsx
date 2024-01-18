@@ -29,8 +29,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {defaultMetricWidget} from '../../utils/metrics/dashboard';
-
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import {
   assignDefaultLayout,
@@ -45,6 +43,7 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
+  isValidLayout,
   METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
   Position,
@@ -85,6 +84,7 @@ type Props = {
   selection: PageFilters;
   widgetLimitReached: boolean;
   editingWidgetIndex?: number;
+  handleAddMetricWidget?: (layout?: Widget['layout']) => void;
   isPreview?: boolean;
   newWidget?: Widget;
   onEndEditMetricWidget?: (widgets: Widget[], isCancel?: boolean) => void;
@@ -214,10 +214,11 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = (dataset?: DataSet) => {
-    const {organization, router, location, paramDashboardId} = this.props;
+    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
+      this.props;
 
     if (dataset === DataSet.METRICS) {
-      this.handleAddMetricWidget();
+      handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
       return;
     }
 
@@ -248,35 +249,6 @@ class Dashboard extends Component<Props, State> {
 
     return;
   };
-
-  handleAddMetricWidget() {
-    const {
-      dashboard,
-      onUpdate,
-      isEditingDashboard,
-      handleUpdateWidgetList,
-      selection,
-      onStartEditMetricWidget,
-    } = this.props;
-
-    const widgetLayout = this.addWidgetLayout;
-
-    const widgetCopy = cloneDeep(
-      assignTempId({
-        layout: {...widgetLayout, ...METRIC_WIDGET_MIN_SIZE},
-        ...defaultMetricWidget(selection),
-        widgetType: WidgetType.METRICS,
-      })
-    );
-
-    const nextList = generateWidgetsAfterCompaction([...dashboard.widgets, widgetCopy]);
-
-    onUpdate(nextList);
-    if (!isEditingDashboard) {
-      handleUpdateWidgetList(nextList);
-    }
-    onStartEditMetricWidget?.(nextList.length - 1);
-  }
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
@@ -340,7 +312,10 @@ class Dashboard extends Component<Props, State> {
 
     const widget = this.props.dashboard.widgets[index];
 
-    if (widget.widgetType === WidgetType.METRICS) {
+    if (
+      widget.widgetType === WidgetType.METRICS &&
+      hasDDMExperimentalFeature(organization)
+    ) {
       this.handleStartEditMetricWidget(index);
       return;
     }
@@ -547,7 +522,6 @@ class Dashboard extends Component<Props, State> {
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
     }
-
     return {
       ...position,
       w: DEFAULT_WIDGET_WIDTH,
@@ -573,6 +547,10 @@ class Dashboard extends Component<Props, State> {
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
     const canModifyLayout = !isMobile && isEditingDashboard;
+
+    const displayInlineAddWidget =
+      hasDDMExperimentalFeature(organization) &&
+      isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
       <GridLayout
@@ -601,15 +579,14 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || hasDDMExperimentalFeature(organization)) &&
-          !widgetLimitReached && (
-            <AddWidgetWrapper
-              key={ADD_WIDGET_BUTTON_DRAG_ID}
-              data-grid={this.addWidgetLayout}
-            >
-              <AddWidget onAddWidget={this.handleStartAdd} />
-            </AddWidgetWrapper>
-          )}
+        {(isEditingDashboard || displayInlineAddWidget) && !widgetLimitReached && (
+          <AddWidgetWrapper
+            key={ADD_WIDGET_BUTTON_DRAG_ID}
+            data-grid={this.addWidgetLayout}
+          >
+            <AddWidget onAddWidget={this.handleStartAdd} />
+          </AddWidgetWrapper>
+        )}
       </GridLayout>
     );
   }

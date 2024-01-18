@@ -76,7 +76,7 @@ describe('PageOverview', function () {
     });
     render(<PageOverview />);
     await screen.findByText(
-      'We changed how Performance Scores are calculated for your projects.'
+      /We made improvements to how Performance Scores are calculated for your projects/
     );
   });
 });

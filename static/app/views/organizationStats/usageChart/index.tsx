@@ -26,10 +26,11 @@ import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme from 'sentry/utils/theme';
 
-import {formatUsageWithUnits, GIGABYTE} from '../utils';
+import {formatUsageWithUnits} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
+const GIGABYTE = 10 ** 9;
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();

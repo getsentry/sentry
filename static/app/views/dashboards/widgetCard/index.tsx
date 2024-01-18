@@ -24,6 +24,7 @@ import {Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
+import {isSupportedDisplayType} from 'sentry/utils/metrics';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
@@ -266,7 +267,10 @@ class WidgetCard extends Component<Props, State> {
     );
 
     if (widget.widgetType === WidgetType.METRICS) {
-      if (hasDDMExperimentalFeature(organization)) {
+      if (
+        hasDDMExperimentalFeature(organization) &&
+        isSupportedDisplayType(widget.displayType)
+      ) {
         return (
           <MetricWidgetCard
             index={this.props.index}

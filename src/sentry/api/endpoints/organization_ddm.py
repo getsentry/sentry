@@ -14,7 +14,7 @@ from sentry.api.serializers.models.metric_spans import MetricSpansSerializer
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.metadata.code_locations import get_code_locations
-from sentry.sentry_metrics.querying.metadata.metric_spans import get_spans_of_metric
+from sentry.sentry_metrics.querying.metadata.metric_spans import get_correlations_of_metric
 
 
 class MetaType(Enum):
@@ -83,7 +83,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
 
                 query = request.GET.get("query")
 
-                data = get_spans_of_metric(
+                data = get_correlations_of_metric(
                     metric_mri=metric_mris[0],
                     query=query,
                     start=start,
@@ -92,6 +92,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     max_value=max_value,
                     organization=organization,
                     projects=projects,
+                    environments=self.get_environments(request, organization),
                 )
 
             response[meta_type.value] = serialize(

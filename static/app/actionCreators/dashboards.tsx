@@ -33,7 +33,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
 export function createDashboard(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
@@ -41,7 +41,7 @@ export function createDashboard(
     newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/`,
+    `/organizations/${orgSlug}/dashboards/`,
     {
       method: 'POST',
       data: {

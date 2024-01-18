@@ -100,7 +100,7 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: str
+        self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
     ) -> List[RpcOrganization]:
         """
         Fetches organizations for the given user, with the given organization member scope.
@@ -197,10 +197,16 @@ class OrganizationService(RpcService):
         )
 
     def get_organization_by_slug(
-        self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
+        self,
+        *,
+        slug: str,
+        only_visible: bool,
+        user_id: Optional[int] = None,
+        include_projects: Optional[bool] = True,
+        include_teams: Optional[bool] = True,
     ) -> Optional[RpcUserOrganizationContext]:
         """
-        Defers to check_organization_by_slug -> get_organization_by_id
+        Defers to check_organization_by_slug and get_organization_by_id
         """
         from sentry.models.organization import OrganizationStatus
 
@@ -208,7 +214,12 @@ class OrganizationService(RpcService):
         if org_id is None:
             return None
 
-        org_context = self.get_organization_by_id(id=org_id, user_id=user_id)
+        org_context = self.get_organization_by_id(
+            id=org_id,
+            user_id=user_id,
+            include_projects=include_projects,
+            include_teams=include_teams,
+        )
         if (
             only_visible
             and org_context
