@@ -69,7 +69,7 @@ class BaseRequestParserTest(TestCase):
         response_map = self.parser.get_responses_from_region_silos(regions=region_config)
         assert mock__get_response.call_count == len(region_config)
 
-        for region in self.region_config:
+        for region in region_config:
             assert response_map[region.name].response == region.name
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
