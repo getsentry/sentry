@@ -118,7 +118,10 @@ export type SortState = {
 
 export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
-  focusedSeries?: string;
+  focusedSeries?: {
+    seriesName: string;
+    groupBy?: Record<string, string>;
+  };
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
   sort?: SortState;
@@ -167,10 +170,10 @@ export type MetricMetaCodeLocation = {
   timestamp: number;
   codeLocations?: MetricCodeLocationFrame[];
   frames?: MetricCodeLocationFrame[];
-  metricSpans?: MetricSpan[];
+  metricSpans?: MetricCorrelation[];
 };
 
-export type MetricSpan = {
+export type MetricCorrelation = {
   duration: number;
   profileId: string;
   projectId: number;
@@ -180,7 +183,6 @@ export type MetricSpan = {
   timestamp: string;
   traceId: string;
   transactionId: string;
-  replayId?: string; // Not there yet but will be added
   spansSummary?: {
     spanDuration: number;
     spanOp: string;

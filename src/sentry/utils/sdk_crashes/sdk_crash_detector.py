@@ -5,13 +5,13 @@ from packaging.version import InvalidVersion, Version
 from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectorConfig
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 
 
 class SDKCrashDetector:
     def __init__(
         self,
-        config: SDKCrashDetectorConfig,
+        config: SDKCrashDetectionConfig,
     ):
         self.config = config
 

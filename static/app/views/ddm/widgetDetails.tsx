@@ -15,6 +15,12 @@ enum Tab {
   CODE_LOCATIONS = 'codeLocations',
 }
 
+const constructQueryString = (queryObject: Record<string, string>) => {
+  return Object.entries(queryObject)
+    .map(([key, value]) => `${key}:"${value}"`)
+    .join(' ');
+};
+
 export function WidgetDetails() {
   const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
@@ -54,7 +60,13 @@ export function WidgetDetails() {
             <TabPanels.Item key={Tab.SAMPLES}>
               <SampleTable
                 mri={selectedWidget?.mri}
-                query={selectedWidget?.query}
+                query={
+                  selectedWidget?.focusedSeries?.groupBy
+                    ? `${selectedWidget.query} ${constructQueryString(
+                        selectedWidget.focusedSeries.groupBy
+                      )}`.trim()
+                    : selectedWidget?.query
+                }
                 {...focusArea?.range}
               />
             </TabPanels.Item>

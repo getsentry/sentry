@@ -149,7 +149,6 @@ pytest-rerunfailures==11.0
 pytest-sentry==0.1.11
 pytest-xdist==3.0.2
 python-dateutil==2.8.2
-python-memcached==1.59
 python-rapidjson==1.8
 python-u2flib-server==5.0.0
 python-utils==3.3.3
@@ -182,7 +181,7 @@ sentry-forked-djangorestframework-stubs==3.14.5.post1
 sentry-kafka-schemas==0.1.38
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.41
-sentry-sdk==1.39.1
+sentry-sdk==1.39.2
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
