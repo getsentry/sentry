@@ -48,16 +48,12 @@ class SentryHTTPServer(Service):
         port: int | None = None,
         debug: bool = False,
         workers: int | None = None,
-        validate: bool = True,
         extra_options: dict[str, Any] | None = None,
     ) -> None:
         from django.conf import settings
 
         from sentry import options as sentry_options
         from sentry.logging import LoggingFormat
-
-        if validate:
-            self.validate_settings()
 
         host = host or settings.SENTRY_WEB_HOST
         port = port or settings.SENTRY_WEB_PORT
@@ -145,13 +141,6 @@ class SentryHTTPServer(Service):
 
         self.options = options
         self.debug = debug
-
-    def validate_settings(self) -> None:
-        from django.conf import settings as django_settings
-
-        from sentry.utils.settings import validate_settings
-
-        validate_settings(django_settings)
 
     def prepare_environment(self, env: MutableMapping[str, str] | None = None) -> None:
         from django.conf import settings

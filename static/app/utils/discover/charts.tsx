@@ -5,7 +5,7 @@ import {LegendComponentOption} from 'echarts';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {AggregationOutputType, RateUnits} from 'sentry/utils/discover/fields';
+import {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,
@@ -66,7 +66,7 @@ export function axisLabelFormatter(
   outputType: AggregationOutputType,
   abbreviation: boolean = false,
   durationUnit?: number,
-  rateUnit?: RateUnits
+  rateUnit?: RateUnit
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
@@ -85,7 +85,7 @@ export function axisLabelFormatterUsingAggregateOutputType(
   type: string,
   abbreviation: boolean = false,
   durationUnit?: number,
-  rateUnit?: RateUnits
+  rateUnit?: RateUnit
 ): string {
   switch (type) {
     case 'integer':

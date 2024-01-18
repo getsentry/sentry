@@ -35,7 +35,7 @@ type State = {
   superuserReason: string;
 };
 
-class SuperuserAccessForm extends Component<Props, State> {
+class SuperuserStaffAccessForm extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
@@ -258,4 +258,4 @@ const BackWrapper = styled('div')`
   margin-left: ${space(4)};
 `;
 
-export default withApi(SuperuserAccessForm);
+export default withApi(SuperuserStaffAccessForm);
