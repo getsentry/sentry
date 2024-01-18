@@ -124,10 +124,10 @@ def schedule_auto_transition_issues_new_to_ongoing(
 
     logger_extra = {
         "first_seen_lte": first_seen_lte,
-        "first_seen_lte_datetime": first_seen_lte_datetime,
+        "first_seen_lte_datetime": first_seen_lte_datetime.isoformat(),
     }
     if base_queryset:
-        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
+        logger_extra["issue_first_seen"] = base_queryset[0].first_seen.isoformat()
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra=logger_extra,
