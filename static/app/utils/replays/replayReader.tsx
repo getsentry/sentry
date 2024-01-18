@@ -292,20 +292,14 @@ export default class ReplayReader {
   getChapterFrames = memoize(() =>
     [
       ...this.getPerfFrames(),
-      ...this._sortedBreadcrumbFrames.filter(
-        frame =>
-          ['replay.init', 'replay.mutations'].includes(frame.category) ||
-          (this._options.showHydrationErrors && frame.category === 'replay.hydrate-error')
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'replay.mutations', 'replay.hydrate-error'].includes(
+          frame.category
+        )
       ),
       ...this._errors,
     ].sort(sortFrames)
   );
-
-  // TODO(session-replay-show-hydration-errors): remove this on GA
-  getHydrationFrames = () =>
-    this._sortedBreadcrumbFrames.filter(
-      frame => frame.category === 'replay.hydrate-error'
-    );
 
   getPerfFrames = memoize(() =>
     [
