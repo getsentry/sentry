@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {getRegionDataFromOrganization, shouldDisplayRegions} from 'sentry/utils/regions';
+import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 
 type Props = {
   organization?: Organization;
@@ -37,9 +38,7 @@ export function OrganizationRegionAction({organization, ...props}: Props) {
       </div>
       <FieldHelp>
         {t("Your organization's data storage location. ")}
-        <a href="https://docs.sentry.io/product/accounts/choose-your-data-center">
-          {t('Learn More')}
-        </a>
+        <a href={DATA_STORAGE_DOCS_LINK}>{t('Learn More')}</a>
       </FieldHelp>
     </OrganizationRegionInformationWrapper>
   );
