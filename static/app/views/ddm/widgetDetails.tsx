@@ -15,6 +15,16 @@ enum Tab {
   CODE_LOCATIONS = 'codeLocations',
 }
 
+const selectedSeriesToQuery = (selectedSeries: string) => {
+  return (
+    selectedSeries
+      .split(', ')
+      // wrap everything after : in quotes
+      .map(series => series.replace(/(.*):(.*)/, '$1:"$2"'))
+      .join(' ')
+  );
+};
+
 export function WidgetDetails() {
   const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
@@ -56,9 +66,9 @@ export function WidgetDetails() {
                 mri={selectedWidget?.mri}
                 query={
                   selectedWidget?.focusedSeries
-                    ? `${selectedWidget.query} ${selectedWidget.focusedSeries
-                        .split(', ')
-                        .join(' ')}`.trim()
+                    ? `${selectedWidget.query} ${selectedSeriesToQuery(
+                        selectedWidget.focusedSeries
+                      )}`.trim()
                     : selectedWidget?.query
                 }
                 {...focusArea?.range}
