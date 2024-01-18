@@ -24,6 +24,7 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.utils.actions import MessageAction
@@ -352,6 +353,22 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 break
 
         assert has_actions
+
+    @with_feature("organizations:slack-block-kit")
+    def test_team_recipient_block_kit_already_assigned(self):
+        issue_alert_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project, group=issue_alert_group, user_id=self.user.id
+        )
+        ret = SlackIssuesMessageBuilder(
+            issue_alert_group, recipient=RpcActor.from_object(self.team)
+        ).build()
+        assert isinstance(ret, dict)
+        assert (
+            ret["blocks"][2]["elements"][2]["initial_option"]["text"]["text"]
+            == self.user.get_display_name()
+        )
+        assert ret["blocks"][2]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
 
     # XXX(CEO): skipping replicating tests relating to color since there is no block kit equivalent
     def test_build_group_attachment_color_no_event_error_fallback(self):
