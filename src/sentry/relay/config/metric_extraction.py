@@ -255,21 +255,27 @@ def _merge_metric_specs(
     alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
 ) -> List[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
-    metrics: Dict[str, MetricSpec] = {}
+    specs: dict[str, MetricSpec] = {}
+    duplicated_specs = 0
     for query_hash, spec, _ in alert_specs + widget_specs:
-        already_present = metrics.get(query_hash)
+        already_present = specs.get(query_hash)
         if already_present and already_present != spec:
-            logger.error(
+            logger.warning(
                 "Duplicate metric spec found for hash %s with different specs: %s != %s",
                 query_hash,
                 already_present,
                 spec,
             )
+            duplicated_specs += 1
             continue
 
-        metrics[query_hash] = spec
+        specs[query_hash] = spec
 
-    return [metric for metric in metrics.values()]
+    if duplicated_specs > 0:
+        logger.error("%s metrics are duplicated. Check breadcrumbs for details.", duplicated_specs)
+        metrics.incr("on_demand_metrics.duplicate_specs", amount=duplicated_specs)
+
+    return list(specs.values())
 
 
 def _convert_snuba_query_to_metrics(
