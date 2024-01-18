@@ -5,10 +5,14 @@ import random
 import time
 import uuid
 from hashlib import md5
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 from django.conf import settings
 
+from sentry import features
+from sentry.models.project import Project
+from sentry.replays.usecases.ingest.events import SentryEvent
+from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -187,6 +191,12 @@ def get_user_actions(
                     click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
                     if click is not None:
                         result.append(click)
+                        if is_rage and features.has(
+                            "organizations:session-replay-rage-click-issue-creation",
+                            Project.objects.get_from_cache(id=project_id).organization,
+                            actor=None,
+                        ):
+                            report_rage_click_issue(project_id, replay_id, cast(SentryEvent, event))
 
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()

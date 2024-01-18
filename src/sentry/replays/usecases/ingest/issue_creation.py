@@ -1,7 +1,7 @@
 import datetime
 import logging
 
-from sentry.issues.grouptype import ReplayDeadClickType
+from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
@@ -9,16 +9,8 @@ from sentry.replays.usecases.issue import new_issue_occurrence
 logger = logging.getLogger()
 
 
-def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent) -> bool:
+def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent):
     payload = event["data"]["payload"]
-
-    # Only timeout reasons on <a> and <button> tags are accepted.
-    if "node" not in payload["data"]:
-        return False
-    elif payload["data"]["endReason"] != "timeout":
-        return False
-    elif payload["data"]["node"]["tagName"] not in ("a", "button"):
-        return False
 
     # Seconds since epoch is UTC.
     timestamp = datetime.datetime.fromtimestamp(payload["timestamp"])
@@ -31,13 +23,13 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         culprit=clicked_element,
         environment="prod",
         fingerprint=[selector],
-        issue_type=ReplayDeadClickType,
+        issue_type=ReplayRageClickType,
         level="warning",
         platform="javascript",
         project_id=project_id,
         subtitle=selector,
         timestamp=timestamp,
-        title="Suspected Dead Click",
+        title="Suspected Rage Click",
         evidence_data={
             # RRWeb node data of clicked element.
             "node": payload["data"]["node"],
@@ -60,12 +52,3 @@ def report_dead_click_issue(project_id: int, replay_id: str, event: SentryEvent)
             },
         },
     )
-
-    # Log dead click events.
-    log = event["data"].get("payload", {}).copy()
-    log["project_id"] = project_id
-    log["replay_id"] = replay_id
-    log["dom_tree"] = log.pop("message")
-    logger.info("sentry.replays.dead_click", extra=log)
-
-    return True
