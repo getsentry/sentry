@@ -50,6 +50,7 @@ export function useFocusAreaBrush(
   onRemove: () => void = () => {},
   onZoom: (range: DateTimeObject) => void = () => {}
 ) {
+  const isHoveredRef = useRef(false);
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
     [focusArea, widgetIndex]
@@ -59,9 +60,31 @@ export function useFocusAreaBrush(
 
   const theme = useTheme();
 
+  const chartElement = chartRef.current?.ele;
+  useEffect(() => {
+    if (!chartElement) {
+      return () => {};
+    }
+
+    const handleMouseEnter = () => {
+      isHoveredRef.current = true;
+    };
+    const handleMouseLeave = () => {
+      isHoveredRef.current = false;
+    };
+
+    chartElement.addEventListener('mouseenter', handleMouseEnter);
+    chartElement.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      chartElement.removeEventListener('mouseenter', handleMouseEnter);
+      chartElement.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [chartElement]);
+
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
-      if (isDisabled) {
+      if (isDisabled || !isHoveredRef.current) {
         return;
       }
 
@@ -89,7 +112,7 @@ export function useFocusAreaBrush(
   );
 
   const startBrush = useCallback(() => {
-    if (hasFocusArea || isDisabled) {
+    if (hasFocusArea || isDisabled || !isHoveredRef.current) {
       return;
     }
 
