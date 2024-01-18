@@ -136,7 +136,7 @@
     "moment-timezone": "0.5.43",
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
-    "pegjs-loader": "^0.5.6",
+    "pegjs-loader": "^0.5.8",
     "platformicons": "^5.9.2",
     "po-catalog-loader": "2.0.0",
     "prettier": "3.0.3",
@@ -153,7 +153,7 @@
     "react-lazyload": "^2.3.0",
     "react-mentions": "4.4.2",
     "react-popper": "^2.3.0",
-    "react-router": "3.2.0",
+    "react-router": "3.2.6",
     "react-select": "4.3.1",
     "react-select-event": "5.5.0",
     "react-sparklines": "1.7.0",
@@ -211,7 +211,8 @@
     "fsevents": "^2.3.2"
   },
   "resolutions": {
-    "**/ua-parser-js": "<=0.7.28"
+    "**/ua-parser-js": "<=0.7.28",
+    "postcss": "8.4.33"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
