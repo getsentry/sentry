@@ -26,82 +26,7 @@ env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
-  # This workflow is optimized to test the dev env with dev services as fast as possible
-  # The bootstrap workflow (see last workflow) tests the experience of first time engineers
-  docker-setup:
-    name: Docker set up
-    runs-on: macos-13
-    timeout-minutes: 40
-    env:
-      # Make the environment more similar to what Mac defaults to
-      SHELL: /bin/zsh
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-
-      - name: Set up
-        id: info
-        run: |
-          echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
-
-      # Trick for unattended Docker installations
-      # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
-      # NOTE: This can sometimes take up to 10 minutes
-      - name: Install Docker
-        run: |
-          # d4m 4.11+ never starts: https://github.com/docker/for-mac/issues/6450
-          curl -o /tmp/docker.rb https://raw.githubusercontent.com/Homebrew/homebrew-cask/fe866ec0765de141599745f03e215452db7f511b/Casks/docker.rb
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --HEAD -s /tmp/docker.rb
-          sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
-          open -a /Applications/Docker.app --args --unattended --accept-license
-
-      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
-
-      # This handles Python's cache
-      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
-        with:
-          python-version: 3.10.13
-          cache-dependency-path: requirements-dev-frozen.txt
-
-      # This tests starting up the dev services, loading mocks and pre-commit installation
-      # This can take over 15 minutes
-      - name: make bootstrap
-        # GHA pythons are miscompiled and report macos 10.16
-        env:
-          SYSTEM_VERSION_COMPAT: 0
-        run: make bootstrap
-
-  # The pyenv set up takes long, thus, separating it into its own
-  pyenv-setup:
-    name: pyenv set up
-    runs-on: macos-13
-    timeout-minutes: 25
-    env:
-      # This is to support this code https://github.com/getsentry/sentry/blob/47b837a69c38e190a7555de81e6d7d216498b854/scripts/pyenv_setup.sh#L17-L40
-      SHELL: /bin/zsh
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
-
-      - name: Install pyenv
-        run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install pyenv
-
-      # Only after we source ~/.zprofile that the right Python will be selected
-      - name: Set up pyenv
-        run: |
-          make setup-pyenv
-          [[ $(which python) != "${HOME}/.pyenv/shims/python" ]]
-          source ~/.zprofile
-          [[ $(which python) == "${HOME}/.pyenv/shims/python" ]]
-          [[ $(python -V) == "Python $(cat .python-version)" ]]
-          python -m venv .venv
-          source .venv/bin/activate
-          [[ $(python -V) == "Python $(cat .python-version)" ]]
-
-  tools-tests:
+  test:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
@@ -113,9 +38,24 @@ jobs:
             requirements-dev.txt
             requirements-dev-frozen.txt
           install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
-      - name: run tests
+      - name: test-tools
         run: make test-tools
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+  devenv:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+        with:
+          python-version: 3.10.13
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-dev-frozen.txt
+          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+      - name: devenv sync
+        run: |
+          devenv --nocoderoot sync
