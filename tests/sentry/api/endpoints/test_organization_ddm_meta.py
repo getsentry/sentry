@@ -384,6 +384,74 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             {"spanDuration": 2, "spanOp": "rpc"},
         ]
 
+    def test_get_metric_spans_with_environment(self):
+        mri = "g:custom/page_load@millisecond"
+
+        self.create_environment(project=self.project, name="prod")
+
+        trace_id = uuid.uuid4().hex
+        transaction_id_1 = uuid.uuid4().hex
+        transaction_id_2 = uuid.uuid4().hex
+
+        for transaction_id, environment, duration in (
+            (transaction_id_1, None, 20),
+            (transaction_id_2, "prod", 30),
+        ):
+            span_tags = {}
+            if environment:
+                span_tags["environment"] = environment
+
+            self.store_segment(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                duration=duration,
+            )
+            self.store_indexed_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": span_tags,
+                        }
+                    ]
+                },
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["transactionId"] == transaction_id_2
+        assert metric_spans[1]["transactionId"] == transaction_id_1
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            environment="prod",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["transactionId"] == transaction_id_2
+
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
 

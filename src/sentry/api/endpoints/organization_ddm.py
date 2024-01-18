@@ -92,6 +92,7 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     max_value=max_value,
                     organization=organization,
                     projects=projects,
+                    environments=self.get_environments(request, organization),
                 )
 
             response[meta_type.value] = serialize(

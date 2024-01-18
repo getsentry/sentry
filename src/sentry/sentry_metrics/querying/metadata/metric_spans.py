@@ -19,12 +19,14 @@ from snuba_sdk import (
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.exceptions import InvalidParams
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata.utils import (
+    add_environments_condition,
     get_snuba_conditions_from_query,
+    transform_conditions_to_tags,
     transform_conditions_with,
-    transform_to_tags,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -105,12 +107,14 @@ class CorrelationsSource(ABC):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
+        environments: Sequence[Environment],
     ) -> Sequence[Segment]:
-        return self._get_spans(
+        conditions = get_snuba_conditions_from_query(query)
+        conditions = add_environments_condition(conditions, environments)
+
+        return self._get_segments(
             metric_mri=metric_mri,
-            # TODO: when the environment support is added, inject here the environment condition after the AST is
-            #   generated.
-            conditions=get_snuba_conditions_from_query(query) if query else None,
+            conditions=conditions,
             start=start,
             end=end,
             min_value=min_value,
@@ -123,7 +127,7 @@ class CorrelationsSource(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -229,7 +233,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
     def supports(cls, metric_mri: str) -> bool:
         return is_mri(metric_mri)
 
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -238,10 +242,12 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
+        transformed_conditions = transform_conditions_to_tags(conditions)
+
         # First, we fetch the spans we are interested in given the metric and the bounds.
         span_ids = self._get_span_ids_from_metrics_summaries(
             metric_mri=metric_mri,
-            conditions=transform_to_tags(conditions),
+            conditions=transformed_conditions,
             start=start,
             end=end,
             min_value=min_value,
@@ -273,7 +279,7 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
     def supports(cls, metric_mri: str) -> bool:
         return metric_mri == TransactionMRI.DURATION.value
 
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -284,7 +290,9 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
     ) -> Sequence[Segment]:
         where = []
 
-        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_to_tags(
+            conditions=conditions, check_sentry_tags=True
+        )
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
@@ -320,7 +328,7 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
 
         return False
 
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -331,7 +339,9 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
     ) -> Sequence[Segment]:
         where = []
 
-        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_to_tags(
+            conditions=conditions, check_sentry_tags=True
+        )
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
@@ -512,7 +522,6 @@ def get_correlations_source(
 
     In case multiple sources would apply to a `metric_mri` the first one is chosen.
     """
-
     for correlation_clazz in CORRELATIONS_SOURCES:
         if correlation_clazz.supports(metric_mri):
             return correlation_clazz(organization=organization, projects=projects)  # type:ignore
@@ -529,6 +538,7 @@ def get_correlations_of_metric(
     max_value: Optional[float],
     organization: Organization,
     projects: Sequence[Project],
+    environments: Sequence[Environment],
 ) -> MetricCorrelations:
     """
     Returns the spans in which the metric with `metric_mri` was emitted.
@@ -544,7 +554,7 @@ def get_correlations_of_metric(
 
     try:
         segments = correlations_source.get_segments(
-            metric_mri, query, start, end, min_value, max_value
+            metric_mri, query, start, end, min_value, max_value, environments
         )
         return MetricCorrelations(
             metric_mri=metric_mri,
