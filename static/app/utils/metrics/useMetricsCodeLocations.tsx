@@ -40,6 +40,7 @@ function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
         query: {
           metric: mri,
           project: selection.projects,
+          environment: selection.environments,
           codeLocations: options.codeLocations,
           metricSpans: options.metricSpans,
           query: options.query,
