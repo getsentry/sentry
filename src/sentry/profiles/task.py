@@ -56,8 +56,12 @@ class VroomTimeout(Exception):
 def process_profile_task(
     profile: Optional[Profile] = None,
     payload: Any = None,
+    sampled: bool = True,
     **kwargs: Any,
 ) -> None:
+    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
+        return
+
     if payload:
         message_dict = msgpack.unpackb(payload, use_list=False)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
@@ -69,6 +73,7 @@ def process_profile_task(
                 "organization_id": message_dict["organization_id"],
                 "project_id": message_dict["project_id"],
                 "received": message_dict["received"],
+                "sampled": sampled,
             }
         )
 
