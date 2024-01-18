@@ -9,7 +9,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Organization} from 'sentry/types';
+import {Organization, User} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useApi from 'sentry/utils/useApi';
@@ -105,7 +105,9 @@ export function OrganizationContextProvider({children}: Props) {
     [organization]
   );
 
-  const {user} = configStore;
+  // XXX(epurkhiser): User may be null in some scenarios at this point in app
+  // boot. We should fix the types here in the future
+  const user: User | null = configStore.user;
 
   // If we've had an error it may be possible for the user to use the sudo
   // modal to load the organization.
@@ -114,7 +116,7 @@ export function OrganizationContextProvider({children}: Props) {
       return;
     }
 
-    if (user.isSuperuser && error.status === 403) {
+    if (user?.isSuperuser && error.status === 403) {
       openSudo({isSuperuser: true, needsReload: true});
     }
 
