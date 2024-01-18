@@ -16,7 +16,8 @@ from sentry.tsdb.base import TSDBModel
 @region_silo_endpoint
 class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMixin):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,  # TODO: This is published already but deprecated. Remove the docs.
+        # Deprecated APIs remain private until removed
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
 
