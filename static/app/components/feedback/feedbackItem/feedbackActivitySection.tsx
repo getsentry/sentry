@@ -104,9 +104,13 @@ function FeedbackActivitySection(props: Props) {
     [updateOptions, feedbackItem.activity, mutators]
   );
 
+  const filteredActivity = feedbackItem.activity.filter(
+    a => a.type !== GroupActivityType.FIRST_SEEN
+  );
+
   return (
     <ActivitySection
-      group={feedbackItem as unknown as Group}
+      group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
       onDelete={handleDelete}
       onCreate={handleCreate}
       onUpdate={handleUpdate}
