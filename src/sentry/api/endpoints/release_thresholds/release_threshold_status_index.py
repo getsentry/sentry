@@ -367,12 +367,26 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
                 query_window = query_windows_by_type[threshold_type]
-                sessions_data = fetch_sessions_data(
-                    end=query_window["end"],
-                    request=request,
-                    organization=organization,
-                    params=filter_params,
-                    start=query_window["start"],
+                try:
+                    sessions_data = fetch_sessions_data(
+                        end=query_window["end"],
+                        request=request,
+                        organization=organization,
+                        params=filter_params,
+                        start=query_window["start"],
+                    )
+                except Exception as exc:
+                    logger.exception(str(exc))
+                logger.info(
+                    "fetching sessions data",
+                    extra={
+                        "start": query_window["start"],
+                        "end": query_window["end"],
+                        "project_ids": project_id_list,
+                        "releases": release_value_list,
+                        "environments": environments_list,
+                        "error_count_data": error_counts,
+                    },
                 )
                 for ethreshold in category_thresholds:
                     is_healthy, rate = is_crash_free_rate_healthy_check(
