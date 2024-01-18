@@ -130,7 +130,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: str
+        self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
     ) -> List[RpcOrganization]:
         organizations = Organization.objects.get_for_user(user=user, scope=scope)
         return list(map(serialize_rpc_organization, organizations))

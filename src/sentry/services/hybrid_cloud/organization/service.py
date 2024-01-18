@@ -100,7 +100,7 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: str
+        self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
     ) -> List[RpcOrganization]:
         """
         Fetches organizations for the given user, with the given organization member scope.
