@@ -13,6 +13,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 
+import {useEnsureOrganization} from './organizationContext';
+
 interface OrganizationLayoutProps {
   children: React.ReactNode;
   /**
@@ -30,6 +32,7 @@ const OrganizationHeader = HookOrDefault({
  */
 function OrganizationLayout({includeSidebar, children}: OrganizationLayoutProps) {
   const {organization, loading, error, errorType} = useLegacyStore(OrganizationStore);
+  useEnsureOrganization();
 
   if (loading) {
     return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
