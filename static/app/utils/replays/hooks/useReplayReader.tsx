@@ -17,7 +17,7 @@ export default function useReplayReader({orgSlug, replaySlug}: Props) {
   });
 
   const replay = useMemo(
-    () => ReplayReader.factory({attachments, errors, replayRecord}, {}),
+    () => ReplayReader.factory({attachments, errors, replayRecord}),
     [attachments, errors, replayRecord]
   );
 
