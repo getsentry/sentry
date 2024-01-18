@@ -108,7 +108,7 @@ class ExternalIssueSerializerTestCase(TestCase, APITestCase):
         result = serialize(
             [group],
             request=req,
-            serializer=ExternalIssueSerializer(groups=[group]),
+            serializer=ExternalIssueSerializer(),
         )
 
         assert result[0]["external_issues"][0]["description"] == external_issue.description

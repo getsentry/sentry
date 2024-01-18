@@ -164,25 +164,20 @@ class GroupStatsMixin:
 
 
 class ExternalIssueSerializer(Serializer):
-    def __init__(self, groups: List[Group]) -> None:
-        self.groups = groups
-
     def get_attrs(
         self, item_list: List[Group], user: User, **kwargs: Any
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.filter(id__in=[item.id for item in item_list]).values_list(
-                "linked_id", flat=True
-            ),
+            id__in=GroupLink.objects.filter(
+                group_id__in=[item.id for item in item_list]
+            ).values_list("linked_id", flat=True),
         )
         issues_by_integration = defaultdict(list)
         for ei in external_issues:
             integration = integration_service.get_integration(integration_id=ei.integration_id)
             if integration is None:
                 continue
-            installation = integration.get_installation(
-                organization_id=self.groups[0].organization.id
-            )
+            installation = integration.get_installation(organization_id=self.group.organization.id)
             if hasattr(installation, "get_issue_url") and hasattr(
                 installation, "get_issue_display_name"
             ):
