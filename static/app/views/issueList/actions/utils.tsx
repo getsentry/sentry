@@ -79,7 +79,7 @@ export function getConfirm({
     canBeUndone: boolean;
     append?: string;
   }) {
-    const actionText = action === ConfirmAction.IGNORE && t('archive');
+    const actionText = action === ConfirmAction.IGNORE ? t('archive') : action;
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${actionText}${append}`, queryCount)
       : tn(
