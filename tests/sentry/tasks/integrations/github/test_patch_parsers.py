@@ -1,4 +1,4 @@
-from sentry.tasks.integrations.github.patch_parsers import JavascriptParser, PythonParser
+from sentry.tasks.integrations.github.language_parsers import JavascriptParser, PythonParser
 from sentry.testutils.cases import TestCase
 
 
