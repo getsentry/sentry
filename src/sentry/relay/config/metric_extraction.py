@@ -30,6 +30,7 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpecVersioning,
     RuleCondition,
     SpecVersion,
+    are_specs_equal,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.models import SnubaQuery
@@ -259,7 +260,7 @@ def _merge_metric_specs(
     duplicated_specs = 0
     for query_hash, spec, _ in alert_specs + widget_specs:
         already_present = specs.get(query_hash)
-        if already_present and already_present != spec:
+        if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
                 "Duplicate metric spec found for hash %s with different specs: %s != %s",
                 query_hash,
