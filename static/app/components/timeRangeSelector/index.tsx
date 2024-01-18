@@ -164,7 +164,7 @@ export function TimeRangeSelector({
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
 
   const [search, setSearch] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
@@ -372,7 +372,7 @@ export function TimeRangeSelector({
                       start={internalValue.start ?? null}
                       end={internalValue.end ?? null}
                       utc={internalValue.utc}
-                      organization={organization}
+                      organization={organization ?? undefined}
                       showTimePicker
                       onChange={val => {
                         if (val.hasDateRangeErrors) {

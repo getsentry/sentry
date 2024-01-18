@@ -54,11 +54,6 @@ type Props = WithRouterProps & {
   onChangeUtc: () => void;
 
   /**
-   * Just used for metrics
-   */
-  organization: Organization;
-
-  /**
    * Start date value for absolute date selector
    */
   start: Date | null;
@@ -71,6 +66,11 @@ type Props = WithRouterProps & {
    * The largest date range (ie. end date - start date) allowed
    */
   maxDateRange?: number;
+
+  /**
+   * Just used for metrics
+   */
+  organization?: Organization;
 
   /**
    * Should we have a time selector?
@@ -127,7 +127,7 @@ class BaseDateRange extends Component<Props, State> {
     }
 
     trackAnalytics('dateselector.time_changed', {
-      organization,
+      organization: organization ?? null,
       field_changed: 'start',
       time: startTime,
       path: getRouteStringFromRoutes(router.routes),
@@ -156,7 +156,7 @@ class BaseDateRange extends Component<Props, State> {
     }
 
     trackAnalytics('dateselector.time_changed', {
-      organization,
+      organization: organization ?? null,
       field_changed: 'end',
       time: endTime,
       path: getRouteStringFromRoutes(router.routes),
