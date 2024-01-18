@@ -1535,8 +1535,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
-    # Enable ingesting non-sampled profiles
-    "organizations:profiling-ingest-unsampled-profiles": False,
     # Enable emiting escalating data to the metrics backend
     "organizations:escalating-metrics-backend": False,
     # Enable attaching arbitrary files to events.
@@ -1978,6 +1976,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:minidump": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
+    # Enable ingesting non-sampled profiles
+    "projects:profiling-ingest-unsampled-profiles": False,
     # Enable alternative version of group creation that is supposed to be less racy.
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
