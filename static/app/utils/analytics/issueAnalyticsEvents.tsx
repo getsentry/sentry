@@ -215,7 +215,7 @@ export type IssueEventParameters = {
   resolve_issue: {release: string};
   'settings.inbound_filter_updated': {
     filter: string;
-    new_state: FieldValue;
+    new_state: FieldValue | string[];
     project_id: number;
   };
   'source_map_debug.docs_link_clicked': SourceMapDebugParam;

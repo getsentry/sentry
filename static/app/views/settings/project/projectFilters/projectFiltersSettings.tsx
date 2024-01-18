@@ -388,8 +388,8 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                           project_id: parseInt(project.id as string, 10),
                           filter: name,
                           new_state:
-                            filter.id === 'legacy-browsers'
-                              ? value
+                            filter.id === 'legacy-browsers' && value instanceof Set
+                              ? [...value].sort()
                               : value
                               ? 'enabled'
                               : 'disabled',
