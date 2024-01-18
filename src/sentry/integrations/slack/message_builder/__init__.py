@@ -27,9 +27,15 @@ SLACK_URL_FORMAT = "<{url}|{text}>"
 LEVEL_TO_EMOJI = {
     "_actioned_issue": ":white_check_mark:",
     "_incident_resolved": ":green_circle:",
-    "debug": ":yellow_circle:",
-    "error": ":red_circle:",
-    "fatal": ":red_circle:",
-    "info": ":large_blue_circle:",
-    "warning": ":yellow_circle:",
+    "debug": ":bug:",
+    "error": ":exclamation:",
+    "fatal": ":skull_and_crossbones:",
+    "info": ":information_source:",
+    "warning": ":warning:",
+}
+
+CATEGORY_TO_EMOJI = {
+    "performance": ":chart_with_downwards_trend",
+    "feedback": "busts_in_silhouette",
+    "crons": "spiral_calendar_pad",
 }
