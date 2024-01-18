@@ -129,6 +129,9 @@ function TeamStatsControls({
     projects.map(project => project.environments).flat()
   ).map(env => ({label: env, value: env}));
 
+  // org:admin is a unique scope that only org owners have
+  const isOrgOwner = organization.access.includes('org:admin');
+
   return (
     <ControlsWrapper showEnvironment={showEnvironment}>
       <StyledTeamSelector
@@ -136,7 +139,9 @@ function TeamStatsControls({
         inFieldLabel={t('Team: ')}
         value={currentTeam?.slug}
         onChange={choice => handleChangeTeam(choice.actor.id)}
-        teamFilter={isSuperuser ? undefined : filterTeam => filterTeam.isMember}
+        teamFilter={
+          isSuperuser || isOrgOwner ? undefined : filterTeam => filterTeam.isMember
+        }
         styles={{
           singleValue(provided: any) {
             const custom = {
