@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -6,30 +6,51 @@ import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
+  getDefaultMetricDisplayType,
   getSeriesName,
   MetricDisplayType,
+  metricDisplayTypeOptions,
   MetricWidgetQueryParams,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {parseMRI} from 'sentry/utils/metrics/mri';
+import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import {FocusArea} from 'sentry/views/ddm/chartBrush';
-import {MetricWidgetContextMenu} from 'sentry/views/ddm/contextMenu';
-import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
+import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
 import {MIN_WIDGET_WIDTH} from './constants';
+
+type MetricWidgetProps = {
+  datetime: PageFilters['datetime'];
+  environments: PageFilters['environments'];
+  onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
+  projects: PageFilters['projects'];
+  widget: MetricWidgetQueryParams;
+  addFocusArea?: (area: FocusArea) => void;
+  focusArea?: FocusArea | null;
+  hasSiblings?: boolean;
+  index?: number;
+  isSelected?: boolean;
+  onSelect?: (index: number) => void;
+  removeFocusArea?: () => void;
+  showQuerySymbols?: boolean;
+};
 
 export const MetricWidget = memo(
   ({
@@ -37,44 +58,22 @@ export const MetricWidget = memo(
     datetime,
     projects,
     environments,
-    index,
-    isSelected,
+    index = 0,
+    isSelected = false,
     onSelect,
     onChange,
-    hasSiblings,
+    hasSiblings = false,
     addFocusArea,
     removeFocusArea,
-    focusArea,
-  }: {
-    addFocusArea: (area: FocusArea) => void;
-    datetime: PageFilters['datetime'];
-    environments: PageFilters['environments'];
-    focusArea: FocusArea | null;
-    hasSiblings: boolean;
-    index: number;
-    isSelected: boolean;
-    onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
-    onSelect: (index: number) => void;
-    projects: PageFilters['projects'];
-    removeFocusArea: () => void;
-    widget: MetricWidgetQueryParams;
-  }) => {
-    const [isEdit, setIsEdit] = useState(true);
-
+    showQuerySymbols,
+    focusArea = null,
+  }: MetricWidgetProps) => {
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
         onChange(index, data);
       },
       [index, onChange]
     );
-
-    useEffect(() => {
-      // exit the edit mode when the focus is lost
-      // it would work without it (because we do edit && focus) but when you focus again, we want the edit mode to be turned off by default
-      if (!isSelected) {
-        setIsEdit(false);
-      }
-    }, [isSelected]);
 
     const metricsQuery = useMemo(
       () => ({
@@ -99,74 +98,92 @@ export const MetricWidget = memo(
       ]
     );
 
-    const shouldDisplayEditControls = (isEdit && isSelected) || !metricsQuery.mri;
+    const incrementQueryMetric = useIncrementQueryMetric({
+      displayType: widget.displayType,
+      op: metricsQuery.op,
+      groupBy: metricsQuery.groupBy,
+      query: metricsQuery.query,
+      mri: metricsQuery.mri,
+    });
+
+    const handleDisplayTypeChange = ({value}: SelectOption<MetricDisplayType>) => {
+      incrementQueryMetric('ddm.widget.display', {displayType: value});
+      onChange(index, {displayType: value});
+    };
+
+    const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
 
     return (
       <MetricWidgetPanel
         // show the selection border only if we have more widgets than one
         isHighlighted={isSelected && !!hasSiblings}
         isHighlightable={!!hasSiblings}
-        onClick={() => onSelect(index)}
+        onClick={() => onSelect?.(index)}
       >
         <PanelBody>
           <MetricWidgetHeader>
-            <QueryBuilder
-              metricsQuery={metricsQuery}
-              projects={projects}
-              displayType={widget.displayType}
-              onChange={handleChange}
-              powerUserMode={widget.powerUserMode}
-              isEdit={shouldDisplayEditControls}
-            />
-            <MetricWidgetContextMenu
-              widgetIndex={index}
-              metricsQuery={metricsQuery}
-              displayType={widget.displayType}
-              isEdit={shouldDisplayEditControls}
-              onEdit={() => setIsEdit(true)}
+            {showQuerySymbols && <QuerySymbol index={index} />}
+            <WidgetTitle>
+              <StyledTooltip
+                title={widgetTitle}
+                showOnlyOnOverflow
+                delay={500}
+                overlayStyle={{maxWidth: '90vw'}}
+              >
+                {widgetTitle}
+              </StyledTooltip>
+            </WidgetTitle>
+            <CompactSelect
+              size="xs"
+              triggerProps={{prefix: t('Display')}}
+              value={
+                widget.displayType ??
+                getDefaultMetricDisplayType(metricsQuery.mri, metricsQuery.op)
+              }
+              options={metricDisplayTypeOptions}
+              onChange={handleDisplayTypeChange}
             />
           </MetricWidgetHeader>
-          {widget.mri ? (
-            <MetricWidgetBody
-              widgetIndex={index}
-              datetime={datetime}
-              projects={projects}
-              environments={environments}
-              onChange={handleChange}
-              addFocusArea={addFocusArea}
-              focusArea={focusArea}
-              removeFocusArea={removeFocusArea}
-              {...widget}
-            />
-          ) : (
-            <StyledMetricWidgetBody>
-              <EmptyMessage
-                icon={<IconSearch size="xxl" />}
-                title={t('Nothing to show!')}
-                description={t('Choose a metric to display data.')}
+          <MetricWidgetBodyWrapper>
+            {widget.mri ? (
+              <MetricWidgetBody
+                widgetIndex={index}
+                datetime={datetime}
+                projects={projects}
+                environments={environments}
+                onChange={handleChange}
+                addFocusArea={addFocusArea}
+                focusArea={focusArea}
+                removeFocusArea={removeFocusArea}
+                chartHeight={300}
+                {...widget}
               />
-            </StyledMetricWidgetBody>
-          )}
+            ) : (
+              <StyledMetricWidgetBody>
+                <EmptyMessage
+                  icon={<IconSearch size="xxl" />}
+                  title={t('Nothing to show!')}
+                  description={t('Choose a metric to display data.')}
+                />
+              </StyledMetricWidgetBody>
+            )}
+          </MetricWidgetBodyWrapper>
         </PanelBody>
       </MetricWidgetPanel>
     );
   }
 );
 
-const MetricWidgetHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-`;
-
-interface MetricWidgetProps extends MetricWidgetQueryParams {
-  addFocusArea: (area: FocusArea) => void;
+interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   focusArea: FocusArea | null;
-  onChange: (data: Partial<MetricWidgetQueryParams>) => void;
-  removeFocusArea: () => void;
   widgetIndex: number;
+  addFocusArea?: (area: FocusArea) => void;
+  chartHeight?: number;
+  onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
+  removeFocusArea?: () => void;
 }
 
-const MetricWidgetBody = memo(
+export const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,
@@ -176,8 +193,9 @@ const MetricWidgetBody = memo(
     addFocusArea,
     focusArea,
     removeFocusArea,
+    chartHeight,
     ...metricsQuery
-  }: MetricWidgetProps & PageFilters) => {
+  }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
     const {data, isLoading, isError, error} = useMetricsDataZoom(
@@ -209,7 +227,7 @@ const MetricWidgetBody = memo(
     const toggleSeriesVisibility = useCallback(
       (seriesName: string) => {
         setHoveredSeries('');
-        onChange({
+        onChange?.({
           focusedSeries: focusedSeries === seriesName ? undefined : seriesName,
         });
       },
@@ -230,7 +248,7 @@ const MetricWidgetBody = memo(
 
     const handleSortChange = useCallback(
       newSort => {
-        onChange({sort: newSort});
+        onChange?.({sort: newSort});
       },
       [onChange]
     );
@@ -272,6 +290,7 @@ const MetricWidgetBody = memo(
           addFocusArea={addFocusArea}
           focusArea={focusArea}
           removeFocusArea={removeFocusArea}
+          height={chartHeight}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
@@ -412,7 +431,35 @@ const MetricWidgetPanel = styled(Panel)<{
 
 const StyledMetricWidgetBody = styled('div')`
   padding: ${space(1)};
+  gap: ${space(3)};
   display: flex;
   flex-direction: column;
   justify-content: center;
+  height: 100%;
+`;
+
+const MetricWidgetBodyWrapper = styled('div')`
+  padding: ${space(1)};
+  padding-bottom: 0;
+`;
+
+const MetricWidgetHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
+  padding-left: ${space(2)};
+  padding-top: ${space(1.5)};
+  padding-right: ${space(2)};
+`;
+
+const WidgetTitle = styled('div')`
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  display: inline-grid;
+  grid-auto-flow: column;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis};
 `;

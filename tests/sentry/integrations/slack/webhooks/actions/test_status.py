@@ -90,7 +90,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     def get_assign_status_action(self, type, text, id):
         return {
-            "type": "static_select",
+            "type": "external_select",
             "action_id": "assign",
             "block_id": "qBjgd",
             "selected_option": {
@@ -143,7 +143,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
         assert resp.data["attachments"][0]["text"] == expect_status
 
         with self.feature("organizations:slack-block-kit"):
@@ -181,7 +181,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.FOREVER
-            expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+            expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_archive_issue(self):
@@ -203,7 +203,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
         assert resp.data["attachments"][0]["text"] == expect_status
 
         with self.feature("organizations:slack-block-kit"):
@@ -240,7 +240,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        expect_status = f"Identity not found.\n*Issue ignored by <@{self.external_id}>*"
+        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
         assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_ignore_issue_with_additional_user_auth(self):
@@ -262,7 +262,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        expect_status = f"*Issue ignored by <@{self.external_id}>*"
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
         with self.feature("organizations:slack-block-kit"):
@@ -302,7 +302,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        expect_status = f"*Issue ignored by <@{self.external_id}>*"
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_assign_issue(self):

@@ -1,6 +1,10 @@
+import contextlib
 from datetime import datetime, timezone
 from uuid import uuid4
 
+import responses
+
+from fixtures.github import API_GITHUB_COM_USERS_BAXTERTHEHACKER
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
@@ -10,8 +14,20 @@ from sentry.testutils.silo import region_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 
 
+@contextlib.contextmanager
+def mock_baxter_response():
+    with responses.RequestsMock() as mck:
+        mck.add(
+            "GET",
+            "https://api.github.com/users/baxterthehacker",
+            body=API_GITHUB_COM_USERS_BAXTERTHEHACKER,
+        )
+        yield
+
+
 @region_silo_test
 class PushEventWebhookTest(APITestCase):
+    @mock_baxter_response()
     def test_simple(self):
         project = self.project  # force creation
 
@@ -67,6 +83,7 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
+    @mock_baxter_response()
     def test_user_email(self):
         project = self.project  # force creation
         user = self.create_user(email="alberto@sentry.io")
@@ -125,6 +142,7 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.external_id == "github:baxterthehacker"
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
+    @responses.activate
     def test_anonymous_lookup(self):
         project = self.project  # force creation
 

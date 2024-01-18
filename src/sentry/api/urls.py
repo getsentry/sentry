@@ -24,6 +24,8 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
+from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
+from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -272,6 +274,7 @@ from .endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
+from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
 from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
@@ -479,6 +482,9 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
+from .endpoints.project_performance_general_settings import (
+    ProjectPerformanceGeneralSettingsEndpoint,
+)
 from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
@@ -609,108 +615,132 @@ __all__ = ("urlpatterns",)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
-GROUP_URLS: list[URLPattern | URLResolver] = [
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/$",
-        GroupDetailsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/activities/$",
-        GroupActivitiesEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/events/$",
-        GroupEventsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
-        GroupEventDetailsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$",
-        GroupNotesEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
-        GroupNotesDetailsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/hashes/$",
-        GroupHashesEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/hashes/split/$",
-        GroupHashesSplitEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/reprocessing/$",
-        GroupReprocessingEndpoint.as_view(),
-        name="sentry-api-0-issues-reprocessing",
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/stats/$",
-        GroupStatsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/tags/$",
-        GroupTagsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$",
-        GroupTagKeyDetailsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$",
-        GroupTagKeyValuesEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
-        GroupUserReportsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/attachments/$",
-        GroupAttachmentsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/similar/$",
-        GroupSimilarIssuesEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/external-issues/$",
-        GroupExternalIssuesEndpoint.as_view(),
-        name="external-issues",
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$",
-        GroupExternalIssueDetailsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/integrations/$",
-        GroupIntegrationsEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$",
-        GroupIntegrationDetailsEndpoint.as_view(),
-        name="integration-details",
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/current-release/$",
-        GroupCurrentReleaseEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/first-last-release/$",
-        GroupFirstLastReleaseEndpoint.as_view(),
-    ),
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/participants/$",
-        GroupParticipantsEndpoint.as_view(),
-    ),
-    # Load plugin group urls
-    re_path(
-        r"^(?P<issue_id>[^\/]+)/plugins?/",
-        include("sentry.plugins.base.group_api_urls"),
-    ),
-]
+
+
+def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
+    return [
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/$",
+            GroupDetailsEndpoint.as_view(),
+            name=f"{name_prefix}-group-details",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/activities/$",
+            GroupActivitiesEndpoint.as_view(),
+            name=f"{name_prefix}-group-activities",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/events/$",
+            GroupEventsEndpoint.as_view(),
+            name=f"{name_prefix}-group-events",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
+            GroupEventDetailsEndpoint.as_view(),
+            name=f"{name_prefix}-group-event-details",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$",
+            GroupNotesEndpoint.as_view(),
+            name=f"{name_prefix}-group-notes",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
+            GroupNotesDetailsEndpoint.as_view(),
+            name=f"{name_prefix}-group-note-details",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/hashes/$",
+            GroupHashesEndpoint.as_view(),
+            name=f"{name_prefix}-group-hashes",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/hashes/split/$",
+            GroupHashesSplitEndpoint.as_view(),
+            name=f"{name_prefix}-group-hashes-split",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/reprocessing/$",
+            GroupReprocessingEndpoint.as_view(),
+            name=f"{name_prefix}-group-reprocessing",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/stats/$",
+            GroupStatsEndpoint.as_view(),
+            name=f"{name_prefix}-group-stats",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/tags/$",
+            GroupTagsEndpoint.as_view(),
+            name=f"{name_prefix}-group-tags",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$",
+            GroupTagKeyDetailsEndpoint.as_view(),
+            name=f"{name_prefix}-group-tag-key-details",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$",
+            GroupTagKeyValuesEndpoint.as_view(),
+            name=f"{name_prefix}-group-tag-key-values",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
+            GroupUserReportsEndpoint.as_view(),
+            name=f"{name_prefix}-group-user-reports",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/attachments/$",
+            GroupAttachmentsEndpoint.as_view(),
+            name=f"{name_prefix}-group-attachments",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/similar/$",
+            GroupSimilarIssuesEndpoint.as_view(),
+            name=f"{name_prefix}-group-similar",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/external-issues/$",
+            GroupExternalIssuesEndpoint.as_view(),
+            name=f"{name_prefix}-group-external-issues",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$",
+            GroupExternalIssueDetailsEndpoint.as_view(),
+            name=f"{name_prefix}-group-external-issues-details",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/integrations/$",
+            GroupIntegrationsEndpoint.as_view(),
+            name=f"{name_prefix}-group-integrations",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$",
+            GroupIntegrationDetailsEndpoint.as_view(),
+            name=f"{name_prefix}-group-integration-details",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/current-release/$",
+            GroupCurrentReleaseEndpoint.as_view(),
+            name=f"{name_prefix}-group-current-release",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/first-last-release/$",
+            GroupFirstLastReleaseEndpoint.as_view(),
+            name=f"{name_prefix}-group-first-last-release",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/participants/$",
+            GroupParticipantsEndpoint.as_view(),
+            name=f"{name_prefix}-group-participants",
+        ),
+        # Load plugin group urls
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/plugins?/",
+            include("sentry.plugins.base.group_api_urls"),
+        ),
+    ]
+
 
 AUTH_URLS = [
     re_path(
@@ -1007,7 +1037,7 @@ ORGANIZATION_URLS = [
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
-        include(GROUP_URLS),
+        include(create_group_urls("sentry-api-0-organization-group")),
     ),
     # Alert Rules
     re_path(
@@ -2002,6 +2032,11 @@ ORGANIZATION_URLS = [
         OrganizationUnsubscribeIssue.as_view(),
         name="sentry-api-0-organization-unsubscribe-issue",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/prompts-activity/$",
+        PromptsActivityEndpoint.as_view(),
+        name="sentry-api-0-organization-prompts-activity",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
@@ -2483,6 +2518,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectPerformanceIssueSettingsEndpoint.as_view(),
         name="sentry-api-0-project-performance-issue-settings",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance/configure/$",
+        ProjectPerformanceGeneralSettingsEndpoint.as_view(),
+        name="sentry-api-0-project-performance-general-settings",
+    ),
     # Load plugin project urls
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/$",
@@ -2513,6 +2553,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/tombstones/(?P<tombstone_id>\d+)/$",
         GroupTombstoneDetailsEndpoint.as_view(),
         name="sentry-api-0-group-tombstone-details",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-coverage/$",
+        ProjectStacktraceCoverageEndpoint.as_view(),
+        name="sentry-api-0-project-stacktrace-coverage",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-link/$",
@@ -2584,6 +2629,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
         name="sentry-api-0-project-profiling-transactions",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/statistical-detector/$",
+        ProjectStatisticalDetectors.as_view(),
+        name="sentry-api-0-project-statistical-detector",
     ),
 ]
 
@@ -2825,6 +2875,11 @@ INTERNAL_URLS = [
         InternalFeatureFlagsEndpoint.as_view(),
         name="sentry-api-0-internal-feature-flags",
     ),
+    re_path(
+        r"^feature-flags/ea-feature-flags$",
+        InternalEAFeaturesEndpoint.as_view(),
+        name="sentry-api-0-internal-ea-features",
+    ),
 ]
 
 urlpatterns = [
@@ -2836,7 +2891,7 @@ urlpatterns = [
     # Groups / Issues
     re_path(
         r"^(?:issues|groups)/",
-        include(GROUP_URLS),
+        include(create_group_urls("sentry-api-0")),
     ),
     # Organizations
     re_path(

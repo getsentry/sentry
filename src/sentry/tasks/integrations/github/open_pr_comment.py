@@ -2,14 +2,24 @@ from __future__ import annotations
 
 import itertools
 import logging
-import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
 
 from django.db.models import Value
 from django.db.models.functions import StrIndex
-from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Op,
+    OrderBy,
+    Query,
+)
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.integrations.github.client import GitHubAppsClient
@@ -26,6 +36,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.integrations.github.patch_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import (
     ISSUE_LOCKED_ERROR_MESSAGE,
     RATE_LIMITED_MESSAGE,
@@ -56,13 +67,16 @@ OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
 
+# Number of stackframes to check for filename + function combo, starting from the top
+STACKFRAME_COUNT = 6
+
 COMMENT_BODY_TEMPLATE = """## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
 {issue_tables}
 ---
 
-<sub>Did you find this useful? React with a 👍 or 👎 or let us know in #proj-github-pr-comments</sub>"""
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
 ISSUE_TABLE_TEMPLATE = """📄 File: **{filename}**
 
@@ -175,7 +189,7 @@ def safe_for_comment(
     for file in pr_files:
         filename = file["filename"]
         # don't count the file if it was added or is not a Python file
-        if file["status"] == "added" or not filename.endswith(".py"):
+        if file["status"] == "added" or filename.split(".")[-1] not in PATCH_PARSERS:
             continue
 
         changed_file_count += 1
@@ -208,27 +222,6 @@ def get_pr_files(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
 
     return pullrequest_files
-
-
-# currently Python only
-def get_file_functions(patch: str) -> Set[str]:
-    r"""
-    Function header regex pattern
-    ^           - Asserts the start of a line.
-    @@.*@@      - Matches a string that starts with two "@" characters, followed by any characters
-                (except newline), and ends with two "@" characters.
-    \s+         - Matches one or more whitespace characters (spaces, tabs, etc.).
-    def         - Matches the literal characters "def".
-    \\s+         - Matches one or more whitespace characters.
-    (?P<fnc>.*) - This is a named capturing group that captures any characters (except newline)
-                and assigns them to the named group "fnc".
-    \(          - Matches an opening parenthesis "(".
-    .*          - Matches any characters (except newline).
-    $           - Asserts the end of a line.
-    """
-
-    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
-    return set(re.findall(python_function_regex, patch, flags=re.M))
 
 
 def get_projects_and_filenames_from_source_file(
@@ -268,6 +261,28 @@ def get_top_5_issues_by_count_for_file(
     )
     project_ids = [p.id for p in projects]
 
+    stackframe_function_name = lambda i: Function(
+        "arrayElement",
+        (Column("exception_frames.function"), i),
+    )
+    multi_if = []
+    for i in range(-STACKFRAME_COUNT, 0):
+        # if, then conditions
+        multi_if.extend(
+            [
+                Function(
+                    "in",
+                    [
+                        stackframe_function_name(i),
+                        function_names,
+                    ],
+                ),
+                stackframe_function_name(i),
+            ]
+        )
+    # else condition
+    multi_if.append(stackframe_function_name(-1))
+
     request = SnubaRequest(
         dataset=Dataset.Events.value,
         app_id="default",
@@ -279,7 +294,9 @@ def get_top_5_issues_by_count_for_file(
                     Column("group_id"),
                     Function("count", [], "event_count"),
                     Function(
-                        "arrayElement", (Column("exception_frames.function"), -1), "function_name"
+                        "multiIf",
+                        multi_if,
+                        "function_name",
                     ),
                 ]
             )
@@ -296,16 +313,30 @@ def get_top_5_issues_by_count_for_file(
                     Condition(Column("group_id"), Op.IN, group_ids),
                     Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
                     Condition(Column("timestamp"), Op.LT, datetime.now()),
-                    # NOTE: this currently looks at the top frame of the stack trace (old suspect commit logic)
-                    Condition(
-                        Function("arrayElement", (Column("exception_frames.filename"), -1)),
-                        Op.IN,
-                        sentry_filenames,
-                    ),
-                    Condition(
-                        Function("arrayElement", (Column("exception_frames.function"), -1)),
-                        Op.IN,
-                        function_names,
+                    # NOTE: ideally this would follow suspect commit logic
+                    BooleanCondition(
+                        BooleanOp.OR,
+                        [
+                            BooleanCondition(
+                                BooleanOp.AND,
+                                [
+                                    Condition(
+                                        Function(
+                                            "arrayElement",
+                                            (Column("exception_frames.filename"), i),
+                                        ),
+                                        Op.IN,
+                                        sentry_filenames,
+                                    ),
+                                    Condition(
+                                        stackframe_function_name(i),
+                                        Op.IN,
+                                        function_names,
+                                    ),
+                                ],
+                            )
+                            for i in range(-STACKFRAME_COUNT, 0)  # first n frames
+                        ],
                     ),
                     Condition(Function("notHandled", []), Op.EQ, 1),
                 ]
@@ -396,7 +427,11 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        function_names = get_file_functions(file.patch)
+        language_parser = PATCH_PARSERS.get(file.filename.split(".")[-1], None)
+        if not language_parser:
+            continue
+
+        function_names = language_parser.extract_functions_from_patch(file.patch)
 
         if not len(function_names):
             continue

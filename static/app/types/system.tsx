@@ -2,6 +2,7 @@ import {Theme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 
 import type {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
+import {ParntershipAgreementType} from 'sentry/types/hooks';
 
 import type {User} from './user';
 
@@ -10,7 +11,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
-  SU_ACCESS_FORM = 'SuperuserAccessForm',
+  SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
 export type OnSentryInitConfiguration =
@@ -194,6 +195,10 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  partnershipAgreementPrompt?: {
+    agreements: Array<ParntershipAgreementType>;
+    partnerDisplayName: string;
+  } | null;
   statuspage?: {
     api_host: string;
     id: string;

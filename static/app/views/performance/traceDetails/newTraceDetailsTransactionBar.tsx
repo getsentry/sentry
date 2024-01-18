@@ -181,7 +181,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       scrollIntoView();
     }
 
-    if(isIntersecting){
+    if (isIntersecting) {
       props.onBarScrolledTo();
     }
 
@@ -418,6 +418,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
         }
         position="top"
         containerDisplayMode="block"
+        delay={400}
       >
         <StyledZoomIcon
           isZoomIn={!showEmbeddedChildren}
@@ -494,12 +495,11 @@ function NewTraceDetailsTransactionBar(props: Props) {
                                   traceInfo={traceInfo}
                                   traceViewHeaderRef={traceViewRef}
                                   traceViewRef={traceViewRef}
-                                  parentHasContinuingDepths={
-                                    props.continuingDepths.length > 0
-                                  }
+                                  parentContinuingDepths={props.continuingDepths}
                                   traceHasMultipleRoots={props.continuingDepths.some(
                                     c => c.depth === 0 && c.isOrphanDepth
                                   )}
+                                  parentIsOrphan={props.isOrphan}
                                   parentIsLast={isLast}
                                   parentGeneration={transaction.generation ?? 0}
                                   organization={organization}
@@ -946,7 +946,7 @@ const StyledRowRectangle = styled(RowRectangle)`
 
 export const StyledZoomIcon = styled(IconZoom)`
   position: absolute;
-  left: -7px;
+  left: -20px;
   top: 4px;
   height: 16px;
   width: 18px;

@@ -69,7 +69,7 @@ class RepositoryMixin:
         return self.format_source_url(repo, filepath, branch)
 
     def get_stacktrace_link(
-        self, repo: Repository, filepath: str, default: str, version: str
+        self, repo: Repository, filepath: str, default: str, version: str | None
     ) -> str | None:
         """
         Handle formatting and returning back the stack trace link if the client
@@ -155,7 +155,7 @@ class RepositoryMixin:
             html_url = self.check_file(repo, filepath, ref)
             if html_url:
                 try:
-                    contents = self.get_client().get_file(repo, filepath, ref)
+                    contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
                 except ApiError:
                     continue
                 return {"filepath": filepath, "html_url": html_url, "raw": contents}

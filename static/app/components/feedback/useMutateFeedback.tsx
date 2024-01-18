@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import first from 'lodash/first';
 
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
@@ -33,7 +32,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
     mutationFn: ([ids, payload]) => {
       const isSingleId = ids !== 'all' && ids.length === 1;
       const url = isSingleId
-        ? `/organizations/${organization.slug}/issues/${first(ids)}/`
+        ? `/organizations/${organization.slug}/issues/${ids[0]}/`
         : `/organizations/${organization.slug}/issues/`;
 
       // TODO: it would be excellent if `PUT /issues/` could return the same data

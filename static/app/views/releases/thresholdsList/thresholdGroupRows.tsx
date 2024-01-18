@@ -81,6 +81,25 @@ export function ThresholdGroupRows({
     return new Set([...initial, ...Object.keys(editingThresholds)]);
   }, [initialThreshold, editingThresholds]);
 
+  const thresholdTypeList = useMemo(() => {
+    const isInternal = organization.features?.includes('releases-v2-internal');
+    const list = [
+      {
+        value: TOTAL_ERROR_COUNT_STR,
+        textValue: 'Errors',
+        label: 'Error Count',
+      },
+    ];
+    if (isInternal) {
+      list.push({
+        value: CRASH_FREE_SESSION_RATE_STR,
+        textValue: 'Crash Free Sessions',
+        label: 'Crash Free Sessions',
+      });
+    }
+    return list;
+  }, [organization]);
+
   const initializeNewThreshold = (
     environmentName: string | undefined = undefined,
     defaultWindow: number = 0
@@ -311,18 +330,7 @@ export function ThresholdGroupRows({
                         selectedOption.value
                       )
                     }
-                    options={[
-                      {
-                        value: TOTAL_ERROR_COUNT_STR,
-                        textValue: 'Errors',
-                        label: 'Error Count',
-                      },
-                      {
-                        value: CRASH_FREE_SESSION_RATE_STR,
-                        textValue: 'Crash Free Sessions',
-                        label: 'Crash Free Sessions',
-                      },
-                    ]}
+                    options={thresholdTypeList}
                   />
                   {threshold.trigger_type === 'over' ? (
                     <Button

@@ -1,15 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RepositoryFixture} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Coverage, Frame, LineCoverage} from 'sentry/types';
+import {CodecovStatusCode, Coverage, Frame, LineCoverage} from 'sentry/types';
 
 import Context, {getLineCoverage} from './context';
 
@@ -17,13 +13,9 @@ describe('Frame - Context', function () {
   const org = OrganizationFixture();
   const project = ProjectFixture({});
   const event = EventFixture({projectID: project.id});
-  const integration = GitHubIntegrationFixture();
-  const repo = RepositoryFixture({integrationId: integration.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
-  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
   beforeEach(function () {
-    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
   });
@@ -49,41 +41,27 @@ describe('Frame - Context', function () {
     ]);
   });
 
-  it("doesn't query stacktrace link if the flag is off", function () {
+  it("doesn't query stacktrace coverage if the flag is off", function () {
     const mock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: null,
-        integrations: [integration],
-      },
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
+      body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
     });
-    render(
-      <Context
-        frame={frame}
-        event={event}
-        organization={org}
-        registers={{}}
-        components={[]}
-      />,
-      {
-        context: RouterContextFixture([{organization: org}]),
-        organization: org,
-      }
-    );
+    render(<Context frame={frame} event={event} registers={{}} components={[]} />, {
+      organization: org,
+    });
 
     expect(mock).not.toHaveBeenCalled();
   });
 
   describe('syntax highlighting', function () {
     it('renders code correctly when context lines end in newline characters', function () {
+      const organization = {
+        ...org,
+        codecovAccess: true,
+      };
       MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-        body: {
-          config,
-          sourceUrl: null,
-          integrations: [integration],
-        },
+        url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
+        body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
       });
 
       const testFrame: Frame = {
@@ -102,12 +80,10 @@ describe('Frame - Context', function () {
           hasContextSource
           frame={testFrame}
           event={event}
-          organization={OrganizationFixture({
-            features: ['issue-details-stacktrace-syntax-highlighting'],
-          })}
           registers={{}}
           components={[]}
-        />
+        />,
+        {organization}
       );
 
       expect(screen.getAllByTestId('context-line')).toHaveLength(3);

@@ -292,7 +292,7 @@ class SlackActionEndpoint(Endpoint):
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "text": {"type": "mrkdwn", "text": "Resolve"},
                     "accessory": {
                         "type": "static_select",
                         "initial_option": {
@@ -495,7 +495,9 @@ class SlackActionEndpoint(Endpoint):
         for action in action_list:
             try:
                 if action.name == "status" or (
-                    use_block_kit and action.name in ("ignored:forever", "ignored:until_escalating")
+                    use_block_kit
+                    and action.name
+                    in ("ignored:forever", "ignored:until_escalating", "unresolved:ongoing")
                 ):
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
@@ -579,7 +581,7 @@ class SlackActionEndpoint(Endpoint):
             if action_data[0].get("action_id"):
                 action_list = []
                 for action_data in action_data:
-                    if action_data.get("type") == "static_select":
+                    if action_data.get("type") == "external_select":
                         action = BlockKitMessageAction(
                             name=action_data["action_id"],
                             label=action_data["selected_option"]["text"]["text"],
@@ -628,7 +630,13 @@ class SlackActionEndpoint(Endpoint):
         action_option = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
-        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
+        if action_option in (
+            "sentry_docs_link_clicked",
+            "grace_period_warning",
+            "integration_disabled_slack",
+            "trial_end_warning",
+            "link_clicked",
+        ):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:

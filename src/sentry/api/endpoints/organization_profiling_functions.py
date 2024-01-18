@@ -130,7 +130,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     # It's possible to override the columns via
                     # the `yAxis` qs. So we explicitly ignore the
                     # columns, and hard code in the columns we want.
-                    timeseries_columns=[data["function"], "worst()"],
+                    timeseries_columns=[data["function"], "examples()"],
                     config=QueryBuilderConfig(
                         skip_tag_resolution=True,
                     ),
@@ -192,7 +192,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             get_event_stats,
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
-            additional_query_column="worst()",
+            additional_query_column="examples()",
             params=params,
             query=data.get("query"),
         )
@@ -241,8 +241,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result = {
                     "stats": stats_data[key][data["function"]],
                     "worst": [
-                        (ts, data[0]["count"])
-                        for (ts, data) in stats_data[key]["worst()"]["data"]
+                        (ts, data[0]["count"][0])
+                        for ts, data in stats_data[key]["examples()"]["data"]
                         if data[0]["count"]  # filter out entries without an example
                     ],
                 }

@@ -20,12 +20,14 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -208,7 +210,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        context = organization_service.get_organization_by_id(id=self.organization_id)
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
         organization = context.organization
 
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
@@ -513,7 +517,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 group.organization
                 if group
                 else organization_service.get_organization_by_id(
-                    id=self.organization_id
+                    id=self.organization_id, include_projects=False, include_teams=False
                 ).organization
             )
             fkwargs["url"] = self.search_url(organization.slug)
@@ -629,7 +633,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    @all_silo_function
+    def get_create_issue_config(self, group: Group | None, user: RpcUser, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're

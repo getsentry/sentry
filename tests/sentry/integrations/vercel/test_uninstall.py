@@ -69,7 +69,7 @@ class VercelUninstallTest(APITestCase):
             "installation_type": "team",
             "webhook_id": "my_webhook_id",
         }
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="vercel",
             external_id="vercel_team_id",
             name="My Vercel Team",
@@ -144,7 +144,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
                 },
             },
         }
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="vercel",
             external_id="vercel_team_id",
             name="My Vercel Team",
@@ -238,7 +238,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
                 }
             },
         }
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vercel",
             external_id="vercel_user_id",
             name="My Vercel Team",
@@ -366,7 +366,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
                 }
             },
         }
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vercel",
             external_id="vercel_user_id",
             name="My Vercel Team",

@@ -1,7 +1,6 @@
 from django.urls import reverse
 
 from sentry.api.serializers import serialize
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.silo import SiloMode
@@ -32,7 +31,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="github", name="Example", external_id="abcd"
             )
             self.org_integration = self.integration.add_organization(self.org, self.user)

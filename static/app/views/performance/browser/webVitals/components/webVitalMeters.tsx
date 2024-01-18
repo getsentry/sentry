@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import toUpper from 'lodash/toUpper';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -93,7 +92,7 @@ export default function WebVitalMeters({
                           `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
                           Scores and values may share some (but not perfect) correlation.`,
                           {
-                            webVital: toUpper(webVital),
+                            webVital: webVital.toUpperCase(),
                           }
                         )}
                         <br />
@@ -124,7 +123,7 @@ export default function WebVitalMeters({
               {!webVitalExists && (
                 <StyledTooltip
                   title={tct('No [webVital] data found in this project.', {
-                    webVital: toUpper(webVital),
+                    webVital: webVital.toUpperCase(),
                   })}
                 >
                   {meterBody}

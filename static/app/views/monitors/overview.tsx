@@ -6,8 +6,8 @@ import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
 import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
@@ -52,6 +52,10 @@ function DisabledMonitorCreationPanel() {
   );
 }
 
+const CronsListPageHeader = HookOrDefault({
+  hookName: 'component:crons-list-page-header',
+});
+
 export default function Monitors() {
   const organization = useOrganization();
   const router = useRouter();
@@ -88,6 +92,7 @@ export default function Monitors() {
 
   return (
     <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
+      <CronsListPageHeader organization={organization} />
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -99,7 +104,6 @@ export default function Monitors() {
                 )}
                 docsUrl="https://docs.sentry.io/product/crons/"
               />
-              <FeatureBadge type="beta" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>

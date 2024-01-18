@@ -417,7 +417,6 @@ class ActivityMailDebugView(View):
         )
 
 
-has_issue_states = True
 replay_id = "9188182919744ea987d8e4e58f4a6dec"
 
 
@@ -458,7 +457,6 @@ def alert(request):
             "culprit": random.choice(["sentry.tasks.culprit.culprit", None]),
             "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
-            "has_issue_states": has_issue_states,
             "replay_id": replay_id,
             "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
         },

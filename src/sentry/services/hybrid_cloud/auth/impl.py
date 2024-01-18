@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.auth import (
     RpcOrganizationAuthConfig,
 )
 from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.signals import sso_enabled
 from sentry.silo import unguarded_write
 
@@ -64,11 +65,13 @@ class DatabaseBackedAuthService(AuthService):
                 )
 
                 if user_id:
-                    sso_enabled.send_robust(
+                    organization_service.schedule_signal(
+                        sso_enabled,
                         organization_id=organization_id,
-                        user_id=user_id,
-                        provider=provider_key,
-                        sender=type(self) if sender is None else sender,
+                        args=dict(
+                            user_id=user_id,
+                            provider=provider_key,
+                        ),
                     )
 
     def create_auth_identity(

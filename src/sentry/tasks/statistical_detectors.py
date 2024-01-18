@@ -162,6 +162,7 @@ class EndpointRegressionDetector(RegressionDetector):
     kind = "endpoint"
     regression_type = RegressionType.ENDPOINT
     min_change = 200  # 200ms in ms
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
 
@@ -173,7 +174,7 @@ class EndpointRegressionDetector(RegressionDetector):
             min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
-            threshold=0.2,
+            threshold=0.15,
         )
 
     @classmethod
@@ -203,6 +204,7 @@ class FunctionRegressionDetector(RegressionDetector):
     kind = "function"
     regression_type = RegressionType.FUNCTION
     min_change = 100_000_000  # 100ms in ns
+    buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
 
@@ -214,7 +216,7 @@ class FunctionRegressionDetector(RegressionDetector):
             min_data_points=18,
             moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
             moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
-            threshold=0.2,
+            threshold=0.15,
         )
 
     @classmethod
@@ -249,6 +251,8 @@ def detect_transaction_trends(
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    EndpointRegressionDetector.configure_tags()
 
     projects = get_detector_enabled_projects(
         project_ids,
@@ -286,8 +290,16 @@ def detect_transaction_trends(
 def detect_transaction_change_points(
     transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
 ) -> None:
+    _detect_transaction_change_points(transactions, start, *args, **kwargs)
+
+
+def _detect_transaction_change_points(
+    transactions: List[Tuple[int, str | int]], start: datetime, *args, **kwargs
+) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    EndpointRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project
@@ -329,6 +341,8 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
     if not options.get("statistical_detectors.enable"):
         return
 
+    FunctionRegressionDetector.configure_tags()
+
     projects = get_detector_enabled_projects(
         project_ids,
         feature_name="organizations:profiling-statistical-detectors-ema",
@@ -364,8 +378,16 @@ def detect_function_trends(project_ids: List[int], start: datetime, *args, **kwa
 def detect_function_change_points(
     functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
 ) -> None:
+    _detect_function_change_points(functions_list, start, *args, **kwargs)
+
+
+def _detect_function_change_points(
+    functions_list: List[Tuple[int, int]], start: datetime, *args, **kwargs
+) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    FunctionRegressionDetector.configure_tags()
 
     projects_by_id = {
         project.id: project
@@ -435,7 +457,7 @@ def emit_function_regression_issue(
     ]
 
     result = functions.query(
-        selected_columns=["project.id", "fingerprint", "worst()"],
+        selected_columns=["project.id", "fingerprint", "examples()"],
         query="is_application:1",
         params=params,
         orderby=["project.id"],
@@ -447,7 +469,11 @@ def emit_function_regression_issue(
         conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
     )
 
-    examples = {(row["project.id"], row["fingerprint"]): row["worst()"] for row in result["data"]}
+    examples = {
+        (row["project.id"], row["fingerprint"]): row["examples()"][0]
+        for row in result["data"]
+        if row["examples()"]
+    }
 
     payloads = []
 
