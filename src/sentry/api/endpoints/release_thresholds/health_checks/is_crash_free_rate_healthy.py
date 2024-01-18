@@ -124,7 +124,7 @@ def is_crash_free_rate_healthy_check(
     except IndexError:
         return False, -1
 
-    crash_free_percent = (1 - (crash_count / total_count)) * 100
+    crash_free_percent = (1 - (crash_count / max(total_count, 1))) * 100
 
     if ethreshold["trigger_type"] == TriggerType.OVER_STR:
         # we're healthy as long as we're under the threshold
