@@ -19,7 +19,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {Organization} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {OrganizationContextProvider} from './organizationContext';
+import {OrganizationContextProvider, useEnsureOrganization} from './organizationContext';
 import {RouteContext} from './routeContext';
 
 jest.mock('sentry/actionCreators/sudoModal');
@@ -79,6 +79,11 @@ describe('OrganizationContext', function () {
     jest.mocked(console.error).mockRestore();
   });
 
+  function OrganizationLoaderStub() {
+    useEnsureOrganization();
+    return null;
+  }
+
   /**
    * Used to test that the organization context is propegated
    */
@@ -104,6 +109,7 @@ describe('OrganizationContext', function () {
   it('fetches org, projects, teams, and provides organization context', async function () {
     render(
       <OrganizationContextProvider>
+        <OrganizationLoaderStub />
         <OrganizationName />
       </OrganizationContextProvider>
     );
@@ -117,6 +123,7 @@ describe('OrganizationContext', function () {
   it('provides legacy organization context', async function () {
     render(
       <OrganizationContextProvider>
+        <OrganizationLoaderStub />
         <OrganizationNameLegacyConsumer />
       </OrganizationContextProvider>
     );
@@ -129,6 +136,7 @@ describe('OrganizationContext', function () {
 
     render(
       <OrganizationContextProvider>
+        <OrganizationLoaderStub />
         <OrganizationName />
       </OrganizationContextProvider>
     );
@@ -142,6 +150,7 @@ describe('OrganizationContext', function () {
     const {rerender} = render(
       <RouteContext.Provider value={router}>
         <OrganizationContextProvider>
+          <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
       </RouteContext.Provider>
@@ -158,6 +167,7 @@ describe('OrganizationContext', function () {
     rerender(
       <RouteContext.Provider value={{...router, params: {orgId: 'another-org'}}}>
         <OrganizationContextProvider>
+          <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
       </RouteContext.Provider>
@@ -180,6 +190,7 @@ describe('OrganizationContext', function () {
 
     render(
       <OrganizationContextProvider>
+        <OrganizationLoaderStub />
         <OrganizationName />
       </OrganizationContextProvider>
     );
@@ -205,6 +216,7 @@ describe('OrganizationContext', function () {
     render(
       <RouteContext.Provider value={{...router, params: {}}}>
         <OrganizationContextProvider>
+          <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
       </RouteContext.Provider>
