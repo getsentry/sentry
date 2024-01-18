@@ -212,7 +212,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 def dereference_schema(
     schema: Mapping[str, Any],
     schema_components: Mapping[str, Any],
-) -> dict:
+) -> Mapping[str, Any]:
     """
     Dereferences the schema reference if it exists. Otherwise, returns the schema as is.
     """
