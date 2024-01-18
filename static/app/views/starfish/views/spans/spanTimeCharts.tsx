@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
@@ -35,13 +35,13 @@ type Props = {
   eventView?: EventView;
   extraQuery?: string[];
   spanCategory?: string;
-  throughputUnit?: RateUnits;
+  throughputUnit?: RateUnit;
 };
 
 type ChartProps = {
   filters: ModuleFilters;
   moduleName: ModuleName;
-  throughputUnit: RateUnits;
+  throughputUnit: RateUnit;
   extraQuery?: string[];
 };
 
@@ -53,7 +53,7 @@ export function SpanTimeCharts({
   moduleName,
   appliedFilters,
   spanCategory,
-  throughputUnit = RateUnits.PER_MINUTE,
+  throughputUnit = RateUnit.PER_MINUTE,
   extraQuery,
 }: Props) {
   const {selection} = usePageFilters();
@@ -138,9 +138,9 @@ function ThroughputChart({
     const groupData = dataByGroup[groupName];
 
     let throughputMultiplier = 1; // We're fetching per minute, so default is 1
-    if (throughputUnit === RateUnits.PER_SECOND) {
+    if (throughputUnit === RateUnit.PER_SECOND) {
       throughputMultiplier = 1 / 60;
-    } else if (throughputUnit === RateUnits.PER_HOUR) {
+    } else if (throughputUnit === RateUnit.PER_HOUR) {
       throughputMultiplier = 60;
     }
 

@@ -17,6 +17,7 @@ from sentry.notifications.utils import get_notification_group_title
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
 from sentry.utils.http import absolute_uri
@@ -100,7 +101,10 @@ class IssueBasicMixin:
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
+    @all_silo_function
+    def get_create_issue_config(
+        self, group: Group | None, user: User, **kwargs
+    ) -> List[Dict[str, Any]]:
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
@@ -110,6 +114,9 @@ class IssueBasicMixin:
         to `create_issue`, which handles creation of the issue
         in Jira, VSTS, GitHub, etc
         """
+        if not group:
+            return []
+
         event = group.get_latest_event()
 
         return [

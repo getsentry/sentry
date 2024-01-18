@@ -14,10 +14,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IntegrationSerializer, serialize
-from sentry.api.utils import Timer
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
-from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.integrations.utils.stacktrace_link import StacktraceLinkOutcome, get_stacktrace_config
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -138,7 +136,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         attempted_url = None
         error = None
-        codecov_data = None
         serialized_config = None
 
         with configure_scope() as scope:
@@ -152,34 +149,12 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 serialized_config = serialize(result["current_config"]["config"], request.user)
                 provider = serialized_config["provider"]["key"]
                 scope.set_tag("integration_provider", provider)  # e.g. github
-                scope.set_tag("stacktrace_link.munged", result["is_munged"])
 
                 if not result["source_url"]:
                     error = result["current_config"]["outcome"].get("error")
                     # When no code mapping have been matched we have not attempted a URL
                     if result["current_config"]["outcome"].get("attemptedUrl"):
                         attempted_url = result["current_config"]["outcome"]["attemptedUrl"]
-
-                should_get_coverage = codecov_enabled(project.organization)
-                scope.set_tag("codecov.enabled", should_get_coverage)
-                if should_get_coverage:
-                    with Timer() as t:
-                        codecov_data = fetch_codecov_data(
-                            config={
-                                "repository": result["current_config"]["repository"],
-                                "config": serialized_config,
-                                "outcome": result["current_config"]["outcome"],
-                            }
-                        )
-                        analytics.record(
-                            "function_timer.timed",
-                            function_name="fetch_codecov_data",
-                            duration=t.duration,
-                            organization_id=project.organization_id,
-                            project_id=project.id,
-                            group_id=ctx.get("group_id"),
-                            frame_abs_path=ctx.get("abs_path"),
-                        )
             try:
                 set_tags(scope, result, serialized_integrations)
             except Exception:
@@ -198,13 +173,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             )
             return Response(
                 {
-                    # TODO(scttcper): Remove error in success case
                     "error": error,
                     "config": serialized_config,
                     "sourceUrl": result["source_url"],
                     "attemptedUrl": attempted_url,
                     "integrations": serialized_integrations,
-                    "codecov": codecov_data,
                 }
             )
 
@@ -215,6 +188,5 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 "sourceUrl": None,
                 "attemptedUrl": attempted_url,
                 "integrations": serialized_integrations,
-                "codecov": codecov_data,
             }
         )
