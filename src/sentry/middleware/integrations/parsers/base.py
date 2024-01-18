@@ -5,6 +5,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
+from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
@@ -18,6 +19,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.tasks.deliver_from_outbox import run_drain_shard_control
 from sentry.types.region import Region, get_region_for_organization
 from sentry.utils import metrics
 
@@ -135,15 +137,33 @@ class BaseRequestParser(abc.ABC):
         Used to create outboxes for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        if len(regions) > 0:
-            for outbox in ControlOutbox.for_webhook_update(
-                webhook_identifier=self.webhook_identifier,
-                region_names=[region.name for region in regions],
-                request=self.request,
-            ):
+        response = HttpResponse(status=status.HTTP_202_ACCEPTED)
+        if len(regions) == 0:
+            return response
+
+        using = router.db_for_write(ControlOutbox)
+        with transaction.atomic(using=using):
+            outboxes = list(
+                ControlOutbox.for_webhook_update(
+                    webhook_identifier=self.webhook_identifier,
+                    region_names=[region.name for region in regions],
+                    request=self.request,
+                )
+            )
+            for outbox in outboxes:
                 outbox.save()
 
-        return HttpResponse(status=status.HTTP_202_ACCEPTED)
+            def _spawn_tasks():
+                for outbox in outboxes:
+                    run_drain_shard_control.delay(
+                        outbox_name="sentry.ControlOutbox",
+                        region_name=outbox.region_name,
+                        shard_scope=outbox.shard_scope.value,
+                        shard_identifier=outbox.shard_identifier,
+                    )
+
+            transaction.on_commit(_spawn_tasks, using=using)
+        return response
 
     def get_response_from_first_region(self):
         regions = self.get_regions_from_organizations()
@@ -219,7 +239,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        return [get_region_for_organization(organization.slug) for organization in organizations]
+        regions = [get_region_for_organization(organization.slug) for organization in organizations]
+        return sorted(regions, key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)

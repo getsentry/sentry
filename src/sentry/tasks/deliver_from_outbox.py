@@ -177,3 +177,45 @@ def process_outbox_batch(
                 if in_test_environment():
                     raise
     return processed_count
+
+
+@instrumented_task(
+    name="sentry.tasks.run_drain_shard_control",
+    queue="outbox.control",
+    silo_mode=SiloMode.CONTROL,
+)
+def run_drain_shard_control(
+    outbox_name: str, region_name: str, shard_scope: int, shard_identifier: int
+) -> None:
+    """
+    Run drain shard on control outbox.
+
+    We use this to move webhook outboxes along faster than the regular drain
+    tasks do beacuse webhooks don't coalesce well
+    """
+    outbox_model: Type[ControlOutboxBase] = ControlOutboxBase.from_outbox_name(outbox_name)
+    shard_attributes = {
+        "region_name": region_name,
+        "shard_scope": shard_scope,
+        "shard_identifier": shard_identifier,
+    }
+    next_message = outbox_model.prepare_next_from_shard(shard_attributes)
+    if not next_message:
+        return
+
+    try:
+        next_message.drain_shard(flush_all=True)
+    except Exception as e:
+        with sentry_sdk.push_scope() as scope:
+            if isinstance(e, OutboxFlushError):
+                scope.set_tag("outbox.category", e.outbox.category)
+                scope.set_tag("outbox.shard_scope", e.outbox.shard_scope)
+                scope.set_context(
+                    "outbox",
+                    {
+                        "shard_identifier": e.outbox.shard_identifier,
+                        "object_identifier": e.outbox.object_identifier,
+                        "payload": e.outbox.payload,
+                    },
+                )
+            sentry_sdk.capture_exception(e)
