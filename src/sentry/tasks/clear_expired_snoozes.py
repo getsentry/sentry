@@ -31,7 +31,7 @@ def clear_expired_snoozes():
     GroupSnooze.objects.filter(id__in=group_snooze_ids).delete()
 
     for group in ignored_groups:
-        manage_issue_states(group, GroupInboxReason.ESCALATING)
+        manage_issue_states(group, GroupInboxReason.ONGOING)
 
         issue_unignored.send_robust(
             project=group.project,
