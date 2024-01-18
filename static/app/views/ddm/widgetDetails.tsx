@@ -15,14 +15,10 @@ enum Tab {
   CODE_LOCATIONS = 'codeLocations',
 }
 
-const selectedSeriesToQuery = (selectedSeries: string) => {
-  return (
-    selectedSeries
-      .split(', ')
-      // wrap everything after : in quotes
-      .map(series => series.replace(/(.*):(.*)/, '$1:"$2"'))
-      .join(' ')
-  );
+const constructQueryString = (queryObject: Record<string, string>) => {
+  return Object.entries(queryObject)
+    .map(([key, value]) => `${key}:"${value}"`)
+    .join(' ');
 };
 
 export function WidgetDetails() {
@@ -65,9 +61,9 @@ export function WidgetDetails() {
               <SampleTable
                 mri={selectedWidget?.mri}
                 query={
-                  selectedWidget?.focusedSeries
-                    ? `${selectedWidget.query} ${selectedSeriesToQuery(
-                        selectedWidget.focusedSeries
+                  selectedWidget?.focusedSeries?.groupBy
+                    ? `${selectedWidget.query} ${constructQueryString(
+                        selectedWidget.focusedSeries.groupBy
                       )}`.trim()
                     : selectedWidget?.query
                 }
