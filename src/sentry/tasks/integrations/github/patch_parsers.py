@@ -96,4 +96,33 @@ class PythonParser(LanguageParser):
         )
 
 
+class JavascriptParser(LanguageParser):
+    @staticmethod
+    def extract_functions_from_patch(patch: str) -> Set[str]:
+        r"""
+        Type of function declaration    Example
+        Function declaration:           function hello(argument1, argument2)
+        Arrow function:                 export const blue = (argument) => {
+        Function expression:            const planet = async function(argument) {
+        Function constructor:           const constructor = new Function(
+        """
+        function_declaration_regex = r"^@@.*@@.*\s+function\s+(?P<fnc>.*)\(.*$"
+        arrow_function_regex = r"^@@.*@@.*\s+const\s+(?P<fnc>.*)\s+=.*\s+\(.*\)\s+=>\s+\{.*$"
+        function_expression_regex = r"^@@.*@@.*\s+const\s+(?P<fnc>.*)\s+=.*\s+function\(.*$"
+        function_constructor_regex = r"^@@.*@@.*\s+const\s+(?P<fnc>.*)\s+=\s+new\s+Function\(.*$"
+
+        regexes = [
+            function_declaration_regex,
+            arrow_function_regex,
+            function_expression_regex,
+            function_constructor_regex,
+        ]
+
+        functions = set()
+        for regex in regexes:
+            functions.update(set(re.findall(regex, patch, flags=re.M)))
+
+        return functions
+
+
 PATCH_PARSERS = {"py": PythonParser}

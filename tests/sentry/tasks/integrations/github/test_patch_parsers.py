@@ -1,4 +1,4 @@
-from sentry.tasks.integrations.github.patch_parsers import PythonParser
+from sentry.tasks.integrations.github.patch_parsers import JavascriptParser, PythonParser
 from sentry.testutils.cases import TestCase
 
 
@@ -19,4 +19,255 @@ class ParserTestCase(TestCase):
             "patch",
             "delete",
             "put",
+        }
+
+    def test_javascript_simple(self):
+        patch = """@@44,38@@ function hello(argument1, argument2)
+
+@@44,38@@ export default function world({argument}) {
+
+@@44,38@@ export const blue = (argument) => {
+
+@@44,38@@ export const ocean = async (argument) => {
+
+@@44,38@@ const planet = async function(argument) {
+
+@@44,38@@ const constructor = new Function(
+
+@@44,38@@ const test = {"""
+
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "hello",
+            "world",
+            "ocean",
+            "blue",
+            "planet",
+            "constructor",
+        }
+
+    def test_javascript(self):
+        # from https://github.com/getsentry/sentry/pull/61329
+        patch = """@@ -40,6 +40,7 @@ import {space} from 'sentry/styles/space';
+ import {Organization} from 'sentry/types';
+ import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
++import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+ import theme from 'sentry/utils/theme';
+ import {useLocation} from 'sentry/utils/useLocation';
+ import useMedia from 'sentry/utils/useMedia';
+@@ -115,6 +116,7 @@ function Sidebar({organization}: Props) {
+
+   const collapsed = !!preferences.collapsed;
+   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
++  const hasSuperuserSession = isActiveSuperuser(organization);
+
+   useOpenOnboardingSidebar();
+
+@@ -497,7 +499,11 @@ function Sidebar({organization}: Props) {
+   );
+
+   return (
+-    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
++    <SidebarWrapper
++      aria-label={t('Primary Navigation')}
++      collapsed={collapsed}
++      isSuperuser={hasSuperuserSession}
++    >
+       <SidebarSectionGroupPrimary>
+         <SidebarSection>
+           <SidebarDropdown
+@@ -634,9 +640,10 @@ const responsiveFlex = css`
+   }
+ `;
+
+-export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
+-  background: ${p => p.theme.sidebarGradient};
+-  color: ${p => p.theme.sidebar.color};
++export const SidebarWrapper = styled('nav')<{collapsed: boolean; isSuperuser?: boolean}>`
++  background: ${p =>
++    p.isSuperuser ? p.theme.superuserSidebar : p.theme.sidebarGradient};
++  color: ${p => (p.isSuperuser ? 'white' : p.theme.sidebar.color)};
+   line-height: 1;
+   padding: 12px 0 2px; /* Allows for 32px avatars  */
+   width: ${p => p.theme.sidebar[p.collapsed ? 'collapsedWidth' : 'expandedWidth']};"""
+
+        assert JavascriptParser.extract_functions_from_patch(patch) == {"Sidebar"}
+
+        # from https://github.com/getsentry/sentry/pull/55411
+        patch = """@@ -1,9 +1,11 @@
+ import {useCallback, useEffect, useState} from 'react';
+ import styled from '@emotion/styled';
++import * as qs from 'query-string';
+
+ import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
+ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
+ import {Button} from 'sentry/components/button';
++import ButtonBar from 'sentry/components/buttonBar';
+ import Card from 'sentry/components/card';
+ import Carousel from 'sentry/components/carousel';
+ import {openConfirmModal} from 'sentry/components/confirm';
+@@ -16,6 +18,7 @@ import {space} from 'sentry/styles/space';
+ import {MissingMember, Organization, OrgRole} from 'sentry/types';
+ import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+ import useApi from 'sentry/utils/useApi';
++import {useLocation} from 'sentry/utils/useLocation';
+ import withOrganization from 'sentry/utils/withOrganization';
+
+ type Props = {
+@@ -46,6 +49,7 @@ export function InviteBanner({
+   const api = useApi();
+   const integrationName = missingMembers?.integration;
+   const promptsFeature = `${integrationName}_missing_members`;
++  const location = useLocation();
+
+   const snoozePrompt = useCallback(async () => {
+     setShowBanner(false);
+@@ -56,6 +60,15 @@ export function InviteBanner({
+     });
+   }, [api, organization, promptsFeature]);
+
++  const openInviteModal = useCallback(() => {
++    openInviteMissingMembersModal({
++      allowedRoles,
++      missingMembers,
++      organization,
++      onClose: onModalClose,
++    });
++  }, [allowedRoles, missingMembers, organization, onModalClose]);
++
+   useEffect(() => {
+     if (hideBanner) {
+       return;
+@@ -68,6 +81,14 @@ export function InviteBanner({
+     });
+   }, [api, organization, promptsFeature, hideBanner]);
+
++  useEffect(() => {
++    const {inviteMissingMembers} = qs.parse(location.search);
++
++    if (!hideBanner && inviteMissingMembers) {
++      openInviteModal();
++    }
++  }, [openInviteModal, location, hideBanner]);
++
+   if (hideBanner || !showBanner) {
+     return null;
+   }
+@@ -134,9 +155,7 @@ export function InviteBanner({
+     <SeeMoreCard
+       key="see-more"
+       missingMembers={missingMembers}
+-      allowedRoles={allowedRoles}
+-      onModalClose={onModalClose}
+-      organization={organization}
++      openInviteModal={openInviteModal}
+     />
+   );
+
+@@ -157,19 +176,8 @@ export function InviteBanner({
+             />
+           </Subtitle>
+         </CardTitleContent>
+-        <ButtonContainer>
+-          <Button
+-            priority="primary"
+-            size="xs"
+-            onClick={() =>
+-              openInviteMissingMembersModal({
+-                allowedRoles,
+-                missingMembers,
+-                onClose: onModalClose,
+-                organization,
+-              })
+-            }
+-          >
++        <ButtonBar gap={1}>
++          <Button priority="primary" size="xs" onClick={openInviteModal}>
+             {t('View All')}
+           </Button>
+           <DropdownMenu
+@@ -181,7 +189,7 @@ export function InviteBanner({
+               'aria-label': t('Actions'),
+             }}
+           />
+-        </ButtonContainer>
++        </ButtonBar>
+       </CardTitleContainer>
+       <Carousel>{cards}</Carousel>
+     </StyledCard>
+@@ -191,18 +199,11 @@ export function InviteBanner({
+ export default withOrganization(InviteBanner);
+
+ type SeeMoreCardProps = {
+-  allowedRoles: OrgRole[];
+   missingMembers: {integration: string; users: MissingMember[]};
+-  onModalClose: () => void;
+-  organization: Organization;
++  openInviteModal: () => void;
+ };
+
+-function SeeMoreCard({
+-  missingMembers,
+-  allowedRoles,
+-  onModalClose,
+-  organization,
+-}: SeeMoreCardProps) {
++function SeeMoreCard({missingMembers, openInviteModal}: SeeMoreCardProps) {
+   const {users} = missingMembers;
+
+   return (
+@@ -221,18 +222,7 @@ function SeeMoreCard({
+           })}
+         </Subtitle>
+       </MemberCardContent>
+-      <Button
+-        size="sm"
+-        priority="primary"
+-        onClick={() =>
+-          openInviteMissingMembersModal({
+-            allowedRoles,
+-            missingMembers,
+-            organization,
+-            onClose: onModalClose,
+-          })
+-        }
+-      >
++      <Button size="sm" priority="primary" onClick={openInviteModal}>
+         {t('View All')}
+       </Button>
+     </MemberCard>
+@@ -269,17 +259,7 @@ export const Subtitle = styled('div')`
+   font-size: ${p => p.theme.fontSizeSmall};
+   font-weight: 400;
+   color: ${p => p.theme.gray300};
+-  & > *:first-child {
+-    margin-left: ${space(0.5)};
+-    display: flex;
+-    align-items: center;
+-  }
+-`;
+-
+-const ButtonContainer = styled('div')`
+-  display: grid;
+-  grid-auto-flow: column;
+-  grid-column-gap: ${space(1)};
++  gap: ${space(0.5)};
+ `;
+
+ const MemberCard = styled(Card)`
+@@ -305,9 +285,7 @@ const MemberCardContentRow = styled('div')`
+   align-items: center;
+   margin-bottom: ${space(0.25)};
+   font-size: ${p => p.theme.fontSizeSmall};
+-  & > *:first-child {
+-    margin-right: ${space(0.75)};
+-  }
++  gap: ${space(0.75)};
+ `;
+
+ export const StyledExternalLink = styled(ExternalLink)`"""
+
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "InviteBanner",
+            "SeeMoreCard",
         }
