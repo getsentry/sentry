@@ -4,6 +4,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
 import {replayPlatforms} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
 import type {Event, Organization} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
@@ -25,7 +26,7 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
   const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
   if (!platformSupported) {
-    return <Fragment>This platform isn't supported.</Fragment>;
+    return <Fragment>{t("This platform isn't supported.")}</Fragment>;
   }
 
   if (replayId && hasReplayId) {
@@ -41,12 +42,12 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
   }
 
   if ((replayId && hasReplayId === undefined) || isFetchingSentOneReplay) {
-    return <Fragment>Checking things out...</Fragment>;
+    return <Fragment>{t('Checking things out...')}</Fragment>;
   }
 
   if (!hasSentOneReplay) {
     return <ReplayInlineCTAPanel />;
   }
 
-  return <Fragment>No replay captured</Fragment>;
+  return <Fragment>{t('No replay captured')}</Fragment>;
 }
