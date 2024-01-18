@@ -29,6 +29,8 @@ function removeDataStorageLocationFromFormData(
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const relocationUrl = normalizeUrl(`/relocation/`);
   const regionChoices = getRegionChoices();
   const client = useApi();
 
@@ -127,6 +129,13 @@ function OrganizationCreate() {
               stacked
               required
             />
+          )}
+          {!isSelfHosted && (
+            <div>
+              {tct('Relocating from self-hosted? Click [relocationLink:here]', {
+                relocationLink: <a href={relocationUrl} />,
+              })}
+            </div>
           )}
         </Form>
       </NarrowLayout>
