@@ -1,7 +1,6 @@
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
-import isNil from 'lodash/isNil';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -58,7 +57,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     </Pill>,
   ];
 
-  if (!isNil(handled)) {
+  if (handled !== null && handled !== undefined) {
     pills.push(<Pill key="handled" name="handled" value={handled} />);
   }
 
@@ -79,7 +78,8 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
   if (signal) {
     const code = signal.code_name || `${t('code')} ${signal.code}`;
     const name = signal.name || signal.number;
-    const value = isNil(signal.code) ? name : `${name} (${code})`;
+    const value =
+      signal.code === null || signal.code === undefined ? name : `${name} (${code})`;
     pills.push(<Pill key="signal" name="signal" value={value} />);
   }
 
