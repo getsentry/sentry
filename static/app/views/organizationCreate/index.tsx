@@ -99,8 +99,10 @@ function OrganizationCreate() {
           {shouldDisplayRegions() && (
             <SelectField
               name="dataStorageLocation"
-              label="Data Storage Location"
-              help="Where will this organization reside?"
+              label={t('Data Storage Location')}
+              help={t(
+                "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created."
+              )}
               choices={regionChoices}
               inline={false}
               stacked
