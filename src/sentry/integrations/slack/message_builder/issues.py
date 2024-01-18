@@ -9,6 +9,7 @@ from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
+    format_actor_option,
     format_actor_options,
     get_color,
     get_timestamp,
@@ -427,7 +428,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             ):
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
-                actions.append(self.get_static_action(action))
+                assignee = self.group.get_assignee()
+                actions.append(
+                    self.get_external_select_action(
+                        action, format_actor_option(assignee, True) if assignee else None
+                    )
+                )
 
         if actions:
             action_block = {"type": "actions", "elements": [action for action in actions]}

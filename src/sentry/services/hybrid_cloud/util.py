@@ -6,7 +6,7 @@ from sentry.utils.env import in_test_environment
 
 def flags_to_bits(*flag_values: bool) -> int:
     bits = 0
-    for (index, value) in enumerate(flag_values):
+    for index, value in enumerate(flag_values):
         if value:
             bits |= 1 << index
     return bits
@@ -36,3 +36,4 @@ class FunctionSiloLimit(SiloLimit):
 
 region_silo_function = FunctionSiloLimit(SiloMode.REGION)
 control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
+all_silo_function = FunctionSiloLimit(SiloMode.REGION, SiloMode.CONTROL)

@@ -50,6 +50,7 @@ export function useFocusAreaBrush(
   onRemove: () => void = () => {},
   onZoom: (range: DateTimeObject) => void = () => {}
 ) {
+  const isHoveredRef = useRef(false);
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
     [focusArea, widgetIndex]
@@ -59,9 +60,31 @@ export function useFocusAreaBrush(
 
   const theme = useTheme();
 
+  const chartElement = chartRef.current?.ele;
+  useEffect(() => {
+    if (!chartElement) {
+      return () => {};
+    }
+
+    const handleMouseEnter = () => {
+      isHoveredRef.current = true;
+    };
+    const handleMouseLeave = () => {
+      isHoveredRef.current = false;
+    };
+
+    chartElement.addEventListener('mouseenter', handleMouseEnter);
+    chartElement.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      chartElement.removeEventListener('mouseenter', handleMouseEnter);
+      chartElement.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [chartElement]);
+
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
-      if (isDisabled) {
+      if (isDisabled || !isHoveredRef.current) {
         return;
       }
 
@@ -89,7 +112,7 @@ export function useFocusAreaBrush(
   );
 
   const startBrush = useCallback(() => {
-    if (hasFocusArea || isDisabled) {
+    if (hasFocusArea || isDisabled || !isHoveredRef.current) {
       return;
     }
 
@@ -247,7 +270,7 @@ function BrushRectOverlay({
       <FocusAreaWrapper ref={wrapperRef}>
         <FocusAreaRect top={top} left={left} width={width} height={height} />
       </FocusAreaWrapper>
-      <FocusAreaRectActions top={top + height} left={left}>
+      <FocusAreaRectActions top={top} rectHeight={height} left={left}>
         <Button
           size="xs"
           onClick={onZoom}
@@ -289,10 +312,11 @@ const CHART_HEIGHT = 275;
 
 const FocusAreaRectActions = styled('div')<{
   left: string;
+  rectHeight: string;
   top: string;
 }>`
   position: absolute;
-  top: ${p => p.top};
+  top: calc(${p => p.top} + ${p => p.rectHeight});
   left: ${p => p.left};
   display: flex;
   gap: ${space(0.5)};

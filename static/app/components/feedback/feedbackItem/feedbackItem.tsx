@@ -1,7 +1,6 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -40,7 +39,6 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
   const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
-  const [isHidden, setIsHidden] = useState(true);
   const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
   return (
@@ -95,16 +93,8 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Section>
         )}
 
-        <Section
-          icon={<IconTag size="xs" />}
-          title={t('Tags')}
-          contentRight={
-            <Button borderless onClick={() => setIsHidden(!isHidden)}>
-              {isHidden ? t('Expand Tags') : t('Collapse Tags')}
-            </Button>
-          }
-        >
-          {isHidden ? <TagsSection tags={tags} collapsed /> : <TagsSection tags={tags} />}
+        <Section icon={<IconTag size="xs" />} title={t('Tags')}>
+          <TagsSection tags={tags} />
         </Section>
 
         <Section icon={<IconChat size="xs" />} title={t('Activity')}>

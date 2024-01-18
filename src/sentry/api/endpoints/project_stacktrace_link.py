@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Mapping, Optional
 
+from django.http import QueryDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, configure_scope
@@ -24,7 +25,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 logger = logging.getLogger(__name__)
 
 
-def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
+def generate_context(parameters: QueryDict) -> Dict[str, Optional[str]]:
     return {
         "file": parameters.get("file"),
         # XXX: Temp change to support try_path_munging until refactored
@@ -151,7 +152,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 serialized_config = serialize(result["current_config"]["config"], request.user)
                 provider = serialized_config["provider"]["key"]
                 scope.set_tag("integration_provider", provider)  # e.g. github
-                scope.set_tag("stacktrace_link.munged", result["is_munged"])
 
                 if not result["source_url"]:
                     error = result["current_config"]["outcome"].get("error")

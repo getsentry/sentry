@@ -1436,6 +1436,8 @@ SENTRY_EARLY_FEATURES = {
 SENTRY_FEATURES: dict[str, bool | None] = {
     # Enables the staff cookie on requests
     "auth:enterprise-staff-cookie": False,
+    # Enables superuser read vs. write separation
+    "auth:enterprise-superuser-read-write": False,
     # Enables user registration.
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
@@ -1609,8 +1611,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-new-experience-toggle": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
-    # Enables syntax highlighting in the stack trace
-    "organizations:issue-details-stacktrace-syntax-highlighting": False,
     # Enables the new Stacktrace Link UI in frame header
     "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
@@ -1685,8 +1685,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
-    # Query on demand metrics with the new environment logic
-    "organizations:on-demand-query-with-new-env-logic": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1858,8 +1856,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable the new zero state UI
-    "organizations:session-replay-new-zero-state": False,
     # Enable View Sample Replay button on the Replay-List empty-state page
     "organizations:session-replay-onboarding-cta-button": False,
     # Enable data scrubbing of replay recording payloads in Relay.
@@ -2785,7 +2781,8 @@ def build_cdc_postgres_init_db_volume(settings: Any) -> dict[str, dict[str, str]
 # platform.processor() changed at some point between these:
 # 11.2.3: arm
 # 12.3.1: arm64
-APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
+# ubuntu: aarch64
+ARM64 = platform.processor() in {"arm", "arm64", "aarch64"}
 
 SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "redis": lambda settings, options: (
@@ -2878,7 +2875,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.8.13.1.altinitystable"
-            if not APPLE_ARM64
+            if not ARM64
             # altinity provides clickhouse support to other companies
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
@@ -3976,8 +3973,35 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-builtin-symbol-sources",
     "sentry-api-0-grouping-configs",
     "sentry-api-0-prompts-activity",
+    # Unprefixed issue URLs
+    "sentry-api-0-group-details",
+    "sentry-api-0-group-activities",
+    "sentry-api-0-group-events",
+    "sentry-api-0-group-event-details",
+    "sentry-api-0-group-notes",
+    "sentry-api-0-group-note-details",
+    "sentry-api-0-group-hashes",
+    "sentry-api-0-group-hashes-split",
+    "sentry-api-0-group-reprocessing",
+    "sentry-api-0-group-stats",
+    "sentry-api-0-group-tags",
+    "sentry-api-0-group-tag-key-details",
+    "sentry-api-0-group-tag-key-values",
+    "sentry-api-0-group-user-reports",
+    "sentry-api-0-group-attachments",
+    "sentry-api-0-group-similar",
+    "sentry-api-0-group-external-issues",
+    "sentry-api-0-group-external-issues-details",
+    "sentry-api-0-group-integrations",
+    "sentry-api-0-group-integration-details",
+    "sentry-api-0-group-current-release",
+    "sentry-api-0-group-participants",
+    "sentry-api-0-shared-group-details",
+    # Unscoped profiling URLs
+    "sentry-api-0-profiling-project-profile",
     # Legacy monitor endpoints
     "sentry-api-0-monitor-ingest-check-in-index",
+    "sentry-api-0-monitor-ingest-check-in-details",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",

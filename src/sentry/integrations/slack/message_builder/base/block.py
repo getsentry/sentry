@@ -62,6 +62,18 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_external_select_action(action, initial_option):
+        action = {
+            "type": "external_select",
+            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
+            "action_id": action.name,
+        }
+        if initial_option:
+            action["initial_option"] = initial_option
+
+        return action
+
+    @staticmethod
     def get_button_action(action):
         button = {
             "type": "button",

@@ -292,10 +292,14 @@ def test_spec_context_mapping() -> None:
 
 def test_spec_query_or_precedence_with_environment() -> None:
     spec_1 = OnDemandMetricSpec(
-        "count()", "(transaction.duration:>1s OR http.status_code:200)", "dev"
+        "count()",
+        "(transaction.duration:>1s OR http.status_code:200)",
+        "dev",
     )
     spec_2 = OnDemandMetricSpec(
-        "count()", "transaction.duration:>1s OR http.status_code:200", "dev"
+        "count()",
+        "transaction.duration:>1s OR http.status_code:200",
+        "dev",
     )
 
     assert spec_1._metric_type == "c"
@@ -681,20 +685,18 @@ def test_cleanup_with_environment_injection(query) -> None:
     transformed_query = f"({query}) AND (event.type:transaction)"
     environment = "production"
 
-    # We test with both new and old env logic, in this case queries should be identical in both logics since we
-    # scrape away parentheses.
-    for updated_env_logic in (True, False):
-        spec = OnDemandMetricSpec(
-            field, query, environment=environment, use_updated_env_logic=updated_env_logic
-        )
-        transformed_spec = OnDemandMetricSpec(
-            field,
-            transformed_query,
-            environment=environment,
-            use_updated_env_logic=updated_env_logic,
-        )
+    spec = OnDemandMetricSpec(
+        field,
+        query,
+        environment=environment,
+    )
+    transformed_spec = OnDemandMetricSpec(
+        field,
+        transformed_query,
+        environment=environment,
+    )
 
-        assert spec.query_hash == transformed_spec.query_hash
+    assert spec.query_hash == transformed_spec.query_hash
 
 
 @django_db_all

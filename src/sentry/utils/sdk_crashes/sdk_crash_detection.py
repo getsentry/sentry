@@ -8,12 +8,13 @@ import sentry_sdk
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.configs import (
+from sentry.utils.sdk_crashes.event_stripper import strip_event_data
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    SDKCrashDetectionConfig,
+    SdkName,
     cocoa_sdk_crash_detector_config,
     react_native_sdk_crash_detector_config,
 )
-from sentry.utils.sdk_crashes.event_stripper import strip_event_data
-from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig, SdkName
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 

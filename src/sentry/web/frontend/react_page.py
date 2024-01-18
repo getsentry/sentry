@@ -29,7 +29,11 @@ NON_CUSTOMER_DOMAIN_URL_NAMES = [
 
 def resolve_redirect_url(request, org_slug, user_id=None):
     org_context = organization_service.get_organization_by_slug(
-        slug=org_slug, only_visible=False, user_id=user_id
+        slug=org_slug,
+        only_visible=False,
+        user_id=user_id,
+        include_projects=False,
+        include_teams=False,
     )
     if org_context and features.has("organizations:customer-domains", org_context.organization):
         url_base = generate_organization_url(org_context.organization.slug)
