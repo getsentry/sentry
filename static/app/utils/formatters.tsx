@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import {t, tn} from 'sentry/locale';
 import {CommitAuthor, User} from 'sentry/types';
-import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -450,7 +450,7 @@ export function formatNumberWithDynamicDecimalPoints(value: number): string {
 
 export function formatRate(
   value: number,
-  unit: RateUnits = RateUnits.PER_SECOND,
+  unit: RateUnit = RateUnit.PER_SECOND,
   options: {
     minimumValue?: number;
     significantDigits?: number;

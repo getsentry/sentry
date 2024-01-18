@@ -1,4 +1,4 @@
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   DAY, // ms in day
   formatAbbreviatedNumber,
@@ -230,8 +230,8 @@ describe('formatRate()', function () {
   });
 
   it('Accepts a unit', () => {
-    expect(formatRate(0.3142, RateUnits.PER_MINUTE)).toBe('0.314/min');
-    expect(formatRate(0.3142, RateUnits.PER_HOUR)).toBe('0.314/hr');
+    expect(formatRate(0.3142, RateUnit.PER_MINUTE)).toBe('0.314/min');
+    expect(formatRate(0.3142, RateUnit.PER_HOUR)).toBe('0.314/hr');
   });
 
   it('Formats to 3 significant digits for numbers > minimum', () => {

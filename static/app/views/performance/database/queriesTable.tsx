@@ -11,7 +11,7 @@ import {Organization} from 'sentry/types';
 import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RATE_UNIT_TITLE, RateUnits} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,7 +44,7 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: 'spm()',
-    name: `${t('Queries')} ${RATE_UNIT_TITLE[RateUnits.PER_MINUTE]}`,
+    name: `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
   {

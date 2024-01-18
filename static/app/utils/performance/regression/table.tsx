@@ -5,7 +5,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -33,7 +33,7 @@ export function NumericChange({
   const location = useLocation();
   const percentChange = getPercentChange(beforeRawValue, afterRawValue);
 
-  const unit = columnKey === 'p95' ? 'millisecond' : RateUnits.PER_MINUTE;
+  const unit = columnKey === 'p95' ? 'millisecond' : RateUnit.PER_MINUTE;
   const renderer = (value: number) =>
     getFieldRenderer(
       columnKey,

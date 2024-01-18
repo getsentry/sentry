@@ -119,7 +119,7 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-export enum RateUnits {
+export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
   PER_HOUR = '1/hour',
@@ -127,21 +127,21 @@ export enum RateUnits {
 
 // Rates normalized to /second unit
 export const RATE_UNIT_MULTIPLIERS = {
-  [RateUnits.PER_SECOND]: 1,
-  [RateUnits.PER_MINUTE]: 1 / 60,
-  [RateUnits.PER_HOUR]: 1 / (60 * 60),
+  [RateUnit.PER_SECOND]: 1,
+  [RateUnit.PER_MINUTE]: 1 / 60,
+  [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
 export const RATE_UNIT_LABELS = {
-  [RateUnits.PER_SECOND]: '/s',
-  [RateUnits.PER_MINUTE]: '/min',
-  [RateUnits.PER_HOUR]: '/hr',
+  [RateUnit.PER_SECOND]: '/s',
+  [RateUnit.PER_MINUTE]: '/min',
+  [RateUnit.PER_HOUR]: '/hr',
 };
 
 export const RATE_UNIT_TITLE = {
-  [RateUnits.PER_SECOND]: 'Per Second',
-  [RateUnits.PER_MINUTE]: 'Per Minute',
-  [RateUnits.PER_HOUR]: 'Per Hour',
+  [RateUnit.PER_SECOND]: 'Per Second',
+  [RateUnit.PER_MINUTE]: 'Per Minute',
+  [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [

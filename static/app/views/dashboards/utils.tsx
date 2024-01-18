@@ -36,7 +36,7 @@ import {
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
-  RateUnits,
+  RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
@@ -119,7 +119,7 @@ export function getThresholdUnitSelectOptions(
   }
 
   if (dataType === 'rate') {
-    return Object.values(RateUnits).map(unit => ({
+    return Object.values(RateUnit).map(unit => ({
       label: `/${unit.split('/')[1]}`,
       value: unit,
     }));

@@ -47,7 +47,7 @@ import {
 import {
   aggregateOutputType,
   AggregationOutputType,
-  RateUnits,
+  RateUnit,
 } from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -106,7 +106,7 @@ type Props = {
   onMouseOver?: EChartMouseOverHandler;
   preserveIncompletePoints?: boolean;
   previousData?: Series[];
-  rateUnit?: RateUnits;
+  rateUnit?: RateUnit;
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
