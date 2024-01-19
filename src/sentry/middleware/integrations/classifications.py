@@ -130,7 +130,7 @@ class IntegrationClassification(BaseClassification):
             with sentry_sdk.configure_scope() as scope:
                 scope.set_tag("provider", provider)
                 scope.set_tag("path", request.path)
-                sentry_sdk.capture_exception(Exception("Unexpected provider was parsed from path"))
+                sentry_sdk.capture_exception(Exception("Unknown provider was extracted from integration extension url"))
             return self.response_handler(request)
 
         parser = parser_class(
