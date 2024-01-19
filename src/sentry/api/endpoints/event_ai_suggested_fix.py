@@ -337,8 +337,9 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         elif policy == "individual_consent":
             if request.GET.get("consent") != "yes":
                 policy_failure = "individual_consent"
-        elif is_sentry_staff and not pii_certified:
-            policy_failure = "pii_certification_missing"
+        elif policy == "pii_certification_missing":
+            if not is_sentry_staff and not pii_certified:
+                policy_failure = "pii_certification_missing"
         elif policy == "allowed":
             pass
         else:
