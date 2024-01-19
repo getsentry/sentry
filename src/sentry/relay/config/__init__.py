@@ -452,10 +452,10 @@ def _get_project_config(
                         },
                         {
                             "measurement": "lcp",
-                            "weight": 0.0,
+                            "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "fid",
