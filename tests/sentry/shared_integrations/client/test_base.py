@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from pytest import raises
@@ -72,3 +72,14 @@ class BaseApiClientTest(TestCase):
         with raises(ApiHostError):
             self.api_client.get("https://172.31.255.255")
         assert mock_finalize_request.called
+
+
+    @patch.object(Session, "send")
+    def test_default_timeout(self, mock_session_send):
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        self.api_client.get("https://172.31.255.255")
+        assert mock_session_send.call_count == 1
+        assert mock_session_send.mock_calls[0].kwargs['timeout'] == 30
