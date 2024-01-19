@@ -1,13 +1,8 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import {
-  DataCategoryExact,
-  DataCategoryInfo,
-  OrgRole,
-  PermissionResource,
-  Scope,
-} from 'sentry/types';
+import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types';
 
 /**
  * Common constants here

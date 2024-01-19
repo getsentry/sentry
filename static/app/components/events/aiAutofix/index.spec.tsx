@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AiAutofix} from 'sentry/components/events/aiAutofix';
-import {EventMetadataWithAutofix} from 'sentry/components/events/aiAutofix/types';
+import type {EventMetadataWithAutofix} from 'sentry/components/events/aiAutofix/types';
 
 const group = GroupFixture();
 

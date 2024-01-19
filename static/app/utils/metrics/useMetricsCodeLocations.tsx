@@ -1,6 +1,6 @@
-import {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types';
 import {getDateTimeParams} from 'sentry/utils/metrics';
-import {
+import type {
   MetricCorrelation,
   MetricMetaCodeLocation,
   MetricRange,

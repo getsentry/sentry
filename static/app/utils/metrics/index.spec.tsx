@@ -1,4 +1,8 @@
-import {MetricsApiRequestQueryOptions, MetricsOperation, PageFilters} from 'sentry/types';
+import type {
+  MetricsApiRequestQueryOptions,
+  MetricsOperation,
+  PageFilters,
+} from 'sentry/types';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,

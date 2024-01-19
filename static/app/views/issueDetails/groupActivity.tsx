@@ -1,26 +1,27 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import useMutateActivity, {
+import type {
   TContext,
   TData,
   TError,
   TVariables,
 } from 'sentry/components/feedback/useMutateActivity';
+import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {
+import type {
   Group,
   GroupActivity as GroupActivityType,
   GroupActivityNote,
   GroupActivityReprocess,
   User,
 } from 'sentry/types';
-import {NoteType} from 'sentry/types/alerts';
-import {MutateOptions} from 'sentry/utils/queryClient';
+import type {NoteType} from 'sentry/types/alerts';
+import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
 import {

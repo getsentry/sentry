@@ -2,13 +2,14 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import EventsChart, {EventsChartProps} from 'sentry/components/charts/eventsChart';
+import type {EventsChartProps} from 'sentry/components/charts/eventsChart';
+import EventsChart from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

@@ -1,15 +1,16 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {GridColumnHeader} from 'sentry/components/gridEditable';
-import SortLink, {Alignments} from 'sentry/components/gridEditable/sortLink';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import type {Alignments} from 'sentry/components/gridEditable/sortLink';
+import SortLink from 'sentry/components/gridEditable/sortLink';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
   fieldAlignment,
   parseFunction,
-  Sort,
 } from 'sentry/utils/discover/fields';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import type {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Options = {
   column: GridColumnHeader<string>;

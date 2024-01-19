@@ -1,7 +1,7 @@
 import {createContext, useCallback} from 'react';
 
-import {OnboardingSelectedSDK, Project} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {OnboardingSelectedSDK, Project} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type GettingStartedWithProject = Pick<Project, 'name' | 'id'> & {

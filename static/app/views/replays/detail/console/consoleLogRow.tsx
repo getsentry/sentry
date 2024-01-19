@@ -1,4 +1,5 @@
-import {CSSProperties, memo, useCallback} from 'react';
+import type {CSSProperties} from 'react';
+import {memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 

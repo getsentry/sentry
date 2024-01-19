@@ -1,6 +1,6 @@
 import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
-import {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/project';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,

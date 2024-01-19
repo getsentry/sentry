@@ -1,5 +1,6 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
+import type {Location} from 'history';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {EventFixture} from 'sentry-fixture/event';
@@ -15,13 +16,13 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType, Event, Group, IssueCategory, IssueType} from 'sentry/types';
-import {Organization} from 'sentry/types/organization';
-import {Project} from 'sentry/types/project';
-import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
-import GroupEventDetails, {
-  GroupEventDetailsProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import type {Event, Group} from 'sentry/types';
+import {EntryType, IssueCategory, IssueType} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import type {GroupEventDetailsProps} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 import {RouteContext} from 'sentry/views/routeContext';
 

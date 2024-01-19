@@ -1,4 +1,4 @@
-import {Project, Team} from 'sentry/types';
+import type {Project, Team} from 'sentry/types';
 
 export default function getProjectsByTeams(
   teams: Team[],

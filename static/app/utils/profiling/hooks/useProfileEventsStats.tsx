@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {EventsStatsSeries, PageFilters} from 'sentry/types';
+import type {EventsStatsSeries, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {makeFormatTo} from 'sentry/utils/profiling/units/units';

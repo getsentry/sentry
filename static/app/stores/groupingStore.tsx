@@ -8,11 +8,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Group, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import toArray from 'sentry/utils/toArray';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 // Between 0-100
 const MIN_SCORE = 0.6;

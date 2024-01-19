@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
+import type {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
@@ -17,7 +17,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Member,
   MemberRole,
   MissingMember,
@@ -29,10 +29,8 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
-import {
-  RenderSearch,
-  SearchWrapper,
-} from 'sentry/views/settings/components/defaultSearchBar';
+import type {RenderSearch} from 'sentry/views/settings/components/defaultSearchBar';
+import {SearchWrapper} from 'sentry/views/settings/components/defaultSearchBar';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import MembersFilter from './components/membersFilter';

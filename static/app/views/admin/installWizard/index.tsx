@@ -11,7 +11,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
-import {Field, getForm, getOptionDefault, getOptionField} from '../options';
+import type {Field} from '../options';
+import {getForm, getOptionDefault, getOptionField} from '../options';
 
 export type InstallWizardProps = DeprecatedAsyncView['props'] & {
   onConfigured: () => void;

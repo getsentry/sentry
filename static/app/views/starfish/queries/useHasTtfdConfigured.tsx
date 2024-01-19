@@ -1,4 +1,4 @@
-import {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

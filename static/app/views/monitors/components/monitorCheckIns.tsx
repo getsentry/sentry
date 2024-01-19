@@ -24,12 +24,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import {
-  CheckIn,
-  CheckInStatus,
-  Monitor,
-  MonitorEnvironment,
-} from 'sentry/views/monitors/types';
+import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
+import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
 
 type Props = {

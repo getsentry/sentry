@@ -1,4 +1,5 @@
-import {Fragment, ReactElement} from 'react';
+import type {ReactElement} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
