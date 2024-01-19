@@ -23,7 +23,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 from django.conf import settings
-from sentry_kafka_schemas.codecs import ValidationError
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 from sentry_kafka_schemas.schema_types.snuba_metrics_v1 import Metric
@@ -164,17 +163,6 @@ class IndexerBatch:
 
         assert parsed_payload.get("name", None) is not None
         parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(parsed_payload["name"])
-
-        try:
-            self.schema_validator(use_case_id.value, parsed_payload)
-        except ValidationError:
-            if settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS:
-                raise
-            logger.warning(
-                "process_messages.invalid_schema",
-                extra={"payload_value": str(msg.payload.value)},
-                exc_info=True,
-            )
 
         self.__message_count[use_case_id] += 1
 
