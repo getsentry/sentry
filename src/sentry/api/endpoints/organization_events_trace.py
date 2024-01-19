@@ -214,13 +214,13 @@ class TraceEvent:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
             elif "occurrence_spans" in self.event:
-                for problem in self.event["problems"]:
+                for problem in self.event["issue_occurrences"]:
                     parent_span_ids = problem.evidence_data.get("parent_span_ids")
                     if parent_span_ids is not None:
                         unique_spans = unique_spans.union(parent_span_ids)
                 span = list(unique_spans)
                 for event_span in self.event["occurrence_spans"]:
-                    for problem in self.event["problems"]:
+                    for problem in self.event["issue_occurrences"]:
                         offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
                         if event_span.get("span_id") in offender_span_ids:
                             try:
@@ -252,17 +252,17 @@ class TraceEvent:
                         occurrence_query.run_query("api.trace-view.get-occurrence-ids")
                     )["data"]
 
-                    problems = IssueOccurrence.fetch_multi(
+                    issue_occurrences = IssueOccurrence.fetch_multi(
                         [occurrence.get("occurrence_id") for occurrence in occurrence_ids],
                         self.event["project.id"],
                     )
-                    for problem in problems:
+                    for problem in issue_occurrences:
                         parent_span_ids = problem.evidence_data.get("parent_span_ids")
                         if parent_span_ids is not None:
                             unique_spans = unique_spans.union(parent_span_ids)
                     span = list(unique_spans)
                     for event_span in self.nodestore_event.data.get("spans", []):
-                        for problem in problems:
+                        for problem in issue_occurrences:
                             offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
                             if event_span.get("span_id") in offender_span_ids:
                                 try:
@@ -502,13 +502,13 @@ def augment_transactions_with_spans(
     trace_parent_spans = set()  # parent span ids of segment spans
     transaction_problem_map = {}
     problem_project_map = {}
-    problems = []
+    issue_occurrences = []
     occurrence_spans = set()
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
 
     for transaction in transactions:
         transaction["occurrence_spans"] = []
-        transaction["problems"] = []
+        transaction["issue_occurrences"] = []
 
         # Pull out occurrence data
         transaction_problem_map[transaction["id"]] = transaction
@@ -533,7 +533,7 @@ def augment_transactions_with_spans(
 
     for project, occurrences in problem_project_map.items():
         if occurrences:
-            problems.extend(
+            issue_occurrences.extend(
                 [
                     occurrence
                     for occurrence in IssueOccurrence.fetch_multi(occurrences, project)
@@ -541,7 +541,7 @@ def augment_transactions_with_spans(
                 ]
             )
 
-    for problem in problems:
+    for problem in issue_occurrences:
         occurrence_spans = occurrence_spans.union(set(problem.evidence_data["offender_span_ids"]))
 
     query_spans = {*trace_parent_spans, *error_spans, *occurrence_spans}
@@ -575,12 +575,12 @@ def augment_transactions_with_spans(
         if "trace.parent_span.stripped" in transaction:
             if parent := parent_map.get(transaction["trace.parent_span.stripped"]):
                 transaction["trace.parent_transaction"] = parent["transaction.id"]
-    for problem in problems:
+    for problem in issue_occurrences:
         for span_id in problem.evidence_data["offender_span_ids"]:
             if parent := parent_map.get(span_id):
                 transaction = transaction_problem_map[problem.event_id]
                 transaction["occurrence_spans"].append(parent)
-                transaction["problems"].append(problem)
+                transaction["issue_occurrences"].append(problem)
     for error in errors:
         if parent := parent_map.get(error["trace.span"]):
             error["trace.transaction"] = parent["transaction.id"]
@@ -1145,7 +1145,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 if iteration > limit:
                     break
 
-        root_traces: List[TraceEvent] = []
+        trace_roots: List[TraceEvent] = []
         orphans: List[TraceEvent] = []
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
@@ -1153,9 +1153,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             if index > 0 or len(roots) == 0:
                 orphans.extend(result)
             elif len(roots) > 0:
-                root_traces = result
+                trace_roots = result
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
-        root_traces.sort(key=child_sort_key)
+        trace_roots.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
         orphan_errors = sorted(orphan_errors, key=lambda k: k["timestamp"])
 
@@ -1165,13 +1165,13 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
         if allow_orphan_errors:
             return {
-                "transactions": [trace.full_dict(detailed) for trace in root_traces]
+                "transactions": [trace.full_dict(detailed) for trace in trace_roots]
                 + [orphan.full_dict(detailed) for orphan in orphans],
                 "orphan_errors": [orphan for orphan in orphan_errors],
             }
 
         return (
-            [trace.full_dict(detailed) for trace in root_traces]
+            [trace.full_dict(detailed) for trace in trace_roots]
             + [orphan.full_dict(detailed) for orphan in orphans]
             + [orphan for orphan in orphan_errors]
         )
