@@ -54,6 +54,10 @@ class BaseApiClient(TrackResponseMixin):
 
     integration_name: str
 
+    # Timeout for both the connect and the read timeouts.
+    # See: https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+    timeout: int = 30
+
     def __init__(
         self,
         integration_id: int | None = None,
@@ -190,7 +194,7 @@ class BaseApiClient(TrackResponseMixin):
             allow_redirects = method.upper() == "GET"
 
         if timeout is None:
-            timeout = 30
+            timeout = self.timeout
 
         full_url = self.build_url(path)
 
