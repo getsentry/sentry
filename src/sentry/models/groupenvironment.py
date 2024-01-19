@@ -27,7 +27,6 @@ class GroupEnvironment(Model):
         app_label = "sentry"
         db_table = "sentry_groupenvironment"
         index_together = [
-            ("environment", "first_release"),
             ("environment", "first_release", "first_seen"),
         ]
         unique_together = [("group", "environment")]

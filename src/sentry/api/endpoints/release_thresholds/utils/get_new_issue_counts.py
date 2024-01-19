@@ -37,14 +37,14 @@ def get_new_issue_counts(
             )
         qs = (
             Group.objects.filter(query)
-            .values("project__id", "first_release__version", "groupenvironment")
+            .values("first_release__version")
             .annotate(
                 count=Count("*"),
                 threshold_id=Value(t.id, output_field=CharField()),
             )
         )
         if queryset:
-            queryset.union(qs)
+            queryset = queryset.union(qs)
         else:
             queryset = qs
 
