@@ -22,7 +22,6 @@ type DefaultProps = {
   openInNewTab: boolean;
   priority: Priority;
   size: Size;
-  system: boolean;
   withoutMarginBottom: boolean;
   href?: string;
 };
