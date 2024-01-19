@@ -22,8 +22,8 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {FocusArea} from 'sentry/views/ddm/chartBrush';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
+import {FocusArea} from 'sentry/views/ddm/focusArea';
 import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
 
 interface DDMContextValue {
@@ -209,15 +209,17 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
-      const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
       if (!area.range.start || !area.range.end) {
         Sentry.metrics.increment('ddm.enhance.range-undefined');
         return;
       }
 
-      if (area.range.start < dateRange.start || area.range.end > dateRange.end) {
-        Sentry.metrics.increment('ddm.enhance.range-overflow');
-        return;
+      const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
+      if (area.range.start < dateRange.start) {
+        area.range.start = dateRange.start;
+      }
+      if (area.range.end > dateRange.end) {
+        area.range.end = dateRange.end;
       }
 
       Sentry.metrics.increment('ddm.enhance.add');
