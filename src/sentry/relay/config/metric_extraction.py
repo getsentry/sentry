@@ -540,8 +540,7 @@ def _convert_aggregate_and_query_to_metrics(
                 validate_sampling_condition(json.dumps(condition))
             else:
                 metrics.incr(
-                    "on_demand_metrics.missing_condition_spec",
-                    tags={"prefilling": prefilling},
+                    "on_demand_metrics.missing_condition_spec", tags={"prefilling": prefilling}
                 )
 
             metric_specs_and_hashes.append((on_demand_spec.query_hash, metric_spec, spec_version))
