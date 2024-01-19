@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
-import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
@@ -30,6 +29,7 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
+import {uniq} from 'sentry/utils/array/uniq';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,

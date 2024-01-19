@@ -1,5 +1,3 @@
-import uniq from 'lodash/uniq';
-
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
 import {
@@ -20,6 +18,7 @@ import {
 import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {uniq} from 'sentry/utils/array/uniq';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -208,7 +207,7 @@ export function getShortEventId(eventId: string) {
  * Returns a comma delineated list of errors
  */
 function getEventErrorString(event: Event) {
-  return uniq(event.errors?.map(error => error.type)).join(',') || '';
+  return uniq(event.errors?.map(error => error.type)).join(',');
 }
 
 function hasTrace(event: Event) {

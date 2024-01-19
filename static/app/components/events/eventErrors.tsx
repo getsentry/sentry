@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import uniq from 'lodash/uniq';
 import uniqWith from 'lodash/uniqWith';
 
 import {Alert} from 'sentry/components/alert';
@@ -24,6 +23,7 @@ import {Image} from 'sentry/types/debugImage';
 import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions';
