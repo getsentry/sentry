@@ -22,13 +22,16 @@ class ParserTestCase(TestCase):
         }
 
     def test_javascript_simple(self):
-        patch = """@@44,38@@ function hello(argument1, argument2)
+        patch = """\
+@@44,38@@ function hello(argument1, argument2)
 
 @@44,38@@ export default function world({argument}) {
 
 @@44,38@@ async function there()
 
-@@44,38@@ export const blue = (argument) => {
+@@44,38@@ async function wow(
+
+@@44,38@@ export const blue = () => {
 
 @@44,38@@ export const green = (argument) =>
 
@@ -38,7 +41,7 @@ class ParserTestCase(TestCase):
 
 @@44,38@@ const constructor = new Function(
 
-@@44,38@@ const test = {"""
+@@44,38@@ const noMatch = {"""
 
         assert JavascriptParser.extract_functions_from_patch(patch) == {
             "hello",
@@ -49,11 +52,140 @@ class ParserTestCase(TestCase):
             "constructor",
             "there",
             "green",
+            "wow",
         }
 
-    def test_javascript(self):
+        # reference: https://github.com/jquery/esprima/tree/main/test/fixtures/declaration/function
+        patch = """\
+@@44,38@@ function noArguments1() { }
+
+@@44,38@@ function noArguments2() {
+
+@@44,38@@ function test1(t, t) { }
+
+@@44,38@@ function test2(t, t) { }
+
+@@44,38@@ (function test3(t, t) { })
+
+@@44,38@@ function hasInnerFunction1() { function inner() { "use strict" } }
+
+@@44,38@@ function hasInnerFunction2(a) { sayHi();
+
+@@44,38@@ function hasInnerFunction3(a, b) { sayHi(); }
+
+@@44,38@@ var varFunction1 = function() { sayHi() };
+
+@@44,38@@ var varFunction2 = function() {
+
+@@44,38@@ var varFunction3 = function eval() { };
+
+@@44,38@@ var varFunction4 = function arguments(
+
+@@44,38@@ var varFunction5 = function hi() { sayHi() };
+
+@@44,38@@ function protoFunction(__proto__) { }
+
+@@44,38@@ function test() { "use strict" + 42; }
+
+@@44,38@@ function a(x, x) {'use strict';}
+
+@@44,38@@ function hello() { sayHi(); }
+
+@@44,38@@ function lol() { }
+"""
+
+        assert JavascriptParser.extract_functions_from_patch(patch) == {
+            "noArguments1",
+            "noArguments2",
+            "test1",
+            "test2",
+            "test3",
+            "hasInnerFunction1",
+            "hasInnerFunction2",
+            "hasInnerFunction3",
+            "varFunction1",
+            "varFunction2",
+            "varFunction3",
+            "varFunction4",
+            "varFunction5",
+            "protoFunction",
+            "test",
+            "a",
+            "hello",
+            "lol",
+        }
+
+    # reference https://github.com/jquery/esprima/tree/main/test/fixtures/ES6/arrow-function
+    # tests arrow functions on the same line as the hunk header
+    patch = """\
+@@44,38@@ export const arrow1 = (...a) => {
+
+@@44,38@@ var arrow2 = (a, ...b) => 0;
+
+@@44,38@@ var arrow3 = ((a)) => 0
+
+@@44,38@@ const arrow4 = (sun) => earth
+
+@@44,38@@ const arrow5 = foo((x, y) => {})
+
+@@44,38@@ const arrow6 = foo(() => {})
+
+@@44,38@@ const arrow7 = (x) => ((y, z) => (x, y, z))
+
+@@44,38@@ const arrow8 = x => y => 42
+
+@@44,38@@ const arrow9 = (x) => y => 42
+
+@@44,38@@ const arrow10 = (x => x)
+
+@@44,38@@ const arrow11 = (eval, a = 10) => 42
+
+@@44,38@@ const arrow12 = (eval = 10) => 42
+
+@@44,38@@ const arrow13 = (eval, a) => 42
+
+@@44,38@@ const arrow14 = (a) => 00
+
+@@44,38@@ const arrow15 = arguments => 42
+
+@@44,38@@ const arrow16 = (x=1) => x * x
+
+@@44,38@@ const arrow17 = (a, b) => { 42; }
+
+@@44,38@@ const arrow18 = e => { label: 42 }
+
+@@44,38@@ const arrow19 = e => ({ property: 42 })
+
+@@44,38@@ const arrow20 = e => { 42; }
+
+@@44,38@@ const arrow21 = (a, b) => "test"
+
+@@44,38@@ const arrow22 = (e) => "test"
+
+@@44,38@@ const arrow23 = e => e + 1
+
+@@44,38@@ const arrow24 = e => "test"
+
+@@44,38@@ const arrow25 = () => "test"
+
+@@44,38@@ var arrow26 = (...a) => 0
+
+@@44,38@@ var arrow27 = (...a, ...b) => 0
+
+@@44,38@@ var arrow28 = (a,b,...c) => 0;
+
+@@44,38@@ var arrow29 = (a ...b) => 0
+"""
+
+    functions = JavascriptParser.extract_functions_from_patch(patch)
+
+    for i in range(1, 30):
+        assert "arrow" + str(i) in functions
+
+    def test_javascript_example(self):
         # from https://github.com/getsentry/sentry/pull/61329
-        patch = """@@ -40,6 +40,7 @@ import {space} from 'sentry/styles/space';
+        patch = """\
+@@ -40,6 +40,7 @@ import {space} from 'sentry/styles/space';
  import {Organization} from 'sentry/types';
  import {isDemoWalkthrough} from 'sentry/utils/demoMode';
  import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
@@ -100,7 +232,8 @@ class ParserTestCase(TestCase):
         assert JavascriptParser.extract_functions_from_patch(patch) == {"Sidebar"}
 
         # from https://github.com/getsentry/sentry/pull/55411
-        patch = """@@ -1,9 +1,11 @@
+        patch = """\
+@@ -1,9 +1,11 @@
  import {useCallback, useEffect, useState} from 'react';
  import styled from '@emotion/styled';
 +import * as qs from 'query-string';

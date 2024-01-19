@@ -106,10 +106,16 @@ class JavascriptParser(LanguageParser):
         Function expression:            const planet = async function(argument) {
         Function constructor:           const constructor = new Function(
         """
-        function_declaration_regex = r"^@@.*@@.*\s+function\s+(?P<fnc>.*)\(.*$"
-        arrow_function_regex = r"^@@.*@@.*\s+const\s+(?P<fnc>.*)\s+=.*\s+\(.*\)\s+=>.*$"
-        function_expression_regex = r"^@@.*@@.*\s+const\s+(?P<fnc>.*)\s+=.*\s+function\(.*$"
-        function_constructor_regex = r"^@@.*@@.*\s+const\s+(?P<fnc>.*)\s+=\s+new\s+Function\(.*$"
+        function_declaration_regex = r"^@@.*@@[^=]*?\s*function\s+(?P<fnc>[^\(]*)\(.*$"
+        arrow_function_regex = (
+            r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^=]*)\s+=[^>]*[\(.*\)]?\s*=>.*$"
+        )
+        function_expression_regex = (
+            r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^\(]*)\s+=.*\s+function.*\(.*$"
+        )
+        function_constructor_regex = (
+            r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^\(]*)\s+=\s+new\s+Function\(.*$"
+        )
 
         regexes = [
             function_declaration_regex,
