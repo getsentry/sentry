@@ -4,7 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import OrganizationCreate from 'sentry/views/organizationCreate';
+import OrganizationCreate, {
+  DATA_STORAGE_DOCS_LINK,
+} from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
   let oldRegions: any[] = [];
@@ -34,6 +36,17 @@ describe('OrganizationCreate', function () {
     render(<OrganizationCreate />);
   });
 
+  it('does not render relocation url for self-hosted', function () {
+    ConfigStore.set('termsUrl', 'https://example.com/terms');
+    ConfigStore.set('privacyUrl', 'https://example.com/privacy');
+    ConfigStore.set('isSelfHosted', true);
+    render(<OrganizationCreate />);
+
+    expect(() =>
+      screen.getByText('Relocating from self-hosted?', {exact: false})
+    ).toThrow();
+  });
+
   it('creates a new org', async function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -42,8 +55,13 @@ describe('OrganizationCreate', function () {
     });
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
+    ConfigStore.set('isSelfHosted', false);
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
+    expect(
+      screen.getByText('Relocating from self-hosted?', {exact: false})
+    ).toBeInTheDocument();
+    expect(screen.getByText('here')).toHaveAttribute('href', '/relocation/');
 
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(
@@ -156,6 +174,9 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
+    const link = screen.getByText<HTMLAnchorElement>('Learn More');
+    expect(link).toBeInTheDocument();
+    expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(screen.getByText('Create Organization'));
 
@@ -213,6 +234,9 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
+    const link = screen.getByText<HTMLAnchorElement>('Learn More');
+    expect(link).toBeInTheDocument();
+    expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Data Storage Location'}),

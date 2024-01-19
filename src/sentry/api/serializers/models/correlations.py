@@ -1,7 +1,7 @@
 from sentry.api.serializers import Serializer
 
 
-class MetricSpansSerializer(Serializer):
+class CorrelationsSerializer(Serializer):
     def __init__(self, *args, **kwargs):
         Serializer.__init__(self, *args, **kwargs)
 
@@ -11,9 +11,20 @@ class MetricSpansSerializer(Serializer):
     def get_attrs(self, item_list, user):
         return {item: self._compute_attrs(item) for item in item_list}
 
+    def _serialize_spans_details_payload(self, spans_details):
+        return [
+            {
+                "spanId": span_details.span_id,
+                "spanDuration": span_details.span_duration,
+                "spanTimestamp": span_details.span_timestamp,
+            }
+            for span_details in spans_details
+        ]
+
     def _serialize_spans_summary_payload(self, spans_summary):
         return [
-            {"spanOp": span_summary.span_op, "spanDuration": span_summary.span_duration}
+            # The spanDuration
+            {"spanOp": span_summary.span_op, "spanDuration": span_summary.total_duration}
             for span_summary in spans_summary
         ]
 
@@ -25,6 +36,9 @@ class MetricSpansSerializer(Serializer):
             "profileId": segment_payload.get("profile_id"),
             "segmentName": segment_payload.get("segment_name"),
             "spansNumber": segment_payload.get("spans_number"),
+            "spansDetails": self._serialize_spans_details_payload(
+                segment_payload.get("spans_details", [])
+            ),
             "spansSummary": self._serialize_spans_summary_payload(
                 segment_payload.get("spans_summary", [])
             ),

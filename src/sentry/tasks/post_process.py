@@ -959,7 +959,13 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_window": snooze.user_window,
             }
 
-            manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+            # issues snoozed with a specific time duration should be marked ONGOING when the window expires
+            reason = (
+                GroupInboxReason.ONGOING
+                if snooze.until is not None
+                else GroupInboxReason.ESCALATING
+            )
+            manage_issue_states(group, reason, event, snooze_details)
 
             snooze.delete()
 
