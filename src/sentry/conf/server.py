@@ -1616,11 +1616,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable issue platform
     "organizations:issue-platform": False,
     # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": False,
+    "organizations:issue-platform-api-crons-sd": True,
     # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": False,
-    # Enable additional logging for issue platform
-    "organizations:issue-platform-extra-logging": False,
+    "organizations:issue-platform-crons-sd": True,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
@@ -1856,6 +1854,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-new-event-counts": False,
     # Enable View Sample Replay button on the Replay-List empty-state page
     "organizations:session-replay-onboarding-cta-button": False,
+    # Enable Rage Click Issue Creation In Recording Consumer
+    "organizations:session-replay-rage-click-issue-creation": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enable core Session Replay SDK for recording on sentry.io
@@ -4033,6 +4033,7 @@ SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host and SILO_MODE != "REGION":
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
+    SENTRY_OPTIONS["system.region-api-url-template"] = ""
     CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 

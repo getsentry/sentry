@@ -17,8 +17,8 @@ import {
   MetricDisplayType,
 } from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
-import {FocusArea, useFocusAreaBrush} from 'sentry/views/ddm/chartBrush';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
+import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
@@ -65,7 +65,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [router]
     );
 
-    const focusAreaBrush = useFocusAreaBrush(
+    const focusAreaBrush = useFocusArea(
       chartRef,
       focusArea,
       {
@@ -171,7 +171,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     ]);
 
     return (
-      <ChartWrapper onMouseDownCapture={focusAreaBrush.startBrush}>
+      <ChartWrapper>
         {focusAreaBrush.overlay}
         {displayType === MetricDisplayType.LINE ? (
           <LineChart {...chartProps} />

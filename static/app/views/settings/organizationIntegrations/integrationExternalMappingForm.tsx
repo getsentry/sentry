@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {SelectAsyncControlProps} from 'sentry/components/forms/controls/selectAsyncControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
@@ -18,6 +17,7 @@ import {
   isExternalActorMapping,
   sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = Pick<FormProps, 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
   Pick<SelectAsyncControlProps, 'defaultOptions'> & {
