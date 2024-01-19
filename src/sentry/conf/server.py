@@ -1616,11 +1616,9 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable issue platform
     "organizations:issue-platform": False,
     # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": False,
+    "organizations:issue-platform-api-crons-sd": True,
     # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": False,
-    # Enable additional logging for issue platform
-    "organizations:issue-platform-extra-logging": False,
+    "organizations:issue-platform-crons-sd": True,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
@@ -1856,6 +1854,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-new-event-counts": False,
     # Enable View Sample Replay button on the Replay-List empty-state page
     "organizations:session-replay-onboarding-cta-button": False,
+    # Enable Rage Click Issue Creation In Recording Consumer
+    "organizations:session-replay-rage-click-issue-creation": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enable core Session Replay SDK for recording on sentry.io
@@ -3499,53 +3499,6 @@ KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 # We use the email with Jira 2-way sync in order to match the user
 JIRA_USE_EMAIL_SCOPE = False
 
-"""
-Fields are:
- - south_app_name: Which app to apply the conversion to
- - south_migration: The south migration to map to the new name. If None, then always
-   apply
- - django_app_name: The new app name to apply the conversion to
- - django_migration: Which django migration to 'fake' as run.
- - south_migration_required: Whether the south migration is required to proceed.
- - south_migration_required_error: Error message explaining what is going wrong.
-"""
-SOUTH_MIGRATION_CONVERSIONS = (
-    (
-        "sentry",
-        "0472_auto__add_field_sentryapp_author",
-        "sentry",
-        "0001_initial",
-        True,
-        "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
-    ),
-    (
-        "sentry",
-        "0516_auto__del_grouptagvalue__del_unique_grouptagvalue_group_id_key_value__",
-        "sentry",
-        "0002_912_to_recent",
-        False,
-        "",
-    ),
-    (
-        "sentry",
-        "0518_auto__chg_field_sentryappwebhookerror_response_code",
-        "sentry",
-        "0003_auto_20191022_0122",
-        False,
-        "",
-    ),
-    ("sentry.nodestore", "0001_initial", "nodestore", "0001_initial", False, None),
-    ("nodestore", "0001_initial", "nodestore", "0001_initial", False, None),
-    (
-        "social_auth",
-        "0004_auto__del_unique_usersocialauth_provider_uid__add_unique_usersocialaut",
-        "social_auth",
-        "0001_initial",
-        True,
-        "Please upgrade to Sentry 9.1.2 before upgrading to any later versions.",
-    ),
-)
-
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
 MIGRATIONS_LOCKFILE_APP_WHITELIST = (
@@ -4033,6 +3986,7 @@ SENTRY_DDM_DISABLE = os.getenv("SENTRY_DDM_DISABLE", "0") in ("1", "true", "True
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host and SILO_MODE != "REGION":
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
+    SENTRY_OPTIONS["system.region-api-url-template"] = ""
     CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 

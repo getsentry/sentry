@@ -9,16 +9,18 @@ from django.test import RequestFactory, override_settings
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.models.integrations.integration import Integration
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 region = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
-eu_region = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
+eu_region = Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
 region_config = (region, eu_region)
 
@@ -101,9 +103,10 @@ class JiraRequestParserTest(TestCase):
         request = self.factory.post(path=f"{self.path_base}/issue-updated/")
         parser = JiraRequestParser(request, self.get_response)
 
+        integration = self.get_integration()
         assert_no_webhook_outboxes()
         with patch.object(parser, "get_integration_from_request") as method:
-            method.return_value = self.get_integration()
+            method.return_value = integration
             response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
@@ -111,9 +114,9 @@ class JiraRequestParserTest(TestCase):
         assert response.content == b""
 
         assert len(responses.calls) == 0
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.JIRA,
+            expected_shard_id=integration.id,
             region_names=[region.name],
         )
 
