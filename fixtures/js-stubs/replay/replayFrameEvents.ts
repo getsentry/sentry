@@ -97,6 +97,7 @@ export function ReplayOptionFrameFixture(
     networkRequestHasHeaders: false,
     networkResponseHasHeaders: false,
     sessionSampleRate: 0,
+    shouldRecordCanvas: false,
     useCompression: false,
     useCompressionOption: false,
     ...fields,
