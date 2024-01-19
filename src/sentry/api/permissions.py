@@ -78,11 +78,7 @@ class ScopedPermission(permissions.BasePermission):
 
 class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        if is_active_superuser(request):
-            return True
-        if request.user.is_authenticated and request.user.is_superuser:
-            raise SuperuserRequired
-        return False
+        return is_active_superuser(request)
 
 
 class SentryPermission(ScopedPermission):
@@ -163,7 +159,6 @@ class SentryPermission(ScopedPermission):
         elif request.user.is_authenticated:
             # session auth needs to confirm various permissions
             if self.needs_sso(request, org_context.organization):
-
                 logger.info(
                     "access.must-sso",
                     extra=extra,

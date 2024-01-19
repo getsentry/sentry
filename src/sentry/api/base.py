@@ -24,6 +24,7 @@ from sentry_sdk import Scope
 from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.exceptions import SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.models.environment import Environment
@@ -48,7 +49,7 @@ from .authentication import (
     UserAuthTokenAuthentication,
 )
 from .paginator import BadPaginationError, Paginator
-from .permissions import NoPermission
+from .permissions import NoPermission, SuperuserPermission
 
 __all__ = [
     "Endpoint",
@@ -204,6 +205,23 @@ class Endpoint(APIView):
 
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
+
+    def permission_denied(self, request, message=None, code=None):
+        """
+        Raise a specific superuser exception if the only permission class we
+        are checking is SuperuserPermission.
+        """
+
+        permissions = self.get_permissions()
+
+        can_be_superuser = request.user.is_authenticated and request.user.is_superuser
+        sole_superuser_permission = len(permissions) == 1 and isinstance(
+            permissions[0], SuperuserPermission
+        )
+
+        if can_be_superuser and sole_superuser_permission:
+            raise SuperuserRequired()
+        super().permission_denied(request, message, code)
 
     def handle_exception(  # type: ignore[override]
         self,
