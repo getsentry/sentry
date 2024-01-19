@@ -645,7 +645,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
         return_value=[{}],
     )
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     def test_comment_workflow(
         self,
@@ -698,7 +698,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
         return_value=[{}],
     )
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     def test_comment_workflow_comment_exists(
         self,

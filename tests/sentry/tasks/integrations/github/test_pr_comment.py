@@ -344,7 +344,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     def test_comment_workflow(self, mock_metrics, mock_issues):
         groups = [g.id for g in Group.objects.all()]
@@ -372,7 +372,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=timezone.utc))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
