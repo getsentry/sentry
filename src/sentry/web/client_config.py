@@ -360,6 +360,7 @@ class _ClientConfig:
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
             "regions": self.regions,
+            "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": settings.DEMO_MODE,
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
