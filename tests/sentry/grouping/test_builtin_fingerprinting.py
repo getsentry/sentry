@@ -441,6 +441,26 @@ class BuiltInFingerprintingTest(TestCase):
             "is_builtin": True,
         }
 
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_built_in_chunkload_rules_variants(self):
+        event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
+        variants = {
+            k: v.as_dict()
+            for k, v in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+        }
+        assert "built-in-fingerprint" in variants
+
+        # ignore hash as it's not relevant for this test
+        variants["built-in-fingerprint"].pop("hash", None)
+
+        assert variants["built-in-fingerprint"] == {
+            "type": "built-in-fingerprint",
+            "description": "Sentry defined fingerprint",
+            "values": ["chunkloaderror"],
+            "client_values": ["my-route", "{{ default }}"],
+            "matched_rule": 'sdk:"sentry.javascript.nextjs" type:"ChunkLoadError" -> "chunkloaderror"',
+        }
+
     def test_built_in_chunkload_rules_disabled(self):
         """
         With flag disabled, the built-in rules for ChunkLoadError should be ignored.
