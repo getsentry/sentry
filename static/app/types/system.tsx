@@ -199,6 +199,9 @@ export interface Config {
     agreements: Array<ParntershipAgreementType>;
     partnerDisplayName: string;
   } | null;
+  relocationConfig?: {
+    selectableRegions: string[];
+  };
   statuspage?: {
     api_host: string;
     id: string;
