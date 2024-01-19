@@ -100,6 +100,55 @@ describe('Relocation', function () {
       await userEvent.click(await screen.getByRole('menuitemradio'));
       expect(continueButton).toBeEnabled();
     });
+
+    it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async function () {
+      renderPage('get-started');
+      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      fetchPublicKey = MockApiClient.addMockResponse({
+        url: '/promocodes-external/free-hugs?num_orgs=1',
+        method: 'GET',
+        statusCode: 200,
+      });
+
+      ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
+      const orgSlugsInput = await screen.getByLabelText('org-slugs');
+      const continueButton = await screen.getByRole('button', {name: 'Continue'});
+      await userEvent.type(orgSlugsInput, 'test-org');
+      await userEvent.type(await screen.getByLabelText('region'), 'U');
+      await userEvent.click(await screen.getByRole('menuitemradio'));
+      expect(continueButton).toBeEnabled();
+      await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
+      const promoCodeInput = await screen.getByLabelText('promocode');
+      await userEvent.type(promoCodeInput, 'free-hugs');
+      await userEvent.click(continueButton);
+      expect(addErrorMessage).not.toHaveBeenCalledWith();
+      sessionStorage.clear();
+    });
+
+    it('should not be allowed to go to next step if org slug is entered, region is selected, and promo code is invalid', async function () {
+      renderPage('get-started');
+      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      fetchPublicKey = MockApiClient.addMockResponse({
+        url: '/promocodes-external/free-hugs?num_orgs=1',
+        method: 'GET',
+        statusCode: 403,
+      });
+
+      ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
+      const orgSlugsInput = await screen.getByLabelText('org-slugs');
+      const continueButton = await screen.getByRole('button', {name: 'Continue'});
+      await userEvent.type(orgSlugsInput, 'test-org');
+      await userEvent.type(await screen.getByLabelText('region'), 'U');
+      await userEvent.click(await screen.getByRole('menuitemradio'));
+      expect(continueButton).toBeEnabled();
+      await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
+      const promoCodeInput = await screen.getByLabelText('promocode');
+      await userEvent.type(promoCodeInput, 'free-hugs');
+      await userEvent.click(continueButton);
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'That promotional code has already been claimed, does not have enough uses, is no longer valid, or never existed.'
+      );
+    });
   });
 
   describe('Public Key', function () {

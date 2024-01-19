@@ -79,7 +79,7 @@ export function UploadBackup(__props: StepProps) {
   };
 
   const handleStartRelocation = async () => {
-    const {orgSlugs, regionUrl} = relocationOnboardingContext.data;
+    const {orgSlugs, regionUrl, promoCode} = relocationOnboardingContext.data;
     if (!orgSlugs || !regionUrl || !file) {
       addErrorMessage(DEFAULT_ERROR_MSG);
       return;
@@ -88,6 +88,9 @@ export function UploadBackup(__props: StepProps) {
     formData.set('orgs', orgSlugs);
     formData.set('file', file);
     formData.set('owner', user.username);
+    if (promoCode) {
+      formData.set('promo_code', promoCode);
+    }
     try {
       await api.requestPromise(`/relocations/`, {
         method: 'POST',
