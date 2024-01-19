@@ -482,6 +482,18 @@ class SpanTreeModel {
                 endTimestamp: spanModel.span.timestamp,
               });
 
+              const gapSpan = this.generateSpanGap(
+                group[0].span,
+                event,
+                acc.previousSiblingEndTimestamp,
+                treeDepth + 1,
+                continuingTreeDepths
+              );
+
+              if (gapSpan) {
+                acc.descendants.push(gapSpan);
+              }
+
               acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
 
               // It's possible that a section in the minimap is selected so some spans in this group may be out of view
@@ -526,6 +538,18 @@ class SpanTreeModel {
             })
           );
           return acc;
+        }
+
+        const gapSpan = this.generateSpanGap(
+          group[0].span,
+          event,
+          acc.previousSiblingEndTimestamp,
+          treeDepth + 1,
+          continuingTreeDepths
+        );
+
+        if (gapSpan) {
+          acc.descendants.push(gapSpan);
         }
 
         // Since the group is not expanded, return a singular grouped span bar
