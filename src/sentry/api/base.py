@@ -208,8 +208,9 @@ class Endpoint(APIView):
 
     def permission_denied(self, request, message=None, code=None):
         """
-        Raise a specific superuser exception if the only permission class we
-        are checking is SuperuserPermission.
+        Raise a specific superuser exception if the user can become superuser
+        and the only permission class is SuperuserPermission. Otherwise, raises
+        the appropriate exception according to parent DRF function.
         """
         permissions = self.get_permissions()
 
