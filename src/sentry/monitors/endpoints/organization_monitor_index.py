@@ -72,6 +72,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
+        # TODO(davidenwang): After this is merged and good to go, make this public
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationMonitorPermission,)
@@ -265,3 +267,67 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)
+
+    @extend_schema(
+        operation_id="Bulk Edit Monitors",
+        parameters=[list[GlobalParams.ORG_SLUG]],
+        request=MonitorValidator,
+        responses={
+            200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request: Request, organization) -> Response:
+        """
+        Bulk edit the muted and disabled status of a list of monitors determined by slug
+        """
+        monitor_slugs = request.data.get("slugs")
+
+        if not monitor_slugs:
+            return self.respond("Please specify a list of monitor slugs to modify", status=400)
+
+        # TODO(davidenwang): use serializer for this
+        validator = MonitorValidator(
+            data=request.data,
+            partial=True,
+            context={
+                "organization": organization,
+                "access": request.access,
+            },
+        )
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
+
+        result = dict(validator.validated_data)
+        status = result.get("status")
+
+        monitors = Monitor.objects.filter(slug__in=monitor_slugs)
+        # Ensure we can assign all monitor seats before moving forward
+        if status == ObjectStatus.ACTIVE:
+            result = quotas.backend.check_assign_monitor_seats(monitors)
+            if not result.assignable:
+                return self.respond(result.reason, status=400)
+
+        for monitor in monitors:
+            # Attempt to assign a monitor seat
+            if status == ObjectStatus.ACTIVE:
+                outcome = quotas.backend.assign_monitor_seat(monitor)
+                # This protects against a race condition
+                if outcome != Outcome.ACCEPTED:
+                    raise self.respond("Failed to enable monitors, please try again", status=400)
+
+            # Attempt to unassign the monitor seat
+            if status == ObjectStatus.DISABLED:
+                quotas.backend.disable_monitor_seat(monitor)
+
+            monitor.update(**result)
+
+        return self.paginate(
+            request=request,
+            queryset=monitors,
+            on_results=lambda x: serialize(x, request.user, MonitorSerializer()),
+            paginator_cls=OffsetPaginator,
+        )

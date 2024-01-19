@@ -376,3 +376,29 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             response = self.get_success_response(self.organization.slug, **data)
 
         assert response.data["slug"] == "my-monitor"
+
+
+@region_silo_test
+class BulkEditOrganizationMonitorTest(MonitorTestCase):
+    endpoint = "sentry-api-0-organization-monitor-index"
+    method = "put"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
+    def test_simple_bulk_edit(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
+        monitor_two = self._create_monitor(slug="monitor_two")
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "isMuted": True,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        assert monitor_one.is_muted
+        monitor_two.refresh_from_db()
+        assert monitor_two.is_muted
