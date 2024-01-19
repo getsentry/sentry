@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Sequence, Union
 
+from django.utils import timezone
+from django.utils.timesince import timesince
+from django.utils.translation import gettext as _
+
 from sentry import features, tagstore
+from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
@@ -35,6 +41,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
+from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -330,6 +337,21 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
+    def timesince(value: datetime):
+        """
+        Display the relative time
+        """
+        now = timezone.now()
+        if value < (now - timedelta(days=5)):
+            return value.date()
+        diff = timesince(value, now)
+        # XXX(CEO): make sure to test each of these cases, it's funky
+        if diff == timesince(now, now):
+            return "Just now"
+        if diff == "1 day":
+            return _("Yesterday")
+        return f"{value} ago"
+
     def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
@@ -409,10 +431,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             notification_uuid=notification_uuid,
         )
         title_text = f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}"
-        # if has_slack_formatting_update:
-        #     # if group category is not error:
-        #     category_emoji = CATEGORY_TO_EMOJI[self.group.category]
-        #     title_text = category_emoji + " " + title_text
+        if has_slack_formatting_update:
+            if self.group.issue_category != GroupCategory.ERROR:
+                category_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+                if category_emoji:
+                    title_text = f"{category_emoji} {title_text}"
 
         blocks = [self.get_markdown_block(title_text)]
         # build tags block
@@ -420,27 +443,16 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if tags:
             blocks.append(self.get_tags_block(tags))
 
-        # add blocks for the new message content #
-
         # add event and user count
         if has_slack_formatting_update:
-
-            # copied from group_details.py, should move to a shared space
-            from sentry.tasks.post_process import fetch_buffered_group_stats
-
-            @staticmethod
-            def __get_group_global_count(group: Group) -> int:
-                fetch_buffered_group_stats(group)
-                return group.times_seen_with_pending
-
-            event_count = __get_group_global_count(self.group)
+            event_count = get_group_global_count(self.group)
             user_count = self.group.count_users_seen()
-            counts_text = f"Events: :chart_with_upwards_trend: *{event_count}*     Users Affected: :chart_with_upwards_trend: *{user_count}*"
+            counts_text = f"Events: *{event_count}*     Users Affected: *{user_count}*"
             blocks.append(self.get_markdown_block(counts_text))
 
             # add mentions
             if self.mentions:
-                mentions_text = f"Mentions: {self.mentions}"
+                mentions_text = f"Addt'l info: {self.mentions}"
                 blocks.append(self.get_markdown_block(mentions_text))
 
             # add project slug, error level, and substate
@@ -452,8 +464,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     level_text = k
 
             level_emoji = LEVEL_TO_EMOJI[level_text]
-            # TODO: map substatus value to text, rn it's 7
-            context_text = f"Project: {self.group.project.slug}    Level: {level_emoji}{level_text.title()}    State: {self.group.substatus}"
+            formatted_substate = SUBSTATUS_TO_STR[self.group.substatus].title()
+            context_text = f"Project: {self.group.project.slug}    Level: {level_emoji}{level_text.title()}    State: {formatted_substate}"
             blocks.append(self.get_markdown_block(context_text))
 
         # build footer block
@@ -463,17 +475,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             timestamp = max(ts, self.event.datetime) if self.event else ts
 
         if has_slack_formatting_update:
-            from sentry.utils.dates import to_timestamp
-
-            def format_slack_time(timestamp):
-                return "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
-                    to_timestamp(timestamp), "{date_short_pretty}", "{time}"
-                )
-
-            # ^ this isn't short enough, it looks bad.
-            # need to format last_seen and first_seen to relative time e.g. 12 minutes ago, 7 days ago
-            footer = f"{footer} | Last Seen: {format_slack_time(self.group.last_seen)}  | First Seen: {format_slack_time(self.group.first_seen)}"
-        blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
+            footer = (
+                f"{footer} | First Seen: :information_source: {timesince(self.group.first_seen)}"
+            )
+            blocks.append(self.get_context_block(text=footer))
+        else:
+            blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
         # build actions
         actions = []
