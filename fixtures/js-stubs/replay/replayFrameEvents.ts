@@ -100,7 +100,6 @@ export function ReplayOptionFrameFixture(
     shouldRecordCanvas: false,
     useCompression: false,
     useCompressionOption: false,
-    shouldRecordCanvas: false,
     ...fields,
   };
 }

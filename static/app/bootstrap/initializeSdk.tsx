@@ -310,6 +310,10 @@ export function addEndpointTagToRequestError(event: Event): void {
   }
 }
 
+/**
+ * Custom Sentry integration to instrument JSON.stringify
+ * and JSON.parse with spans.
+ */
 const JSONSerializationIntegration = (() => {
   let patched = false;
   return {
