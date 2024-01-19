@@ -22,9 +22,9 @@ type DefaultProps = {
   openInNewTab: boolean;
   priority: Priority;
   size: Size;
-  system: boolean;
   withoutMarginBottom: boolean;
   href?: string;
+  system?: boolean;
 };
 
 type Props = OtherProps & Partial<DefaultProps> & Partial<Pick<LinkProps, 'to'>>;
