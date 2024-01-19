@@ -110,13 +110,14 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == []
 
     def test_user_alerts_disabled(self):
-        NotificationSettingOption.objects.create(
-            user_id=self.user.id,
-            scope_type="project",
-            scope_identifier=self.project.id,
-            type="alerts",
-            value="never",
-        )
+        with assume_test_silo_mode_of(NotificationSettingOption):
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="project",
+                scope_identifier=self.project.id,
+                type="alerts",
+                value="never",
+            )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
