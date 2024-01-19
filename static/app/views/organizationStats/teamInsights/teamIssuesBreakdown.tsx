@@ -31,6 +31,7 @@ interface StatusCounts {
   regressed?: number;
   resolved?: number;
   unarchived?: number;
+  unignored?: number;
 }
 
 export type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
@@ -54,6 +55,7 @@ const keys = [
   'ignored',
   'resolved',
   'regressed',
+  'unignored',
   'new',
   'total',
 ];
@@ -105,6 +107,7 @@ function TeamIssuesBreakdown({
           archived_until_escalating: 0,
           resolved: 0,
           regressed: 0,
+          unignored: 0,
           new: 0,
           total: 0,
         };
