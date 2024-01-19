@@ -155,14 +155,14 @@ class ExternalIssueSerializerTestCase(TestCase, APITestCase):
         # print(result)
 
         # group 1 should have 2 integrations and 1 issue for each
-        group_1_issues = result[0]["external_issues"][0]  # get rid of this extra array layer
+        group_1_issues = result[0]["external_issues"]
         assert len(group_1_issues[integration_github.id]) == 1
         assert len(group_1_issues[integration_jira.id]) == 1
         assert group_1_issues[integration_github.id][0].get("key") == external_issue_1a.key
         assert group_1_issues[integration_jira.id][0].get("key") == external_issue_1b.key
 
         # group 2 should have 2 integrations and 3 issues
-        group_2_issues = result[1]["external_issues"][0]  # get rid of this extra array layer
+        group_2_issues = result[1]["external_issues"]
         assert len(group_2_issues[integration_github.id]) == 1
         assert len(group_2_issues[integration_jira.id]) == 2
         assert group_2_issues[integration_github.id][0].get("key") == external_issue_2a.key

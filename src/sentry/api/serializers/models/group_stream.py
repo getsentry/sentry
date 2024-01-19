@@ -167,7 +167,7 @@ class ExternalIssueSerializer(Serializer):
     def get_attrs(
         self, item_list: List[Group], user: User, **kwargs: Any
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
-        group_by_external_issue = defaultdict(list)
+        group_by_external_issue = defaultdict(dict)
         for item in item_list:
             external_issues = ExternalIssue.objects.filter(
                 id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
@@ -192,10 +192,10 @@ class ExternalIssueSerializer(Serializer):
                         }
                     )
 
-            group_by_external_issue[item.id].append(group_by_integration)
+            group_by_external_issue[item.id] = group_by_integration
 
         return {
-            item: {"external_issues": group_by_external_issue.get(item.id, [])}
+            item: {"external_issues": group_by_external_issue.get(item.id, {})}
             for item in item_list
         }
 
