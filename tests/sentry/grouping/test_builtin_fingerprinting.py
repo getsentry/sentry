@@ -51,6 +51,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -62,6 +63,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -73,6 +75,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -84,6 +87,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -92,6 +96,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ]
     }
@@ -125,6 +130,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -136,6 +142,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -147,6 +154,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -158,6 +166,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -166,6 +175,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -200,6 +210,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -211,6 +222,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -222,6 +234,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -233,6 +246,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -241,6 +255,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -291,6 +306,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -302,6 +318,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -313,6 +330,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -324,6 +342,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -332,6 +351,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -518,6 +538,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", self.hydration_error_trace["message"]],
             ],
+            "is_builtin": True,
         }
         assert event_message2.data.data["fingerprint"] == ["hydrationerror", "{{tags.transaction}}"]
         assert event_message2.data.data["_fingerprint_info"]["matched_rule"] == {
@@ -527,6 +548,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", data_message2["message"]],
             ],
+            "is_builtin": True,
         }
 
         assert event_message1.group == event_message2.group
@@ -558,6 +580,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", self.hydration_error_trace["message"]],
             ],
+            "is_builtin": True,
         }
         assert event_transaction_text.data.data["fingerprint"] == [
             "hydrationerror",
@@ -570,6 +593,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", self.hydration_error_trace["message"]],
             ],
+            "is_builtin": True,
         }
 
         assert event_transaction_slash.group != event_transaction_text.group
