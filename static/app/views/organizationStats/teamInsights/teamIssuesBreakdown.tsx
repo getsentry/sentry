@@ -21,13 +21,16 @@ import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './ut
 interface StatusCounts {
   total: number;
   archived?: number;
+  archived_forever?: number;
+  archived_until_condition_met?: number;
+  archived_until_escalating?: number;
   deleted?: number;
+  escalating?: number;
   ignored?: number;
   new?: number;
   regressed?: number;
   resolved?: number;
   unarchived?: number;
-  unignored?: number;
 }
 
 export type IssuesBreakdown = Record<string, Record<string, StatusCounts>>;
@@ -42,7 +45,18 @@ interface TeamIssuesBreakdownProps extends DateTimeObject {
   environment?: string;
 }
 
-const keys = ['deleted', 'ignored', 'resolved', 'unignored', 'regressed', 'new', 'total'];
+const keys = [
+  'escalating',
+  'archived_until_escalating',
+  'archived_forever',
+  'archived_until_condition_met',
+  'deleted',
+  'ignored',
+  'resolved',
+  'regressed',
+  'new',
+  'total',
+];
 
 function TeamIssuesBreakdown({
   organization,
@@ -85,9 +99,11 @@ function TeamIssuesBreakdown({
       if (!projectTotals[projectId]) {
         projectTotals[projectId] = {
           deleted: 0,
-          ignored: 0,
+          escalating: 0,
+          archived_forever: 0,
+          archived_until_condition_met: 0,
+          archived_until_escalating: 0,
           resolved: 0,
-          unignored: 0,
           regressed: 0,
           new: 0,
           total: 0,
