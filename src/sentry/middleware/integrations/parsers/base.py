@@ -219,7 +219,8 @@ class BaseRequestParser(abc.ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
-        return [get_region_for_organization(organization.slug) for organization in organizations]
+        regions = [get_region_for_organization(organization.slug) for organization in organizations]
+        return sorted(regions, key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=400)
