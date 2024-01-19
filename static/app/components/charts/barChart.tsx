@@ -16,23 +16,31 @@ export interface BarChartProps extends BaseChartProps {
   stacked?: boolean;
 }
 
+export function transformToBarSeries({
+  series,
+  stacked,
+  animation,
+}: Pick<BarChartProps, 'series' | 'stacked' | 'animation'>) {
+  return series.map(({seriesName, data, ...options}) =>
+    BarSeries({
+      name: seriesName,
+      stack: stacked ? 'stack1' : undefined,
+      data: data?.map(({value, name, itemStyle}) => {
+        if (itemStyle === undefined) {
+          return [name, value];
+        }
+        return {value: [name, value], itemStyle};
+      }),
+      animation,
+      ...options,
+    })
+  );
+}
+
 const EMPTY_AXIS = {};
 export function BarChart({series, stacked, xAxis, animation, ...props}: BarChartProps) {
   const transformedSeries = useMemo(() => {
-    return series.map(({seriesName, data, ...options}) =>
-      BarSeries({
-        name: seriesName,
-        stack: stacked ? 'stack1' : undefined,
-        data: data?.map(({value, name, itemStyle}) => {
-          if (itemStyle === undefined) {
-            return [name, value];
-          }
-          return {value: [name, value], itemStyle};
-        }),
-        animation,
-        ...options,
-      })
-    );
+    return transformToBarSeries({series, stacked, animation});
   }, [animation, series, stacked]);
 
   const xAxisOptions = useMemo(() => {
