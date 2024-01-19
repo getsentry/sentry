@@ -21,7 +21,11 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
+from sentry.api.serializers.models.group_stream import (
+    ExternalIssueSerializer,
+    get_actions,
+    get_available_issue_plugins,
+)
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -209,6 +213,14 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                             }
                         }
                     )
+
+            if "integrationIssues" in expand:
+                integration_issues = serialize(
+                    group,
+                    request,
+                    serializer=ExternalIssueSerializer(),
+                )
+                data.update({"integrationIssues": integration_issues.get("externalIssues")})
 
             data.update(
                 {

@@ -11,6 +11,7 @@ from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
+from sentry.api.serializers import serialize
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
@@ -421,6 +422,17 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 plugin_issue_list = get_available_issue_plugins(request, item)
                 attrs[item].update({"pluginIssues": plugin_issue_list})
 
+        if self._expand("integrationIssues"):
+            integration_issues = serialize(
+                item_list,
+                request,
+                serializer=ExternalIssueSerializer(),
+            )
+            for idx, item in enumerate(item_list):
+                attrs[item].update(
+                    {"integrationIssues": integration_issues[idx].get("externalIssues")}
+                )
+
         return attrs
 
     def serialize(
@@ -472,6 +484,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("pluginIssues"):
             result["pluginIssues"] = attrs["pluginIssues"]
+
+        if self._expand("integrationIssues"):
+            result["integrationIssues"] = attrs["integrationIssues"]
 
         return result
 
