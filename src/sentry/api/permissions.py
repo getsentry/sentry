@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Sequence
 
-from rest_framework import permissions
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry import features
@@ -14,6 +14,7 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.services.hybrid_cloud import extract_id_from
@@ -28,22 +29,27 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class RelayPermission(permissions.BasePermission):
+class RelayPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return getattr(request, "relay", None) is not None
 
 
-class SystemPermission(permissions.BasePermission):
+class SystemPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return is_system_auth(request.auth)
 
 
-class NoPermission(permissions.BasePermission):
+class NoPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return False
 
 
-class ScopedPermission(permissions.BasePermission):
+class StaffPermission(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return is_active_staff(request)
+
+
+class ScopedPermission(BasePermission):
     """
     Permissions work depending on the type of authentication:
 
@@ -76,7 +82,7 @@ class ScopedPermission(permissions.BasePermission):
         return False
 
 
-class SuperuserPermission(permissions.BasePermission):
+class SuperuserPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         if is_active_superuser(request):
             return True
@@ -163,7 +169,6 @@ class SentryPermission(ScopedPermission):
         elif request.user.is_authenticated:
             # session auth needs to confirm various permissions
             if self.needs_sso(request, org_context.organization):
-
                 logger.info(
                     "access.must-sso",
                     extra=extra,
