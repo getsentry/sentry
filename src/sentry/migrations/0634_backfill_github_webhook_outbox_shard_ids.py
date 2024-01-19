@@ -56,7 +56,10 @@ def backfill_webhook_outbox_shard_ids(apps, schema_editor):
             continue
 
         outbox.shard_identifier = integration_id
-        outbox.save()
+        try:
+            outbox.save()
+        except Exception:
+            pass
 
 
 class Migration(CheckedMigration):
