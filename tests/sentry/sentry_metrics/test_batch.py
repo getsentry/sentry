@@ -1,7 +1,6 @@
 import logging
 import random
 import statistics
-import string
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -373,7 +372,7 @@ def test_batch_perf():
                 },
                 "timestamp": BROKER_TIMESTAMP,
                 "type": "d",
-                "value": "",
+                "value": [],
                 "org_id": 1,
                 "retention_days": 90,
                 "project_id": 3,
@@ -389,13 +388,8 @@ def test_batch_perf():
         print(f"Current value length: {val_len}", end="\r")  # noqa
         raw = []
         for msg, _ in msgs:
-            msg["value"] += "".join(
-                [
-                    random.choice(string.ascii_lowercase)
-                    for _ in range(val_len * 8 - len(msg["value"]))
-                ]
-            )
-            assert len(msg["value"]) == val_len * 8
+            msg["value"].extend([random.random() for _ in range(val_len - len(msg["value"]))])
+            assert len(msg["value"]) == val_len
         for _ in range(reps):
             outer_message = _construct_outer_message(msgs)
             start = datetime.now()
