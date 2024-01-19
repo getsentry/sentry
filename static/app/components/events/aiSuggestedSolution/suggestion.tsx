@@ -123,6 +123,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
       },
     ],
     {
+      enabled: false,
       staleTime: Infinity,
       retry: false,
     }
