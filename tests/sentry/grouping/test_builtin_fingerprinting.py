@@ -9,7 +9,12 @@ from sentry.grouping.api import (
     get_default_grouping_config_dict,
     get_fingerprinting_config_for_project,
 )
-from sentry.grouping.fingerprinting import FINGERPRINTING_BASES, FingerprintingRules, _load_configs
+from sentry.grouping.fingerprinting import (
+    FINGERPRINTING_BASES,
+    BuiltInFingerprintingRules,
+    FingerprintingRules,
+    _load_configs,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -33,11 +38,13 @@ def test_default_bases(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -49,6 +56,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -60,6 +68,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -71,6 +80,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -82,6 +92,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -90,6 +101,7 @@ def test_default_bases(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ]
     }
@@ -105,11 +117,13 @@ def test_built_in_nextjs_rules_base(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -121,6 +135,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -132,6 +147,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -143,6 +159,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -154,6 +171,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -162,6 +180,7 @@ def test_built_in_nextjs_rules_base(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -178,11 +197,13 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -194,6 +215,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -205,6 +227,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -216,6 +239,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -227,6 +251,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -235,6 +260,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -267,11 +293,13 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -283,6 +311,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -294,6 +323,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -305,6 +335,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -316,6 +347,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
             {
                 "matchers": [
@@ -324,6 +356,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 ],
                 "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
                 "attributes": {},
+                "is_builtin": True,
             },
         ],
         "version": 1,
@@ -361,8 +394,49 @@ def test_load_configs_borked_file_doesnt_blow_up(tmp_path):
             "matchers": [["type", "DatabaseUnavailable"]],
             "fingerprint": ["DatabaseUnavailable"],
             "attributes": {},
+            "is_builtin": True,
         },
     ]
+
+
+@pytest.mark.parametrize("is_builtin", [True, False, None])
+def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(is_builtin):
+    rules = BuiltInFingerprintingRules._from_config_structure(
+        {
+            "rules": [
+                {
+                    "matchers": [["type", "DatabaseUnavailable"]],
+                    "fingerprint": ["DatabaseUnavailable"],
+                    "attributes": {},
+                    "is_builtin": is_builtin,
+                },
+            ],
+            "version": 1,
+        },
+        bases=[],
+    )
+
+    assert rules.rules[0].is_builtin is True
+
+
+@pytest.mark.parametrize("is_builtin", [True, False, None])
+def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(is_builtin):
+    rules = FingerprintingRules._from_config_structure(
+        {
+            "rules": [
+                {
+                    "matchers": [["type", "DatabaseUnavailable"]],
+                    "fingerprint": ["DatabaseUnavailable"],
+                    "attributes": {},
+                    "is_builtin": is_builtin,
+                },
+            ],
+            "version": 1,
+        },
+        bases=[],
+    )
+
+    assert rules.rules[0].is_builtin == bool(is_builtin)
 
 
 @region_silo_test
@@ -429,6 +503,27 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["chunkloaderror"],
             "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+            "is_builtin": True,
+        }
+
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_built_in_chunkload_rules_variants(self):
+        event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
+        variants = {
+            k: v.as_dict()
+            for k, v in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+        }
+        assert "built-in-fingerprint" in variants
+
+        # ignore hash as it's not relevant for this test
+        variants["built-in-fingerprint"].pop("hash", None)
+
+        assert variants["built-in-fingerprint"] == {
+            "type": "built-in-fingerprint",
+            "description": "Sentry defined fingerprint",
+            "values": ["chunkloaderror"],
+            "client_values": ["my-route", "{{ default }}"],
+            "matched_rule": 'sdk:"sentry.javascript.nextjs" type:"ChunkLoadError" -> "chunkloaderror"',
         }
 
     def test_built_in_chunkload_rules_disabled(self):
@@ -452,6 +547,7 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["chunkloaderror"],
             "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
+            "is_builtin": True,
         }
 
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
@@ -487,6 +583,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", self.hydration_error_trace["message"]],
             ],
+            "is_builtin": True,
         }
         assert event_message2.data.data["fingerprint"] == ["hydrationerror", "{{tags.transaction}}"]
         assert event_message2.data.data["_fingerprint_info"]["matched_rule"] == {
@@ -496,6 +593,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", data_message2["message"]],
             ],
+            "is_builtin": True,
         }
 
         assert event_message1.group == event_message2.group
@@ -527,6 +625,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", self.hydration_error_trace["message"]],
             ],
+            "is_builtin": True,
         }
         assert event_transaction_text.data.data["fingerprint"] == [
             "hydrationerror",
@@ -539,6 +638,7 @@ class BuiltInFingerprintingTest(TestCase):
                 ["sdk", "sentry.javascript.nextjs"],
                 ["message", self.hydration_error_trace["message"]],
             ],
+            "is_builtin": True,
         }
 
         assert event_transaction_slash.group != event_transaction_text.group

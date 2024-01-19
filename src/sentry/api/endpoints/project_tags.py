@@ -12,7 +12,7 @@ from sentry.models.environment import Environment
 
 @region_silo_endpoint
 class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
