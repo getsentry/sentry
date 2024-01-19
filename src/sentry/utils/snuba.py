@@ -125,6 +125,7 @@ SPAN_COLUMN_MAP = {
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "transaction_id",
+    "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
     "profile_id": "profile_id",
@@ -1077,12 +1078,13 @@ def _raw_mql_query(
     # Enter hub such that http spans are properly nested
     with thread_hub, timer("mql_query"):
         referrer = headers.get("referer", "unknown")
+        # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
+        serialized_req = request.serialize_mql()
         with thread_hub.start_span(op="snuba_mql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
-            # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
-            body = request.serialize_mql()
+            body = serialized_req
 
-        with thread_hub.start_span(op="snuba_mql.run", description=str(request)) as span:
+        with thread_hub.start_span(op="snuba_mql.run", description=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/mql", body=body, headers=headers
@@ -1095,11 +1097,12 @@ def _raw_snql_query(
     # Enter hub such that http spans are properly nested
     with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
+        serialized_req = request.serialize()
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
-            body = request.serialize()
+            body = serialized_req
 
-        with thread_hub.start_span(op="snuba_snql.run", description=str(request)) as span:
+        with thread_hub.start_span(op="snuba_snql.run", description=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/snql", body=body, headers=headers
