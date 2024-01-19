@@ -1,7 +1,7 @@
 from sentry.api.serializers import Serializer
 
 
-class MetricSpansSerializer(Serializer):
+class CorrelationsSerializer(Serializer):
     def __init__(self, *args, **kwargs):
         Serializer.__init__(self, *args, **kwargs)
 

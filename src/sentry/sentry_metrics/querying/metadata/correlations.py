@@ -577,7 +577,7 @@ def get_correlations_source(
     return None
 
 
-def get_correlations_of_metric(
+def get_metric_correlations(
     metric_mri: str,
     query: Optional[str],
     start: datetime,
