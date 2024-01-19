@@ -1,8 +1,8 @@
 import abc
-from typing import Any
+from typing import Any, List
 
-from django.db import router
-from django.db.models import QuerySet
+from django.db import connections, router, transaction
+from django.db.models import QuerySet, sql
 
 from sentry.signals import post_update
 
@@ -27,17 +27,34 @@ class BaseQuerySet(QuerySet, abc.ABC):
         qs._send_post_update_signal = self._send_post_update_signal
         return qs
 
+    def update_with_returning(self, returned_fields: List[str], **kwargs):
+        """
+        Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
+        """
+        self._not_support_combined_queries("update")  # type: ignore[attr-defined]
+        assert not self.query.is_sliced, "Cannot update a query once a slice has been taken."
+        self._for_write = True
+        query = self.query.chain(sql.UpdateQuery)
+        query.add_update_values(kwargs)  # type: ignore[attr-defined]
+        # Clear any annotations so that they won't be present in subqueries.
+        query.annotations = {}
+        with transaction.mark_for_rollback_on_error(using=self.db):
+            query_sql, query_params = query.get_compiler(self.db).as_sql()
+            query_sql += f" RETURNING {', '.join(returned_fields)} "
+            using = router.db_for_write(self.model)
+
+            with connections[using].cursor() as cursor:
+                cursor.execute(query_sql, query_params)
+                result_ids = cursor.fetchall()
+        self._result_cache = None
+        return result_ids
+
     def update(self, **kwargs: Any) -> int:
         if self._send_post_update_signal:
-            ids = list(self.values_list("id", flat=True))
-            updated = (
-                self.model.objects.filter(id__in=ids)
-                .enable_post_update_signal(False)
-                .update(**kwargs)
-            )
+            ids = [result[0] for result in self.update_with_returning(["id"], **kwargs)]
             updated_fields = list(kwargs.keys())
             post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)
-            return updated
+            return len(ids)
         else:
             return super().update(**kwargs)
 
