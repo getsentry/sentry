@@ -7,6 +7,7 @@ export type ReplayEventParameters = {
     issue_description: string;
     issue_impact: string | undefined;
   };
+  'replay.canvas-loader-clicked': {};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -109,6 +110,7 @@ export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
+  'replay.canvas-loader-clicked': 'Clicked Canvas Linkout in Loader',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
   'replay.details-layout-changed': 'Changed Replay Details Layout',

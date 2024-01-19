@@ -13,9 +13,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {Project, ProjectKey} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   data: ProjectKey;
@@ -27,6 +29,7 @@ type Props = {
 
 export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Props) {
   const api = useApi();
+  const organization = useOrganization();
 
   const [requestPending, setRequestPending] = useState(false);
 
@@ -211,12 +214,58 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             }
             help={
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
-                ? t('Only available in SDK version 7.x and above')
-                : data.dynamicSdkLoaderOptions.hasReplay
-                ? t(
-                    'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+                ? tct(
+                    `Only available in SDK version 7.x and above [br]We now support [code:canvas] recording in SDK version 7.94.1. [link:Learn more]`,
+                    {
+                      canvas: <code />,
+                      br: <br />,
+                      link: (
+                        <ExternalLink
+                          onClick={() => {
+                            trackAnalytics('replay.canvas-loader-clicked', {
+                              organization,
+                            });
+                          }}
+                          href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording"
+                        />
+                      ),
+                    }
                   )
-                : undefined
+                : data.dynamicSdkLoaderOptions.hasReplay
+                ? tct(
+                    `When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle [br]We now support [code:canvas] recording in SDK version 7.94.1. [link:Learn more]`,
+                    {
+                      canvas: <code />,
+                      br: <br />,
+                      link: (
+                        <ExternalLink
+                          onClick={() => {
+                            trackAnalytics('replay.canvas-loader-clicked', {
+                              organization,
+                            });
+                          }}
+                          href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording"
+                        />
+                      ),
+                    }
+                  )
+                : tct(
+                    `We now support [code:canvas] recording in SDK version 7.94.1. [link:Learn more]`,
+                    {
+                      canvas: <code />,
+                      br: <br />,
+                      link: (
+                        <ExternalLink
+                          onClick={() => {
+                            trackAnalytics('replay.canvas-loader-clicked', {
+                              organization,
+                            });
+                          }}
+                          href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording"
+                        />
+                      ),
+                    }
+                  )
             }
             disabledReason={
               !hasAccess
