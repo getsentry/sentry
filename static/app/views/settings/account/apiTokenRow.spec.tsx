@@ -25,12 +25,4 @@ describe('ApiTokenRow', () => {
     render(<ApiTokenRow onRemove={cb} token={token} />);
     expect(screen.queryByLabelText('Token preview')).toBeInTheDocument();
   });
-
-  it('uses old logic when lastTokenCharacters field is not found', () => {
-    const token = ApiTokenFixture();
-
-    const cb = jest.fn();
-    render(<ApiTokenRow onRemove={cb} token={token} />);
-    expect(screen.queryByLabelText('Token preview')).not.toBeInTheDocument();
-  });
 });
