@@ -31,7 +31,10 @@ export function CanvasSupportNotice() {
   }
 
   // If we're already recording canvas, or no canvas elements detected, then do not show alert
-  if (replay?.getSDKOptions()?.shouldRecordCanvas || !replay?.hasCanvasElementInReplay()) {
+  if (
+    replay?.getSDKOptions()?.shouldRecordCanvas ||
+    !replay?.hasCanvasElementInReplay()
+  ) {
     return null;
   }
 
