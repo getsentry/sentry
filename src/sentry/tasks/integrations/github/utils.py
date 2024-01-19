@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from typing import List, Optional
 
 from django.utils import timezone
@@ -7,7 +8,6 @@ from django.utils import timezone
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.pullrequest import CommentType, PullRequestComment
 from sentry.models.repository import Repository
-from sentry.tasks.integrations.github.constants import MERGED_PR_METRICS_BASE
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,12 @@ class PullRequestFile:
     patch: str
 
 
+class GithubAPIErrorType(Enum):
+    RATE_LIMITED = "gh_rate_limited"
+    MISSING_PULL_REQUEST = "missing_gh_pull_request"
+    UNKNOWN = "unknown_api_error"
+
+
 def create_or_update_comment(
     pr_comment: PullRequestComment | None,
     client: GitHubAppsClient,
@@ -37,8 +43,8 @@ def create_or_update_comment(
     comment_body: str,
     pullrequest_id: int,
     issue_list: List[int],
+    metrics_base: str,
     comment_type: int = CommentType.MERGED_PR,
-    metrics_base=MERGED_PR_METRICS_BASE,
 ):
     # client will raise ApiError if the request is not successful
     if pr_comment is None:

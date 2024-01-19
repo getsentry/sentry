@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Any, List
 
 import sentry_sdk
@@ -28,9 +27,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.tasks.integrations.github.constants import (
     ISSUE_LOCKED_ERROR_MESSAGE,
-    MERGED_PR_COMMENT_BODY_TEMPLATE,
-    MERGED_PR_METRICS_BASE,
-    MERGED_PR_SINGLE_ISSUE_TEMPLATE,
     RATE_LIMITED_MESSAGE,
 )
 from sentry.tasks.integrations.github.utils import PullRequestIssue, create_or_update_comment
@@ -42,11 +38,17 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
+MERGED_PR_METRICS_BASE = "github_pr_comment.{key}"
 
-class GithubAPIErrorType(Enum):
-    RATE_LIMITED = "gh_rate_limited"
-    MISSING_PULL_REQUEST = "missing_gh_pull_request"
-    UNKNOWN = "unknown_api_error"
+MERGED_PR_COMMENT_BODY_TEMPLATE = """\
+## Suspect Issues
+This pull request was deployed and Sentry observed the following issues:
+
+{issue_list}
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 
 
 def format_comment_subtitle(subtitle):
@@ -210,6 +212,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
             comment_body=comment_body,
             pullrequest_id=pullrequest_id,
             issue_list=top_24_issues,
+            metrics_base=MERGED_PR_METRICS_BASE,
         )
     except ApiError as e:
         cache.delete(cache_key)
@@ -234,7 +237,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 @instrumented_task(
     name="sentry.tasks.integrations.github_comment_reactions", silo_mode=SiloMode.REGION
 )
-# TODO(rjo100): dual write check-ins for debugging
 @monitor(monitor_slug="github_comment_reactions_test")
 def github_comment_reactions():
     logger.info("github.pr_comment.reactions_task")

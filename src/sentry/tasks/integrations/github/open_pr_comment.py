@@ -37,24 +37,13 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations.github.constants import (
     ISSUE_LOCKED_ERROR_MESSAGE,
-    OPEN_PR_COMMENT_BODY_TEMPLATE,
-    OPEN_PR_ISSUE_DESCRIPTION_LENGTH,
-    OPEN_PR_ISSUE_ROW_TEMPLATE,
-    OPEN_PR_ISSUE_TABLE_TEMPLATE,
-    OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE,
-    OPEN_PR_MAX_FILES_CHANGED,
-    OPEN_PR_MAX_LINES_CHANGED,
-    OPEN_PR_METRICS_BASE,
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
 from sentry.tasks.integrations.github.patch_parsers import PATCH_PARSERS
-from sentry.tasks.integrations.github.pr_comment import (
-    GithubAPIErrorType,
-    format_comment_url,
-    get_pr_comment,
-)
+from sentry.tasks.integrations.github.pr_comment import format_comment_url, get_pr_comment
 from sentry.tasks.integrations.github.utils import (
+    GithubAPIErrorType,
     PullRequestFile,
     PullRequestIssue,
     create_or_update_comment,
@@ -65,6 +54,42 @@ from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
+
+OPEN_PR_METRICS_BASE = "github_open_pr_comment.{key}"
+
+# Caps the number of files that can be modified in a PR to leave a comment
+OPEN_PR_MAX_FILES_CHANGED = 7
+# Caps the number of lines that can be modified in a PR to leave a comment
+OPEN_PR_MAX_LINES_CHANGED = 500
+
+OPEN_PR_COMMENT_BODY_TEMPLATE = """\
+## 🔍 Existing Issues For Review
+Your pull request is modifying functions with the following pre-existing issues:
+
+{issue_tables}
+---
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
+📄 File: **{filename}**
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}"""
+
+OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
+<details>
+<summary><b>📄 File: {filename} (Click to Expand)</b></summary>
+
+| Function | Unhandled Issue |
+| :------- | :----- |
+{issue_rows}
+</details>"""
+
+OPEN_PR_ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
+OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
 def format_open_pr_comment(issue_tables: List[str]) -> str:
