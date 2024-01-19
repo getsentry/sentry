@@ -5,6 +5,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, List, Mapping, Type, cast
 
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
@@ -70,6 +71,7 @@ class IntegrationClassification(BaseClassification):
             GithubEnterpriseRequestParser,
             GithubRequestParser,
             GitlabRequestParser,
+            GoogleRequestParser,
             JiraRequestParser,
             JiraServerRequestParser,
             MsTeamsRequestParser,
@@ -82,6 +84,7 @@ class IntegrationClassification(BaseClassification):
             BitbucketRequestParser,
             BitbucketServerRequestParser,
             DiscordRequestParser,
+            GoogleRequestParser,
             GithubEnterpriseRequestParser,
             GithubRequestParser,
             GitlabRequestParser,
@@ -124,10 +127,12 @@ class IntegrationClassification(BaseClassification):
 
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
-            self.logger.error(
-                "integration_control.unknown_provider",
-                extra={"path": request.path, "provider": provider},
-            )
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_tag("provider", provider)
+                scope.set_tag("path", request.path)
+                sentry_sdk.capture_exception(
+                    Exception("Unknown provider was extracted from integration extension url")
+                )
             return self.response_handler(request)
 
         parser = parser_class(
