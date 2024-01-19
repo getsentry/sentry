@@ -125,6 +125,7 @@ SPAN_COLUMN_MAP = {
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "transaction_id",
+    "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
     "profile_id": "profile_id",
