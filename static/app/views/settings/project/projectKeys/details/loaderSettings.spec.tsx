@@ -250,7 +250,7 @@ describe('Loader Script Settings', function () {
     expect(debugCheckbox).toBeChecked();
 
     expect(
-      screen.getAllByText('Only available in SDK version 7.x and above')
+      screen.getAllByText('Only available in SDK version 7.x and above', {exact: false})
     ).toHaveLength(2);
   });
 
@@ -278,7 +278,8 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.getByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
     ).toBeInTheDocument();
 
