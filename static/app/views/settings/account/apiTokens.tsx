@@ -118,7 +118,7 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
 
             {tokenList?.map(token => (
               <ApiTokenRow
-                key={token.token}
+                key={token.id}
                 token={token}
                 onRemove={this.handleRemoveToken}
               />
