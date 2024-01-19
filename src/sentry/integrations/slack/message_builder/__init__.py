@@ -1,5 +1,7 @@
 from typing import Any, List, Mapping, Union
 
+from sentry.issues.grouptype import GroupCategory
+
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = Mapping[str, Any]
 SlackBlock = Mapping[str, Any]
@@ -35,7 +37,7 @@ LEVEL_TO_EMOJI = {
 }
 
 CATEGORY_TO_EMOJI = {
-    "performance": ":chart_with_downwards_trend",
-    "feedback": "busts_in_silhouette",
-    "crons": "spiral_calendar_pad",
+    GroupCategory.PERFORMANCE: ":chart_with_downwards_trend:",
+    GroupCategory.FEEDBACK: ":busts_in_silhouette:",
+    GroupCategory.CRON: ":spiral_calendar_pad:",
 }
