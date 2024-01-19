@@ -163,12 +163,15 @@ class GroupStatsMixin:
             return self.query_tsdb(item_list, query_params, user=user, **kwargs)
 
 
+# Serializer for User Feedback
+# Used to expose the linked integration issues for a list of feedbacks (groups)
 class ExternalIssueSerializer(Serializer):
     def get_attrs(
         self, item_list: List[Group], user: User, **kwargs: Any
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         result = defaultdict(dict)
         for item in item_list:
+            # Get the external issues for the group
             external_issues = ExternalIssue.objects.filter(
                 id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
                     "linked_id", flat=True
@@ -177,6 +180,7 @@ class ExternalIssueSerializer(Serializer):
 
             group_linked_issues = []
             for ei in external_issues:
+                # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
                 integration = integration_service.get_integration(integration_id=ei.integration_id)
                 if integration is None:
                     continue
@@ -468,9 +472,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("pluginIssues"):
             result["pluginIssues"] = attrs["pluginIssues"]
-
-        if self._expand("integrationIssues"):
-            result["integrationIssues"] = attrs["integrationIssues"]
 
         return result
 
