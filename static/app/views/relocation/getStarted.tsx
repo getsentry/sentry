@@ -55,18 +55,28 @@ function GetStarted(props: StepProps) {
             minLength={3}
             placeholder="org-slug-1, org-slug-2, ..."
           />
-          <Label>{t('Choose a datacenter region')}</Label>
+          <Label>{t('Choose a datacenter location')}</Label>
           <RegionSelect
             value={regionUrl}
             name="region"
             aria-label="region"
-            placeholder="Select Region"
+            placeholder="Select Location"
             options={regions.map(r => ({label: r.name, value: r.url}))}
             onChange={opt => setRegionUrl(opt.value)}
           />
-          {regionUrl && (
-            <p>{t('This is an important decision and cannot be changed.')}</p>
-          )}
+          <p>
+            {t(
+              "Choose where to store your organization's data. Please note, you won't be able to change locations once your relocation has been initiated. "
+            )}
+            <a
+              href="https://docs.sentry.io/product/accounts/choose-your-data-center"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Learn more
+            </a>
+            .
+          </p>
           <ContinueButton
             disabled={!orgSlugs || !regionUrl}
             priority="primary"
