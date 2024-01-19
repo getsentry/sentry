@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
-import uniq from 'lodash/uniq';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
+import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
