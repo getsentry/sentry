@@ -12,6 +12,7 @@ export function SentryAppTokenFixture(
     application: null,
     id: '1',
     state: 'active',
+    tokenLastCharacters: 'oken',
     ...params,
   };
 }
