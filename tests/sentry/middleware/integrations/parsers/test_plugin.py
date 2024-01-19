@@ -5,9 +5,12 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import ControlOutbox
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.silo import control_silo_test, create_test_regions
 
 
@@ -51,9 +54,9 @@ class PluginRequestParserTest(TestCase):
             request = self.factory.post(route)
             parser = PluginRequestParser(request=request, response_handler=self.get_response)
             parser.get_response()
-            assert_webhook_outboxes(
+            assert_webhook_outboxes_with_shard_id(
                 factory_request=request,
-                webhook_identifier=WebhookProviderIdentifier.LEGACY_PLUGIN,
+                expected_shard_id=self.organization.id,
                 region_names=["us"],
             )
             # Purge outboxes after checking each route

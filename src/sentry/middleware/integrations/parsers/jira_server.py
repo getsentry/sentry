@@ -25,7 +25,9 @@ class JiraServerRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
         organizations = self.get_organizations_from_integration(integration=integration)
         regions = self.get_regions_from_organizations(organizations=organizations)
-        return self.get_response_from_outbox_creation(regions=regions)
+        return self.get_response_from_outbox_creation_for_integration(
+            regions=regions, integration=integration
+        )
 
     def get_response(self):
         if self.view_class == JiraServerIssueUpdatedWebhook:

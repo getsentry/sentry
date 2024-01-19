@@ -9,15 +9,13 @@ from sentry.middleware.integrations.classifications import IntegrationClassifica
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    WebhookProviderIdentifier,
-    outbox_context,
-)
+from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -116,7 +114,7 @@ class GitlabRequestParserTest(TestCase):
     @override_regions(region_config)
     @responses.activate
     def test_routing_webhook_properly_with_regions(self):
-        self.get_integration()
+        integration = self.get_integration()
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,
@@ -131,9 +129,9 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == 202
         assert response.content == b""
         assert len(responses.calls) == 0
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.GITLAB,
+            expected_shard_id=integration.id,
             region_names=[region.name],
         )
 
@@ -185,7 +183,7 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
-        self.get_integration()
+        integration = self.get_integration()
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
 
         assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
@@ -195,8 +193,8 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == 202
         assert response.content == b""
         assert len(responses.calls) == 0
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.GITLAB,
+            expected_shard_id=integration.id,
             region_names=[region.name],
         )

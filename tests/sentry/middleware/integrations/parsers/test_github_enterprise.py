@@ -7,15 +7,13 @@ from django.urls import reverse
 from sentry.middleware.integrations.parsers.github_enterprise import GithubEnterpriseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    WebhookProviderIdentifier,
-    outbox_context,
-)
+from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -142,7 +140,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
     @override_regions(region_config)
     @responses.activate
     def test_webhook_outbox_creation(self):
-        self.get_integration()
+        integration = self.get_integration()
         request = self.factory.post(
             self.path,
             data={"installation": {"id": self.external_identifier}, "action": "opened"},
@@ -157,8 +155,8 @@ class GithubEnterpriseRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
         assert response.content == b""
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.GITHUB_ENTERPRISE,
+            expected_shard_id=integration.id,
             region_names=[region.name],
         )

@@ -8,9 +8,11 @@ from django.urls import reverse
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from tests.sentry.integrations.msteams.test_helpers import (
     EXAMPLE_MENTIONED,
@@ -91,9 +93,9 @@ class MsTeamsRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
         assert len(responses.calls) == 0
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.MSTEAMS,
+            expected_shard_id=self.integration.id,
             region_names=["us"],
         )
 

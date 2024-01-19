@@ -64,11 +64,34 @@ def assert_no_webhook_outboxes():
     assert outboxes == 0, "No outboxes should be created"
 
 
+# DEPRECATED: use assert_webhook_outboxes_for_integration instead
 def assert_webhook_outboxes(
     factory_request: WSGIRequest,
     webhook_identifier: WebhookProviderIdentifier,
     region_names: List[str],
 ):
+    assert_webhook_outboxes_with_shard_id(
+        factory_request=factory_request,
+        expected_shard_id=webhook_identifier.value,
+        region_names=region_names,
+    )
+
+
+def assert_webhook_outboxes_with_shard_id(
+    factory_request: WSGIRequest,
+    expected_shard_id: int,
+    region_names: List[str],
+):
+    """
+    A test method for asserting that a webhook outbox is properly queued for
+     the given request
+
+    :param factory_request:
+    :param expected_shard_id: Usually the integration ID associated with the
+     request. The main exception is Plugins, which provides a different shard
+     ID in the form of an organization ID instead.
+    :param region_names: The regions each outbox should be queued for
+    """
     expected_payload = ControlOutbox.get_webhook_payload_from_request(request=factory_request)
     expected_payload_dict = dataclasses.asdict(expected_payload)
     region_names_set = set(region_names)
@@ -81,7 +104,7 @@ def assert_webhook_outboxes(
     for cob in outboxes:
         assert cob.payload == expected_payload_dict
         assert cob.shard_scope == OutboxScope.WEBHOOK_SCOPE
-        assert cob.shard_identifier == webhook_identifier
+        assert cob.shard_identifier == expected_shard_id
         assert cob.category == OutboxCategory.WEBHOOK_PROXY
         try:
             region_names_set.remove(cob.region_name)
