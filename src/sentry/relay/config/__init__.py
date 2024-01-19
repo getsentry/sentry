@@ -410,7 +410,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": True,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -424,7 +424,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": True,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -545,7 +545,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": True,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -559,7 +559,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": True,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -590,7 +590,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": True,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -604,7 +604,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": True,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
