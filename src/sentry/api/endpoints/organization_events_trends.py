@@ -80,7 +80,7 @@ class TrendQueryBuilder(QueryBuilder):
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     trend_columns = {
         "p50": "percentile_range({column}, 0.5, {condition}, {boundary}) as {query_alias}",
@@ -521,7 +521,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 @region_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def build_result_handler(

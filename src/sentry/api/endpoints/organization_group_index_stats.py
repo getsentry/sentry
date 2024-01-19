@@ -24,7 +24,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.ISSUES
 
     rate_limits = {
         "GET": {
