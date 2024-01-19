@@ -57,12 +57,15 @@ family:native                                   max-frames=3
     assert isinstance(dumped, str)
 
     with override_options({"enhancers.use-zstd": True}):
-        dumped = enhancement.dumps()
-        assert Enhancements.loads(dumped).dumps() == dumped
+        dumped_zstd = enhancement.dumps()
+
+        assert dumped_zstd is not dumped
+        assert Enhancements.loads(dumped_zstd).dumps() == dumped_zstd
         assert (
-            Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
+            Enhancements.loads(dumped_zstd)._to_config_structure()
+            == enhancement._to_config_structure()
         )
-        assert isinstance(dumped, str)
+        assert isinstance(dumped_zstd, str)
 
 
 def test_parsing_errors():
