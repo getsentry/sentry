@@ -8,6 +8,8 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import create_match_frame
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def dump_obj(obj):
@@ -27,6 +29,7 @@ def dump_obj(obj):
 
 
 @pytest.mark.parametrize("version", [1, 2])
+@django_db_all
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -46,11 +49,23 @@ family:native                                   max-frames=3
     )
     enhancement.version = version
 
-    dumped = enhancement.dumps()
     insta_snapshot(dump_obj(enhancement))
+
+    dumped = enhancement.dumps()
     assert Enhancements.loads(dumped).dumps() == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, str)
+
+    with override_options({"enhancers.use-zstd": True}):
+        dumped_zstd = enhancement.dumps()
+
+        assert dumped_zstd is not dumped
+        assert Enhancements.loads(dumped_zstd).dumps() == dumped_zstd
+        assert (
+            Enhancements.loads(dumped_zstd)._to_config_structure()
+            == enhancement._to_config_structure()
+        )
+        assert isinstance(dumped_zstd, str)
 
 
 def test_parsing_errors():
