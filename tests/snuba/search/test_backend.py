@@ -111,7 +111,7 @@ class SharedSnubaMixin(SnubaTestCase):
         return event
 
 
-class EventsDatasetTestSetup(SharedSnubaMixin):
+class EventsDatasetTestSetup(SharedSnubaMixin, OccurrenceTestMixin):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -1522,6 +1522,49 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             [group1, group2, assigned_group, assigned_to_other_group],
             user=self.user,
         )
+
+    def test_issue_that_should_be_hidden_bug(self):
+        Group.objects.all().delete()
+        group = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=180)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+
+        with self.feature(
+            [
+                "organizations:issue-platform",
+                # FeedbackGroup.build_visible_feature_name(),
+                FeedbackGroup.build_ingest_feature_name(),
+            ]
+        ):
+            event_id_1 = uuid.uuid4().hex
+            _, feedback_group = self.process_occurrence(
+                **{
+                    "project_id": self.project.id,
+                    "event_id": event_id_1,
+                    "fingerprint": ["c" * 32],
+                    "issue_title": "User Feedback",
+                    "type": FeedbackGroup.type_id,
+                    "detection_time": datetime.now().timestamp(),
+                    "level": "info",
+                },
+                event_data={
+                    "platform": "python",
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+
+            # note that the visible flag is not enabled above, so they should be hidden
+            self.run_test_query(
+                "",
+                [group],
+                [feedback_group],
+                user=self.user,
+            )
 
     def test_assigned_or_suggested_my_teams_in_syntax(self):
         Group.objects.all().delete()
