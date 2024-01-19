@@ -408,6 +408,7 @@ class WebhookProviderIdentifier(IntEnum):
     GETSENTRY = 11
     DISCORD = 12
     VERCEL = 13
+    GOOGLE = 14
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
