@@ -294,7 +294,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:write"]
+        "auth_token": ["event:write"]
       }
     ]
   },
@@ -343,7 +343,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:admin"]
+        "auth_token": ["event:admin"]
       }
     ]
   }
