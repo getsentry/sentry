@@ -1,30 +1,23 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import type {
   AsyncComponentProps,
   AsyncComponentState,
 } from 'sentry/components/deprecatedAsyncComponent';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
-import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
-import {ORG_ROLES} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons';
+import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
+import {
+  InviteRow,
+  InviteStatus,
+  NormalizedInvite,
+} from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import InviteRowControl from './inviteRowControl';
-import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
 export interface InviteMembersModalProps extends AsyncComponentProps, ModalRenderProps {
   organization: Organization;
@@ -182,40 +175,40 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
       pendingInvites: [...state.pendingInvites, this.inviteTemplate],
     }));
 
-  setEmails(emails: string[], index: number) {
+  setEmails = (emails: string[], index: number) => {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
       pendingInvites[index] = {...pendingInvites[index], emails: new Set(emails)};
 
       return {pendingInvites};
     });
-  }
+  };
 
-  setTeams(teams: string[], index: number) {
+  setTeams = (teams: string[], index: number) => {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
       pendingInvites[index] = {...pendingInvites[index], teams: new Set(teams)};
 
       return {pendingInvites};
     });
-  }
+  };
 
-  setRole(role: string, index: number) {
+  setRole = (role: string, index: number) => {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
       pendingInvites[index] = {...pendingInvites[index], role};
 
       return {pendingInvites};
     });
-  }
+  };
 
-  removeInviteRow(index: number) {
+  removeInviteRow = (index: number) => {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
       pendingInvites.splice(index, 1);
       return {pendingInvites};
     });
-  }
+  };
 
   get invites(): NormalizedInvite[] {
     return this.state.pendingInvites.reduce<NormalizedInvite[]>(
@@ -241,122 +234,8 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
   }
 
   render() {
-    const {Footer, closeModal, organization} = this.props;
-    const {pendingInvites, sendingInvites, complete, inviteStatus, member} = this.state;
-
-    const disableInputs = sendingInvites || complete;
-
-    const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
-      <Fragment>
-        <Heading>{t('Invite New Members')}</Heading>
-        {this.willInvite ? (
-          <Subtext>{t('Invite new members by email to join your organization.')}</Subtext>
-        ) : (
-          <Alert type="warning" showIcon>
-            {t(
-              'You can’t invite users directly, but we’ll forward your request to an org owner or manager for approval.'
-            )}
-          </Alert>
-        )}
-
-        {headerInfo}
-
-        <InviteeHeadings>
-          <div>{t('Email addresses')}</div>
-          <div>{t('Role')}</div>
-          <div>{t('Add to team')}</div>
-          <div />
-        </InviteeHeadings>
-
-        <Rows>
-          {pendingInvites.map(({emails, role, teams}, i) => (
-            <StyledInviteRow
-              key={i}
-              disabled={disableInputs}
-              emails={[...emails]}
-              role={role}
-              teams={[...teams]}
-              roleOptions={member ? member.roles : ORG_ROLES}
-              roleDisabledUnallowed={this.willInvite}
-              inviteStatus={inviteStatus}
-              onRemove={() => this.removeInviteRow(i)}
-              onChangeEmails={opts => this.setEmails(opts?.map(v => v.value) ?? [], i)}
-              onChangeRole={value => this.setRole(value?.value, i)}
-              onChangeTeams={opts => this.setTeams(opts ? opts.map(v => v.value) : [], i)}
-              disableRemove={disableInputs || pendingInvites.length === 1}
-            />
-          ))}
-        </Rows>
-
-        <AddButton
-          disabled={disableInputs}
-          size="sm"
-          borderless
-          onClick={this.addInviteRow}
-          icon={<IconAdd isCircled />}
-        >
-          {t('Add another')}
-        </AddButton>
-
-        <Footer>
-          <FooterContent>
-            <div>
-              <InviteStatusMessage
-                complete={this.state.complete}
-                hasDuplicateEmails={this.hasDuplicateEmails}
-                inviteStatus={this.state.inviteStatus}
-                sendingInvites={this.state.sendingInvites}
-                willInvite={this.willInvite}
-              />
-            </div>
-
-            <ButtonBar gap={1}>
-              {complete ? (
-                <Fragment>
-                  <Button data-test-id="send-more" size="sm" onClick={this.reset}>
-                    {t('Send more invites')}
-                  </Button>
-                  <Button
-                    data-test-id="close"
-                    priority="primary"
-                    size="sm"
-                    onClick={() => {
-                      trackAnalytics('invite_modal.closed', {
-                        organization: this.props.organization,
-                        modal_session: this.sessionId,
-                      });
-                      closeModal();
-                    }}
-                  >
-                    {t('Close')}
-                  </Button>
-                </Fragment>
-              ) : (
-                <Fragment>
-                  <Button
-                    data-test-id="cancel"
-                    size="sm"
-                    onClick={closeModal}
-                    disabled={disableInputs}
-                  >
-                    {t('Cancel')}
-                  </Button>
-                  <InviteButton
-                    invites={this.invites}
-                    willInvite={this.willInvite}
-                    size="sm"
-                    data-test-id="send-invites"
-                    priority="primary"
-                    disabled={!canSend || !this.isValidInvites || disableInputs}
-                    onClick={sendInvites}
-                  />
-                </Fragment>
-              )}
-            </ButtonBar>
-          </FooterContent>
-        </Footer>
-      </Fragment>
-    );
+    const {closeModal, Footer, organization} = this.props;
+    const {complete, inviteStatus, member, pendingInvites, sendingInvites} = this.state;
 
     return (
       <InviteModalHook
@@ -364,62 +243,38 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
         willInvite={this.willInvite}
         onSendInvites={this.sendInvites}
       >
-        {hookRenderer}
+        {({sendInvites, canSend, headerInfo}) => {
+          return (
+            <InviteMembersModalView
+              addInviteRow={this.addInviteRow}
+              canSend={canSend}
+              closeModal={closeModal}
+              complete={complete}
+              Footer={Footer}
+              hasDuplicateEmails={this.hasDuplicateEmails}
+              headerInfo={headerInfo}
+              invites={this.invites}
+              inviteStatus={inviteStatus}
+              member={member}
+              organization={organization}
+              pendingInvites={pendingInvites}
+              removeInviteRow={this.removeInviteRow}
+              reset={this.reset}
+              sendingInvites={sendingInvites}
+              sendInvites={sendInvites}
+              sessionId={this.sessionId}
+              setEmails={this.setEmails}
+              setRole={this.setRole}
+              setTeams={this.setTeams}
+              willInvite={this.willInvite}
+              isValidInvites={this.isValidInvites}
+            />
+          );
+        }}
       </InviteModalHook>
     );
   }
 }
-
-const Heading = styled('h1')`
-  font-weight: 400;
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: 0;
-  margin-bottom: ${space(0.75)};
-`;
-
-const Subtext = styled('p')`
-  color: ${p => p.theme.subText};
-  margin-bottom: ${space(3)};
-`;
-
-const inviteRowGrid = css`
-  display: grid;
-  gap: ${space(1.5)};
-  grid-template-columns: 3fr 180px 2fr 0.5fr;
-  align-items: start;
-`;
-
-const InviteeHeadings = styled('div')`
-  ${inviteRowGrid};
-
-  margin-bottom: ${space(1)};
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Rows = styled('ul')`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-`;
-
-const StyledInviteRow = styled(InviteRowControl)`
-  ${inviteRowGrid};
-  margin-bottom: ${space(1.5)};
-`;
-
-const AddButton = styled(Button)`
-  margin-top: ${space(3)};
-`;
-
-const FooterContent = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-  justify-content: space-between;
-  flex: 1;
-`;
 
 export const modalCss = css`
   width: 100%;
