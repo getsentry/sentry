@@ -14,16 +14,21 @@ function datetimeHasSameValue(
   }
 
   for (const key in a) {
-    if (a[key] !== b[key]) {
-      return false;
-    }
-
     if (a[key] instanceof Date && b[key] instanceof Date) {
       // This will fail on invalid dates as NaN !== NaN,
       // but thats fine since we don't want invalid dates to be equal
-      if (a[key].getTime() !== b[key].getTime()) {
-        return false;
+      if (a[key].getTime() === b[key].getTime()) {
+        continue;
       }
+      return false;
+    }
+
+    if (a[key] === null && b[key] === null) {
+      continue;
+    }
+
+    if (a[key] !== b[key]) {
+      return false;
     }
   }
 
@@ -41,6 +46,10 @@ function arrayIsEqual(
   if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) {
       return false;
+    }
+
+    if (a.length === 1 && b.length === 1) {
+      return a[0] === b[0];
     }
 
     return a.every((value, index) => value === b[index]);
@@ -216,6 +225,7 @@ const storeConfig: PageFiltersStoreDefinition = {
       ...this.selection,
       environments: environments ?? [],
     };
+
     this.trigger(this.getState());
   },
 
