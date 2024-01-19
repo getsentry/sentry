@@ -215,9 +215,9 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             help={
               !sdkVersionSupportsPerformanceAndReplay(data.browserSdkVersion)
                 ? tct(
-                    `Only available in SDK version 7.x and above [br]We now support [code:canvas] recording in SDK version 7.94.1. [link:Learn more]`,
+                    `Only available in SDK version 7.x and above. [br]We now support [code:canvas] recording in SDK version 7.94.1. [link:Set up now!]`,
                     {
-                      canvas: <code />,
+                      code: <code />,
                       br: <br />,
                       link: (
                         <ExternalLink
@@ -233,9 +233,9 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                   )
                 : data.dynamicSdkLoaderOptions.hasReplay
                 ? tct(
-                    `When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle [br]We now support [code:canvas] recording in SDK version 7.94.1. [link:Learn more]`,
+                    `When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle. [br]We now support [code:canvas] recording in SDK version 7.94.1. [link:Set up now!]`,
                     {
-                      canvas: <code />,
+                      code: <code />,
                       br: <br />,
                       link: (
                         <ExternalLink
@@ -250,9 +250,9 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                     }
                   )
                 : tct(
-                    `We now support [code:canvas] recording in SDK version 7.94.1. [link:Learn more]`,
+                    `We now support [code:canvas] recording in SDK version 7.94.1. [link:Set up now!]`,
                     {
-                      canvas: <code />,
+                      code: <code />,
                       br: <br />,
                       link: (
                         <ExternalLink
