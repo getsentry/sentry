@@ -5,6 +5,7 @@ from django.http import Http404
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 
@@ -36,6 +37,12 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
             pipeline = IntegrationPipeline(
                 request=request, organization=organization, provider_key=provider_id
             )
+            for feature in pipeline.provider.features:
+                feature_flag_name = "organizations:integrations-%s" % feature.value
+                if not features.has(feature_flag_name, organization):
+                    return pipeline.render_warning(
+                        "Feature '%s' is not enabled for the organization." % feature_flag_name
+                    )
 
             if not pipeline.provider.can_add:
                 raise Http404
