@@ -4,8 +4,12 @@ from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
+from sentry.types.region import Region, RegionCategory
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
+
+us = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 
 
 @control_silo_test
@@ -153,6 +157,24 @@ class ReactPageViewTest(TestCase):
             )
             assert response.status_code == 200
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+
+    @override_regions((us,))
+    def test_redirect_to_customer_domain_from_region_domain(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+
+        self.login_as(user)
+        # Force activeorg state
+        self.client.session["activeorg"] = org.slug
+        self.client.session.save()
+
+        with self.feature({"organizations:customer-domains": True}):
+            response = self.client.get(
+                "/issues/",
+                HTTP_HOST="us.testserver",
+            )
+            assert response.status_code == 302
+            assert response["Location"] == f"http://{org.slug}.testserver/issues/"
 
     def test_does_not_redirect_to_customer_domain_for_unsupported_paths(self):
         user = self.create_user("bar@example.com")

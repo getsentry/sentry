@@ -31,7 +31,7 @@ def absolute_uri(url: str | None = None, url_prefix: str | None = None) -> str:
     return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
 
 
-def query_string(request: Request) -> str:
+def query_string(request: HttpRequest) -> str:
     qs = request.META.get("QUERY_STRING") or ""
     if qs:
         qs = f"?{qs}"
