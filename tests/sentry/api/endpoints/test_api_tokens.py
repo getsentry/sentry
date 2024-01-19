@@ -103,6 +103,22 @@ class ApiTokensDeleteTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
+    def test_with_id(self) -> None:
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.delete(url, data={"tokenId": token.id})
+        assert response.status_code == 204
+        assert not ApiToken.objects.filter(id=token.id).exists()
+
+    def test_returns_400_when_no_token_param_is_sent(self) -> None:
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.delete(url, data={})
+        assert response.status_code == 400
+        assert ApiToken.objects.filter(id=token.id).exists()
+
 
 @control_silo_test
 class ApiTokensSuperUserTest(APITestCase):
