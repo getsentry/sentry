@@ -30,7 +30,7 @@ import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMet
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
-import {FocusArea} from 'sentry/views/ddm/chartBrush';
+import {FocusArea} from 'sentry/views/ddm/focusArea';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
