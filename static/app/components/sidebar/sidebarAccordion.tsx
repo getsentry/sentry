@@ -87,7 +87,7 @@ function recursivelyFindChildren(
   found: Array<React.ReactNode> = []
 ): React.ReactNode {
   Children.toArray(children).forEach(child => {
-    if (!isAReactElement(child)) {
+    if (!isValidElement(child)) {
       return;
     }
 
@@ -110,34 +110,6 @@ function recursivelyFindChildren(
   });
 
   return found;
-}
-
-function isAReactElement(element: React.ReactNode): element is React.ReactElement {
-  if (typeof element === 'string' || typeof element === 'number') {
-    return false;
-  }
-
-  if (element === null) {
-    return false;
-  }
-
-  if (element === undefined) {
-    return false;
-  }
-
-  if (typeof element === 'boolean') {
-    return false;
-  }
-
-  if (!('props' in element)) {
-    return false;
-  }
-
-  if (!('type' in element)) {
-    return false;
-  }
-
-  return true;
 }
 
 const SidebarAccordionWrapper = styled('div')`
