@@ -43,6 +43,11 @@ class NoPermission(permissions.BasePermission):
         return False
 
 
+class SuperuserPermission(permissions.BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return is_active_superuser(request)
+
+
 class ScopedPermission(permissions.BasePermission):
     """
     Permissions work depending on the type of authentication:
@@ -74,11 +79,6 @@ class ScopedPermission(permissions.BasePermission):
 
     def has_object_permission(self, request: Request, view: object, obj: Any) -> bool:
         return False
-
-
-class SuperuserPermission(permissions.BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        return is_active_superuser(request)
 
 
 class SentryPermission(ScopedPermission):
