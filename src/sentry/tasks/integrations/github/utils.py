@@ -42,7 +42,9 @@ def create_or_update_comment(
 ):
     # client will raise ApiError if the request is not successful
     if pr_comment is None:
-        resp = client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
+        resp = client.create_comment(
+            repo=repo.name, issue_id=str(pr_key), data={"body": comment_body}
+        )
 
         current_time = timezone.now()
         PullRequestComment.objects.create(

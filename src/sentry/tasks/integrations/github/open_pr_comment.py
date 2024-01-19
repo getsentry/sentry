@@ -36,6 +36,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations.github.constants import (
+    ISSUE_LOCKED_ERROR_MESSAGE,
     OPEN_PR_COMMENT_BODY_TEMPLATE,
     OPEN_PR_ISSUE_DESCRIPTION_LENGTH,
     OPEN_PR_ISSUE_ROW_TEMPLATE,
@@ -44,19 +45,20 @@ from sentry.tasks.integrations.github.constants import (
     OPEN_PR_MAX_FILES_CHANGED,
     OPEN_PR_MAX_LINES_CHANGED,
     OPEN_PR_METRICS_BASE,
+    RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
 from sentry.tasks.integrations.github.patch_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import (
-    ISSUE_LOCKED_ERROR_MESSAGE,
-    RATE_LIMITED_MESSAGE,
     GithubAPIErrorType,
-    PullRequestIssue,
-    create_or_update_comment,
     format_comment_url,
     get_pr_comment,
 )
-from sentry.tasks.integrations.github.utils import PullRequestFile
+from sentry.tasks.integrations.github.utils import (
+    PullRequestFile,
+    PullRequestIssue,
+    create_or_update_comment,
+)
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
 from sentry.utils import metrics

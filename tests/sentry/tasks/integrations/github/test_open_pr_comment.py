@@ -8,9 +8,8 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
 from sentry.tasks.integrations.github.open_pr_comment import (
-    STACKFRAME_COUNT,
-    PullRequestFile,
     format_issue_table,
     format_open_pr_comment,
     get_issue_table_contents,
@@ -20,7 +19,7 @@ from sentry.tasks.integrations.github.open_pr_comment import (
     open_pr_comment_workflow,
     safe_for_comment,
 )
-from sentry.tasks.integrations.github.pr_comment import PullRequestIssue
+from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test

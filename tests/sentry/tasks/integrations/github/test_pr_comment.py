@@ -21,7 +21,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.tasks.integrations.github.pr_comment import (
-    PullRequestIssue,
     format_comment,
     get_comment_contents,
     get_top_5_issues_by_count,
@@ -29,6 +28,7 @@ from sentry.tasks.integrations.github.pr_comment import (
     github_comment_workflow,
     pr_to_issue_query,
 )
+from sentry.tasks.integrations.github.utils import PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
