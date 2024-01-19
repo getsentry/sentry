@@ -77,7 +77,6 @@ class SelectRequester(Mediator):
                 },
             )
             response = {}
-
         if not self._validate_response(response):
             raise APIError()
 
@@ -94,6 +93,9 @@ class SelectRequester(Mediator):
         choices = []
 
         for option in resp:
+            if not ("value" in option and "label" in option):
+                raise APIError("Missing `value` or `label` in option data")
+
             choices.append([option["value"], option["label"]])
             if option.get("default"):
                 response["defaultValue"] = option["value"]
