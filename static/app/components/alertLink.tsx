@@ -22,6 +22,7 @@ type DefaultProps = {
   openInNewTab: boolean;
   priority: Priority;
   size: Size;
+  system: boolean;
   withoutMarginBottom: boolean;
   href?: string;
 };
@@ -42,6 +43,7 @@ function AlertLink({
   openInNewTab = false,
   to,
   href,
+  system = false,
   ['data-test-id']: dataTestId,
 }: Props) {
   return (
@@ -54,6 +56,7 @@ function AlertLink({
       priority={priority}
       withoutMarginBottom={withoutMarginBottom}
       openInNewTab={openInNewTab}
+      system={system}
     >
       {icon && <IconWrapper>{icon}</IconWrapper>}
       <AlertLinkText>{children}</AlertLinkText>
@@ -79,7 +82,7 @@ const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) 
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
-  border: 1px dashed ${p => p.theme.alert[p.priority].border};
+  border: 1px solid ${p => p.theme.alert[p.priority].border};
   padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
   margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};
   border-radius: 0.25em;
@@ -89,6 +92,12 @@ const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) 
     outline: none;
     box-shadow: ${p => p.theme.alert[p.priority].border}7f 0 0 0 2px;
   }
+  ${p =>
+    p.system &&
+    `
+      border-width: 0 0 1px 0;
+      border-radius: 0;
+    `}
 `;
 
 const IconWrapper = styled('span')`

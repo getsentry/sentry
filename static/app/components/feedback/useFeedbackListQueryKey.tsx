@@ -8,12 +8,18 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
 interface Props {
+  listHeadTime: number;
   organization: Organization;
+  prefetch: boolean;
 }
 
 const PER_PAGE = 25;
 
-export default function useFeedbackListQueryKey({organization}: Props): ApiQueryKey {
+export default function useFeedbackListQueryKey({
+  listHeadTime,
+  organization,
+  prefetch,
+}: Props): ApiQueryKey {
   const queryView = useLocationQuery({
     fields: {
       limit: PER_PAGE,
@@ -38,38 +44,47 @@ export default function useFeedbackListQueryKey({organization}: Props): ApiQuery
     // the user wants to see fresher content (like, after the page has been open
     // for a while) they can trigger that specifically.
 
+    // The issues endpoint cannot handle when statsPeroid has a value of "", so
+    // we remove that from the rest and do not use it to query.
     const {statsPeriod, ...rest} = queryView;
-    const now = Date.now();
-    const statsPeriodMs = intervalToMilliseconds(statsPeriod);
-    return statsPeriod
-      ? {
-          ...rest,
-          start: new Date(now - statsPeriodMs).toISOString(),
-          end: new Date(now).toISOString(),
-        }
-      : // The issues endpoint cannot handle when statsPeroid has a value of "", so
-        // we remove that from the rest and do not use it to query.
-        rest;
-  }, [queryView]);
+
+    if (prefetch) {
+      // Look 1 day into the future, from the time the page is loaded for new
+      // feedbacks to come in.
+      const intervalMS = intervalToMilliseconds('1d');
+      const start = new Date(listHeadTime).toISOString();
+      const end = new Date(listHeadTime + intervalMS).toISOString();
+      return statsPeriod ? {...rest, limit: 1, start, end} : {...rest, limit: 1};
+    }
+
+    const intervalMS = intervalToMilliseconds(statsPeriod);
+    const start = new Date(listHeadTime - intervalMS).toISOString();
+    const end = new Date(listHeadTime).toISOString();
+    return statsPeriod ? {...rest, start, end} : rest;
+  }, [listHeadTime, prefetch, queryView]);
 
   return useMemo(() => {
     const {mailbox, ...fixedQueryView} = queryViewWithStatsPeriod;
+    const expand = prefetch
+      ? []
+      : [
+          'owners', // Gives us assignment
+          'stats', // Gives us `firstSeen`
+          'pluginActions', // Gives us plugin actions available
+          'pluginIssues', // Gives us plugin issues available
+        ];
+
     return [
       `/organizations/${organization.slug}/issues/`,
       {
         query: {
           ...fixedQueryView,
           collapse: ['inbox'],
-          expand: [
-            'owners', // Gives us assignment
-            'stats', // Gives us `firstSeen`
-            'pluginActions', // Gives us plugin actions available
-            'pluginIssues', // Gives us plugin issues available
-          ],
+          expand,
           shortIdLookup: 0,
           query: `issue.category:feedback status:${mailbox} ${fixedQueryView.query}`,
         },
       },
     ];
-  }, [queryViewWithStatsPeriod, organization.slug]);
+  }, [organization.slug, prefetch, queryViewWithStatsPeriod]);
 }
