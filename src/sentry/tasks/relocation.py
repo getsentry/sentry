@@ -45,7 +45,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.signals import relocated
+from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -1103,6 +1103,12 @@ def postprocessing(uuid: str) -> None:
         for _, result in relocated.send_robust(sender=postprocessing, relocation_uuid=uuid):
             if isinstance(result, Exception):
                 raise result
+        relocation_redeem_promo_code.send_robust(
+            sender=postprocessing,
+            user_id=relocation.owner_id,
+            relocation_uuid=uuid,
+            orgs=list(imported_orgs),
+        )
 
         for org in imported_orgs:
             try:
