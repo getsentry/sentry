@@ -48,6 +48,11 @@ export default function useFeedbackListQueryKey({
     // we remove that from the rest and do not use it to query.
     const {statsPeriod, ...rest} = queryView;
 
+    // Usually we want to fetch starting from `now` and looking back in time.
+    // `prefetch` in this case changes the mode: instead of looking back, we want
+    // to look forward for new data, and fetch it before it's time to render.
+    // Note: The ApiQueryKey that we return isn't actually for a full page of
+    // prefetched data, it's just one row actually.
     if (prefetch) {
       if (!statsPeriod) {
         // We shouldn't prefetch if the query uses an absolute date range
