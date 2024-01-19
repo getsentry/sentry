@@ -18,9 +18,9 @@ function GetStarted(props: StepProps) {
   const [regionUrl, setRegionUrl] = useState('');
   const [orgSlugs, setOrgSlugs] = useState('');
   const relocationOnboardingContext = useContext(RelocationOnboardingContext);
-  const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions;
+  const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions || [];
   const regions = ConfigStore.get('regions').filter(region =>
-    (selectableRegions || []).includes(region.name)
+    selectableRegions.includes(region.name)
   );
 
   const handleContinue = (event: any) => {
