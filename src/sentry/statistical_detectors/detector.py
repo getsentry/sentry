@@ -97,7 +97,7 @@ class RegressionDetector(ABC):
 
     @classmethod
     def detect_trends(
-        cls, projects: List[Project], start: datetime
+        cls, projects: List[Project], start: datetime, batch_size=100
     ) -> Generator[TrendBundle, None, None]:
         unique_project_ids: Set[int] = set()
 
@@ -108,7 +108,7 @@ class RegressionDetector(ABC):
         algorithm = cls.detector_algorithm_factory()
         store = cls.detector_store_factory()
 
-        for payloads in chunked(cls.all_payloads(projects, start), 100):
+        for payloads in chunked(cls.all_payloads(projects, start), batch_size):
             total_count += len(payloads)
 
             raw_states = store.bulk_read_states(payloads)

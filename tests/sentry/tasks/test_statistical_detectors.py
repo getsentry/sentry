@@ -128,7 +128,7 @@ def test_run_detection_options(
     if expected_performance_project:
         assert detect_transaction_trends.apply_async.called
         detect_transaction_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[], [project.id], timestamp], countdown=7)]
+            [mock.call(args=[[], [project.id], timestamp], countdown=17)]
         )
     else:
         assert not detect_transaction_trends.apply_async.called
@@ -136,7 +136,7 @@ def test_run_detection_options(
     if expected_profiling_project:
         assert detect_function_trends.apply_async.called
         detect_function_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[project.id], timestamp], countdown=7)]
+            [mock.call(args=[[project.id], timestamp], countdown=17)]
         )
     else:
         assert not detect_function_trends.apply_async.called
@@ -185,7 +185,7 @@ def test_run_detection_options_multiple_batches(
                 ],
                 countdown=countdown,
             )
-            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=7, step=7))
+            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=17, step=17))
         ]
     )
     assert detect_function_trends.apply_async.called
@@ -195,7 +195,7 @@ def test_run_detection_options_multiple_batches(
                 args=[[project.id for project in projects[i : i + 5]], timestamp],
                 countdown=countdown,
             )
-            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=7, step=7))
+            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=17, step=17))
         ]
     )
 

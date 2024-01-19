@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, Generator, Iterable, List, Tuple
 
+import sentry_sdk
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
@@ -70,7 +71,7 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 RUN_FREQUENCY = timedelta(hours=1)  # runs hourly
 # pick a prime number so when it wraps around, it doesn't over lap
-DISPATCH_STEP = timedelta(seconds=7)
+DISPATCH_STEP = timedelta(seconds=17)
 
 
 def get_performance_issue_settings(projects: List[Project]):
@@ -129,13 +130,20 @@ def compute_delay(
 ) -> int:
     now = django_timezone.now()
 
-    start = timestamp.replace(minute=0, second=0, microsecond=0)
+    if now - timestamp > duration:
+        sentry_sdk.capture_message("Statistical detectors task not dispatched within duration.")
+
+    start = now.replace(minute=0, second=0, microsecond=0)
     end = start + duration
 
+    remaining = end - now.replace(microsecond=0)
     # ensure there is some padding before the first task
-    remaining = end - now.replace(microsecond=0) - step
+    remaining -= step
 
-    return int((step + batch_index * step % remaining).total_seconds())
+    offset = batch_index * int(step.total_seconds()) % int(remaining.total_seconds())
+
+    # ensure there is some padding before the first task
+    return offset + int(step.total_seconds())
 
 
 def dispatch_performance_projects(
