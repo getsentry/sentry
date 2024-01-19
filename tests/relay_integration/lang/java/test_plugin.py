@@ -488,6 +488,62 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    def test_resolving_does_not_fail_when_no_value(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        metrics = event.data["_metrics"]
+        assert not metrics.get("flag.processing.error")
+
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
