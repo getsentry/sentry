@@ -84,7 +84,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   // Reset the query data if the selected metric is no longer available
   useEffect(() => {
     if (
-      metricsQuery.mri &&
+      metricsQuery.mri !== emptyWidget.mri &&
       !isMetaLoading &&
       !displayedMetrics.find(metric => metric.mri === metricsQuery.mri)
     ) {
