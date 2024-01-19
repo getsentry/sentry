@@ -597,7 +597,6 @@ class SuperuserPermissionTest(APITestCase):
         self.superuser_or_any_permission_view = DummySuperuserOrAnyPermissionEndpoint().as_view()
 
     def test_superuser_exception_raised(self):
-        self.login_as(self.user)
         response = self.superuser_permission_view(self.request)
         response_detail = response.data["detail"]
 

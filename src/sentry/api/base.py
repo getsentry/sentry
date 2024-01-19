@@ -211,7 +211,6 @@ class Endpoint(APIView):
         Raise a specific superuser exception if the only permission class we
         are checking is SuperuserPermission.
         """
-
         permissions = self.get_permissions()
 
         can_be_superuser = request.user.is_authenticated and request.user.is_superuser
