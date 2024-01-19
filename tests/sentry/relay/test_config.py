@@ -942,10 +942,10 @@ def test_performance_calculate_score_with_optional_lcp_and_cls(default_project):
                 },
                 {
                     "measurement": "lcp",
-                    "weight": 0.0,
+                    "weight": 0.3,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": False,
+                    "optional": True,
                 },
                 {
                     "measurement": "fid",
