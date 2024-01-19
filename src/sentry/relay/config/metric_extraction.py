@@ -529,6 +529,7 @@ def _convert_aggregate_and_query_to_metrics(
         return None
 
     metric_specs_and_hashes = []
+    extra = {"dataset": dataset, **metric_spec_input}
     # Create as many specs as we support
     for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
         try:
@@ -544,25 +545,16 @@ def _convert_aggregate_and_query_to_metrics(
                 )
 
             metric_specs_and_hashes.append((on_demand_spec.query_hash, metric_spec, spec_version))
-        except UnicodeEncodeError:
-            # Known issue let's continue
-            continue
         except ValueError:
             # raised by validate_sampling_condition or metric_spec lacking "condition"
             metrics.incr("on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling})
-            logger.exception(
-                "Invalid on-demand metric spec",
-                extra={"dataset": dataset, **metric_spec_input},
-            )
-
-            return None
-        except Exception as e:
+            logger.exception("Invalid on-demand metric spec", extra=extra)
+        except Exception:
             # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
             # Sentry console.
             if not prefilling:
-                logger.exception(str(e))
+                logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
-            return None
     return metric_specs_and_hashes
 
 
