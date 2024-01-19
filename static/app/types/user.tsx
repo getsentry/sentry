@@ -81,7 +81,7 @@ export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
   token: string;
-  tokenLastCharacters?: string;
+  tokenLastCharacters: string;
 }
 
 export type ApiApplication = {

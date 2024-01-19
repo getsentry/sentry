@@ -48,13 +48,13 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
 
     this.setState(
       state => ({
-        tokenList: state.tokenList?.filter(tk => tk.token !== token.token) ?? [],
+        tokenList: state.tokenList?.filter(tk => tk.id !== token.id) ?? [],
       }),
       async () => {
         try {
           await this.api.requestPromise('/api-tokens/', {
             method: 'DELETE',
-            data: {token: token.token},
+            data: {tokenId: token.id},
           });
 
           addSuccessMessage(t('Removed token'));
@@ -118,7 +118,7 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
 
             {tokenList?.map(token => (
               <ApiTokenRow
-                key={token.token}
+                key={token.id}
                 token={token}
                 onRemove={this.handleRemoveToken}
               />
