@@ -118,6 +118,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withProfiler: SentryReact.withProfiler,
     metrics: {
       MetricsAggregator: jest.fn().mockReturnValue({}),
+      metricsAggregatorIntegration: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),

@@ -15,7 +15,6 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
@@ -61,7 +60,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a group firing history for an issue alert",
+        operation_id="Retrieve a Group Firing History for an Issue Alert",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
@@ -73,7 +72,6 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=IssueAlertExamples.GENERIC_SUCCESS_RESPONSE,
     )
     def get(self, request: Request, project: Project, rule: Rule) -> Response:
         per_page = self.get_per_page(request)

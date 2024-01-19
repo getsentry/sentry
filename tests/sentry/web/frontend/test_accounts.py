@@ -1,13 +1,15 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.useremail import UserEmail
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.web.frontend.accounts import recover_confirm
 
 
 @control_silo_test
@@ -120,8 +122,13 @@ class TestAccounts(TestCase):
         assert resp.status_code == 200
         assert resp[header_name] == "strict-origin-when-cross-origin"
 
-    def test_relocate_recovery_post(self):
-        user = self.create_user()
+    @patch("sentry.signals.terms_accepted.send_robust")
+    def test_relocate_recovery_post_multiple_orgs(self, terms_accepted_signal_mock):
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+        user = self.create_user(email="test@example.com")
+        self.create_member(user=user, organization=org1)
+        self.create_member(user=user, organization=org2)
 
         resp = self.client.post(self.path, {"user": user.email})
         assert resp.status_code == 200
@@ -134,7 +141,7 @@ class TestAccounts(TestCase):
 
         resp = self.client.post(
             self.relocation_recover_path(lost_password.user_id, lost_password.hash),
-            {"username": new_username, "password": "test_password"},
+            {"username": new_username, "password": "test_password", "tos_check": True},
         )
 
         header_name = "Referrer-Policy"
@@ -146,6 +153,95 @@ class TestAccounts(TestCase):
         assert user.username == new_username
         assert user.password != old_password
         assert resp.status_code == 302
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+        rpc_org1_context = organization_service.get_organization_by_id(id=org1.id)
+        rpc_org2_context = organization_service.get_organization_by_id(id=org2.id)
+        assert rpc_org1_context is not None
+        assert rpc_org2_context is not None
+        assert terms_accepted_signal_mock.call_count == 2
+        terms_accepted_signal_mock.assert_has_calls(
+            [
+                call(
+                    user=user,
+                    organization=rpc_org1_context.organization,
+                    ip_address="127.0.0.1",
+                    sender=recover_confirm,
+                ),
+                call(
+                    user=user,
+                    organization=rpc_org2_context.organization,
+                    ip_address="127.0.0.1",
+                    sender=recover_confirm,
+                ),
+            ]
+        )
+
+    @patch("sentry.signals.terms_accepted.send_robust")
+    def test_relocate_recovery_post(self, terms_accepted_signal_mock):
+        org = self.create_organization()
+        user = self.create_user(email="test@example.com")
+        self.create_member(user=user, organization=org)
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+        user.is_unclaimed = True
+        user.save()
+        old_password = user.password
+        new_username = "test_username"
+
+        resp = self.client.post(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+            {"username": new_username, "password": "test_password", "tos_check": True},
+        )
+
+        header_name = "Referrer-Policy"
+
+        user.refresh_from_db()
+        assert resp.has_header(header_name)
+        assert resp.templates[0].name == ("sentry/emails/password-changed.txt")
+        assert not user.is_unclaimed
+        assert user.username == new_username
+        assert user.password != old_password
+        assert resp.status_code == 302
+        assert resp[header_name] == "strict-origin-when-cross-origin"
+        rpc_org_context = organization_service.get_organization_by_id(id=org.id)
+        assert terms_accepted_signal_mock.call_count == 1
+        assert rpc_org_context is not None
+        terms_accepted_signal_mock.assert_called_with(
+            user=user,
+            organization=rpc_org_context.organization,
+            ip_address="127.0.0.1",
+            sender=recover_confirm,
+        )
+
+    def test_relocate_recovery_unchecked_tos(self):
+        user = self.create_user()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+        user.is_unclaimed = True
+        user.save()
+        new_username = "test_username"
+
+        resp = self.client.post(
+            self.relocation_recover_path(lost_password.user_id, lost_password.hash),
+            {"username": new_username, "password": "test_password", "tos_check": False},
+        )
+
+        header_name = "Referrer-Policy"
+
+        user.refresh_from_db()
+        assert resp.has_header(header_name)
+        assert user.is_unclaimed
+        assert resp.status_code == 200
+        assert (
+            b"You must agree to the Terms of Service and Privacy Policy before proceeding."
+            in resp.content
+        )
         assert resp[header_name] == "strict-origin-when-cross-origin"
 
     def test_relocate_recovery_invalid_password(self):
@@ -164,7 +260,7 @@ class TestAccounts(TestCase):
             with patch.object(LostPasswordHash.objects, "get", return_value=lost_password):
                 resp = self.client.post(
                     self.relocation_recover_path(lost_password.user_id, lost_password.hash),
-                    {"username": new_username, "password": "test_password123"},
+                    {"username": new_username, "password": "test_password123", "tos_check": True},
                 )
 
                 header_name = "Referrer-Policy"
