@@ -22,6 +22,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.metadata.utils import (
     add_environments_condition,
     get_snuba_conditions_from_query,
@@ -199,6 +200,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
             ]
             + where,
             groupby=[Column("span_id")],
+            limit=Limit(SNUBA_QUERY_LIMIT),
         )
 
         request = Request(
@@ -240,6 +242,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("span_id"), Op.IN, list(span_ids)),
             ],
+            limit=Limit(SNUBA_QUERY_LIMIT),
         )
 
         request = Request(
