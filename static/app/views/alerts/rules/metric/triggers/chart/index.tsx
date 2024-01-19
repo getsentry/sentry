@@ -1,7 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import capitalize from 'lodash/capitalize';
 import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
@@ -42,6 +41,7 @@ import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';

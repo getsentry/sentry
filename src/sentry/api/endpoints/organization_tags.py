@@ -17,7 +17,7 @@ from sentry.utils.sdk import set_measurement
 @region_silo_endpoint
 class OrganizationTagsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
 

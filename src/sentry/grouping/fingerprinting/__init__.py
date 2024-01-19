@@ -237,6 +237,26 @@ class FingerprintingRules:
         return FingerprintingVisitor(bases=bases).visit(tree)
 
 
+class BuiltInFingerprintingRules(FingerprintingRules):
+    """
+    A FingerprintingRules object that marks all of its rules as built-in
+    """
+
+    @staticmethod
+    def from_config_string(s, bases=None):
+        fingerprinting_rules = FingerprintingRules.from_config_string(s, bases=bases)
+        for r in fingerprinting_rules.rules:
+            r.is_builtin = True
+        return fingerprinting_rules
+
+    @classmethod
+    def _from_config_structure(cls, data, bases=None):
+        fingerprinting_rules = super()._from_config_structure(data, bases=bases)
+        for r in fingerprinting_rules.rules:
+            r.is_builtin = True
+        return fingerprinting_rules
+
+
 MATCHERS = {
     # discover field names
     "error.type": "type",
@@ -373,10 +393,11 @@ class Match:
 
 
 class Rule:
-    def __init__(self, matchers, fingerprint, attributes):
+    def __init__(self, matchers, fingerprint, attributes, is_builtin: bool = False):
         self.matchers = matchers
         self.fingerprint = fingerprint
         self.attributes = attributes
+        self.is_builtin = is_builtin
 
     def get_fingerprint_values_for_event_access(self, access):
         by_match_group = {}
@@ -393,11 +414,16 @@ class Rule:
         return self.fingerprint, self.attributes
 
     def _to_config_structure(self):
-        return {
+        config_structure = {
             "matchers": [x._to_config_structure() for x in self.matchers],
             "fingerprint": self.fingerprint,
             "attributes": self.attributes,
         }
+
+        # only adding this key if it's true to avoid having to change in a bazillion asserts
+        if self.is_builtin:
+            config_structure["is_builtin"] = True
+        return config_structure
 
     @classmethod
     def _from_config_structure(cls, obj):
@@ -405,6 +431,7 @@ class Rule:
             [Match._from_config_structure(x) for x in obj["matchers"]],
             obj["fingerprint"],
             obj.get("attributes") or {},
+            obj.get("is_builtin") or False,
         )
 
     def to_json(self):
@@ -537,7 +564,9 @@ def _load_configs():
         try:
             with open(config_file_path) as config_file:
                 str_conf = config_file.read().rstrip()
-                configs[config_name].extend(FingerprintingRules.from_config_string(str_conf).rules)
+                configs[config_name].extend(
+                    BuiltInFingerprintingRules.from_config_string(str_conf).rules
+                )
         except InvalidFingerprintingConfig:
             logger.exception(
                 "Fingerprinting Config %s Invalid",
