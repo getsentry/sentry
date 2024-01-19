@@ -26,7 +26,10 @@ class GroupEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupenvironment"
-        index_together = [("environment", "first_release")]
+        index_together = [
+            ("environment", "first_release"),
+            ("environment", "first_release", "first_seen"),
+        ]
         unique_together = [("group", "environment")]
 
     __repr__ = sane_repr("group_id", "environment_id")
