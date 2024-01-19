@@ -6,7 +6,6 @@ from typing import Any, Iterable, Mapping, Sequence, Tuple
 
 from sentry_sdk.tracing import NoOpSpan, Transaction
 
-from sentry import features
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -187,14 +186,6 @@ def process_status_change_message(
     txn.set_tag("organization_slug", organization.slug)
     txn.set_tag("project_id", project.id)
     txn.set_tag("project_slug", project.slug)
-
-    if not features.has("organizations:issue-platform-api-crons-sd", organization):
-        metrics.incr(
-            "occurrence_ingest.status_change.dropped_feature_disabled",
-            sample_rate=1.0,
-        )
-        txn.set_tag("result", "dropped_feature_disabled")
-        return None
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
         fingerprint = status_change_data["fingerprint"]

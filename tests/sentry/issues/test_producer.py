@@ -85,7 +85,6 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert occurrence.event_id == stored_occurrence.event_id
 
 
-@apply_feature_flag_on_cls("organizations:issue-platform-api-crons-sd")
 class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
     def setUp(self):
         self.fingerprint = ["group-1"]

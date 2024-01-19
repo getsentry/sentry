@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
 from sentry.models.group import Group, GroupStatus
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase, get_test_message
@@ -29,7 +28,6 @@ def get_test_message_status_change(
     return payload
 
 
-@apply_feature_flag_on_cls("organizations:issue-platform-api-crons-sd")
 class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
     @django_db_all
     def setUp(self):
