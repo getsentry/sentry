@@ -152,17 +152,32 @@ class ExternalIssueSerializerTestCase(TestCase, APITestCase):
         )
 
         assert len(result) == 2
-        # print(result)
 
         # group 1 should have 2 issues
-        group_1_issues = result[0][group_1.id]
+        group_1_issues = result[0]["externalIssues"]
         assert len(group_1_issues) == 2
         assert group_1_issues[0].get("key") == external_issue_1a.key
         assert group_1_issues[1].get("key") == external_issue_1b.key
+        assert group_1_issues[0].get("title") == external_issue_1a.title
+        assert group_1_issues[1].get("title") == external_issue_1b.title
+        assert group_1_issues[0].get("description") == external_issue_1a.description
+        assert group_1_issues[1].get("description") == external_issue_1b.description
+        assert group_1_issues[0].get("integrationKey") == integration_github.provider
+        assert group_1_issues[1].get("integrationKey") == integration_jira.provider
+        assert group_1_issues[0].get("integrationName") == integration_github.name
+        assert group_1_issues[1].get("integrationName") == integration_jira.name
 
         # group 2 should have 3 issues
-        group_2_issues = result[1][group_2.id]
+        group_2_issues = result[1]["externalIssues"]
         assert len(group_2_issues) == 3
         assert group_2_issues[0].get("key") == external_issue_2a.key
         assert group_2_issues[1].get("key") == external_issue_2b.key
         assert group_2_issues[2].get("key") == external_issue_2c.key
+        assert group_2_issues[0].get("title") == external_issue_2a.title
+        assert group_2_issues[1].get("title") == external_issue_2b.title
+        assert group_2_issues[0].get("description") == external_issue_2a.description
+        assert group_2_issues[2].get("description") == external_issue_2c.description
+        assert group_2_issues[0].get("integrationKey") == integration_github.provider
+        assert group_2_issues[2].get("integrationKey") == integration_jira.provider
+        assert group_2_issues[0].get("integrationName") == integration_github.name
+        assert group_2_issues[1].get("integrationName") == integration_jira.name

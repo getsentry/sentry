@@ -167,7 +167,7 @@ class ExternalIssueSerializer(Serializer):
     def get_attrs(
         self, item_list: List[Group], user: User, **kwargs: Any
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
-        group_by_external_issue = defaultdict(dict)
+        result = defaultdict(dict)
         for item in item_list:
             external_issues = ExternalIssue.objects.filter(
                 id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
@@ -175,14 +175,14 @@ class ExternalIssueSerializer(Serializer):
                 ),
             )
 
-            group_by_integration = []
+            group_linked_issues = []
             for ei in external_issues:
                 integration = integration_service.get_integration(integration_id=ei.integration_id)
                 if integration is None:
                     continue
                 installation = integration.get_installation(organization_id=ei.organization.id)
                 if hasattr(installation, "get_issue_display_name"):
-                    group_by_integration.append(
+                    group_linked_issues.append(
                         {
                             "id": str(ei.id),
                             "key": ei.key,
@@ -194,9 +194,9 @@ class ExternalIssueSerializer(Serializer):
                         }
                     )
 
-            group_by_external_issue[item.id] = group_by_integration
+            result[item.id] = group_linked_issues
 
-        return {item: {item.id: group_by_external_issue.get(item.id, {})} for item in item_list}
+        return {item: {"externalIssues": result.get(item.id, {})} for item in item_list}
 
     def serialize(
         self, obj: Group, attrs: Mapping[str, Any], user: User, **kwargs: Any
