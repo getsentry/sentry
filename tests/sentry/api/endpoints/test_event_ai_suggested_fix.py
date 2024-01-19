@@ -81,7 +81,7 @@ def openai_policy():
 
 
 @django_db_all
-def test_consent(client, default_project, test_event, openai_policy):
+def test_consent(client, monkeypatch, default_project, test_event, openai_policy):
     path = reverse(
         "sentry-api-0-event-ai-fix-suggest",
         kwargs={
@@ -104,10 +104,12 @@ def test_consent(client, default_project, test_event, openai_policy):
     assert response.status_code == 403
     assert response.json() == {"restriction": "subprocessor"}
 
-    openai_policy["result"] = "pii_certification_required"
-    response = client.get(path)
-    assert response.status_code == 403
-    assert response.json() == {"restriction": "pii_certification_required"}
+    with monkeypatch.context() as m:
+        m.setattr(client.user, "is_staff", True)
+        openai_policy["result"] = "pii_certification_required"
+        response = client.get(path)
+        assert response.status_code == 403
+        assert response.json() == {"restriction": "pii_certification_required"}
 
     openai_policy["result"] = "allowed"
     response = client.get(path)
