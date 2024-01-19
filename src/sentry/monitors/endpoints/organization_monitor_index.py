@@ -289,7 +289,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         if not monitor_slugs:
             return self.respond("Please specify a list of monitor slugs to modify", status=400)
 
-        # TODO(davidenwang): use serializer for this
         validator = MonitorValidator(
             data=request.data,
             partial=True,
@@ -307,9 +306,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         monitors = Monitor.objects.filter(slug__in=monitor_slugs)
         # Ensure we can assign all monitor seats before moving forward
         if status == ObjectStatus.ACTIVE:
-            result = quotas.backend.check_assign_monitor_seats(monitors)
-            if not result.assignable:
-                return self.respond(result.reason, status=400)
+            assign_result = quotas.backend.check_assign_monitor_seats(monitors)
+            if not assign_result.assignable:
+                return self.respond(assign_result.reason, status=400)
 
         for monitor in monitors:
             # Attempt to assign a monitor seat
