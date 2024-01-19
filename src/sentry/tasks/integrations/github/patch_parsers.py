@@ -6,6 +6,8 @@ from typing import List, Set
 
 from snuba_sdk import BooleanCondition, Column, Condition, Function, Op
 
+from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
+
 stackframe_function_name = lambda i: Function(
     "arrayElement",
     (Column("exception_frames.function"), i),
@@ -64,9 +66,6 @@ class PythonParser(LanguageParser):
         """
         Fetch the function name from the stackframe that matches a name within the list of function names.
         """
-        # circular import
-        from sentry.tasks.integrations.github.open_pr_comment import STACKFRAME_COUNT
-
         multi_if = []
         for i in range(-STACKFRAME_COUNT, 0):
             # if, then conditions
