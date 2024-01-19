@@ -345,10 +345,10 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         span_id_1 = "98230207e6e4a6ad"
         span_id_2 = "10230207e8e4a6ef"
         span_id_3 = "22330201e8e4a6ab"
-        for span_id, span_op, span_duration in (
-            (span_id_1, "db", 10),
-            (span_id_2, "http", 20),
-            (span_id_3, "rpc", 2),
+        for span_id, span_op, min, span_duration in (
+            (span_id_1, "db", 15.0, 10),
+            (span_id_2, "http", 20.0, 20),
+            (span_id_3, "rpc", 45.0, 2),
         ):
             self.store_indexed_span(
                 project_id=self.project.id,
@@ -361,7 +361,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 store_metrics_summary={
                     mri: [
                         {
-                            "min": 10.0,
+                            "min": min,
                             "max": 100.0,
                             "sum": 110.0,
                             "count": 2,
@@ -386,6 +386,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert metric_spans[0]["transactionId"] == transaction_id
         assert metric_spans[0]["duration"] == 30
         assert metric_spans[0]["spansNumber"] == 3
+        assert sorted(metric_spans[0]["metricSummaries"], key=lambda value: value["min"]) == [
+            {"spanId": span_id_1, "min": 15.0, "max": 100.0, "sum": 110.0, "count": 2},
+            {"spanId": span_id_2, "min": 20.0, "max": 100.0, "sum": 110.0, "count": 2},
+            {"spanId": span_id_3, "min": 45.0, "max": 100.0, "sum": 110.0, "count": 2},
+        ]
         assert sorted(metric_spans[0]["spansDetails"], key=lambda value: value["spanDuration"]) == [
             {
                 "spanId": span_id_3,
