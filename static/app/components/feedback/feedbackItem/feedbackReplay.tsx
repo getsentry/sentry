@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
+import MissingReplayAlert from 'sentry/components/replays/missingReplayAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Event, Organization} from 'sentry/types';
@@ -47,6 +48,10 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
 
   if (!hasSentOneReplay) {
     return <ReplayInlineCTAPanel />;
+  }
+
+  if (replayId) {
+    return <MissingReplayAlert orgSlug={organization.slug} />;
   }
 
   return <Fragment>{t('No replay captured')}</Fragment>;
