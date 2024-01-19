@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Type
+from typing import Callable, Type
 
 import sentry_sdk
 from celery import Task
@@ -55,7 +55,7 @@ CONCURRENCY = 5
 
 def schedule_batch(
     silo_mode: SiloMode,
-    drain_task: Task,
+    drain_task: Task | Callable,
     concurrency: int | None = None,
     process_outbox_backfills=True,
 ):
@@ -150,9 +150,7 @@ def process_outbox_batch(
     for shard_attributes in outbox_model.find_scheduled_shards(
         outbox_identifier_low, outbox_identifier_hi
     ):
-        shard_outbox: ControlOutboxBase | None = outbox_model.prepare_next_from_shard(
-            shard_attributes
-        )
+        shard_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attributes)
         if not shard_outbox:
             continue
         try:
