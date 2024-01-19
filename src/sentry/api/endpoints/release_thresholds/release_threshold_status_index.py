@@ -353,14 +353,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                 """
                 Query new issue counts for all projects with a new_issue_count threshold in desired releases
                 """
-                query_window = query_windows_by_type[threshold_type]
                 new_issue_counts = get_new_issue_counts(
-                    end=query_window["end"],
                     organization_id=organization.id,
-                    environments_list=environments_list,
-                    project_id_list=project_id_list,
-                    release_value_list=release_value_list,
-                    start=query_window["start"],
+                    thresholds=category_thresholds,
                 )
                 logger.info(
                     "querying new issue counts",

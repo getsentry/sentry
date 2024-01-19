@@ -1,35 +1,51 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING, List
 
-from django.db.models import Count, Q
+from django.db.models import CharField, Count, Q, Value
 
 from sentry.models.group import Group
 
+if TYPE_CHECKING:
+    from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
+
 
 def get_new_issue_counts(
-    end: datetime,
-    project_id_list: List[int],
-    organization_id: int,
-    release_value_list: List[str],
-    start: datetime,
-    environments_list: List[str] | None = None,
-):
-    issue_group_query = Q(
-        project__organization__id=organization_id,
-        project__id__in=project_id_list,
-        first_release__version__in=release_value_list,
-        first_seen__range=(start, end),  # NOTE: start/end for the entire group of thresholds
-    )
-    if environments_list:
-        issue_group_query &= Q(
-            groupenvironment__environment__name__in=environments_list,
+    organization_id: int, thresholds: List[EnrichedThreshold]
+) -> dict[str, int]:
+    """
+    constructs a query for each threshold, filtering on project
+    """
+    queryset = None
+    for t in thresholds:
+        query = Q(
+            project__organization__id=organization_id,
+            project__id=t.project_id,
         )
+        if t.environment:
+            # If we're filtering on environment, just use the first_release/first_seen from the groupenvironment so we don't need to cross reference tables
+            query &= Q(
+                groupenvironment__first_release__version=t.release,
+                groupenvironment__first_seen__range=(t.start, t.end),
+                groupenvironment__environment__name=t.environment.get("name"),
+            )
+        else:
+            query &= Q(
+                first_release__version=t.release,
+                first_seen__range=(t.start, t.end),
+                groupenvironment__isnull=True,
+            )
+        qs = (
+            Group.objects.filter(query)
+            .values("project__id", "first_release__version", "groupenvironment")
+            .annotate(
+                count=Count("*"),
+                threshold_id=Value(t.id, output_field=CharField()),
+            )
+        )
+        if queryset:
+            queryset.union(qs)
+        else:
+            queryset = qs
 
-    qs = (
-        Group.objects.filter(issue_group_query)
-        .values("project__id", "first_release__version", "groupenvironment__environment__name")
-        .annotate(count=Count("first_release__version"))
-    )
-    return qs
+    return {x.threshold_id: x.count for x in queryset}
