@@ -900,6 +900,8 @@ def _remove_redundant_parentheses(tokens: Sequence[QueryToken]) -> Sequence[Quer
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
     if isinstance(value, dict):
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
+    elif isinstance(value, list):
+        return sorted(value, key=lambda x: x["key"])
     else:
         return value
 
