@@ -522,6 +522,8 @@ class SlackActionEndpoint(Endpoint):
             response = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=action_list, tags=original_tags_from_request
             ).build()
+            if "text" in response:
+                del response["text"]
             slack_client = SlackClient(integration_id=slack_request.integration.id)
 
             if not slack_request.data.get("response_url"):

@@ -179,6 +179,11 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
+        if features.has("organizations:slack-block-kit", organization):
+            for link_info in results.values():
+                if "text" in link_info:
+                    del link_info["text"]
+
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
