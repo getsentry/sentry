@@ -175,29 +175,28 @@ class ExternalIssueSerializer(Serializer):
                 ),
             )
 
-            group_by_integration = defaultdict(list)
+            group_by_integration = []
             for ei in external_issues:
                 integration = integration_service.get_integration(integration_id=ei.integration_id)
                 if integration is None:
                     continue
                 installation = integration.get_installation(organization_id=ei.organization.id)
                 if hasattr(installation, "get_issue_display_name"):
-                    group_by_integration[ei.integration_id].append(
+                    group_by_integration.append(
                         {
                             "id": str(ei.id),
                             "key": ei.key,
                             "title": ei.title,
                             "description": ei.description,
                             "displayName": installation.get_issue_display_name(ei),
+                            "integrationKey": integration.provider,
+                            "integrationName": integration.name,
                         }
                     )
 
             group_by_external_issue[item.id] = group_by_integration
 
-        return {
-            item: {"external_issues": group_by_external_issue.get(item.id, {})}
-            for item in item_list
-        }
+        return {item: {item.id: group_by_external_issue.get(item.id, {})} for item in item_list}
 
     def serialize(
         self, obj: Group, attrs: Mapping[str, Any], user: User, **kwargs: Any

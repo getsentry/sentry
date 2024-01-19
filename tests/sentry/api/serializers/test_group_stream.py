@@ -91,14 +91,14 @@ class ExternalIssueSerializerTestCase(TestCase, APITestCase):
     def test_external_issue_serializer(self):
         # integrations and external issues for group 1
         group_1 = self.create_group()
-        integration_github = self.create_integration(
+        integration_jira = self.create_integration(
             organization=group_1.organization,
             provider="jira",
             external_id="jira_external_id",
             name="Jira",
             metadata={"base_url": "https://example.com", "domain_name": "test/"},
         )
-        integration_jira = self.create_integration(
+        integration_github = self.create_integration(
             organization=group_1.organization,
             provider="github",
             external_id="github_external_id",
@@ -154,17 +154,15 @@ class ExternalIssueSerializerTestCase(TestCase, APITestCase):
         assert len(result) == 2
         # print(result)
 
-        # group 1 should have 2 integrations and 1 issue for each
-        group_1_issues = result[0]["external_issues"]
-        assert len(group_1_issues[integration_github.id]) == 1
-        assert len(group_1_issues[integration_jira.id]) == 1
-        assert group_1_issues[integration_github.id][0].get("key") == external_issue_1a.key
-        assert group_1_issues[integration_jira.id][0].get("key") == external_issue_1b.key
+        # group 1 should have 2 issues
+        group_1_issues = result[0][group_1.id]
+        assert len(group_1_issues) == 2
+        assert group_1_issues[0].get("key") == external_issue_1a.key
+        assert group_1_issues[1].get("key") == external_issue_1b.key
 
-        # group 2 should have 2 integrations and 3 issues
-        group_2_issues = result[1]["external_issues"]
-        assert len(group_2_issues[integration_github.id]) == 1
-        assert len(group_2_issues[integration_jira.id]) == 2
-        assert group_2_issues[integration_github.id][0].get("key") == external_issue_2a.key
-        assert group_2_issues[integration_jira.id][0].get("key") == external_issue_2b.key
-        assert group_2_issues[integration_jira.id][1].get("key") == external_issue_2c.key
+        # group 2 should have 3 issues
+        group_2_issues = result[1][group_2.id]
+        assert len(group_2_issues) == 3
+        assert group_2_issues[0].get("key") == external_issue_2a.key
+        assert group_2_issues[1].get("key") == external_issue_2b.key
+        assert group_2_issues[2].get("key") == external_issue_2c.key
