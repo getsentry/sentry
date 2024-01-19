@@ -535,7 +535,10 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
   const location = useLocation();
   return (
     <PageErrorProvider>
-      <DetailPanel detailKey={detail ? 'open' : undefined} onClose={onClose}>
+      <DetailPanel
+        detailKey={detail && detail.openPanel === 'open' ? 'open' : undefined}
+        onClose={onClose}
+      >
         {detail &&
           (isEventDetail(detail) ? (
             <EventDetails

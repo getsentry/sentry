@@ -87,6 +87,7 @@ export type SpanDetailProps = {
   childTransactions: QuickTraceEvent[] | null;
   event: Readonly<EventTransaction>;
   isRoot: boolean;
+  openPanel: string | undefined;
   organization: Organization;
   relatedErrors: TraceErrorOrIssue[] | null;
   resetCellMeasureCache: () => void;

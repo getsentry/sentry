@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -70,6 +71,7 @@ export enum TraceType {
 
 export type EventDetail = {
   event: EventTransaction | undefined;
+  openPanel: string | undefined;
   traceFullDetailedEvent: TraceFullDetailed;
 };
 
@@ -409,6 +411,9 @@ function NewTraceDetailsContent(props: Props) {
             router.replace({
               ...location,
               hash: undefined,
+              query: {
+                ...omit(location.query, 'openPanel'),
+              },
             });
             setDetail(undefined);
           }}
