@@ -104,14 +104,11 @@ def test_consent(client, monkeypatch, default_user, default_project, test_event,
     assert response.status_code == 403
     assert response.json() == {"restriction": "subprocessor"}
 
-    with monkeypatch.context() as m:
-        m.setattr(default_user, "is_staff", True)
-        client.login(username=default_user.username, password="admin")
-        openai_policy["result"] = "pii_certification_required"
-        response = client.get(path)
-        assert response.status_code == 403
-        assert response.json() == {"restriction": "pii_certification_required"}
-        client.logout()
+    openai_policy["result"] = "pii_certification_required"
+    response = client.get(path)
+    assert response.status_code == 403
+    assert response.json() == {"restriction": "pii_certification_required"}
+    client.logout()
 
     openai_policy["result"] = "allowed"
     response = client.get(path)
