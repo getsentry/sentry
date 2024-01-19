@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {
-  emptyWidget,
   getDefaultMetricDisplayType,
   getReadableMetricType,
   isAllowedOp,
@@ -52,7 +51,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   powerUserMode,
   onChange,
 }: QueryBuilderProps) {
-  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
+  const {data: meta} = useMetricsMeta(projects);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
   const breakpoints = useBreakpoints();
@@ -80,17 +79,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);
   }, [meta, metricsQuery.mri]);
-
-  // Reset the query data if the selected metric is no longer available
-  useEffect(() => {
-    if (
-      metricsQuery.mri !== emptyWidget.mri &&
-      !isMetaLoading &&
-      !displayedMetrics.find(metric => metric.mri === metricsQuery.mri)
-    ) {
-      onChange({mri: emptyWidget.mri, op: emptyWidget.op, groupBy: []});
-    }
-  }, [isMetaLoading, displayedMetrics, metricsQuery.mri, onChange]);
 
   const incrementQueryMetric = useIncrementQueryMetric({
     displayType,
