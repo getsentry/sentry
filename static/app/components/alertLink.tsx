@@ -69,14 +69,16 @@ function AlertLink({
 
 export default AlertLink;
 
-const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) => {
-  const linkProps = omit(props, ['withoutMarginBottom', 'priority', 'size']);
-  if (href) {
-    return <ExternalLink {...linkProps} href={href} openInNewTab={openInNewTab} />;
-  }
+const StyledLink = styled(
+  ({openInNewTab, to, href, system: _, ...props}: StyledLinkProps) => {
+    const linkProps = omit(props, ['withoutMarginBottom', 'priority', 'size']);
+    if (href) {
+      return <ExternalLink {...linkProps} href={href} openInNewTab={openInNewTab} />;
+    }
 
-  return <Link {...linkProps} to={to || ''} />;
-})`
+    return <Link {...linkProps} to={to || ''} />;
+  }
+)`
   display: flex;
   align-items: center;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
