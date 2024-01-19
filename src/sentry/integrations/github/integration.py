@@ -33,7 +33,7 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.utils import metrics
 from sentry.web.helpers import render_to_response

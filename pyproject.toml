@@ -491,7 +491,6 @@ module = [
     "sentry.tasks.digests",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
-    "sentry.tasks.integrations.github.pr_comment",
     "sentry.tasks.integrations.migrate_issues",
     "sentry.tasks.integrations.migrate_repo",
     "sentry.tasks.integrations.slack.find_channel_id_for_rule",
