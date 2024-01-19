@@ -112,7 +112,6 @@ class StacktraceState:
 
 
 class Enhancements:
-
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
@@ -165,7 +164,7 @@ class Enhancements:
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
-                    match_frames, platform, exception_data, in_memory_cache
+                    match_frames, exception_data, in_memory_cache
                 ):
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
@@ -181,9 +180,8 @@ class Enhancements:
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside
         for rule in self._updater_rules:
-
             for idx, action in rule.get_matching_frame_actions(
-                match_frames, platform, exception_data, in_memory_cache
+                match_frames, exception_data, in_memory_cache
             ):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
@@ -360,7 +358,6 @@ class Rule:
     def get_matching_frame_actions(
         self,
         match_frames: Sequence[dict[str, Any]],
-        platform: str,
         exception_data: dict[str, Any],
         in_memory_cache: dict[str, str],
     ) -> list[tuple[int, Action]]:
@@ -372,7 +369,7 @@ class Rule:
 
         # 1 - Check if exception matchers match
         for m in self._exception_matchers:
-            if not m.matches_frame(match_frames, None, platform, exception_data, in_memory_cache):
+            if not m.matches_frame(match_frames, None, exception_data, in_memory_cache):
                 return []
 
         rv = []
@@ -380,7 +377,7 @@ class Rule:
         # 2 - Check if frame matchers match
         for idx, _ in enumerate(match_frames):
             if all(
-                m.matches_frame(match_frames, idx, platform, exception_data, in_memory_cache)
+                m.matches_frame(match_frames, idx, exception_data, in_memory_cache)
                 for m in self._other_matchers
             ):
                 for action in self.actions:
