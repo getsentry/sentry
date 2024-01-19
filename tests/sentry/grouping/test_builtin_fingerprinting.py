@@ -9,7 +9,12 @@ from sentry.grouping.api import (
     get_default_grouping_config_dict,
     get_fingerprinting_config_for_project,
 )
-from sentry.grouping.fingerprinting import FINGERPRINTING_BASES, FingerprintingRules, _load_configs
+from sentry.grouping.fingerprinting import (
+    FINGERPRINTING_BASES,
+    BuiltInFingerprintingRules,
+    FingerprintingRules,
+    _load_configs,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -392,6 +397,46 @@ def test_load_configs_borked_file_doesnt_blow_up(tmp_path):
             "is_builtin": True,
         },
     ]
+
+
+@pytest.mark.parametrize("is_builtin", [True, False, None])
+def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(is_builtin):
+    rules = BuiltInFingerprintingRules._from_config_structure(
+        {
+            "rules": [
+                {
+                    "matchers": [["type", "DatabaseUnavailable"]],
+                    "fingerprint": ["DatabaseUnavailable"],
+                    "attributes": {},
+                    "is_builtin": is_builtin,
+                },
+            ],
+            "version": 1,
+        },
+        bases=[],
+    )
+
+    assert rules.rules[0].is_builtin is True
+
+
+@pytest.mark.parametrize("is_builtin", [True, False, None])
+def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(is_builtin):
+    rules = FingerprintingRules._from_config_structure(
+        {
+            "rules": [
+                {
+                    "matchers": [["type", "DatabaseUnavailable"]],
+                    "fingerprint": ["DatabaseUnavailable"],
+                    "attributes": {},
+                    "is_builtin": is_builtin,
+                },
+            ],
+            "version": 1,
+        },
+        bases=[],
+    )
+
+    assert rules.rules[0].is_builtin == bool(is_builtin)
 
 
 @region_silo_test
