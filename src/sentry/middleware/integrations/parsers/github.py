@@ -56,8 +56,14 @@ class GithubRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
+            integration = self.get_integration_from_request()
+            if not integration:
+                return self.get_default_missing_integration_response()
+
             regions = self.get_regions_from_organizations()
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
             return self.get_default_missing_integration_response()
 
-        return self.get_response_from_outbox_creation(regions=regions)
+        return self.get_response_from_outbox_creation_for_integration(
+            regions=regions, integration=integration
+        )
