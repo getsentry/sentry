@@ -8,6 +8,7 @@ from sentry.utils import metrics
 RELAY_OPTIONS: List[str] = [
     "profiling.profile_metrics.unsampled_profiles.platforms",
     "profiling.profile_metrics.unsampled_profiles.sample_rate",
+    "profiling.profile_metrics.unsampled_profiles.enabled",
 ]
 
 
