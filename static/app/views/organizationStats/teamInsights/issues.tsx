@@ -128,10 +128,10 @@ function TeamStatsIssues({location, router}: Props) {
                 end={end?.toString()}
                 statuses={[
                   'resolved',
+                  'deleted',
                   'archived_until_escalating',
                   'archived_forever',
                   'archived_until_condition_met',
-                  'deleted',
                 ]}
               />
             </DescriptionCard>
