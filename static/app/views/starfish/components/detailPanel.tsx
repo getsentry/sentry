@@ -24,21 +24,21 @@ type DetailState = {
 
 const SLIDEOUT_STORAGE_KEY = 'starfish-panel-slideout-direction';
 
-function getSlideOutDirection(): 'Up' | 'Left' {
-  const localValue = localStorage.getItem(SLIDEOUT_STORAGE_KEY) || 'Left';
-  if (localValue !== 'Up' && localValue !== 'Left') {
-    return 'Left';
+function getSlideOutDirection(): 'Right' | 'Bottom' {
+  const localValue = localStorage.getItem(SLIDEOUT_STORAGE_KEY) || 'Right';
+  if (localValue !== 'Bottom' && localValue !== 'Right') {
+    return 'Right';
   }
   return localValue;
 }
 
-function setSlideOutDirection(direction: 'Up' | 'Left') {
+function setSlideOutDirection(direction: 'Right' | 'Bottom') {
   localStorage.setItem(SLIDEOUT_STORAGE_KEY, direction);
 }
 
 export default function Detail({children, detailKey, onClose, onOpen}: DetailProps) {
   const [state, setState] = useState<DetailState>({collapsed: true});
-  const [slideDirection, setSlideDirection] = useState<'Up' | 'Left'>(
+  const [slideDirection, setSlideDirection] = useState<'Right' | 'Bottom'>(
     getSlideOutDirection()
   );
   const escapeKeyPressed = useKeyPress('Escape');
@@ -86,22 +86,22 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
           priority="link"
           size="zero"
           borderless
-          aria-label={t('Slide from the bottom')}
-          disabled={slideDirection === 'Up'}
+          aria-label={t('Dock to the bottom')}
+          disabled={slideDirection === 'Bottom'}
           icon={<IconPanel size="sm" direction="down" />}
           onClick={() => {
-            setSlideDirection('Up');
+            setSlideDirection('Bottom');
           }}
         />
         <PanelButton
           priority="link"
           size="zero"
           borderless
-          aria-label={t('Slide from the right')}
-          disabled={slideDirection === 'Left'}
+          aria-label={t('Dock to the right')}
+          disabled={slideDirection === 'Right'}
           icon={<IconPanel size="sm" direction="right" />}
           onClick={() => {
-            setSlideDirection('Left');
+            setSlideDirection('Right');
           }}
         />
         <CloseButton

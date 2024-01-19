@@ -10,7 +10,7 @@ type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
   onOpen?: () => void;
-  slideDirection?: 'Left' | 'Up';
+  slideDirection?: 'Right' | 'Bottom';
 };
 
 export default forwardRef(SlideOverPanel);
@@ -25,11 +25,11 @@ function SlideOverPanel(
     }
   }, [collapsed, onOpen]);
   const initial =
-    slideDirection === 'Up'
+    slideDirection === 'Bottom'
       ? {opacity: 0, x: 0, y: 0}
       : {opacity: 0, x: PANEL_WIDTH, y: 0};
   const final =
-    slideDirection === 'Up'
+    slideDirection === 'Bottom'
       ? {opacity: 0, x: 0, y: PANEL_HEIGHT}
       : {opacity: 0, x: PANEL_WIDTH};
   return (
@@ -56,10 +56,10 @@ const _SlideOverPanel = styled(motion.div, {
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
   collapsed: boolean;
-  slideDirection?: 'Left' | 'Up';
+  slideDirection?: 'Right' | 'Bottom';
 }>`
   ${p =>
-    p.slideDirection === 'Up'
+    p.slideDirection === 'Bottom'
       ? `
       width: 100%;
       height: ${PANEL_HEIGHT};
