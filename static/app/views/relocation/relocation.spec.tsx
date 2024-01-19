@@ -91,6 +91,7 @@ describe('Relocation', function () {
       renderPage('get-started');
       await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
 
+      ConfigStore.set('relocationConfig', {selectableRegions: ['USA']});
       ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
       const orgSlugsInput = await screen.getByLabelText('org-slugs');
       const continueButton = await screen.getByRole('button', {name: 'Continue'});
@@ -226,6 +227,7 @@ describe('Relocation', function () {
         method: 'POST',
       });
       renderPage('get-started');
+      ConfigStore.set('relocationConfig', {selectableRegions: ['USA']});
       ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
       const orgSlugsInput = await screen.getByLabelText('org-slugs');
       const continueButton = await screen.getByRole('button', {name: 'Continue'});
@@ -256,6 +258,7 @@ describe('Relocation', function () {
         statusCode: 409,
       });
       renderPage('get-started');
+      ConfigStore.set('relocationConfig', {selectableRegions: ['USA']});
       ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
       const orgSlugsInput = screen.getByLabelText('org-slugs');
       const continueButton = screen.getByRole('button', {name: 'Continue'});
@@ -281,6 +284,7 @@ describe('Relocation', function () {
         statusCode: 429,
       });
       renderPage('get-started');
+      ConfigStore.set('relocationConfig', {selectableRegions: ['USA']});
       ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
       const orgSlugsInput = screen.getByLabelText('org-slugs');
       const continueButton = screen.getByRole('button', {name: 'Continue'});
@@ -306,6 +310,7 @@ describe('Relocation', function () {
         statusCode: 401,
       });
       renderPage('get-started');
+      ConfigStore.set('relocationConfig', {selectableRegions: ['USA']});
       ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
       const orgSlugsInput = screen.getByLabelText('org-slugs');
       const continueButton = screen.getByRole('button', {name: 'Continue'});
@@ -329,6 +334,7 @@ describe('Relocation', function () {
         statusCode: 500,
       });
       renderPage('get-started');
+      ConfigStore.set('relocationConfig', {selectableRegions: ['USA']});
       ConfigStore.set('regions', [{name: 'USA', url: 'https://example.com'}]);
       const orgSlugsInput = screen.getByLabelText('org-slugs');
       const continueButton = screen.getByRole('button', {name: 'Continue'});
