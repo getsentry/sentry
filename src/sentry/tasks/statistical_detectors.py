@@ -137,13 +137,10 @@ def compute_delay(
     end = start + duration
 
     remaining = end - now.replace(microsecond=0)
-    # ensure there is some padding before the first task
+    # ensure there is some padding before the end of the duration
     remaining -= step
 
-    offset = batch_index * int(step.total_seconds()) % int(remaining.total_seconds())
-
-    # ensure there is some padding before the first task
-    return offset + int(step.total_seconds())
+    return batch_index * int(step.total_seconds()) % int(remaining.total_seconds())
 
 
 def dispatch_performance_projects(
