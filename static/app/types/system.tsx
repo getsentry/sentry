@@ -181,6 +181,11 @@ export interface Config {
   termsUrl: string | null;
   theme: 'light' | 'dark';
   urlPrefix: string;
+  /**
+   * The user should not be accessible directly except during
+   * app initialization. Use `useUser` or ConfigStore instead.
+   * @deprecated
+   */
   user: User;
   userIdentity: {
     email: string;
