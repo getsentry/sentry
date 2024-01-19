@@ -3,7 +3,9 @@ import {Fragment} from 'react';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
 import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
-import MissingReplayAlert from 'sentry/components/replays/missingReplayAlert';
+import Placeholder from 'sentry/components/placeholder';
+import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Event, Organization} from 'sentry/types';
@@ -27,7 +29,12 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
   const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
   if (!platformSupported) {
-    return <Fragment>{t("This platform isn't supported.")}</Fragment>;
+    return (
+      <ReplayUnsupportedAlert
+        primaryAction="create"
+        projectSlug={feedbackItem.project.slug}
+      />
+    );
   }
 
   if (replayId && hasReplayId) {
@@ -43,7 +50,7 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
   }
 
   if ((replayId && hasReplayId === undefined) || isFetchingSentOneReplay) {
-    return <Fragment>{t('Checking things out...')}</Fragment>;
+    return <Placeholder />;
   }
 
   if (!hasSentOneReplay) {

@@ -5,7 +5,7 @@ import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
-import MissingReplayAlert from 'sentry/components/replays/missingReplayAlert';
+import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
