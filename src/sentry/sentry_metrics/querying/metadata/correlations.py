@@ -68,7 +68,7 @@ class MetricSummary:
     Summary of a metric inside a span.
     """
 
-    span_id: float
+    span_id: str
     min: float
     max: float
     sum: float
