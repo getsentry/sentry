@@ -144,7 +144,7 @@ def get_path(data: PathSearchable, *path, **kwargs):
 
     if f and data and isinstance(data, (list, tuple)):
         data = list(filter((lambda x: x is not None) if f is True else f, data))
-        if data is None and "iterated_path" in logger_data:
+        if len(data) == 0 and "iterated_path" in logger_data:
             logger.info("sentry.safe.get_path.filtered_path_is_none", extra=logger_data)
 
     return data if data is not None else default
