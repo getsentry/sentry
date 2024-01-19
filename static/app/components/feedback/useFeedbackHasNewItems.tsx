@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
-  listPrefetchQueryKey: ApiQueryKey;
+  listPrefetchQueryKey: ApiQueryKey | undefined;
 }
 
 const POLLING_INTERVAL_MS = 10 * 1000;
@@ -11,10 +11,10 @@ const POLLING_INTERVAL_MS = 10 * 1000;
 export default function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
   const [foundData, setFoundData] = useState(false);
 
-  const {data} = useApiQuery<unknown[]>(listPrefetchQueryKey, {
+  const {data} = useApiQuery<unknown[]>(listPrefetchQueryKey ?? [''], {
     refetchInterval: POLLING_INTERVAL_MS,
     staleTime: 0,
-    enabled: !foundData,
+    enabled: listPrefetchQueryKey && !foundData,
   });
 
   useEffect(() => {

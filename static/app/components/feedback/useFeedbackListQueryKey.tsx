@@ -19,7 +19,7 @@ export default function useFeedbackListQueryKey({
   listHeadTime,
   organization,
   prefetch,
-}: Props): ApiQueryKey {
+}: Props): ApiQueryKey | undefined {
   const queryView = useLocationQuery({
     fields: {
       limit: PER_PAGE,
@@ -49,12 +49,16 @@ export default function useFeedbackListQueryKey({
     const {statsPeriod, ...rest} = queryView;
 
     if (prefetch) {
+      if (!statsPeriod) {
+        // We shouldn't prefetch if the query uses an absolute date range
+        return undefined;
+      }
       // Look 1 day into the future, from the time the page is loaded for new
       // feedbacks to come in.
       const intervalMS = intervalToMilliseconds('1d');
       const start = new Date(listHeadTime).toISOString();
       const end = new Date(listHeadTime + intervalMS).toISOString();
-      return statsPeriod ? {...rest, limit: 1, start, end} : {...rest, limit: 1};
+      return statsPeriod ? {...rest, limit: 1, start, end} : undefined;
     }
 
     const intervalMS = intervalToMilliseconds(statsPeriod);
@@ -64,15 +68,10 @@ export default function useFeedbackListQueryKey({
   }, [listHeadTime, prefetch, queryView]);
 
   return useMemo(() => {
+    if (!queryViewWithStatsPeriod) {
+      return undefined;
+    }
     const {mailbox, ...fixedQueryView} = queryViewWithStatsPeriod;
-    const expand = prefetch
-      ? []
-      : [
-          'owners', // Gives us assignment
-          'stats', // Gives us `firstSeen`
-          'pluginActions', // Gives us plugin actions available
-          'pluginIssues', // Gives us plugin issues available
-        ];
 
     return [
       `/organizations/${organization.slug}/issues/`,
@@ -80,7 +79,14 @@ export default function useFeedbackListQueryKey({
         query: {
           ...fixedQueryView,
           collapse: ['inbox'],
-          expand,
+          expand: prefetch
+            ? []
+            : [
+                'owners', // Gives us assignment
+                'stats', // Gives us `firstSeen`
+                'pluginActions', // Gives us plugin actions available
+                'pluginIssues', // Gives us plugin issues available
+              ],
           shortIdLookup: 0,
           query: `issue.category:feedback status:${mailbox} ${fixedQueryView.query}`,
         },

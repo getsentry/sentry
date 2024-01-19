@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AlertLink from 'sentry/components/alertLink';
+import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
@@ -9,6 +9,7 @@ import type useListItemCheckboxState from 'sentry/components/feedback/list/useLi
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackHasNewItems from 'sentry/components/feedback/useFeedbackHasNewItems';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -41,7 +42,7 @@ export default function FeedbackListHeader({
   const {setParamValue: setMailbox} = useUrlParams('mailbox');
 
   const {listPrefetchQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
-  const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey});
+  const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey}) || true;
   const {invalidateListCache} = useFeedbackCache();
 
   return (
@@ -69,21 +70,22 @@ export default function FeedbackListHeader({
         )}
       </HeaderPanelItem>
       {hasNewItems ? (
-        <AlertLink
-          system
-          priority="info"
-          size="small"
-          withoutMarginBottom
-          onClick={() => {
-            // Get a new date for polling:
-            resetListHeadTime();
-            // Clear the list cache and let people start over from the newest
-            // data in the list:
-            invalidateListCache();
-          }}
-        >
-          {t('Load new feedback')}
-        </AlertLink>
+        <RefreshContainer>
+          <Button
+            priority="primary"
+            size="xs"
+            icon={<IconRefresh />}
+            onClick={() => {
+              // Get a new date for polling:
+              resetListHeadTime();
+              // Clear the list cache and let people start over from the newest
+              // data in the list:
+              invalidateListCache();
+            }}
+          >
+            {t('Load new feedback')}
+          </Button>
+        </RefreshContainer>
       ) : null}
     </HeaderPanel>
   );
@@ -91,7 +93,6 @@ export default function FeedbackListHeader({
 
 const HeaderPanel = styled('div')`
   flex-direction: column;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const HeaderPanelItem = styled('div')`
@@ -99,4 +100,13 @@ const HeaderPanelItem = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const RefreshContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  padding: ${space(0.5)};
 `;
