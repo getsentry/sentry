@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Mapping, Sequence, Union
 
 from sentry import features, tagstore
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
@@ -20,19 +21,30 @@ from sentry.integrations.slack.message_builder.base.block import BlockSlackMessa
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import ActorTuple
+from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.participants import (
+    dedupe_suggested_assignees,
+    get_suggested_assignees,
+    get_suspect_commit_users,
+)
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
+from sentry.services.hybrid_cloud.organization.model import RpcTeam
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+
+logger = logging.getLogger(__name__)
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -192,6 +204,50 @@ def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) ->
             ]
         )
     )
+
+
+def get_suggested_assignee_section(project: Project, event: Event) -> Mapping[str, Any] | None:
+    """Get suggested assignees as a rich text section for block kit"""
+    suggested_assignees = get_suggested_assignees(project, event, None)
+    if features.has("organizations:streamline-targeting-context", project.organization):
+        try:
+            suspect_commit_users = RpcActor.many_from_object(
+                get_suspect_commit_users(project, event)
+            )
+            suggested_assignees.extend(suspect_commit_users)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            logger.info("Skipping suspect committers because release does not exist.")
+        except Exception:
+            logger.exception("Could not get suspect committers. Continuing execution.")
+    if suggested_assignees:
+        suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
+        assignee_blocks = []
+        for assignee in suggested_assignees:
+            if assignee.actor_type == ActorType.USER:
+                assignee_as_user = RpcUser(id=assignee.id)
+                name_to_display = assignee_as_user.get(
+                    "display_name", assignee_as_user.get("email")
+                )
+                assignee_blocks.append(
+                    {
+                        "type": "link",
+                        "url": f"mailto:{assignee_as_user.email}",
+                        "text": name_to_display + " ",
+                    }
+                )
+            else:
+                assignee_as_team = RpcTeam(id=assignee.id)
+                name_to_display = "#" + assignee_as_team.get("name", assignee_as_team.get("slug"))
+                assignee_blocks.append({"type": "text", "text": name_to_display})
+        section_block = {
+            "type": "rich_text_section",
+            "elements": [
+                {"type": "text", "text": "Suggested Assignee(s): "},
+            ],
+        }
+        section_block["elements"].extend(assignee_blocks)
+        return section_block
+    return None
 
 
 def build_actions(
@@ -438,11 +494,33 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
                 assignee = self.group.get_assignee()
-                actions.append(
-                    self.get_external_select_action(
-                        action, format_actor_option(assignee, True) if assignee else None
-                    )
-                )
+                suspect_commit_user = None
+                initial_option = None
+                if assignee is None:
+                    if features.has(
+                        "organizations:streamline-targeting-context", project.organization
+                    ):
+                        try:
+                            suspect_commit_users = RpcActor.many_from_object(
+                                get_suspect_commit_users(project, self.event)
+                            )
+                        except (Release.DoesNotExist, Commit.DoesNotExist):
+                            logger.info(
+                                "Skipping suspect committers because release does not exist."
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Could not get suspect committers. Continuing execution."
+                            )
+                        if len(suspect_commit_users) > 0:
+                            suspect_commit_user = suspect_commit_users[0]
+                        if suspect_commit_user:
+                            initial_option = format_actor_option(suspect_commit_user)
+                            initial_option["text"]["text"] += " (suggested)"
+                else:
+                    initial_option = format_actor_option(assignee)
+
+                actions.append(self.get_external_select_action(action, initial_option))
 
         if actions:
             action_block = {"type": "actions", "elements": [action for action in actions]}

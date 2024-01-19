@@ -307,6 +307,23 @@ def dedupe_suggested_assignees(suggested_assignees: Iterable[RpcActor]) -> Itera
     return list({assignee.id: assignee for assignee in suggested_assignees}.values())
 
 
+def get_suggested_assignees(
+    project: Project, event: Event, fallthrough_choice: FallthroughChoiceType | None
+) -> Tuple[Iterable[RpcActor], str]:
+    suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
+    # We're adding the current assignee to the list of suggested assignees because
+    # a new issue could have multiple codeowners and one of them got auto-assigned.
+    group_assignee: GroupAssignee | None = GroupAssignee.objects.filter(
+        group_id=event.group_id
+    ).first()
+    if group_assignee:
+        outcome = "match"
+        assignee_actor = group_assignee.assigned_actor()
+        suggested_assignees.append(assignee_actor)
+
+    return suggested_assignees, outcome
+
+
 def determine_eligible_recipients(
     project: Project,
     target_type: ActionTargetType,
@@ -335,17 +352,7 @@ def determine_eligible_recipients(
         if not event:
             return []
 
-        suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
-
-        # We're adding the current assignee to the list of suggested assignees because
-        # a new issue could have multiple codeowners and one of them got auto-assigned.
-        group_assignee: GroupAssignee | None = GroupAssignee.objects.filter(
-            group_id=event.group_id
-        ).first()
-        if group_assignee:
-            outcome = "match"
-            assignee_actor = group_assignee.assigned_actor()
-            suggested_assignees.append(assignee_actor)
+        suggested_assignees, outcome = get_suggested_assignees(project, event, fallthrough_choice)
 
         suspect_commit_users = None
         if features.has("organizations:streamline-targeting-context", project.organization):
