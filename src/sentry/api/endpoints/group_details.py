@@ -21,11 +21,7 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.group_stream import (
-    ExternalIssueSerializer,
-    get_actions,
-    get_available_issue_plugins,
-)
+from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -221,11 +217,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginActions": get_actions(request, group),
                     "pluginIssues": get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),
-                    "integrationIssues": serialize(
-                        [group],
-                        user=request.user,
-                        serializer=ExternalIssueSerializer(group),
-                    ),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
                     "count": self.__get_group_global_count(group),

@@ -167,33 +167,36 @@ class ExternalIssueSerializer(Serializer):
     def get_attrs(
         self, item_list: List[Group], user: User, **kwargs: Any
     ) -> MutableMapping[Group, MutableMapping[str, Any]]:
-        external_issues = ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.filter(
-                group_id__in=[item.id for item in item_list]
-            ).values_list("linked_id", flat=True),
-        )
-        issues_by_integration = defaultdict(list)
-        for ei in external_issues:
-            integration = integration_service.get_integration(integration_id=ei.integration_id)
-            if integration is None:
-                continue
-            installation = integration.get_installation(organization_id=self.group.organization.id)
-            if hasattr(installation, "get_issue_url") and hasattr(
-                installation, "get_issue_display_name"
-            ):
-                issues_by_integration[ei.integration_id].append(
-                    {
-                        "id": str(ei.id),
-                        "key": ei.key,
-                        "url": installation.get_issue_url(ei.key),
-                        "title": ei.title,
-                        "description": ei.description,
-                        "displayName": installation.get_issue_display_name(ei),
-                    }
-                )
+        group_by_external_issue = defaultdict(list)
+        for item in item_list:
+            external_issues = ExternalIssue.objects.filter(
+                id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
+                    "linked_id", flat=True
+                ),
+            )
+
+            group_by_integration = defaultdict(list)
+            for ei in external_issues:
+                integration = integration_service.get_integration(integration_id=ei.integration_id)
+                if integration is None:
+                    continue
+                installation = integration.get_installation(organization_id=ei.organization.id)
+                if hasattr(installation, "get_issue_display_name"):
+                    group_by_integration[ei.integration_id].append(
+                        {
+                            "id": str(ei.id),
+                            "key": ei.key,
+                            "title": ei.title,
+                            "description": ei.description,
+                            "displayName": installation.get_issue_display_name(ei),
+                        }
+                    )
+
+            group_by_external_issue[item.id].append(group_by_integration)
 
         return {
-            item: {"external_issues": issues_by_integration.get(item.id, [])} for item in item_list
+            item: {"external_issues": group_by_external_issue.get(item.id, [])}
+            for item in item_list
         }
 
     def serialize(
