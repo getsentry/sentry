@@ -329,8 +329,6 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         policy = get_openai_policy(request.organization, request.user)
         policy_failure = None
         stream = request.GET.get("stream") == "yes"
-        pii_certified = request.GET.get("pii_certified") == "yes"
-        is_sentry_staff = request.user.is_staff
 
         if policy == "subprocessor":
             policy_failure = "subprocessor"
@@ -338,8 +336,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             if request.GET.get("consent") != "yes":
                 policy_failure = "individual_consent"
         elif policy == "pii_certification_required":
-            if not is_sentry_staff and not pii_certified:
-                policy_failure = "pii_certification_required"
+            policy_failure = "pii_certification_required"
         elif policy == "allowed":
             pass
         else:
