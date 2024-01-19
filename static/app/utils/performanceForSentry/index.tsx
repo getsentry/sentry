@@ -1,7 +1,7 @@
 import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
+import {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {IdleTransaction} from '@sentry/tracing';
 import {
   type MeasurementUnit,
   type Transaction,

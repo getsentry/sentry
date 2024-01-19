@@ -46,7 +46,6 @@ class SentryInstrumentation {
     }
 
     const sentry = require('@sentry/node');
-    require('@sentry/tracing');
     const {ProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({
