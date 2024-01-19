@@ -116,16 +116,18 @@ def get_path(data: PathSearchable, *path, **kwargs):
     only filter ``None`` values.
     """
     logger = logging.getLogger(__name__)
+    should_log = kwargs.pop("should_log", False)
     default = kwargs.pop("default", None)
     f: Optional[bool] = kwargs.pop("filter", None)
     for k in kwargs:
         raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 
-    logger_data = {
-        "path_searchable": json.dumps(data),
-        "path_arg": json.dumps(path),
-        "default": json.dumps(default),
-    }
+    logger_data = {}
+    if should_log:
+        logger_data = {
+            "path_searchable": json.dumps(data),
+            "path_arg": json.dumps(path),
+        }
 
     for p in path:
         if isinstance(data, Mapping) and p in data:
@@ -133,18 +135,20 @@ def get_path(data: PathSearchable, *path, **kwargs):
         elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
         else:
-            logger_data["invalid_path"] = json.dumps(p)
-            logger.info("sentry.safe.get_path.invalid_path_section", extra=logger_data)
+            if should_log:
+                logger_data["invalid_path"] = json.dumps(p)
+                logger.info("sentry.safe.get_path.invalid_path_section", extra=logger_data)
             return default
 
-    if data is None:
-        logger.info("sentry.safe.get_path.iterated_path_is_none", extra=logger_data)
-    else:
-        logger_data["iterated_path"] = json.dumps(data)
+    if should_log:
+        if data is None:
+            logger.info("sentry.safe.get_path.iterated_path_is_none", extra=logger_data)
+        else:
+            logger_data["iterated_path"] = json.dumps(data)
 
     if f and data and isinstance(data, (list, tuple)):
         data = list(filter((lambda x: x is not None) if f is True else f, data))
-        if len(data) == 0 and "iterated_path" in logger_data:
+        if should_log and len(data) == 0 and "iterated_path" in logger_data:
             logger.info("sentry.safe.get_path.filtered_path_is_none", extra=logger_data)
 
     return data if data is not None else default

@@ -170,7 +170,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         for group in groups:
             project_id = get_path(group, "by", "project_id")
             assert project_id is not None
-            totals = get_path(group, "totals", "rate")
+            totals = get_path(group, "totals", "rate", should_log=True)
             try:
                 if totals is None:
                     logger.info(
