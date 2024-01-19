@@ -1,4 +1,11 @@
-import {Component, createContext, useEffect, useRef} from 'react';
+import {
+  Component,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -16,7 +23,15 @@ import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
+/**
+ * Holds the current organization if loaded.
+ */
 export const OrganizationContext = createContext<Organization | null>(null);
+
+/**
+ * Holds a function to load the organization.
+ */
+const OrganizationLoaderContext = createContext<null | (() => void)>(null);
 
 interface Props {
   children: React.ReactNode;
@@ -41,8 +56,25 @@ class LegacyOrganizationContextProvider extends Component<{value: Organization |
 }
 
 /**
+ * Ensures that an organization is loaded when the hook is used. This will only
+ * be done on first render and if an organization is not already loaded.
+ */
+export function useEnsureOrganization() {
+  const loadOrganization = useContext(OrganizationLoaderContext);
+
+  // XXX(epurkhiser): The loadOrganization function is stable as long as the
+  // organization slug is stable. A change to the organization slug will cause
+  // the organization to be reloaded.
+  useEffect(() => loadOrganization?.(), [loadOrganization]);
+}
+
+/**
  * Context provider responsible for loading the organization into the
  * OrganizationStore if it is not already present.
+ *
+ * This provider *does not* immediately attempt to load the organization. A
+ * child component must be responsible for calling `useEnsureOrganization` to
+ * have the organization loaded.
  */
 export function OrganizationContextProvider({children}: Props) {
   const api = useApi();
@@ -65,9 +97,9 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  // If the organization slug differs from what we have in the organization
-  // store reload the store
-  useEffect(() => {
+  // Provided to the OrganizationLoaderContext. Loads the organization if it is
+  // not already present.
+  const loadOrganization = useCallback(() => {
     // Nothing to do if we already have the organization loaded
     if (organization && organization.slug === orgSlug) {
       return;
@@ -143,10 +175,12 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationContext.Provider value={organization}>
-      <LegacyOrganizationContextProvider value={organization}>
-        {children}
-      </LegacyOrganizationContextProvider>
-    </OrganizationContext.Provider>
+    <OrganizationLoaderContext.Provider value={loadOrganization}>
+      <OrganizationContext.Provider value={organization}>
+        <LegacyOrganizationContextProvider value={organization}>
+          {children}
+        </LegacyOrganizationContextProvider>
+      </OrganizationContext.Provider>
+    </OrganizationLoaderContext.Provider>
   );
 }

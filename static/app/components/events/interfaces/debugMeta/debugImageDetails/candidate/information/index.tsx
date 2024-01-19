@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 import moment from 'moment-timezone';
 
 import DateTime from 'sentry/components/dateTime';
@@ -18,6 +17,7 @@ import {
   ImageCandidateUnApplied,
   SymbolType,
 } from 'sentry/types/debugImage';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 import ProcessingItem from '../../../processing/item';
 import ProcessingList from '../../../processing/list';

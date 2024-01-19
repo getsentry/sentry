@@ -408,6 +408,7 @@ class WebhookProviderIdentifier(IntEnum):
     GETSENTRY = 11
     DISCORD = 12
     VERCEL = 13
+    GOOGLE = 14
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -769,14 +770,14 @@ class ControlOutboxBase(OutboxBase):
     def for_webhook_update(
         cls,
         *,
-        webhook_identifier: WebhookProviderIdentifier,
+        shard_identifier: int,
         region_names: List[str],
         request: HttpRequest,
     ) -> Iterable[Self]:
         for region_name in region_names:
             result = cls()
             result.shard_scope = OutboxScope.WEBHOOK_SCOPE
-            result.shard_identifier = webhook_identifier.value
+            result.shard_identifier = shard_identifier
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name

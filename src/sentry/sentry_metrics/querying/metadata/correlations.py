@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Dict, List, Optional, Sequence, Set, Tuple, cast
+from typing import Dict, List, Mapping, Optional, Sequence, Set, Tuple, cast
 
 import sentry_sdk
 from snuba_sdk import (
@@ -19,12 +19,15 @@ from snuba_sdk import (
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.exceptions import InvalidParams
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.metadata.utils import (
+    add_environments_condition,
     get_snuba_conditions_from_query,
+    transform_conditions_to_tags,
     transform_conditions_with,
-    transform_to_tags,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -60,22 +63,45 @@ class CorrelationsQueryExecutionError(Exception):
 
 
 @dataclass(frozen=True)
-class SpansSummary:
-    span_op: str
+class SpanDetail:
+    """
+    Details of an individual span which is inside a segment.
+    """
+
+    span_id: str
     span_duration: int
+    span_timestamp: datetime
+
+
+@dataclass(frozen=True)
+class SpanSummary:
+    """
+    Summary of the durations of the spans grouped by op.
+    """
+
+    span_op: str
+    total_duration: int
 
 
 @dataclass(frozen=True)
 class Segment:
+    """
+    Segment which is correlated to a certain metric.
+    """
+
     project_id: int
     trace_id: str
     segment_id: str
     segment_name: str
     profile_id: Optional[str]
     spans_number: int
-    spans_summary: Sequence[SpansSummary]
+    spans_details: Sequence[SpanDetail]
+    spans_summary: Sequence[SpanSummary]
     duration: int
     timestamp: datetime
+
+    def add_spans_details(self, spans_details: Sequence[SpanDetail]) -> "Segment":
+        return replace(self, spans_details=spans_details)
 
 
 @dataclass(frozen=True)
@@ -105,12 +131,14 @@ class CorrelationsSource(ABC):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
+        environments: Sequence[Environment],
     ) -> Sequence[Segment]:
-        return self._get_spans(
+        conditions = get_snuba_conditions_from_query(query)
+        conditions = add_environments_condition(conditions, environments)
+
+        return self._get_segments(
             metric_mri=metric_mri,
-            # TODO: when the environment support is added, inject here the environment condition after the AST is
-            #   generated.
-            conditions=get_snuba_conditions_from_query(query) if query else None,
+            conditions=conditions,
             start=start,
             end=end,
             min_value=min_value,
@@ -123,7 +151,7 @@ class CorrelationsSource(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -172,6 +200,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
             ]
             + where,
             groupby=[Column("span_id")],
+            limit=Limit(SNUBA_QUERY_LIMIT),
         )
 
         request = Request(
@@ -187,23 +216,25 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         return {value["span_id"] for value in data}
 
-    def _get_transaction_ids_of_spans(
+    def _get_segments_spans(
         self,
         span_ids: Set[str],
         start: datetime,
         end: datetime,
-    ) -> Set[str]:
+    ) -> Mapping[str, Sequence[Tuple[str, int, datetime]]]:
         """
-        Returns a set containing the ids of the transactions that contain at least one span from `span_ids`.
+        Returns a mapping of the transaction id and all the correlated spans inside that segment.
         """
         if not span_ids:
-            return set()
+            return {}
 
         query = Query(
             match=Entity(EntityKey.Spans.value),
             select=[
-                # TODO: switch to segment_id when the product is ready for it.
                 Column("transaction_id"),
+                Column("span_id"),
+                Column("duration"),
+                Column("timestamp"),
             ],
             where=[
                 Condition(Column("project_id"), Op.IN, [project.id for project in self.projects]),
@@ -211,7 +242,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("span_id"), Op.IN, list(span_ids)),
             ],
-            groupby=[Column("transaction_id")],
+            limit=Limit(SNUBA_QUERY_LIMIT),
         )
 
         request = Request(
@@ -223,13 +254,19 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
 
-        return {value["transaction_id"] for value in data}
+        segments_spans: Dict[str, List[Tuple[str, int, datetime]]] = {}
+        for value in data:
+            segments_spans.setdefault(value["transaction_id"], []).append(
+                (value["span_id"], value["duration"], value["timestamp"])
+            )
+
+        return segments_spans
 
     @classmethod
     def supports(cls, metric_mri: str) -> bool:
         return is_mri(metric_mri)
 
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -238,34 +275,44 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
+        transformed_conditions = transform_conditions_to_tags(conditions)
+
         # First, we fetch the spans we are interested in given the metric and the bounds.
         span_ids = self._get_span_ids_from_metrics_summaries(
             metric_mri=metric_mri,
-            conditions=transform_to_tags(conditions),
+            conditions=transformed_conditions,
             start=start,
             end=end,
             min_value=min_value,
             max_value=max_value,
         )
 
-        # Second, we fetch a set of transaction ids in which the `span_ids` belong.
-        transaction_ids = self._get_transaction_ids_of_spans(
+        # Second, we fetch all the segments which contain the span ids.
+        segments_spans = self._get_segments_spans(
             span_ids=span_ids,
             start=start,
             end=end,
         )
 
-        # Third, we fetch additional details of the transactions in `transaction_ids`.
-        spans = _get_segments(
-            where=[Condition(Column("transaction_id"), Op.IN, list(transaction_ids))],
+        # Third, we fetch the segments details together with aggregates
+        segments = _get_segments(
+            where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
             start=start,
             end=end,
             organization=self.organization,
             projects=self.projects,
         )
 
-        # Fourth, we compute the transaction summary for each transaction.
-        return spans
+        # Fourth, we merge span details with the fetched segments.
+        extended_segments = []
+        for segment in segments:
+            segment_spans_details = [
+                SpanDetail(span_id=span_id, span_duration=duration, span_timestamp=timestamp)
+                for span_id, duration, timestamp in segments_spans.get(segment.segment_id, [])
+            ]
+            extended_segments.append(segment.add_spans_details(segment_spans_details))
+
+        return extended_segments
 
 
 class TransactionDurationCorrelationsSource(CorrelationsSource):
@@ -273,7 +320,7 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
     def supports(cls, metric_mri: str) -> bool:
         return metric_mri == TransactionMRI.DURATION.value
 
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -284,7 +331,9 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
     ) -> Sequence[Segment]:
         where = []
 
-        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_to_tags(
+            conditions=conditions, check_sentry_tags=True
+        )
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
@@ -320,7 +369,7 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
 
         return False
 
-    def _get_spans(
+    def _get_segments(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -331,7 +380,9 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
     ) -> Sequence[Segment]:
         where = []
 
-        transformed_conditions = transform_to_tags(conditions=conditions, check_sentry_tags=True)
+        transformed_conditions = transform_conditions_to_tags(
+            conditions=conditions, check_sentry_tags=True
+        )
         transformed_conditions = transform_conditions_with(
             conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
         )
@@ -447,8 +498,15 @@ def _get_segments(
     end: datetime,
     organization: Organization,
     projects: Sequence[Project],
-):
+) -> Sequence[Segment]:
     requests = []
+    # TODO: the time bounds are the same across queries and this can lead to issues since the span can have a specific
+    #  time which is within the supplied bounds but the transaction might have different time bounds, which will result
+    #  in data not being returned in specific cases.
+    #  E.g., say you are querying from 10:10 to 10:15 and you get a span with timestamp 10:15. The transaction of that
+    #  span has a timestamp of 10:16, in that case, we won't be able to fetch that transaction since we will apply
+    #  the [10:10, 10:15) filter. The solution to this problem is to perform the queries below without timebounds but
+    #  this is not allowed by Snuba.
     for query in [
         _get_segments_aggregates_query(where, start, end, projects),
         _get_segments_spans_summaries_query(where, start, end, projects),
@@ -474,8 +532,8 @@ def _get_segments(
     segments: List[Segment] = []
     for row in results[0]["data"]:
         spans_summary = [
-            SpansSummary(span_op=op, span_duration=duration)
-            for op, duration in segment_ops.get(row["transaction_id"], [])
+            SpanSummary(span_op=op, total_duration=total_duration)
+            for op, total_duration in segment_ops.get(row["transaction_id"], [])
         ]
 
         segment = Segment(
@@ -486,6 +544,9 @@ def _get_segments(
             profile_id=row["profile_id"],
             segment_name=row["segment_name"],
             spans_number=row["spans_number"],
+            # By default, we don't have span details, since they can be optionally injected only if the queried metric
+            # is a custom metric.
+            spans_details=[],
             spans_summary=spans_summary,
             duration=row["duration"],
             timestamp=row["any_timestamp"],
@@ -512,7 +573,6 @@ def get_correlations_source(
 
     In case multiple sources would apply to a `metric_mri` the first one is chosen.
     """
-
     for correlation_clazz in CORRELATIONS_SOURCES:
         if correlation_clazz.supports(metric_mri):
             return correlation_clazz(organization=organization, projects=projects)  # type:ignore
@@ -520,7 +580,7 @@ def get_correlations_source(
     return None
 
 
-def get_correlations_of_metric(
+def get_metric_correlations(
     metric_mri: str,
     query: Optional[str],
     start: datetime,
@@ -529,6 +589,7 @@ def get_correlations_of_metric(
     max_value: Optional[float],
     organization: Organization,
     projects: Sequence[Project],
+    environments: Sequence[Environment],
 ) -> MetricCorrelations:
     """
     Returns the spans in which the metric with `metric_mri` was emitted.
@@ -544,7 +605,7 @@ def get_correlations_of_metric(
 
     try:
         segments = correlations_source.get_segments(
-            metric_mri, query, start, end, min_value, max_value
+            metric_mri, query, start, end, min_value, max_value, environments
         )
         return MetricCorrelations(
             metric_mri=metric_mri,
