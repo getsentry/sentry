@@ -369,7 +369,9 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     },
                 )
                 for ethreshold in category_thresholds:
-                    is_healthy, metric_count = is_new_issue_count_healthy(ethreshold, error_counts)
+                    is_healthy, metric_count = is_new_issue_count_healthy(
+                        ethreshold, new_issue_counts
+                    )
                     ethreshold.update({"is_healthy": is_healthy, "metric_value": metric_count})
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
