@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import capitalize from 'lodash/capitalize';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
 import {IgnoredStatusDetails} from 'sentry/types';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 import ExtraDescription from './extraDescription';
 
