@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -12,7 +11,7 @@ import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModa
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
-import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -34,7 +33,6 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
   State
 > {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getDefaultState() {
     const state = super.getDefaultState();
@@ -108,11 +106,7 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
       organization,
     });
 
-    const install = await installSentryApp(
-      this.controlSiloApi,
-      organization.slug,
-      sentryApp
-    );
+    const install = await installSentryApp(this.api, organization.slug, sentryApp);
     // installation is complete if the status is installed
     if (install.status === 'installed') {
       trackIntegrationAnalytics('integrations.installation_complete', {
@@ -142,10 +136,8 @@ export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
     try {
       const [organization, installations]: [Organization, SentryAppInstallation[]] =
         await Promise.all([
-          this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
-          this.controlSiloApi.requestPromise(
-            `/organizations/${orgSlug}/sentry-app-installations/`
-          ),
+          this.api.requestPromise(`/organizations/${orgSlug}/`),
+          this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
         ]);
       const isInstalled = installations
         .map(install => install.app.slug)
