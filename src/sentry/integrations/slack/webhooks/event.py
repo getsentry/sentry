@@ -179,6 +179,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
+        # XXX(isabella): we use our message builders to create the blocks for each link to be
+        # unfurled, so the original result will include the fallback text string, however, the
+        # unfurl endpoint does not accept fallback text.
         if features.has("organizations:slack-block-kit", organization):
             for link_info in results.values():
                 if "text" in link_info:
