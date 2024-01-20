@@ -108,7 +108,6 @@ def test_consent(client, monkeypatch, default_user, default_project, test_event,
     response = client.get(path)
     assert response.status_code == 403
     assert response.json() == {"restriction": "pii_certification_required"}
-    client.logout()
 
     openai_policy["result"] = "allowed"
     response = client.get(path)
