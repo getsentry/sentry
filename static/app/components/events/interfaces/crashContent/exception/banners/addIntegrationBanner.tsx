@@ -25,7 +25,14 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
             'Install Git providers (GitHub, Gitlab…) to enable features like code mapping and stack trace linking.'
           )}
         </IntegationBannerDescription>
-        <LinkButton to={`/settings/${orgSlug}/integrations/`} size="sm">
+        <LinkButton
+          to={{
+            pathname: `/settings/${orgSlug}/integrations/`,
+            // This should filter to only source code management integrations
+            query: {category: 'source code management'},
+          }}
+          size="sm"
+        >
           {t('Get Started')}
         </LinkButton>
       </div>
