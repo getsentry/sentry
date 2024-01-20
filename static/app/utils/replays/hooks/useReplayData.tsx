@@ -64,7 +64,6 @@ const INITIAL_STATE: State = Object.freeze({
   fetchError: undefined,
   fetchingAttachments: true,
   fetchingErrors: true,
-  // fetchingReplay: true,
 });
 
 /**
@@ -107,7 +106,10 @@ function useReplayData({
   const attachmentMap = useRef<Map<string, unknown[]>>(new Map()); // Map keys are always iterated by insertion order
   const [errors, setErrors] = useState<ReplayError[]>([]);
 
-  // Fetch every field of the replay. We're overfetching, not every field is used
+  // Fetch every field of the replay. The TS type definition lists every field
+  // that's available. It's easier to ask for them all and not have to deal with
+  // partial types or nullable fields.
+  // We're overfetching for sure.
   const {
     data: replayData,
     isFetching: isFetchingReplay,
