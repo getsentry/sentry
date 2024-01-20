@@ -270,7 +270,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Bulk Edit Monitors",
-        parameters=[list[GlobalParams.ORG_SLUG]],
+        parameters=[GlobalParams.ORG_SLUG],
         request=MonitorValidator,
         responses={
             200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
