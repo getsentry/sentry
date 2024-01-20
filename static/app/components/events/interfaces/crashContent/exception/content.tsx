@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
-
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/stacktraceBanners';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
@@ -12,8 +12,7 @@ import {renderLinksInText} from 'sentry/components/events/interfaces/crashConten
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconClose} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ExceptionType, Project} from 'sentry/types';
 import {Event, ExceptionValue} from 'sentry/types/event';
@@ -170,6 +169,9 @@ export function Content({
 
     const platform = getStacktracePlatform(event, exc.stacktrace);
 
+    // The banners should appear on the top frame only
+    const isTopFrame = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
+
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
         {defined(exc?.module) ? (
@@ -198,29 +200,11 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
-        <StacktraceIntegrationBannerWrapper>
-          <div>
-            <IntegationBannerTitle>
-              {t('Connect with Git Providers')}
-            </IntegationBannerTitle>
-            <IntegationBannerDescription>
-              {t(
-                'Install Git providers (GitHub, Gitlab…) to enable features like code mapping and stack trace linking.'
-              )}
-            </IntegationBannerDescription>
-            <LinkButton to="/settings/account/identities/" size="sm">
-              {t('Get Started')}
-            </LinkButton>
-          </div>
-          <IntegrationBannerImage src={addIntegrationProvider} />
-          <CloseButton
-            borderless
-            priority="link"
-            aria-label={t('Close')}
-            icon={<IconClose color="subText" />}
-            size="xs"
-          />
-        </StacktraceIntegrationBannerWrapper>
+        {exc.stacktrace && isTopFrame && (
+          <ErrorBoundary customComponent={null}>
+            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+          </ErrorBoundary>
+        )}
         <StackTrace
           data={
             type === StackType.ORIGINAL
@@ -267,50 +251,4 @@ const Title = styled('h5')`
 const ShowRelatedExceptionsButton = styled(Button)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const StacktraceIntegrationBannerWrapper = styled('div')`
-  position: relative;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
-  background: linear-gradient(
-    90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
-  );
-`;
-
-const IntegationBannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
-  font-weight: 600;
-`;
-
-const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
-  max-width: 340px;
-`;
-
-const IntegrationBannerImage = styled('img')`
-  position: absolute;
-  display: block;
-  bottom: 0px;
-  right: 4rem;
-  pointer-events: none;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
-`;
-
-const CloseButton = styled(Button)`
-  position: absolute;
-  display: block;
-  top: ${space(2)};
-  right: ${space(2)};
-  color: ${p => p.theme.white};
-  cursor: pointer;
-  z-index: 1;
 `;
