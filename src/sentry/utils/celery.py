@@ -23,13 +23,16 @@ def run_shutdown(*args, **kwargs):
             logger.warning("celery.shutdown.failed", exc_info=True)
 
 
-def register_shutdown(func: Callable[[], Any]) -> None:
+def register_celery_shutdown(func: Callable[[], Any]) -> None:
     """
     Register a callback to be run when celery subprocess shuts down. This is
     not 100% failsafe (in case the Celery task OOMs, experiences hard-timeouts
     or segfaults) but makes it relatively easy to produce to Kafka from celery
     tasks, reuse the producer across tasks and only flush the batch when the
     worker subprocess is being shut down (see max_tasks_per_child)
+
+    This is specific to celery, in other environments such as uwsgi, other
+    hooks need to be used.
 
     The Sentry Python SDK has a more robust and battle-tested variant of this
     in its Celery integration, but that one is more complicated as it is

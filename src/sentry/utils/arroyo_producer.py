@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 from collections import deque
 from concurrent import futures
 from typing import TYPE_CHECKING, Callable, Deque, Optional, Union
@@ -7,7 +8,7 @@ from typing import TYPE_CHECKING, Callable, Deque, Optional, Union
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue, Partition, Topic
 
-from sentry.utils.celery import register_shutdown
+from sentry.utils.celery import register_celery_shutdown
 
 if TYPE_CHECKING:
     ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
@@ -40,7 +41,8 @@ class SingletonProducer:
         if self._producer is None:
             self._producer = self._factory()
 
-            register_shutdown(self._shutdown)
+            register_celery_shutdown(self._shutdown)
+            atexit.register(self._shutdown)
 
         return self._producer
 
@@ -58,3 +60,4 @@ class SingletonProducer:
         futures.wait(self._futures)
         if self._producer:
             self._producer.close()
+            self._producer = None
