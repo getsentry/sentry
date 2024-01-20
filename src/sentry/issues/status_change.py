@@ -5,6 +5,7 @@ from typing import Any, Dict, Sequence
 
 from django.db.models.signals import post_save
 
+from sentry import options
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
@@ -119,11 +120,12 @@ def handle_status_update(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
             )
 
-        post_save.send(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["status", "substatus"],
-        )
+        if not options.get("groups.enable-post-update-signal"):
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["status", "substatus"],
+            )
 
     return ActivityInfo(activity_type, activity_data)
