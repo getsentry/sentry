@@ -20,19 +20,19 @@ def get_new_issue_counts(
     for t in thresholds:
         query = Q(
             project__organization__id=organization_id,
-            project__id=t.project_id,
+            project__id=t["project_id"],
         )
-        if t.environment:
+        if t["environment"]:
             # If we're filtering on environment, just use the first_release/first_seen from the groupenvironment so we don't need to cross reference tables
             query &= Q(
-                groupenvironment__first_release__version=t.release,
-                groupenvironment__first_seen__range=(t.start, t.end),
-                groupenvironment__environment__name=t.environment.get("name"),
+                groupenvironment__first_release__version=t["release"],
+                groupenvironment__first_seen__range=(t["start"], t["end"]),
+                groupenvironment__environment__name=t.get("environment", {}).get("name"),
             )
         else:
             query &= Q(
-                first_release__version=t.release,
-                first_seen__range=(t.start, t.end),
+                first_release__version=t["release"],
+                first_seen__range=(t["start"], t["end"]),
                 groupenvironment__isnull=True,
             )
         qs = (
@@ -40,7 +40,7 @@ def get_new_issue_counts(
             .values("first_release__version")
             .annotate(
                 count=Count("*"),
-                threshold_id=Value(t.id, output_field=CharField()),
+                threshold_id=Value(t["id"], output_field=CharField()),
             )
         )
         if queryset:

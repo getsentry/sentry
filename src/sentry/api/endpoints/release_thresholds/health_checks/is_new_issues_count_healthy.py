@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 def is_new_issue_count_healthy(
     ethreshold: EnrichedThreshold, new_issue_counts: dict[str, Any]
 ) -> Tuple[bool, int]:
-    new_issue_count = new_issue_counts[str(ethreshold.id)]
+    new_issue_count = new_issue_counts[str(ethreshold["id"])]
     if ethreshold["trigger_type"] == TriggerType.OVER_STR:
         # If total is under/equal the threshold value, then it is healthy
         return new_issue_count <= ethreshold["value"], new_issue_count
