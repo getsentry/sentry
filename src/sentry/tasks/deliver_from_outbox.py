@@ -97,7 +97,7 @@ def schedule_batch(
             metrics.gauge(
                 "deliver_from_outbox.maximum_shard_depth",
                 value=shard_depths[0]["depth"] if shard_depths else 0,
-                tags=dict(silo_mode=silo_mode.name),
+                tags=dict(silo_mode=silo_mode.name, outbox_name=outbox_name),
                 sample_rate=1.0,
             )
         if process_outbox_backfills:
