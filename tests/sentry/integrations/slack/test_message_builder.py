@@ -95,7 +95,7 @@ def build_test_message_blocks(
         blocks.append(counts_section)
 
     if mentions:
-        mentions_text = f"Addt'l info: {mentions}"
+        mentions_text = f"Mentions: {mentions}"
         mentions_section = {
             "type": "section",
             "text": {"type": "mrkdwn", "text": mentions_text},
