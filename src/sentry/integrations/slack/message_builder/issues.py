@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 
 from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
+from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
@@ -46,6 +47,21 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+
+
+def time_since(value: datetime):
+    """
+    Display the relative time
+    """
+    now = timezone.now()
+    if value < (now - timedelta(days=5)):
+        return value.date()
+    diff = timesince(value, now)
+    if diff == timesince(now, now):
+        return "Just now"
+    if diff == "1 day":
+        return _("Yesterday")
+    return f"{diff} ago"
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -337,21 +353,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def timesince(value: datetime):
-        """
-        Display the relative time
-        """
-        now = timezone.now()
-        if value < (now - timedelta(days=5)):
-            return value.date()
-        diff = timesince(value, now)
-        # XXX(CEO): make sure to test each of these cases, it's funky
-        if diff == timesince(now, now):
-            return "Just now"
-        if diff == "1 day":
-            return _("Yesterday")
-        return f"{value} ago"
-
     def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
@@ -456,8 +457,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 blocks.append(self.get_markdown_block(mentions_text))
 
             # add project slug, error level, and substate
-            from sentry.constants import LOG_LEVELS_MAP
-
             level_text = None
             for k, v in LOG_LEVELS_MAP.items():
                 if self.group.level == v:
@@ -465,7 +464,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
             level_emoji = LEVEL_TO_EMOJI[level_text]
             formatted_substate = SUBSTATUS_TO_STR[self.group.substatus].title()
-            context_text = f"Project: {self.group.project.slug}    Level: {level_emoji}{level_text.title()}    State: {formatted_substate}"
+            context_text = f"Project: {project.slug}    Level: {level_emoji}{level_text.title()}    State: {formatted_substate}"
             blocks.append(self.get_markdown_block(context_text))
 
         # build footer block
@@ -475,9 +474,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             timestamp = max(ts, self.event.datetime) if self.event else ts
 
         if has_slack_formatting_update:
-            footer = (
-                f"{footer} | First Seen: :information_source: {timesince(self.group.first_seen)}"
-            )
+            first_seen = time_since(self.group.first_seen)
+            footer = f"{footer} | First Seen: {first_seen}"
             blocks.append(self.get_context_block(text=footer))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
