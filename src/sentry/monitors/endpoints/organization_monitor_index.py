@@ -304,7 +304,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         status = result.get("status")
 
         monitors = Monitor.objects.filter(slug__in=monitor_slugs)
-        # Ensure we can assign all monitor seats before moving forward
+        # If enabling monitors, ensure we can assign all before moving forward
         if status == ObjectStatus.ACTIVE:
             assign_result = quotas.backend.check_assign_monitor_seats(monitors)
             if not assign_result.assignable:
@@ -314,9 +314,10 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             # Attempt to assign a monitor seat
             if status == ObjectStatus.ACTIVE:
                 outcome = quotas.backend.assign_monitor_seat(monitor)
-                # This protects against a race condition
                 if outcome != Outcome.ACCEPTED:
-                    raise self.respond("Failed to enable monitors, please try again", status=400)
+                    raise self.respond(
+                        "Failed to enable all monitors, please try again", status=400
+                    )
 
             # Attempt to unassign the monitor seat
             if status == ObjectStatus.DISABLED:
