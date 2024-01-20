@@ -139,3 +139,28 @@ class NewIssueCountThresholdCheckTest(TestCase):
         is_healthy, metric_value = is_new_issue_count_healthy(mock_threshold, mock_new_issue_counts)
         assert not is_healthy
         assert metric_value == 0
+
+    def test_no_new_issues(self):
+        now = datetime.utcnow()
+        mock_threshold: EnrichedThreshold = {
+            "date": now,
+            "start": now - timedelta(minutes=1),
+            "end": now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_id": self.project1.id,
+            "project_slug": self.project1.slug,
+            "release": self.release1.version,
+            "threshold_type": ReleaseThresholdType.NEW_ISSUE_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 10,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
+            "id": 1,
+        }
+        mock_new_issue_counts = {}
+        is_healthy, metric_value = is_new_issue_count_healthy(mock_threshold, mock_new_issue_counts)
+        assert is_healthy
+        assert metric_value == 0

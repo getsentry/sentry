@@ -22,7 +22,7 @@ def get_new_issue_counts(
             project__organization__id=organization_id,
             project__id=t["project_id"],
         )
-        if t["environment"]:
+        if t.get("environment", None):
             # If we're filtering on environment, just use the first_release/first_seen from the groupenvironment so we don't need to cross reference tables
             query &= Q(
                 groupenvironment__first_release__version=t["release"],
@@ -43,9 +43,10 @@ def get_new_issue_counts(
                 threshold_id=Value(t["id"], output_field=CharField()),
             )
         )
-        if queryset:
-            queryset = queryset.union(qs)
-        else:
-            queryset = qs
 
-    return {x.threshold_id: x.count for x in queryset}
+        if queryset is None:
+            queryset = qs
+        else:
+            queryset = queryset.union(qs)
+
+    return {x["threshold_id"]: x["count"] for x in queryset}
