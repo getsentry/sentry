@@ -92,8 +92,17 @@ def schedule_batch(
                     outbox_identifier_low=lo + i * batch_size,
                     outbox_identifier_hi=lo + (i + 1) * batch_size,
                 )
+
+            shard_depths = outbox_model.get_shard_depths_descending()
+            metrics.gauge(
+                "deliver_from_outbox.maximum_shard_depth",
+                value=shard_depths[0]["depth"] if shard_depths else 0,
+                tags=dict(silo_mode=silo_mode.name),
+                sample_rate=1.0,
+            )
         if process_outbox_backfills:
             backfill_outboxes_for(silo_mode, scheduled_count)
+
     except Exception:
         sentry_sdk.capture_exception()
         raise

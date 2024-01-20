@@ -649,3 +649,27 @@ class TestOutboxesManager(TestCase):
 
         assert RegionOutbox.objects.count() == 0
         assert OrganizationMemberTeamReplica.objects.count() == 1
+
+
+class OutboxAggregationTest(TestCase):
+    def test_calculate_sharding_depths(self):
+        shard_counts = {1: 456, 2: 1337, 3: 123}
+
+        for shard_id, shard_count in shard_counts.items():
+            for i in range(shard_count):
+                ControlOutbox(
+                    region_name="us",
+                    shard_scope=OutboxScope.WEBHOOK_SCOPE,
+                    shard_identifier=shard_id,
+                    category=OutboxCategory.WEBHOOK_PROXY,
+                    object_identifier=shard_id * 10000 + i,
+                    payload={},
+                ).save()
+
+        shard_depths = ControlOutbox.get_shard_depths_descending()
+
+        assert shard_depths == [
+            dict(shard_identifier=2, depth=1337),
+            dict(shard_identifier=1, depth=456),
+            dict(shard_identifier=3, depth=123),
+        ]

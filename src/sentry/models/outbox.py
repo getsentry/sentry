@@ -25,7 +25,7 @@ from typing import (
 import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
-from django.db.models import Max, Min
+from django.db.models import Count, Max, Min
 from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
@@ -674,6 +674,15 @@ class OutboxBase(Model):
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
+
+    @classmethod
+    def get_shard_depths_descending(cls):
+        return list(
+            {"shard_identifier": aggregate_row["shard_identifier"], "depth": aggregate_row["depth"]}
+            for aggregate_row in cls.objects.values(*cls.sharding_columns)
+            .annotate(depth=Count("pk"))
+            .order_by("-depth")
+        )
 
 
 # Outboxes bound from region silo -> control silo
