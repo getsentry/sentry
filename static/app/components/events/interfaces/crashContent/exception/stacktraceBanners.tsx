@@ -15,6 +15,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {
   Event,
+  Frame,
   Organization,
   StacktraceLinkResult,
   StacktraceType,
@@ -30,11 +31,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {AddCodecovBanner} from './banners/addCodecovBanner';
 import {AddIntegrationBanner} from './banners/addIntegrationBanner';
 
-interface StacktraceBannersProps {
-  event: Event;
-  stacktrace: StacktraceType;
-}
-
 function shouldShowCodecovPrompt(
   organization: Organization,
   stacktraceLink: StacktraceLinkResult
@@ -46,16 +42,21 @@ function shouldShowCodecovPrompt(
 }
 
 function getPromptStatus(promptData: ReturnType<typeof usePromptsCheck>, key: string) {
-  return promptData.isSuccess && promptData.data.data
+  return promptData.isSuccess && promptData.data.features
     ? promptIsDismissed({
-        dismissedTime: promptData.data[key]?.data.dismissed_ts,
-        snoozedTime: promptData.data[key]?.data.snoozed_ts,
+        dismissedTime: promptData.data.features[key]?.dismissed_ts,
+        snoozedTime: promptData.data.features[key]?.snoozed_ts,
       })
     : false;
 }
 
 const integrationPromptKey = 'stacktrace_link';
-const codecovPromptKey = 'codecov';
+const codecovPromptKey = 'codecov_stacktrace_prompt';
+
+interface StacktraceBannersProps {
+  event: Event;
+  stacktrace: StacktraceType;
+}
 
 export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const {user} = useLegacyStore(ConfigStore);
@@ -63,13 +64,12 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const api = useApi();
   const queryClient = useQueryClient();
   const {projects} = useProjects();
-  const expectedDefaultFrame =
-    (stacktrace.frames ?? [])
-      .filter(
-        frame =>
-          frame && frame.inApp && hasFileExtension(frame.absPath || frame.filename || '')
-      )
-      .at(-1) ?? {};
+  const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? [])
+    .filter(
+      frame =>
+        frame && frame.inApp && hasFileExtension(frame.absPath || frame.filename || '')
+    )
+    .at(-1);
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
@@ -82,7 +82,7 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const {data: stacktraceLink} = useStacktraceLink(
     {
       event,
-      frame: expectedDefaultFrame!,
+      frame: expectedDefaultFrame ?? {},
       orgSlug: organization?.slug!,
       projectSlug: project?.slug!,
     },
@@ -135,10 +135,11 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
     );
   };
 
-  const isIntegrationPromptDismissed = getPromptStatus(prompt, integrationPromptKey);
-
   // No integrations installed, show banner
-  if (stacktraceLink.integrations.length === 0 && !isIntegrationPromptDismissed) {
+  if (
+    stacktraceLink.integrations.length === 0 &&
+    !getPromptStatus(prompt, integrationPromptKey)
+  ) {
     return (
       <AddIntegrationBanner
         orgSlug={organization.slug}
@@ -154,11 +155,9 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
     );
   }
 
-  const isCodecovPromptDismissed = getPromptStatus(prompt, codecovPromptKey);
-
   if (
     shouldShowCodecovPrompt(organization, stacktraceLink) &&
-    !isCodecovPromptDismissed
+    !getPromptStatus(prompt, codecovPromptKey)
   ) {
     return (
       <AddCodecovBanner

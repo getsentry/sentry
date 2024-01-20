@@ -33,7 +33,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
       <CloseBannerButton
         borderless
         priority="link"
-        aria-label={t('Close')}
+        aria-label={t('Dismiss')}
         icon={<IconClose color="subText" />}
         size="xs"
         onClick={onDismiss}

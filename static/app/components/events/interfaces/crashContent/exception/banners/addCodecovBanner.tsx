@@ -39,7 +39,7 @@ export function AddCodecovBanner({onDismiss, onClick, orgSlug}: AddCodecovBanner
       <CloseBannerButton
         borderless
         priority="link"
-        aria-label={t('Close')}
+        aria-label={t('Dismiss')}
         icon={<IconClose color="subText" />}
         size="xs"
         onClick={onDismiss}
