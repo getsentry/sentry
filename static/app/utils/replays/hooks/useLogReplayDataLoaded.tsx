@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
@@ -47,7 +48,9 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
       replay_id: replayRecord.id,
     });
 
-    const hydrationErrorFrames = replay.getHydrationFrames();
+    const hydrationErrorFrames = replay
+      .getChapterFrames()
+      .filter(frame => (frame as BreadcrumbFrame)?.category === 'replay.hydrate-error');
     if (hydrationErrorFrames.length > 0) {
       // Track when a hydration breadcrumb is present but unable to be viewed
       trackAnalytics('replay.details-has-hydration-error', {
