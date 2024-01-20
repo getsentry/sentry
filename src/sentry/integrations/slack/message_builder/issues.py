@@ -451,35 +451,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.rules:
             rule_id = self.rules[0].id
 
-        if not features.has("organizations:slack-block-kit", self.group.project.organization):
-            return self._build(
-                actions=payload_actions,
-                callback_id=json.dumps({"issue": self.group.id}),
-                color=color,
-                fallback=self.build_fallback_text(obj, project.slug),
-                fields=fields,
-                footer=footer,
-                text=text,
-                title=build_attachment_title(obj),
-                title_link=get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    rule_id,
-                    notification_uuid=notification_uuid,
-                ),
-                ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
-            )
-
-        # build up the blocks for newer issue alert formatting #
-        has_slack_formatting_update = features.has(
-            "organizations:slack-formatting-update", self.group.project.organization
-        )
-
-        # build title block
         title_link = get_title_link(
             self.group,
             self.event,
@@ -490,40 +461,61 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             rule_id,
             notification_uuid=notification_uuid,
         )
-        title_text = f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}"
+
+        if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            return self._build(
+                actions=payload_actions,
+                callback_id=json.dumps({"issue": self.group.id}),
+                color=color,
+                fallback=self.build_fallback_text(obj, project.slug),
+                fields=fields,
+                footer=footer,
+                text=text,
+                title=build_attachment_title(obj),
+                title_link=title_link,
+                ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
+            )
+
+        # build up the blocks for newer issue alert formatting #
+        has_slack_formatting_update = features.has(
+            "organizations:slack-formatting-update", self.group.project.organization
+        )
+        # build title block
+        title_text = (
+            f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n ```{text}```"
+        )
         if has_slack_formatting_update:
-            if self.group.issue_category != GroupCategory.ERROR:
-                category_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
-                if category_emoji:
-                    title_text = f"{category_emoji} {title_text}"
+            if self.group.issue_category == GroupCategory.ERROR:
+                level_text = None
+                for k, v in LOG_LEVELS_MAP.items():
+                    if self.group.level == v:
+                        level_text = k
+
+                title_emoji = LEVEL_TO_EMOJI.get(level_text)
+            else:
+                title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+
+            if title_emoji:
+                title_text = f"{title_emoji} {title_text}"
 
         blocks = [self.get_markdown_block(title_text)]
         # build tags block
+        # TODO: add release and environment if available, but don't duplicate if already set in the rule config
         tags = get_tags(event_for_tags, self.tags)
         if tags:
             blocks.append(self.get_tags_block(tags))
 
-        # add event and user count
         if has_slack_formatting_update:
-            event_count = get_group_global_count(self.group)
-            user_count = self.group.count_users_seen()
-            counts_text = f"Events: *{event_count}*     Users Affected: *{user_count}*"
-            blocks.append(self.get_markdown_block(counts_text))
-
-            # add mentions
-            if self.mentions:
-                mentions_text = f"Addt'l info: {self.mentions}"
-                blocks.append(self.get_markdown_block(mentions_text))
-
-            # add project slug, error level, and substate
-            level_text = None
-            for k, v in LOG_LEVELS_MAP.items():
-                if self.group.level == v:
-                    level_text = k
-
-            level_emoji = LEVEL_TO_EMOJI[level_text]
-            formatted_substate = SUBSTATUS_TO_STR[self.group.substatus].title()
-            context_text = f"Project: {project.slug}    Level: {level_emoji}{level_text.title()}    State: {formatted_substate}"
+            # add event count, user count, substate, first seen
+            context = {
+                "Events": get_group_global_count(self.group),
+                "Users affected": self.group.count_users_seen(),
+                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").title(),
+                "First Seen": time_since(self.group.first_seen),
+            }
+            context_text = ""
+            for k, v in context.items():
+                context_text += f"{k}: *{v}*   "
             blocks.append(self.get_markdown_block(context_text))
 
         # build footer block
@@ -531,13 +523,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if not self.issue_details:
             ts = self.group.last_seen
             timestamp = max(ts, self.event.datetime) if self.event else ts
-
-        if has_slack_formatting_update:
-            first_seen = time_since(self.group.first_seen)
-            footer = f"{footer} | First Seen: {first_seen}"
-            blocks.append(self.get_context_block(text=footer))
-        else:
-            blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
         # build actions
         actions = []
@@ -585,6 +570,21 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if actions:
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
+
+        if has_slack_formatting_update:
+            # add mentions
+            if self.mentions:
+                mentions_text = f"Mentions: {self.mentions}"
+                blocks.append(self.get_markdown_block(mentions_text))
+
+        # update footer to be project slug + alert name/link
+        if has_slack_formatting_update:
+            # TODO linkify project
+            # XXX(CEO): note that this changes the footer for workflow alerts, should exclude adding the project there since it's duplicated
+            footer = f"Project: {project.slug}   Alert: {footer}"
+            blocks.append(self.get_context_block(text=footer))
+        else:
+            blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
         blocks.append(self.get_divider())
 
