@@ -3,17 +3,14 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
+import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconDelete, IconPlay} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -93,50 +90,7 @@ function ReplayPreview({
   }
 
   if (fetchError) {
-    const reasons = [
-      t('The replay is still processing'),
-      tct(
-        'The replay was rate-limited and could not be accepted. [link:View the stats page] for more information.',
-        {
-          link: <Link to={`/organizations/${orgSlug}/stats/?dataCategory=replays`} />,
-        }
-      ),
-      t('The replay has been deleted by a member in your organization.'),
-      t('There were network errors and the replay was not saved.'),
-      tct('[link:Read the docs] to understand why.', {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
-        ),
-      }),
-    ];
-
-    return (
-      <Alert
-        type="info"
-        showIcon
-        data-test-id="replay-error"
-        trailingItems={
-          <LinkButton
-            external
-            href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
-            size="xs"
-          >
-            {t('Read Docs')}
-          </LinkButton>
-        }
-      >
-        <p>
-          {t(
-            'The replay for this event cannot be found. This could be due to these reasons:'
-          )}
-        </p>
-        <List symbol="bullet">
-          {reasons.map((reason, i) => (
-            <ListItem key={i}>{reason}</ListItem>
-          ))}
-        </List>
-      </Alert>
-    );
+    return <MissingReplayAlert orgSlug={orgSlug} />;
   }
 
   if (fetching || !replayRecord) {
