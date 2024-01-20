@@ -673,3 +673,10 @@ class OutboxAggregationTest(TestCase):
             dict(shard_identifier=1, depth=456),
             dict(shard_identifier=3, depth=123),
         ]
+
+    def test_calculate_sharding_depths_empty(self):
+        with outbox_runner():
+            pass
+
+        assert ControlOutbox.objects.count() == 0
+        assert ControlOutbox.get_shard_depths_descending() == []
