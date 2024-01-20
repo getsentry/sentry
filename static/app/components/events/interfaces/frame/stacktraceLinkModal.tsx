@@ -153,7 +153,7 @@ function StacktraceLinkModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Set up Code Mapping')}</h4>
+        <h4>{t('Tell us where your source code is')}</h4>
       </Header>
       <Body>
         <ModalContainer>
