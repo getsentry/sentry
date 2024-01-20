@@ -16,6 +16,7 @@ from sentry.integrations.slack.message_builder.issues import (
     build_actions,
     get_option_groups,
     get_option_groups_block_kit,
+    time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import (
@@ -50,6 +51,7 @@ def build_test_message_blocks(
     link_to_event: bool = False,
     tags: dict[str, str] | None = None,
     mentions: str | None = None,
+    extra_content: bool = False,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -84,18 +86,41 @@ def build_test_message_blocks(
         }
         blocks.append(tags_section)
 
+    if extra_content:
+        # add event and user count
+        counts_section = {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": "Events: *1*     Users Affected: *0*"},
+        }
+        blocks.append(counts_section)
+
     if mentions:
-        mentions_text = f"Mentions: {mentions}"
+        mentions_text = f"Addt'l info: {mentions}"
         mentions_section = {
             "type": "section",
             "text": {"type": "mrkdwn", "text": mentions_text},
         }
         blocks.append(mentions_section)
 
+    if extra_content:
+        issue_data = {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Project: {project.slug}    Level: :exclamation:Error    State: Ongoing",
+            },
+        }
+        blocks.append(issue_data)
+
     context = {
         "type": "context",
         "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
     }
+
+    if extra_content:
+        context["elements"][0][
+            "text"
+        ] = f"BAR-{group.short_id} | First Seen: {time_since(group.first_seen)}"
     blocks.append(context)
 
     actions = {
@@ -125,6 +150,7 @@ def build_test_message_blocks(
         ],
     }
     blocks.append(actions)
+    blocks.append({"type": "divider"})
 
     return {
         "blocks": blocks,
@@ -287,7 +313,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             tags=tags,
             event=event,
         )
-        # add mentions to message
+        # add extra content to message
         with self.feature("organizations:slack-formatting-update"):
             assert SlackIssuesMessageBuilder(
                 group, event.for_group(group), mentions=mentions
@@ -298,8 +324,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 group=group,
                 mentions=mentions,
                 event=event,
+                extra_content=True,
             )
-        # add tags and mentions to message
+        # add tags and extra content to message
         with self.feature("organizations:slack-formatting-update"):
             assert SlackIssuesMessageBuilder(
                 group, event.for_group(group), tags={"level"}, mentions=mentions
@@ -311,6 +338,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 tags=tags,
                 mentions=mentions,
                 event=event,
+                extra_content=True,
             )
 
         assert SlackIssuesMessageBuilder(
