@@ -104,7 +104,7 @@ def trim(
     return object_hook(result)
 
 
-def get_path(data: PathSearchable, *path, **kwargs):
+def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
     """
     Safely resolves data from a recursive data structure. A value is only
     returned if the full path exists, otherwise ``None`` is returned.
@@ -116,7 +116,6 @@ def get_path(data: PathSearchable, *path, **kwargs):
     only filter ``None`` values.
     """
     logger = logging.getLogger(__name__)
-    should_log = kwargs.pop("should_log", False)
     default = kwargs.pop("default", None)
     f: Optional[bool] = kwargs.pop("filter", None)
     for k in kwargs:
