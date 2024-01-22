@@ -73,19 +73,18 @@ class SlackActionRequest(SlackRequest):
         if "payload" not in self.request.data:
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
-        # for interactive unfurls with block kit
-        if (
-            self.data["type"] == "block_actions"
-            and self.data["container"].get("is_app_unfurl")
-            and (
-                "app_unfurl" not in self.request.data or len(self.data["app_unfurl"]["blocks"]) == 0
-            )
-        ):
-            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
-
         try:
             self._data = json.loads(self.data["payload"])
         except (KeyError, IndexError, TypeError, ValueError):
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
+
+        # for interactive unfurls with block kit
+        if (
+            self.data["type"] == "block_actions"
+            and self.data.get("container")
+            and self.data["container"].get("is_app_unfurl")
+            and ("app_unfurl" not in self.data or len(self.data["app_unfurl"]["blocks"]) == 0)
+        ):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
     def _log_request(self) -> None:
