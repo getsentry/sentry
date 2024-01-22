@@ -69,13 +69,14 @@ class VercelUninstallTest(APITestCase):
             "installation_type": "team",
             "webhook_id": "my_webhook_id",
         }
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            user=None,
             provider="vercel",
             external_id="vercel_team_id",
             name="My Vercel Team",
             metadata=metadata,
         )
-        self.integration.add_organization(self.organization)
 
     def _get_delete_response(self):
         # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events/integration-configuration-removed

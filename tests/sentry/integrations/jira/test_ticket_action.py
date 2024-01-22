@@ -27,7 +27,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.project_name = "Jira Cloud"
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="jira",
             name=self.project_name,
             metadata={
@@ -37,7 +39,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         self.installation = self.integration.get_installation(self.organization.id)
 
         self.login_as(user=self.user)

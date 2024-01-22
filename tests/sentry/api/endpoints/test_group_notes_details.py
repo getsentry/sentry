@@ -22,11 +22,14 @@ class GroupNotesDetailsTest(APITestCase):
         self.activity.data["external_id"] = "123"
         self.activity.save()
 
+        self.integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            user=None,
+            provider="example",
+            external_id="example12345",
+            name="Example 12345",
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(
-                provider="example", external_id="example12345", name="Example 12345"
-            )
-            org_integration = self.integration.add_organization(self.organization)
             org_integration.config = {"sync_comments": True}
             org_integration.save()
 

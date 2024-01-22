@@ -11,7 +11,9 @@ class BitbucketSearchEndpointTest(APITestCase):
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="bitbucket",
             external_id=self.subject,
             name="meredithanya",
@@ -21,7 +23,6 @@ class BitbucketSearchEndpointTest(APITestCase):
                 "subject": self.subject,
             },
         )
-        self.integration.add_organization(self.organization, self.user)
 
         self.login_as(self.user)
         self.path = reverse(

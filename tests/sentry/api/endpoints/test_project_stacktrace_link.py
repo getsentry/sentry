@@ -3,7 +3,6 @@ from unittest.mock import PropertyMock, patch
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -78,9 +77,9 @@ class BaseProjectStacktraceLink(APITestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(provider="example", name="Example")
-            self.integration.add_organization(self.organization, self.user)
-            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+            self.integration, self.oi = self.create_provider_integration_for(
+                self.organization, self.user, provider="example", name="Example"
+            )
 
         self.repo = self.create_repo(
             project=self.project,

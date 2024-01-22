@@ -21,18 +21,18 @@ class BitbucketRepositoryProviderTest(TestCase):
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(
-                provider="bitbucket",
-                external_id=self.subject,
-                name="MyBitBucket",
-                metadata={
-                    "base_url": self.base_url,
-                    "shared_secret": self.shared_secret,
-                    "subject": self.subject,
-                },
-            )
-            self.integration.add_organization(self.organization, self.user)
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="bitbucket",
+            external_id=self.subject,
+            name="MyBitBucket",
+            metadata={
+                "base_url": self.base_url,
+                "shared_secret": self.shared_secret,
+                "subject": self.subject,
+            },
+        )
         self.repo = Repository.objects.create(
             provider="bitbucket",
             name="sentryuser/newsdiffs",

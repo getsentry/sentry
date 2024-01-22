@@ -19,6 +19,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
@@ -458,6 +459,15 @@ class Fixtures:
     def create_provider_integration(self, **integration_params: Any) -> Integration:
         """Create an integration tied to a provider but no particular organization."""
         return Factories.create_provider_integration(**integration_params)
+
+    def create_provider_integration_for(
+        self,
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        """Create an integration tied to a provider, then add an organization."""
+        return Factories.create_provider_integration_for(organization, user, **integration_params)
 
     def create_organization_integration(self, **integration_params: Any) -> OrganizationIntegration:
         """Create an OrganizationIntegration entity."""

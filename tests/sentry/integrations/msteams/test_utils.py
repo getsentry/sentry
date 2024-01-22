@@ -14,7 +14,9 @@ class GetChannelIdTest(TestCase):
     def setUp(self):
         responses.reset()
 
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.event.project.organization,
+            self.user,
             provider="msteams",
             name="Brute Squad",
             external_id="3x73rna1-id",
@@ -24,7 +26,6 @@ class GetChannelIdTest(TestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        self.integration.add_organization(self.event.project.organization, self.user)
         channels = [
             {"id": "g_c"},
             {"id": "p_o_d", "name": "Pit of Despair"},

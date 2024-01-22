@@ -22,7 +22,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def setUp(self):
         event = self.get_event()
 
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            event.project.organization,
+            self.user,
             provider="msteams",
             name="Galactic Empire",
             external_id="D4r7h_Pl4gu315_th3_w153",
@@ -32,8 +34,6 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        with assume_test_silo_mode_of(Integration):
-            self.integration.add_organization(event.project.organization, self.user)
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()

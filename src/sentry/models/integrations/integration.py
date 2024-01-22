@@ -26,6 +26,9 @@ if TYPE_CHECKING:
         IntegrationInstallation,
         IntegrationProvider,
     )
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +111,11 @@ class Integration(DefaultFieldsModel):
         ]
 
     def add_organization(
-        self, organization_id: int | RpcOrganization, user=None, default_auth_id=None
-    ):
+        self,
+        organization_id: int | Organization | RpcOrganization,
+        user: User | RpcUser | None = None,
+        default_auth_id: int | None = None,
+    ) -> OrganizationIntegration | None:
         """
         Add an organization to this integration.
 
@@ -147,7 +153,7 @@ class Integration(DefaultFieldsModel):
                     "default_auth_id": default_auth_id,
                 },
             )
-            return False
+            return None
 
     def disable(self):
         """

@@ -20,8 +20,9 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
-        integration = self.create_provider_integration(provider="example", name="Example")
-        organization_integration = integration.add_organization(org, self.user)
+        integration, organization_integration = self.create_provider_integration_for(
+            org, self.user, provider="example", name="Example"
+        )
 
         with assume_test_silo_mode(SiloMode.REGION):
             external_issue = ExternalIssue.objects.create(
@@ -44,6 +45,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         org = self.create_organization()
         integration = self.create_provider_integration(provider="example", name="Example")
         organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
 
         ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
@@ -61,6 +63,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             user=self.user, identity_provider=provider, external_id="abc123"
         )
         organization_integration = integration.add_organization(org, self.user, identity.id)
+        assert organization_integration is not None
         repository = self.create_repo(
             project=project, name="testrepo", provider="gitlab", integration_id=integration.id
         )
@@ -94,6 +97,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             project=project, name="testrepo", provider="gitlab", integration_id=integration.id
         )
         organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
 
         code_mapping = self.create_code_mapping(
             project=project, repo=repository, organization_integration=organization_integration
