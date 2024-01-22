@@ -229,13 +229,13 @@ class Endpoint(APIView):
                 permission_cls, (SuperuserPermission, SuperuserOrStaffFeatureFlaggedPermission)
             )
 
+            if not use_staff and can_be_superuser and has_only_superuser_permission:
+                raise SuperuserRequired()
+
             can_be_staff = request.user.is_authenticated and request.user.is_staff
             has_only_staff_permission = isinstance(
                 permission_cls, (StaffPermission, SuperuserOrStaffFeatureFlaggedPermission)
             )
-
-            if not use_staff and can_be_superuser and has_only_superuser_permission:
-                raise SuperuserRequired()
 
             if use_staff and can_be_staff and has_only_staff_permission:
                 raise StaffRequired()
