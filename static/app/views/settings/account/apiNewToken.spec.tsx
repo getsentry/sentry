@@ -114,4 +114,42 @@ describe('ApiNewToken', function () {
       )
     );
   });
+
+  it('creates token without name', async function () {
+    MockApiClient.clearMockResponses();
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: `/api-tokens/`,
+    });
+
+    render(<ApiNewToken />, {
+      context: RouterContextFixture(),
+    });
+    const createButton = await screen.getByRole('button', {name: 'Create Token'});
+
+    const selectByValue = (name, value) =>
+      selectEvent.select(screen.getByRole('textbox', {name}), value);
+
+    await selectByValue('Project', 'Admin');
+    await selectByValue('Release', 'Admin');
+
+    await userEvent.click(createButton);
+
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/api-tokens/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: '', // expect a blank name
+            scopes: expect.arrayContaining([
+              'project:read',
+              'project:write',
+              'project:admin',
+              'project:releases',
+            ]),
+          }),
+        })
+      )
+    );
+  });
 });
