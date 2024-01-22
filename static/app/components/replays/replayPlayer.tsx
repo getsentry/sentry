@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 
 import PlayerDOMAlert from './playerDOMAlert';
 
@@ -77,6 +78,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   });
 
   useVideoSizeLogger({videoDimensions, windowDimensions});
+  const isFullscreen = useIsFullscreen();
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
   useEffect(() => initRoot(viewEl.current), [initRoot]);
@@ -140,7 +142,6 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   function ResourceButtons() {
     return (
       <ButtonContainer>
-        <HoverTitle>{t('Documentation Resources')}</HoverTitle>
         <Resource
           title={t('General')}
           subtitle={t('Configure sampling rates and recording thresholds')}
@@ -163,7 +164,11 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   function ResourceCard() {
     return (
       <ResourceCardContainer>
-        <Hovercard body={<ResourceButtons />} position="top-end">
+        <Hovercard
+          body={<ResourceButtons />}
+          header={t('Documentation Resources')}
+          position="top-end"
+        >
           <Button icon={<IconQuestion />} aria-label="replay resources" />
         </Hovercard>
       </ResourceCardContainer>
@@ -177,7 +182,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
       {isBuffering ? <PositionedBuffering /> : null}
       {isPreview ? null : <PlayerDOMAlert />}
       {isFetching ? <PositionedLoadingIndicator /> : null}
-      <ResourceCard />
+      {isFullscreen ? null : <ResourceCard />}
     </NegativeSpaceContainer>
   );
 }
@@ -343,15 +348,8 @@ const ButtonSubtitle = styled('div')`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  padding: ${space(1)} ${space(1)};
+  padding: ${space(1)};
   height: auto;
-`;
-
-const HoverTitle = styled('div')`
-  font-weight: bold;
-  border-bottom: 1px solid ${p => p.theme.gray200};
-  line-height: 2em;
-  width: 100%;
 `;
 
 export default SentryPlayerRoot;
