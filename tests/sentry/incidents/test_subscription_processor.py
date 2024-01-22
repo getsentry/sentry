@@ -45,7 +45,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
@@ -174,7 +173,6 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
         assert last_incident == incident
 
 
-@region_silo_test
 @freeze_time()
 class ProcessUpdateTest(ProcessUpdateBaseClass):
     @pytest.fixture(autouse=True)
