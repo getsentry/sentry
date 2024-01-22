@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Sequence, Union
 
@@ -10,7 +11,7 @@ from django.utils.translation import gettext as _
 from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
@@ -33,20 +34,30 @@ from sentry.integrations.slack.message_builder.base.block import BlockSlackMessa
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import ActorTuple
+from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.participants import (
+    dedupe_suggested_assignees,
+    get_suggested_assignees_and_outcome,
+    get_suspect_commit_users,
+)
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
+from sentry.services.hybrid_cloud.organization.model import RpcTeam
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+logger = logging.getLogger(__name__)
 
 
 def time_since(value: datetime):
@@ -212,6 +223,42 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
             option_groups.append({"label": member.email, "value": f"user:{member.id}"})
 
     return option_groups
+
+
+def get_suggested_assignees(identity: RpcIdentity, project: Project, event: Event) -> list[str]:
+    """Get suggested assignees as a list of formatted strings"""
+    suggested_assignees, _ = get_suggested_assignees_and_outcome(project, event, None)
+    if features.has("organizations:streamline-targeting-context", project.organization):
+        try:
+            suspect_commit_users = RpcActor.many_from_object(
+                get_suspect_commit_users(project, event)
+            )
+            suggested_assignees.extend(suspect_commit_users)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            logger.info("Skipping suspect committers because release does not exist.")
+        except Exception:
+            logger.exception("Could not get suspect committers. Continuing execution.")
+    if suggested_assignees:
+        suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
+        assignee_texts = []
+        for assignee in suggested_assignees:
+            if assignee.actor_type == ActorType.USER:
+                assignee_identity = identity_service.get_identity(
+                    filter={"provider_id": identity.idp_id, "user_id": assignee.id}
+                )
+                if assignee_identity is None:
+                    assignee_as_user = RpcUser(id=assignee.id)
+                    assignee_text = (
+                        f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
+                    )
+                else:
+                    assignee_text = f"<@{assignee_identity.external_id}>"
+                assignee_texts.append(assignee_text)
+            else:
+                assignee_as_team = RpcTeam(id=assignee.id)
+                assignee_texts.append(f"#{assignee_as_team.name}")
+        return assignee_texts
+    return []
 
 
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
@@ -491,6 +538,18 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(action_block)
 
         if has_slack_formatting_update:
+            # suggested assignees
+            suggested_assignees = get_suggested_assignees(
+                self.identity, self.group.project, self.event
+            )
+            if len(suggested_assignees) > 0:
+                suggested_assignee_text = "Suggested Assignee(s): "
+                for idx, assignee in enumerate(suggested_assignees):
+                    if idx != 0:
+                        suggested_assignee_text += ", "
+                    suggested_assignee_text += assignee
+                blocks.append(self.get_markdown_block(suggested_assignee_text))
+
             # add mentions
             if self.mentions:
                 mentions_text = f"Mentions: {self.mentions}"
