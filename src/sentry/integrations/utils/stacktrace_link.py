@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, TypedDict
+from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from typing_extensions import NotRequired
 
@@ -14,6 +14,9 @@ from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import EventFrame
+
+if TYPE_CHECKING:
+    from sentry.api.endpoints.project_stacktrace_link import StacktraceLinkContext
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +97,7 @@ class StacktraceLinkOutcome(TypedDict):
 
 def get_stacktrace_config(
     configs: List[RepositoryProjectPathConfig],
-    ctx: Dict[str, Optional[str]],
+    ctx: StacktraceLinkContext,
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {
         "source_url": None,
