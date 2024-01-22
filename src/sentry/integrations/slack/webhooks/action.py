@@ -581,7 +581,7 @@ class SlackActionEndpoint(Endpoint):
             if action_data[0].get("action_id"):
                 action_list = []
                 for action_data in action_data:
-                    if action_data.get("type") == "external_select":
+                    if action_data.get("type") in ("static_select", "external_select"):
                         action = BlockKitMessageAction(
                             name=action_data["action_id"],
                             label=action_data["selected_option"]["text"]["text"],
