@@ -2328,7 +2328,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.succeeded" not in email_types
 
         assert relocated_signal_mock.call_count == 0
-        assert relocation_redeem_promo_code_signal_mock.call_count == 1
+        assert relocation_redeem_promo_code_signal_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -2376,7 +2376,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         assert "relocation.succeeded" not in email_types
 
         assert relocated_signal_mock.call_count == 0
-        assert relocation_redeem_promo_code_signal_mock.call_count == 1
+        assert relocation_redeem_promo_code_signal_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
