@@ -15,10 +15,11 @@ export const getQuerySymbol = (index: number) => {
   return result;
 };
 
-const Symbol = styled('div')`
+const Symbol = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 16px;
   height: 16px;
+  line-height: 16px;
   padding: ${space(0.5)};
   justify-content: center;
   align-items: center;
@@ -28,18 +29,26 @@ const Symbol = styled('div')`
   color: ${p => p.theme.black};
   font-size: 10px;
   background: ${p => p.theme.yellow300};
+
+  ${p =>
+    p.isSelected &&
+    `
+  background: ${p.theme.purple300};
+  color: ${p.theme.white};
+  `}
 `;
 
 export function QuerySymbol({
   index,
+  isSelected,
   ...props
-}: React.ComponentProps<typeof Symbol> & {index: number}) {
+}: React.ComponentProps<typeof Symbol> & {index: number; isSelected: boolean}) {
   const {showQuerySymbols} = useDDMContext();
   if (!showQuerySymbols) {
     return null;
   }
   return (
-    <Symbol {...props}>
+    <Symbol isSelected={isSelected} {...props}>
       <span>{getQuerySymbol(index)}</span>
     </Symbol>
   );
