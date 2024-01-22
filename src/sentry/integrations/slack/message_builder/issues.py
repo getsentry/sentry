@@ -481,9 +481,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             "organizations:slack-formatting-update", self.group.project.organization
         )
         # build title block
-        title_text = (
-            f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n ```{text}```"
-        )
+        if text:
+            text = f"```{text}```"
+        title_text = f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}"
         if has_slack_formatting_update:
             if self.group.issue_category == GroupCategory.ERROR:
                 level_text = None
@@ -509,14 +509,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             # add event count, user count, substate, first seen
             context = {
                 "Events": get_group_global_count(self.group),
-                "Users affected": self.group.count_users_seen(),
+                "Users Affected": self.group.count_users_seen(),
                 "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").title(),
                 "First Seen": time_since(self.group.first_seen),
             }
             context_text = ""
             for k, v in context.items():
                 context_text += f"{k}: *{v}*   "
-            blocks.append(self.get_markdown_block(context_text))
+            blocks.append(self.get_markdown_block(context_text[:-3]))
 
         # build footer block
         timestamp = None
