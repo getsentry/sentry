@@ -1,4 +1,4 @@
-import {EventMetadata} from 'sentry/types';
+import {EventMetadata, Group} from 'sentry/types';
 
 export type AutofixData = {
   completedAt: string | null;
@@ -16,4 +16,8 @@ export type AutofixData = {
 
 export type EventMetadataWithAutofix = EventMetadata & {
   autofix?: AutofixData;
+};
+
+export type GroupWithAutofix = Group & {
+  metadata?: EventMetadataWithAutofix;
 };
