@@ -25,7 +25,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
   const isActive = isItemActive(itemProps);
 
-  const someChildren = recursivelyFindChildren(children, 'SidebarItem');
+  const someChildren = findChildElementsInTree(children, 'SidebarItem');
 
   const hasActiveChildren = Children.toArray(someChildren).some(child => {
     if (isValidElement(child)) {
@@ -81,7 +81,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
 export {SidebarAccordion};
 
-function recursivelyFindChildren(
+function findChildElementsInTree(
   children: React.ReactNode,
   componentName: string,
   found: Array<React.ReactNode> = []
@@ -92,7 +92,7 @@ function recursivelyFindChildren(
     }
 
     if (child?.props?.children) {
-      recursivelyFindChildren(child.props.children, componentName, found);
+      findChildElementsInTree(child.props.children, componentName, found);
       return;
     }
 
