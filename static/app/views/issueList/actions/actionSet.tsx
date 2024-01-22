@@ -253,9 +253,9 @@ function ActionSet({
       >
         <ArchiveActions
           onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
           confirmMessage={() =>
-            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+            confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})
           }
           confirmLabel={label('archive')}
           disabled={ignoreDisabled}
