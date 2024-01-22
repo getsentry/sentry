@@ -534,9 +534,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(action_block)
 
         # suggested assignees
-        suggested_assignees = get_suggested_assignees(
-            self.identity, self.group.project, self.event
-        )
+        suggested_assignees = get_suggested_assignees(self.identity, self.group.project, self.event)
         if len(suggested_assignees) > 0:
             suggested_assignee_text = "Suggested Assignee(s): "
             for idx, assignee in enumerate(suggested_assignees):
