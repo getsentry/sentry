@@ -169,8 +169,8 @@ export function Content({
 
     const platform = getStacktracePlatform(event, exc.stacktrace);
 
-    // The banners should appear on the top frame only
-    const isTopFrame = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
+    // The banners should appear on the top exception only
+    const isTopException = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
@@ -200,7 +200,7 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
-        {exc.stacktrace && isTopFrame && (
+        {exc.stacktrace && isTopException && (
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
