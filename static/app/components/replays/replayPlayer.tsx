@@ -144,7 +144,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
         <Resource
           title={t('General')}
           subtitle={t('Configure sampling rates and recording thresholds')}
-          link="https://docs.sentry.io/platforms/javascript/session-replay"
+          link="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration"
         />
         <Resource
           title={t('Element Masking/Blocking')}
@@ -154,7 +154,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
         <Resource
           title={t('Network Details')}
           subtitle={t('Capture request and response headers or bodies')}
-          link="https://docs.sentry.io/platforms/javascript/session-replay/configuration/"
+          link="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
         />
       </ButtonContainer>
     );
