@@ -329,7 +329,6 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             codeLocations="true",
         )
 
-    @pytest.mark.skip(reason="flaky test, fix incoming")
     def test_get_metric_spans(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -415,7 +414,6 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             {"spanDuration": 2, "spanOp": "rpc"},
         ]
 
-    @pytest.mark.skip(reason="flaky test, fix incoming")
     def test_get_metric_spans_with_environment(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -484,7 +482,6 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id_2
 
-    @pytest.mark.skip(reason="flaky test, fix incoming")
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -494,10 +491,10 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         transaction_id_2 = uuid.uuid4().hex
         span_id_2 = "10220507e6f4e6ad"
 
-        for i, (transaction_id, span_id, min_value, max_value) in enumerate(
+        for i, (transaction_id, span_id, transaction_duration, min_value, max_value) in enumerate(
             (
-                (transaction_id_1, span_id_1, 10.0, 100.0),
-                (transaction_id_2, span_id_2, 120.0, 200.0),
+                (transaction_id_1, span_id_1, 5, 10.0, 100.0),
+                (transaction_id_2, span_id_2, 15, 120.0, 200.0),
             )
         ):
             self.store_segment(
@@ -505,7 +502,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 timestamp=before_now(minutes=5 + i),
                 trace_id=trace_id,
                 transaction_id=transaction_id,
-                duration=10,
+                duration=transaction_duration,
             )
             self.store_indexed_span(
                 project_id=self.project.id,
@@ -530,11 +527,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         for min_val, max_val, expected_transaction_ids in (
             (10.0, 100.0, [transaction_id_1]),
             (100.0, 200.0, [transaction_id_2]),
-            (10.0, 200.0, [transaction_id_1, transaction_id_2]),
+            (10.0, 200.0, [transaction_id_2, transaction_id_1]),
             (10.0, 20.0, []),
-            (10.0, None, [transaction_id_1, transaction_id_2]),
-            (None, 200.0, [transaction_id_1, transaction_id_2]),
-            (None, None, [transaction_id_1, transaction_id_2]),
+            (10.0, None, [transaction_id_2, transaction_id_1]),
+            (None, 200.0, [transaction_id_2, transaction_id_1]),
+            (None, None, [transaction_id_2, transaction_id_1]),
         ):
             extra_params = {}
             if min_val:
@@ -553,8 +550,12 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
             metric_spans = response.data["metricSpans"]
             assert len(metric_spans) == len(cast(Sequence[str], expected_transaction_ids))
-            for i, expected_span_id in enumerate(cast(Sequence[str], expected_transaction_ids)):
-                assert metric_spans[i]["transactionId"] == expected_span_id
+            for i, expected_transaction_id in enumerate(
+                cast(Sequence[str], expected_transaction_ids)
+            ):
+                assert (
+                    metric_spans[i]["transactionId"] == expected_transaction_id
+                ), f"Expected transaction id {expected_transaction_id} for [{min_val}, {max_val}]"
 
     @pytest.mark.skip(
         reason="experimenting with new querying that would require this test to be rewritten"
