@@ -112,7 +112,7 @@ class ValidationVisitor(QueryExpressionVisitor[QueryExpression]):
                 self._validate_filters(f.conditions)
 
 
-class ConditionsCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
+class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
     """
     Visitor that runs a series of `QueryConditionVisitor`(s) on each filters of elements of a `QueryExpression`.
     """

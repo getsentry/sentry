@@ -31,8 +31,8 @@ from sentry.sentry_metrics.querying.types import (
 )
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.sentry_metrics.querying.visitors import (
-    ConditionsCompositeVisitor,
     EnvironmentsInjectionVisitor,
+    FiltersCompositeVisitor,
     LatestReleaseTransformationVisitor,
     QueryExpressionVisitor,
     ValidationVisitor,
@@ -537,7 +537,7 @@ class QueryParser:
                 .add_visitor(EnvironmentsInjectionVisitor(environments))
                 # We transform all `release:latest` filters into the actual latest releases.
                 .add_visitor(
-                    ConditionsCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
+                    FiltersCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
                 ).get(),
             )
 
