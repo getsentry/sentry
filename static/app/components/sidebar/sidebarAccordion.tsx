@@ -91,19 +91,17 @@ function findChildElementsInTree(
       return;
     }
 
-    if (child?.props?.children) {
-      findChildElementsInTree(child.props.children, componentName, found);
+    const currentComponentName: string =
+      typeof child.type === 'string' ? child.type : child.type.name;
+
+    if (currentComponentName === componentName) {
+      found.push(child);
       return;
     }
 
-    if (typeof child.type === 'string') {
-      if (child.type === componentName) {
-        found.push(child);
-      }
-    } else {
-      if (child?.type?.name === componentName) {
-        found.push(child);
-      }
+    if (child?.props?.children) {
+      findChildElementsInTree(child.props.children, componentName, found);
+      return;
     }
 
     return;
