@@ -1,6 +1,6 @@
 import {RefObject, useCallback, useMemo, useRef} from 'react';
-import uniq from 'lodash/uniq';
 
+import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {getFrameOpOrCategory, ReplayFrame} from 'sentry/utils/replays/types';

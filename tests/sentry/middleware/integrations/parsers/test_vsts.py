@@ -8,9 +8,11 @@ from django.urls import reverse
 from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPDATED_STATUS
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes, assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.silo import control_silo_test, create_test_regions
 
 
@@ -69,9 +71,9 @@ class VstsRequestParserTest(TestCase):
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.VSTS,
+            expected_shard_id=self.integration.id,
             region_names=["us"],
         )
 
@@ -137,8 +139,8 @@ class VstsRequestParserTest(TestCase):
 
         assert_no_webhook_outboxes()
         parser.get_response()
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.VSTS,
+            expected_shard_id=self.integration.id,
             region_names=["us"],
         )
