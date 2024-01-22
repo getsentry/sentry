@@ -1,6 +1,6 @@
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 
@@ -55,16 +55,14 @@ describe('IntegrationExternalMappingForm', function () {
   // No mapping provided (e.g. Create a new mapping)
   it('renders with no mapping provided as a form', async function () {
     render(<IntegrationExternalMappingForm type="user" {...baseProps} />);
-    await act(tick);
-    expect(screen.getByPlaceholderText('@username')).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText('@username')).toBeInTheDocument();
     expect(screen.getByText('Select Sentry User')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
   it('renders with no mapping as an inline field', async function () {
     render(<IntegrationExternalMappingForm isInline type="user" {...baseProps} />);
-    await act(tick);
+    expect(await screen.findByText('Select Sentry User')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('@username')).not.toBeInTheDocument();
-    expect(screen.getByText('Select Sentry User')).toBeInTheDocument();
     expect(screen.queryByTestId('form-submit')).not.toBeInTheDocument();
   });
 
@@ -77,8 +75,9 @@ describe('IntegrationExternalMappingForm', function () {
         {...baseProps}
       />
     );
-    await act(tick);
-    expect(screen.getByDisplayValue(MOCK_USER_MAPPING.externalName)).toBeInTheDocument();
+    expect(
+      await screen.findByDisplayValue(MOCK_USER_MAPPING.externalName)
+    ).toBeInTheDocument();
     expect(screen.getByText(`option${MOCK_USER_MAPPING.userId}`)).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
@@ -91,11 +90,12 @@ describe('IntegrationExternalMappingForm', function () {
         {...baseProps}
       />
     );
-    await act(tick);
+    expect(
+      await screen.findByText(`option${MOCK_USER_MAPPING.userId}`)
+    ).toBeInTheDocument();
     expect(
       screen.queryByDisplayValue(MOCK_USER_MAPPING.externalName)
     ).not.toBeInTheDocument();
-    expect(screen.getByText(`option${MOCK_USER_MAPPING.userId}`)).toBeInTheDocument();
     expect(screen.queryByTestId('form-submit')).not.toBeInTheDocument();
   });
 
@@ -108,8 +108,9 @@ describe('IntegrationExternalMappingForm', function () {
         {...baseProps}
       />
     );
-    await act(tick);
-    expect(screen.getByDisplayValue(MOCK_TEAM_MAPPING.externalName)).toBeInTheDocument();
+    expect(
+      await screen.findByDisplayValue(MOCK_TEAM_MAPPING.externalName)
+    ).toBeInTheDocument();
     expect(screen.getByText('Select Sentry Team')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
@@ -122,11 +123,10 @@ describe('IntegrationExternalMappingForm', function () {
         {...baseProps}
       />
     );
-    await act(tick);
+    expect(await screen.findByText('Select Sentry Team')).toBeInTheDocument();
     expect(
       screen.queryByDisplayValue(MOCK_TEAM_MAPPING.externalName)
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Select Sentry Team')).toBeInTheDocument();
     expect(screen.queryByTestId('form-submit')).not.toBeInTheDocument();
   });
 
@@ -141,17 +141,19 @@ describe('IntegrationExternalMappingForm', function () {
     expect(baseProps.getBaseFormEndpoint).not.toHaveBeenCalled();
     expect(postResponse).not.toHaveBeenCalled();
     await userEvent.type(screen.getByText('Select Sentry User'), 'option2');
-    await act(tick);
     await userEvent.click(screen.getAllByText('option2')[1]);
     await userEvent.click(screen.getByTestId('form-submit'));
-    await act(tick);
-    expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
-      externalName: MOCK_USER_MAPPING.externalName,
-      integrationId: baseProps.integration.id,
-      provider: baseProps.integration.provider.name.toLowerCase(),
-      // From option2 selection
-      userId: '2',
+
+    await waitFor(() => {
+      expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
+        externalName: MOCK_USER_MAPPING.externalName,
+        integrationId: baseProps.integration.id,
+        provider: baseProps.integration.provider.name.toLowerCase(),
+        // From option2 selection
+        userId: '2',
+      });
     });
+
     expect(postResponse).toHaveBeenCalled();
     expect(putResponse).not.toHaveBeenCalled();
   });
@@ -165,20 +167,21 @@ describe('IntegrationExternalMappingForm', function () {
         {...baseProps}
       />
     );
-    await act(tick);
+    expect(await screen.findByText('option1')).toBeInTheDocument();
     expect(baseProps.getBaseFormEndpoint).not.toHaveBeenCalled();
     expect(putResponse).not.toHaveBeenCalled();
     await userEvent.type(screen.getByRole('textbox'), 'option3');
-    await act(tick);
+    expect(await screen.findAllByText('option3')).toHaveLength(2);
     await userEvent.click(screen.getAllByText('option3')[1]);
-    expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
-      ...MOCK_TEAM_MAPPING,
-      integrationId: baseProps.integration.id,
-      provider: baseProps.integration.provider.name.toLowerCase(),
-      // From option3 selection
-      teamId: '3',
+    await waitFor(() => {
+      expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
+        ...MOCK_TEAM_MAPPING,
+        integrationId: baseProps.integration.id,
+        provider: baseProps.integration.provider.name.toLowerCase(),
+        // From option3 selection
+        teamId: '3',
+      });
     });
-    await act(tick);
     expect(putResponse).toHaveBeenCalled();
     expect(postResponse).not.toHaveBeenCalled();
   });
@@ -194,13 +197,12 @@ describe('IntegrationExternalMappingForm', function () {
     );
     const sentryNameField = screen.getByText(`option${MOCK_USER_MAPPING.userId}`);
     // Don't query for results on load
+    expect(await screen.findByText('option1')).toBeInTheDocument();
     expect(sentryNameField).toBeInTheDocument();
-    await act(tick);
     expect(getResponse).not.toHaveBeenCalled();
     // Now that the user types, query for results
     await userEvent.type(sentryNameField, 'option2');
-    await act(tick);
     await userEvent.click(screen.getAllByText('option2')[1]);
-    expect(getResponse).toHaveBeenCalled();
+    await waitFor(() => expect(getResponse).toHaveBeenCalled());
   });
 });
