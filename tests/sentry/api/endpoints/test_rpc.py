@@ -32,7 +32,7 @@ class RpcServiceEndpointTest(APITestCase):
 
         return f"rpcsignature {signature}"
 
-    def test_auth(self):
+    def test_invalid_endpoint(self):
         path = self._get_path("not_a_service", "not_a_method")
         response = self.client.post(path)
         assert response.status_code == 403
@@ -42,6 +42,18 @@ class RpcServiceEndpointTest(APITestCase):
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
         return response
+
+    def test_missing_authentication(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        data: Dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        response = self.client.post(path, data=data)
+        assert response.status_code == 403
+
+    def test_invalid_authentication(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        data: Dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature trash")
+        assert response.status_code == 401
 
     def test_bad_service_name(self):
         path = self._get_path("not_a_service", "not_a_method")

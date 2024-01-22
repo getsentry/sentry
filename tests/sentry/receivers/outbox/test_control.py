@@ -45,7 +45,7 @@ class ProcessControlOutboxTest(TestCase):
             HTTP_X_GITHUB_EMOTICON=">:^]",
         )
         [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
+            shard_identifier=WebhookProviderIdentifier.GITHUB,
             region_names=[_TEST_REGION.name],
             request=request,
         )

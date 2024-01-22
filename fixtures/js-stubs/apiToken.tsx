@@ -12,6 +12,7 @@ export function ApiTokenFixture(
     refreshToken: 'refresh_token',
     expiresAt: new Date('Thu Jan 11 2018 18:01:41 GMT-0800 (PST)').toISOString(),
     state: 'active',
+    tokenLastCharacters: 'n123',
     ...params,
   };
 }

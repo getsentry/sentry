@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
@@ -91,7 +92,7 @@ class ReleaseThresholdStatusTest(APITestCase):
             environment=self.canary_environment,
         )
         ReleaseThreshold.objects.create(
-            threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
             trigger_type=1,
             value=100,
             window_in_seconds=100,
@@ -405,3 +406,79 @@ class ReleaseThresholdStatusTest(APITestCase):
         # release2
         r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
         assert len(r2_keys) == 0
+
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.fetch_sessions_data"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_crash_free_rate_healthy_check"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_errors_counts_timeseries_by_project_and_release"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_error_count_healthy"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_new_issue_counts"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_new_issue_count_healthy"
+    )
+    def test_fetches_relevant_stats(
+        self,
+        mock_is_new_issue_count_healthy,
+        mock_get_new_issue_counts,
+        mock_is_error_count_healthy,
+        mock_get_error_counts,
+        mock_is_crash_free_rate_healthy,
+        mock_fetch_sessions_data,
+    ):
+        self.project4 = self.create_project(name="baz", organization=self.organization)
+        self.release4 = Release.objects.create(version="v4", organization=self.organization)
+        self.release4.add_project(self.project4)
+        # Threshold for error count
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            trigger_type=0,  # over
+            value=100,
+            window_in_seconds=100,
+            project=self.project4,
+        )
+        # Threshold for new issue count
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
+            trigger_type=0,  # over
+            value=10,
+            window_in_seconds=100,
+            project=self.project4,
+        )
+        # Threshold for crash free rate
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            trigger_type=1,  # under
+            value=99,
+            window_in_seconds=3600,
+            project=self.project4,
+        )
+
+        now = str(datetime.now())
+        yesterday = str(datetime.now() - timedelta(hours=24))
+
+        mock_is_error_count_healthy.return_value = True, 100
+        mock_is_new_issue_count_healthy.return_value = True, 100
+        mock_is_crash_free_rate_healthy.return_value = True, 100
+
+        self.get_success_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            release=[self.release4.version],
+        )
+
+        assert mock_get_error_counts.call_count == 1
+        assert mock_is_error_count_healthy.call_count == 1
+        assert mock_get_new_issue_counts.call_count == 1
+        assert mock_is_new_issue_count_healthy.call_count == 1
+        assert mock_fetch_sessions_data.call_count == 1
+        assert mock_is_crash_free_rate_healthy.call_count == 1
