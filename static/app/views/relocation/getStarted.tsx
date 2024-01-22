@@ -36,12 +36,9 @@ function GetStarted(props: StepProps) {
     event.preventDefault();
     if (promoCode) {
       try {
-        await api.requestPromise(
-          `/promocodes-external/${promoCode}?num_orgs=${orgSlugs.split(',').length}`,
-          {
-            method: 'GET',
-          }
-        );
+        await api.requestPromise(`/promocodes-external/${promoCode}`, {
+          method: 'GET',
+        });
       } catch (error) {
         if (error.status === 403) {
           addErrorMessage(PROMO_CODE_ERROR_MSG);

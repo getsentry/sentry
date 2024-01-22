@@ -105,7 +105,7 @@ describe('Relocation', function () {
       renderPage('get-started');
       await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
       fetchPublicKey = MockApiClient.addMockResponse({
-        url: '/promocodes-external/free-hugs?num_orgs=1',
+        url: '/promocodes-external/free-hugs',
         method: 'GET',
         statusCode: 200,
       });
@@ -129,7 +129,7 @@ describe('Relocation', function () {
       renderPage('get-started');
       await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
       fetchPublicKey = MockApiClient.addMockResponse({
-        url: '/promocodes-external/free-hugs?num_orgs=1',
+        url: '/promocodes-external/free-hugs',
         method: 'GET',
         statusCode: 403,
       });
