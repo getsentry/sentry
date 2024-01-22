@@ -16,15 +16,22 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.endpoints.release_thresholds.constants import CRASH_SESSIONS_DISPLAY
+from sentry.api.endpoints.release_thresholds.health_checks import (
+    is_crash_free_rate_healthy_check,
+    is_error_count_healthy,
+    is_new_issue_count_healthy,
+)
+from sentry.api.endpoints.release_thresholds.utils import (
+    fetch_sessions_data,
+    get_errors_counts_timeseries_by_project_and_release,
+    get_new_issue_counts,
+)
 from sentry.api.serializers import serialize
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.utils import metrics
-
-from .constants import CRASH_SESSIONS_DISPLAY
-from .health_checks import is_crash_free_rate_healthy_check, is_error_count_healthy
-from .utils import fetch_sessions_data, get_errors_counts_timeseries_by_project_and_release
 
 logger = logging.getLogger("sentry.release_threshold_status")
 
@@ -342,7 +349,29 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     )  # so we can fill all thresholds under the same key
             elif threshold_type == ReleaseThresholdType.NEW_ISSUE_COUNT:
                 metrics.incr("release.threshold_health_status.check.new_issue_count")
+                """
+                Query new issue counts for all projects with a new_issue_count threshold in desired releases
+                """
+                new_issue_counts = get_new_issue_counts(
+                    organization_id=organization.id,
+                    thresholds=category_thresholds,
+                )
+                logger.info(
+                    "querying new issue counts",
+                    extra={
+                        "start": query_window["start"],
+                        "end": query_window["end"],
+                        "project_ids": project_id_list,
+                        "releases": release_value_list,
+                        "environments": environments_list,
+                        "new_issue_counts_data": new_issue_counts,
+                    },
+                )
                 for ethreshold in category_thresholds:
+                    is_healthy, metric_count = is_new_issue_count_healthy(
+                        ethreshold, new_issue_counts
+                    )
+                    ethreshold.update({"is_healthy": is_healthy, "metric_value": metric_count})
                     release_threshold_health[ethreshold["key"]].append(
                         ethreshold
                     )  # so we can fill all thresholds under the same key

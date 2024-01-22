@@ -3,6 +3,7 @@ from typing import Any, Dict, TypedDict
 
 
 class SerializedThreshold(TypedDict):
+    id: str
     date: datetime
     environment: Dict[str, Any] | None
     project: Dict[str, Any]

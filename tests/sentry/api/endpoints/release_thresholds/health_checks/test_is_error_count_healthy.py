@@ -74,6 +74,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # current threshold within series
         current_threshold_healthy: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -97,6 +98,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
+            "id": "2",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -120,6 +122,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
+            "id": "3",
             "date": now,
             "start": now - timedelta(minutes=2),
             "end": now - timedelta(minutes=1),
@@ -143,6 +146,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
+            "id": "4",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -166,6 +170,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
+            "id": "5",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now + timedelta(minutes=5),
@@ -250,6 +255,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # base threshold within series
         threshold_healthy: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -273,6 +279,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold within series but separate unhealthy release
         threshold_unhealthy: EnrichedThreshold = {
+            "id": "2",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -358,6 +365,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # base threshold within series
         # unhealthy means error count OVER 4 over 1m window
         threshold_healthy: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -381,6 +389,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold within series but separate unhealthy project
         threshold_unhealthy: EnrichedThreshold = {
+            "id": "2",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -465,6 +474,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # base threshold within series
         threshold_healthy: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -488,6 +498,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold within series but separate unhealthy environment
         threshold_unhealthy: EnrichedThreshold = {
+            "id": "2",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -552,6 +563,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # current threshold within series
         current_threshold_healthy: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -575,6 +587,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
+            "id": "2",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -598,6 +611,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
+            "id": "3",
             "date": now,
             "start": now - timedelta(minutes=2),
             "end": now - timedelta(minutes=1),
@@ -621,6 +635,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
+            "id": "4",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -644,6 +659,7 @@ class ErrorCountThresholdCheckTest(TestCase):
 
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
+            "id": "5",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now + timedelta(minutes=5),
