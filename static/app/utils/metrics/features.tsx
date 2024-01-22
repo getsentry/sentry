@@ -9,6 +9,10 @@ export function hasDDMFeature(organization: Organization) {
   return organization.features.includes('ddm-ui');
 }
 
+export function hasDDMStaffFeature(organization: Organization) {
+  return organization.features.includes('ddm-staff');
+}
+
 /**
  * Returns the forceMetricsLayer query param for the alert
  * wrapped in an object so it can be spread into existing query params
