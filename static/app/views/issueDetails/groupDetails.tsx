@@ -21,9 +21,7 @@ import MissingProjectMembership from 'sentry/components/projects/missingProjectM
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   Group,
@@ -61,6 +59,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {ERROR_TYPES} from './constants';
@@ -600,7 +599,7 @@ function useTrackView({
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
   const groupEventType = useLoadedEventType();
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({

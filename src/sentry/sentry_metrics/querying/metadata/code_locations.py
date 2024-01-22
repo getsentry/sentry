@@ -184,7 +184,7 @@ class CodeLocationsFetcher:
             yield batch
 
 
-def get_code_locations(
+def get_metric_code_locations(
     metric_mris: Sequence[str],
     start: datetime,
     end: datetime,

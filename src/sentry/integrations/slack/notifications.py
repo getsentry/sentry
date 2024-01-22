@@ -18,7 +18,8 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations.slack import post_message
+from sentry.silo import SiloMode
+from sentry.tasks.integrations.slack import post_message, post_message_control
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 
@@ -133,12 +134,16 @@ def _notify_recipient(
                 "attachments": json.dumps(local_attachments),
             }
 
+        post_message_task = post_message
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            post_message_task = post_message_control
+
         log_params = {
-            "notification": notification,
+            "notification": str(notification),
             "recipient": recipient.id,
             "channel_id": channel,
         }
-        post_message.apply_async(
+        post_message_task.apply_async(
             kwargs={
                 "integration_id": integration.id,
                 "payload": payload,

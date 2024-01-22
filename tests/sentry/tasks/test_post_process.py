@@ -21,7 +21,6 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -1555,12 +1554,9 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
-    @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze_issue_platform(
-        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
-    ):
+    def test_invalidates_snooze_issue_platform(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
         should_detect_escalation = group.issue_type.should_detect_escalation(
@@ -1598,27 +1594,19 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
 
         if should_detect_escalation:
-            mock_send_escalating_robust.assert_called_once_with(
-                project=group.project,
-                group=group,
-                event=EventMatcher(event),
-                sender=manage_issue_states,
-                was_until_escalating=False,
-            )
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
         else:
-            mock_send_escalating_robust.assert_not_called()
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group.refresh_from_db()
         if should_detect_escalation:
             assert group.status == GroupStatus.UNRESOLVED
-            assert group.substatus == GroupSubStatus.ESCALATING
+            assert group.substatus == GroupSubStatus.ONGOING
             assert GroupInbox.objects.filter(
-                group=group, reason=GroupInboxReason.ESCALATING.value
+                group=group, reason=GroupInboxReason.ONGOING.value
             ).exists()
             assert Activity.objects.filter(
-                group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+                group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
             ).exists()
             assert mock_send_unignored_robust.called
         else:
@@ -1634,12 +1622,9 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
-    @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze(
-        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
-    ):
+    def test_invalidates_snooze(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
@@ -1674,23 +1659,16 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
-        mock_send_escalating_robust.assert_called_once_with(
-            project=group.project,
-            group=group,
-            event=EventMatcher(event),
-            sender=manage_issue_states,
-            was_until_escalating=False,
-        )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.ESCALATING
+        assert group.substatus == GroupSubStatus.ONGOING
         assert GroupInbox.objects.filter(
-            group=group, reason=GroupInboxReason.ESCALATING.value
+            group=group, reason=GroupInboxReason.ONGOING.value
         ).exists()
         assert Activity.objects.filter(
-            group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
         ).exists()
         assert mock_send_unignored_robust.called
 
@@ -1833,20 +1811,19 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["configs"] == [
-            {
-                "sdk_name": SdkName.Cocoa,
-                "project_id": 1234,
-                "sample_rate": 1.0,
-                "organization_allowlist": None,
-            },
-            {
-                "sdk_name": SdkName.ReactNative,
-                "project_id": 12345,
-                "sample_rate": 1.0,
-                "organization_allowlist": [1],
-            },
-        ]
+
+        assert len(args["configs"]) == 2
+        cocoa_config = args["configs"][0]
+        assert cocoa_config.sdk_name == SdkName.Cocoa
+        assert cocoa_config.project_id == 1234
+        assert cocoa_config.sample_rate == 1.0
+        assert cocoa_config.organization_allowlist is None
+
+        react_native_config = args["configs"][1]
+        assert react_native_config.sdk_name == SdkName.ReactNative
+        assert react_native_config.project_id == 12345
+        assert react_native_config.sample_rate == 1.0
+        assert react_native_config.organization_allowlist == [1]
 
     @with_feature("organizations:sdk-crash-detection")
     @override_options(

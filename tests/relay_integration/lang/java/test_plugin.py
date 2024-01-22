@@ -81,6 +81,12 @@ class MainActivity : ComponentActivity() {
 
     class AdditionalInnerClass {
         fun whoops3() {
+            OneMoreInnerClass().whoops4()
+        }
+    }
+
+    class OneMoreInnerClass {
+        fun whoops4() {
             throw RuntimeException("whoops")
         }
     }
@@ -488,6 +494,62 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    def test_resolving_does_not_fail_when_no_value(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        metrics = event.data["_metrics"]
+        assert not metrics.get("flag.processing.error")
+
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -719,6 +781,13 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                                     "filename": "MainActivity.kt",
                                     "lineno": 32,
                                 },
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
                             ]
                         },
                         "module": "io.sentry.samples",
@@ -827,7 +896,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].function == "whoops3"
         assert frames[5].module == "io.sentry.samples.MainActivity$AdditionalInnerClass"
         assert frames[5].lineno == 32
-        assert frames[5].context_line == '            throw RuntimeException("whoops")'
+        assert frames[5].context_line == "            OneMoreInnerClass().whoops4()"
         assert frames[5].pre_context == [
             "        }",
             "    }",
@@ -835,7 +904,26 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "    class AdditionalInnerClass {",
             "        fun whoops3() {",
         ]
-        assert frames[5].post_context == ["        }", "    }", "}", ""]
+        assert frames[5].post_context == [
+            "        }",
+            "    }",
+            "",
+            "    class OneMoreInnerClass {",
+            "        fun whoops4() {",
+        ]
+
+        assert frames[6].function == "whoops4"
+        assert frames[6].module == "io.sentry.samples.MainActivity$OneMoreInnerClass"
+        assert frames[6].lineno == 38
+        assert frames[6].context_line == '            throw RuntimeException("whoops")'
+        assert frames[6].pre_context == [
+            "        }",
+            "    }",
+            "",
+            "    class OneMoreInnerClass {",
+            "        fun whoops4() {",
+        ]
+        assert frames[6].post_context == ["        }", "    }", "}", ""]
 
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)

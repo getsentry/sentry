@@ -31,7 +31,7 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
-  RateUnits,
+  RateUnit,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
@@ -233,7 +233,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const {unit} = baggage ?? {};
       return (
         <NumberContainer>
-          {formatRate(data[field], unit as RateUnits, {minimumValue: 0.01})}
+          {formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})}
         </NumberContainer>
       );
     },

@@ -34,7 +34,7 @@ export interface FocusArea {
   widgetIndex: number;
 }
 
-interface UseFocusAreaBrushOptions {
+interface UseFocusAreaOptions {
   widgetIndex: number;
   isDisabled?: boolean;
   useFullYAxis?: boolean;
@@ -42,10 +42,18 @@ interface UseFocusAreaBrushOptions {
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 
-export function useFocusAreaBrush(
+function isInRect(x: number, y: number, rect: DOMRect | undefined) {
+  if (!rect) {
+    return false;
+  }
+
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+export function useFocusArea(
   chartRef: RefObject<ReactEchartsRef>,
   focusArea: FocusArea | null,
-  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaBrushOptions,
+  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaOptions,
   onAdd: (area: FocusArea) => void = () => {},
   onRemove: () => void = () => {},
   onZoom: (range: DateTimeObject) => void = () => {}
@@ -59,12 +67,42 @@ export function useFocusAreaBrush(
 
   const theme = useTheme();
 
+  const startBrush = useCallback(() => {
+    if (hasFocusArea || isDisabled) {
+      return;
+    }
+
+    chartRef.current?.getEchartsInstance().dispatchAction({
+      type: 'takeGlobalCursor',
+      key: 'brush',
+      brushOption: {
+        brushType: 'rect',
+      },
+    });
+    isDrawingRef.current = true;
+  }, [chartRef, hasFocusArea, isDisabled]);
+
+  useEffect(() => {
+    const handleMouseDown = event => {
+      const rect = chartRef.current?.ele.getBoundingClientRect();
+
+      if (isInRect(event.clientX, event.clientY, rect)) {
+        startBrush();
+      }
+    };
+
+    window.addEventListener('mousedown', handleMouseDown, {capture: true});
+
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown, {capture: true});
+    };
+  }, [chartRef, startBrush]);
+
   const onBrushEnd = useCallback(
     (brushEnd: BrushEndResult) => {
-      if (isDisabled) {
+      if (isDisabled || !isDrawingRef.current) {
         return;
       }
-
       const rect = brushEnd.areas[0];
       if (!rect) {
         return;
@@ -87,21 +125,6 @@ export function useFocusAreaBrush(
     },
     [chartRef, isDisabled, onAdd, widgetIndex, useFullYAxis]
   );
-
-  const startBrush = useCallback(() => {
-    if (hasFocusArea || isDisabled) {
-      return;
-    }
-
-    chartRef.current?.getEchartsInstance().dispatchAction({
-      type: 'takeGlobalCursor',
-      key: 'brush',
-      brushOption: {
-        brushType: 'rect',
-      },
-    });
-    isDrawingRef.current = true;
-  }, [chartRef, hasFocusArea, isDisabled]);
 
   const handleRemove = useCallback(() => {
     onRemove();
@@ -152,7 +175,6 @@ export function useFocusAreaBrush(
         />
       ),
       isDrawingRef,
-      startBrush,
       options: {},
     };
   }
@@ -160,7 +182,6 @@ export function useFocusAreaBrush(
   return {
     overlay: null,
     isDrawingRef,
-    startBrush,
     options: brushOptions,
   };
 }
@@ -215,7 +236,7 @@ function BrushRectOverlay({
     const widthPx = bottomRight[0] - topLeft[0];
     const heightPx = bottomRight[1] - topLeft[1];
 
-    const resultTop = useFullYAxis ? '0' : `${topLeft[1].toPrecision(5)}px`;
+    const resultTop = useFullYAxis ? '0px' : `${topLeft[1].toPrecision(5)}px`;
     const resultHeight = useFullYAxis
       ? `${CHART_HEIGHT}px`
       : `${heightPx.toPrecision(5)}px`;
@@ -327,8 +348,8 @@ const FocusAreaRect = styled('div')<{
   pointer-events: none;
   z-index: 1;
 
-  outline: 2px solid ${p => p.theme.gray500};
-  outline-style: auto;
+  border: 2px solid ${p => p.theme.gray500};
+  border-radius: ${p => p.theme.borderRadius};
 
   /* requires overflow: hidden on FocusAreaWrapper */
   box-shadow: 0px 0px 0px 9999px ${p => color(p.theme.surface400).alpha(0.75).toString()};
