@@ -134,7 +134,7 @@ def build_tag_fields(
 
 def get_tags(
     event_for_tags: Any,
-    has_slack_formatting_update: bool | False,
+    has_slack_formatting_update: bool = False,
     tags: set[str] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
     """Get tag keys and values for block kit"""
