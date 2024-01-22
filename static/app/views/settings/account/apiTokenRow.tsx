@@ -13,7 +13,7 @@ import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
-  tokenPrefix: string;
+  tokenPrefix?: string;
 };
 
 // TODO: After the BE portion of code changes have been released, remove the conditional rendering of the token.

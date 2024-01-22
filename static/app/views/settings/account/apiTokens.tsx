@@ -121,7 +121,6 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
                 key={token.id}
                 token={token}
                 onRemove={this.handleRemoveToken}
-                tokenPrefix=""
               />
             ))}
           </PanelBody>
