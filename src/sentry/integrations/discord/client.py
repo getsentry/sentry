@@ -96,17 +96,16 @@ class DiscordClient(ApiClient):
                 USER_URL,
                 headers=headers,
             )
-            user_id = response.get("id")
-            if user_id is None:
-                logger.error("discord.install.no_user_id_in_response")
-                raise IntegrationError("Could not retrieve Discord user information.")
-            return user_id
+            if response.status_code == 200:
+                return response.json()["id"]
         except Exception as e:
             logger.exception(
                 "discord.install.failed_to_get_user_id",
                 extra={"error": str(e)},
             )
             raise IntegrationError("Could not retrieve Discord user information.")
+        logger.error("discord.install.no_user_id_in_response")
+        raise IntegrationError("Could not retrieve Discord user information.")
 
     def leave_guild(self, guild_id: str) -> None:
         """
