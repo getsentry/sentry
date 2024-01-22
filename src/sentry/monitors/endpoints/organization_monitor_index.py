@@ -32,7 +32,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import create_alert_rule, signal_monitor_created
-from sentry.monitors.validators import MonitorValidator
+from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.utils.outcomes import Outcome
 
@@ -271,7 +271,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Bulk Edit Monitors",
         parameters=[GlobalParams.ORG_SLUG],
-        request=MonitorValidator,
+        request=MonitorBulkEditValidator,
         responses={
             200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
             400: RESPONSE_BAD_REQUEST,

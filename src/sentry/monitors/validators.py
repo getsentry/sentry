@@ -379,3 +379,11 @@ class MonitorCheckInValidator(serializers.Serializer):
             del attrs["monitor_config"]
 
         return attrs
+
+
+class MonitorBulkEditValidator(MonitorValidator):
+    slugs = serializers.ListField(
+        child=SentrySerializerSlugField(
+            max_length=MAX_SLUG_LENGTH,
+        )
+    )
