@@ -129,7 +129,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         env["NODE_ENV"] = "production"
         # TODO: Our JS builds should not require 4GB heap space
         env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096").lstrip()
-        self._run_command(["yarn", "tsc", "-p", "config/tsconfig.build.json"], env=env)
+        self._run_command(["yarn", "tsc", "-p", "config/tsconfig.ci.json"], env=env)
         self._run_command(["yarn", "build-production", "--bail"], env=env)
         self._run_command(["yarn", "build-chartcuterie-config", "--bail"], env=env)
 
