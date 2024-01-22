@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "./tsconfig.ci.json",
+  "extends": "./tsconfig.base.json",
   "ts-node": {
     "transpileOnly": true,
     "compilerOptions": {

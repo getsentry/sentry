@@ -111,7 +111,7 @@ test-cli: create-db
 
 test-js-build: node-version-check
 	@echo "--> Running type check"
-	@yarn run tsc -p config/tsconfig.build.json
+	@yarn run tsc -p config/tsconfig.base.json
 	@echo "--> Building static assets"
 	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
 
