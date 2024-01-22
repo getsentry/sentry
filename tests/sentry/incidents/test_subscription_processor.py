@@ -1525,7 +1525,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1534,7 +1536,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.project.organization, self.user)
 
         # Register Slack Handler
         AlertRuleTriggerAction.register_type(
@@ -1593,7 +1594,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1602,7 +1605,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.project.organization, self.user)
 
         # Register Slack Handler
         AlertRuleTriggerAction.register_type(
