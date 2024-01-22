@@ -76,6 +76,11 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 # TODO: when the above endpoint is deprecated, simply move the convert method. This endpoint utilizes the id instead.
 @control_silo_endpoint
 class NewSentryInternalAppTokenDetailsEndpoint(SentryInternalAppTokenDetailsEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "DELETE": ApiPublishStatus.UNKNOWN,
+    }
+
     def convert_args(self, request: Request, sentry_app_slug, api_token_id, *args, **kwargs):
         try:
             api_token = ApiToken.objects.get(id=api_token_id)
