@@ -34,7 +34,7 @@ TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 class GroupAiAutofixEndpoint(GroupEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
     # go away
@@ -45,6 +45,11 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             RateLimitCategory.IP: RateLimit(5, 1),
             RateLimitCategory.USER: RateLimit(5, 1),
             RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        },
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
         },
     }
 
