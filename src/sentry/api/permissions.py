@@ -46,11 +46,7 @@ class NoPermission(BasePermission):
 
 class SuperuserPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
-        if is_active_superuser(request):
-            return True
-        if request.user.is_authenticated and request.user.is_superuser:
-            raise SuperuserRequired
-        return False
+        return is_active_superuser(request)
 
 
 class StaffPermission(BasePermission):

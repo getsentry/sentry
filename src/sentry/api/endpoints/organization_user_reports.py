@@ -17,7 +17,7 @@ from sentry.models.userreport import UserReport
 class OrganizationUserReportsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
     }
     permission_classes = (OrganizationUserReportsPermission,)
 
