@@ -24,7 +24,7 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
         elif isinstance(query_expression, Timeseries):
             return self._visit_timeseries(query_expression)
 
-        raise AssertionError(f"Unhandled expression {query_expression}")
+        raise AssertionError(f"Unhandled query expression {query_expression}")
 
     def _visit_formula(self, formula: Formula) -> TVisited:
         # The default implementation just mutates the parameters of the `Formula`.
@@ -43,10 +43,7 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
     Abstract visitor that defines a visiting behavior of a `QueryCondition`.
     """
 
-    def visit_group(self, condition_group: Optional[ConditionGroup]) -> TVisited:
-        if not condition_group:
-            return condition_group
-
+    def visit_group(self, condition_group: ConditionGroup) -> ConditionGroup:
         visited_conditions = []
         for condition in condition_group:
             visited_conditions.append(self.visit(condition))
@@ -58,6 +55,8 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
             return self._visit_boolean_condition(query_condition)
         elif isinstance(query_condition, Condition):
             return self._visit_condition(query_condition)
+
+        raise AssertionError(f"Unhandled query condition {query_condition}")
 
     def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> TVisited:
         conditions = []
@@ -122,14 +121,25 @@ class ConditionsCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
         # We call the super method in order to recursively visit all the parameters of a formula and then apply the
         # visitors on the filters of the formula itself.
         visited_formula = super()._visit_formula(formula)
+        if not visited_formula.filters:
+            return visited_formula
+
         return visited_formula.set_filters(
             self._apply_visitors_on_condition_group(visited_formula.filters)
         )
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        if not timeseries.filters:
+            return timeseries
+
         return timeseries.set_filters(self._apply_visitors_on_condition_group(timeseries.filters))
 
-    def _apply_visitors_on_condition_group(self, condition_group: ConditionGroup):
+    def _apply_visitors_on_condition_group(
+        self, condition_group: Optional[ConditionGroup]
+    ) -> Optional[ConditionGroup]:
+        if not condition_group:
+            return condition_group
+
         visited_condition_group = condition_group
         for visitor in self._visitors:
             visited_condition_group = visitor.visit_group(visited_condition_group)
