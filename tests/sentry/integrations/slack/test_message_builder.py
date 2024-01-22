@@ -442,7 +442,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             issue_alert_group, recipient=RpcActor.from_object(self.team)
         ).build()
         assert isinstance(ret, dict)
-        # import pdb; pdb.set_trace()
         assert (
             ret["blocks"][2]["elements"][2]["initial_option"]["text"]["text"]
             == self.user.get_display_name()
