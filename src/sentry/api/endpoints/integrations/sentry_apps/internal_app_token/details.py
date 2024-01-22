@@ -16,6 +16,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 
 
+# TODO: this endpoint should be deprecated in favor of the new version below, as this endpoint exposes the secret token
 @control_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -70,3 +71,22 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
         )
 
         return Response(status=204)
+
+
+# TODO: when the above endpoint is deprecated, simply move the convert method. This endpoint utilizes the id instead.
+@control_silo_endpoint
+class NewSentryInternalAppTokenDetailsEndpoint(SentryInternalAppTokenDetailsEndpoint):
+    def convert_args(self, request: Request, sentry_app_slug, api_token_id, *args, **kwargs):
+        try:
+            api_token = ApiToken.objects.get(id=api_token_id)
+        except ApiToken.DoesNotExist:
+            raise Http404
+
+        # get the sentry_app from the SentryAppBaseEndpoint class
+        # We are doing the super call AFTER getting the api token because the parent class still needs the token
+        # Once the token passing is deprecated, we can change the order to be similar to the parent
+        (args, kwargs) = super().convert_args(
+            request, sentry_app_slug, api_token.token, *args, **kwargs
+        )
+
+        return (args, kwargs)
