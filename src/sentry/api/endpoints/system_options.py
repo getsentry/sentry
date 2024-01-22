@@ -25,10 +25,10 @@ SYSTEM_OPTIONS_ALLOWLIST = (
 @all_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.DATA
+    owner = ApiOwner.OPEN_SOURCE
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

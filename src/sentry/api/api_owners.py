@@ -9,7 +9,6 @@ class ApiOwner(Enum):
 
     BILLING = "revenue"
     CRONS = "crons"
-    DATA = "data"
     DISCOVER_N_DASHBOARDS = "discover-n-dashboards"
     ECOSYSTEM = "ecosystem"
     ENTERPRISE = "enterprise"

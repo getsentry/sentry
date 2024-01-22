@@ -17,9 +17,9 @@ from sentry.utils.hashlib import md5_text
 @all_silo_endpoint
 class SystemHealthEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.DATA
+    owner = ApiOwner.OPEN_SOURCE
     permission_classes = (IsAuthenticated,)
     rate_limits = RateLimitConfig(group="INTERNAL")
 

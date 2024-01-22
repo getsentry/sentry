@@ -17,7 +17,7 @@ from sentry.shared_integrations.exceptions import ApiError
 class GithubSharedSearchEndpoint(IntegrationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """NOTE: This endpoint is a shared search endpoint for Github and Github Enterprise integrations."""
 

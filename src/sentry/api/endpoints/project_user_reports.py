@@ -27,8 +27,8 @@ class UserReportSerializer(serializers.ModelSerializer):
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     owner = ApiOwner.FEEDBACK
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
+        "POST": ApiPublishStatus.PRIVATE,  # TODO: deprecate
     }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
