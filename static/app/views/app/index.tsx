@@ -25,6 +25,7 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
@@ -46,6 +47,7 @@ function App({children, params}: Props) {
   useColorscheme();
 
   const api = useApi();
+  const user = useUser();
   const config = useLegacyStore(ConfigStore);
 
   // Command palette global-shortcut
@@ -144,8 +146,8 @@ function App({children, params}: Props) {
     }
 
     // Set the user for analytics
-    if (config.user) {
-      HookStore.get('analytics:init-user').map(cb => cb(config.user));
+    if (user) {
+      HookStore.get('analytics:init-user').map(cb => cb(user));
     }
 
     initApiClientErrorHandling();
@@ -153,20 +155,20 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [loadOrganizations, checkInternalHealth, config.messages, config.user]);
+  }, [loadOrganizations, checkInternalHealth, config.messages, user]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
   }
 
   function clearNewsletterConsent() {
-    const flags = {...config.user.flags, newsletter_consent_prompt: false};
-    ConfigStore.set('user', {...config.user, flags});
+    const flags = {...user.flags, newsletter_consent_prompt: false};
+    ConfigStore.set('user', {...user, flags});
   }
 
   const displayInstallWizard =
-    config.user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
-  const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
+    user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
+  const newsletterConsentPrompt = user?.flags?.newsletter_consent_prompt;
   const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
 
   function renderBody() {

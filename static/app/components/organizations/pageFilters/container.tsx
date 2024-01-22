@@ -12,12 +12,11 @@ import {
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {useUser} from 'sentry/utils/useUser';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
@@ -83,7 +82,7 @@ function Container({
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
 
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
   const memberProjects = user.isSuperuser
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);

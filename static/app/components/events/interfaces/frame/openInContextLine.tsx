@@ -4,13 +4,12 @@ import styled from '@emotion/styled';
 import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -19,8 +18,8 @@ type Props = {
 };
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
+  const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const {user} = useLegacyStore(ConfigStore);
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
 
   const handleRecordInteraction =

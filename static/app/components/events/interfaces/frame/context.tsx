@@ -10,8 +10,6 @@ import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/u
 import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -27,6 +25,7 @@ import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 import {parseAssembly} from '../utils';
 
@@ -83,8 +82,8 @@ function Context({
   frameMeta,
   registersMeta,
 }: Props) {
+  const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const {user} = useLegacyStore(ConfigStore);
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
 
   // This is the old design. Only show if the feature flag is not enabled for this organization.

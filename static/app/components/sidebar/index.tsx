@@ -46,6 +46,7 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
 
@@ -110,6 +111,7 @@ function useOpenOnboardingSidebar(organization?: Organization) {
 }
 
 function Sidebar({organization}: Props) {
+  const user = useUser();
   const location = useLocation();
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
@@ -501,7 +503,7 @@ function Sidebar({organization}: Props) {
             orientation={orientation}
             collapsed={collapsed}
             org={organization}
-            user={config.user}
+            user={user}
             config={config}
           />
 
