@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -7,9 +8,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import type {InviteMembersModalProps} from 'sentry/components/modals/inviteMembersModal';
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
+import useOrganization from 'sentry/utils/useOrganization';
+
+jest.mock('sentry/utils/useOrganization');
 
 describe('InviteMembersModal', function () {
   const team = TeamFixture();
@@ -17,13 +20,12 @@ describe('InviteMembersModal', function () {
   TeamStore.loadInitialData([team]);
 
   const styledWrapper = styled(c => c.children);
-  const modalProps: InviteMembersModalProps = {
+  const modalProps: ComponentProps<typeof InviteMembersModal> = {
     Body: styledWrapper(),
     Header: p => <span>{p.children}</span>,
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
-    organization: OrganizationFixture(),
   };
 
   const noWriteOrg = OrganizationFixture({
@@ -55,7 +57,8 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders', async function () {
-    render(<InviteMembersModal {...modalProps} organization={org} />);
+    jest.mocked(useOrganization).mockReturnValue(org);
+    render(<InviteMembersModal {...modalProps} />);
 
     // Starts with one invite row
     expect(screen.getByRole('listitem')).toBeInTheDocument();
@@ -69,13 +72,15 @@ describe('InviteMembersModal', function () {
 
   it('renders without organization.access', function () {
     const organization = OrganizationFixture({access: undefined});
-    render(<InviteMembersModal {...modalProps} organization={organization} />);
+    jest.mocked(useOrganization).mockReturnValue(organization);
+    render(<InviteMembersModal {...modalProps} />);
 
     expect(screen.getByRole('listitem')).toBeInTheDocument();
   });
 
   it('can add a second row', async function () {
-    render(<InviteMembersModal {...modalProps} organization={org} />);
+    jest.mocked(useOrganization).mockReturnValue(org);
+    render(<InviteMembersModal {...modalProps} />);
 
     expect(screen.getByRole('listitem')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
@@ -83,7 +88,8 @@ describe('InviteMembersModal', function () {
   });
 
   it('errors on duplicate emails', async function () {
-    render(<InviteMembersModal {...modalProps} organization={org} />);
+    jest.mocked(useOrganization).mockReturnValue(org);
+    render(<InviteMembersModal {...modalProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
 
@@ -99,7 +105,8 @@ describe('InviteMembersModal', function () {
   });
 
   it('indicates the total invites on the invite button', async function () {
-    render(<InviteMembersModal {...modalProps} organization={org} />);
+    jest.mocked(useOrganization).mockReturnValue(org);
+    render(<InviteMembersModal {...modalProps} />);
 
     const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
 
@@ -113,21 +120,23 @@ describe('InviteMembersModal', function () {
   });
 
   it('can be closed', async function () {
+    jest.mocked(useOrganization).mockReturnValue(org);
     const close = jest.fn();
 
-    render(<InviteMembersModal {...modalProps} organization={org} closeModal={close} />);
+    render(<InviteMembersModal {...modalProps} closeModal={close} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(close).toHaveBeenCalled();
   });
 
   it('sends all successful invites', async function () {
+    jest.mocked(useOrganization).mockReturnValue(org);
     const createMemberMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'POST',
     });
 
-    render(<InviteMembersModal {...modalProps} organization={org} />);
+    render(<InviteMembersModal {...modalProps} />);
 
     // Setup two rows, one email each, the first with a admin role.
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
@@ -179,13 +188,14 @@ describe('InviteMembersModal', function () {
   });
 
   it('marks failed invites', async function () {
+    jest.mocked(useOrganization).mockReturnValue(org);
     const faildCreateMemberMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'POST',
       statusCode: 400,
     });
 
-    render(<InviteMembersModal {...modalProps} organization={org} />);
+    render(<InviteMembersModal {...modalProps} />);
 
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email Addresses'}),
@@ -202,6 +212,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('can send initial email', async function () {
+    jest.mocked(useOrganization).mockReturnValue(org);
     const createMemberMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'POST',
@@ -210,9 +221,7 @@ describe('InviteMembersModal', function () {
     const initialEmail = 'test@gmail.com';
     const initialData = [{emails: new Set([initialEmail])}];
 
-    render(
-      <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
-    );
+    render(<InviteMembersModal {...modalProps} initialData={initialData} />);
 
     expect(screen.getByText(initialEmail)).toBeInTheDocument();
 
@@ -232,6 +241,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('can send initial email with role and team', async function () {
+    jest.mocked(useOrganization).mockReturnValue(org);
     const createMemberMock = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'POST',
@@ -243,9 +253,7 @@ describe('InviteMembersModal', function () {
       {emails: new Set([initialEmail]), role, teams: new Set([team.slug])},
     ];
 
-    render(
-      <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
-    );
+    render(<InviteMembersModal {...modalProps} initialData={initialData} />);
 
     // Just immediately click send
     await userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
@@ -267,7 +275,8 @@ describe('InviteMembersModal', function () {
 
   describe('member invite request mode', function () {
     it('has adjusted wording', function () {
-      render(<InviteMembersModal {...modalProps} organization={noWriteOrg} />);
+      jest.mocked(useOrganization).mockReturnValue(noWriteOrg);
+      render(<InviteMembersModal {...modalProps} />);
 
       expect(
         screen.getByRole('button', {name: 'Send invite request'})
@@ -275,6 +284,7 @@ describe('InviteMembersModal', function () {
     });
 
     it('POSTS to the invite-request endpoint', async function () {
+      jest.mocked(useOrganization).mockReturnValue(noWriteOrg);
       const createInviteRequestMock = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/invite-requests/`,
         method: 'POST',
@@ -284,13 +294,7 @@ describe('InviteMembersModal', function () {
       const initialEmail = 'test@gmail.com';
       const initialData = [{emails: new Set(['test@gmail.com'])}];
 
-      render(
-        <InviteMembersModal
-          {...modalProps}
-          organization={noWriteOrg}
-          initialData={initialData}
-        />
-      );
+      render(<InviteMembersModal {...modalProps} initialData={initialData} />);
 
       expect(screen.getByText(initialEmail)).toBeInTheDocument();
 
