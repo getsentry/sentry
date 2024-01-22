@@ -379,7 +379,7 @@ const SidebarItemLabel = styled('span')`
   opacity: 1;
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   overflow: hidden;
 `;
