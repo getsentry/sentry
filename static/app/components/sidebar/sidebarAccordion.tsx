@@ -25,9 +25,9 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
   const isActive = isItemActive(itemProps);
 
-  const someChildren = findChildElementsInTree(children, 'SidebarItem');
+  const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
 
-  const hasActiveChildren = Children.toArray(someChildren).some(child => {
+  const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
       return isItemActive(child.props);
     }
