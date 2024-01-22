@@ -2,6 +2,7 @@ import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -38,7 +39,13 @@ export function Queries() {
       {widgets.map((widget, index) => (
         <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
           {showQuerySymbols && (
-            <StyledQuerySymbol index={index} isSelected={index === selectedWidgetIndex} />
+            <StyledQuerySymbol
+              index={index}
+              isSelected={index === selectedWidgetIndex}
+              onClick={() => setSelectedWidgetIndex(index)}
+              role="button"
+              aria-label={t('Select query')}
+            />
           )}
           <QueryBuilder
             onChange={data => handleChange(index, data)}
@@ -74,6 +81,7 @@ export function Queries() {
 
 const StyledQuerySymbol = styled(QuerySymbol)`
   margin-top: 10px;
+  cursor: pointer;
 `;
 
 const Wrapper = styled('div')<{showQuerySymbols: boolean}>`
