@@ -5,8 +5,10 @@ import responses
 from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
+from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.utils import json
 
 from . import FireTest
@@ -18,6 +20,7 @@ METADATA = {
 }
 
 
+@region_silo_test
 @freeze_time()
 class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
@@ -26,12 +29,13 @@ class OpsgenieActionHandlerTest(FireTest):
         self.integration = self.create_provider_integration(
             provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
         )
-        self.integration.add_organization(self.organization, self.user)
-        self.org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration.id
-        )
-        self.org_integration.config = {"team_table": [self.og_team]}
-        self.org_integration.save()
+        with assume_test_silo_mode_of(Integration, OrganizationIntegration):
+            self.integration.add_organization(self.organization, self.user)
+            self.org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            self.org_integration.config = {"team_table": [self.og_team]}
+            self.org_integration.save()
 
         resp_data = {
             "result": "Integration [sentry] is valid",
@@ -133,7 +137,8 @@ class OpsgenieActionHandlerTest(FireTest):
     def test_fire_metric_alert_multiple_teams(self):
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         self.org_integration.config["team_table"].append(team2)
-        self.org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            self.org_integration.save()
 
         self.run_fire_test()
 
@@ -166,7 +171,8 @@ class OpsgenieActionHandlerTest(FireTest):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
 
-        self.integration.delete()
+        with assume_test_silo_mode_of(Integration):
+            self.integration.delete()
 
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
@@ -186,7 +192,8 @@ class OpsgenieActionHandlerTest(FireTest):
         incident = self.create_incident(alert_rule=alert_rule)
 
         self.org_integration.config = {"team_table": []}
-        self.org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            self.org_integration.save()
 
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
