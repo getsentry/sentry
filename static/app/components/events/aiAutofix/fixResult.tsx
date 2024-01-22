@@ -25,7 +25,7 @@ const makeGithubRepoUrl = (repoName: string) => {
 
 export function FixResult({autofixData, onRetry}: Props) {
   const isLoading = autofixData.status === 'PROCESSING';
-  const hasNoFix = autofixData.status === 'COMPLETED' && !autofixData.fix;
+  const hasNoFix = !autofixData.fix;
   const hasError = autofixData.status === 'ERROR';
 
   return (
@@ -71,9 +71,9 @@ export function FixResult({autofixData, onRetry}: Props) {
           <Content>
             <PreviewContent>
               <PrefixText>
-                Pull request #63088 created in{' '}
+                {`Pull request #${autofixData.fix!.prNumber} created in `}
                 <RepoLink href={makeGithubRepoUrl(autofixData.fix!.repoName)}>
-                  getsentry/sentry
+                  {autofixData.fix!.repoName}
                 </RepoLink>
                 :
               </PrefixText>
