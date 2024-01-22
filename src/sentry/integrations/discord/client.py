@@ -78,15 +78,15 @@ class DiscordClient(ApiClient):
         }
         try:
             response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-            access_token = response["access_token"]  # type: ignore
+            access_token = response.get("access_token")
+            if not access_token:
+                logger.error("discord.install.failed_to_get_access_token")
+                raise IntegrationError("Failed to complete Discord OAuth2 flow.")
             return access_token
         except ApiError as e:
             logger.exception(
                 "discord.install.failed_to_complete_oauth2_flow", extra={"error": str(e)}
             )
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-        except KeyError:
-            logger.exception("discord.install.failed_to_get_access_token")
             raise IntegrationError("Failed to complete Discord OAuth2 flow.")
 
     def get_user_id(self, access_token: str):
@@ -96,16 +96,17 @@ class DiscordClient(ApiClient):
                 USER_URL,
                 headers=headers,
             )
-            if response.status_code == 200:
-                return response.json()["id"]
-        except Exception as e:
+            user_id = response.get("id")
+            if not user_id:
+                logger.error("discord.install.no_user_id_in_response")
+                raise IntegrationError("Could not retrieve Discord user information.")
+            return user_id
+        except ApiError as e:
             logger.exception(
                 "discord.install.failed_to_get_user_id",
                 extra={"error": str(e)},
             )
             raise IntegrationError("Could not retrieve Discord user information.")
-        logger.error("discord.install.no_user_id_in_response")
-        raise IntegrationError("Could not retrieve Discord user information.")
 
     def leave_guild(self, guild_id: str) -> None:
         """

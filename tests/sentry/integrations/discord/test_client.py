@@ -1,3 +1,4 @@
+import pytest
 import responses
 from responses import matchers
 
@@ -17,6 +18,7 @@ from sentry.integrations.discord.message_builder.base.flags import (
     SUPPRESS_NOTIFICATIONS_FLAG,
     DiscordMessageFlags,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
 
@@ -83,6 +85,60 @@ class DiscordClientTest(TestCase):
 
         guild_name = self.discord_client.get_guild_name(guild_id)
         assert guild_name == "Cool server"
+
+    @responses.activate
+    def test_get_access_token(self):
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
+        )
+
+        access_token = self.discord_client.get_access_token("auth_code", "url")
+        assert access_token == "access_token"
+
+    @responses.activate
+    def test_get_access_token_empty(self):
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "",
+            },
+        )
+        with pytest.raises(IntegrationError):
+            self.discord_client.get_access_token("auth_code", "url")
+
+    @responses.activate
+    def test_get_access_token_bad_response(self):
+        responses.add(responses.POST, url="https://discord.com/api/v10/oauth2/token", status=500)
+        with pytest.raises(IntegrationError):
+            self.discord_client.get_access_token("auth_code", "url")
+
+    @responses.activate
+    def test_get_user_id(self):
+        responses.add(
+            responses.GET, url="https://discord.com/api/v10/users/@me", json={"id": "user_id"}
+        )
+
+        user_id = self.discord_client.get_user_id("access_token")
+        assert user_id == "user_id"
+
+    @responses.activate
+    def test_get_user_id_empty(self):
+        responses.add(responses.GET, url="https://discord.com/api/v10/users/@me", json={"id": ""})
+
+        with pytest.raises(IntegrationError):
+            self.discord_client.get_user_id("access_token")
+
+    @responses.activate
+    def test_get_user_id_bad_response(self):
+        responses.add(responses.GET, url="https://discord.com/api/v10/users/@me", status=500)
+
+        with pytest.raises(IntegrationError):
+            self.discord_client.get_user_id("access_token")
 
     @responses.activate
     def test_leave_guild(self):
