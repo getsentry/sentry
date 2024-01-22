@@ -81,13 +81,13 @@ class MainActivity : ComponentActivity() {
 
     class AdditionalInnerClass {
         fun whoops3() {
-            throw RuntimeException("whoops")
+            OneMoreInnerClass().whoops4()
         }
     }
 
     class OneMoreInnerClass {
         fun whoops4() {
-            throw RuntimeException("whoops4")
+            throw RuntimeException("whoops")
         }
     }
 }
@@ -896,7 +896,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].function == "whoops3"
         assert frames[5].module == "io.sentry.samples.MainActivity$AdditionalInnerClass"
         assert frames[5].lineno == 32
-        assert frames[5].context_line == '            throw RuntimeException("whoops")'
+        assert frames[5].context_line == "            OneMoreInnerClass().whoops4()"
         assert frames[5].pre_context == [
             "        }",
             "    }",
@@ -915,7 +915,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[6].function == "whoops4"
         assert frames[6].module == "io.sentry.samples.MainActivity$OneMoreInnerClass"
         assert frames[6].lineno == 38
-        assert frames[6].context_line == '            throw RuntimeException("whoops4")'
+        assert frames[6].context_line == '            throw RuntimeException("whoops")'
         assert frames[6].pre_context == [
             "        }",
             "    }",

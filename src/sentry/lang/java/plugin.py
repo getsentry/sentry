@@ -201,10 +201,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                 source_file_name = ""
 
             abs_path_dot_index = abs_path.rfind(".")
-            if abs_path_dot_index >= 0:
-                source_file_name += abs_path[:abs_path_dot_index]
-            else:
-                source_file_name += abs_path
+            source_file_name += abs_path[:abs_path_dot_index]
         else:
             # use module as filename (excluding inner classes, marked by $) and append .java
             module_dollar_index = module.find("$")
