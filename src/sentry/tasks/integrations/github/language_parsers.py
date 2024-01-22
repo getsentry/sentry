@@ -108,7 +108,7 @@ class JavascriptParser(LanguageParser):
         """
         function_declaration_regex = r"^@@.*@@[^=]*?\s*function\s+(?P<fnc>[^\(]*)\(.*$"
         arrow_function_regex = (
-            r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^=]*)\s+=[^>]*[\(.*\)]?\s*=>.*$"
+            r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^=]*)\s+=[^>|^\n]*[\(^\n*\)]?\s*=>.*$"
         )
         function_expression_regex = (
             r"^@@.*@@.*\s+\b(?:var|const)\b\s+(?P<fnc>[^\(]*)\s+=.*\s+function.*\(.*$"
