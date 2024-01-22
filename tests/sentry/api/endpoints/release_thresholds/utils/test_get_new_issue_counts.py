@@ -1,10 +1,13 @@
 from datetime import datetime, timedelta, timezone
 
+from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
 from sentry.api.endpoints.release_thresholds.utils import get_new_issue_counts
+from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.release import Release
+from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.testutils.cases import TestCase
@@ -70,31 +73,63 @@ class GetNewIssueCountTest(TestCase):
 
     def test_success_fetches_new_issue_counts(self):
         # standard threshold
-        t1 = {
-            "id": 1,
+        t1: EnrichedThreshold = {
+            "id": "1",
             "project_id": self.project1.id,
             "release": self.release1.version,
             "start": self.now - timedelta(hours=1),
             "end": self.now,
+            "date": self.now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_slug": self.project1.slug,
+            "threshold_type": ReleaseThresholdType.NEW_ISSUE_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         # threshold w/ environment
-        t2 = {
-            "id": 2,
+        t2: EnrichedThreshold = {
+            "id": "2",
             "project_id": self.project1.id,
             "release": self.release1.version,
             "start": self.now - timedelta(hours=1),
             "end": self.now,
+            "date": self.now,
             "environment": {"name": "canary"},
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_slug": self.project1.slug,
+            "threshold_type": ReleaseThresholdType.NEW_ISSUE_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
         # second threshold separate start/end
-        t3 = {
-            "id": 3,
+        t3: EnrichedThreshold = {
+            "id": "3",
             "project_id": self.project1.id,
             "release": self.release1.version,
             "start": self.now,
             "end": self.now + timedelta(hours=1),
+            "date": self.now,
+            "environment": None,
+            "is_healthy": False,
+            "key": "",
+            "project": serialize(self.project1),
+            "project_slug": self.project1.slug,
+            "threshold_type": ReleaseThresholdType.NEW_ISSUE_COUNT,
+            "trigger_type": TriggerType.OVER_STR,
+            "value": 1,
+            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
+            "metric_value": None,
         }
-        thresholds = [t1, t2, t3]
+        thresholds: list[EnrichedThreshold] = [t1, t2, t3]
         new_issue_counts = get_new_issue_counts(organization_id=self.org.id, thresholds=thresholds)
 
         assert new_issue_counts[str(t1["id"])] == 1

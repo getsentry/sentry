@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 from sentry.api.endpoints.release_thresholds.health_checks import is_new_issue_count_healthy
 from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
@@ -165,7 +166,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
             "metric_value": None,
         }
-        mock_new_issue_counts = {}
+        mock_new_issue_counts: dict[str, Any] = {}
         is_healthy, metric_value = is_new_issue_count_healthy(mock_threshold, mock_new_issue_counts)
         assert is_healthy
         assert metric_value == 0
