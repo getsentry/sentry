@@ -196,8 +196,7 @@ def get_user_actions(
                             metrics.incr("replay.rage_click_detected")
                             if features.has(
                                 "organizations:session-replay-rage-click-issue-creation",
-                                Project.objects.get_from_cache(id=project_id).organization,
-                                actor=None,
+                                Project.objects.get(id=project_id).organization,
                             ):
                                 report_rage_click_issue(
                                     project_id, replay_id, cast(SentryEvent, event)
