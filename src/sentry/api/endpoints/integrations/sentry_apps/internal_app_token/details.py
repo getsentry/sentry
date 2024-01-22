@@ -78,7 +78,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 class NewSentryInternalAppTokenDetailsEndpoint(SentryInternalAppTokenDetailsEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def convert_args(self, request: Request, sentry_app_slug, api_token_id, *args, **kwargs):
