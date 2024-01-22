@@ -3,23 +3,21 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
-import uniq from 'lodash/uniq';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {omit} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {
-  EMPTY_OPTION_VALUE,
-  EmptyContainer,
-} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
+import {EmptyContainer} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 type Props = {
   additionalQuery?: string[];
@@ -155,9 +153,17 @@ export function DomainSelector({
         });
       }}
       noOptionsMessage={() => t('No results')}
+      styles={{
+        control: provided => ({
+          ...provided,
+          minWidth: MIN_WIDTH,
+        }),
+      }}
     />
   );
 }
+
+const MIN_WIDTH = 300;
 
 const LIMIT = 100;
 

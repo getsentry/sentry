@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
 
@@ -248,7 +247,7 @@ function SearchBar(props: SearchBarProps) {
         )
       : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
     combinedTags.has = {
       key: FieldKey.HAS,

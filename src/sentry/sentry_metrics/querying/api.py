@@ -3,11 +3,12 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Tuple, cast
 
 import sentry_sdk
+from parsimonious.exceptions import IncompleteParseError
 from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request, Rollup, Timeseries
-from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, ConditionGroup, Op
+from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 from snuba_sdk.mql.mql import parse_mql
 from snuba_sdk.query_visitors import InvalidQueryError
 
@@ -15,47 +16,30 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
+from sentry.sentry_metrics.querying.common import DEFAULT_QUERY_INTERVALS, SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    MetricsQueryExecutionError,
+)
+from sentry.sentry_metrics.querying.types import (
+    GroupKey,
+    GroupsCollection,
+    QueryExpression,
+    ResultValue,
+    Series,
+    Total,
+)
 from sentry.sentry_metrics.querying.utils import remove_if_match
+from sentry.sentry_metrics.querying.visitors import (
+    EnvironmentsInjectionVisitor,
+    QueryExpressionVisitor,
+    ValidationVisitor,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import to_intervals
 from sentry.snuba.metrics_layer.query import run_query
+from sentry.utils import metrics
 from sentry.utils.snuba import SnubaError
-
-# Snuba can return at most 10.000 rows.
-SNUBA_QUERY_LIMIT = 10000
-# Intervals in seconds which are used by the product to query data.
-DEFAULT_QUERY_INTERVALS = [
-    60 * 60 * 24,  # 1 day
-    60 * 60 * 12,  # 12 hours
-    60 * 60 * 4,  # 4 hours
-    60 * 60 * 2,  # 2 hours
-    60 * 60,  # 1 hour
-    60 * 30,  # 30 min
-    60 * 5,  # 5 min
-    60,  # 1 min
-]
-
-
-class InvalidMetricsQueryError(Exception):
-    pass
-
-
-class MetricsQueryExecutionError(Exception):
-    pass
-
-
-# Type representing the aggregate value from Snuba, which can be null, int, float or list.
-ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
-# Type representing a series of values with (`time`, `value`) pairs.
-Series = List[Tuple[str, ResultValue]]
-# Type representing a single aggregate value.
-Total = ResultValue
-# Type representing a single group composed of a key and a value.
-Group = Tuple[str, str]
-# Type representing a hashable group key as a tuple of tuples ((`key_1`, `value_1`), (`key_2, `value_2), ...)
-GroupKey = Tuple[Group, ...]
-# Type representing a sequence of groups [[(`key_1`, `value_1`), (`key_2`, `value_2`), ...], ...]
-GroupsCollection = Sequence[Sequence[Group]]
 
 
 @dataclass(frozen=True)
@@ -271,14 +255,15 @@ class QueryResult:
 
     @property
     def query_name(self) -> str:
-        timeseries = (
-            cast(ExecutableQuery, self.series_executable_query or self.totals_executable_query)
-        ).metrics_query.query
+        if self.series_executable_query:
+            return self.series_executable_query.identifier
 
-        aggregate = timeseries.aggregate
-        metric = timeseries.metric.mri or timeseries.metric.public_name
+        if self.totals_executable_query:
+            return self.totals_executable_query.identifier
 
-        return f"{aggregate}({metric})"
+        raise InvalidMetricsQueryError(
+            "Unable to determine the query name for a result with no queries"
+        )
 
     @property
     def modified_start(self) -> datetime:
@@ -402,35 +387,36 @@ class QueryResult:
         return self
 
 
-class MutableTimeseries:
-    def __init__(self, timeseries: Timeseries):
-        self._timeseries = timeseries
+class VisitableQueryExpression:
+    def __init__(self, query: QueryExpression):
+        self._query = query
+        self._visitors: List[QueryExpressionVisitor[QueryExpression]] = []
 
-        self._validate()
+    def add_visitor(
+        self, visitor: QueryExpressionVisitor[QueryExpression]
+    ) -> "VisitableQueryExpression":
+        """
+        Adds a visitor to the query expression.
 
-    def _validate_filters(self, filters: Optional[ConditionGroup]):
-        for f in filters or ():
-            if isinstance(f, BooleanCondition):
-                if f.op == BooleanOp.OR:
-                    raise InvalidMetricsQueryError("The OR operator is not supported")
-
-                self._validate_filters(f.conditions)
-
-    def _validate(self):
-        self._validate_filters(self._timeseries.filters)
-
-    def inject_environments(self, environments: Sequence[Environment]) -> "MutableTimeseries":
-        if environments:
-            environment_names = [environment.name for environment in environments]
-            existing_filters = self._timeseries.filters[:] if self._timeseries.filters else []
-            self._timeseries = self._timeseries.set_filters(
-                existing_filters + [Condition(Column("environment"), Op.IN, environment_names)]
-            )
+        The visitor can both perform mutations or not on the expression tree.
+        """
+        self._visitors.append(visitor)
 
         return self
 
-    def get_mutated(self) -> Timeseries:
-        return self._timeseries
+    def get(self) -> QueryExpression:
+        """
+        Returns the mutated query expression after running all the visitors
+        in the order of definition.
+
+        Order preservation does matter, since downstream visitors might work under the
+        assumption that upstream visitors have already been run.
+        """
+        query = self._query
+        for visitor in self._visitors:
+            query = visitor.visit(query)
+
+        return query
 
 
 class QueryParser:
@@ -501,16 +487,26 @@ class QueryParser:
 
         return mql
 
-    def _parse_mql(self, mql: str) -> MutableTimeseries:
+    def _parse_mql(self, mql: str) -> VisitableQueryExpression:
         """
         Parses the field with the MQL grammar.
         """
         try:
-            timeseries = parse_mql(mql).query
+            query = parse_mql(mql).query
         except InvalidQueryError as e:
-            raise InvalidMetricsQueryError(f"The supplied query is not valid: {type(e).__name__}")
+            cause = e.__cause__
+            if cause and isinstance(cause, IncompleteParseError):
+                error_context = cause.text[cause.pos : cause.pos + 20]
+                # We expose the entire MQL string to give more context when solving the error, since in the future we
+                # expect that MQL will be directly fed into the endpoint instead of being built from the supplied
+                # fields.
+                raise InvalidMetricsQueryError(
+                    f"The query '{mql}' could not be matched starting from '{error_context}...'"
+                )
 
-        return MutableTimeseries(timeseries=timeseries)
+            raise InvalidMetricsQueryError("The supplied query is not valid")
+
+        return VisitableQueryExpression(query=query)
 
     def generate_queries(
         self, environments: Sequence[Environment]
@@ -528,7 +524,12 @@ class QueryParser:
 
         for field in self._fields:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
-            yield field, self._parse_mql(mql_query).inject_environments(environments).get_mutated()
+            yield (
+                field,
+                self._parse_mql(mql_query).add_visitor(ValidationVisitor())
+                # We purposefully want to inject environments after the final query expression tree is expanded.
+                .add_visitor(EnvironmentsInjectionVisitor(environments)).get(),
+            )
 
 
 class QueryExecutor:
@@ -540,6 +541,8 @@ class QueryExecutor:
         self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
         self._scheduled_queries: List[ExecutableQuery] = []
+        # Tracks the number of queries that have been executed (for measuring purposes).
+        self._number_of_executed_queries = 0
 
     def _build_request(self, query: MetricsQuery) -> Request:
         """
@@ -598,6 +601,7 @@ class QueryExecutor:
                         order_by_direction
                     )
 
+                self._number_of_executed_queries += 1
                 totals_result = run_query(
                     request=self._build_request(
                         totals_executable_query.to_totals_query().metrics_query
@@ -618,6 +622,7 @@ class QueryExecutor:
                         _extract_groups_from_seq(totals_result["data"])
                     )
 
+                self._number_of_executed_queries += 1
                 series_result = run_query(
                     request=self._build_request(series_executable_query.metrics_query)
                 )
@@ -650,9 +655,7 @@ class QueryExecutor:
             )
         except SnubaError as e:
             sentry_sdk.capture_exception(e)
-            raise MetricsQueryExecutionError(
-                f"An error occurred while executing the query: {type(e).__name__}"
-            )
+            raise MetricsQueryExecutionError("An error occurred while executing the query")
 
     def _derive_next_interval(self, result: QueryResult) -> int:
         """
@@ -725,6 +728,10 @@ class QueryExecutor:
 
             results = [reference_query_result]
             reference_groups = reference_query_result.groups
+            metrics.distribution(
+                key="ddm.metrics_api.groups_cardinality", value=len(reference_groups)
+            )
+
             for query in self._scheduled_queries:
                 query_result = self._execute(
                     executable_query=query.add_group_filters(reference_groups),
@@ -750,7 +757,12 @@ class QueryExecutor:
         return self._serial_execute()
 
     def execute(self) -> Sequence[QueryResult]:
-        return self._serial_execute()
+        results = self._serial_execute()
+        metrics.distribution(
+            key="ddm.metrics_api.queries_executed", value=self._number_of_executed_queries
+        )
+
+        return results
 
     def schedule(
         self,
@@ -1010,10 +1022,14 @@ def run_metrics_query(
             f"The supplied orderBy {order_by} is not matching with any field of the query"
         )
 
-    # Iterating over each result.
-    results = []
-    for result in executor.execute():
-        results.append(result)
+    with metrics.timer(
+        key="ddm.metrics_api.queries_execution_time",
+        tags={"with_order_by": (order_by is not None), "with_group_by": (group_bys is not None)},
+    ):
+        # Iterating over each result.
+        results = []
+        for result in executor.execute():
+            results.append(result)
 
     # We translate the result back to the pre-existing format.
     return _translate_query_results(execution_results=results)

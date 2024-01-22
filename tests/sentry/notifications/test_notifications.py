@@ -16,8 +16,7 @@ from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
@@ -72,7 +71,7 @@ class ActivityNotificationTest(APITestCase):
     """
 
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -82,7 +81,7 @@ class ActivityNotificationTest(APITestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
             idp=self.idp,

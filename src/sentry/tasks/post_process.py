@@ -33,9 +33,7 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
-from sentry.utils.sdk_crashes.build_sdk_crash_detection_configs import (
-    build_sdk_crash_detection_configs,
-)
+from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
@@ -639,6 +637,33 @@ def post_process_group(
                 }
             ]
 
+        try:
+            if group_states is not None:
+                if not is_transaction_event:
+                    if len(group_states) == 0:
+                        metrics.incr("sentry.tasks.post_process.error_empty_group_states")
+                    elif len(group_states) > 1:
+                        metrics.incr("sentry.tasks.post_process.error_too_many_group_states")
+                    elif group_id != group_states[0]["id"]:
+                        metrics.incr(
+                            "sentry.tasks.post_process.error_group_states_dont_match_group"
+                        )
+                else:
+                    if len(group_states) == 1:
+                        metrics.incr("sentry.tasks.post_process.transaction_has_group_state")
+                        if group_id != group_states[0]["id"]:
+                            metrics.incr(
+                                "sentry.tasks.post_process.transaction_group_states_dont_match_group"
+                            )
+                    if len(group_states) > 1:
+                        metrics.incr(
+                            "sentry.tasks.post_process.transaction_has_too_many_group_states"
+                        )
+        except Exception:
+            logger.exception(
+                "Error logging group_states stats. If this happens it's noisy but not critical, nothing is broken"
+            )
+
         update_event_groups(event, group_states)
         bind_organization_context(event.project.organization)
         _capture_event_stats(event)
@@ -883,7 +908,6 @@ def process_snoozes(job: PostProcessJob) -> None:
     # Check if group is escalating
     if (
         not should_use_new_escalation_logic
-        and features.has("organizations:escalating-issues", group.organization)
         and group.status == GroupStatus.IGNORED
         and group.substatus == GroupSubStatus.UNTIL_ESCALATING
     ):
@@ -935,10 +959,13 @@ def process_snoozes(job: PostProcessJob) -> None:
                 "user_window": snooze.user_window,
             }
 
-            if features.has("organizations:escalating-issues", group.organization):
-                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
-            else:
-                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
+            # issues snoozed with a specific time duration should be marked ONGOING when the window expires
+            reason = (
+                GroupInboxReason.ONGOING
+                if snooze.until is not None
+                else GroupInboxReason.ESCALATING
+            )
+            manage_issue_states(group, reason, event, snooze_details)
 
             snooze.delete()
 

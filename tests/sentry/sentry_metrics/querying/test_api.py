@@ -4,10 +4,10 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import (
+from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
-    run_metrics_query,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
@@ -494,6 +494,24 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             (field_1, 3.0),
         ]
 
+    def test_query_with_invalid_syntax(
+        self,
+    ) -> None:
+        field = f"min({TransactionMRI.DURATION.value})"
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_query(
+                fields=[field],
+                query="transaction:/api/0/organizations/{organization_slug}/",
+                limit=2,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
     def test_query_with_invalid_order_by(
         self,
     ) -> None:
@@ -637,7 +655,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    @pytest.mark.skip(reason="sessions are not supported in the new metrics layer")
     def test_with_sessions(self) -> None:
         self.store_session(
             self.build_session(

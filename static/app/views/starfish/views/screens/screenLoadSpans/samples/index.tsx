@@ -25,6 +25,7 @@ type Props = {
   transactionName: string;
   onClose?: () => void;
   spanDescription?: string;
+  spanOp?: string;
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -36,6 +37,7 @@ export function ScreenLoadSpanSamples({
   spanDescription,
   onClose,
   transactionRoute = '/performance/summary/',
+  spanOp,
 }: Props) {
   const router = useRouter();
 
@@ -122,6 +124,8 @@ export function ScreenLoadSpanSamples({
               transactionMethod={transactionMethod}
               release={primaryRelease}
               sectionTitle={t('Release 1')}
+              project={project}
+              spanOp={spanOp}
             />
           </ChartsContainerItem>
           <ChartsContainerItem key="release2">
@@ -131,6 +135,8 @@ export function ScreenLoadSpanSamples({
               transactionMethod={transactionMethod}
               release={secondaryRelease}
               sectionTitle={t('Release 2')}
+              project={project}
+              spanOp={spanOp}
             />
           </ChartsContainerItem>
         </ChartsContainer>

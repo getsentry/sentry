@@ -133,7 +133,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                         />
                       }
                     >
-                      {<DateTime date={checkIn.dateCreated} timeZone seconds />}
+                      <DateTime date={checkIn.dateCreated} timeZone seconds />
                     </Tooltip>
                   </div>
                 ) : (
@@ -156,19 +156,17 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                         organization={organization}
                         key={id}
                       >
-                        {
-                          <StyledShortId
-                            shortId={shortId}
-                            avatar={
-                              <ProjectBadge
-                                project={monitor.project}
-                                hideName
-                                avatarSize={12}
-                              />
-                            }
-                            to={`/issues/${id}`}
-                          />
-                        }
+                        <StyledShortId
+                          shortId={shortId}
+                          avatar={
+                            <ProjectBadge
+                              project={monitor.project}
+                              hideName
+                              avatarSize={12}
+                            />
+                          }
+                          to={`/issues/${id}`}
+                        />
                       </QuickContextHovercard>
                     ))}
                   </IssuesContainer>

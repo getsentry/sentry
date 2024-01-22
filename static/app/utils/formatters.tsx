@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import {t, tn} from 'sentry/locale';
 import {CommitAuthor, User} from 'sentry/types';
-import {RATE_UNIT_LABELS, RateUnits} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -450,7 +450,7 @@ export function formatNumberWithDynamicDecimalPoints(value: number): string {
 
 export function formatRate(
   value: number,
-  unit: RateUnits = RateUnits.PER_SECOND,
+  unit: RateUnit = RateUnit.PER_SECOND,
   options: {
     minimumValue?: number;
     significantDigits?: number;
@@ -482,4 +482,87 @@ export function formatRate(
   return `${value.toLocaleString(undefined, numberFormatOptions)}${
     RATE_UNIT_LABELS[unit]
   }`;
+}
+
+export function formatSpanOperation(
+  operation?: string,
+  length: 'short' | 'long' = 'short'
+) {
+  if (length === 'long') {
+    return getLongSpanOperationDescription(operation);
+  }
+
+  return getShortSpanOperationDescription(operation);
+}
+
+function getLongSpanOperationDescription(operation?: string) {
+  if (operation?.startsWith('http')) {
+    return t('URL request');
+  }
+
+  if (operation === 'db.redis') {
+    return t('cache query');
+  }
+
+  if (operation?.startsWith('db')) {
+    return t('database query');
+  }
+
+  if (operation?.startsWith('task')) {
+    return t('application task');
+  }
+
+  if (operation?.startsWith('serialize')) {
+    return t('serializer');
+  }
+
+  if (operation?.startsWith('middleware')) {
+    return t('middleware');
+  }
+
+  if (operation === 'resource') {
+    return t('resource');
+  }
+
+  if (operation === 'resource.script') {
+    return t('JavaScript file');
+  }
+
+  if (operation === 'resource.css') {
+    return t('stylesheet');
+  }
+
+  if (operation === 'resource.img') {
+    return t('image');
+  }
+
+  return t('span');
+}
+
+function getShortSpanOperationDescription(operation?: string) {
+  if (operation?.startsWith('http')) {
+    return t('request');
+  }
+
+  if (operation?.startsWith('db')) {
+    return t('query');
+  }
+
+  if (operation?.startsWith('task')) {
+    return t('task');
+  }
+
+  if (operation?.startsWith('serialize')) {
+    return t('serializer');
+  }
+
+  if (operation?.startsWith('middleware')) {
+    return t('middleware');
+  }
+
+  if (operation?.startsWith('resource')) {
+    return t('resource');
+  }
+
+  return t('span');
 }

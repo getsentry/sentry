@@ -3,18 +3,18 @@ import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   children: React.ReactChildren;
-  organization: Organization;
 };
 
 const queryClient = new QueryClient();
 
-function StarfishContainer({organization, children}: Props) {
+function StarfishContainer({children}: Props) {
+  const organization = useOrganization();
+
   return (
     <Feature
       hookName="feature-disabled:starfish-view"
@@ -37,4 +37,4 @@ function NoAccess() {
   );
 }
 
-export default withOrganization(StarfishContainer);
+export default StarfishContainer;

@@ -13,7 +13,10 @@ import {
   platformProductAvailability,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
-import {performance as performancePlatforms} from 'sentry/data/platformCategories';
+import {
+  performance as performancePlatforms,
+  replayPlatforms,
+} from 'sentry/data/platformCategories';
 import {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -168,7 +171,9 @@ export function ProjectInstallPlatform({location, params}: Props) {
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
   const performanceOverviewLink = `/organizations/${organization.slug}/performance/`;
+  const replayLink = `/organizations/${organization.slug}/replays/`;
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
+  const showReplayButton = replayPlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     (platformProductAvailability[platform.key] ?? []).length > 0;
@@ -246,6 +251,19 @@ export function ProjectInstallPlatform({location, params}: Props) {
           >
             {t('Take me to Performance')}
           </Button>
+          {showReplayButton && (
+            <Button
+              busy={loadingProjects}
+              to={{
+                pathname: replayLink,
+                query: {
+                  project: project?.id,
+                },
+              }}
+            >
+              {t('Take me to Session Replay')}
+            </Button>
+          )}
         </StyledButtonBar>
       </div>
     </Fragment>

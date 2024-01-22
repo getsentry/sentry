@@ -27,7 +27,10 @@ import {
   Organization as TOrganization,
   Project,
 } from 'sentry/types';
-import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
+import useOrganization from 'sentry/utils/useOrganization';
+import GroupActivity from 'sentry/views/issueDetails/groupActivity';
+
+jest.mock('sentry/utils/useOrganization');
 
 describe('GroupActivity', function () {
   let project!: Project;
@@ -70,17 +73,12 @@ describe('GroupActivity', function () {
     const {organization, routerContext, routerProps} = initializeOrg({
       organization: additionalOrg,
     });
+    jest.mocked(useOrganization).mockReturnValue(organization);
     GroupStore.add([group]);
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
-      <GroupActivity
-        {...routerProps}
-        api={new MockApiClient()}
-        params={{orgId: 'org-slug'}}
-        group={group}
-        organization={organization}
-      />,
+      <GroupActivity {...routerProps} params={{orgId: 'org-slug'}} group={group} />,
       {context: routerContext}
     );
   }
@@ -390,7 +388,7 @@ describe('GroupActivity', function () {
     });
   });
 
-  it('renders ignored', function () {
+  it('renders archived until escalating', function () {
     createWrapper({
       activity: [
         {
@@ -404,34 +402,14 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-    });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar ignored this issue'
-    );
-  });
-
-  it('renders archived until escalating if org has `escalating-issues` feature', function () {
-    createWrapper({
-      activity: [
-        {
-          id: '123',
-          type: GroupActivityType.SET_IGNORED,
-          project: ProjectFixture(),
-          data: {
-            ignoreUntilEscalating: true,
-          },
-          user: UserFixture(),
-          dateCreated,
-        },
-      ],
-      organization: OrganizationFixture({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
     );
   });
 
-  it('renders escalating with forecast and plural events if org has `escalating-issues` feature', function () {
+  it('renders escalating with forecast and plural events', function () {
     createWrapper({
       activity: [
         {
@@ -455,7 +433,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: OrganizationFixture({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -465,7 +443,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders escalating with forecast and singular event if org has `escalating-issues` feature', function () {
+  it('renders escalating with forecast and singular event', function () {
     createWrapper({
       activity: [
         {
@@ -479,7 +457,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
@@ -527,27 +505,6 @@ describe('GroupActivity', function () {
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry marked this issue as resolved via Jira'
-    );
-  });
-
-  it('renders ignored until it happens x times in time window', function () {
-    createWrapper({
-      activity: [
-        {
-          id: '123',
-          type: GroupActivityType.SET_IGNORED,
-          project: ProjectFixture(),
-          data: {
-            ignoreCount: 400,
-            ignoreWindow: 1,
-          },
-          user: UserFixture(),
-          dateCreated,
-        },
-      ],
-    });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar ignored this issue until it happens 400 time(s) in 1 minute'
     );
   });
 
@@ -639,7 +596,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'

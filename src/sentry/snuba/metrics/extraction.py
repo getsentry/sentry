@@ -38,6 +38,7 @@ from sentry.api.event_search import (
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
@@ -55,34 +56,46 @@ logger = logging.getLogger(__name__)
 # in order to migrate customers from invalid specs
 class SpecVersion(NamedTuple):
     version: int
-    flags: Sequence[str] = []
-
-    def has_flag(self, flag: str) -> bool:
-        return flag in self.flags
+    flags: set[str] = set()
 
 
-# This is the lower spec version which we collect metrics for.
-# Once we're ready to abandon a version bump this value
-MIN_VERSION = 0
+class OnDemandMetricSpecVersioning:
+    """
+    This class helps iterate over all spec versions we support with get_spec_versions.
 
-SPEC_VERSIONS = [
-    SpecVersion(0),
-    SpecVersion(1, ["use_updated_env_logic"]),
-]
+    If spec_versions only has one item that means we only have one metric spec being collected.
 
+    In order to add a new spec version update spec_versions with the flags which you will use
+    within OnDemandMetricSpec. You also need to adjust get_query_spec_version to return the spec
+    version you want for a specific feature flag.
 
-def get_spec_versions(min_version: int = MIN_VERSION) -> Sequence[SpecVersion]:
-    """Get all spec versions starting at a minimum version."""
-    return [spec_version for spec_version in SPEC_VERSIONS if spec_version.version >= min_version]
+    Once we're ready to abandon a version:
+    - coalesce the spec_versions
+    - clear the feature/flags mapping in get_query_spec_version
+    - remove any associated customizations to OnDemandMetricSpec
 
+    When there's a single version we should not have any flags and get_query_spec_version
+    should return the default spec version.
+    """
 
-def get_spec_version(version: Optional[int] = None) -> SpecVersion:
-    """Get a specific spec version."""
-    if not version:
-        # Default to the latest version if none specified
-        version = len(SPEC_VERSIONS) - 1
-    assert version >= MIN_VERSION and version < len(SPEC_VERSIONS)
-    return SPEC_VERSIONS[version]
+    spec_versions = [
+        SpecVersion(1),
+    ]
+
+    @classmethod
+    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
+        """Return spec version based on feature flag enabled for an organization."""
+        _ = Organization.objects.get_from_cache(id=organization_id)
+        return cls.spec_versions[0]
+
+    @classmethod
+    def get_spec_versions(cls: Any) -> Sequence[SpecVersion]:
+        """Get all spec versions."""
+        return cls.spec_versions
+
+    @classmethod
+    def get_default_spec_version(cls: Any) -> SpecVersion:
+        return cls.spec_versions[0]
 
 
 # Name component of MRIs used for custom alert metrics.
@@ -891,6 +904,10 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return value
 
 
+def are_specs_equal(spec_1: MetricSpec, spec_2: MetricSpec) -> bool:
+    return _deep_sorted(spec_1) == _deep_sorted(spec_2)
+
+
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
 
 
@@ -1084,7 +1101,11 @@ class OnDemandMetricSpec:
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.spec_version = spec_version if spec_version else get_spec_version()
+        self.spec_version = (
+            spec_version
+            if spec_version
+            else OnDemandMetricSpecVersioning.get_default_spec_version()
+        )
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1296,17 +1317,9 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.spec_version.has_flag("use_updated_env_logic"):
-                conditions = [ParenExpression(children=conditions)] if conditions else []
-                # This transformation is equivalent to (new_conditions) AND (conditions).
-                extended_conditions = [ParenExpression(children=new_conditions)] + conditions
-            else:
-                # This transformation is not behaving correctly since it can violate precedence rules. Since we use
-                # an AND condition for the environment, it will bind with higher priority than an OR specified in the
-                # user query, effectively resulting in the wrong condition (e.g., (X AND Y) OR Z != X AND (Y OR Z)).
-                #
-                # This transformation is equivalent to new_conditions and conditions.
-                extended_conditions = new_conditions + conditions
+            conditions = [ParenExpression(children=conditions)] if conditions else []
+            # This transformation is equivalent to (new_conditions) AND (conditions).
+            extended_conditions = [ParenExpression(children=new_conditions)] + conditions
 
         return QueryParsingResult(conditions=extended_conditions)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import heapq
+import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
@@ -11,7 +12,9 @@ import sentry_sdk
 
 from sentry import options
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.issues.ingest import process_occurrence_data
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
@@ -26,9 +29,12 @@ from sentry.statistical_detectors.algorithm import DetectorAlgorithm
 from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
 from sentry.statistical_detectors.store import DetectorStore
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import SnubaTSResult
+
+logger = logging.getLogger("sentry.statistical_detectors.tasks")
 
 
 @dataclass(frozen=True)
@@ -49,6 +55,11 @@ class RegressionDetector(ABC):
     buffer_period: timedelta
     resolution_rel_threshold: float
     escalation_rel_threshold: float
+
+    @classmethod
+    def configure_tags(cls):
+        sentry_sdk.set_tag("regression.source", cls.source)
+        sentry_sdk.set_tag("regression.kind", cls.source)
 
     @classmethod
     @abstractmethod
@@ -86,7 +97,7 @@ class RegressionDetector(ABC):
 
     @classmethod
     def detect_trends(
-        cls, projects: List[Project], start: datetime
+        cls, projects: List[Project], start: datetime, batch_size=100
     ) -> Generator[TrendBundle, None, None]:
         unique_project_ids: Set[int] = set()
 
@@ -97,7 +108,7 @@ class RegressionDetector(ABC):
         algorithm = cls.detector_algorithm_factory()
         store = cls.detector_store_factory()
 
-        for payloads in chunked(cls.all_payloads(projects, start), 100):
+        for payloads in chunked(cls.all_payloads(projects, start), batch_size):
             total_count += len(payloads)
 
             raw_states = store.bulk_read_states(payloads)
@@ -320,7 +331,7 @@ class RegressionDetector(ABC):
                     and bundle.state.should_auto_resolve(
                         group.baseline, cls.resolution_rel_threshold
                     )
-                    # enforce a buffer window after which the issue cannot
+                    # enforce a buffer window within which the issue cannot
                     # auto resolve to avoid the issue state changing frequently
                     and group.date_regressed + cls.buffer_period <= timestamp
                 ):
@@ -357,7 +368,9 @@ class RegressionDetector(ABC):
         timestamp: datetime,
         batch_size=100,
     ) -> Generator[TrendBundle, None, None]:
-        groups_to_escalate = []
+        escalated = 0
+
+        candidates = []
 
         for bundle in bundles:
             group = bundle.regression_group
@@ -371,23 +384,101 @@ class RegressionDetector(ABC):
                         cls.min_change,
                         cls.escalation_rel_threshold,
                     )
+                    # enforce a buffer window within which the issue cannot
+                    # escalate to avoid the issue state changing frequently
+                    and group.date_regressed + cls.buffer_period <= timestamp
                 ):
-                    groups_to_escalate.append(group)
-
-                # For now, keep passing on the bundle.
-                # Eventually, should redirect these bundles to escalation
-                yield bundle
+                    candidates.append(bundle)
+                else:
+                    yield bundle
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
-        # TODO: mark the groups as escalated
+        escalated_groups = []
+        groups_to_escalate = []
+
+        for bundle in cls._filter_escalating_groups(candidates, batch_size=batch_size):
+            state = bundle.state
+            group = bundle.regression_group
+
+            if state is None or group is None:
+                continue
+
+            escalated += 1
+
+            # mark the existing regression group as inactive
+            # as we want to create a new one for the escalation
+            group.active = False
+            group.date_resolved = timestamp
+            groups_to_escalate.append(group)
+
+            # the escalation will use the current timestamp and
+            # the current moving average as the new regression
+            escalated_groups.append(
+                RegressionGroup(
+                    type=cls.regression_type.value,
+                    date_regressed=timestamp,
+                    version=group.version + 1,
+                    active=True,
+                    project_id=group.project_id,
+                    fingerprint=group.fingerprint,
+                    baseline=group.regressed,
+                    regressed=state.get_moving_avg(),
+                )
+            )
+
+            status_change = cls.make_status_change_message(
+                bundle.payload, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING
+            )
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.STATUS_CHANGE,
+                status_change=status_change,
+            )
+
+        RegressionGroup.objects.bulk_update(groups_to_escalate, ["active", "date_resolved"])
+        RegressionGroup.objects.bulk_create(escalated_groups)
 
         metrics.incr(
             "statistical_detectors.objects.escalated",
-            amount=len(groups_to_escalate),
+            amount=escalated,
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
+
+    @classmethod
+    def _filter_escalating_groups(
+        cls,
+        bundles_to_escalate: List[TrendBundle],
+        batch_size=100,
+    ) -> Generator[TrendBundle, None, None]:
+        for bundles in chunked(bundles_to_escalate, batch_size):
+            pairs = {
+                generate_issue_group_key(
+                    bundle.payload.project_id, cls.regression_type, bundle.payload.group
+                ): bundle
+                for bundle in bundles
+            }
+
+            issue_groups = bulk_get_groups_from_fingerprints(
+                [(project_id, [fingerprint]) for project_id, fingerprint in pairs]
+            )
+
+            for key, bundle in pairs.items():
+                issue_group = issue_groups.get(key)
+                if issue_group is None:
+                    sentry_sdk.capture_message("Missing issue group for regression issue")
+                    continue
+
+                if (
+                    issue_group.status == GroupStatus.UNRESOLVED
+                    and issue_group.substatus == GroupSubStatus.ONGOING
+                ):
+                    yield bundle
+                elif (
+                    issue_group.status == GroupStatus.IGNORED
+                    and issue_group.substatus == GroupSubStatus.UNTIL_ESCALATING
+                ):
+                    yield bundle
 
     @classmethod
     def get_regression_versions(
@@ -483,3 +574,13 @@ def generate_fingerprint(regression_type: RegressionType, name: str | int) -> st
         return f"{int(name):x}"
     else:
         raise ValueError(f"Unsupported RegressionType: {regression_type}")
+
+
+def generate_issue_group_key(
+    project_id: int, regression_type: RegressionType, name: str | int
+) -> Tuple[int, str]:
+    data = {
+        "fingerprint": [generate_fingerprint(regression_type, name)],
+    }
+    process_occurrence_data(data)
+    return project_id, data["fingerprint"][0]

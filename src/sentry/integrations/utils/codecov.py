@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, Sequence, Tuple, TypedDict
 
 import requests
 from rest_framework import status
 from sentry_sdk import configure_scope
+from typing_extensions import NotRequired
 
 from sentry import options
+from sentry.integrations.utils.stacktrace_link import ReposityLinkOutcome
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 
 LineCoverage = Sequence[Tuple[int, int]]
@@ -134,8 +137,22 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
     return line_coverage, codecov_url
 
 
-def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
-    data = {}
+class CodecovConfig(TypedDict):
+    repository: Repository
+    # Config is a serialized RepositoryProjectPathConfig
+    config: Any
+    outcome: ReposityLinkOutcome
+
+
+class CodecovData(TypedDict):
+    lineCoverage: NotRequired[LineCoverage]
+    coverageUrl: NotRequired[str]
+    status: NotRequired[int]
+    attemptedUrl: NotRequired[str]
+
+
+def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
+    data: CodecovData = {}
     message = ""
     try:
         repo = config["repository"].name

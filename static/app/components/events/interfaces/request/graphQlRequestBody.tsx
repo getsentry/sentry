@@ -1,7 +1,5 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import isEmpty from 'lodash/isEmpty';
-import uniq from 'lodash/uniq';
 import Prism from 'prismjs';
 
 import Alert from 'sentry/components/alert';
@@ -11,6 +9,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryRequestDataGraphQl, Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
@@ -50,7 +49,7 @@ function getErrorLineNumbers(errors: GraphQlError[]): number[] {
 function formatErrorAlertMessage(error: GraphQlError) {
   const {locations, message} = error;
 
-  if (!locations || isEmpty(locations)) {
+  if (!locations || locations.length === 0) {
     return message;
   }
 
@@ -63,9 +62,11 @@ function formatErrorAlertMessage(error: GraphQlError) {
 }
 
 function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
-  const errorsWithMessage = errors.filter(error => !isEmpty(error.message));
+  const errorsWithMessage = errors.filter(
+    error => error.message && error.message.length > 0
+  );
 
-  if (isEmpty(errorsWithMessage)) {
+  if (errorsWithMessage.length === 0) {
     return null;
   }
 

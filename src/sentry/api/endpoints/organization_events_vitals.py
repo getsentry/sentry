@@ -15,7 +15,7 @@ from sentry.snuba import discover
 @region_silo_endpoint
 class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     VITALS = {
         "measurements.lcp": {"thresholds": [0, 2500, 4000]},

@@ -1,6 +1,7 @@
 import mimetypes
 import random
 from dataclasses import dataclass
+from hashlib import sha1
 from io import BytesIO
 from typing import IO, Optional
 
@@ -86,7 +87,7 @@ class EventAttachment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = ("project_id", "date_added")
+        index_together = (("project_id", "date_added"), ("project_id", "event_id"))
 
     __repr__ = sane_repr("event_id", "name")
 
@@ -124,6 +125,9 @@ class EventAttachment(Model):
         return rv
 
     def getfile(self) -> IO:
+        if self.size == 0:
+            return BytesIO(b"")
+
         if self.blob_path:
             if self.blob_path.startswith("eventattachments/v1/"):
                 storage = get_storage()
@@ -142,8 +146,12 @@ class EventAttachment(Model):
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
         from sentry.models.files import File, FileBlob
 
-        blob = BytesIO(attachment.data)
         content_type = normalize_content_type(attachment.content_type, attachment.name)
+
+        if len(attachment.data) == 0:
+            return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
+
+        blob = BytesIO(attachment.data)
 
         store_blobs = project_id in options.get("eventattachments.store-blobs.projects") or (
             random.random() < options.get("eventattachments.store-blobs.sample-rate")

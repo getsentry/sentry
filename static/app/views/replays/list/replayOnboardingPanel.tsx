@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
 import Accordion from 'sentry/components/accordion/accordion';
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -95,27 +94,10 @@ export default function ReplayOnboardingPanel() {
     <Fragment>
       <OnboardingAlertHook>
         {hasSelectedProjects && allSelectedProjectsUnsupported && (
-          <Alert icon={<IconInfo />}>
-            {tct(
-              `[projectMsg] [action] a project using our [link], or equivalent framework SDK.`,
-              {
-                action: primaryAction === 'create' ? t('Create') : t('Select'),
-                projectMsg: (
-                  <strong>
-                    {t(
-                      `Session Replay isn't available for project %s.`,
-                      selectedProjects[0].slug
-                    )}
-                  </strong>
-                ),
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/">
-                    {t('Sentry browser SDK package')}
-                  </ExternalLink>
-                ),
-              }
-            )}
-          </Alert>
+          <ReplayUnsupportedAlert
+            primaryAction={primaryAction}
+            projectSlug={selectedProjects[0].slug}
+          />
         )}
       </OnboardingAlertHook>
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
@@ -299,17 +281,15 @@ export function SetupReplaysCTA({
       <StyledWidgetContainer>
         <StyledHeaderContainer>
           {t('FAQ')}
-          {
-            <QuestionTooltip
-              size="xs"
-              isHoverable
-              title={tct('See a [link:full list of FAQs].', {
-                link: (
-                  <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
-                ),
-              })}
-            />
-          }
+          <QuestionTooltip
+            size="xs"
+            isHoverable
+            title={tct('See a [link:full list of FAQs].', {
+              link: (
+                <ExternalLink href="https://help.sentry.io/product-features/other/what-is-session-replay/" />
+              ),
+            })}
+          />
         </StyledHeaderContainer>
         <Accordion
           items={FAQ}

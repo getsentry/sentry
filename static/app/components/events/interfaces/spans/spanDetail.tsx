@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import map from 'lodash/map';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -74,6 +73,7 @@ const SIZE_DATA_KEYS = [
   'Encoded Body Size',
   'Decoded Body Size',
   'Transfer Size',
+  'http.request_content_length',
   'http.response_content_length',
   'http.decoded_response_content_length',
   'http.response_transfer_size',
@@ -360,7 +360,11 @@ function SpanDetail(props: Props) {
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
       if (data.hasOwnProperty(key) && defined(data[key])) {
-        keys[key] = data[key];
+        try {
+          keys[key] = parseInt(data[key], 10);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
       return keys;
     }, {});
@@ -553,7 +557,7 @@ function SpanDetail(props: Props) {
                   header. You may have to enable this collection manually.
                 </TextTr>
               )}
-              {map(sizeKeys, (value, key) => (
+              {Object.entries(sizeKeys).map(([key, value]) => (
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
@@ -561,7 +565,7 @@ function SpanDetail(props: Props) {
                   </Fragment>
                 </Row>
               ))}
-              {map(nonSizeKeys, (value, key) =>
+              {Object.entries(nonSizeKeys).map(([key, value]) =>
                 !isHiddenDataKey(key) ? (
                   <Row title={key} key={key}>
                     {maybeStringify(value)}

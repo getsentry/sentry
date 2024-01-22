@@ -1,6 +1,7 @@
 import * as qs from 'query-string';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(query: string): string {
@@ -11,11 +12,9 @@ export function addQueryParamsToExistingUrl(
   origUrl: string,
   queryParams: object
 ): string {
-  let url;
+  const url = safeURL(origUrl);
 
-  try {
-    url = new URL(origUrl);
-  } catch {
+  if (!url) {
     return '';
   }
 

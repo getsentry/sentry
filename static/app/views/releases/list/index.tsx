@@ -90,6 +90,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
   hasV2ReleaseUIEnabled =
+    this.props.organization.features.includes('releases-v2-internal') ||
     this.props.organization.features.includes('releases-v2') ||
     this.props.organization.features.includes('releases-v2-st');
 
@@ -198,7 +199,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
       release: releaseVersions,
     };
     if (selection.projects.length) {
-      query.project = this.getSelectedProjectSlugs();
+      query.projectSlug = this.getSelectedProjectSlugs();
     }
     if (selection.environments.length) {
       query.environment = selection.environments;

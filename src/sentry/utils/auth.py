@@ -29,6 +29,8 @@ _LOGIN_URL: Optional[str] = None
 
 MFA_SESSION_KEY = "mfa"
 
+DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
+
 
 def _sso_expiry_from_env(seconds: Optional[str]) -> timedelta:
     if seconds is None:
@@ -63,7 +65,6 @@ class SsoSession:
     def from_django_session_value(
         cls, organization_id: int, session_value: Mapping[str, Any]
     ) -> SsoSession:
-
         return cls(
             organization_id,
             datetime.fromtimestamp(session_value[cls.SSO_LOGIN_TIMESTAMP], tz=timezone.utc),
@@ -235,6 +236,9 @@ def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
     """
     look for the org id under the sso session key, and check that the timestamp isn't past our expiry limit
     """
+    if DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
+        return True
+
     sso_session_in_request = request.session.get(
         SsoSession.django_session_key(organization_id), None
     )

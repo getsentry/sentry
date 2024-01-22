@@ -543,6 +543,8 @@ class Group(Model):
     data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
+    priority = models.PositiveSmallIntegerField(null=True)
+    priority_locked_at = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
