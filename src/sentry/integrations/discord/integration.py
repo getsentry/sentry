@@ -171,7 +171,11 @@ class DiscordIntegrationProvider(IntegrationProvider):
         else:
             use_configure = False
         url = self.configure_url if use_configure else self.setup_url
-        discord_user_id = self._get_discord_user_id(str(state.get("code")), url)
+        try:
+            auth_code = str(state.get("code"))
+            discord_user_id = self._get_discord_user_id(auth_code, url)
+        except ApiError as e:
+            raise ApiError(str(e))
 
         return {
             "name": guild_name,

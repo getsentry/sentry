@@ -2,11 +2,12 @@ from __future__ import annotations
 
 # to avoid a circular import
 import logging
+from urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
-from src.sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 logger = logging.getLogger("sentry.integrations.discord")
 
@@ -92,14 +93,17 @@ class DiscordClient(ApiClient):
             "redirect_uri": url,
             "scope": "identify guilds guilds.members.read",
         }
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
         try:
-            response = self.post(TOKEN_URL, data=data, json=False)
+            response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
             access_token = response.get("access_token")
             if access_token is None:
                 logger.error("discord.install.failed_to_get_access_token")
                 raise IntegrationError("Failed to complete Discord OAuth2 flow.")
             return access_token
-        except Exception as e:
+        except ApiError as e:
             logger.exception(
                 "discord.install.failed_to_complete_oauth2_flow", extra={"error": str(e)}
             )
