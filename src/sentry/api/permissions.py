@@ -44,9 +44,27 @@ class NoPermission(BasePermission):
         return False
 
 
+class SuperuserPermission(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        if is_active_superuser(request):
+            return True
+        if request.user.is_authenticated and request.user.is_superuser:
+            raise SuperuserRequired
+        return False
+
+
 class StaffPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return is_active_staff(request)
+
+
+class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        has_staff = features.has("auth:enterprise-staff-cookie", actor=request.user)
+        active_superuser = not has_staff and SuperuserPermission().has_permission(request, view)
+        active_staff = has_staff and StaffPermission().has_permission(request, view)
+
+        return active_superuser or active_staff
 
 
 class ScopedPermission(BasePermission):
@@ -79,15 +97,6 @@ class ScopedPermission(BasePermission):
         return any(s in allowed_scopes for s in current_scopes)
 
     def has_object_permission(self, request: Request, view: object, obj: Any) -> bool:
-        return False
-
-
-class SuperuserPermission(BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        if is_active_superuser(request):
-            return True
-        if request.user.is_authenticated and request.user.is_superuser:
-            raise SuperuserRequired
         return False
 
 
