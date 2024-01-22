@@ -121,7 +121,7 @@ s3transfer==0.10.0
 sentry-arroyo==2.15.3
 sentry-kafka-schemas==0.1.38
 sentry-redis-tools==0.1.7
-sentry-relay==0.8.41
+sentry-relay==0.8.43
 sentry-sdk==1.39.2
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
