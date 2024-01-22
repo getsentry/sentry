@@ -1,9 +1,10 @@
 import pytest
 
+from sentry.silo import SiloMode
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -15,6 +16,7 @@ def reprocessing_feature(monkeypatch):
         yield
 
 
+@assume_test_silo_mode(SiloMode.CONTROL)
 @pytest.fixture(autouse=True)
 def auto_login(settings, client, default_user):
     assert client.login(username=default_user.username, password="admin")
