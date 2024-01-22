@@ -86,6 +86,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         base_commit: Commit | None = None
         for commit in commits:
             repo: Repository = Repository.objects.get(id=commit.repository_id)
+            # Hardcoded to only accept getsentry/sentry repo for now
             if repo.external_id == "getsentry/sentry":
                 base_commit = commit
                 break
@@ -96,6 +97,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 "completedAt": datetime.now().isoformat(),
                 "status": "ERROR",
                 "fix": None,
+                # Hardcoded to only accept getsentry/sentry repo for now
                 "errorMessage": "No valid base commit found for release; only getsentry/sentry repo is supported right now.",
             }
             group.data["metadata"] = metadata
