@@ -172,11 +172,12 @@ class DiscordIntegrationProvider(IntegrationProvider):
         else:
             use_configure = False
         url = self.configure_url if use_configure else self.setup_url
-        try:
-            auth_code = str(state.get("code"))
+
+        auth_code = str(state.get("code"))
+        if auth_code:
             discord_user_id = self._get_discord_user_id(auth_code, url)
-        except ApiError as e:
-            raise ApiError(str(e))
+        else:
+            raise IntegrationError("Missing code from state.")
 
         return {
             "name": guild_name,
