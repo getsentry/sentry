@@ -104,9 +104,7 @@ class DiscordClientTest(TestCase):
         responses.add(
             responses.POST,
             url="https://discord.com/api/v10/oauth2/token",
-            json={
-                "access_token": "",
-            },
+            json={},
         )
         with pytest.raises(IntegrationError):
             self.discord_client.get_access_token("auth_code", "url")
@@ -128,7 +126,7 @@ class DiscordClientTest(TestCase):
 
     @responses.activate
     def test_get_user_id_empty(self):
-        responses.add(responses.GET, url="https://discord.com/api/v10/users/@me", json={"id": ""})
+        responses.add(responses.GET, url="https://discord.com/api/v10/users/@me", json={})
 
         with pytest.raises(IntegrationError):
             self.discord_client.get_user_id("access_token")
