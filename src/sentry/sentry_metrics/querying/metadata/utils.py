@@ -4,7 +4,9 @@ from snuba_sdk import Column, Condition, Timeseries
 from snuba_sdk.conditions import BooleanCondition, BooleanOp, ConditionGroup, Op
 from snuba_sdk.mql.mql import parse_mql
 
+from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 
 
@@ -77,7 +79,7 @@ def transform_conditions_to_tags(
 
 
 def transform_conditions_with(
-    conditions: Optional[ConditionGroup], mappings: Optional[Mapping[str, str]] = None
+    conditions: Optional[ConditionGroup], mappings: Optional[Mapping[str, str]]
 ) -> Optional[ConditionGroup]:
     """
     Maps all the `Column`(s) whose `key` matches one of the supplied mappings. If found, replaces it with the mapped
@@ -102,6 +104,40 @@ def transform_conditions_with(
         ]
 
     return _visit_conditions(conditions, _transform_conditions_with)
+
+
+def transform_latest_release_condition(
+    conditions: Optional[ConditionGroup], projects: Sequence[Project]
+):
+    """
+    Transforms all the conditions in the form `release:latest` in `release:x OR release:y` where `x` and `y` are
+    the latest releases of the supplied projects.
+    """
+    if conditions is None:
+        return None
+
+    def _transform_latest_release_condition(condition: Condition) -> Optional[ConditionGroup]:
+        if not isinstance(condition.lhs, Column):
+            return None
+
+        # If it's not the latest release, we want to early return for efficiency.
+        if not (
+            condition.lhs.name == "release"
+            and isinstance(condition.rhs, str)
+            and condition.rhs == "latest"
+        ):
+            return None
+
+        latest_releases = bulk_fetch_project_latest_releases(projects)
+        return [
+            Condition(
+                lhs=condition.lhs,
+                op=Op.IN,
+                rhs=[latest_release.version for latest_release in latest_releases],
+            )
+        ]
+
+    return _visit_conditions(conditions, _transform_latest_release_condition)
 
 
 def add_environments_condition(

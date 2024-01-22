@@ -482,6 +482,69 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id_2
 
+    def test_get_metric_spans_with_latest_release(self):
+        mri = "g:custom/page_load@millisecond"
+
+        project_1 = self.create_project(
+            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
+        )
+        project_2 = self.create_project(
+            name="Foo", slug="foo", teams=[self.team], fire_project_created=True
+        )
+
+        # We create two releases per project, to make sure the latest one is used.
+        self.create_release(project=project_1, version="bar-1.0")
+        release_1 = self.create_release(project=project_1, version="bar-2.0")
+        self.create_release(project=project_2, version="foo-1.0")
+        release_2 = self.create_release(project=project_2, version="foo-2.0")
+
+        trace_id = uuid.uuid4().hex
+        transaction_id_1 = uuid.uuid4().hex
+        transaction_id_2 = uuid.uuid4().hex
+
+        for project_id, transaction_id, release, duration in (
+            (project_1.id, transaction_id_1, release_1, 20),
+            (project_2.id, transaction_id_2, release_2, 30),
+        ):
+            self.store_segment(
+                project_id=project_id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                duration=duration,
+            )
+            self.store_indexed_span(
+                project_id=project_id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {"release": release.version},
+                        }
+                    ]
+                },
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[project_1.id, project_2.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            query="release:latest",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["transactionId"] == transaction_id_2
+        assert metric_spans[1]["transactionId"] == transaction_id_1
+
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
 
