@@ -215,7 +215,7 @@ class Endpoint(APIView):
         permissions = self.get_permissions()
 
         can_be_superuser = request.user.is_authenticated and request.user.is_superuser
-        sole_superuser_permission = len(permissions) == 1 and isinstance(
+        has_only_superuser_permission = len(permissions) == 1 and isinstance(
             permissions[0], SuperuserPermission
         )
 
