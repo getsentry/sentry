@@ -148,17 +148,13 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
         />
         <Resource
           title={t('Element Masking/Blocking')}
-          subtitle={t(
-            'description description description description description description description'
-          )}
-          link=""
+          subtitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
+          link="https://docs.sentry.io/platforms/javascript/session-replay/privacy/"
         />
         <Resource
-          title={t('General')}
-          subtitle={t(
-            'description description description description description description description'
-          )}
-          link=""
+          title={t('Network Details')}
+          subtitle={t('Capture request and response headers or bodies')}
+          link="https://docs.sentry.io/platforms/javascript/session-replay/configuration/"
         />
       </ButtonContainer>
     );
@@ -347,7 +343,7 @@ const ButtonSubtitle = styled('div')`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  padding: ${space(1.5)} ${space(1)};
+  padding: ${space(1)} ${space(1)};
   height: auto;
 `;
 
