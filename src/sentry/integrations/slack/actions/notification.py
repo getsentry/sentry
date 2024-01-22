@@ -30,7 +30,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         super().__init__(*args, **kwargs)
         # XXX(CEO): when removing the feature flag, put `label` back up as a class var
         self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"  # type: ignore
-        if features.has("organizations:slack-formatting-update", self.project.organization):
+        if features.has("organizations:slack-block-kit", self.project.organization):
             self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and mentions {mentions} in notification"  # type: ignore
         self.form_fields = {
             "workspace": {
@@ -41,7 +41,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
-        if features.has("organizations:slack-formatting-update", self.project.organization):
+        if features.has("organizations:slack-block-kit", self.project.organization):
             self.form_fields["mentions"] = {
                 "type": "string",
                 "placeholder": "e.g. @jane, @on-call-team",
@@ -136,7 +136,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def render_label(self) -> str:
         tags = self.get_tags_list()
 
-        if features.has("organizations:slack-formatting-update", self.project.organization):
+        if features.has("organizations:slack-block-kit", self.project.organization):
             return self.label.format(
                 workspace=self.get_integration_name(),
                 channel=self.get_option("channel"),
