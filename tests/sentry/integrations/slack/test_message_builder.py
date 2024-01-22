@@ -70,58 +70,36 @@ def build_test_message_blocks(
     event_date = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
         to_timestamp(timestamp), "{date_pretty}", "{time}"
     )
+
+    title_text = f"<{title_link}|*{formatted_title}*>  \n"
+    if extra_content:
+        title_text = f":exclamation: {title_text}"
+
     blocks: list[dict[str, Any]] = [
         {
             "type": "section",
-            "text": {"type": "mrkdwn", "text": f"<{title_link}|*{formatted_title}*>  \n"},
+            "text": {"type": "mrkdwn", "text": title_text},
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
     if tags:
-        tags_section = {
-            "type": "section",
-            "fields": [
-                {"type": "mrkdwn", "text": f"*{key}:*\n{value}"} for key, value in tags.items()
-            ],
-        }
+        tags_text = ""
+        for k, v in tags.items():
+            tags_text += f"`{k}: {v}`  "
+
+        tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
         blocks.append(tags_section)
 
     if extra_content:
-        # add event and user count
+        # add event and user count, state, first seen
         counts_section = {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": "Events: *1*     Users Affected: *0*"},
-        }
-        blocks.append(counts_section)
-
-    if mentions:
-        mentions_text = f"Mentions: {mentions}"
-        mentions_section = {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": mentions_text},
-        }
-        blocks.append(mentions_section)
-
-    if extra_content:
-        issue_data = {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Project: {project.slug}    Level: :exclamation:Error    State: Ongoing",
+                "text": f"Events: *1*   Users Affected: *0*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
             },
         }
-        blocks.append(issue_data)
-
-    context = {
-        "type": "context",
-        "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
-    }
-
-    if extra_content:
-        context["elements"][0][
-            "text"
-        ] = f"BAR-{group.short_id} | First Seen: {time_since(group.first_seen)}"
-    blocks.append(context)
+        blocks.append(counts_section)
 
     actions = {
         "type": "actions",
@@ -150,6 +128,24 @@ def build_test_message_blocks(
         ],
     }
     blocks.append(actions)
+
+    if mentions:
+        mentions_text = f"Mentions: {mentions}"
+        mentions_section = {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": mentions_text},
+        }
+        blocks.append(mentions_section)
+
+    context = {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
+    }
+
+    if extra_content:
+        context["elements"][0]["text"] = f"Project: {project.slug}   Alert: BAR-{group.short_id}"
+    blocks.append(context)
+
     blocks.append({"type": "divider"})
 
     return {
@@ -302,6 +298,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             timestamp=group.last_seen,
             group=group,
         )
+
         # add tags to message
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group), tags={"level"}
@@ -313,6 +310,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             tags=tags,
             event=event,
         )
+
         # add extra content to message
         with self.feature("organizations:slack-formatting-update"):
             assert SlackIssuesMessageBuilder(
