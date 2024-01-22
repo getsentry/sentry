@@ -5,7 +5,6 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import pytest
 import responses
-from django.conf import settings
 from django.core.cache import cache
 from django.test import override_settings
 from isodate import parse_datetime
@@ -47,7 +46,6 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     def setUp(self):
         super().setUp()
-        settings.SENTRY_FEATURES["organizations:integrations-codeowners"] = True
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
     def assert_setup_flow(self, user_id="user_id_1"):

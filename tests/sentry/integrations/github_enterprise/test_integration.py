@@ -4,7 +4,6 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
-from django.conf import settings
 from isodate import parse_datetime
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
@@ -32,10 +31,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         "verify_ssl": True,
     }
     base_url = "https://github.example.org/api/v3"
-
-    def setUp(self):
-        super().setUp()
-        settings.SENTRY_FEATURES["organizations:integrations-codeowners"] = True
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

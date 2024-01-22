@@ -8,7 +8,6 @@ from urllib.parse import urlencode, urlparse
 
 import pytest
 import responses
-from django.conf import settings
 from django.urls import reverse
 from isodate import parse_datetime
 
@@ -86,7 +85,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def setUp(self):
         super().setUp()
-        settings.SENTRY_FEATURES["organizations:integrations-codeowners"] = True
 
         self.installation_id = "install_1"
         self.user_id = "user_1"
