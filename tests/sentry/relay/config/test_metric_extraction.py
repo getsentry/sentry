@@ -1058,11 +1058,13 @@ def test_stateful_check_spec_hashes_relative_time(
             columns=["user.id", "release", "count()"],
         )
 
+        assert widget_query.widget.id
         widget_ids = [widget_query.widget.id]
         # This should set a stateful metric extraction state.
-        process_widget_specs(widget_ids)
+        set_states_counter = process_widget_specs(widget_ids)
 
         on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+        assert set_states_counter == 1
         assert (
             len(on_demand_entries) == 1
         )  # Make sure test is isolated and on-demand successfully added a row.

@@ -170,7 +170,7 @@ def schedule_on_demand_check() -> None:
     time_limit=120,
     expires=180,
 )
-def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
+def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> int:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
@@ -180,6 +180,7 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
     widget_query_count = 0
     widget_query_high_cardinality_count = 0
     widget_query_no_spec_count = 0
+    counter_set_widget_states = 0
 
     for query in DashboardWidgetQuery.objects.filter(id__in=widget_query_ids).select_related(
         "widget__dashboard__organization"
@@ -218,6 +219,7 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
             is_low_cardinality=is_low_cardinality,
             enabled_features=enabled_features,
         )
+        counter_set_widget_states += 1
 
     metrics.incr(
         "tasks.on_demand_metrics.widget_queries.per_run.no_spec",
@@ -234,6 +236,7 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
         amount=widget_query_count,
         sample_rate=1.0,
     )
+    return counter_set_widget_states
 
 
 def _get_widget_on_demand_specs(
