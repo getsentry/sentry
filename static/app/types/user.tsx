@@ -76,12 +76,17 @@ interface BaseApiToken {
   state: string;
 }
 
-// We include the token for API tokens used for internal apps
-export interface InternalAppApiToken extends BaseApiToken {
+// API Tokens should not be using and storing the token values in the application, as the tokens are secrets.
+// This is an intermediate and temporary object until we can deprecate InternalAppApiToken having "token"
+export interface UserAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
-  token: string;
   tokenLastCharacters: string;
+}
+
+// We include the token for API tokens used for internal apps
+export interface InternalAppApiToken extends UserAppApiToken {
+  token: string;
 }
 
 export type ApiApplication = {
