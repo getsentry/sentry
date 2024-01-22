@@ -55,7 +55,7 @@ export function CanvasSupportNotice() {
       {tct(
         'This replay contains a [code:canvas] element. Support for recording [code:canvas] data was added in SDK version 7.94.1. [link:Learn more].',
         {
-          canvas: <code />,
+          code: <code />,
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording" />
           ),
