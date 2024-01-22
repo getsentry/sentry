@@ -43,6 +43,15 @@ jest.mocked(useReplayReader).mockImplementation(() => {
   };
 });
 
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
 describe('EventReplay', function () {
   const MockUseReplayOnboardingSidebarPanel = jest.mocked(
     useReplayOnboardingSidebarPanel
