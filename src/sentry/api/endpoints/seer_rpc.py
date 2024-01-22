@@ -26,7 +26,6 @@ from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, Rp
 from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.silo.base import SiloMode
 from sentry.utils import json
-from sentry.utils.env import in_test_environment
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -44,7 +43,7 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     if not signature.startswith("rpc0:"):
         return False
 
-    # We aren't using the version bits currently, but might use them in the future.
+    # We aren't using the version bits currently.
     body = json.dumps(json.loads(body.decode("utf8"))).encode("utf8")
     _, signature_data = signature.split(":", 2)
     signature_input = b"%s:%s" % (
@@ -89,6 +88,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
 class SeerRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for seer microservice to call. Authenticated with a shared secret.
+    Copied from the normal rpc endpoint and modified for use with seer.
     """
 
     publish_status = {
@@ -109,6 +109,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     def _dispatch_to_local_method(self, method_name: str, arguments: Dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
+        # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
         return method(**arguments)
 
