@@ -175,7 +175,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
               header={t('Documentation Resources')}
               position="top-end"
             >
-              <Button icon={<IconQuestion />} aria-label="replay resources" />
+              <Button icon={<IconQuestion />} aria-label={t('replay resources')} />
             </Hovercard>
           )}
         </ClassNames>
