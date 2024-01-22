@@ -45,7 +45,7 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
-    get_suggested_assignees_and_outcome,
+    get_owners,
     get_suspect_commit_users,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
@@ -226,7 +226,7 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
 
 def get_suggested_assignees(identity: RpcIdentity, project: Project, event: Event) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
-    suggested_assignees, _ = get_suggested_assignees_and_outcome(project, event, None)
+    suggested_assignees, _ = get_owners(project, event, None)
     if features.has("organizations:streamline-targeting-context", project.organization):
         try:
             suspect_commit_users = RpcActor.many_from_object(
