@@ -237,26 +237,24 @@ class DiscordIntegrationProvider(IntegrationProvider):
         integration.
 
         """
+
         try:
-            access_token = None
-            try:
-                access_token = self.client.get_access_token(auth_code, url)
-            except ApiError as e:
-                logger.exception(
-                    "discord.install.failed_to_get_access_token", extra={"error": str(e)}
-                )
-                raise IntegrationError("Failed to get Discord access token.") from e
-
-            try:
-                user_id = self.client.get_user_id(access_token)
-                return user_id
-            except ApiError as e:
-                logger.exception("discord.install.failed_to_get_user_id", extra={"error": str(e)})
-                raise IntegrationError("Failed to get Discord user ID.") from e
-
+            access_token = self.client.get_access_token(auth_code, url)
+        except ApiError as e:
+            logger.exception("discord.install.failed_to_get_access_token", extra={"error": str(e)})
+            raise IntegrationError("Failed to get Discord access token.")
         except KeyError:
-            logger.exception("discord.install.failed_to_complete_oauth2_flow")
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+            logger.exception("discord.install.failed_to_get_access_token.key_error")
+            raise IntegrationError("Failed to get Discord access token.")
+        try:
+            user_id = self.client.get_user_id(access_token)
+            return user_id
+        except ApiError as e:
+            logger.exception("discord.install.failed_to_get_user_id", extra={"error": str(e)})
+            raise IntegrationError("Failed to get Discord user ID.")
+        except KeyError:
+            logger.exception("discord.install.failed_to_get_user_id.key_error")
+            raise IntegrationError("Failed to get Discord user ID.")
 
     def get_params_for_oauth(
         self,
