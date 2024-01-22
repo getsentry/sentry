@@ -16,6 +16,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
     def test_success(self):
         now = datetime.utcnow()
         mock_threshold: EnrichedThreshold = {
+            "id": 1,
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -43,6 +44,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
     def test_multiple_thresholds(self):
         now = datetime.utcnow()
         threshold: EnrichedThreshold = {
+            "id": 1,
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -61,6 +63,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "id": 1,
         }
         threshold2: EnrichedThreshold = {
+            "id": 2,
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -79,6 +82,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
             "id": 2,
         }
         threshold3: EnrichedThreshold = {
+            "id": 3,
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -116,6 +120,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
     def test_success_under(self):
         now = datetime.utcnow()
         mock_threshold: EnrichedThreshold = {
+            "id": 1,
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -143,6 +148,7 @@ class NewIssueCountThresholdCheckTest(TestCase):
     def test_no_new_issues(self):
         now = datetime.utcnow()
         mock_threshold: EnrichedThreshold = {
+            "id": 1,
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
