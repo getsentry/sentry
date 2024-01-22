@@ -184,15 +184,14 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert javascript_filter_states["browser-extensions"]
         assert set(javascript_filter_states["legacy-browsers"]) == {
-            "ie_pre_9",
-            "ie9",
-            "ie10",
-            "ie11",
-            "safari_pre_6",
-            "opera_pre_15",
-            "opera_mini_pre_8",
-            "android_pre_4",
-            "edge_pre_79",
+            "ie",
+            "firefox",
+            "chrome",
+            "safari",
+            "opera",
+            "opera_mini",
+            "android",
+            "edge",
         }
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]

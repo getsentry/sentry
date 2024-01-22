@@ -16,15 +16,14 @@ def set_default_inbound_filters(project):
         state: Dict[str, Union[bool, List[str]]] = {}
         if filter_id == "legacy-browsers":
             state["subfilters"] = [
-                "ie_pre_9",
-                "ie9",
-                "ie10",
-                "ie11",
-                "safari_pre_6",
-                "opera_pre_15",
-                "opera_mini_pre_8",
-                "android_pre_4",
-                "edge_pre_79",
+                "ie",
+                "firefox",
+                "chrome",
+                "safari",
+                "opera",
+                "opera_mini",
+                "android",
+                "edge",
             ]
         else:
             state["active"] = True
