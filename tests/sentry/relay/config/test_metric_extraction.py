@@ -1073,6 +1073,31 @@ def test_stateful_check_spec_hashes_relative_time(
 
 
 @django_db_all
+def test_get_metric_extraction_config_with_unicode_character(default_project: Project) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        # This will cause the Unicode bug to be raised
+        create_widget(["count()"], "user.name:Armén", default_project)
+        create_widget(["count()"], "user.name:Kevan", default_project, title="Dashboard Foo")
+        config = get_metric_extraction_config(default_project)
+        assert config
+        assert config == {
+            "metrics": [
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Kevan"},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {"key": "query_hash", "value": "5142a1f7"},
+                        {"field": "event.environment", "key": "environment"},
+                    ],
+                }
+            ],
+            "version": 2,
+        }
+
+
+@django_db_all
 @pytest.mark.parametrize("metric", [("epm()"), ("eps()")])
 def test_get_metric_extraction_config_with_no_tag_spec(
     default_project: Project, metric: str

@@ -43,8 +43,8 @@ def fetch_sessions_data(
         )
         interval = "1hr"
         query_params["interval"] = interval
-        query_params["start"] = start
-        query_params["end"] = end
+        query_params["start"] = start.isoformat()
+        query_params["end"] = end.isoformat()
 
         # crash free rates are on a dynamic INTERVAL basis
         # TODO: determine how this affects results for new releases

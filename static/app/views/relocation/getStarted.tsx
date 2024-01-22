@@ -15,10 +15,13 @@ import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnb
 import {StepProps} from './types';
 
 function GetStarted(props: StepProps) {
-  const regions = ConfigStore.get('regions');
   const [regionUrl, setRegionUrl] = useState('');
   const [orgSlugs, setOrgSlugs] = useState('');
   const relocationOnboardingContext = useContext(RelocationOnboardingContext);
+  const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions || [];
+  const regions = ConfigStore.get('regions').filter(region =>
+    selectableRegions.includes(region.name)
+  );
 
   const handleContinue = (event: any) => {
     event.preventDefault();
@@ -26,7 +29,7 @@ function GetStarted(props: StepProps) {
     props.onComplete();
   };
   return (
-    <Wrapper>
+    <Wrapper data-test-id="get-started">
       <StepHeading step={1}>{t('Basic information needed to get started')}</StepHeading>
       <motion.div
         transition={testableTransition()}
@@ -39,7 +42,7 @@ function GetStarted(props: StepProps) {
         <Form onSubmit={handleContinue}>
           <p>
             {t(
-              'In order to best facilitate the process some basic information will be required to ensure sucess with the relocation process of you self-hosted instance'
+              'In order to best facilitate the process some basic information will be required to ensure success with the relocation process of you self-hosted instance'
             )}
           </p>
           <RequiredLabel>{t('Organization slugs being relocated')}</RequiredLabel>

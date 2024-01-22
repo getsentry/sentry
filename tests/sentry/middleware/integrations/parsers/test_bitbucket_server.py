@@ -7,10 +7,9 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.bitbucket_server import BitbucketServerRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_webhook_outboxes, outbox_runner
+from sentry.testutils.outbox import assert_webhook_outboxes_with_shard_id, outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -60,8 +59,8 @@ class BitbucketServerRequestParserTest(TestCase):
             region_name="us"
         )
         parser.get_response()
-        assert_webhook_outboxes(
+        assert_webhook_outboxes_with_shard_id(
             factory_request=request,
-            webhook_identifier=WebhookProviderIdentifier.BITBUCKET_SERVER,
+            expected_shard_id=self.organization.id,
             region_names=[self.region.name],
         )

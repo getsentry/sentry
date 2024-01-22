@@ -99,14 +99,14 @@ class ControlOutboxTest(TestCase):
                 inst.save()
 
             for inst in ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.SLACK,
+                shard_identifier=WebhookProviderIdentifier.SLACK,
                 region_names=[settings.SENTRY_MONOLITH_REGION, "special-slack-region"],
                 request=request,
             ):
                 inst.save()
 
             for inst in ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[settings.SENTRY_MONOLITH_REGION, "special-github-region"],
                 request=request,
             ):
@@ -175,7 +175,7 @@ class ControlOutboxTest(TestCase):
 
     def test_control_outbox_for_webhooks(self):
         [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
+            shard_identifier=WebhookProviderIdentifier.GITHUB,
             region_names=["webhook-region"],
             request=self.webhook_request,
         )
@@ -217,7 +217,7 @@ class ControlOutboxTest(TestCase):
             )
             expected_request_count = 1 if SiloMode.get_current_mode() == SiloMode.CONTROL else 0
             [outbox] = ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )
@@ -238,7 +238,7 @@ class ControlOutboxTest(TestCase):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
             [outbox] = ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )

@@ -22,8 +22,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -43,6 +41,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
@@ -210,7 +209,7 @@ interface StacktraceLinkProps {
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
   const {projects} = useProjects();
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');

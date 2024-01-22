@@ -18,6 +18,7 @@ from sentry.grouping.utils import (
 from sentry.grouping.variants import (
     HIERARCHICAL_VARIANTS,
     BaseVariant,
+    BuiltInFingerprintVariant,
     ChecksumVariant,
     ComponentVariant,
     CustomFingerprintVariant,
@@ -256,6 +257,9 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
             "matched_rule": rule.to_json(),
         }
 
+        if rule.is_builtin:
+            event["_fingerprint_info"]["is_builtin"] = True
+
 
 def _get_calculated_grouping_variants_for_event(event, context):
     winning_strategy: str | None = None
@@ -341,7 +345,10 @@ def get_grouping_variants_for_event(
             rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
+        if fingerprint_info and fingerprint_info.get("is_builtin", False):
+            rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
+        else:
+            rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
     # If the fingerprints are unsalted, we can return them right away.
     elif defaults_referenced == 1 and len(fingerprint) == 1:
