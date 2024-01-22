@@ -133,7 +133,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise ParseError from e
         except Exception as e:
             # Produce more detailed log
-            if in_test_environment():
+            if settings.DEBUG:
                 raise Exception(f"Problem processing seer rpc endpoint {method_name}") from e
             capture_exception()
             raise ValidationError from e
