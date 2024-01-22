@@ -36,8 +36,14 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const createDashboard = useCreateDashboard();
-  const {addWidget, isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols} =
-    useDDMContext();
+  const {
+    addWidget,
+    isDefaultQuery,
+    setDefaultQuery,
+    widgets,
+    showQuerySymbols,
+    selectedWidgetIndex,
+  } = useDDMContext();
 
   const hasEmptyWidget = widgets.length === 0 || widgets.some(widget => !widget.mri);
 
@@ -86,7 +92,13 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         });
         return {
           leadingItems: showQuerySymbols
-            ? [<QuerySymbol key="icon" index={index} />]
+            ? [
+                <QuerySymbol
+                  key="icon"
+                  index={index}
+                  isSelected={index === selectedWidgetIndex}
+                />,
+              ]
             : [],
           key: `add-alert-${index}`,
           label: widget.mri
@@ -101,6 +113,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       }),
     [
       organization,
+      selectedWidgetIndex,
       selection.datetime,
       selection.environments,
       selection.projects,

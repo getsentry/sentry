@@ -122,7 +122,7 @@ export const MetricWidget = memo(
       >
         <PanelBody>
           <MetricWidgetHeader>
-            {showQuerySymbols && <QuerySymbol index={index} />}
+            {showQuerySymbols && <QuerySymbol index={index} isSelected={isSelected} />}
             <WidgetTitle>
               <StyledTooltip
                 title={widgetTitle}
