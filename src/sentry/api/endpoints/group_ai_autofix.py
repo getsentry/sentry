@@ -158,3 +158,12 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         return HttpResponse(
             status=200,
         )
+
+    def get(self, request: Request, group: Group) -> HttpResponse:
+        metadata = group.data.get("metadata", {})
+        autofix_data = metadata.get("autofix", None)
+        return HttpResponse(
+            status=200,
+            content_type="application/json",
+            content=json.dumps({"data": autofix_data}),
+        )
