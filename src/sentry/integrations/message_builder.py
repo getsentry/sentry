@@ -192,7 +192,7 @@ def build_footer(
         text = rules[0].label if rules[0].label else "Test Alert"
         footer += f" via {url_format.format(text=text, url=rule_url)}"
 
-        if features.has("organizations:slack-formatting-update", project.organization):
+        if features.has("organizations:slack-block-kit", project.organization):
             footer = url_format.format(text=text, url=rule_url)
 
         if len(rules) > 1:

@@ -45,13 +45,11 @@ pytestmark = [requires_snuba]
 def build_test_message_blocks(
     teams: set[Team],
     users: set[User],
-    timestamp: datetime,
     group: Group,
     event: Event | None = None,
     link_to_event: bool = False,
     tags: dict[str, str] | None = None,
     mentions: str | None = None,
-    extra_content: bool = False,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -65,15 +63,7 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
-    ts = group.last_seen
-    timestamp = max(ts, event.datetime) if event else ts
-    event_date = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
-        to_timestamp(timestamp), "{date_pretty}", "{time}"
-    )
-
-    title_text = f"<{title_link}|*{formatted_title}*>  \n"
-    if extra_content:
-        title_text = f":exclamation: {title_text}"
+    title_text = f":exclamation: <{title_link}|*{formatted_title}*>  \n"
 
     blocks: list[dict[str, Any]] = [
         {
@@ -82,28 +72,27 @@ def build_test_message_blocks(
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
-    if tags or extra_content:
-        tags_text = ""
-        if tags:
-            for k, v in tags.items():
-                tags_text += f"`{k}: {v}`  "
-        else:
-            for k, v in {"level": "error"}.items():
-                tags_text += f"`{k}: {v}`  "
 
-        tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
-        blocks.append(tags_section)
+    tags_text = ""
+    if not tags:
+        tags = {}
+    tags["level"] = "error"
 
-    if extra_content:
-        # add event and user count, state, first seen
-        counts_section = {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
-            },
-        }
-        blocks.append(counts_section)
+    for k, v in tags.items():
+        tags_text += f"`{k}: {v}`  "
+
+    tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
+    blocks.append(tags_section)
+
+    # add event and user count, state, first seen
+    counts_section = {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+        },
+    }
+    blocks.append(counts_section)
 
     actions = {
         "type": "actions",
@@ -141,9 +130,7 @@ def build_test_message_blocks(
         }
         blocks.append(mentions_section)
 
-    context_text = f"BAR-{group.short_id} | {event_date}"
-    if extra_content:
-        context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
+    context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
     context = {
         "type": "context",
         "elements": [{"type": "mrkdwn", "text": context_text}],
@@ -282,6 +269,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
+                "tags": {"foo": "bar"},
                 "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
@@ -293,62 +281,53 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        tags = {"level": "error"}
+        tags = {"foo": "bar"}
         mentions = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
-            timestamp=group.last_seen,
             group=group,
         )
 
-        # add tags to message
+        # add extra tag to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"level"}
+            group, event.for_group(group), tags={"foo"}
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
-            timestamp=group.last_seen,
             group=group,
             tags=tags,
             event=event,
         )
 
-        # add extra content to message
-        with self.feature("organizations:slack-formatting-update"):
-            assert SlackIssuesMessageBuilder(
-                group, event.for_group(group), mentions=mentions
-            ).build() == build_test_message_blocks(
-                teams={self.team},
-                users={self.user},
-                timestamp=group.last_seen,
-                group=group,
-                mentions=mentions,
-                event=event,
-                extra_content=True,
-            )
-        # add tags and extra content to message
-        with self.feature("organizations:slack-formatting-update"):
-            assert SlackIssuesMessageBuilder(
-                group, event.for_group(group), tags={"level"}, mentions=mentions
-            ).build() == build_test_message_blocks(
-                teams={self.team},
-                users={self.user},
-                timestamp=group.last_seen,
-                group=group,
-                tags=tags,
-                mentions=mentions,
-                event=event,
-                extra_content=True,
-            )
+        # add mentions to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), mentions=mentions
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            mentions=mentions,
+            event=event,
+        )
+        # add extra tag and mentions to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo"}, mentions=mentions
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=tags,
+            mentions=mentions,
+            event=event,
+        )
 
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group)
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
-            timestamp=event.datetime,
             group=group,
             event=event,
         )
@@ -358,7 +337,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
-            timestamp=event.datetime,
             group=group,
             event=event,
             link_to_event=True,
@@ -367,7 +345,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         test_message = build_test_message_blocks(
             teams={self.team},
             users={self.user},
-            timestamp=group.last_seen,
             group=group,
         )
 
@@ -466,10 +443,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ).build()
         assert isinstance(ret, dict)
         assert (
-            ret["blocks"][1]["elements"][2]["initial_option"]["text"]["text"]
+            ret["blocks"][2]["elements"][2]["initial_option"]["text"]["text"]
             == self.user.get_display_name()
         )
-        assert ret["blocks"][1]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
+        assert ret["blocks"][2]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
 
     # XXX(CEO): skipping replicating tests relating to color since there is no block kit equivalent
     def test_build_group_attachment_color_no_event_error_fallback(self):
