@@ -78,15 +78,15 @@ class DiscordClient(ApiClient):
         }
         try:
             response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-            access_token = response.get("access_token")
-            if access_token is None:
-                logger.error("discord.install.failed_to_get_access_token")
-                raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+            access_token = response["access_token"]  # type: ignore
             return access_token
         except ApiError as e:
             logger.exception(
                 "discord.install.failed_to_complete_oauth2_flow", extra={"error": str(e)}
             )
+            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+        except KeyError:
+            logger.exception("discord.install.failed_to_get_access_token")
             raise IntegrationError("Failed to complete Discord OAuth2 flow.")
 
     def get_user_id(self, access_token: str):
