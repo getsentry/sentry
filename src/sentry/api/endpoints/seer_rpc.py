@@ -153,6 +153,14 @@ def autofix_callback(result: dict) -> bool:
             "status": "COMPLETED",
             "fix": convert_dict_key_case(result["result"], snake_to_camel_case),
         }
+    elif result["status"] == "ERROR":
+        metadata["autofix"] = {
+            **autofix_data,
+            "completedAt": datetime.now().isoformat(),
+            "status": "ERROR",
+            "fix": None,
+            "errorMessage": "Something went wrong with the autofix.",
+        }
     else:
         metadata["autofix"] = {
             "completedAt": datetime.now().isoformat(),
