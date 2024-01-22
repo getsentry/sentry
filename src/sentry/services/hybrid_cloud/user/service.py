@@ -190,6 +190,8 @@ class UserService(RpcService):
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
 def get_user(user_id: int) -> RpcUser:
+    if user_id is None:
+        raise ValueError("user_id must not be None")
     users = user_service.get_many(filter=dict(user_ids=[user_id]))
     if len(users) > 0:
         return users[0]
