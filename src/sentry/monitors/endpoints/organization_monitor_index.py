@@ -325,9 +325,4 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
             monitor.update(**result)
 
-        return self.paginate(
-            request=request,
-            queryset=monitors,
-            on_results=lambda x: serialize(x, request.user, MonitorSerializer()),
-            paginator_cls=OffsetPaginator,
-        )
+        return self.respond(serialize(list(monitors), request.user))
