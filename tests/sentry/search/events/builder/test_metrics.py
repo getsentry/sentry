@@ -36,8 +36,6 @@ from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
-FEAT_FLAG = "organizations:on-demand-metrics-query-unicode-and-env-spec-version"
-
 
 def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
     return (miserable_users + constants.MISERY_ALPHA) / (
