@@ -2,10 +2,12 @@ from __future__ import annotations
 
 # to avoid a circular import
 import logging
+from urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 logger = logging.getLogger("sentry.integrations.discord")
 
@@ -26,6 +28,10 @@ CHANNEL_URL = "/channels/{channel_id}"
 # https://discord.com/developers/docs/resources/channel#create-message
 MESSAGE_URL = "/channels/{channel_id}/messages"
 
+TOKEN_URL = "/oauth2/token"
+
+USER_URL = "/users/@me"
+
 
 class DiscordClient(ApiClient):
     integration_name: str = "discord"
@@ -34,6 +40,7 @@ class DiscordClient(ApiClient):
     def __init__(self):
         super().__init__()
         self.application_id = options.get("discord.application-id")
+        self.client_secret = options.get("discord.client-secret")
         self.bot_token = options.get("discord.bot-token")
 
     def prepare_auth_header(self) -> dict[str, str]:
@@ -56,6 +63,50 @@ class DiscordClient(ApiClient):
     def get_guild_name(self, guild_id: str) -> str:
         response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
         return response["name"]  # type: ignore
+
+    def get_access_token(self, code: str, url: str):
+        data = {
+            "client_id": self.application_id,
+            "client_secret": self.client_secret,
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": url,
+            "scope": "identify",
+        }
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        try:
+            response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
+            access_token = response.get("access_token")
+            if access_token is None:
+                logger.error("discord.install.failed_to_get_access_token")
+                raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+            return access_token
+        except ApiError as e:
+            logger.exception(
+                "discord.install.failed_to_complete_oauth2_flow", extra={"error": str(e)}
+            )
+            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+
+    def get_user_id(self, access_token: str):
+        headers = {"Authorization": f"Bearer {access_token}"}
+        try:
+            response = self.get(
+                USER_URL,
+                headers=headers,
+            )
+            user_id = response.get("id")
+            if user_id is None:
+                logger.error("discord.install.no_user_id_in_response")
+                raise IntegrationError("Could not retrieve Discord user information.")
+            return user_id
+        except Exception as e:
+            logger.exception(
+                "discord.install.failed_to_get_user_id",
+                extra={"error": str(e)},
+            )
+            raise IntegrationError("Could not retrieve Discord user information.")
 
     def leave_guild(self, guild_id: str) -> None:
         """

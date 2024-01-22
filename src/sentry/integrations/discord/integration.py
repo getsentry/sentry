@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Any
 from urllib.parse import urlencode
 
-import requests
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
@@ -21,7 +20,7 @@ from sentry.integrations.discord.client import DiscordClient
 from sentry.models.integrations.integration import Integration
 from sentry.pipeline.views.base import PipelineView
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 
 from .utils import logger
@@ -233,38 +232,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
         integration.
 
         """
-        form_data = f"client_id={self.application_id}&client_secret={self.client_secret}&grant_type=authorization_code&code={auth_code}&redirect_uri={url}"
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-
-        try:
-            response = self.client.post(
-                "https://discord.com/api/v10/oauth2/token",
-                json=False,
-                data=form_data,
-                headers=headers,
-            )
-            token = response["access_token"]  # type: ignore
-
-        except ApiError as e:
-            logger.error("discord.install.failed_to_complete_oauth2_flow", extra={"error": str(e)})
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-        except KeyError:
-            logger.error("discord.install.failed_to_extract_oauth2_access_token")
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-
-        headers = {"Authorization": f"Bearer {token}"}
-        # Can't use self.client.get because that will overwrite our header
-        # with our bot's authorization
-        response = requests.get(f"{self.client.base_url}/users/@me", headers=headers)
-        if response.status_code == 200:
-            return response.json()["id"]
-
-        logger.error(
-            "discord.install.failed_to_get_discord_user_id", extra={"code": response.status_code}
-        )
-        raise IntegrationError("Could not retrieve Discord user information.")
+        access_token = self.client.get_access_token(auth_code, url)
+        user_id = self.client.get_user_id(access_token)
+        return user_id
 
     def get_params_for_oauth(
         self,
