@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
@@ -164,13 +165,20 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
   function ResourceCard() {
     return (
       <ResourceCardContainer>
-        <Hovercard
-          body={<ResourceButtons />}
-          header={t('Documentation Resources')}
-          position="top-end"
-        >
-          <Button icon={<IconQuestion />} aria-label="replay resources" />
-        </Hovercard>
+        <ClassNames>
+          {({css}) => (
+            <Hovercard
+              body={<ResourceButtons />}
+              bodyClassName={css`
+                padding: ${space(1)};
+              `}
+              header={t('Documentation Resources')}
+              position="top-end"
+            >
+              <Button icon={<IconQuestion />} aria-label="replay resources" />
+            </Hovercard>
+          )}
+        </ClassNames>
       </ResourceCardContainer>
     );
   }
@@ -319,7 +327,7 @@ const SentryPlayerRoot = styled(PlayerRoot)`
 const ResourceCardContainer = styled('div')`
   position: absolute;
   bottom: ${space(1)};
-  right: 1%;
+  right: 8px;
 `;
 
 const ButtonContainer = styled('div')`
