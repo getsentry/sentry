@@ -232,7 +232,7 @@ class Endpoint(APIView):
                     permission_cls, (StaffPermission, SuperuserOrStaffFeatureFlaggedPermission)
                 )
 
-                if enforce_staff_permission and is_staff_user and has_only_staff_permission:
+                if is_staff_user and has_only_staff_permission:
                     raise StaffRequired()
             else:
                 is_superuser_user = request.user.is_superuser
