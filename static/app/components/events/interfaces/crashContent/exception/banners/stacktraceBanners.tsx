@@ -27,8 +27,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
-import {AddCodecovBanner} from './banners/addCodecovBanner';
-import {AddIntegrationBanner} from './banners/addIntegrationBanner';
+import {AddCodecovBanner} from './addCodecovBanner';
+import {AddIntegrationBanner} from './addIntegrationBanner';
 
 function shouldShowCodecovPrompt(
   organization: Organization,
