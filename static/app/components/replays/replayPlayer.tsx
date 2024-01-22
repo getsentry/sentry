@@ -182,7 +182,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
       {isBuffering ? <PositionedBuffering /> : null}
       {isPreview ? null : <PlayerDOMAlert />}
       {isFetching ? <PositionedLoadingIndicator /> : null}
-      {isFullscreen ? null : <ResourceCard />}
+      {!(isFullscreen || isPreview) && <ResourceCard />}
     </NegativeSpaceContainer>
   );
 }
