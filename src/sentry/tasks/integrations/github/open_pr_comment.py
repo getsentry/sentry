@@ -40,7 +40,7 @@ from sentry.tasks.integrations.github.constants import (
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.tasks.integrations.github.patch_parsers import PATCH_PARSERS
+from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import format_comment_url, get_pr_comment
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
@@ -247,7 +247,13 @@ def get_projects_and_filenames_from_source_file(
 def get_top_5_issues_by_count_for_file(
     projects: List[Project], sentry_filenames: List[str], function_names: List[str]
 ) -> List[Dict[str, Any]]:
-    """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+    """
+    Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
+    and function names representing the list of functions changed in a PR file, return a
+    sublist of the top 5 recent unhandled issues ordered by event count.
+    """
+    # fetches the appropriate parser for formatting the snuba query given the file extension
+    # the extension is never replaced in reverse codemapping
     language_parser = PATCH_PARSERS.get(sentry_filenames[0].split(".")[-1], None)
 
     if not language_parser:
