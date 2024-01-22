@@ -46,7 +46,7 @@ class SlackActionRequest(SlackRequest):
         if self.data["type"] == "block_actions":
             if self.data.get("view"):
                 return json.loads(self.data["view"]["private_metadata"])
-            elif self.data["container"].get(
+            elif self.data.get("container", {}).get(
                 "is_app_unfurl"
             ):  # for actions taken on interactive unfurls
                 return json.loads(self.data["app_unfurl"]["blocks"][0]["block_id"])
