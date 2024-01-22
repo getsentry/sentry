@@ -167,7 +167,8 @@ describe('TeamStatsHealth', () => {
   function createWrapper({
     projects,
     teams,
-  }: {projects?: Project[]; teams?: TeamType[]} = {}) {
+    isOrgOwner,
+  }: {isOrgOwner?: boolean; projects?: Project[]; teams?: TeamType[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
@@ -175,6 +176,11 @@ describe('TeamStatsHealth', () => {
       teams,
       projects,
     });
+
+    if (isOrgOwner !== undefined && !isOrgOwner) {
+      organization.access = organization.access.filter(scope => scope !== 'org:admin');
+    }
+
     const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
@@ -196,8 +202,8 @@ describe('TeamStatsHealth', () => {
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
-  it('allows team switching', async () => {
-    createWrapper();
+  it('allows team switching as non-owner', async () => {
+    createWrapper({isOrgOwner: false});
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
@@ -211,6 +217,24 @@ describe('TeamStatsHealth', () => {
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
+    );
+  });
+
+  it('allows team switching as owner', async () => {
+    createWrapper();
+
+    expect(screen.getByText('#backend')).toBeInTheDocument();
+    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
+    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    // Org owners can see all teams including ones they are not members of
+    expect(screen.queryByText('#internal')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('#internal'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {team: team3.id}})
+    );
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'teamInsightsSelectedTeamId:org-slug',
+      team3.id
     );
   });
 
