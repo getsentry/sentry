@@ -170,7 +170,8 @@ class BaseQueryBuilder:
             else:
                 environments = []
 
-        user = user_service.get_user(user_id=params["user_id"]) if "user_id" in params else None
+        user_id = params.get("user_id")
+        user = user_service.get_user(user_id=user_id) if user_id is not None else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
