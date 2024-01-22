@@ -88,7 +88,7 @@ class OnDemandMetricSpecVersioning:
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
         org = Organization.objects.get_from_cache(id=organization_id)
-        if features.has("organizations:on-demand-query-with-new-env-logic", org):
+        if features.has("organizations:on-demand-metrics-query-unicode-and-env-spec-version", org):
             return cls.spec_versions[1]
         return cls.spec_versions[0]
 

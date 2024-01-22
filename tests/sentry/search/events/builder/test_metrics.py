@@ -33,8 +33,11 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
+
+FEAT_FLAG = "organizations:on-demand-metrics-query-unicode-and-env-spec-version"
 
 
 def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
@@ -2500,6 +2503,43 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 {"name": "customtag2", "type": "string"},
             ],
         )
+
+    def test_run_top_timeseries_query_with_unicode_string(self) -> None:
+        for feature, expected_version, expected_flags in [
+            ("", 1, set()),
+            (FEAT_FLAG, 2, {"use_new_unicode_and_env_logic"}),
+        ]:
+            with Feature(feature):
+                unicode_str = "Hello, 世界!"
+                field = "count()"
+                groupbys = ["customtag1"]
+                query_s = "transaction.duration:>=100"
+                spec = OnDemandMetricSpec(field=field, groupbys=groupbys, query=query_s)
+
+                for day in range(0, 5):
+                    self.store_on_demand_metric(
+                        day * 62 * 24,
+                        spec=spec,
+                        additional_tags={"customtag1": unicode_str},
+                        timestamp=self.start + datetime.timedelta(days=day),
+                    )
+
+                query = TopMetricsQueryBuilder(
+                    Dataset.PerformanceMetrics,
+                    self.params,
+                    3600 * 24,
+                    [{"customtag1": unicode_str}],
+                    query=query_s,
+                    selected_columns=groupbys,
+                    timeseries_columns=[field],
+                    config=QueryBuilderConfig(
+                        on_demand_metrics_enabled=True,
+                        on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
+                    ),
+                )
+                spec_version = query._on_demand_metric_spec_map["count()"].spec_version
+                assert spec_version.version == expected_version
+                assert spec_version.flags == expected_flags
 
     def test_on_demand_top_timeseries_simple_metric_spec_with_environment_set(self):
         field = "count()"
