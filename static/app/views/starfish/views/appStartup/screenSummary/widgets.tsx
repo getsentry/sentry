@@ -96,7 +96,7 @@ function SummaryWidgets({additionalFilters}) {
       </div>
       <div style={{gridArea: '1 / 2 / 1 / 2'}}>
         <DeviceClassBreakdownBarChart
-          title={t('Cold Start')}
+          title={t('Cold Start by Device Class')}
           isLoading={isLoading}
           isError={isError}
           data={Object.values(transformedData[YAXIS_COLUMNS[YAxis.COLD_START]])}
@@ -105,7 +105,7 @@ function SummaryWidgets({additionalFilters}) {
       </div>
       <div style={{gridArea: '2 / 2 / 2 / 2'}}>
         <DeviceClassBreakdownBarChart
-          title={t('Warm Start')}
+          title={t('Warm Start by Device Class')}
           isLoading={isLoading}
           isError={isError}
           data={Object.values(transformedData[YAXIS_COLUMNS[YAxis.WARM_START]])}
