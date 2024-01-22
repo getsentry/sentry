@@ -82,10 +82,14 @@ def build_test_message_blocks(
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
-    if tags:
+    if tags or extra_content:
         tags_text = ""
-        for k, v in tags.items():
-            tags_text += f"`{k}: {v}`  "
+        if tags:
+            for k, v in tags.items():
+                tags_text += f"`{k}: {v}`  "
+        else:
+            for k, v in {"level": "error"}.items():
+                tags_text += f"`{k}: {v}`  "
 
         tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
         blocks.append(tags_section)
@@ -143,7 +147,9 @@ def build_test_message_blocks(
     }
 
     if extra_content:
-        context["elements"][0]["text"] = f"Project: {project.slug}   Alert: BAR-{group.short_id}"
+        context["elements"][0][
+            "text"
+        ] = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
     blocks.append(context)
 
     blocks.append({"type": "divider"})

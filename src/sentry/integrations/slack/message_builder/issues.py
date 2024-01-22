@@ -149,10 +149,15 @@ def build_tag_fields(
 
 def get_tags(
     event_for_tags: Any,
+    has_slack_formatting_update: bool | False,
     tags: set[str] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
     """Get tag keys and values for block kit"""
     fields = []
+    if has_slack_formatting_update:
+        if not tags:
+            tags = set()
+        tags = tags | {"level", "release"}
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -461,6 +466,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             rule_id,
             notification_uuid=notification_uuid,
         )
+        title = build_attachment_title(obj)
 
         if not features.has("organizations:slack-block-kit", self.group.project.organization):
             return self._build(
@@ -471,7 +477,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 fields=fields,
                 footer=footer,
                 text=text,
-                title=build_attachment_title(obj),
+                title=title,
                 title_link=title_link,
                 ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
             )
@@ -481,9 +487,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             "organizations:slack-formatting-update", self.group.project.organization
         )
         # build title block
-        if text:
-            text = f"```{text}```"
-        title_text = f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}"
+        if text and has_slack_formatting_update and not self.actions:
+            text = f"```{text.lstrip(' ')}```"
+        title_text = f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"
         if has_slack_formatting_update:
             if self.group.issue_category == GroupCategory.ERROR:
                 level_text = None
@@ -500,8 +506,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         blocks = [self.get_markdown_block(title_text)]
         # build tags block
-        # TODO: add release and environment if available, but don't duplicate if already set in the rule config
-        tags = get_tags(event_for_tags, self.tags)
+        tags = get_tags(event_for_tags, has_slack_formatting_update, self.tags)
         if tags:
             blocks.append(self.get_tags_block(tags))
 
@@ -517,12 +522,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             for k, v in context.items():
                 context_text += f"{k}: *{v}*   "
             blocks.append(self.get_markdown_block(context_text[:-3]))
-
-        # build footer block
-        timestamp = None
-        if not self.issue_details:
-            ts = self.group.last_seen
-            timestamp = max(ts, self.event.datetime) if self.event else ts
 
         # build actions
         actions = []
@@ -577,11 +576,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 mentions_text = f"Mentions: {self.mentions}"
                 blocks.append(self.get_markdown_block(mentions_text))
 
-        # update footer to be project slug + alert name/link
-        if has_slack_formatting_update:
-            # TODO linkify project
-            # XXX(CEO): note that this changes the footer for workflow alerts, should exclude adding the project there since it's duplicated
-            footer = f"Project: {project.slug}   Alert: {footer}"
+        # build footer block
+        timestamp = None
+        if not self.issue_details:
+            ts = self.group.last_seen
+            timestamp = max(ts, self.event.datetime) if self.event else ts
+
+        if has_slack_formatting_update and not self.notification:
+            # the footer content differs if it's a workflow notification, so we must check for that
+            footer = f"Project: <{project.get_absolute_url()}|{escape_slack_text(project.slug)}>    Alert: {footer}"
             blocks.append(self.get_context_block(text=footer))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
