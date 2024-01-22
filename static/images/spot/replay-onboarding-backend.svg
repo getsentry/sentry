@@ -3,7 +3,6 @@
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 358 99" style="enable-background:new 0 0 358 99;" xml:space="preserve">
 <style type="text/css">
-	.st0{fill:#FFFFFF;}
 	.st1{fill:#FFC1A9;}
 	.st2{fill:#E7E1EC;}
 	.st3{fill:#FF9C88;}
@@ -12,7 +11,7 @@
 	.st6{fill:none;stroke:#2F1D4A;stroke-width:1.3333;stroke-linecap:round;stroke-linejoin:round;}
 	.st7{fill:#2F1D4A;}
 </style>
-<rect class="st0" width="358" height="99"/>
+<rect width="358" height="99"/>
 <path class="st1" d="M358,99V0H140.1L0,14.5l13.5,65L146,98.8L358,99z"/>
 <polygon class="st2" points="82.1,99 150.5,99 151.3,80.8 148.6,75.8 47,60.7 42.4,63.4 44.8,92.8 "/>
 <path class="st3" d="M100.6,68.7V52.5l-3.2-0.5l-1.2,16L100.6,68.7z"/>
