@@ -5,6 +5,7 @@ import colorFn from 'color';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -211,7 +212,16 @@ export const SummaryTable = memo(function SummaryTable({
                       }}
                     />
                   </Cell>
-                  <TextOverflowCell>{name}</TextOverflowCell>
+                  <TextOverflowCell>
+                    <Tooltip
+                      title={name}
+                      showOnlyOnOverflow
+                      delay={500}
+                      overlayStyle={{maxWidth: '80vw'}}
+                    >
+                      <TextOverflow>{name}</TextOverflow>
+                    </Tooltip>
+                  </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
                   <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
                   <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
@@ -344,12 +354,11 @@ const Cell = styled('div')<{right?: boolean}>`
   padding: ${space(0.25)} ${space(1)};
   align-items: center;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+  white-space: nowrap;
 `;
 
 const TextOverflowCell = styled(Cell)`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
 `;
 
 const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`

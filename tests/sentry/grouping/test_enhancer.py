@@ -8,13 +8,15 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import create_match_frame
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def dump_obj(obj):
     if not isinstance(getattr(obj, "__dict__", None), dict):
         return obj
     rv: dict[str, Any] = {}
-    for (key, value) in obj.__dict__.items():
+    for key, value in obj.__dict__.items():
         if key.startswith("_"):
             continue
         elif isinstance(value, list):
@@ -27,6 +29,7 @@ def dump_obj(obj):
 
 
 @pytest.mark.parametrize("version", [1, 2])
+@django_db_all
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -46,11 +49,23 @@ family:native                                   max-frames=3
     )
     enhancement.version = version
 
-    dumped = enhancement.dumps()
     insta_snapshot(dump_obj(enhancement))
+
+    dumped = enhancement.dumps()
     assert Enhancements.loads(dumped).dumps() == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, str)
+
+    with override_options({"enhancers.use-zstd": True}):
+        dumped_zstd = enhancement.dumps()
+
+        assert dumped_zstd is not dumped
+        assert Enhancements.loads(dumped_zstd).dumps() == dumped_zstd
+        assert (
+            Enhancements.loads(dumped_zstd)._to_config_structure()
+            == enhancement._to_config_structure()
+        )
+        assert isinstance(dumped_zstd, str)
 
 
 def test_parsing_errors():
@@ -77,7 +92,7 @@ def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cac
 
     match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-    return rule.get_matching_frame_actions(match_frames, platform, exception_data, cache)
+    return rule.get_matching_frame_actions(match_frames, exception_data, cache)
 
 
 def test_basic_path_matching():
@@ -353,7 +368,7 @@ def test_mechanism_matching_no_frames():
 
     # Matcher matches:
     (matcher,) = rule._exception_matchers
-    assert matcher.matches_frame([], None, "python", exception_data, {})
+    assert matcher.matches_frame([], None, exception_data, {})
 
 
 def test_range_matching():

@@ -20,14 +20,11 @@ jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
 
 const now = new Date();
-const mockReplay = ReplayReader.factory(
-  {
-    replayRecord: ReplayRecordFixture({started_at: now}),
-    errors: [],
-    attachments: RRWebInitFrameEventsFixture({timestamp: now}),
-  },
-  {}
-);
+const mockReplay = ReplayReader.factory({
+  replayRecord: ReplayRecordFixture({started_at: now}),
+  errors: [],
+  attachments: RRWebInitFrameEventsFixture({timestamp: now}),
+});
 
 jest.mocked(useReplayReader).mockImplementation(() => {
   return {
@@ -42,6 +39,15 @@ jest.mocked(useReplayReader).mockImplementation(() => {
     replayRecord: ReplayRecordFixture(),
   };
 });
+
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
 
 describe('EventReplay', function () {
   const MockUseReplayOnboardingSidebarPanel = jest.mocked(

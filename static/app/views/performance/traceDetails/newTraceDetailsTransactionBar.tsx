@@ -72,6 +72,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
@@ -114,6 +115,7 @@ type Props = {
 
 function NewTraceDetailsTransactionBar(props: Props) {
   const hashValues = parseTraceDetailsURLHash(props.location.hash);
+  const openPanel = decodeScalar(props.location.query.openPanel);
   const eventIDInQueryParam = !!(
     isTraceTransaction(props.transaction) &&
     hashValues?.eventId &&
@@ -251,10 +253,11 @@ function NewTraceDetailsTransactionBar(props: Props) {
         props.onRowClick({
           traceFullDetailedEvent: props.transaction,
           event: embeddedChildren,
+          openPanel,
         });
       }
     }
-  }, [isHighlighted, embeddedChildren, props, props.transaction]);
+  }, [isHighlighted, embeddedChildren, props, props.transaction, openPanel]);
 
   const renderEmbeddedChildrenState = () => {
     if (showEmbeddedChildren) {
@@ -290,6 +293,10 @@ function NewTraceDetailsTransactionBar(props: Props) {
       router.replace({
         ...location,
         hash: transactionTargetHash(transaction.event_id),
+        query: {
+          ...location.query,
+          openPanel: 'open',
+        },
       });
     }
   };

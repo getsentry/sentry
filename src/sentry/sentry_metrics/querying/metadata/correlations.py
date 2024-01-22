@@ -22,6 +22,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.metadata.utils import (
     add_environments_condition,
     get_snuba_conditions_from_query,
@@ -62,6 +63,19 @@ class CorrelationsQueryExecutionError(Exception):
 
 
 @dataclass(frozen=True)
+class MetricSummary:
+    """
+    Summary of a metric inside a span.
+    """
+
+    span_id: str
+    min: float
+    max: float
+    sum: float
+    count: float
+
+
+@dataclass(frozen=True)
 class SpanDetail:
     """
     Details of an individual span which is inside a segment.
@@ -94,10 +108,14 @@ class Segment:
     segment_name: str
     profile_id: Optional[str]
     spans_number: int
+    metric_summaries: Sequence[MetricSummary]
     spans_details: Sequence[SpanDetail]
     spans_summary: Sequence[SpanSummary]
     duration: int
     timestamp: datetime
+
+    def add_metric_summaries(self, metric_summaries: Sequence[MetricSummary]) -> "Segment":
+        return replace(self, metric_summaries=metric_summaries)
 
     def add_spans_details(self, spans_details: Sequence[SpanDetail]) -> "Segment":
         return replace(self, spans_details=spans_details)
@@ -163,7 +181,7 @@ class CorrelationsSource(ABC):
 
 
 class MetricsSummariesCorrelationsSource(CorrelationsSource):
-    def _get_span_ids_from_metrics_summaries(
+    def _get_metrics_summaries_by_span(
         self,
         metric_mri: str,
         conditions: Optional[ConditionGroup],
@@ -171,34 +189,40 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Set[str]:
+    ) -> Mapping[str, Tuple[float, float, float, float]]:
         """
-        Returns a set containing the ids of the spans in which `metric_mri` was emitted.
+        Returns a mapping between a span ids and the metrics summary for that span.
 
         In order to honor the filters that the user has in a widget, we take the `query` and parse it to extract a
         series of Snuba conditions that we apply on the tags of the metric summary. For example, if you are filtering by
         tag device:iPhone, we will only show you the spans in which the metric with tag device:iPhone was emitted.
         """
-        where = []
-
+        having = []
         if min_value is not None:
-            where.append(Condition(Column("min"), Op.GTE, min_value))
+            having.append(Condition(Column("min"), Op.GTE, min_value))
         if max_value is not None:
-            where.append(Condition(Column("max"), Op.LTE, max_value))
-        if conditions:
-            where += conditions
+            having.append(Condition(Column("max"), Op.LTE, max_value))
 
         query = Query(
             match=Entity(EntityKey.MetricsSummaries.value),
-            select=[Column("span_id")],
+            select=[
+                Column("span_id"),
+                # In case a span has multiple summaries with the same conditions, we will merge them.
+                Function("min", [Column("min")], alias="min"),
+                Function("max", [Column("max")], alias="max"),
+                Function("sum", [Column("sum")], alias="sum"),
+                Function("sum", [Column("count")], alias="count"),
+            ],
             where=[
                 Condition(Column("project_id"), Op.IN, [project.id for project in self.projects]),
                 Condition(Column("end_timestamp"), Op.GTE, start),
                 Condition(Column("end_timestamp"), Op.LT, end),
                 Condition(Column("metric_mri"), Op.EQ, metric_mri),
             ]
-            + where,
+            + (conditions or []),
+            having=having,
             groupby=[Column("span_id")],
+            limit=Limit(SNUBA_QUERY_LIMIT),
         )
 
         request = Request(
@@ -212,7 +236,11 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
             request, Referrer.API_DDM_FETCH_METRICS_SUMMARIES.value, use_cache=True
         )["data"]
 
-        return {value["span_id"] for value in data}
+        # For now, we assume that each span will have an aggregated metric summary for simplicity.
+        return {
+            value["span_id"]: (value["min"], value["max"], value["sum"], value["count"])
+            for value in data
+        }
 
     def _get_segments_spans(
         self,
@@ -240,6 +268,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("span_id"), Op.IN, list(span_ids)),
             ],
+            limit=Limit(SNUBA_QUERY_LIMIT),
         )
 
         request = Request(
@@ -275,7 +304,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         transformed_conditions = transform_conditions_to_tags(conditions)
 
         # First, we fetch the spans we are interested in given the metric and the bounds.
-        span_ids = self._get_span_ids_from_metrics_summaries(
+        metric_summaries_by_span = self._get_metrics_summaries_by_span(
             metric_mri=metric_mri,
             conditions=transformed_conditions,
             start=start,
@@ -286,7 +315,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         # Second, we fetch all the segments which contain the span ids.
         segments_spans = self._get_segments_spans(
-            span_ids=span_ids,
+            span_ids=set(metric_summaries_by_span.keys()),
             start=start,
             end=end,
         )
@@ -303,11 +332,27 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         # Fourth, we merge span details with the fetched segments.
         extended_segments = []
         for segment in segments:
-            segment_spans_details = [
-                SpanDetail(span_id=span_id, span_duration=duration, span_timestamp=timestamp)
-                for span_id, duration, timestamp in segments_spans.get(segment.segment_id, [])
-            ]
-            extended_segments.append(segment.add_spans_details(segment_spans_details))
+            metric_summaries = []
+            spans_details = []
+            for span_id, duration, timestamp in segments_spans.get(segment.segment_id, []):
+                if (metric_summary := metric_summaries_by_span.get(span_id)) is not None:
+                    metric_summaries.append(
+                        MetricSummary(
+                            span_id=span_id,
+                            min=metric_summary[0],
+                            max=metric_summary[1],
+                            sum=metric_summary[2],
+                            count=metric_summary[3],
+                        )
+                    )
+
+                spans_details.append(
+                    SpanDetail(span_id=span_id, span_duration=duration, span_timestamp=timestamp)
+                )
+
+            extended_segments.append(
+                segment.add_metric_summaries(metric_summaries).add_spans_details(spans_details)
+            )
 
         return extended_segments
 
@@ -433,7 +478,7 @@ def _get_segments_aggregates_query(
             Function(
                 "sumIf",
                 [Column("duration"), Function("equals", [Column("is_segment"), 1])],
-                alias="duration",
+                alias="segment_duration",
             ),
             # Returns the timestamp of the transaction.
             Function(
@@ -455,8 +500,8 @@ def _get_segments_aggregates_query(
             Column("segment_name"),
             Column("profile_id"),
         ],
-        # For now, we order by descending duration.
-        orderby=[OrderBy(Column("duration"), Direction.DESC)],
+        # For now, we order by descending segment duration.
+        orderby=[OrderBy(Column("segment_duration"), Direction.DESC)],
         limit=Limit(MAX_NUMBER_OF_RESULTS),
     )
 
@@ -541,11 +586,14 @@ def _get_segments(
             profile_id=row["profile_id"],
             segment_name=row["segment_name"],
             spans_number=row["spans_number"],
-            # By default, we don't have span details, since they can be optionally injected only if the queried metric
+            # By default, we don't have metric summaries, since they can be optionally added only if the queried
+            # metric is a custom metric.
+            metric_summaries=[],
+            # By default, we don't have span details, since they can be optionally added only if the queried metric
             # is a custom metric.
             spans_details=[],
             spans_summary=spans_summary,
-            duration=row["duration"],
+            duration=row["segment_duration"],
             timestamp=row["any_timestamp"],
         )
 
@@ -577,7 +625,7 @@ def get_correlations_source(
     return None
 
 
-def get_correlations_of_metric(
+def get_metric_correlations(
     metric_mri: str,
     query: Optional[str],
     start: datetime,

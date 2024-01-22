@@ -85,6 +85,28 @@ class DiscordClientTest(TestCase):
         assert guild_name == "Cool server"
 
     @responses.activate
+    def test_get_access_token(self):
+        responses.add(
+            responses.POST,
+            url="https://discord.com/api/v10/oauth2/token",
+            json={
+                "access_token": "access_token",
+            },
+        )
+
+        access_token = self.discord_client.get_access_token("auth_code", "url")
+        assert access_token == "access_token"
+
+    @responses.activate
+    def test_get_user_id(self):
+        responses.add(
+            responses.GET, url="https://discord.com/api/v10/users/@me", json={"id": "user_id"}
+        )
+
+        user_id = self.discord_client.get_user_id("access_token")
+        assert user_id == "user_id"
+
+    @responses.activate
     def test_leave_guild(self):
         guild_id = self.integration.external_id
 
