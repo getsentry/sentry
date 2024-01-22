@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 logger = logging.getLogger("sentry.integrations.discord")
 
@@ -76,37 +75,18 @@ class DiscordClient(ApiClient):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        try:
-            response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-            access_token = response["access_token"]  # type: ignore
-            return access_token
-        except ApiError as e:
-            logger.exception(
-                "discord.install.failed_to_complete_oauth2_flow", extra={"error": str(e)}
-            )
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
-        except KeyError:
-            logger.exception("discord.install.failed_to_get_access_token")
-            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+        response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
+        access_token = response["access_token"]  # type: ignore
+        return access_token
 
     def get_user_id(self, access_token: str):
         headers = {"Authorization": f"Bearer {access_token}"}
-        try:
-            response = self.get(
-                USER_URL,
-                headers=headers,
-            )
-            user_id = response["id"]  # type: ignore
-            return user_id
-        except ApiError as e:
-            logger.exception(
-                "discord.install.failed_to_get_user_id",
-                extra={"error": str(e)},
-            )
-            raise IntegrationError("Could not retrieve Discord user information.")
-        except KeyError:
-            logger.exception("discord.install.no_user_id_in_response")
-            raise IntegrationError("Could not retrieve Discord user information.")
+        response = self.get(
+            USER_URL,
+            headers=headers,
+        )
+        user_id = response["id"]  # type: ignore
+        return user_id
 
     def leave_guild(self, guild_id: str) -> None:
         """

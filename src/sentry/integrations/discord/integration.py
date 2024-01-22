@@ -237,9 +237,18 @@ class DiscordIntegrationProvider(IntegrationProvider):
         integration.
 
         """
-        access_token = self.client.get_access_token(auth_code, url)
-        user_id = self.client.get_user_id(access_token)
-        return user_id
+        try:
+            access_token = self.client.get_access_token(auth_code, url)
+            user_id = self.client.get_user_id(access_token)
+            return user_id
+        except ApiError as e:
+            logger.exception(
+                "discord.install.failed_to_complete_oauth2_flow", extra={"error": str(e)}
+            )
+            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
+        except KeyError:
+            logger.exception("discord.install.failed_to_get_access_token")
+            raise IntegrationError("Failed to complete Discord OAuth2 flow.")
 
     def get_params_for_oauth(
         self,
