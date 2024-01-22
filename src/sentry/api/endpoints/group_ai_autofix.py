@@ -76,7 +76,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             group.save()
 
             return HttpResponse(
-                status=200,
+                status=400,
             )
 
         release: Release = Release.objects.get(version=release_version)
@@ -102,7 +102,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             group.save()
 
             return HttpResponse(
-                status=200,
+                status=400,
             )
 
         try:
