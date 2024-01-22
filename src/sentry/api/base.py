@@ -220,25 +220,28 @@ class Endpoint(APIView):
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
             permission_cls = permissions[0]
-            use_staff = features.has("auth:enterprise-staff-cookie", actor=request.user)
+            enforce_staff_permission = features.has(
+                "auth:enterprise-staff-cookie", actor=request.user
+            )
 
             # TODO(schew2381): Remove SuperuserOrStaffFeatureFlaggedPermission
             # from isinstance checks once feature flag is removed.
-            can_be_superuser = request.user.is_superuser
-            has_only_superuser_permission = isinstance(
-                permission_cls, (SuperuserPermission, SuperuserOrStaffFeatureFlaggedPermission)
-            )
+            if enforce_staff_permission:
+                is_staff_user = request.user.is_staff
+                has_only_staff_permission = isinstance(
+                    permission_cls, (StaffPermission, SuperuserOrStaffFeatureFlaggedPermission)
+                )
 
-            if not use_staff and can_be_superuser and has_only_superuser_permission:
-                raise SuperuserRequired()
+                if enforce_staff_permission and is_staff_user and has_only_staff_permission:
+                    raise StaffRequired()
+            else:
+                is_superuser_user = request.user.is_superuser
+                has_only_superuser_permission = isinstance(
+                    permission_cls, (SuperuserPermission, SuperuserOrStaffFeatureFlaggedPermission)
+                )
 
-            can_be_staff = request.user.is_authenticated and request.user.is_staff
-            has_only_staff_permission = isinstance(
-                permission_cls, (StaffPermission, SuperuserOrStaffFeatureFlaggedPermission)
-            )
-
-            if use_staff and can_be_staff and has_only_staff_permission:
-                raise StaffRequired()
+                if is_superuser_user and has_only_superuser_permission:
+                    raise SuperuserRequired()
 
         super().permission_denied(request, message, code)
 
