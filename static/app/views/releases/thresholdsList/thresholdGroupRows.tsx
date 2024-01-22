@@ -19,7 +19,7 @@ import {
   CRASH_FREE_SESSION_RATE_STR,
   CRASH_FREE_USER_RATE_STR as _CRASH_FREE_USER_RATE_STR,
   FAILURE_RATE_STR as _FAILURE_RATE_STR,
-  NEW_ISSUE_COUNT_STR as _NEW_ISSUE_COUNT_STR,
+  NEW_ISSUE_COUNT_STR,
   NEW_THRESHOLD_PREFIX,
   REGRESSED_ISSUE_COUNT_STR as _REGRESSED_ISSUE_COUNT_STR,
   TOTAL_ERROR_COUNT_STR,
@@ -91,14 +91,52 @@ export function ThresholdGroupRows({
       },
     ];
     if (isInternal) {
-      list.push({
-        value: CRASH_FREE_SESSION_RATE_STR,
-        textValue: 'Crash Free Sessions',
-        label: 'Crash Free Sessions',
-      });
+      list.push(
+        {
+          value: CRASH_FREE_SESSION_RATE_STR,
+          textValue: 'Crash Free Sessions',
+          label: 'Crash Free Sessions',
+        },
+        {
+          value: NEW_ISSUE_COUNT_STR,
+          textValue: 'New Issue Count',
+          label: 'New Issue Count',
+        }
+      );
     }
     return list;
   }, [organization]);
+
+  const windowOptions = thresholdType => {
+    let options = [
+      {
+        value: 'hours',
+        textValue: 'hours',
+        label: 'hrs',
+      },
+      {
+        value: 'days',
+        textValue: 'days',
+        label: 'days',
+      },
+    ];
+    if (thresholdType !== CRASH_FREE_SESSION_RATE_STR) {
+      options = [
+        {
+          value: 'seconds',
+          textValue: 'seconds',
+          label: 's',
+        },
+        {
+          value: 'minutes',
+          textValue: 'minutes',
+          label: 'min',
+        },
+        ...options,
+      ];
+    }
+    return options;
+  };
 
   const initializeNewThreshold = (
     environmentName: string | undefined = undefined,
@@ -227,7 +265,13 @@ export function ThresholdGroupRows({
   const editThresholdState = (thresholdId, key, value) => {
     if (editingThresholds[thresholdId]) {
       const updateEditing = JSON.parse(JSON.stringify(editingThresholds));
+      const currentThresholdValues = updateEditing[thresholdId];
       updateEditing[thresholdId][key] = value;
+      if (key === 'threshold_type' && value === CRASH_FREE_SESSION_RATE_STR) {
+        if (['seconds', 'minutes'].indexOf(currentThresholdValues.windowSuffix) > -1) {
+          updateEditing[thresholdId].windowSuffix = 'hours';
+        }
+      }
       setEditingThresholds(updateEditing);
     }
   };
@@ -251,7 +295,7 @@ export function ThresholdGroupRows({
             {!initialThreshold || threshold.id !== initialThreshold.id ? (
               <CompactSelect
                 style={{width: '100%'}}
-                value={(threshold as EditingThreshold).environmentName}
+                value={(threshold as EditingThreshold).environmentName || ''}
                 onChange={selectedOption =>
                   editThresholdState(
                     threshold.id,
@@ -259,17 +303,24 @@ export function ThresholdGroupRows({
                     selectedOption.value
                   )
                 }
-                options={allEnvironmentNames.map(env => ({
-                  value: env,
-                  textValue: env,
-                  label: env,
-                }))}
+                options={[
+                  {
+                    value: '',
+                    textValue: '',
+                    label: '',
+                  },
+                  ...allEnvironmentNames.map(env => ({
+                    value: env,
+                    textValue: env,
+                    label: env,
+                  })),
+                ]}
               />
             ) : (
               <FlexCenter>
-                {/* 'None' means it _has_ an environment, but the env has no name */}
+                {/* '' means it _has_ an environment, but the env has no name */}
                 {(threshold as Threshold).environment
-                  ? (threshold as Threshold).environment.name || 'None'
+                  ? (threshold as Threshold).environment.name || ''
                   : '{No environment}'}
               </FlexCenter>
             )}
@@ -296,28 +347,7 @@ export function ThresholdGroupRows({
                         selectedOption.value
                       )
                     }
-                    options={[
-                      {
-                        value: 'seconds',
-                        textValue: 'seconds',
-                        label: 's',
-                      },
-                      {
-                        value: 'minutes',
-                        textValue: 'minutes',
-                        label: 'min',
-                      },
-                      {
-                        value: 'hours',
-                        textValue: 'hours',
-                        label: 'hrs',
-                      },
-                      {
-                        value: 'days',
-                        textValue: 'days',
-                        label: 'days',
-                      },
-                    ]}
+                    options={windowOptions(threshold.threshold_type)}
                   />
                 </FlexCenter>
                 <FlexCenter>
