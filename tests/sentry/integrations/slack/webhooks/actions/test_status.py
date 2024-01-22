@@ -74,6 +74,21 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             ],
         }
 
+    def get_block_kit_unfurl_data(self, blocks):
+        return {
+            "container": {
+                "type": "message_attachment",
+                "is_app_unfurl": True,
+                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
+            },
+            "app_unfurl": {
+                "id": 1,
+                "blocks": blocks,
+                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
+                "is_app_unfurl": True,
+            },
+        }
+
     def get_ignore_status_action(self, text, selection):
         return {
             "action_id": selection,
@@ -194,19 +209,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         original_message = self.get_original_message_block_kit(group.id)
         status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
 
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
 
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
@@ -287,19 +290,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         original_message = self.get_original_message_block_kit(group.id)
         status_action = self.get_ignore_status_action("Archive", "ignored:until_escalating")
 
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
 
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
@@ -390,19 +381,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert event.group is not None
         original_message = self.get_original_message_block_kit(event.group.id)
         status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
 
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
@@ -513,19 +492,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         status_action = self.get_assign_status_action("user", user2.email, user2.id)
         original_message = self.get_original_message_block_kit(self.group.id)
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
 
         # Assign to user
         with self.feature("organizations:slack-block-kit"):
@@ -612,19 +579,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         # Assign to team
         status_action = self.get_assign_status_action("team", team2.slug, team2.id)
         original_message = self.get_original_message_block_kit(self.group.id)
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
 
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook(action_data=[status_action], data=data)
@@ -700,19 +655,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         status_action = self.get_assign_status_action("user", user2.email, user2.id)
         original_message = self.get_original_message_block_kit(self.group.id)
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
 
@@ -844,19 +787,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         status_action = self.get_assign_status_action("user", self.user.email, self.user.id)
         original_message = self.get_original_message_block_kit(self.group.id)
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
 
@@ -1040,19 +971,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             status=200,
             content_type="application/json",
         )
-        payload_data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(action_data=[status_action], data=payload_data)
         assert resp.status_code == 200, resp.content
@@ -1286,19 +1205,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             status=200,
             content_type="application/json",
         )
-        payload_data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(action_data=[status_action], data=payload_data)
         assert resp.status_code == 200, resp.content
@@ -1414,19 +1321,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
         original_message = self.get_original_message_block_kit(self.group.id)
-        data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        data = self.get_block_kit_unfurl_data(original_message["blocks"])
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
@@ -1598,19 +1493,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def test_handle_submission_fail_block_kit_through_unfurl(self):
         status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        payload_data = {
-            "container": {
-                "type": "message_attachment",
-                "is_app_unfurl": True,
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-            },
-            "app_unfurl": {
-                "id": 1,
-                "blocks": original_message["blocks"],
-                "app_unfurl_url": "http://testserver/organizations/foo/issues/1?project=1&amp;referrer=slack",
-                "is_app_unfurl": True,
-            },
-        }
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
         # Expect request to open dialog on slack
         responses.add(
             method=responses.POST,
