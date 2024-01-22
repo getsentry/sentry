@@ -193,6 +193,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
 
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -234,6 +235,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
 
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -281,6 +283,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
 
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,
@@ -323,6 +326,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
 
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
+            "id": "1",
             "date": now,
             "start": now - timedelta(minutes=1),
             "end": now,

@@ -1605,6 +1605,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
+    # Enables the inline replay viewer on the issue details page
+    "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
     "organizations:issue-details-new-experience-toggle": False,
     # Enable experimental replay-issue rendering on Issue Details page
@@ -1692,6 +1694,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
+    # Makes LCP and CLS optional components for performance score calculation
+    "organizations:performance-score-optional-lcp-and-cls": False,
     # Enable performance change explorer panel on trends page
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
