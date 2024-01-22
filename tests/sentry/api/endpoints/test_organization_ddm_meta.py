@@ -545,6 +545,17 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert metric_spans[0]["transactionId"] == transaction_id_2
         assert metric_spans[1]["transactionId"] == transaction_id_1
 
+    def test_get_metric_spans_with_latest_release_not_found(self):
+        self.get_error_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            query="release:latest",
+            status_code=404,
+        )
+
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
 
