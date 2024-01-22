@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import isNil from 'lodash/isNil';
 
 import {t} from 'sentry/locale';
 import {SavedSearch} from 'sentry/types';
@@ -27,7 +26,8 @@ export const useSelectedSavedSearch = (): SavedSearch | null => {
   // If there's no direct saved search being requested (via URL route)
   // *AND* there's no query in URL, then check if there is pinned search
   const selectedSavedSearch =
-    !selectedSearchId && isNil(location.query.query)
+    !selectedSearchId &&
+    (location.query.query === null || location.query.query === undefined)
       ? savedSearches?.find(search => search.isPinned)
       : savedSearches?.find(({id}) => id === selectedSearchId);
 

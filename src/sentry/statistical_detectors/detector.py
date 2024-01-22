@@ -97,7 +97,7 @@ class RegressionDetector(ABC):
 
     @classmethod
     def detect_trends(
-        cls, projects: List[Project], start: datetime
+        cls, projects: List[Project], start: datetime, batch_size=100
     ) -> Generator[TrendBundle, None, None]:
         unique_project_ids: Set[int] = set()
 
@@ -108,7 +108,7 @@ class RegressionDetector(ABC):
         algorithm = cls.detector_algorithm_factory()
         store = cls.detector_store_factory()
 
-        for payloads in chunked(cls.all_payloads(projects, start), 100):
+        for payloads in chunked(cls.all_payloads(projects, start), batch_size):
             total_count += len(payloads)
 
             raw_states = store.bulk_read_states(payloads)
@@ -454,7 +454,8 @@ class RegressionDetector(ABC):
         for bundles in chunked(bundles_to_escalate, batch_size):
             pairs = {
                 generate_issue_group_key(
-                    bundle.payload.project_id, cls.regression_type, bundle.payload.group
+                    bundle.payload.project_id,
+                    generate_fingerprint(cls.regression_type, bundle.payload.group),
                 ): bundle
                 for bundle in bundles
             }
@@ -486,7 +487,7 @@ class RegressionDetector(ABC):
         regressions: Generator[BreakpointData, None, None],
         batch_size=100,
     ) -> Generator[Tuple[int, datetime | None, BreakpointData], None, None]:
-        active_regressions = 0
+        active_regressions = []
 
         for regression_chunk in chunked(regressions, batch_size):
             existing_regression_groups = {
@@ -513,12 +514,41 @@ class RegressionDetector(ABC):
                 elif not group.active:
                     yield group.version, group.date_regressed, regression
                 else:
-                    # There is an active regression group already, so skip it
-                    active_regressions += 1
+                    # There is an active regression group already, so we need to sync with the
+                    # issue platform to detemine if a new regression group should be created.
+                    active_regressions.append(
+                        (generate_issue_group_key(project_id, fingerprint), group, regression)
+                    )
+
+        # Instead of doing it one by one, we opt to queue them into a list
+        # and fetching the issue group in batches for efficiency.
+        for triples in chunked(active_regressions, batch_size):
+            groups_to_close = []
+
+            # Sync the regression group with the issue group
+            issue_groups = bulk_get_groups_from_fingerprints(
+                [(project_id, [fingerprint]) for (project_id, fingerprint), _, _ in triples]
+            )
+
+            for key, regression_group, regression in triples:
+                issue_group = issue_groups.get(key)
+                if issue_group is None:
+                    sentry_sdk.capture_message("Missing issue group for regression issue")
+                    continue
+
+                # Only status we care about is if there is a resolved issue group that
+                # corresponds to the regression group. In that case, we should end
+                # the active regression group and create a new regression group.
+                if issue_group.status == GroupStatus.RESOLVED:
+                    regression_group.active = False
+                    groups_to_close.append(regression_group)
+                    yield regression_group.version, regression_group.date_regressed, regression
+
+            RegressionGroup.objects.bulk_update(groups_to_close, ["active"])
 
         metrics.incr(
             "statistical_detectors.breakpoint.skipped",
-            amount=active_regressions,
+            amount=len(active_regressions),
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
@@ -576,11 +606,9 @@ def generate_fingerprint(regression_type: RegressionType, name: str | int) -> st
         raise ValueError(f"Unsupported RegressionType: {regression_type}")
 
 
-def generate_issue_group_key(
-    project_id: int, regression_type: RegressionType, name: str | int
-) -> Tuple[int, str]:
+def generate_issue_group_key(project_id: int, fingerprint: str) -> Tuple[int, str]:
     data = {
-        "fingerprint": [generate_fingerprint(regression_type, name)],
+        "fingerprint": [fingerprint],
     }
     process_occurrence_data(data)
     return project_id, data["fingerprint"][0]

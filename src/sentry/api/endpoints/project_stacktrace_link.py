@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Mapping, Optional
+from typing import List, TypedDict
 
 from django.http import QueryDict
 from rest_framework.request import Request
@@ -14,10 +14,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IntegrationSerializer, serialize
-from sentry.api.utils import Timer
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
-from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.integrations.utils.stacktrace_link import StacktraceLinkOutcome, get_stacktrace_config
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -25,11 +23,24 @@ from sentry.services.hybrid_cloud.integration import integration_service
 logger = logging.getLogger(__name__)
 
 
-def generate_context(parameters: QueryDict) -> Dict[str, Optional[str]]:
+class StacktraceLinkContext(TypedDict):
+    file: str
+    filename: str
+    platform: str | None
+    abs_path: str | None
+    commit_id: str | None
+    group_id: str | None
+    line_no: str | None
+    module: str | None
+    package: str | None
+    sdk_name: str | None
+
+
+def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
     return {
-        "file": parameters.get("file"),
+        "file": parameters.get("file", ""),
         # XXX: Temp change to support try_path_munging until refactored
-        "filename": parameters.get("file"),
+        "filename": parameters.get("file", ""),
         "commit_id": parameters.get("commitId"),
         "platform": parameters.get("platform"),
         "sdk_name": parameters.get("sdkName"),
@@ -44,7 +55,7 @@ def generate_context(parameters: QueryDict) -> Dict[str, Optional[str]]:
 def set_top_tags(
     scope: Scope,
     project: Project,
-    ctx: Mapping[str, Optional[str]],
+    ctx: StacktraceLinkContext,
     has_code_mappings: bool,
 ) -> None:
     try:
@@ -111,7 +122,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
-        filepath = ctx.get("file")
+        filepath = ctx["file"]
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 
@@ -138,7 +149,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         attempted_url = None
         error = None
-        codecov_data = None
         serialized_config = None
 
         with configure_scope() as scope:
@@ -158,27 +168,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     # When no code mapping have been matched we have not attempted a URL
                     if result["current_config"]["outcome"].get("attemptedUrl"):
                         attempted_url = result["current_config"]["outcome"]["attemptedUrl"]
-
-                should_get_coverage = codecov_enabled(project.organization)
-                scope.set_tag("codecov.enabled", should_get_coverage)
-                if should_get_coverage:
-                    with Timer() as t:
-                        codecov_data = fetch_codecov_data(
-                            config={
-                                "repository": result["current_config"]["repository"],
-                                "config": serialized_config,
-                                "outcome": result["current_config"]["outcome"],
-                            }
-                        )
-                        analytics.record(
-                            "function_timer.timed",
-                            function_name="fetch_codecov_data",
-                            duration=t.duration,
-                            organization_id=project.organization_id,
-                            project_id=project.id,
-                            group_id=ctx.get("group_id"),
-                            frame_abs_path=ctx.get("abs_path"),
-                        )
             try:
                 set_tags(scope, result, serialized_integrations)
             except Exception:
@@ -197,13 +186,11 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             )
             return Response(
                 {
-                    # TODO(scttcper): Remove error in success case
                     "error": error,
                     "config": serialized_config,
                     "sourceUrl": result["source_url"],
                     "attemptedUrl": attempted_url,
                     "integrations": serialized_integrations,
-                    "codecov": codecov_data,
                 }
             )
 
@@ -214,6 +201,5 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 "sourceUrl": None,
                 "attemptedUrl": attempted_url,
                 "integrations": serialized_integrations,
-                "codecov": codecov_data,
             }
         )

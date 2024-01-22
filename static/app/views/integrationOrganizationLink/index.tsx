@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -16,7 +15,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
-import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
+import {generateOrgSlugUrl} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -55,9 +54,6 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   State
 > {
   disableErrorReport = false;
-  // TODO: stop using control silo which is dependent on figuring out how to
-  // check the Github installation data which is on the control silo
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
@@ -142,11 +138,12 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         Organization,
         {providers: IntegrationProvider[]},
       ] = await Promise.all([
-        this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
-        this.controlSiloApi.requestPromise(
+        this.api.requestPromise(`/organizations/${orgSlug}/`),
+        this.api.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
       ]);
+
       // should never happen with a valid provider
       if (providers.length === 0) {
         throw new Error('Invalid provider');
@@ -158,7 +155,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         try {
           // The API endpoint /extensions/github/installation is not prefixed with /api/0
           // so we have to use this workaround.
-          installationData = await this.controlSiloApi.requestPromise(
+          installationData = await this.api.requestPromise(
             `/../../extensions/github/installation/${installationId}/`
           );
         } catch (_err) {

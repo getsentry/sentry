@@ -8,9 +8,8 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
 from sentry.tasks.integrations.github.open_pr_comment import (
-    STACKFRAME_COUNT,
-    PullRequestFile,
     format_issue_table,
     format_open_pr_comment,
     get_issue_table_contents,
@@ -20,7 +19,7 @@ from sentry.tasks.integrations.github.open_pr_comment import (
     open_pr_comment_workflow,
     safe_for_comment,
 )
-from sentry.tasks.integrations.github.pr_comment import PullRequestIssue
+from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -638,14 +637,14 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.language_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
         return_value=[{}],
     )
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     def test_comment_workflow(
         self,
@@ -691,14 +690,14 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.language_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(
         "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
         return_value=[{}],
     )
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     def test_comment_workflow_comment_exists(
         self,
@@ -751,7 +750,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.language_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
@@ -810,7 +809,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
     )
     @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
+        "sentry.tasks.integrations.github.language_parsers.PythonParser.extract_functions_from_patch"
     )
     @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
     @patch(

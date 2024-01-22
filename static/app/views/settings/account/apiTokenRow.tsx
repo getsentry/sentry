@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import PanelItem from 'sentry/components/panels/panelItem';
-import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,22 +21,14 @@ function ApiTokenRow({token, onRemove}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        {token.tokenLastCharacters ? (
-          <TokenPreview aria-label={t('Token preview')}>
-            {tokenPreview(
-              getDynamicText({
-                value: token.tokenLastCharacters,
-                fixed: 'ABCD',
-              })
-            )}
-          </TokenPreview>
-        ) : (
-          <InputWrapper>
-            <TextCopyInput>
-              {getDynamicText({value: token.token, fixed: 'CI_AUTH_TOKEN'})}
-            </TextCopyInput>
-          </InputWrapper>
-        )}
+        <TokenPreview aria-label={t('Token preview')}>
+          {tokenPreview(
+            getDynamicText({
+              value: token.tokenLastCharacters,
+              fixed: 'ABCD',
+            })
+          )}
+        </TokenPreview>
         <ButtonWrapper>
           <Button
             onClick={() => onRemove(token)}
@@ -78,12 +69,6 @@ const Controls = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(1)};
-`;
-
-const InputWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  flex: 1;
-  margin-right: ${space(1)};
 `;
 
 const Details = styled('div')`

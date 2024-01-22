@@ -1,3 +1,4 @@
+import itertools
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List
@@ -125,16 +126,20 @@ def test_run_detection_options(
         run_detection()
 
     if expected_performance_project:
-        assert detect_transaction_trends.delay.called
-        detect_transaction_trends.delay.assert_has_calls([mock.call([], [project.id], timestamp)])
+        assert detect_transaction_trends.apply_async.called
+        detect_transaction_trends.apply_async.assert_has_calls(
+            [mock.call(args=[[], [project.id], timestamp], countdown=0)]
+        )
     else:
-        assert not detect_transaction_trends.delay.called
+        assert not detect_transaction_trends.apply_async.called
 
     if expected_profiling_project:
-        assert detect_function_trends.delay.called
-        detect_function_trends.delay.assert_has_calls([mock.call([project.id], timestamp)])
+        assert detect_function_trends.apply_async.called
+        detect_function_trends.apply_async.assert_has_calls(
+            [mock.call(args=[[project.id], timestamp], countdown=0)]
+        )
     else:
-        assert not detect_function_trends.delay.called
+        assert not detect_function_trends.apply_async.called
 
 
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
@@ -169,26 +174,28 @@ def test_run_detection_options_multiple_batches(
 
     # total of 9 projects, broken into batches of 5 means batch sizes of 5 + 4
 
-    assert detect_transaction_trends.delay.called
-    detect_transaction_trends.delay.assert_has_calls(
+    assert detect_transaction_trends.apply_async.called
+    detect_transaction_trends.apply_async.assert_has_calls(
         [
             mock.call(
-                [],
-                [project.id for project in projects[:5]],
-                timestamp,
-            ),
-            mock.call(
-                [],
-                [project.id for project in projects[5:]],
-                timestamp,
-            ),
+                args=[
+                    [],
+                    [project.id for project in projects[i : i + 5]],
+                    timestamp,
+                ],
+                countdown=countdown,
+            )
+            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=0, step=17))
         ]
     )
-    assert detect_function_trends.delay.called
-    detect_function_trends.delay.assert_has_calls(
+    assert detect_function_trends.apply_async.called
+    detect_function_trends.apply_async.assert_has_calls(
         [
-            mock.call([project.id for project in projects[:5]], timestamp),
-            mock.call([project.id for project in projects[5:]], timestamp),
+            mock.call(
+                args=[[project.id for project in projects[i : i + 5]], timestamp],
+                countdown=countdown,
+            )
+            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=0, step=17))
         ]
     )
 
@@ -524,7 +531,7 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
     ],
 )
 @pytest.mark.parametrize(
-    ["existing", "expected_versions"],
+    ["regression_groups", "expected_versions"],
     [
         pytest.param([], [0], id="no existing"),
         pytest.param(
@@ -568,12 +575,12 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
 @django_db_all
 def test_get_regression_versions(
     detector_cls,
-    existing,
+    regression_groups,
     expected_versions,
     project,
     timestamp,
 ):
-    if existing:
+    if regression_groups:
         RegressionGroup.objects.bulk_create(
             RegressionGroup(
                 type=detector_cls.regression_type.value,
@@ -588,7 +595,7 @@ def test_get_regression_versions(
                 baseline=100000000.0,
                 regressed=500000000.0,
             )
-            for version, active, transaction in existing
+            for version, active, transaction in regression_groups
         )
 
     breakpoints: List[BreakpointData] = [
@@ -616,6 +623,127 @@ def test_get_regression_versions(
         for i, expected_version in enumerate(expected_versions)
         if expected_version is not None
     ]
+
+
+@pytest.mark.parametrize(
+    ["detector_cls", "object_name", "issue_type"],
+    [
+        pytest.param(
+            EndpointRegressionDetector,
+            "transaction_1",
+            PerformanceP95EndpointRegressionGroupType,
+            id="endpoint",
+        ),
+        pytest.param(
+            FunctionRegressionDetector,
+            123,
+            ProfileFunctionRegressionType,
+            id="function",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ["status", "substatus", "should_emit"],
+    [
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.ESCALATING, False, id="escalating"),
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING, False, id="ongoing"),
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, False, id="regressed"),
+        pytest.param(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, False, id="new"),
+        pytest.param(GroupStatus.RESOLVED, None, True, id="resolved"),
+        pytest.param(
+            GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING, False, id="until escalating"
+        ),
+        pytest.param(
+            GroupStatus.IGNORED, GroupSubStatus.UNTIL_CONDITION_MET, False, id="until condition met"
+        ),
+        pytest.param(GroupStatus.IGNORED, GroupSubStatus.FOREVER, False, id="forever"),
+    ],
+)
+@django_db_all
+def test_get_regression_versions_active(
+    detector_cls,
+    object_name,
+    issue_type,
+    status,
+    substatus,
+    should_emit,
+    project,
+    timestamp,
+    django_cache,  # the environment can persist in the cache otherwise
+):
+    fingerprint = generate_fingerprint(detector_cls.regression_type, object_name)
+
+    RegressionGroup.objects.create(
+        type=detector_cls.regression_type.value,
+        date_regressed=timestamp,
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=fingerprint,
+        baseline=1000,
+        regressed=2000,
+    )
+
+    event_id = uuid.uuid4().hex
+    message = {
+        "id": uuid.uuid4().hex,
+        "project_id": project.id,
+        "event_id": event_id,
+        "fingerprint": [fingerprint],
+        "issue_title": issue_type.description,
+        "subtitle": "",
+        "resource_id": None,
+        "evidence_data": {},
+        "evidence_display": [],
+        "type": issue_type.type_id,
+        "detection_time": timestamp.isoformat(),
+        "level": "info",
+        "culprit": "",
+        "payload_type": PayloadType.OCCURRENCE.value,
+        "event": {
+            "timestamp": timestamp.isoformat(),
+            "project_id": project.id,
+            "transaction": "",
+            "event_id": event_id,
+            "platform": "python",
+            "received": timestamp.isoformat(),
+            "tags": {},
+        },
+    }
+
+    result = _process_message(message)
+    assert result is not None
+    _, group_info = result
+    assert group_info is not None
+    group = group_info.group
+    group.status = status
+    group.substatus = substatus
+    group.save()
+
+    breakpoints: List[BreakpointData] = [
+        {
+            "absolute_percentage_change": 5.0,
+            "aggregate_range_1": 100000000.0,
+            "aggregate_range_2": 500000000.0,
+            "breakpoint": 1687323600,
+            "project": str(project.id),
+            "transaction": object_name,
+            "trend_difference": 400000000.0,
+            "trend_percentage": 5.0,
+            "unweighted_p_value": 0.0,
+            "unweighted_t_value": -float("inf"),
+        }
+    ]
+
+    def mock_regressions():
+        yield from breakpoints
+
+    regressions = list(detector_cls.get_regression_versions(mock_regressions()))
+
+    if should_emit:
+        assert regressions == [(1, timestamp, breakpoints[0])]
+    else:
+        assert regressions == []
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
@@ -1024,7 +1152,7 @@ def test_save_regressions_with_versions(
         ),
         pytest.param(
             FunctionRegressionDetector,
-            "123",
+            123,
             100_000_000,
             300_000_000,
             500_000_000,

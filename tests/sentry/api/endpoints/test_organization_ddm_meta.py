@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Sequence, cast
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from django.utils import timezone
@@ -342,18 +342,26 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             transaction_id=transaction_id,
             duration=30,
         )
-        for span_op, span_duration in (("db", 10), ("http", 20), ("rpc", 2)):
+        span_id_1 = "98230207e6e4a6ad"
+        span_id_2 = "10230207e8e4a6ef"
+        span_id_3 = "22330201e8e4a6ab"
+        for span_id, span_op, min, span_duration in (
+            (span_id_1, "db", 15.0, 10),
+            (span_id_2, "http", 20.0, 20),
+            (span_id_3, "rpc", 45.0, 2),
+        ):
             self.store_indexed_span(
                 project_id=self.project.id,
                 timestamp=before_now(minutes=5),
                 trace_id=trace_id,
                 transaction_id=transaction_id,
+                span_id=span_id,
                 op=span_op,
                 duration=span_duration,
                 store_metrics_summary={
                     mri: [
                         {
-                            "min": 10.0,
+                            "min": min,
                             "max": 100.0,
                             "sum": 110.0,
                             "count": 2,
@@ -378,11 +386,101 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert metric_spans[0]["transactionId"] == transaction_id
         assert metric_spans[0]["duration"] == 30
         assert metric_spans[0]["spansNumber"] == 3
+        assert sorted(metric_spans[0]["metricSummaries"], key=lambda value: value["min"]) == [
+            {"spanId": span_id_1, "min": 15.0, "max": 100.0, "sum": 110.0, "count": 2},
+            {"spanId": span_id_2, "min": 20.0, "max": 100.0, "sum": 110.0, "count": 2},
+            {"spanId": span_id_3, "min": 45.0, "max": 100.0, "sum": 110.0, "count": 2},
+        ]
+        assert sorted(metric_spans[0]["spansDetails"], key=lambda value: value["spanDuration"]) == [
+            {
+                "spanId": span_id_3,
+                "spanDuration": 2,
+                "spanTimestamp": ANY,
+            },
+            {
+                "spanId": span_id_1,
+                "spanDuration": 10,
+                "spanTimestamp": ANY,
+            },
+            {
+                "spanId": span_id_2,
+                "spanDuration": 20,
+                "spanTimestamp": ANY,
+            },
+        ]
         assert sorted(metric_spans[0]["spansSummary"], key=lambda value: value["spanOp"]) == [
             {"spanDuration": 10, "spanOp": "db"},
             {"spanDuration": 20, "spanOp": "http"},
             {"spanDuration": 2, "spanOp": "rpc"},
         ]
+
+    def test_get_metric_spans_with_environment(self):
+        mri = "g:custom/page_load@millisecond"
+
+        self.create_environment(project=self.project, name="prod")
+
+        trace_id = uuid.uuid4().hex
+        transaction_id_1 = uuid.uuid4().hex
+        transaction_id_2 = uuid.uuid4().hex
+
+        for transaction_id, environment, duration in (
+            (transaction_id_1, None, 20),
+            (transaction_id_2, "prod", 30),
+        ):
+            span_tags = {}
+            if environment:
+                span_tags["environment"] = environment
+
+            self.store_segment(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                duration=duration,
+            )
+            self.store_indexed_span(
+                project_id=self.project.id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": span_tags,
+                        }
+                    ]
+                },
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["transactionId"] == transaction_id_2
+        assert metric_spans[1]["transactionId"] == transaction_id_1
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            environment="prod",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 1
+        assert metric_spans[0]["transactionId"] == transaction_id_2
 
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
@@ -393,10 +491,10 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         transaction_id_2 = uuid.uuid4().hex
         span_id_2 = "10220507e6f4e6ad"
 
-        for i, (transaction_id, span_id, min_value, max_value) in enumerate(
+        for i, (transaction_id, span_id, transaction_duration, min_value, max_value) in enumerate(
             (
-                (transaction_id_1, span_id_1, 10.0, 100.0),
-                (transaction_id_2, span_id_2, 120.0, 200.0),
+                (transaction_id_1, span_id_1, 5, 10.0, 100.0),
+                (transaction_id_2, span_id_2, 15, 120.0, 200.0),
             )
         ):
             self.store_segment(
@@ -404,7 +502,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 timestamp=before_now(minutes=5 + i),
                 trace_id=trace_id,
                 transaction_id=transaction_id,
-                duration=10,
+                duration=transaction_duration,
             )
             self.store_indexed_span(
                 project_id=self.project.id,
@@ -429,11 +527,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         for min_val, max_val, expected_transaction_ids in (
             (10.0, 100.0, [transaction_id_1]),
             (100.0, 200.0, [transaction_id_2]),
-            (10.0, 200.0, [transaction_id_1, transaction_id_2]),
+            (10.0, 200.0, [transaction_id_2, transaction_id_1]),
             (10.0, 20.0, []),
-            (10.0, None, [transaction_id_1, transaction_id_2]),
-            (None, 200.0, [transaction_id_1, transaction_id_2]),
-            (None, None, [transaction_id_1, transaction_id_2]),
+            (10.0, None, [transaction_id_2, transaction_id_1]),
+            (None, 200.0, [transaction_id_2, transaction_id_1]),
+            (None, None, [transaction_id_2, transaction_id_1]),
         ):
             extra_params = {}
             if min_val:
@@ -452,8 +550,12 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
             metric_spans = response.data["metricSpans"]
             assert len(metric_spans) == len(cast(Sequence[str], expected_transaction_ids))
-            for i, expected_span_id in enumerate(cast(Sequence[str], expected_transaction_ids)):
-                assert metric_spans[i]["transactionId"] == expected_span_id
+            for i, expected_transaction_id in enumerate(
+                cast(Sequence[str], expected_transaction_ids)
+            ):
+                assert (
+                    metric_spans[i]["transactionId"] == expected_transaction_id
+                ), f"Expected transaction id {expected_transaction_id} for [{min_val}, {max_val}]"
 
     @pytest.mark.skip(
         reason="experimenting with new querying that would require this test to be rewritten"
