@@ -7,7 +7,10 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    LatestReleaseNotFoundError,
+)
 from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
 
 TVisited = TypeVar("TVisited")
@@ -168,6 +171,11 @@ class LatestReleaseTransformationVisitor(QueryConditionVisitor[QueryCondition]):
             return condition
 
         latest_releases = bulk_fetch_project_latest_releases(self._projects)
+        if not latest_releases:
+            raise LatestReleaseNotFoundError(
+                "Latest release(s) not found for the supplied projects"
+            )
+
         return Condition(
             lhs=condition.lhs,
             op=Op.IN,

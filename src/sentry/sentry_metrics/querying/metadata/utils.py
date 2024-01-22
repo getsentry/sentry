@@ -7,7 +7,10 @@ from snuba_sdk.mql.mql import parse_mql
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    LatestReleaseNotFoundError,
+)
 
 
 def _visit_conditions(
@@ -129,6 +132,11 @@ def transform_latest_release_condition(
             return None
 
         latest_releases = bulk_fetch_project_latest_releases(projects)
+        if not latest_releases:
+            raise LatestReleaseNotFoundError(
+                "Latest release(s) not found for the supplied projects"
+            )
+
         return [
             Condition(
                 lhs=condition.lhs,
