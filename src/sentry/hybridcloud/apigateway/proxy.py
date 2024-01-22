@@ -34,6 +34,16 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+# Endpoints that handle uploaded files have higher timeouts configured
+# and we need to honor those timeouts when proxying.
+# See frontend/templates/sites-enabled/sentry.io in getsentry/ops
+ENDPOINT_TIMEOUT_OVERRIDE = {
+    "sentry-api-0-chunk-upload": 90.0,
+    "sentry-api-0-organization-release-files": 90.0,
+    "sentry-api-0-project-release-files": 90.0,
+    "sentry-api-0-dsym-files": 90.0,
+}
+
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
 
@@ -144,6 +154,7 @@ def proxy_region_request(
     assert request.method is not None
     query_params = request.GET
 
+    timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
     metric_tags = {"region": region.name, "url_name": url_name}
     try:
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
@@ -154,7 +165,7 @@ def proxy_region_request(
                 params=dict(query_params) if query_params is not None else None,
                 data=_body_with_length(request),
                 stream=True,
-                timeout=settings.GATEWAY_PROXY_TIMEOUT,
+                timeout=timeout,
             )
     except Timeout:
         # remote silo timeout. Use DRF timeout instead
