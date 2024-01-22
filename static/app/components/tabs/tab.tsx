@@ -123,6 +123,7 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
       &, &:hover {
         color: ${p.theme.subText};
         pointer-events: none;
+        cursor: default;
       }
     `}
 
