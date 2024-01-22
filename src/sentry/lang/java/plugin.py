@@ -180,12 +180,13 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             return self.proguard_processor.process_exception(exception)
         return False
 
-    # if path contains a $ sign it has most likely been obfuscated
+    # if path contains a '$' sign or doesn't contain a '.' it has most likely been obfuscated
     def _is_valid_path(self, abs_path):
         if abs_path is None:
             return False
         abs_path_dollar_index = abs_path.find("$")
-        return abs_path_dollar_index < 0
+        abs_path_dot_index = abs_path.find(".")
+        return abs_path_dollar_index < 0 and abs_path_dot_index > 0
 
     def _build_source_file_name(self, frame):
         abs_path = frame.get("abs_path")
@@ -200,10 +201,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                 source_file_name = ""
 
             abs_path_dot_index = abs_path.rfind(".")
-            if abs_path_dot_index >= 0:
-                source_file_name += abs_path[:abs_path_dot_index]
-            else:
-                source_file_name += abs_path
+            source_file_name += abs_path[:abs_path_dot_index]
         else:
             # use module as filename (excluding inner classes, marked by $) and append .java
             module_dollar_index = module.find("$")
