@@ -11,8 +11,6 @@ import {
   hasFileExtension,
   hasStacktraceLinkInFrameFeature,
 } from 'sentry/components/events/interfaces/frame/utils';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {
   Event,
   Frame,
@@ -27,6 +25,7 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 import {AddCodecovBanner} from './banners/addCodecovBanner';
 import {AddIntegrationBanner} from './banners/addIntegrationBanner';
@@ -59,7 +58,7 @@ interface StacktraceBannersProps {
 }
 
 export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
   const organization = useOrganization({allowNull: true});
   const api = useApi();
   const queryClient = useQueryClient();
