@@ -5,7 +5,8 @@ export type StepProps = Pick<
   'router' | 'route' | 'location'
 > & {
   active: boolean;
-  onComplete: () => void;
+  existingRelocationUUID: string;
+  onComplete: (uuid?: string) => void;
   publicKey: string;
   stepIndex: number;
 };
