@@ -699,3 +699,4 @@ class MonitorIncident(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
+        indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]
