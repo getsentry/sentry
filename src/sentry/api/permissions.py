@@ -55,10 +55,10 @@ class StaffPermission(BasePermission):
 
 
 # XXX(schew2381): This is a temporary permission that does NOT perform an OR
-# between SuperuserPermission and StaffPermission. Instead, uses StaffPermission
+# between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
 # if the feature flag is enabled, and otherwise uses SuperuserPermission. We
 # need this to handle the transition for endpoints that will only be accessible to
-# staff not superuser, but currently use the SuperuserPermission. Once the
+# staff but not superuser, that currently use SuperuserPermission. Once the
 # feature is rolled out, we can delete this permission and use StaffPermission
 class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
