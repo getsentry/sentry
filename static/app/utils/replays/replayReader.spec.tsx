@@ -319,14 +319,11 @@ describe('ReplayReader', () => {
     });
     const attachments = [firstDiv];
 
-    const replay = ReplayReader.factory(
-      {
-        attachments,
-        errors: [],
-        replayRecord,
-      },
-      {}
-    );
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      replayRecord,
+    });
 
     expect(replay?.hasCanvasElementInReplay()).toBe(true);
   });
@@ -356,14 +353,11 @@ describe('ReplayReader', () => {
       },
     ];
 
-    const replay = ReplayReader.factory(
-      {
-        attachments,
-        errors: [],
-        replayRecord,
-      },
-      {}
-    );
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      replayRecord,
+    });
 
     expect(replay?.hasCanvasElementInReplay()).toBe(true);
   });
