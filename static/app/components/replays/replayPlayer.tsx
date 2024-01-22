@@ -2,11 +2,16 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import {Button, LinkButton} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {IconOpen, IconQuestion} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -113,6 +118,62 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
     }
   }, [windowDimensions, videoDimensions]);
 
+  function Resource({
+    title,
+    subtitle,
+    link,
+  }: {
+    link: string;
+    subtitle: string;
+    title: string;
+  }) {
+    return (
+      <StyledLinkButton icon={<IconOpen />} borderless external href={link}>
+        <ButtonContent>
+          <ButtonTitle>{title}</ButtonTitle>
+          <ButtonSubtitle>{subtitle}</ButtonSubtitle>
+        </ButtonContent>
+      </StyledLinkButton>
+    );
+  }
+
+  function ResourceButtons() {
+    return (
+      <ButtonContainer>
+        <HoverTitle>{t('Documentation Resources')}</HoverTitle>
+        <Resource
+          title={t('General')}
+          subtitle={t('Configure sampling rates and recording thresholds')}
+          link="https://docs.sentry.io/platforms/javascript/session-replay"
+        />
+        <Resource
+          title={t('Element Masking/Blocking')}
+          subtitle={t(
+            'description description description description description description description'
+          )}
+          link=""
+        />
+        <Resource
+          title={t('General')}
+          subtitle={t(
+            'description description description description description description description'
+          )}
+          link=""
+        />
+      </ButtonContainer>
+    );
+  }
+
+  function ResourceCard() {
+    return (
+      <ResourceCardContainer>
+        <Hovercard body={<ResourceButtons />} position="top-end">
+          <Button icon={<IconQuestion />} aria-label="replay resources" />
+        </Hovercard>
+      </ResourceCardContainer>
+    );
+  }
+
   return (
     <NegativeSpaceContainer ref={windowEl} className="sentry-block">
       <div ref={viewEl} className={className} />
@@ -120,6 +181,7 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
       {isBuffering ? <PositionedBuffering /> : null}
       {isPreview ? null : <PlayerDOMAlert />}
       {isFetching ? <PositionedLoadingIndicator /> : null}
+      <ResourceCard />
     </NegativeSpaceContainer>
   );
 }
@@ -251,6 +313,49 @@ const SentryPlayerRoot = styled(PlayerRoot)`
       height: 10px;
     }
   }
+`;
+
+const ResourceCardContainer = styled('div')`
+  position: absolute;
+  bottom: ${space(1)};
+  right: 1%;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  align-items: flex-start;
+`;
+
+const ButtonContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  white-space: pre-line;
+  gap: ${space(0.25)};
+`;
+
+const ButtonTitle = styled('div')`
+  font-weight: normal;
+`;
+
+const ButtonSubtitle = styled('div')`
+  color: ${p => p.theme.gray300};
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  padding: ${space(1.5)} ${space(1)};
+  height: auto;
+`;
+
+const HoverTitle = styled('div')`
+  font-weight: bold;
+  border-bottom: 1px solid ${p => p.theme.gray200};
+  line-height: 2em;
+  width: 100%;
 `;
 
 export default SentryPlayerRoot;
