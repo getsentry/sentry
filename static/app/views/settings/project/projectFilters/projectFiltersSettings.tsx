@@ -1,7 +1,9 @@
 import {Component, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
+import iconChrome from 'sentry-logos/logo-chrome.svg';
 import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
+import iconFirefox from 'sentry-logos/logo-firefox.svg';
 import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
@@ -12,6 +14,8 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
+import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
+import FieldLabel from 'sentry/components/forms/fieldGroup/fieldLabel';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -32,7 +36,6 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -72,7 +75,7 @@ const filterDescriptions = {
   },
 };
 
-const LEGACY_BROWSER_SUBFILTERS = {
+const DEPRECATED_LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
     icon: iconIe,
     helpText: 'Version 8 and lower',
@@ -120,11 +123,55 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
 };
 
-const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
+const NEW_LEGACY_BROWSER_SUBFILTERS = {
+  ie: {
+    icon: iconIe,
+    title: 'Internet Explorer',
+    helpText: 'Verison 11 and lower',
+  },
+  safari: {
+    icon: iconSafari,
+    title: 'Safari',
+    helpText: 'Version 11 and lower',
+  },
+  opera: {
+    icon: iconOpera,
+    title: 'Opera',
+    helpText: 'Version 50 and lower',
+  },
+  opera_mini: {
+    icon: iconOpera,
+    title: 'Opera Mini',
+    helpText: 'Version 34 and lower',
+  },
+  android: {
+    icon: iconAndroid,
+    title: 'Android',
+    helpText: 'Version 3 and lower',
+  },
+  edge: {
+    icon: iconEdgeLegacy,
+    title: 'Edge',
+    helpText: 'Version 78 and lower',
+  },
+  firefox: {
+    icon: iconFirefox,
+    title: 'Firefox',
+    helpText: 'Version 66 and lower',
+  },
+  chrome: {
+    icon: iconChrome,
+    title: 'Chrome',
+    helpText: 'Version 62 and lower',
+  },
+};
 
 type FormFieldProps = React.ComponentProps<typeof FormField>;
 
 type RowProps = {
+  browserSubfilters:
+    | typeof NEW_LEGACY_BROWSER_SUBFILTERS
+    | typeof DEPRECATED_LEGACY_BROWSER_SUBFILTERS;
   data: {
     active: string[] | boolean;
   };
@@ -145,9 +192,11 @@ type RowState = {
 class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   constructor(props) {
     super(props);
+    const {browserSubfilters} = props;
+
     let initialSubfilters;
     if (props.data.active === true) {
-      initialSubfilters = new Set(LEGACY_BROWSER_KEYS);
+      initialSubfilters = new Set(Object.keys(browserSubfilters));
     } else if (props.data.active === false) {
       initialSubfilters = new Set();
     } else {
@@ -163,13 +212,16 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 
   handleToggleSubfilters = (subfilter, e) => {
     let {subfilters} = this.state;
+    const {browserSubfilters} = this.props;
 
     if (subfilter === true) {
-      subfilters = new Set(LEGACY_BROWSER_KEYS);
+      subfilters = new Set(Object.keys(browserSubfilters));
     } else if (subfilter === false) {
       subfilters = new Set();
     } else if (subfilters.has(subfilter)) {
       subfilters.delete(subfilter);
+    } else if ([...subfilters].some(sf => sf.startsWith(subfilter))) {
+      subfilters = new Set([...subfilters].filter(sub => !sub.startsWith(subfilter)));
     } else {
       subfilters.add(subfilter);
     }
@@ -185,34 +237,41 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   };
 
   render() {
-    const {disabled} = this.props;
+    const {disabled, browserSubfilters} = this.props;
     return (
       <div>
         {!disabled && (
-          <BulkFilter>
-            <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
-            <ButtonBar gap={1}>
-              <Button
-                priority="link"
-                borderless
-                onClick={this.handleToggleSubfilters.bind(this, true)}
-              >
-                {t('All')}
-              </Button>
-              <Button
-                priority="link"
-                borderless
-                onClick={this.handleToggleSubfilters.bind(this, false)}
-              >
-                {t('None')}
-              </Button>
-            </ButtonBar>
-          </BulkFilter>
+          <div>
+            <BulkFilter>
+              <FieldLabel>{t('Legacy Browser Filters')}:</FieldLabel>
+              <ButtonBar gap={1}>
+                <Button
+                  priority="link"
+                  borderless
+                  onClick={this.handleToggleSubfilters.bind(this, true)}
+                >
+                  {t('All')}
+                </Button>
+                <Button
+                  priority="link"
+                  borderless
+                  onClick={this.handleToggleSubfilters.bind(this, false)}
+                >
+                  {t('None')}
+                </Button>
+              </ButtonBar>
+            </BulkFilter>
+            <FieldHelp>
+              {t(
+                'The browser versions filtered out will be periodically evaluated and updated'
+              )}
+            </FieldHelp>
+          </div>
         )}
 
         <FilterGrid>
-          {LEGACY_BROWSER_KEYS.map(key => {
-            const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+          {Object.keys(browserSubfilters).map(key => {
+            const subfilter = browserSubfilters[key];
             return (
               <FilterGridItem key={key}>
                 <FilterGridIcon src={subfilter.icon} />
@@ -222,7 +281,9 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                 </div>
                 <Switch
                   aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                  isActive={this.state.subfilters.has(key)}
+                  isActive={[...this.state.subfilters].some(
+                    sf => sf === key || sf.startsWith(key)
+                  )}
                   isDisabled={disabled}
                   css={{flexShrink: 0, marginLeft: 6}}
                   toggle={this.handleToggleSubfilters.bind(this, key)}
@@ -305,7 +366,7 @@ type Props = {
 };
 
 type Filter = {
-  active: boolean;
+  active: boolean | string[];
   description: string;
   hello: string;
   id: string;
@@ -330,6 +391,12 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
   });
 
   const filterList = filterListData ?? [];
+
+  const LEGACY_BROWSER_SUBFILTERS = organization.features.includes(
+    'legacy-browser-update'
+  )
+    ? NEW_LEGACY_BROWSER_SUBFILTERS
+    : DEPRECATED_LEGACY_BROWSER_SUBFILTERS;
 
   const handleLegacyChange = useCallback(
     ({
@@ -382,19 +449,6 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       apiEndpoint={`${filtersEndpoint}${filter.id}/`}
                       initialData={{[filter.id]: filter.active}}
                       saveOnBlur
-                      onFieldChange={(name, value) => {
-                        trackAnalytics('settings.inbound_filter_updated', {
-                          organization,
-                          project_id: parseInt(project.id as string, 10),
-                          filter: name,
-                          new_state:
-                            filter.id === 'legacy-browsers' && value instanceof Set
-                              ? [...value].sort().join(',')
-                              : value
-                              ? 'enabled'
-                              : 'disabled',
-                        });
-                      }}
                     >
                       {filter.id !== 'legacy-browsers' ? (
                         <FieldFromConfig
@@ -419,6 +473,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                               onToggle={(_data, subfilters, event) =>
                                 handleLegacyChange({onChange, onBlur, event, subfilters})
                               }
+                              browserSubfilters={LEGACY_BROWSER_SUBFILTERS}
                             />
                           )}
                         </FormField>
@@ -436,14 +491,6 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       project.options?.['filters:react-hydration-errors'],
                   }}
                   saveOnBlur
-                  onFieldChange={(name, value) => {
-                    trackAnalytics('settings.inbound_filter_updated', {
-                      organization,
-                      project_id: parseInt(project.id as string, 10),
-                      filter: name,
-                      new_state: value ? 'enabled' : 'disabled',
-                    });
-                  }}
                   onSubmitSuccess={(
                     response // This will update our project context
                   ) => ProjectsStore.onUpdateSuccess(response)}
@@ -471,14 +518,6 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       project.options?.['filters:chunk-load-error'],
                   }}
                   saveOnBlur
-                  onFieldChange={(name, value) => {
-                    trackAnalytics('settings.inbound_filter_updated', {
-                      organization,
-                      project_id: parseInt(project.id as string, 10),
-                      filter: name,
-                      new_state: value ? 'enabled' : 'disabled',
-                    });
-                  }}
                   onSubmitSuccess={(
                     response // This will update our project context
                   ) => ProjectsStore.onUpdateSuccess(response)}
@@ -568,9 +607,4 @@ const BulkFilter = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-`;
-
-const BulkFilterLabel = styled('span')`
-  font-weight: bold;
-  margin-right: ${space(0.75)};
 `;
