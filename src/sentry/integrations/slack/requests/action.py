@@ -81,8 +81,7 @@ class SlackActionRequest(SlackRequest):
         # for interactive unfurls with block kit
         if (
             self.data.get("type") == "block_actions"
-            and self.data.get("container")
-            and self.data["container"].get("is_app_unfurl")
+            and self.data.get("container", {}).get("is_app_unfurl")
             and ("app_unfurl" not in self.data or len(self.data["app_unfurl"]["blocks"]) == 0)
         ):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
