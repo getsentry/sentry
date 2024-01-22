@@ -1050,7 +1050,12 @@ def test_stateful_check_spec_hashes_relative_time(
     default_project: Project,
 ) -> None:
     # TODO: This test should be removed once relative time is fixed or stateful extraction is mainlined whichever happens first.
-    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+    with Feature(
+        {
+            ON_DEMAND_METRICS_WIDGETS: True,
+            "organizations:on-demand-metrics-extraction-widgets": True,
+        }
+    ):
         widget_query = create_widget(
             ["epm()"],
             "timestamp.to_day:-7d",
