@@ -3,6 +3,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class UserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-user-permission-details"
 
@@ -30,7 +31,6 @@ class UserDetailsTest(APITestCase):
         assert resp.status_code == 403
 
 
-@control_silo_test
 class UserPermissionDetailsGetTest(UserDetailsTest):
     def test_with_permission(self):
         UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
@@ -42,7 +42,6 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
         assert resp.status_code == 404
 
 
-@control_silo_test
 class UserPermissionDetailsPostTest(UserDetailsTest):
     method = "POST"
 
@@ -58,7 +57,6 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
         assert UserPermission.objects.filter(user=self.user, permission="broadcasts.admin").exists()
 
 
-@control_silo_test
 class UserPermissionDetailsDeleteTest(UserDetailsTest):
     method = "DELETE"
 

@@ -2,6 +2,7 @@ from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
 @django_db_all(transaction=True)
@@ -15,7 +16,8 @@ def test_user_serialize_avatar_none():
 @django_db_all(transaction=True)
 def test_user_serialize_avatar():
     user = Factories.create_user()
-    avatar = UserAvatar.objects.create(user_id=user.id, avatar_type=2, ident="abc123")
+    with assume_test_silo_mode_of(UserAvatar):
+        avatar = UserAvatar.objects.create(user_id=user.id, avatar_type=2, ident="abc123")
 
     rpc_user = user_service.get_user(user_id=user.id)
     assert rpc_user
