@@ -520,7 +520,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             }
             context_text = ""
             for k, v in context.items():
-                context_text += f"{k}: *{v}*   "
+                if k and v:
+                    context_text += f"{k}: *{v}*   "
             blocks.append(self.get_markdown_block(context_text[:-3]))
 
         # build actions
