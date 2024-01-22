@@ -175,7 +175,7 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> int:
     Child task spawned from :func:`schedule_on_demand_check`.
     """
     if not options.get("on_demand_metrics.check_widgets.enable"):
-        return
+        return 0
 
     widget_query_count = 0
     widget_query_high_cardinality_count = 0
