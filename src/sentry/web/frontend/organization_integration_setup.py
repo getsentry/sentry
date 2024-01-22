@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from django.conf import settings
 from django.http import Http404
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -39,7 +40,9 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
             )
             for feature in pipeline.provider.features:
                 feature_flag_name = "organizations:integrations-%s" % feature.value
-                if not features.has(feature_flag_name, organization):
+                if feature_flag_name in settings.SENTRY_FEATURES and not features.has(
+                    feature_flag_name, organization
+                ):
                     return pipeline.render_warning(
                         "Feature '%s' is not enabled for the organization." % feature_flag_name
                     )
