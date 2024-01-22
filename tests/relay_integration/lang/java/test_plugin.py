@@ -84,6 +84,12 @@ class MainActivity : ComponentActivity() {
             throw RuntimeException("whoops")
         }
     }
+
+    class OneMoreInnerClass {
+        fun whoops4() {
+            throw RuntimeException("whoops4")
+        }
+    }
 }
 
 """
@@ -775,6 +781,13 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                                     "filename": "MainActivity.kt",
                                     "lineno": 32,
                                 },
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
                             ]
                         },
                         "module": "io.sentry.samples",
@@ -891,7 +904,26 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "    class AdditionalInnerClass {",
             "        fun whoops3() {",
         ]
-        assert frames[5].post_context == ["        }", "    }", "}", ""]
+        assert frames[5].post_context == [
+            "        }",
+            "    }",
+            "",
+            "    class OneMoreInnerClass {",
+            "        fun whoops4() {",
+        ]
+
+        assert frames[6].function == "whoops4"
+        assert frames[6].module == "io.sentry.samples.MainActivity$OneMoreInnerClass"
+        assert frames[6].lineno == 38
+        assert frames[6].context_line == '            throw RuntimeException("whoops4")'
+        assert frames[6].pre_context == [
+            "        }",
+            "    }",
+            "",
+            "    class OneMoreInnerClass {",
+            "        fun whoops4() {",
+        ]
+        assert frames[6].post_context == ["        }", "    }", "}", ""]
 
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
