@@ -110,17 +110,17 @@ def transform_latest_release_condition(
     conditions: Optional[ConditionGroup], projects: Sequence[Project]
 ):
     """
-    Transforms all the conditions in the form `release:latest` in `release:x OR release:y` where `x` and `y` are
+    Transforms all the conditions in the form `release:latest` in `release:[x, y...]` where `x` and `y` are
     the latest releases of the supplied projects.
     """
     if conditions is None:
         return None
 
     def _transform_latest_release_condition(condition: Condition) -> Optional[ConditionGroup]:
+        # TODO: move to the visitors implementation by using `QueryCondition` visitors from `visitors.py`.
         if not isinstance(condition.lhs, Column):
             return None
 
-        # If it's not the latest release, we want to early return for efficiency.
         if not (
             condition.lhs.name == "release"
             and isinstance(condition.rhs, str)
