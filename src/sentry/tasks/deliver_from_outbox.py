@@ -77,10 +77,11 @@ def schedule_batch(
             scheduled_count += hi - lo + 1
             batch_size = math.ceil((hi - lo + 1) / concurrency)
 
+            metrics_tags = dict(silo_mode=silo_mode.name, outbox_name=outbox_name)
             metrics.gauge(
                 "deliver_from_outbox.queued_batch_size",
                 value=batch_size,
-                tags=dict(silo_mode=silo_mode.name),
+                tags=metrics_tags,
                 sample_rate=1.0,
             )
 
@@ -93,11 +94,22 @@ def schedule_batch(
                     outbox_identifier_hi=lo + (i + 1) * batch_size,
                 )
 
-            shard_depths = outbox_model.get_shard_depths_descending()
+            deepest_shard_information = outbox_model.get_shard_depths_descending(limit=1)
+            max_shard_depth = (
+                deepest_shard_information[0]["depth"] if deepest_shard_information else 0
+            )
             metrics.gauge(
                 "deliver_from_outbox.maximum_shard_depth",
-                value=shard_depths[0]["depth"] if shard_depths else 0,
-                tags=dict(silo_mode=silo_mode.name, outbox_name=outbox_name),
+                value=max_shard_depth,
+                tags=metrics_tags,
+                sample_rate=1.0,
+            )
+
+            outbox_count = outbox_model.get_total_outbox_count()
+            metrics.gauge(
+                "deliver_from_outbox.total_outbox_count",
+                value=outbox_count,
+                tags=metrics_tags,
                 sample_rate=1.0,
             )
         if process_outbox_backfills:

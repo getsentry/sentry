@@ -652,31 +652,61 @@ class TestOutboxesManager(TestCase):
 
 
 class OutboxAggregationTest(TestCase):
-    def test_calculate_sharding_depths(self):
-        shard_counts = {1: 456, 2: 1337, 3: 123}
+    def setUp(self):
+        shard_counts = {1: (456, "eu"), 2: (789, "us"), 3: (123, "us")}
+        with outbox_runner():
+            pass
 
-        for shard_id, shard_count in shard_counts.items():
+        for shard_id, (shard_count, region_name) in shard_counts.items():
             for i in range(shard_count):
                 ControlOutbox(
-                    region_name="us",
+                    region_name=region_name,
                     shard_scope=OutboxScope.WEBHOOK_SCOPE,
                     shard_identifier=shard_id,
                     category=OutboxCategory.WEBHOOK_PROXY,
                     object_identifier=shard_id * 10000 + i,
-                    payload={},
+                    payload='{"foo": "bar"}',
                 ).save()
 
+    def test_calculate_sharding_depths(self):
         shard_depths = ControlOutbox.get_shard_depths_descending()
 
         assert shard_depths == [
-            dict(shard_identifier=2, depth=1337),
-            dict(shard_identifier=1, depth=456),
-            dict(shard_identifier=3, depth=123),
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=789,
+            ),
+            dict(
+                shard_identifier=1,
+                region_name="eu",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=456,
+            ),
+            dict(
+                shard_identifier=3,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=123,
+            ),
+        ]
+
+        # Test limiting the query to a single entry
+        shard_depths = ControlOutbox.get_shard_depths_descending(limit=1)
+        assert shard_depths == [
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=789,
+            )
         ]
 
     def test_calculate_sharding_depths_empty(self):
-        with outbox_runner():
-            pass
-
+        ControlOutbox.objects.all().delete()
         assert ControlOutbox.objects.count() == 0
         assert ControlOutbox.get_shard_depths_descending() == []
+
+    def test_total_count(self):
+        assert ControlOutbox.get_total_outbox_count() == 789 + 456 + 123

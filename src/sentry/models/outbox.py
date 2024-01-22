@@ -676,13 +676,39 @@ class OutboxBase(Model):
                     _test_processing_barrier.wait()
 
     @classmethod
-    def get_shard_depths_descending(cls):
-        return list(
-            {"shard_identifier": aggregate_row["shard_identifier"], "depth": aggregate_row["depth"]}
-            for aggregate_row in cls.objects.values(*cls.sharding_columns)
-            .annotate(depth=Count("pk"))
-            .order_by("-depth")
+    def get_shard_depths_descending(cls, limit: Optional[int] = 10) -> list[dict[str, int | str]]:
+        """
+        Queries all outbox shards for their total depth, aggregated by their
+        sharding columns as specified by the outbox class implementation.
+
+        :param limit: Limits the query to the top N rows with the greatest shard
+        depth. If limit is None, the entire set of rows will be returned.
+        :return: A list of dictionaries, containing shard depths and shard
+        relevant column values.
+        """
+        if limit is not None:
+            assert limit > 0, "Limit must be a positive integer if specified"
+
+        base_depth_query = (
+            cls.objects.values(*cls.sharding_columns).annotate(depth=Count("*")).order_by("-depth")
         )
+
+        if limit is not None:
+            base_depth_query = base_depth_query[0:limit]
+
+        aggregated_shard_information = list()
+        for shard_row in base_depth_query:
+            shard_information = {
+                shard_column: shard_row[shard_column] for shard_column in cls.sharding_columns
+            }
+            shard_information["depth"] = shard_row["depth"]
+            aggregated_shard_information.append(shard_information)
+
+        return aggregated_shard_information
+
+    @classmethod
+    def get_total_outbox_count(cls) -> int:
+        return cls.objects.count()
 
 
 # Outboxes bound from region silo -> control silo
