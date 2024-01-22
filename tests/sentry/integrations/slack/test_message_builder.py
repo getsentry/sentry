@@ -462,10 +462,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ).build()
         assert isinstance(ret, dict)
         assert (
-            ret["blocks"][2]["elements"][2]["initial_option"]["text"]["text"]
+            ret["blocks"][1]["elements"][2]["initial_option"]["text"]["text"]
             == self.user.get_display_name()
         )
-        assert ret["blocks"][2]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
+        assert ret["blocks"][1]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
 
     # XXX(CEO): skipping replicating tests relating to color since there is no block kit equivalent
     def test_build_group_attachment_color_no_event_error_fallback(self):
