@@ -73,7 +73,8 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(status=204)
 
 
-# TODO: when the above endpoint is deprecated, simply move the convert method. This endpoint utilizes the id instead.
+# TODO: when the above endpoint is deprecated, simply move the convert method.
+# This endpoint handler utilizes the id instead.
 @control_silo_endpoint
 class NewSentryInternalAppTokenDetailsEndpoint(SentryInternalAppTokenDetailsEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -81,17 +82,17 @@ class NewSentryInternalAppTokenDetailsEndpoint(SentryInternalAppTokenDetailsEndp
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def convert_args(self, request: Request, sentry_app_slug, api_token_id, *args, **kwargs):
+    # The api_token is actually the id of the api token, but needs the same signature of the parent class method
+    def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):
         try:
-            api_token = ApiToken.objects.get(id=api_token_id)
+            api_token_obj = ApiToken.objects.get(id=api_token)
         except ApiToken.DoesNotExist:
             raise Http404
 
-        # get the sentry_app from the SentryAppBaseEndpoint class
         # We are doing the super call AFTER getting the api token because the parent class still needs the token
         # Once the token passing is deprecated, we can change the order to be similar to the parent
         (args, kwargs) = super().convert_args(
-            request, sentry_app_slug, api_token.token, *args, **kwargs
+            request, sentry_app_slug, api_token_obj.token, *args, **kwargs
         )
 
         return (args, kwargs)
