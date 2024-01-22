@@ -311,7 +311,7 @@ function shouldConfirm(
   switch (action) {
     case ConfirmAction.RESOLVE:
     case ConfirmAction.UNRESOLVE:
-    case ConfirmAction.IGNORE:
+    case ConfirmAction.ARCHIVE:
     case ConfirmAction.UNBOOKMARK: {
       return pageSelected && selectedIdsSet.size > 1;
     }
