@@ -114,6 +114,8 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -1525,6 +1527,18 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_provider_integration(**integration_params: Any) -> Integration:
         return Integration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_provider_integration_for(
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        integration = Integration.objects.create(**integration_params)
+        org_integration = integration.add_organization(organization, user)
+        assert org_integration is not None
+        return integration, org_integration
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

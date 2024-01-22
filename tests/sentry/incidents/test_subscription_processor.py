@@ -45,6 +45,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
@@ -173,6 +174,7 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
         assert last_incident == incident
 
 
+@region_silo_test
 @freeze_time()
 class ProcessUpdateTest(ProcessUpdateBaseClass):
     @pytest.fixture(autouse=True)
@@ -1669,7 +1671,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1678,7 +1682,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.project.organization, self.user)
 
         # Register Slack Handler
         AlertRuleTriggerAction.register_type(

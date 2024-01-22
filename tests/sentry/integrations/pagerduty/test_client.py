@@ -41,13 +41,14 @@ class PagerDutyProxyClientTest(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider=self.provider,
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
             metadata={"services": SERVICES},
         )
-        self.integration.add_organization(self.organization, self.user)
         self.service = add_service(
             self.integration.organizationintegration_set.first(),
             service_name=SERVICES[0]["service_name"],
