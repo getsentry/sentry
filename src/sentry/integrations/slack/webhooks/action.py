@@ -522,6 +522,14 @@ class SlackActionEndpoint(Endpoint):
             response = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=action_list, tags=original_tags_from_request
             ).build()
+            # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
+            # response so the unfurling endpoint understands the payload
+            if (
+                slack_request.data.get("container")
+                and slack_request.data["container"].get("is_app_unfurl")
+                and "text" in response
+            ):
+                del response["text"]
             slack_client = SlackClient(integration_id=slack_request.integration.id)
 
             if not slack_request.data.get("response_url"):

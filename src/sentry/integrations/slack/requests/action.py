@@ -46,6 +46,10 @@ class SlackActionRequest(SlackRequest):
         if self.data["type"] == "block_actions":
             if self.data.get("view"):
                 return json.loads(self.data["view"]["private_metadata"])
+            elif self.data.get("container", {}).get(
+                "is_app_unfurl"
+            ):  # for actions taken on interactive unfurls
+                return json.loads(self.data["app_unfurl"]["blocks"][0]["block_id"])
             return json.loads(self.data["message"]["blocks"][0]["block_id"])
 
         if self.data["type"] == "view_submission":
@@ -72,6 +76,14 @@ class SlackActionRequest(SlackRequest):
         try:
             self._data = json.loads(self.data["payload"])
         except (KeyError, IndexError, TypeError, ValueError):
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
+
+        # for interactive unfurls with block kit
+        if (
+            self.data.get("type") == "block_actions"
+            and self.data.get("container", {}).get("is_app_unfurl")
+            and ("app_unfurl" not in self.data or len(self.data["app_unfurl"]["blocks"]) == 0)
+        ):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
     def _log_request(self) -> None:

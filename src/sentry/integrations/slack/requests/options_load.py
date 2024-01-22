@@ -18,6 +18,8 @@ class SlackOptionsLoadRequest(SlackRequest):
 
     @property
     def group_id(self) -> int:
+        if self.data.get("container", {}).get("is_app_unfurl"):
+            return int(json.loads(self.data["app_unfurl"]["blocks"][0]["block_id"])["issue"])
         return int(json.loads(self.data["message"]["blocks"][0]["block_id"])["issue"])
 
     @property
