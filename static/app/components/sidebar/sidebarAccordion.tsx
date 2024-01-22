@@ -91,7 +91,7 @@ function recursivelyFindChildren(
       return;
     }
 
-    if (child && child?.props && child?.props?.children) {
+    if (child?.props?.children) {
       recursivelyFindChildren(child.props.children, componentName, found);
       return;
     }
