@@ -100,7 +100,7 @@ def build_test_message_blocks(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Events: *1*   Users Affected: *0*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+                "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
             },
         }
         blocks.append(counts_section)
@@ -141,15 +141,13 @@ def build_test_message_blocks(
         }
         blocks.append(mentions_section)
 
+    context_text = f"BAR-{group.short_id} | {event_date}"
+    if extra_content:
+        context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
     context = {
         "type": "context",
-        "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
+        "elements": [{"type": "mrkdwn", "text": context_text}],
     }
-
-    if extra_content:
-        context["elements"][0][
-            "text"
-        ] = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
     blocks.append(context)
 
     blocks.append({"type": "divider"})

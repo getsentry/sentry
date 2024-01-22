@@ -654,7 +654,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -985,7 +985,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"<http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{event.project.slug} | <http://example.com/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 

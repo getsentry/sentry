@@ -279,7 +279,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             fallback_text
             == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
         )
-        assert len(blocks) == 5
+        assert len(blocks) == 7
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
@@ -291,16 +291,16 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         # digest order not definitive
         try:
             assert blocks[1]["text"]["text"] == event1_alert_title
-            assert blocks[3]["text"]["text"] == event2_alert_title
+            assert blocks[4]["text"]["text"] == event2_alert_title
         except AssertionError:
             assert blocks[1]["text"]["text"] == event2_alert_title
-            assert blocks[3]["text"]["text"] == event1_alert_title
+            assert blocks[4]["text"]["text"] == event1_alert_title
 
         assert (
             blocks[2]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         assert (
-            blocks[4]["elements"][0]["text"]
+            blocks[5]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
