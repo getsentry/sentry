@@ -12,8 +12,13 @@ import {QueryBuilder} from 'sentry/views/ddm/queryBuilder';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 
 export function Queries() {
-  const {widgets, updateWidget, setSelectedWidgetIndex, showQuerySymbols} =
-    useDDMContext();
+  const {
+    widgets,
+    updateWidget,
+    setSelectedWidgetIndex,
+    showQuerySymbols,
+    selectedWidgetIndex,
+  } = useDDMContext();
   const {selection} = usePageFilters();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
@@ -32,7 +37,9 @@ export function Queries() {
     <Wrapper showQuerySymbols={showQuerySymbols}>
       {widgets.map((widget, index) => (
         <Row key={index} onFocusCapture={() => setSelectedWidgetIndex(index)}>
-          {showQuerySymbols && <StyledQuerySymbol index={index} />}
+          {showQuerySymbols && (
+            <StyledQuerySymbol index={index} isSelected={index === selectedWidgetIndex} />
+          )}
           <QueryBuilder
             onChange={data => handleChange(index, data)}
             metricsQuery={{
