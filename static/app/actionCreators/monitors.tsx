@@ -5,6 +5,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ObjectStatus} from 'sentry/types';
 import {logException} from 'sentry/utils/logging';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {Monitor} from 'sentry/views/monitors/types';
@@ -97,6 +98,34 @@ export async function setEnvironmentIsMuted(
     addErrorMessage(
       isMuted ? t('Unable to mute environment.') : t('Unable to unmute environment.')
     );
+  }
+
+  return null;
+}
+
+export interface BulkEditOperation {
+  isMuted?: boolean;
+  status?: ObjectStatus;
+}
+
+export async function bulkEditMonitors(
+  api: Client,
+  orgId: string,
+  slugs: string[],
+  operation: BulkEditOperation
+): Promise<Monitor[] | null> {
+  addLoadingMessage();
+
+  try {
+    const resp = await api.requestPromise(`/organizations/${orgId}/monitors/`, {
+      method: 'PUT',
+      data: {...operation, slugs},
+    });
+    clearIndicators();
+    return resp;
+  } catch (err) {
+    logException(err);
+    addErrorMessage(t('Unable to apply the changes to all monitors'));
   }
 
   return null;
