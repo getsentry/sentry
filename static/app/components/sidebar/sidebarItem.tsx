@@ -198,6 +198,7 @@ function SidebarItem({
         active={isActive ? 'true' : undefined}
         to={toProps}
         className={className}
+        aria-current={isActive ? 'page' : undefined}
         onClick={handleItemClick}
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
