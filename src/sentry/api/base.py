@@ -219,7 +219,7 @@ class Endpoint(APIView):
             permissions[0], SuperuserPermission
         )
 
-        if can_be_superuser and sole_superuser_permission:
+        if can_be_superuser and has_only_superuser_permission:
             raise SuperuserRequired()
         super().permission_denied(request, message, code)
 
