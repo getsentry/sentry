@@ -465,7 +465,7 @@ class Fixtures:
         organization: Organization | RpcOrganization,
         user: User | RpcUser | None,
         **integration_params: Any,
-    ) -> Integration:
+    ) -> tuple[Integration, OrganizationIntegration]:
         """Create an integration tied to a provider, then add an organization."""
         return Factories.create_provider_integration_for(organization, user, **integration_params)
 
