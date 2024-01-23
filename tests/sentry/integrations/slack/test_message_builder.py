@@ -534,9 +534,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "text"
         ] = f"Suggested Assignees: #{self.team.slug}, <@{self.identity.external_id}>"
         assert (
-            SlackIssuesMessageBuilder(
-                group, event.for_group(group), tags={"foo"}, identity=self.identity
-            ).build()
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
         )
 
