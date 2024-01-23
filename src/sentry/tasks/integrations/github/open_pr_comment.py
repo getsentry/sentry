@@ -41,7 +41,7 @@ from sentry.tasks.integrations.github.constants import (
     STACKFRAME_COUNT,
 )
 from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
-from sentry.tasks.integrations.github.pr_comment import format_comment_url, get_pr_comment
+from sentry.tasks.integrations.github.pr_comment import format_comment_url
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
     PullRequestFile,
@@ -463,11 +463,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
     issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
 
-    pr_comment = get_pr_comment(pr_id, comment_type=CommentType.OPEN_PR)
-
     try:
         create_or_update_comment(
-            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pull_request.key,

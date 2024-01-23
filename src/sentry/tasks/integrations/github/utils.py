@@ -36,7 +36,6 @@ class GithubAPIErrorType(Enum):
 
 
 def create_or_update_comment(
-    pr_comment: PullRequestComment | None,
     client: GitHubAppsClient,
     repo: Repository,
     pr_key: int,
@@ -46,6 +45,11 @@ def create_or_update_comment(
     metrics_base: str,
     comment_type: int = CommentType.MERGED_PR,
 ):
+    pr_comment_query = PullRequestComment.objects.filter(
+        pull_request__id=pullrequest_id, comment_type=comment_type
+    )
+    pr_comment = pr_comment_query[0] if pr_comment_query.exists() else None
+
     # client will raise ApiError if the request is not successful
     if pr_comment is None:
         resp = client.create_comment(
