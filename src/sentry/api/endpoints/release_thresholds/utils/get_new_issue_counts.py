@@ -15,6 +15,7 @@ def get_new_issue_counts(
 ) -> dict[str, int]:
     """
     constructs a query for each threshold, filtering on project
+    NOTE: group messages are guaranteed to have a related groupenvironment
     """
     queryset: QuerySet | None = None
     for t in thresholds:
