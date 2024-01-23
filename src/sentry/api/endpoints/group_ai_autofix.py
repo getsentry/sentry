@@ -156,7 +156,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         group.save()
 
         return HttpResponse(
-            status=200,
+            status=202,
         )
 
     def get(self, request: Request, group: Group) -> HttpResponse:
