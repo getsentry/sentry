@@ -1551,16 +1551,15 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         integration = integration_service.get_integration(
             organization_id=self.code_mapping.organization_id
         )
-        if integration:
-            install = integration.get_installation(
-                organization_id=self.code_mapping.organization_id
-            )
+        assert integration
 
-            with self.tasks():
-                queue_comment_task_if_needed(
-                    commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
-                )
-                queue_comment_task_if_needed(
-                    commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
-                )
-                assert mock_comment_workflow.call_count == 1
+        install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+
+        with self.tasks():
+            queue_comment_task_if_needed(
+                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            )
+            queue_comment_task_if_needed(
+                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
+            )
+            assert mock_comment_workflow.call_count == 1
