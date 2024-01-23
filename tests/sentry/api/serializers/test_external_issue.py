@@ -62,11 +62,9 @@ class ExternalIssueSerializerTestCase(TestCase):
             description="this is an example description",
         )
 
-        req = self.make_request()
         # test serializer on group 1
         group_1_issues = serialize(
             [external_issue_1a, external_issue_1b],
-            request=req,
             serializer=ExternalIssueSerializer(),
         )
 
@@ -86,7 +84,6 @@ class ExternalIssueSerializerTestCase(TestCase):
         # test serializer on group 2
         group_2_issues = serialize(
             [external_issue_2a, external_issue_2b, external_issue_2c],
-            request=req,
             serializer=ExternalIssueSerializer(),
         )
 
