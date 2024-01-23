@@ -36,8 +36,18 @@ class MonitorEnvironmentSerializer(Serializer):
         }
 
 
+class MonitorAlertRuleTargetSerializerResponse(TypedDict):
+    targetIdentifier: int
+    targetType: str
+
+
+class MonitorAlertRuleSerializerResponse(TypedDict):
+    targets: List[MonitorAlertRuleTargetSerializerResponse]
+    environment: str
+
+
 class MonitorSerializerResponseOptional(TypedDict, total=False):
-    alertRule: Any  # TODO: Find out what type this is
+    alertRule: MonitorAlertRuleSerializerResponse
 
 
 class MonitorSerializerResponse(MonitorSerializerResponseOptional):
