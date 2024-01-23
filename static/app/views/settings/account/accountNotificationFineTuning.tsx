@@ -12,6 +12,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, UserEmail} from 'sentry/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -101,10 +103,11 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
 
 type ANBOProps = {
   field: FineTuneField;
-  organizations: Organization[];
 };
 
-function AccountNotificationsByOrganization({organizations, field}: ANBOProps) {
+function AccountNotificationsByOrganization({field}: ANBOProps) {
+  const {organizations} = useLegacyStore(OrganizationsStore);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {title, description, ...fieldConfig} = field;
 
@@ -132,10 +135,6 @@ function AccountNotificationsByOrganization({organizations, field}: ANBOProps) {
     </Fragment>
   );
 }
-
-const AccountNotificationsByOrganizationContainer = withOrganizations(
-  AccountNotificationsByOrganization
-);
 
 type Props = DeprecatedAsyncView['props'] &
   RouteComponentProps<{fineTuneType: string}, {}> & {
@@ -248,7 +247,7 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
           <EmptyMessage>{t('No projects found')}</EmptyMessage>
         )}
 
-        {!isProject && <AccountNotificationsByOrganizationContainer field={field} />}
+        {!isProject && <AccountNotificationsByOrganization field={field} />}
       </Fragment>
     );
 
