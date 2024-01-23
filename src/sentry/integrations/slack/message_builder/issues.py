@@ -218,9 +218,7 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def get_action_text(
-    text: str, actions: Sequence[Any], identity: RpcIdentity, use_block_kit: bool
-) -> str:
+def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
     action_text = "\n".join(
         [
             action_text
@@ -228,10 +226,7 @@ def get_action_text(
             if action_text
         ]
     )
-    if use_block_kit:
-        return action_text
-
-    return text + "\n" + action_text
+    return action_text
 
 
 def build_actions(
@@ -246,7 +241,7 @@ def build_actions(
     use_block_kit = features.has("organizations:slack-block-kit", project.organization)
 
     if actions and identity:
-        text = get_action_text(text, actions, identity, use_block_kit)
+        text = get_action_text(text, actions, identity)
         return [], text, "_actioned_issue"
 
     status = group.get_status()
@@ -388,7 +383,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
-
+        action_text = ""
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
@@ -415,6 +410,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = build_attachment_title(obj)
 
         if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            if action_text and self.identity:
+                text += "\n" + action_text
+
             return self._build(
                 actions=payload_actions,
                 callback_id=json.dumps({"issue": self.group.id}),
@@ -422,7 +420,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 fallback=self.build_fallback_text(obj, project.slug),
                 fields=fields,
                 footer=footer,
-                text=action_text,
+                text=text,
                 title=title,
                 title_link=title_link,
                 ts=get_timestamp(self.group, self.event) if not self.issue_details else None,

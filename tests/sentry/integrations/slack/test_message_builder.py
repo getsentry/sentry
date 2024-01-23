@@ -929,15 +929,14 @@ class ActionsTest(TestCase):
     def test_identity_and_action(self):
         group = self.create_group(project=self.project)
         MOCKIDENTITY = Mock()
-
         assert build_actions(
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "test txt\n", "_actioned_issue")
+        ) == ([], "", "_actioned_issue")
 
         with self.feature("organizations:slack-block-kit"):
             assert build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
-            ) == ([], "test txt\n", "_actioned_issue")
+            ) == ([], "", "_actioned_issue")
 
     def _assert_message_actions_list(self, actions, expected):
         actions_dict = [
