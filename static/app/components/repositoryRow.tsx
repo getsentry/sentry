@@ -17,7 +17,7 @@ type Props = {
   api: Client;
   orgSlug: string;
   repository: Repository;
-  onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
+  onRepositoryChange?: (data: Repository) => void;
   showProvider?: boolean;
 };
 
