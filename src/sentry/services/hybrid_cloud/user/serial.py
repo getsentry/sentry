@@ -79,12 +79,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
     else:
         orm_avatar = user.avatar.first()
         if orm_avatar is not None:
-            avatar = RpcAvatar(
-                id=orm_avatar.id,
-                file_id=orm_avatar.file_id,
-                ident=orm_avatar.ident,
-                avatar_type=orm_avatar.get_avatar_type_display(),
-            )
+            avatar = serialize_user_avatar(avatar=orm_avatar)
     args["avatar"] = avatar
 
     args["authenticators"] = [
