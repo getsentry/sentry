@@ -19,7 +19,10 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
     65:65:void <init>() -> <init>
     67:67:java.lang.Class[] getClassContext() -> a
     69:69:java.lang.Class[] getExtraClassContext() -> a
+    68:68:java.lang.Class[] getContext() -> a
     65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
+org.slf4j.helpers.Util$ClassContext -> org.a.b.g$b:
+    65:65:void <init>() -> <init>
 """
 PROGUARD_INLINE_UUID = "d748e578-b3d1-5be5-b0e5-a42e8c9bf8e0"
 PROGUARD_INLINE_SOURCE = b"""\
@@ -549,6 +552,101 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
+
+    def test_sets_inapp_after_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        version = "org.slf4j@1.2.3"
+        env_name = "some_env"
+        event = self.store_event(
+            data={"release": version, "environment": env_name}, project_id=self.project.id
+        )
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "release": "org.slf4j@1.2.3",
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                    "in_app": False,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 68,
+                                    "in_app": True,
+                                },
+                                {
+                                    "function": "init",
+                                    "abs_path": None,
+                                    "module": "com.android.Zygote",
+                                    "filename": None,
+                                    "lineno": 62,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$b",
+                                    "filename": None,
+                                    "lineno": 70,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                        "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
+        frames = bt.frames
+
+        assert exc.module == "org.slf4j.helpers"
+        assert frames[0].in_app is True
+        assert frames[1].in_app is False
+        assert frames[2].in_app is True
+        assert frames[3].in_app is False
+        assert frames[4].in_app is True
 
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
