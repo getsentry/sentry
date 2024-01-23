@@ -123,7 +123,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
       },
     ],
     {
-      enabled: false,
+      enabled: isStaff ? (piiCertified ? true : false) : true,
       staleTime: Infinity,
       retry: false,
     }
