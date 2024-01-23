@@ -555,9 +555,10 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
 @region_silo_test
 @pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
 def test_with_blocked_metrics(default_project, feature_flag):
-    block_metric(
-        BlockedMetric(metric_mri="g:custom/page_load@millisecond", tags=set()), [default_project]
-    )
+    blocked_mris = ["g:custom/*@millisecond", "c:custom/*"]
+
+    for blocked_mri in blocked_mris:
+        block_metric(BlockedMetric(metric_mri=blocked_mri, tags=set()), [default_project])
 
     with Feature({"organizations:metrics-blocking": feature_flag}):
         project_config = get_project_config(default_project)
@@ -568,7 +569,7 @@ def test_with_blocked_metrics(default_project, feature_flag):
             assert "metrics" not in config
         else:
             config = config["metrics"]
-            assert len(config["deniedNames"]) == 1
+            assert config["deniedNames"] == blocked_mris
 
 
 @django_db_all
