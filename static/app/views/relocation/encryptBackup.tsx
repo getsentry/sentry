@@ -1,11 +1,9 @@
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCodeBlock';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
@@ -78,16 +76,10 @@ export function EncryptBackup(props: StepProps) {
             {t('for this command.')}
           </i>
         </p>
-        <ContinueButton priority="primary" onClick={() => props.onComplete()}>
-          {t('Continue')}
-        </ContinueButton>
+        <ContinueButton priority="primary" onClick={() => props.onComplete()} />
       </motion.div>
     </Wrapper>
   );
 }
 
 export default EncryptBackup;
-
-const ContinueButton = styled(Button)`
-  margin-top: ${space(1.5)};
-`;

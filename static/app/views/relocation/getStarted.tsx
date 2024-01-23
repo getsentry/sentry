@@ -2,13 +2,13 @@ import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
@@ -81,9 +81,7 @@ function GetStarted(props: StepProps) {
             disabled={!orgSlugs || !regionUrl}
             priority="primary"
             type="submit"
-          >
-            {t('Continue')}
-          </ContinueButton>
+          />
         </Form>
       </motion.div>
     </Wrapper>
@@ -130,10 +128,6 @@ const Wrapper = styled('div')`
   h2 {
     color: ${p => p.theme.gray500};
   }
-`;
-
-const ContinueButton = styled(Button)`
-  margin-top: ${space(4)};
 `;
 
 const Form = styled('form')`
