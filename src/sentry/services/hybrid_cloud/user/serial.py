@@ -102,6 +102,15 @@ def serialize_rpc_user(user: User) -> RpcUser:
     return RpcUser(**args)
 
 
+def serialize_user_avatar(avatar: UserAvatar) -> RpcAvatar:
+    return RpcAvatar(
+        id=avatar.id,
+        file_id=avatar.file_id,
+        ident=avatar.ident,
+        avatar_type=avatar.get_avatar_type_display(),
+    )
+
+
 def _flatten(iter: Iterable[Any]) -> List[Any]:
     return (
         ((_flatten(iter[0]) + _flatten(iter[1:])) if len(iter) > 0 else [])
