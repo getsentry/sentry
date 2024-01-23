@@ -11,7 +11,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import {Organization, UserAppApiToken} from 'sentry/types';
+import {InternalAppApiToken, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
@@ -23,7 +23,7 @@ type Props = {
 } & DeprecatedAsyncView['props'];
 
 type State = {
-  tokenList: UserAppApiToken[] | null;
+  tokenList: InternalAppApiToken[] | null;
 } & DeprecatedAsyncView['state'];
 
 export class ApiTokens extends DeprecatedAsyncView<Props, State> {
@@ -42,7 +42,7 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
     return [['tokenList', '/api-tokens/']];
   }
 
-  handleRemoveToken = (token: UserAppApiToken) => {
+  handleRemoveToken = (token: InternalAppApiToken) => {
     addLoadingMessage();
     const oldTokenList = this.state.tokenList;
 
