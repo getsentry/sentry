@@ -92,6 +92,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         raw_frame = dict(frame)
+        release = super().get_release()
 
         # first, try to remap complete frames
         for view in self.mapping_views:
@@ -113,6 +114,12 @@ class JavaStacktraceProcessor(StacktraceProcessor):
                         frame.pop("filename", None)
                         frame.pop("abs_path", None)
 
+                    # mark the frame as in_app after deobfuscation based on the release package name
+                    # only if it's not present
+                    if release and release.package and frame.get("in_app") is None:
+                        if frame["module"].startswith(release.package):
+                            frame["in_app"] = True
+
                     new_frames.append(frame)
 
                 return new_frames, [raw_frame], []
@@ -124,6 +131,13 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if mapped_class:
                 frame = dict(raw_frame)
                 frame["module"] = mapped_class
+
+                # mark the frame as in_app after deobfuscation based on the release package name
+                # only if it's not present
+                if release and release.package and frame.get("in_app") is None:
+                    if frame["module"].startswith(release.package):
+                        frame["in_app"] = True
+
                 return [frame], [raw_frame], []
 
         return

@@ -48,6 +48,7 @@ class OrganizationService(RpcService):
 
     def get(self, id: int) -> Optional[RpcOrganization]:
         org_context = self.get_organization_by_id(id=id)
+
         return org_context.organization if org_context else None
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
