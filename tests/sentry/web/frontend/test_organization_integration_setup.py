@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.testutils.cases import PermissionTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -39,3 +40,18 @@ class OrganizationIntegrationSetupTest(TestCase):
         # Check that we're binding the state back to the opening window
         # through the dialog's window.postMessage.
         assert b"morty" in resp.content
+
+    @with_feature("organizations:integrations-issue-basic")
+    def test_allow_integration_with_feature_enabled(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert b"This is an example integration configuration page." in resp.content
+
+    @with_feature({"organizations:integrations-issue-basic": False})
+    def test_disallow_integration_with_feature_disabled(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert (
+            b"Feature &#x27;organizations:integrations-issue-basic&#x27; is not enabled for the organization."
+            in resp.content
+        )
