@@ -1103,6 +1103,9 @@ def postprocessing(uuid: str) -> None:
         for _, result in relocated.send_robust(sender=postprocessing, relocation_uuid=uuid):
             if isinstance(result, Exception):
                 raise result
+
+        # This signal nust come after the relocated signal, to ensure that the subscription and customer models
+        # have been appropriately set up before attempting to redeem a promo code.
         relocation_redeem_promo_code.send_robust(
             sender=postprocessing,
             user_id=relocation.owner_id,
