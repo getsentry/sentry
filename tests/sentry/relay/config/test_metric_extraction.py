@@ -1,4 +1,5 @@
 from typing import Any, Optional, Sequence
+from unittest import mock
 
 import pytest
 
@@ -17,6 +18,7 @@ from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.tasks.on_demand_metrics import process_widget_specs
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -857,8 +859,146 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project: Pro
 
 
 @django_db_all
+def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
+    default_project: Project,
+) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._is_widget_query_low_cardinality"
+    ) as mock_cardinality:
+        mock_cardinality.side_effect = [True, False, True]
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget1",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 1}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget2",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 2}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget3",
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+
+
+@django_db_all
 @override_options({"on_demand.max_widget_cardinality.count": 1})
-def test_get_metric_extraction_config_with_low_cardinality(default_project: Project) -> None:
+def test_get_metric_extraction_config_with_extraction_enabled(default_project: Project) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+    ) as mock_can_use_stateful, mock.patch(
+        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+    ) as mock_extraction_enabled:
+        mock_can_use_stateful.return_value = True
+        mock_extraction_enabled.return_value = True
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+
+
+@django_db_all
+@override_options(
+    {
+        "on_demand.max_widget_cardinality.count": -1,
+        "on_demand_metrics.widgets.use_stateful_extraction": True,
+    }
+)
+def test_stateful_get_metric_extraction_config_with_extraction_disabled(
+    default_project: Project,
+) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+    ) as mock_can_use_stateful, mock.patch(
+        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+    ) as mock_extraction_enabled:
+        mock_can_use_stateful.return_value = True
+        mock_extraction_enabled.return_value = False
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert not config
+
+
+@django_db_all
+@override_options({"on_demand_metrics.widgets.use_stateful_extraction": True})
+def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_partially_disabled(
+    default_project: Project,
+) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+    ) as mock_can_use_stateful, mock.patch(
+        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+    ) as mock_extraction_enabled:
+        mock_can_use_stateful.return_value = True
+        mock_extraction_enabled.side_effect = [True, False, True]
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget1",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 1}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget2",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 2}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget3",
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+
+
+@django_db_all
+@override_options(
+    {
+        "on_demand.max_widget_cardinality.count": 1,
+        "on_demand_metrics.widgets.use_stateful_extraction": True,
+    }
+)
+def test_stateful_get_metric_extraction_config_with_low_cardinality(
+    default_project: Project,
+) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -871,6 +1011,45 @@ def test_get_metric_extraction_config_with_low_cardinality(default_project: Proj
         config = get_metric_extraction_config(default_project)
 
         assert config
+
+
+@django_db_all
+@override_options(
+    {
+        "on_demand_metrics.widgets.use_stateful_extraction": True,
+        "on_demand_metrics.check_widgets.enable": True,
+    }
+)
+def test_stateful_check_spec_hashes_relative_time(
+    default_project: Project,
+) -> None:
+    # TODO: This test should be removed once relative time is fixed or stateful extraction is mainlined whichever happens first.
+    with Feature(
+        {
+            ON_DEMAND_METRICS_WIDGETS: True,
+            "organizations:on-demand-metrics-extraction-widgets": True,
+        }
+    ):
+        widget_query = create_widget(
+            ["epm()"],
+            "timestamp.to_day:-7d",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        assert widget_query.widget.id
+        widget_query_ids = [widget_query.id]
+        # This should set a stateful metric extraction state.
+        process_widget_specs(widget_query_ids)
+
+        on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+        assert (
+            len(on_demand_entries) == 1
+        )  # Make sure test is isolated and on-demand successfully added a row.
+
+        with mock.patch("sentry_sdk.capture_message") as capture_message:
+            get_metric_extraction_config(default_project)
+            assert capture_message.called
 
 
 @django_db_all
