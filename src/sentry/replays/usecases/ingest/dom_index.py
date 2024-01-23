@@ -191,12 +191,16 @@ def get_user_actions(
                     click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
                     if click is not None:
                         result.append(click)
-                        if is_rage and features.has(
-                            "organizations:session-replay-rage-click-issue-creation",
-                            Project.objects.get_from_cache(id=project_id).organization,
-                            actor=None,
-                        ):
-                            report_rage_click_issue(project_id, replay_id, cast(SentryEvent, event))
+
+                        if is_rage:
+                            metrics.incr("replay.rage_click_detected")
+                            if features.has(
+                                "organizations:session-replay-rage-click-issue-creation",
+                                Project.objects.get(id=project_id).organization,
+                            ):
+                                report_rage_click_issue(
+                                    project_id, replay_id, cast(SentryEvent, event)
+                                )
 
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()

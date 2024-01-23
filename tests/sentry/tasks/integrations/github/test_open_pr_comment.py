@@ -8,9 +8,8 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.integrations.github.constants import STACKFRAME_COUNT
 from sentry.tasks.integrations.github.open_pr_comment import (
-    STACKFRAME_COUNT,
-    PullRequestFile,
     format_issue_table,
     format_open_pr_comment,
     get_issue_table_contents,
@@ -20,7 +19,7 @@ from sentry.tasks.integrations.github.open_pr_comment import (
     open_pr_comment_workflow,
     safe_for_comment,
 )
-from sentry.tasks.integrations.github.pr_comment import PullRequestIssue
+from sentry.tasks.integrations.github.utils import PullRequestFile, PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -591,6 +590,16 @@ Your pull request is modifying functions with the following pre-existing issues:
         )
 
 
+@patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
+@patch(
+    "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
+)
+@patch(
+    "sentry.tasks.integrations.github.language_parsers.PythonParser.extract_functions_from_patch"
+)
+@patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
+@patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment")
+@patch("sentry.tasks.integrations.github.utils.metrics")
 class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
     base_url = "https://api.github.com"
 
@@ -633,19 +642,6 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         ]
         self.groups.reverse()
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
-    )
-    @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
-    )
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=[{}],
-    )
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
     def test_comment_workflow(
         self,
@@ -656,6 +652,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
+        mock_safe_for_comment.return_value = [{}]
         # two filenames, the second one has a toggle table
         mock_pr_filenames.return_value = [
             PullRequestFile(filename="foo.py", patch="a"),
@@ -686,19 +683,6 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert pull_request_comment_query[0].comment_type == CommentType.OPEN_PR
         mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_created")
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
-    )
-    @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
-    )
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=[{}],
-    )
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @responses.activate
     def test_comment_workflow_comment_exists(
         self,
@@ -709,6 +693,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
+        mock_safe_for_comment.return_value = [{}]
         # two filenames, the second one has a toggle table
         mock_pr_filenames.return_value = [
             PullRequestFile(filename="foo.py", patch="a"),
@@ -746,20 +731,14 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert pr_comment.created_at != pr_comment.updated_at
         mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_updated")
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
-    )
-    @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
-    )
-    @patch("sentry.tasks.integrations.github.open_pr_comment.safe_for_comment")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     @responses.activate
     def test_comment_workflow_early_return(
         self,
         mock_metrics,
+        _,
         mock_safe_for_comment,
+        mock_issues,
         mock_function_names,
         mock_reverse_codemappings,
         mock_pr_filenames,
@@ -805,29 +784,19 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert len(pull_request_comment_query) == 0
         mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.get_projects_and_filenames_from_source_file"
-    )
-    @patch(
-        "sentry.tasks.integrations.github.patch_parsers.PythonParser.extract_functions_from_patch"
-    )
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_top_5_issues_by_count_for_file")
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=[{}],
-    )
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     @responses.activate
     def test_comment_workflow_api_error(
         self,
         mock_metrics,
+        _,
         mock_safe_for_comment,
         mock_issues,
         mock_function_names,
         mock_reverse_codemappings,
         mock_pr_filenames,
     ):
+        mock_safe_for_comment.return_value = [{}]
         mock_pr_filenames.return_value = [
             PullRequestFile(filename="foo.py", patch="a"),
         ]
@@ -889,9 +858,17 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "rate_limited_error"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
-    def test_comment_workflow_missing_pr(self, mock_metrics, mock_pr_filenames):
+    def test_comment_workflow_missing_pr(
+        self,
+        mock_metrics,
+        _,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
         PullRequest.objects.all().delete()
 
         open_pr_comment_workflow(0)
@@ -901,9 +878,17 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_pr"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
-    def test_comment_workflow_missing_org(self, mock_metrics, mock_pr_filenames):
+    def test_comment_workflow_missing_org(
+        self,
+        mock_metrics,
+        _,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
         self.pr.organization_id = 0
         self.pr.save()
 
@@ -914,8 +899,15 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_org"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
-    def test_comment_workflow_missing_org_option(self, mock_pr_filenames):
+    def test_comment_workflow_missing_org_option(
+        self,
+        mock_metrics,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
         OrganizationOption.objects.set_value(
             organization=self.organization, key="sentry:github_open_pr_bot", value=False
         )
@@ -923,9 +915,17 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
-    def test_comment_workflow_missing_repo(self, mock_metrics, mock_pr_filenames):
+    def test_comment_workflow_missing_repo(
+        self,
+        mock_metrics,
+        _,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
         self.pr.repository_id = 0
         self.pr.save()
 
@@ -936,9 +936,17 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_repo"}
         )
 
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
-    def test_comment_workflow_missing_integration(self, mock_metrics, mock_pr_filenames):
+    def test_comment_workflow_missing_integration(
+        self,
+        mock_metrics,
+        _,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
+    ):
         # invalid integration id
         self.gh_repo.integration_id = 0
         self.gh_repo.save()
@@ -950,15 +958,18 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             "github_open_pr_comment.error", tags={"type": "missing_integration"}
         )
 
-    @patch(
-        "sentry.tasks.integrations.github.open_pr_comment.safe_for_comment",
-        return_value=[],
-    )
-    @patch("sentry.tasks.integrations.github.open_pr_comment.get_pr_files")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     def test_comment_workflow_not_safe_for_comment(
-        self, mock_metrics, mock_pr_filenames, mock_safe_for_comment
+        self,
+        mock_metrics,
+        _,
+        mock_safe_for_comment,
+        mock_issues,
+        mock_function_names,
+        mock_reverse_codemappings,
+        mock_pr_filenames,
     ):
+        mock_safe_for_comment.return_value = []
         open_pr_comment_workflow(self.pr.id)
 
         assert not mock_pr_filenames.called

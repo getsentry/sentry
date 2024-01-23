@@ -5,11 +5,14 @@ from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.replays.usecases.issue import new_issue_occurrence
+from sentry.utils import metrics
 
 logger = logging.getLogger()
 
 
 def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent):
+    metrics.incr("replay.rage_click_issue_creation")
+
     payload = event["data"]["payload"]
 
     # Seconds since epoch is UTC.
