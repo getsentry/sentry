@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, Sequence
 
 from sentry.api.serializers.base import Serializer
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.integration.service import integration_service
 # Serializer for External Issues Model
 # Maps an external issue to to additional integration information such as key or name
 class ExternalIssueSerializer(Serializer):
-    def get_attrs(self, item_list: List[ExternalIssue], user: User, **kwargs: Any):
+    def get_attrs(self, item_list: Sequence[ExternalIssue], user: User, **kwargs: Any):
         result = {}
         for item in item_list:
             # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
