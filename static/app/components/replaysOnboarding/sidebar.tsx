@@ -190,10 +190,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     defaultTab
   );
 
-  const newOnboarding = organization.features.includes('session-replay-new-zero-state');
-
   const showJsFrameworkInstructions =
-    newOnboarding &&
     currentProject.platform &&
     replayBackendPlatforms.includes(currentProject.platform) &&
     setupMode() === 'npm';
@@ -205,7 +202,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       .includes(currentProject.platform);
 
   const showRadioButtons =
-    newOnboarding &&
     currentProject.platform &&
     replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
@@ -222,11 +218,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
     : otherPlatform;
 
+  // For old onboarding
   const docKeys = useMemo(() => {
-    return currentPlatform && !newOnboarding ? generateDocKeys(currentPlatform.id) : [];
-  }, [currentPlatform, newOnboarding]);
+    return currentPlatform ? generateDocKeys(currentPlatform.id) : [];
+  }, [currentPlatform]);
 
-  // Old onboarding docs
+  // Old onboarding docs, fallback if new docs fail for some reason
   const {docContents, isLoading, hasOnboardingContents} = useOnboardingDocs({
     project: currentProject,
     docKeys,
@@ -301,8 +298,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           onChange={setSetupMode}
         />
       ) : (
-        newDocs?.platformOptions &&
-        newOnboarding && (
+        newDocs?.platformOptions && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -350,11 +346,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  if (
-    !currentPlatform ||
-    (!newOnboarding && !hasOnboardingContents) ||
-    (newOnboarding && !newDocs)
-  ) {
+  // No platform or no docs (new nor old)
+  if (!currentPlatform || (!newDocs && !hasOnboardingContents)) {
     return (
       <Fragment>
         <div>
@@ -379,7 +372,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   return (
     <Fragment>
       {radioButtons}
-      {newOnboarding && newDocs ? (
+      {newDocs ? (
         <ReplayOnboardingLayout
           docsConfig={newDocs}
           dsn={dsn}

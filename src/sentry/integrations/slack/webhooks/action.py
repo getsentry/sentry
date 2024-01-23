@@ -292,7 +292,7 @@ class SlackActionEndpoint(Endpoint):
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "text": {"type": "mrkdwn", "text": "Resolve"},
                     "accessory": {
                         "type": "static_select",
                         "initial_option": {
@@ -522,6 +522,14 @@ class SlackActionEndpoint(Endpoint):
             response = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=action_list, tags=original_tags_from_request
             ).build()
+            # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
+            # response so the unfurling endpoint understands the payload
+            if (
+                slack_request.data.get("container")
+                and slack_request.data["container"].get("is_app_unfurl")
+                and "text" in response
+            ):
+                del response["text"]
             slack_client = SlackClient(integration_id=slack_request.integration.id)
 
             if not slack_request.data.get("response_url"):
@@ -581,7 +589,7 @@ class SlackActionEndpoint(Endpoint):
             if action_data[0].get("action_id"):
                 action_list = []
                 for action_data in action_data:
-                    if action_data.get("type") == "static_select":
+                    if action_data.get("type") in ("static_select", "external_select"):
                         action = BlockKitMessageAction(
                             name=action_data["action_id"],
                             label=action_data["selected_option"]["text"]["text"],

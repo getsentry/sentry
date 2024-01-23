@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import itertools
 import logging
-import re
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set, Tuple
 
@@ -37,14 +35,18 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.integrations.github.pr_comment import (
+from sentry.tasks.integrations.github.constants import (
     ISSUE_LOCKED_ERROR_MESSAGE,
     RATE_LIMITED_MESSAGE,
+    STACKFRAME_COUNT,
+)
+from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
+from sentry.tasks.integrations.github.pr_comment import format_comment_url, get_pr_comment
+from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
+    PullRequestFile,
     PullRequestIssue,
     create_or_update_comment,
-    format_comment_url,
-    get_pr_comment,
 )
 from sentry.templatetags.sentry_helpers import small_count
 from sentry.types.referrer_ids import GITHUB_OPEN_PR_BOT_REFERRER
@@ -55,22 +57,13 @@ logger = logging.getLogger(__name__)
 
 OPEN_PR_METRICS_BASE = "github_open_pr_comment.{key}"
 
-
-@dataclass
-class PullRequestFile:
-    filename: str
-    patch: str
-
-
 # Caps the number of files that can be modified in a PR to leave a comment
 OPEN_PR_MAX_FILES_CHANGED = 7
 # Caps the number of lines that can be modified in a PR to leave a comment
 OPEN_PR_MAX_LINES_CHANGED = 500
 
-# Number of stackframes to check for filename + function combo, starting from the top
-STACKFRAME_COUNT = 6
-
-COMMENT_BODY_TEMPLATE = """## 🔍 Existing Issues For Review
+OPEN_PR_COMMENT_BODY_TEMPLATE = """\
+## 🔍 Existing Issues For Review
 Your pull request is modifying functions with the following pre-existing issues:
 
 {issue_tables}
@@ -78,13 +71,15 @@ Your pull request is modifying functions with the following pre-existing issues:
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
-ISSUE_TABLE_TEMPLATE = """📄 File: **{filename}**
+OPEN_PR_ISSUE_TABLE_TEMPLATE = """\
+📄 File: **{filename}**
 
 | Function | Unhandled Issue |
 | :------- | :----- |
 {issue_rows}"""
 
-ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
+OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
+<details>
 <summary><b>📄 File: {filename} (Click to Expand)</b></summary>
 
 | Function | Unhandled Issue |
@@ -92,18 +87,18 @@ ISSUE_TABLE_TOGGLE_TEMPLATE = """<details>
 {issue_rows}
 </details>"""
 
-ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+OPEN_PR_ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
 
-ISSUE_DESCRIPTION_LENGTH = 52
+OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
 def format_open_pr_comment(issue_tables: List[str]) -> str:
-    return COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
+    return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
 
 
 def format_open_pr_comment_subtitle(title_length, subtitle):
     # the title length + " " + subtitle should be <= 52
-    subtitle_length = ISSUE_DESCRIPTION_LENGTH - title_length - 1
+    subtitle_length = OPEN_PR_ISSUE_DESCRIPTION_LENGTH - title_length - 1
     return subtitle[: subtitle_length - 3] + "..." if len(subtitle) > subtitle_length else subtitle
 
 
@@ -111,7 +106,7 @@ def format_open_pr_comment_subtitle(title_length, subtitle):
 def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggle=False) -> str:
     issue_rows = "\n".join(
         [
-            ISSUE_ROW_TEMPLATE.format(
+            OPEN_PR_ISSUE_ROW_TEMPLATE.format(
                 title=issue.title,
                 subtitle=format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
                 url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
@@ -123,9 +118,11 @@ def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggl
     )
 
     if toggle:
-        return ISSUE_TABLE_TOGGLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
+        return OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE.format(
+            filename=diff_filename, issue_rows=issue_rows
+        )
 
-    return ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
+    return OPEN_PR_ISSUE_TABLE_TEMPLATE.format(filename=diff_filename, issue_rows=issue_rows)
 
 
 # for a single file, get the contents
@@ -189,7 +186,7 @@ def safe_for_comment(
     for file in pr_files:
         filename = file["filename"]
         # don't count the file if it was added or is not a Python file
-        if file["status"] == "added" or not filename.endswith(".py"):
+        if file["status"] == "added" or filename.split(".")[-1] not in PATCH_PARSERS:
             continue
 
         changed_file_count += 1
@@ -224,27 +221,6 @@ def get_pr_files(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
     return pullrequest_files
 
 
-# currently Python only
-def get_file_functions(patch: str) -> Set[str]:
-    r"""
-    Function header regex pattern
-    ^           - Asserts the start of a line.
-    @@.*@@      - Matches a string that starts with two "@" characters, followed by any characters
-                (except newline), and ends with two "@" characters.
-    \s+         - Matches one or more whitespace characters (spaces, tabs, etc.).
-    def         - Matches the literal characters "def".
-    \\s+         - Matches one or more whitespace characters.
-    (?P<fnc>.*) - This is a named capturing group that captures any characters (except newline)
-                and assigns them to the named group "fnc".
-    \(          - Matches an opening parenthesis "(".
-    .*          - Matches any characters (except newline).
-    $           - Asserts the end of a line.
-    """
-
-    python_function_regex = r"^@@.*@@\s+def\s+(?P<fnc>.*)\(.*$"
-    return set(re.findall(python_function_regex, patch, flags=re.M))
-
-
 def get_projects_and_filenames_from_source_file(
     org_id: int,
     pr_filename: str,
@@ -271,7 +247,18 @@ def get_projects_and_filenames_from_source_file(
 def get_top_5_issues_by_count_for_file(
     projects: List[Project], sentry_filenames: List[str], function_names: List[str]
 ) -> List[Dict[str, Any]]:
-    """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+    """
+    Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
+    and function names representing the list of functions changed in a PR file, return a
+    sublist of the top 5 recent unhandled issues ordered by event count.
+    """
+    # fetches the appropriate parser for formatting the snuba query given the file extension
+    # the extension is never replaced in reverse codemapping
+    language_parser = PATCH_PARSERS.get(sentry_filenames[0].split(".")[-1], None)
+
+    if not language_parser:
+        return []
+
     group_ids = list(
         Group.objects.filter(
             first_seen__gte=datetime.now() - timedelta(days=90),
@@ -282,27 +269,7 @@ def get_top_5_issues_by_count_for_file(
     )
     project_ids = [p.id for p in projects]
 
-    stackframe_function_name = lambda i: Function(
-        "arrayElement",
-        (Column("exception_frames.function"), i),
-    )
-    multi_if = []
-    for i in range(-STACKFRAME_COUNT, 0):
-        # if, then conditions
-        multi_if.extend(
-            [
-                Function(
-                    "in",
-                    [
-                        stackframe_function_name(i),
-                        function_names,
-                    ],
-                ),
-                stackframe_function_name(i),
-            ]
-        )
-    # else condition
-    multi_if.append(stackframe_function_name(-1))
+    multi_if = language_parser.generate_multi_if(function_names)
 
     request = SnubaRequest(
         dataset=Dataset.Events.value,
@@ -349,10 +316,8 @@ def get_top_5_issues_by_count_for_file(
                                         Op.IN,
                                         sentry_filenames,
                                     ),
-                                    Condition(
-                                        stackframe_function_name(i),
-                                        Op.IN,
-                                        function_names,
+                                    language_parser.generate_function_name_conditions(
+                                        function_names, i
                                     ),
                                 ],
                             )
@@ -448,7 +413,11 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        function_names = get_file_functions(file.patch)
+        language_parser = PATCH_PARSERS.get(file.filename.split(".")[-1], None)
+        if not language_parser:
+            continue
+
+        function_names = language_parser.extract_functions_from_patch(file.patch)
 
         if not len(function_names):
             continue

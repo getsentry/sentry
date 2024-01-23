@@ -5,14 +5,13 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
 import {useAvailableDurationAggregates} from 'sentry/views/performance/database/useAvailableDurationAggregates';
+import {Aggregate} from 'sentry/views/starfish/types';
 
 type Query = {
   aggregate: string;
 };
 
-// TODO: Type more strictly, these should be limited to only valid aggregate
-// functions
-type Result = [string, (string) => void];
+type Result = [Aggregate, (string) => void];
 
 export function useSelectedDurationAggregate(): Result {
   const [previouslySelectedAggregate, setPreviouslySelectedAggregate] =
@@ -34,16 +33,26 @@ export function useSelectedDurationAggregate(): Result {
 
   const location = useLocation<Query>();
 
-  let selectedAggregate = decodeScalar(
+  const aggregateFromURL = decodeScalar(
     location.query.aggregate,
     previouslySelectedAggregate
   );
 
-  if (!availableAggregates.includes(selectedAggregate)) {
-    selectedAggregate = DEFAULT_DURATION_AGGREGATE;
-  }
+  const selectedAggregate = isAnAvailableAggregate(aggregateFromURL, availableAggregates)
+    ? aggregateFromURL
+    : DEFAULT_DURATION_AGGREGATE;
 
   return [selectedAggregate, setSelectedAggregate];
+}
+
+function isAnAvailableAggregate(
+  maybeAggregate: string,
+  availableAggregates: Aggregate[]
+): maybeAggregate is Aggregate {
+  // Manually widen `availableAggregates` to allow the comparison to string
+  return (availableAggregates as unknown as string[]).includes(
+    maybeAggregate as Aggregate
+  );
 }
 
 const KEY = 'performance-database-default-aggregation-function';

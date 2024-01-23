@@ -161,7 +161,11 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     }
     if (key === 'time_spent_percentage()') {
       return (
-        <TimeSpentCell percentage={row[key]} total={row[`sum(${SPAN_SELF_TIME})`]} />
+        <TimeSpentCell
+          percentage={row[key]}
+          total={row[`sum(${SPAN_SELF_TIME})`]}
+          op={row[SPAN_OP]}
+        />
       );
     }
     return <span>{row[key]}</span>;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, List, Mapping, Optional, Union
+from urllib.parse import urlencode
 
 from requests import Response
 from sentry_sdk.tracing import Span
@@ -31,6 +32,10 @@ CHANNEL_URL = "/channels/{channel_id}"
 # https://discord.com/developers/docs/resources/channel#create-message
 MESSAGE_URL = "/channels/{channel_id}/messages"
 
+TOKEN_URL = "/oauth2/token"
+
+USER_URL = "/users/@me"
+
 
 class DiscordClient(ApiClient):
     integration_name: str = "discord"
@@ -39,6 +44,7 @@ class DiscordClient(ApiClient):
     def __init__(self):
         super().__init__()
         self.application_id = options.get("discord.application-id")
+        self.client_secret = options.get("discord.client-secret")
         self.bot_token = options.get("discord.bot-token")
 
     def prepare_auth_header(self) -> dict[str, str]:
@@ -99,6 +105,31 @@ class DiscordClient(ApiClient):
     def get_guild_name(self, guild_id: str) -> str:
         response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
         return response["name"]  # type: ignore
+
+    def get_access_token(self, code: str, url: str):
+        data = {
+            "client_id": self.application_id,
+            "client_secret": self.client_secret,
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": url,
+            "scope": "identify",
+        }
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
+        access_token = response["access_token"]  # type: ignore
+        return access_token
+
+    def get_user_id(self, access_token: str):
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = self.get(
+            USER_URL,
+            headers=headers,
+        )
+        user_id = response["id"]  # type: ignore
+        return user_id
 
     def leave_guild(self, guild_id: str) -> None:
         """

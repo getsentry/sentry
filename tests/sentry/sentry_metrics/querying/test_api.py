@@ -4,10 +4,10 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import (
+from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
-    run_metrics_query,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
@@ -26,20 +26,35 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
 
-        for value, transaction, platform, env, time in (
-            (1, "/hello", "android", "prod", self.now()),
-            (6, "/hello", "ios", "dev", self.now()),
-            (5, "/world", "windows", "prod", self.now() + timedelta(minutes=30)),
-            (3, "/hello", "ios", "dev", self.now() + timedelta(hours=1)),
-            (2, "/hello", "android", "dev", self.now() + timedelta(hours=1)),
-            (4, "/world", "windows", "prod", self.now() + timedelta(hours=1, minutes=30)),
+        release_1 = self.create_release(project=self.project, version="1.0")
+        release_2 = self.create_release(project=self.project, version="2.0")
+
+        for value, transaction, platform, env, release, time in (
+            (1, "/hello", "android", "prod", release_1.version, self.now()),
+            (6, "/hello", "ios", "dev", release_2.version, self.now()),
+            (5, "/world", "windows", "prod", release_1.version, self.now() + timedelta(minutes=30)),
+            (3, "/hello", "ios", "dev", release_2.version, self.now() + timedelta(hours=1)),
+            (2, "/hello", "android", "dev", release_1.version, self.now() + timedelta(hours=1)),
+            (
+                4,
+                "/world",
+                "windows",
+                "prod",
+                release_2.version,
+                self.now() + timedelta(hours=1, minutes=30),
+            ),
         ):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
                 "distribution",
                 TransactionMRI.DURATION.value,
-                {"transaction": transaction, "platform": platform, "environment": env},
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                    "release": release,
+                },
                 self.ts(time),
                 value,
                 UseCaseID.TRANSACTIONS,
@@ -83,7 +98,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert groups[0]["totals"] == {field: expected_identity}
 
     def test_query_with_one_aggregation(self) -> None:
-        # Query with just one aggregation.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
@@ -104,7 +118,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["totals"] == {field: 21.0}
 
     def test_query_with_one_aggregation_and_environment(self) -> None:
-        # Query with just one aggregation.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
@@ -123,6 +136,26 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field: [0.0, 6.0, 4.0]}
         assert groups[0]["totals"] == {field: 10.0}
+
+    def test_query_with_one_aggregation_and_latest_release(self) -> None:
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="release:latest",
+            group_bys=None,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field: [0.0, 6.0, 7.0]}
+        assert groups[0]["totals"] == {field: 13.0}
 
     def test_query_with_percentile(self) -> None:
         field = f"p90({TransactionMRI.DURATION.value})"
@@ -182,7 +215,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 )
 
     def test_query_with_group_by(self) -> None:
-        # Query with one aggregation and two group by.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
@@ -228,7 +260,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 UseCaseID.TRANSACTIONS,
             )
 
-        # Query with one aggregation and two group by.
         field = f"sum({TransactionMRI.MEASUREMENTS_FCP.value})"
         results = run_metrics_query(
             fields=[field],
@@ -252,7 +283,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[1]["totals"] == {field: 1.0}
 
     def test_query_with_two_simple_filters(self) -> None:
-        # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
@@ -276,7 +306,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[1]["totals"] == {field: 9.0}
 
     def test_query_one_negated_filter(self) -> None:
-        # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
@@ -297,7 +326,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["totals"] == {field: 3.0}
 
     def test_query_one_in_filter(self) -> None:
-        # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
@@ -321,7 +349,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[1]["totals"] == {field: 9.0}
 
     def test_query_one_not_in_filter(self) -> None:
-        # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
@@ -342,7 +369,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["totals"] == {field: 9.0}
 
     def test_query_with_multiple_aggregations(self) -> None:
-        # Query with two aggregations.
         field_1 = f"min({TransactionMRI.DURATION.value})"
         field_2 = f"max({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -535,7 +561,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_query_with_invalid_filters(self) -> None:
-        # Query with one aggregation, one group by and two filters.
         field = f"sum({TransactionMRI.DURATION.value})"
 
         with pytest.raises(InvalidMetricsQueryError):
@@ -604,7 +629,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
     def test_query_with_too_many_results(self) -> None:
-        # Query with one aggregation and two group by.
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],

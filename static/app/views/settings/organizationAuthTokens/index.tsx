@@ -204,8 +204,8 @@ export function OrganizationAuthTokensIndex({
   );
 }
 
-export function tokenPreview(tokenLastCharacters: string) {
-  return `sntrys_************${tokenLastCharacters}`;
+export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
+  return `${tokenPrefix}************${tokenLastCharacters}`;
 }
 
 export default withOrganization(OrganizationAuthTokensIndex);

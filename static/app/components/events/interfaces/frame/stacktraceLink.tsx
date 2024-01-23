@@ -10,6 +10,7 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {
   hasFileExtension,
   hasStacktraceLinkInFrameFeature,
@@ -21,8 +22,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
@@ -42,6 +41,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
@@ -124,9 +124,9 @@ function StacktraceLinkSetup({
 
 function shouldShowCodecovFeatures(
   organization: Organization,
-  match: StacktraceLinkResult
+  match: StacktraceLinkResult,
+  codecovStatus: CodecovStatusCode
 ) {
-  const codecovStatus = match.codecov?.status;
   const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
   return (
@@ -134,6 +134,9 @@ function shouldShowCodecovFeatures(
   );
 }
 
+/**
+ * TODO(scttcper): Should be removed w/ GA issue-details-stacktrace-link-in-frame
+ */
 function shouldShowCodecovPrompt(
   organization: Organization,
   match: StacktraceLinkResult
@@ -209,7 +212,7 @@ interface StacktraceLinkProps {
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
   const {projects} = useProjects();
   const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
@@ -267,8 +270,20 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       projectSlug: project?.slug,
     },
     {
-      staleTime: Infinity,
       enabled: isQueryEnabled, // The query will not run until `isQueryEnabled` is true
+    }
+  );
+  const coverageEnabled =
+    isQueryEnabled && organization.features.includes('codecov-integration');
+  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
+    {
+      event,
+      frame,
+      orgSlug: organization.slug,
+      projectSlug: project?.slug,
+    },
+    {
+      enabled: coverageEnabled,
     }
   );
 
@@ -397,10 +412,13 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             ? null
             : t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
-        {shouldShowCodecovFeatures(organization, match) ? (
+        {coverageEnabled && isLoadingCoverage ? (
+          <Placeholder height="14px" width="14px" />
+        ) : coverage &&
+          shouldShowCodecovFeatures(organization, match, coverage.status) ? (
           <CodecovLink
-            coverageUrl={`${match.codecov?.coverageUrl}#L${frame.lineNo}`}
-            status={match.codecov?.status}
+            coverageUrl={`${coverage.coverageUrl}#L${frame.lineNo}`}
+            status={coverage.status}
             organization={organization}
             event={event}
             hasInFrameFeature={hasInFrameFeature}
@@ -438,10 +456,13 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
           {hasInFrameFeature ? t('GitHub') : t('Open this line in GitHub')}
         </OpenInLink>
-        {shouldShowCodecovFeatures(organization, match) ? (
+        {coverageEnabled && isLoadingCoverage ? (
+          <Placeholder height="14px" width="14px" />
+        ) : coverage &&
+          shouldShowCodecovFeatures(organization, match, coverage.status) ? (
           <CodecovLink
             coverageUrl={`${frame.sourceLink}`}
-            status={match.codecov?.status}
+            status={coverage.status}
             organization={organization}
             event={event}
             hasInFrameFeature={hasInFrameFeature}

@@ -11,7 +11,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
-  SU_ACCESS_FORM = 'SuperuserAccessForm',
+  SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
 export type OnSentryInitConfiguration =
@@ -181,6 +181,11 @@ export interface Config {
   termsUrl: string | null;
   theme: 'light' | 'dark';
   urlPrefix: string;
+  /**
+   * The user should not be accessible directly except during
+   * app initialization. Use `useUser` or ConfigStore instead.
+   * @deprecated
+   */
   user: User;
   userIdentity: {
     email: string;
@@ -199,6 +204,9 @@ export interface Config {
     agreements: Array<ParntershipAgreementType>;
     partnerDisplayName: string;
   } | null;
+  relocationConfig?: {
+    selectableRegions: string[];
+  };
   statuspage?: {
     api_host: string;
     id: string;

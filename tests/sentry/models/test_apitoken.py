@@ -75,6 +75,7 @@ class ApiTokenTest(TestCase):
         assert token.token_last_characters is None
 
 
+@control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
     def setUp(self):
         self.user = self.create_user()

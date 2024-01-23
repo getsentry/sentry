@@ -25,6 +25,7 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeProject,
 )
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
+from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -242,6 +243,7 @@ from .endpoints.integrations import (
     OrganizationPluginsEndpoint,
 )
 from .endpoints.integrations.sentry_apps import (
+    NewSentryInternalAppTokenDetailsEndpoint,
     OrganizationSentryAppComponentsEndpoint,
     OrganizationSentryAppsEndpoint,
     SentryAppAuthorizationsEndpoint,
@@ -2629,6 +2631,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
         name="sentry-api-0-project-profiling-transactions",
     ),
+    re_path(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/statistical-detector/$",
+        ProjectStatisticalDetectors.as_view(),
+        name="sentry-api-0-project-statistical-detector",
+    ),
 ]
 
 TEAM_URLS = [
@@ -2735,8 +2742,15 @@ SENTRY_APP_URLS = [
         SentryInternalAppTokensEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-tokens",
     ),
+    # The order of the next 2 urls matters. We want to let the numeric id handler try to match the regex first,
+    # before moving to alphanumeric which is a catch-all.
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$",
+        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\d+)/$",
+        NewSentryInternalAppTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\w+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
     ),

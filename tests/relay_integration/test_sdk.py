@@ -12,6 +12,7 @@ from sentry.receivers import create_default_projects
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
+from sentry.testutils.silo import no_silo_test
 from sentry.testutils.skips import requires_kafka
 from sentry.utils.sdk import bind_organization_context, configure_sdk
 
@@ -63,6 +64,7 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
         yield inner
 
 
+@no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
 def test_simple(settings, post_event_with_sdk):
@@ -73,6 +75,7 @@ def test_simple(settings, post_event_with_sdk):
     assert event.data["logentry"]["formatted"] == "internal client test"
 
 
+@no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
 def test_recursion_breaker(settings, post_event_with_sdk):
@@ -90,6 +93,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
     assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
 
 
+@no_silo_test
 @django_db_all
 @override_settings(SENTRY_PROJECT=1)
 def test_encoding(settings, post_event_with_sdk):
@@ -105,6 +109,7 @@ def test_encoding(settings, post_event_with_sdk):
     assert "NotJSONSerializable" in event.data["extra"]["request"]
 
 
+@no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
 def test_bind_organization_context(default_organization):
@@ -120,6 +125,7 @@ def test_bind_organization_context(default_organization):
     }
 
 
+@no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
 def test_bind_organization_context_with_callback(settings, default_organization):
@@ -135,6 +141,7 @@ def test_bind_organization_context_with_callback(settings, default_organization)
     assert Hub.current.scope._tags["organization.test"] == "1"
 
 
+@no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
 def test_bind_organization_context_with_callback_error(settings, default_organization):

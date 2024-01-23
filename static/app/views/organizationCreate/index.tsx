@@ -15,6 +15,9 @@ import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
+export const DATA_STORAGE_DOCS_LINK =
+  'https://docs.sentry.io/product/accounts/choose-your-data-center';
+
 function removeDataStorageLocationFromFormData(
   formData: Record<string, any>
 ): Record<string, any> {
@@ -26,6 +29,8 @@ function removeDataStorageLocationFromFormData(
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const relocationUrl = normalizeUrl(`/relocation/`);
   const regionChoices = getRegionChoices();
   const client = useApi();
 
@@ -99,8 +104,11 @@ function OrganizationCreate() {
           {shouldDisplayRegions() && (
             <SelectField
               name="dataStorageLocation"
-              label="Data Storage Location"
-              help="Where will this organization reside?"
+              label={t('Data Storage Location')}
+              help={tct(
+                "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
+                {learnMore: <a href={DATA_STORAGE_DOCS_LINK} />}
+              )}
               choices={regionChoices}
               inline={false}
               stacked
@@ -121,6 +129,13 @@ function OrganizationCreate() {
               stacked
               required
             />
+          )}
+          {!isSelfHosted && (
+            <div>
+              {tct('Relocating from self-hosted? Click [relocationLink:here]', {
+                relocationLink: <a href={relocationUrl} />,
+              })}
+            </div>
           )}
         </Form>
       </NarrowLayout>
