@@ -62,7 +62,7 @@ export default function Monitors() {
   const platform = decodeScalar(router.location.query?.platform) ?? null;
   const guide = decodeScalar(router.location.query?.guide);
 
-  const queryKey = makeMonitorListQueryKey(organization, router.location);
+  const queryKey = makeMonitorListQueryKey(organization, router.location.query);
 
   const {
     data: monitorList,
