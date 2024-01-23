@@ -6,6 +6,7 @@ from typing import Mapping, Optional, Union
 from urllib.parse import urlencode
 
 from requests import Response
+from rest_framework import status
 from sentry_sdk.tracing import Span
 
 from sentry import options
@@ -117,11 +118,18 @@ class DiscordClient(ApiClient):
         resp: Optional[Response] = None,
         extra: Optional[Mapping[str, str]] = None,
     ) -> None:
-        metrics.incr(
-            DISCORD_DATADOG_METRIC,
-            sample_rate=1.0,
-            tags={"status": code},
-        )
+        if code == status.HTTP_403_FORBIDDEN:
+            metrics.incr(
+                DISCORD_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"status": code, "is_user_error": True},
+            )
+        else:
+            metrics.incr(
+                DISCORD_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"status": code, "is_user_error": False},
+            )
 
         extra = {
             **(extra or {}),

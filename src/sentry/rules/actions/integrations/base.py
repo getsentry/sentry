@@ -133,7 +133,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
             alert_id=rule.id if rule else None,
         )
         analytics.record(
-            "alert..not.sent",
+            "alert.not.sent",
             provider=self.provider,
             alert_id=rule.id if rule else "",
             alert_type="issue_alert",
