@@ -144,8 +144,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 }
 
 function TimelineSizeBar() {
-  const {timelineScale, setTimelineScale, replay} = useReplayContext();
-  const durationMs = replay?.getDurationMs();
+  const {timelineScale, setTimelineScale, durationMs} = useReplayContext();
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
   return (
     <ButtonBar>
@@ -184,8 +183,7 @@ function ReplayControls({
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
   const isFullscreen = useIsFullscreen();
-  const {currentTime, replay} = useReplayContext();
-  const durationMs = replay?.getDurationMs();
+  const {currentTime, startTimeOffsetMs, durationMs} = useReplayContext();
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -221,7 +219,9 @@ function ReplayControls({
       <ReplayPlayPauseBar />
       <Container>
         <TimeAndScrubberGrid id="replay-timeline-player" isCompact={isCompact}>
-          <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
+          <Time style={{gridArea: 'currentTime'}}>
+            {formatTime(currentTime - startTimeOffsetMs)}
+          </Time>
           <div style={{gridArea: 'timeline'}}>
             <ReplayTimeline />
           </div>
