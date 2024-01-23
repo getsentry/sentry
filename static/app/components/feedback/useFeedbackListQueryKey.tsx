@@ -14,6 +14,7 @@ interface Props {
 }
 
 const PER_PAGE = 25;
+const ONE_DAY_MS = intervalToMilliseconds('1d');
 
 export default function useFeedbackListQueryKey({
   listHeadTime,
@@ -60,7 +61,7 @@ export default function useFeedbackListQueryKey({
       }
       // Look 1 day into the future, from the time the page is loaded for new
       // feedbacks to come in.
-      const intervalMS = intervalToMilliseconds('1d');
+      const intervalMS = ONE_DAY_MS;
       const start = new Date(listHeadTime).toISOString();
       const end = new Date(listHeadTime + intervalMS).toISOString();
       return statsPeriod ? {...rest, limit: 1, start, end} : undefined;

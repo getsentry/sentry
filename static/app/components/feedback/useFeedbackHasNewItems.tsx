@@ -6,7 +6,7 @@ interface Props {
   listPrefetchQueryKey: ApiQueryKey | undefined;
 }
 
-const POLLING_INTERVAL_MS = 10 * 1000;
+const POLLING_INTERVAL_MS = 10_000;
 
 export default function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
   const [foundData, setFoundData] = useState(false);
