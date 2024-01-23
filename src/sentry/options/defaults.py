@@ -1586,6 +1586,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Toggle the monitor consumer check-in rate-limiter
+register("crons.consumer-rate-limiter-enabled", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 

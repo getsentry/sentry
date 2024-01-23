@@ -18,7 +18,7 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
-from sentry import features, quotas, ratelimits
+from sentry import features, options, quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -164,6 +164,9 @@ def check_ratelimit(
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
+    if not options.get("crons.consumer-rate-limiter-enabled"):
+        return False
+
     ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
     is_blocked = ratelimits.backend.is_limited(
