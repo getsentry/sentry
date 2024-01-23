@@ -21,8 +21,8 @@ class GetNewIssueCountTest(TestCase):
         self.project2 = self.create_project(name="bar", organization=self.org)
 
         # 2 environments
-        self.production_environment = Environment.objects.create(
-            organization_id=self.organization.id, name="production"
+        self.null_environment = Environment.objects.create(
+            organization_id=self.organization.id, name=""
         )
         self.canary_environment = Environment.objects.create(
             organization_id=self.organization.id, name="canary"
@@ -59,12 +59,18 @@ class GetNewIssueCountTest(TestCase):
             first_release=self.release1,
             first_seen=self.now - timedelta(minutes=30),
         )
+        self.groupenvironment_g1_r1 = GroupEnvironment.objects.create(
+            group_id=self.group1_p1_r1.id,
+            environment_id=self.null_environment.id,
+            first_release=self.release1,
+            first_seen=self.now - timedelta(minutes=30),
+        )
         self.group2_p1_r1 = Group.objects.create(
             project=self.project1,
             first_release=self.release1,
             first_seen=self.now - timedelta(minutes=30),
         )
-        self.groupenvironment_g1_r1 = GroupEnvironment.objects.create(
+        self.groupenvironment_g2_r1 = GroupEnvironment.objects.create(
             group_id=self.group2_p1_r1.id,
             environment_id=self.canary_environment.id,
             first_release=self.release1,
