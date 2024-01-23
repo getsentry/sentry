@@ -9,14 +9,12 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType
@@ -615,149 +613,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "IssueOwners",
             "targetIdentifier": "",
-        }
-        rule = Rule.objects.create(
-            project=self.project,
-            label="ja rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
-        )
-
-        notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.team.id
-        )
-
-        with self.tasks():
-            notification.send()
-
-        # check that only one was sent out - more would mean each user is being notified
-        # rather than the team
-        assert len(responses.calls) == 1
-
-        # check that the team got a notification
-        data = parse_qs(responses.calls[0].request.body)
-        assert data["channel"] == ["CXXXXXXX2"]
-        assert "blocks" in data
-        assert "text" in data
-        blocks = json.loads(data["blocks"][0])
-        fallback_text = data["text"][0]
-        notification_uuid = notification.notification_uuid
-
-        assert (
-            fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{rule.id}/details/|ja rule>"
-        )
-        assert blocks[0]["text"]["text"] == fallback_text
-        assert event.group
-        assert (
-            blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
-        )
-        assert (
-            blocks[3]["elements"][0]["text"]
-            == f"{event.project.slug} | <http://testserver/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
-        )
-
-    @responses.activate
-    @with_feature("organizations:slack-block-kit")
-    @with_feature("organizations:streamline-targeting-context")
-    def test_issue_alert_block_with_suggested_assignees(self):
-        """
-        Test that issue alerts are rendered with the suggested assignees block when there are suggested
-        assignees.
-        """
-        repo = Repository.objects.create(
-            organization_id=self.organization.id, name="example", integration_id=self.integration.id
-        )
-
-        # suspect commit author without slack identity linked
-        commit1 = self.create_commit(
-            project=self.project,
-            repo=repo,
-            author=self.create_commit_author(project=self.project, user=self.user),
-            key="qwertyuiop",
-            message="suspect commit without slack identity",
-        )
-
-        # suspect commit author with slack identity linked
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
-            self.identity = Identity.objects.create(
-                external_id="UXXXXXXX2",
-                idp=self.idp,
-                user=user2,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
-        # update the team's notification settings
-        ExternalActor.objects.create(
-            team_id=self.team.id,
-            organization=self.organization,
-            integration_id=self.integration.id,
-            provider=ExternalProviders.SLACK.value,
-            external_name="goma",
-            external_id="CXXXXXXX2",
-        )
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            # provider is disabled by default
-            NotificationSettingProvider.objects.create(
-                team_id=self.team.id,
-                scope_type="team",
-                scope_identifier=self.team.id,
-                provider="slack",
-                type="alerts",
-                value="always",
-            )
-
-        g_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([g_rule]), fallthrough=True
-        )
-
-        commit2 = self.create_commit(
-            project=self.project,
-            repo=repo,
-            author=self.create_commit_author(project=self.project, user=user2),
-            key="asdfghjhsd",
-            message="suspect commit with slack identity",
-        )
-
-        event = self.store_event(
-            data={
-                "message": "Hello world",
-                "level": "error",
-                "stacktrace": {"frames": [{"filename": "foo.py"}]},
-            },
-            project_id=self.project.id,
-        )
-
-        assert event.group
-        GroupOwner.objects.create(
-            group=event.group,
-            user_id=self.user.id,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": commit1.id},
-        )
-        GroupOwner.objects.create(
-            group=event.group,
-            user_id=user2.id,
-            project=self.project,
-            organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": commit2.id},
-        )
-
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
         }
         rule = Rule.objects.create(
             project=self.project,

@@ -542,7 +542,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 if idx != 0:
                     suggested_assignee_text += ", "
                 suggested_assignee_text += assignee
-            blocks.append(self.get_markdown_block(suggested_assignee_text))
+            blocks.append(self.get_context_block(suggested_assignee_text))
 
         # add mentions
         if self.mentions:

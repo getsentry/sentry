@@ -132,8 +132,8 @@ def build_test_message_blocks(
     if suggested_assignees:
         suggested_assignees_text = f"Suggested Assignee(s): {suggested_assignees}"
         suggested_assignees_section = {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": suggested_assignees_text},
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": suggested_assignees_text}],
         }
         blocks.append(suggested_assignees_section)
 
@@ -427,46 +427,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
     @with_feature("organizations:slack-block-kit")
     @with_feature("organizations:streamline-targeting-context")
     def test_issue_alert_with_suggested_assignees(self):
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="home-repo",
-            integration_id=self.integration.id,
-        )
-        # suspect commits, with and without slack identity linked
-        commit_no_identity = self.create_commit(
-            project=self.project,
-            repo=repo,
-            author=self.create_commit_author(project=self.project, user=self.user),
-            key="qwertyuiopiuytrewq",
-            message="This is a suspect commit!",
-        )
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
-            self.identity = Identity.objects.create(
-                external_id="UXXXXXXX2",
-                idp=self.idp,
-                user=user2,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
-        commit_with_identity = self.create_commit(
-            project=self.project,
-            repo=repo,
-            author=self.create_commit_author(project=self.project, user=user2),
-            key="asdfghjkljhgfdsa",
-            message="Another suspect commit!",
-        )
-
-        # ownership rules; one should have the issue auto-assigned while the other will be suggested
-        team2 = self.create_team(organization=self.organization, name="bar")
-        g_rule1 = Rule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        g_rule2 = Rule(Matcher("level", "error"), [Owner("", team2.slug)])
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([g_rule1, g_rule2]), fallthrough=True
-        )
-
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
         event = self.store_event(
             data={
                 "message": "Hello world",
@@ -477,45 +439,106 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert event.group
         group = event.group
-
+        # create codeowner; user with no slack identity linked
+        self.code_mapping = self.create_code_mapping(project=self.project)
+        g_rule1 = Rule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        self.create_codeowners(self.project, self.code_mapping, schema=dump_schema([g_rule1]))
         GroupOwner.objects.create(
-            group=event.group,
-            user_id=self.user.id,
+            group=group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
             project=self.project,
             organization=self.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": commit_no_identity.id},
+            context={"rule": str(g_rule1)},
+        )
+
+        # create ownership rule
+        g_rule2 = Rule(Matcher("level", "error"), [Owner("user", self.user.email)])
+        GroupOwner.objects.create(
+            group=group,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user_id=self.user.id,
+            team_id=None,
+            project=self.project,
+            organization=self.organization,
+            context={"rule": str(g_rule2)},
+        )
+
+        # create suspect commit
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="home-repo",
+            integration_id=self.integration.id,
+        )
+        user2 = self.create_user()
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=self.create_commit_author(project=self.project, user=user2),
+            key="qwertyuiopiuytrewq",
+            message="This is a suspect commit!",
         )
         GroupOwner.objects.create(
-            group=event.group,
+            group=group,
             user_id=user2.id,
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            context={"commitId": commit_with_identity.id},
+            context={"commitId": commit.id},
         )
+
+        # auto assign group; should assign to suspect commit
+        ProjectOwnership.handle_auto_assignment(self.project.id, event)
 
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
             event=event,
-            suggested_assignees=f"{self.user.get_display_name()}, <@{self.identity.external_id}>, #{team2.name}",
+            suggested_assignees=f"#{self.team.slug}, <mailto:{user2.email}|{user2.email}>",  # auto-assignee is not included in suggested
         )
         expected_blocks["blocks"][3]["elements"][2]["initial_option"] = {
-            "text": {"type": "plain_text", "text": f"{self.team.slug}"},
-            "value": f"team:{self.team.id}",
+            "text": {"type": "plain_text", "text": f"{self.user.email}"},
+            "value": f"user:{self.user.id}",
         }
+        assert (
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
+            == expected_blocks
+        )
 
-        # TODO tomorrow: the below assertion will need to be changed to make sure we have the correct team assigned (based on rules); might also need to make it flexible since i'm not sure how order will work
+        # suggested user without slack identity linked, with display name
+        user2.name = "Scooby Doo"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user2.save()
+        expected_blocks["blocks"][4]["elements"][0][
+            "text"
+        ] = f"Suggested Assignee(s): #{self.team.slug}, <mailto:{user2.email}|{user2.name}>"
+        assert (
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
+            == expected_blocks
+        )
 
-        actual_blocks = SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}, identity=self.identity
-        ).build()
-
-        # print(expected_blocks)
-        # print(actual_blocks)
-        assert actual_blocks == expected_blocks
+        # suggested user with slack identity linked
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
+            self.identity = Identity.objects.create(
+                external_id="UXXXXXXX2",
+                idp=self.idp,
+                user=user2,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
+        expected_blocks["blocks"][4]["elements"][0][
+            "text"
+        ] = f"Suggested Assignee(s): #{self.team.slug}, <@{self.identity.external_id}>"
+        assert (
+            SlackIssuesMessageBuilder(
+                group, event.for_group(group), tags={"foo"}, identity=self.identity
+            ).build()
+            == expected_blocks
+        )
 
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
