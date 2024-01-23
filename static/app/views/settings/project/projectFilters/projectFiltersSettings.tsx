@@ -86,7 +86,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   ie9: {
     icon: iconIe,
     helpText: '(Deprecated) Version 9',
-    title: 'Internet Explore',
+    title: 'Internet Explorer',
     legacy: true,
   },
   ie10: {
