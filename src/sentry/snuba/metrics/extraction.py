@@ -905,7 +905,30 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 
 
 def are_specs_equal(spec_1: MetricSpec, spec_2: MetricSpec) -> bool:
-    return _deep_sorted(spec_1) == _deep_sorted(spec_2)
+    equal = True
+    if spec_1.keys() != spec_2.keys():
+        equal = False
+
+    if equal:
+        for key, value in spec_1.items():
+            if key == "tags":
+                return _compare_lists(spec_1["tags"], spec_2["tags"])
+
+            elif spec_2.get(key) != value:
+                equal = False
+
+    return equal
+
+
+def _compare_lists(list_1: Sequence[Any], list_2: Sequence[Any]) -> bool:
+    if len(list_1) != len(list_2):
+        return False
+
+    for _, value in enumerate(list_1):
+        if value not in list_2:
+            return False
+
+    return True
 
 
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
