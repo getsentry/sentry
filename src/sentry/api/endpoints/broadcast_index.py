@@ -47,7 +47,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         return serialize(items, request.user, serializer=serializer_cls())
 
     def _secondary_filtering(self, request: Request, organization_slug, queryset):
-        # used in the SASS product
+        # used in the SAAS product
         return list(queryset)
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):

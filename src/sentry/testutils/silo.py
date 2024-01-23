@@ -303,7 +303,8 @@ class _SiloModeTestModification:
             current_class = class_queue.pop(0)
             if getattr(current_class, "_silo_modes", None):
                 raise AncestorAlreadySiloDecoratedException(
-                    f"Cannot decorate class '{object_to_validate.__name__}', which inherits from a silo decorated class"
+                    f"Cannot decorate class '{object_to_validate.__name__}', "
+                    f"which inherits from a silo decorated class ({current_class.__name__})"
                 )
             class_queue.extend(current_class.__bases__)
 

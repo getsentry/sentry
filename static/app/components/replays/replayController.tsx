@@ -24,12 +24,11 @@ import {
   IconSubtract,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 
 const SECOND = 1000;
@@ -180,7 +179,7 @@ function ReplayControls({
   toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
 }: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const user = useUser();
   const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
@@ -195,11 +194,11 @@ function ReplayControls({
   const handleFullscreenToggle = useCallback(() => {
     trackAnalytics('replay.toggle-fullscreen', {
       organization,
-      user_email: config.user.email,
+      user_email: user.email,
       fullscreen: !isFullscreen,
     });
     toggleFullscreen();
-  }, [config.user.email, isFullscreen, organization, toggleFullscreen]);
+  }, [user.email, isFullscreen, organization, toggleFullscreen]);
 
   const updateIsCompact = useCallback(() => {
     const {width} = barRef.current?.getBoundingClientRect() ?? {

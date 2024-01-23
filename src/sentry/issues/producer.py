@@ -8,11 +8,9 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_confi
 from arroyo.types import Message, Value
 from django.conf import settings
 
-from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.project import Project
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
@@ -93,10 +91,6 @@ def _prepare_status_change_message(
 ) -> MutableMapping[str, Any] | None:
     if not status_change:
         raise ValueError("status_change must be provided")
-
-    organization = Project.objects.get(id=status_change.project_id).organization
-    if not features.has("organizations:issue-platform-api-crons-sd", organization):
-        return None
 
     payload_data = cast(MutableMapping[str, Any], status_change.to_dict())
     payload_data["payload_type"] = PayloadType.STATUS_CHANGE.value

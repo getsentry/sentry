@@ -159,6 +159,7 @@ class TestCreator(TestCase):
         assert self.creator.run(user=self.user)
 
 
+@control_silo_test
 class TestInternalCreator(TestCase):
     def setUp(self):
         self.user = self.create_user()

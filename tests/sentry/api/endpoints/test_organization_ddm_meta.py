@@ -345,10 +345,10 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         span_id_1 = "98230207e6e4a6ad"
         span_id_2 = "10230207e8e4a6ef"
         span_id_3 = "22330201e8e4a6ab"
-        for span_id, span_op, span_duration in (
-            (span_id_1, "db", 10),
-            (span_id_2, "http", 20),
-            (span_id_3, "rpc", 2),
+        for span_id, span_op, min, span_duration in (
+            (span_id_1, "db", 15.0, 10),
+            (span_id_2, "http", 20.0, 20),
+            (span_id_3, "rpc", 45.0, 2),
         ):
             self.store_indexed_span(
                 project_id=self.project.id,
@@ -361,7 +361,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 store_metrics_summary={
                     mri: [
                         {
-                            "min": 10.0,
+                            "min": min,
                             "max": 100.0,
                             "sum": 110.0,
                             "count": 2,
@@ -386,6 +386,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert metric_spans[0]["transactionId"] == transaction_id
         assert metric_spans[0]["duration"] == 30
         assert metric_spans[0]["spansNumber"] == 3
+        assert sorted(metric_spans[0]["metricSummaries"], key=lambda value: value["min"]) == [
+            {"spanId": span_id_1, "min": 15.0, "max": 100.0, "sum": 110.0, "count": 2},
+            {"spanId": span_id_2, "min": 20.0, "max": 100.0, "sum": 110.0, "count": 2},
+            {"spanId": span_id_3, "min": 45.0, "max": 100.0, "sum": 110.0, "count": 2},
+        ]
         assert sorted(metric_spans[0]["spansDetails"], key=lambda value: value["spanDuration"]) == [
             {
                 "spanId": span_id_3,
@@ -477,6 +482,80 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id_2
 
+    def test_get_metric_spans_with_latest_release(self):
+        mri = "g:custom/page_load@millisecond"
+
+        project_1 = self.create_project(
+            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
+        )
+        project_2 = self.create_project(
+            name="Foo", slug="foo", teams=[self.team], fire_project_created=True
+        )
+
+        # We create two releases per project, to make sure the latest one is used.
+        self.create_release(project=project_1, version="bar-1.0")
+        release_1 = self.create_release(project=project_1, version="bar-2.0")
+        self.create_release(project=project_2, version="foo-1.0")
+        release_2 = self.create_release(project=project_2, version="foo-2.0")
+
+        trace_id = uuid.uuid4().hex
+        transaction_id_1 = uuid.uuid4().hex
+        transaction_id_2 = uuid.uuid4().hex
+
+        for project_id, transaction_id, release, duration in (
+            (project_1.id, transaction_id_1, release_1, 20),
+            (project_2.id, transaction_id_2, release_2, 30),
+        ):
+            self.store_segment(
+                project_id=project_id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                duration=duration,
+            )
+            self.store_indexed_span(
+                project_id=project_id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {"release": release.version},
+                        }
+                    ]
+                },
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[project_1.id, project_2.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            query="release:latest",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["transactionId"] == transaction_id_2
+        assert metric_spans[1]["transactionId"] == transaction_id_1
+
+    def test_get_metric_spans_with_latest_release_not_found(self):
+        self.get_error_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            query="release:latest",
+            status_code=404,
+        )
+
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"
 
@@ -486,10 +565,10 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         transaction_id_2 = uuid.uuid4().hex
         span_id_2 = "10220507e6f4e6ad"
 
-        for i, (transaction_id, span_id, min_value, max_value) in enumerate(
+        for i, (transaction_id, span_id, transaction_duration, min_value, max_value) in enumerate(
             (
-                (transaction_id_1, span_id_1, 10.0, 100.0),
-                (transaction_id_2, span_id_2, 120.0, 200.0),
+                (transaction_id_1, span_id_1, 5, 10.0, 100.0),
+                (transaction_id_2, span_id_2, 15, 120.0, 200.0),
             )
         ):
             self.store_segment(
@@ -497,7 +576,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
                 timestamp=before_now(minutes=5 + i),
                 trace_id=trace_id,
                 transaction_id=transaction_id,
-                duration=10,
+                duration=transaction_duration,
             )
             self.store_indexed_span(
                 project_id=self.project.id,
@@ -522,11 +601,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         for min_val, max_val, expected_transaction_ids in (
             (10.0, 100.0, [transaction_id_1]),
             (100.0, 200.0, [transaction_id_2]),
-            (10.0, 200.0, [transaction_id_1, transaction_id_2]),
+            (10.0, 200.0, [transaction_id_2, transaction_id_1]),
             (10.0, 20.0, []),
-            (10.0, None, [transaction_id_1, transaction_id_2]),
-            (None, 200.0, [transaction_id_1, transaction_id_2]),
-            (None, None, [transaction_id_1, transaction_id_2]),
+            (10.0, None, [transaction_id_2, transaction_id_1]),
+            (None, 200.0, [transaction_id_2, transaction_id_1]),
+            (None, None, [transaction_id_2, transaction_id_1]),
         ):
             extra_params = {}
             if min_val:
@@ -545,8 +624,12 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
 
             metric_spans = response.data["metricSpans"]
             assert len(metric_spans) == len(cast(Sequence[str], expected_transaction_ids))
-            for i, expected_span_id in enumerate(cast(Sequence[str], expected_transaction_ids)):
-                assert metric_spans[i]["transactionId"] == expected_span_id
+            for i, expected_transaction_id in enumerate(
+                cast(Sequence[str], expected_transaction_ids)
+            ):
+                assert (
+                    metric_spans[i]["transactionId"] == expected_transaction_id
+                ), f"Expected transaction id {expected_transaction_id} for [{min_val}, {max_val}]"
 
     @pytest.mark.skip(
         reason="experimenting with new querying that would require this test to be rewritten"
