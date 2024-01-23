@@ -54,6 +54,7 @@ export function Queries() {
               op: widget.op,
               groupBy: widget.groupBy,
               title: widget.title,
+              query: widget.query,
             }}
             displayType={widget.displayType}
             isEdit
