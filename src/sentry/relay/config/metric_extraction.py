@@ -262,11 +262,11 @@ def _merge_metric_specs(
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
-                "Duplicate metric spec found for hash %s with different specs: %s != %s",
-                query_hash,
-                already_present,
-                spec,
+                "Duplicate metric spec found for hash %s with different specs.", query_hash
             )
+            # Printing over two lines to prevent trimming
+            logger.info("Spec 1: %s", already_present)
+            logger.info("Spec 2: %s", spec)
             duplicated_specs += 1
             continue
 
