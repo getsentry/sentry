@@ -526,6 +526,10 @@ class _RemoteSiloCall:
         return RpcRemoteException(self.service_name, self.method_name, message)
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag("rpc_service", self.service_name)
+            scope.set_tag("rpc_method", self.method_name)
+
         if in_test_environment():
             if response.status_code == 500:
                 raise self._remote_exception(
