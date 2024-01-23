@@ -653,7 +653,7 @@ class TestOutboxesManager(TestCase):
 
 class OutboxAggregationTest(TestCase):
     def setUp(self):
-        shard_counts = {1: (456, "eu"), 2: (789, "us"), 3: (123, "us")}
+        shard_counts = {1: (4, "eu"), 2: (7, "us"), 3: (1, "us")}
         with outbox_runner():
             pass
 
@@ -676,19 +676,19 @@ class OutboxAggregationTest(TestCase):
                 shard_identifier=2,
                 region_name="us",
                 shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
-                depth=789,
+                depth=7,
             ),
             dict(
                 shard_identifier=1,
                 region_name="eu",
                 shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
-                depth=456,
+                depth=4,
             ),
             dict(
                 shard_identifier=3,
                 region_name="us",
                 shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
-                depth=123,
+                depth=1,
             ),
         ]
 
@@ -699,7 +699,7 @@ class OutboxAggregationTest(TestCase):
                 shard_identifier=2,
                 region_name="us",
                 shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
-                depth=789,
+                depth=7,
             )
         ]
 
@@ -709,4 +709,4 @@ class OutboxAggregationTest(TestCase):
         assert ControlOutbox.get_shard_depths_descending() == []
 
     def test_total_count(self):
-        assert ControlOutbox.get_total_outbox_count() == 789 + 456 + 123
+        assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1
