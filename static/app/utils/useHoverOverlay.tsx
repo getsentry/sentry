@@ -147,8 +147,7 @@ function useHoverOverlay(
   const theme = useTheme();
   const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
 
-  const isVisibleRef = useRef(false);
-  const isOpen = forceVisible ?? isVisibleRef.current;
+  const [isOpen, setIsOpen] = useState(forceVisible ?? false);
 
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -197,12 +196,12 @@ function useHoverOverlay(
     }
 
     if (delay === 0) {
-      isVisibleRef.current = true;
+      setIsOpen(true);
       return;
     }
 
     delayOpenTimeoutRef.current = window.setTimeout(
-      () => (isVisibleRef.current = true),
+      () => setIsOpen(true),
       delay ?? OPEN_DELAY
     );
   }, [delay, showOnlyOnOverflow, triggerElement]);
@@ -218,12 +217,12 @@ function useHoverOverlay(
     }
 
     if (!isHoverable && !displayTimeout) {
-      isVisibleRef.current = false;
+      setIsOpen(() => false);
       return;
     }
 
     delayHideTimeoutRef.current = window.setTimeout(() => {
-      isVisibleRef.current = false;
+      setIsOpen(() => false);
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout]);
 
@@ -274,7 +273,7 @@ function useHoverOverlay(
         );
       }
 
-      const ourContainerProps = Object.assign(props, {
+      const containerProps = Object.assign(props, {
         style: {
           ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
           ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
@@ -285,7 +284,7 @@ function useHoverOverlay(
 
       // Using an inline-block solves the container being smaller
       // than the elements it is wrapping
-      return <span {...ourContainerProps}>{triggerChildren}</span>;
+      return <span {...containerProps}>{triggerChildren}</span>;
     },
     [
       className,
@@ -301,9 +300,7 @@ function useHoverOverlay(
   );
 
   const reset = useCallback(() => {
-    if (isVisibleRef.current) {
-      isVisibleRef.current = false;
-    }
+    setIsOpen(() => false);
 
     if (typeof delayHideTimeoutRef.current === 'number') {
       window.clearTimeout(delayHideTimeoutRef.current);
