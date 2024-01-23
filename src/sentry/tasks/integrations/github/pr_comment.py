@@ -16,7 +16,7 @@ from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -130,13 +130,6 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
-def get_pr_comment(pr_id: int, comment_type: int) -> PullRequestComment | None:
-    pr_comment_query = PullRequestComment.objects.filter(
-        pull_request__id=pr_id, comment_type=comment_type
-    )
-    return pr_comment_query[0] if pr_comment_query.exists() else None
-
-
 @instrumented_task(
     name="sentry.tasks.integrations.github_comment_workflow", silo_mode=SiloMode.REGION
 )
@@ -210,11 +203,8 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
 
-    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
-
     try:
         create_or_update_comment(
-            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pr_key,
