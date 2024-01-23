@@ -34,7 +34,9 @@ def mock_authorize_request(prepared_request: PreparedRequest):
 @control_silo_test
 class JiraClientTest(TestCase):
     def setUp(self):
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -44,7 +46,6 @@ class JiraClientTest(TestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         install = self.integration.get_installation(self.organization.id)
         self.jira_client = install.get_client()
 

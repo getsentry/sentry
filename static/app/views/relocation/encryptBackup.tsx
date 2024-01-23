@@ -16,7 +16,7 @@ export function EncryptBackup(props: StepProps) {
   const code =
     './sentry-admin.sh export global --encrypt-with /path/to/public_key.pub\n/path/to/encrypted/backup/file.tar';
   return (
-    <Wrapper>
+    <Wrapper data-test-id="encrypt-backup">
       <StepHeading step={3}>
         {t('Create an encrypted backup of your current self-hosted instance')}
       </StepHeading>

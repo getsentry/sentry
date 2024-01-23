@@ -8,6 +8,7 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
     apdex_tag_spec,
+    are_specs_equal,
     cleanup_search_query,
     failure_tag_spec,
     query_tokens_to_string,
@@ -15,6 +16,15 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@django_db_all
+def test_equality_of_specs(default_project) -> None:
+    spec_1 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["release", "country_code"])
+    spec_2 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["country_code", "release"])
+    assert are_specs_equal(
+        spec_1.to_metric_spec(default_project), spec_2.to_metric_spec(default_project)
+    )
 
 
 @pytest.mark.parametrize(

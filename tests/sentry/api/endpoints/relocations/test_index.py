@@ -51,12 +51,12 @@ class GetRelocationsTest(APITestCase):
         # Add 1 relocation of each status.
         common = {
             "creator_id": self.superuser.id,
-            "owner_id": self.owner.id,
             "latest_task_attempts": 1,
         }
         Relocation.objects.create(
             uuid=UUID("ccef828a-03d8-4dd0-918a-487ffecf8717"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=1),
+            owner_id=self.owner.id,
             status=Relocation.Status.IN_PROGRESS.value,
             step=Relocation.Step.IMPORTING.value,
             scheduled_pause_at_step=Relocation.Step.POSTPROCESSING.value,
@@ -69,6 +69,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("af3d45ee-ce76-4de0-90c1-fc739da29523"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=2),
+            owner_id=self.owner.id,
             status=Relocation.Status.PAUSE.value,
             step=Relocation.Step.IMPORTING.value,
             want_org_slugs=["bar"],
@@ -80,6 +81,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("1ecc8862-7a3a-4114-bbc1-b6b80eb90197"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=3),
+            owner_id=self.superuser.id,
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
             want_org_slugs=["foo"],
@@ -92,6 +94,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("8f478ea5-6250-4133-8539-2c0103f9d271"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=4),
+            owner_id=self.superuser.id,
             status=Relocation.Status.FAILURE.value,
             failure_reason="Some failure reason",
             step=Relocation.Step.VALIDATING.value,
@@ -150,7 +153,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
 
-    def test_single_query_partial_uuid(self):
+    def test_good_single_query_partial_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=ccef828a")
 
@@ -158,7 +161,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_single_query_full_uuid(self):
+    def test_good_single_query_full_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(
             f"{self.path}?query=af3d45ee%2Dce76%2D4de0%2D90c1%2Dfc739da29523"
@@ -168,7 +171,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
 
-    def test_single_query_org_slug(self):
+    def test_good_single_query_org_slug(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=foo")
 
@@ -177,7 +180,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_single_query_username(self):
+    def test_good_single_query_username(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=alice")
 
@@ -186,7 +189,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_single_query_letter(self):
+    def test_good_single_query_letter(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=b")
 
@@ -196,10 +199,39 @@ class GetRelocationsTest(APITestCase):
         assert response.data[1]["status"] == Relocation.Status.PAUSE.name
         assert response.data[2]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_multiple_queries(self):
+    def test_good_multiple_queries(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=foo%20alice")
 
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+
+    def test_good_superuser_but_not_enabled(self):
+        self.login_as(user=self.superuser, superuser=False)
+        response = self.client.get(f"{self.path}")
+
+        # Only show user's own relocations.
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+        assert response.data[0]["status"] == Relocation.Status.FAILURE.name
+        assert response.data[1]["status"] == Relocation.Status.SUCCESS.name
+
+    def test_good_no_regular_user(self):
+        self.login_as(user=self.owner, superuser=False)
+        response = self.client.get(f"{self.path}")
+
+        # Only show user's own relocations.
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+        assert response.data[0]["status"] == Relocation.Status.PAUSE.name
+        assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
+
+    def test_good_no_regular_user_with_query(self):
+        self.login_as(user=self.owner, superuser=False)
+        response = self.client.get(f"{self.path}?query=alice")
+
+        # Only show user's own relocations.
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
@@ -218,18 +250,6 @@ class GetRelocationsTest(APITestCase):
         response = self.client.get(f"{self.path}")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    def test_bad_regular_user(self):
-        self.login_as(user=self.owner, superuser=False)
-        response = self.client.get(f"{self.path}")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    def test_bad_no_superuser(self):
-        self.login_as(user=self.superuser, superuser=False)
-        response = self.client.get(f"{self.path}")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @region_silo_test
@@ -263,7 +283,7 @@ class PostRelocationsTest(APITestCase):
     def test_good_simple(
         self,
         uploading_complete_mock: Mock,
-        relocation_redeem_promo_code_signal_mock: Mock,
+        relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
     ):
         self.login_as(user=self.owner, superuser=False)
@@ -323,8 +343,8 @@ class PostRelocationsTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-        assert relocation_redeem_promo_code_signal_mock.call_count == 1
-        relocation_redeem_promo_code_signal_mock.assert_called_with(
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
             relocation_uuid=UUID(response.data["uuid"]),
             promo_code=None,
             sender=RelocationIndexEndpoint,
@@ -334,7 +354,7 @@ class PostRelocationsTest(APITestCase):
     def test_good_promo_code(
         self,
         uploading_complete_mock: Mock,
-        relocation_redeem_promo_code_signal_mock: Mock,
+        relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
     ):
         self.login_as(user=self.owner, superuser=False)
@@ -395,8 +415,8 @@ class PostRelocationsTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-        assert relocation_redeem_promo_code_signal_mock.call_count == 1
-        relocation_redeem_promo_code_signal_mock.assert_called_with(
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
             relocation_uuid=UUID(response.data["uuid"]),
             promo_code="free_hugs",
             sender=RelocationIndexEndpoint,
@@ -406,7 +426,7 @@ class PostRelocationsTest(APITestCase):
     def test_good_with_valid_autopause_option(
         self,
         uploading_complete_mock: Mock,
-        relocation_redeem_promo_code_signal_mock: Mock,
+        relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
     ):
         self.login_as(user=self.owner, superuser=False)
@@ -453,11 +473,18 @@ class PostRelocationsTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
+            relocation_uuid=UUID(response.data["uuid"]),
+            promo_code=None,
+            sender=RelocationIndexEndpoint,
+        )
+
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_good_with_invalid_autopause_option(
         self,
         uploading_complete_mock: Mock,
-        relocation_redeem_promo_code_signal_mock: Mock,
+        relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
     ):
         self.login_as(user=self.owner, superuser=False)
@@ -503,11 +530,18 @@ class PostRelocationsTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
+            relocation_uuid=UUID(response.data["uuid"]),
+            promo_code=None,
+            sender=RelocationIndexEndpoint,
+        )
+
     @patch("sentry.tasks.relocation.uploading_complete.delay")
     def test_good_with_superuser_when_feature_disabled(
         self,
         uploading_complete_mock: Mock,
-        relocation_redeem_promo_code_signal_mock: Mock,
+        relocation_link_promo_code_signal_mock: Mock,
         analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
@@ -566,8 +600,15 @@ class PostRelocationsTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
+            relocation_uuid=UUID(response.data["uuid"]),
+            promo_code=None,
+            sender=RelocationIndexEndpoint,
+        )
+
     def test_bad_without_superuser_when_feature_disabled(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -598,7 +639,7 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 0
 
     def test_bad_expired_superuser_when_feature_disabled(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -628,6 +669,8 @@ class PostRelocationsTest(APITestCase):
 
         assert analytics_record_mock.call_count == 0
 
+        assert relocation_link_promo_code_signal_mock.call_count == 0
+
     # pytest parametrize does not work in TestCase subclasses, so hack around this
     for org_slugs, expected in [
         ("testing,foo,", ["testing", "foo"]),
@@ -640,7 +683,7 @@ class PostRelocationsTest(APITestCase):
         def test_good_valid_org_slugs(
             self,
             uploading_complete_mock: Mock,
-            relocation_redeem_promo_code_signal_mock: Mock,
+            relocation_link_promo_code_signal_mock: Mock,
             analytics_record_mock: Mock,
             org_slugs=org_slugs,
             expected=expected,
@@ -686,6 +729,13 @@ class PostRelocationsTest(APITestCase):
                 uuid=response.data["uuid"],
             )
 
+            assert relocation_link_promo_code_signal_mock.call_count == 1
+            relocation_link_promo_code_signal_mock.assert_called_with(
+                relocation_uuid=UUID(response.data["uuid"]),
+                promo_code=None,
+                sender=RelocationIndexEndpoint,
+            )
+
     for org_slugs, invalid_org_slug in [
         (",,", ""),
         ("testing,,foo", ""),
@@ -697,7 +747,7 @@ class PostRelocationsTest(APITestCase):
         def test_bad_invalid_org_slugs(
             self,
             analytics_record_mock: Mock,
-            relocation_redeem_promo_code_signal_mock: Mock,
+            relocation_link_promo_code_signal_mock: Mock,
             uploading_complete_mock: Mock,
             org_slugs=org_slugs,
             invalid_org_slug=invalid_org_slug,
@@ -740,8 +790,10 @@ class PostRelocationsTest(APITestCase):
 
             assert analytics_record_mock.call_count == 0
 
+            assert relocation_link_promo_code_signal_mock.call_count == 0
+
     def test_good_relocation_for_same_owner_already_completed(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         Relocation.objects.create(
@@ -799,8 +851,15 @@ class PostRelocationsTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
+            relocation_uuid=UUID(response.data["uuid"]),
+            promo_code=None,
+            sender=RelocationIndexEndpoint,
+        )
+
     def test_bad_missing_file(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -826,8 +885,10 @@ class PostRelocationsTest(APITestCase):
 
         analytics_record_mock.assert_not_called()
 
+        assert relocation_link_promo_code_signal_mock.call_count == 0
+
     def test_bad_missing_orgs(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -861,8 +922,10 @@ class PostRelocationsTest(APITestCase):
 
         analytics_record_mock.assert_not_called()
 
+        assert relocation_link_promo_code_signal_mock.call_count == 0
+
     def test_bad_missing_owner(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -896,8 +959,10 @@ class PostRelocationsTest(APITestCase):
 
         analytics_record_mock.assert_not_called()
 
+        assert relocation_link_promo_code_signal_mock.call_count == 0
+
     def test_bad_nonexistent_owner(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.superuser, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -934,8 +999,10 @@ class PostRelocationsTest(APITestCase):
 
         analytics_record_mock.assert_not_called()
 
+        assert relocation_link_promo_code_signal_mock.call_count == 0
+
     def test_bad_owner_not_self(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -970,6 +1037,8 @@ class PostRelocationsTest(APITestCase):
 
         analytics_record_mock.assert_not_called()
 
+        assert relocation_link_promo_code_signal_mock.call_count == 0
+
     for stat in [
         Relocation.Status.IN_PROGRESS,
         Relocation.Status.PAUSE,
@@ -977,7 +1046,7 @@ class PostRelocationsTest(APITestCase):
 
         def test_bad_relocation_for_same_owner_already_active(
             self,
-            relocation_redeem_promo_code_signal_mock: Mock,
+            relocation_link_promo_code_signal_mock: Mock,
             analytics_record_mock: Mock,
             stat=stat,
         ):
@@ -1020,8 +1089,10 @@ class PostRelocationsTest(APITestCase):
 
             analytics_record_mock.assert_not_called()
 
+            assert relocation_link_promo_code_signal_mock.call_count == 0
+
     def test_bad_throttle_if_daily_limit_reached(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
@@ -1091,8 +1162,15 @@ class PostRelocationsTest(APITestCase):
             uuid=initial_response.data["uuid"],
         )
 
+        assert relocation_link_promo_code_signal_mock.call_count == 1
+        relocation_link_promo_code_signal_mock.assert_called_with(
+            relocation_uuid=UUID(initial_response.data["uuid"]),
+            promo_code=None,
+            sender=RelocationIndexEndpoint,
+        )
+
     def test_good_no_throttle_for_superuser(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
@@ -1131,7 +1209,7 @@ class PostRelocationsTest(APITestCase):
                     relocation.refresh_from_db()
 
                 with open(tmp_pub_key_path, "rb") as p:
-                    throttled_response = self.client.post(
+                    unthrottled_response = self.client.post(
                         reverse(self.endpoint),
                         {
                             "owner": self.owner.username,
@@ -1148,7 +1226,7 @@ class PostRelocationsTest(APITestCase):
                     )
 
         assert initial_response.status_code == status.HTTP_201_CREATED
-        assert throttled_response.status_code == status.HTTP_201_CREATED
+        assert unthrottled_response.status_code == status.HTTP_201_CREATED
         assert Relocation.objects.count() == relocation_count + 2
         assert RelocationFile.objects.count() == relocation_file_count + 2
 
@@ -1163,15 +1241,31 @@ class PostRelocationsTest(APITestCase):
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(throttled_response.data["creatorId"]),
-                    owner_id=int(throttled_response.data["ownerId"]),
-                    uuid=throttled_response.data["uuid"],
+                    creator_id=int(unthrottled_response.data["creatorId"]),
+                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    uuid=unthrottled_response.data["uuid"],
+                ),
+            ]
+        )
+
+        assert relocation_link_promo_code_signal_mock.call_count == 2
+        relocation_link_promo_code_signal_mock.assert_has_calls(
+            [
+                call(
+                    relocation_uuid=UUID(initial_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
+                ),
+                call(
+                    relocation_uuid=UUID(unthrottled_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
                 ),
             ]
         )
 
     def test_good_no_throttle_different_bucket_relocations(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
@@ -1251,8 +1345,24 @@ class PostRelocationsTest(APITestCase):
             ]
         )
 
+        assert relocation_link_promo_code_signal_mock.call_count == 2
+        relocation_link_promo_code_signal_mock.assert_has_calls(
+            [
+                call(
+                    relocation_uuid=UUID(initial_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
+                ),
+                call(
+                    relocation_uuid=UUID(unthrottled_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
+                ),
+            ]
+        )
+
     def test_good_no_throttle_relocation_over_multiple_days(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
@@ -1335,8 +1445,24 @@ class PostRelocationsTest(APITestCase):
             ]
         )
 
+        assert relocation_link_promo_code_signal_mock.call_count == 2
+        relocation_link_promo_code_signal_mock.assert_has_calls(
+            [
+                call(
+                    relocation_uuid=UUID(initial_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
+                ),
+                call(
+                    relocation_uuid=UUID(unthrottled_response.data["uuid"]),
+                    promo_code=None,
+                    sender=RelocationIndexEndpoint,
+                ),
+            ]
+        )
+
     def test_bad_no_auth(
-        self, relocation_redeem_promo_code_signal_mock: Mock, analytics_record_mock: Mock
+        self, relocation_link_promo_code_signal_mock: Mock, analytics_record_mock: Mock
     ):
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -1369,3 +1495,5 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count
 
         analytics_record_mock.assert_not_called()
+
+        assert relocation_link_promo_code_signal_mock.call_count == 0

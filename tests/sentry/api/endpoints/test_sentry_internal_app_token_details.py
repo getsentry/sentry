@@ -89,3 +89,28 @@ class SentryInternalAppTokenCreationTest(APITestCase):
         self.internal_sentry_app.update(metadata={"partnership_restricted": True})
         response = self.client.delete(self.url)
         assert response.status_code == 403
+
+
+@control_silo_test
+class NewSentryInternalAppTokenCreationTest(APITestCase):
+    def setUp(self):
+        self.user = self.create_user(email="boop@example.com")
+        self.org = self.create_organization(owner=self.user, name="My Org")
+        self.project = self.create_project(organization=self.org)
+
+        self.internal_sentry_app = self.create_internal_integration(
+            name="My Internal App", organization=self.org
+        )
+
+        self.api_token = ApiToken.objects.get(application=self.internal_sentry_app.application)
+
+        self.url = reverse(
+            "sentry-api-0-sentry-internal-app-token-details",
+            args=[self.internal_sentry_app.slug, self.api_token.id],
+        )
+
+    def test_delete_token(self):
+        self.login_as(user=self.user)
+        response = self.client.delete(self.url, format="json")
+        assert response.status_code == 204
+        assert not ApiToken.objects.filter(pk=self.api_token.id).exists()

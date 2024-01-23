@@ -37,7 +37,7 @@ const THROTTLED_RELOCATION_ERROR_MSG = t(
 );
 const SESSION_EXPIRED_ERROR_MSG = t('Your session has expired.');
 
-export function UploadBackup(__props: StepProps) {
+export function UploadBackup({onComplete}: StepProps) {
   const api = useApi({
     api: new Client({headers: {Accept: 'application/json; charset=utf-8'}}),
   });
@@ -92,7 +92,7 @@ export function UploadBackup(__props: StepProps) {
       formData.set('promo_code', promoCode);
     }
     try {
-      await api.requestPromise(`/relocations/`, {
+      const result = await api.requestPromise(`/relocations/`, {
         method: 'POST',
         host: regionUrl,
         data: formData,
@@ -103,6 +103,7 @@ export function UploadBackup(__props: StepProps) {
           "Your relocation has started - we'll email you with updates as soon as we have 'em!"
         )
       );
+      onComplete(result.uuid);
     } catch (error) {
       if (error.status === 409) {
         addErrorMessage(IN_PROGRESS_RELOCATION_ERROR_MSG);
@@ -117,7 +118,7 @@ export function UploadBackup(__props: StepProps) {
   };
 
   return (
-    <Wrapper>
+    <Wrapper data-test-id="upload-backup">
       <StepHeading step={4}>
         {t('Upload Tarball to begin the relocation process')}
       </StepHeading>

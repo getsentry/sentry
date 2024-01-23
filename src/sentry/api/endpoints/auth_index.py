@@ -29,6 +29,7 @@ from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
+getsentry_logger = logging.getLogger("getsentry.staff_auth_index")
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
 
@@ -83,6 +84,13 @@ class BaseAuthIndexEndpoint(Endpoint):
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
+                getsentry_logger.info(
+                    "verify.user.inputs",
+                    extra={
+                        "user": request.user.id,
+                        "authenticated": authenticated,
+                    },
+                )
                 if not authenticated:
                     logger.warning(
                         "u2f_authentication.verification_failed",
@@ -109,6 +117,10 @@ class BaseAuthIndexEndpoint(Endpoint):
             if authenticated:
                 metrics.incr("auth.password.success", sample_rate=1.0, skip_internal=False)
             return authenticated
+        getsentry_logger.info(
+            "verify.user.inputs.failed",
+            extra={"user": request.user.id, "validator": validator.validated_data},
+        )
         return False
 
 

@@ -50,7 +50,7 @@ function GetStarted(props: StepProps) {
     props.onComplete();
   };
   return (
-    <Wrapper>
+    <Wrapper data-test-id="get-started">
       <StepHeading step={1}>{t('Basic information needed to get started')}</StepHeading>
       <motion.div
         transition={testableTransition()}
