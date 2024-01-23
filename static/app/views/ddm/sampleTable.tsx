@@ -265,18 +265,20 @@ export function SampleTable({
   }
 
   return (
-    <GridEditable
-      isLoading={isFetching}
-      columnOrder={columnOrder}
-      columnSortBy={[]}
-      data={rows}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-      emptyMessage={mri ? t('No samples found') : t('Choose a metric to display data.')}
-      location={location}
-    />
+    <Wrapper>
+      <GridEditable
+        isLoading={isFetching}
+        columnOrder={columnOrder}
+        columnSortBy={[]}
+        data={rows}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+        emptyMessage={mri ? t('No samples found') : t('Choose a metric to display data.')}
+        location={location}
+      />
+    </Wrapper>
   );
 }
 
@@ -300,13 +302,15 @@ function BodyCell({children, rowId, highlighted, onHover}: any) {
   );
 }
 
-const BodyCellWrapper = styled('span')<{highlighted?: boolean}>`
-  font-weight: ${p => (p.highlighted ? 'bold' : 'normal')};
-
-  :hover {
-    font-weight: bold;
+const Wrapper = styled('div')`
+  tr:hover {
+    td {
+      background: ${p => p.theme.backgroundSecondary};
+    }
   }
 `;
+
+const BodyCellWrapper = styled('span')<{highlighted?: boolean}>``;
 
 const AlignCenter = styled('span')`
   display: block;

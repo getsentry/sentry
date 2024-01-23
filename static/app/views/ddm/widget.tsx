@@ -393,9 +393,7 @@ export function getChartTimeseries(
     seriesName: item.name,
     groupBy: item.groupBy,
     unit,
-    color: colorFn(colors[i % colors.length])
-      .alpha(hoveredLegend && hoveredLegend !== item.name ? 1 : 1)
-      .string(),
+    color: colorFn(colors[i % colors.length]).string(),
     hidden: focusedSeries && focusedSeries !== item.name,
     data: item.values.map((value, index) => ({
       name: moment(data.intervals[index]).valueOf(),
@@ -438,13 +436,9 @@ export function getChartSampleSeries(
             color: theme.purple400,
             opacity: isHighlighted ? 0.75 : 0.5,
           },
-          emphasis: {
-            focus: 'scatter',
-          },
           data: [
             {
               name: moment(span.timestamp).valueOf(),
-              // TODO: this cant be span duration
               value: (span.min + span.max) / 2,
             },
           ],

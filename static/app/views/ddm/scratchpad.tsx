@@ -1,6 +1,7 @@
 import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
+import debounce from 'lodash/debounce';
 
 import {space} from 'sentry/styles/space';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -46,16 +47,18 @@ export function MetricScratchpad() {
     [updateWidget]
   );
 
+  const debounced = debounce((sample: Sample) => {
+    setHighlightedSample(sample ? sample.transactionId : null);
+  }, 1);
+
   const handleSampleMouseOver = useCallback(
-    (sample: Sample) => {
-      setHighlightedSample(sample.transactionId);
-    },
-    [setHighlightedSample]
+    (sample: Sample) => debounced(sample),
+    [debounced]
   );
 
   const handleSampleMouseOut = useCallback(() => {
-    setHighlightedSample(null);
-  }, [setHighlightedSample]);
+    debounced(null);
+  }, [debounced]);
 
   const handleSampleClick = useCallback(
     (sample: Sample) => {

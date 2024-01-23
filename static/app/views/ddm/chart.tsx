@@ -130,6 +130,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         isGroupedByDate: true,
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 1,
+        valueFormatter: (value: number) =>
+          formatMetricsUsingUnitAndOp(value, unit, operation),
       };
 
       const timeseriesFormatters = {
@@ -157,7 +159,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         onMouseOver: handleSampleMouseOver,
         onMouseOut: handleSampleMouseOut,
         onClick: handleSampleClick,
-        onHighlight: handleSampleHighlight,
+        // onHighlight: handleSampleHighlight,
 
         tooltip: {
           formatter: (params, asyncTicket) => {
@@ -287,6 +289,7 @@ function transformToScatterSeries({
       ...options,
       name: seriesName,
       data: seriesData?.map(({value, name}) => [name, value]),
+      animation: false,
     });
   });
 }

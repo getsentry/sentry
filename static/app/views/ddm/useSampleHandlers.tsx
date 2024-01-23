@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import debounce from 'lodash/debounce';
 
 import {Sample} from 'sentry/views/ddm/widget';
 
@@ -31,31 +32,31 @@ export function useSampleHandlers({
 
   const handleSampleMouseOver = useCallback(
     event => {
-      // if (!onMouseOver) {
-      //   return;
-      // }
-      // const sample = getSample(event);
-      // if (!sample) {
-      //   return;
-      // }
-      // const debouncedMouseOver = debounce(onMouseOver, 100);
-      // debouncedMouseOver(sample);
+      if (!onMouseOver) {
+        return;
+      }
+      const sample = getSample(event);
+      if (!sample) {
+        return;
+      }
+      const debouncedMouseOver = debounce(onMouseOver, 1);
+      debouncedMouseOver(sample);
     },
     [getSample, onMouseOver]
   );
 
   const handleSampleMouseOut = useCallback(
     event => {
-      // if (!onMouseOut) {
-      //   return;
-      // }
-      // const sample = getSample(event);
-      // if (!sample) {
-      //   return;
-      // }
-      // onMouseOut(sample);
-      // const debouncedMouseOut = debounce(onMouseOut, 100);
-      // debouncedMouseOut(sample);
+      if (!onMouseOut) {
+        return;
+      }
+      const sample = getSample(event);
+      if (!sample) {
+        return;
+      }
+      onMouseOut(sample);
+      const debouncedMouseOut = debounce(onMouseOut, 1);
+      debouncedMouseOut(sample);
     },
     [getSample, onMouseOut]
   );
@@ -76,22 +77,49 @@ export function useSampleHandlers({
 
   const handleSampleHighlight = useCallback(
     event => {
-      if (!onMouseOver || !onMouseOut) {
-        return;
-      }
-
-      const sample = getSample(event.batch[0]);
-      if (!sample) {
-        // const debouncedMouseOut = debounce(onMouseOut, 100);
-        // debouncedMouseOut(sample);
-        onMouseOut(sample);
-      } else {
-        // const debouncedMouseOver = debounce(onMouseOver, 100);
-        // debouncedMouseOver(sample);
-        onMouseOver(sample);
-      }
+      // if (!onMouseOver || !onMouseOut) {
+      //   return;
+      // }
+      // // if (isSpanSample && onMouseOverSample) {
+      // //   const spanSampleData = sampledSpanDataSeries?.[seriesIndex - 2]?.data[0];
+      // //   const {name: timestamp, value: duration} = spanSampleData;
+      // //   const sample = getSample(timestamp as string, duration);
+      // //   if (sample) {
+      // //     onMouseOverSample(sample);
+      // //   }
+      // // }
+      // // if (!isSpanSample && onMouseLeaveSample) {
+      // //   onMouseLeaveSample();
+      // // }
+      // const sample = getSample({seriesIndex: 2});
+      // if (!sample) {
+      //   // const debouncedMouseOut = debounce(onMouseOut, 100);
+      //   // debouncedMouseOut(sample);
+      //   onMouseOut(sample);
+      // } else {
+      //   // const debouncedMouseOver = debounce(onMouseOver, 100);
+      //   // debouncedMouseOver(sample);
+      //   onMouseOver(sample);
+      // }
+      // if (!event.batch) {
+      //   return;
+      // }
+      // const {seriesIndex} = event.batch[0];
+      // const isSpanSample = seriesIndex >= numOfTimeseries;
+      // if (isSpanSample && onMouseOver) {
+      //   const sampleSeriesIndex = seriesIndex - numOfTimeseries;
+      //   const spanSampleData = sampleSeries[sampleSeriesIndex];
+      //   // const {name: timestamp, value: duration} = spanSampleData;
+      //   // const sample = getSample(timestamp as string, duration);
+      //   if (spanSampleData) {
+      //     onMouseOver(spanSampleData);
+      //   }
+      // }
+      // if (!isSpanSample && onMouseOut) {
+      //   onMouseOut();
+      // }
     },
-    [getSample, onMouseOver, onMouseOut]
+    [numOfTimeseries, sampleSeries, onMouseOver, onMouseOut]
   );
 
   return {
