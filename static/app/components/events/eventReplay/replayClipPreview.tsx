@@ -78,11 +78,7 @@ function Controls({
   const routes = useRoutes();
   const organization = useOrganization();
   const isFullscreen = useIsFullscreen();
-  const {
-    currentTime,
-    startTimeOffsetMs: startTime,
-    durationMs: duration,
-  } = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -91,12 +87,13 @@ function Controls({
   const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem});
 
+  const durationMs = replay?.getDurationMs() ?? 0;
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: TabKey.ERRORS,
-      t: currentTime / 1000,
+      t: (currentTime + (replay?.getClipOffset() ?? 0)) / 1000,
     },
   };
 
@@ -105,9 +102,7 @@ function Controls({
       <ReplayPlayPauseBar />
       <Container>
         <TimeAndScrubberGrid>
-          <Time style={{gridArea: 'currentTime'}}>
-            {formatTime(currentTime - startTime)}
-          </Time>
+          <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
           <div style={{gridArea: 'timeline'}}>
             <ReplayTimeline />
           </div>
@@ -119,7 +114,7 @@ function Controls({
             <PlayerScrubber showZoomIndicators />
           </StyledScrubber>
           <Time style={{gridArea: 'duration'}}>
-            {duration ? formatTime(duration) : '--:--'}
+            {durationMs ? formatTime(durationMs) : '--:--'}
           </Time>
         </TimeAndScrubberGrid>
       </Container>
@@ -164,7 +159,12 @@ function ReplayClipPreview({eventTimestampMs, orgSlug, replaySlug}: Props) {
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
+    clipWindow: {
+      startTimestamp: eventTimestampMs - 10e3,
+      endTimestamp: eventTimestampMs + 5e3,
+    },
   });
+
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({
     elementRef: fullscreenRef,
@@ -184,13 +184,6 @@ function ReplayClipPreview({eventTimestampMs, orgSlug, replaySlug}: Props) {
   });
 
   const offset = useMemo(() => ({offsetMs: initialTimeOffsetMs}), [initialTimeOffsetMs]);
-  const clipWindow = useMemo(
-    () => ({
-      startTimeOffsetMs: Math.max(initialTimeOffsetMs - 10e3, 0),
-      durationMs: 15e3,
-    }),
-    [initialTimeOffsetMs]
-  );
 
   if (replayRecord?.is_archived) {
     return (
@@ -265,7 +258,6 @@ function ReplayClipPreview({eventTimestampMs, orgSlug, replaySlug}: Props) {
       isFetching={fetching}
       replay={replay}
       initialTimeOffsetMs={offset}
-      clipWindow={clipWindow}
     >
       <PlayerContainer data-test-id="player-container" ref={fullscreenRef}>
         {replay?.hasProcessingErrors() ? (

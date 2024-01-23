@@ -6,6 +6,7 @@ import {duration} from 'moment';
 import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
+import clamp from 'sentry/utils/number/clamp';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -36,6 +37,11 @@ import {
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
+interface ClipWindow {
+  endTimestamp: number;
+  startTimestamp: number;
+}
+
 interface ReplayReaderParams {
   /**
    * Loaded segment data
@@ -57,6 +63,11 @@ interface ReplayReaderParams {
    * The root Replay event, created at the start of the browser session.
    */
   replayRecord: ReplayRecord | undefined;
+
+  /**
+   * If provided, the replay will be clipped to this window.
+   */
+  clipWindow?: ClipWindow;
 }
 
 type RequiredNotNull<T> = {
@@ -64,6 +75,27 @@ type RequiredNotNull<T> = {
 };
 
 const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
+
+const trimFramesToClipWindow = <T extends {timestampMs: number} | {timestamp: number}>(
+  frames: Array<T>,
+  start: number,
+  end: number,
+  clipOffset: number
+) => {
+  return frames
+    .filter(frame => {
+      if ('timestamp' in frame) {
+        return frame.timestamp >= start && frame.timestamp <= end;
+      }
+      return frame.timestampMs >= start && frame.timestampMs <= end;
+    })
+    .map(frame => {
+      if ('offsetMs' in frame && typeof frame.offsetMs === 'number') {
+        return {...frame, offsetMs: frame.offsetMs - clipOffset};
+      }
+      return frame;
+    });
+};
 
 function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   const slowClickFrames = frames.filter(
@@ -92,13 +124,13 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
+  static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord});
+      return new ReplayReader({attachments, errors, replayRecord, clipWindow});
     } catch (err) {
       Sentry.captureException(err);
 
@@ -110,6 +142,7 @@ export default class ReplayReader {
         attachments: [],
         errors: [],
         replayRecord,
+        clipWindow,
       });
     }
   }
@@ -118,6 +151,7 @@ export default class ReplayReader {
     attachments,
     errors,
     replayRecord,
+    clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
 
@@ -183,6 +217,10 @@ export default class ReplayReader {
     this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
+
+    if (clipWindow) {
+      this._applyClipWindow(clipWindow);
+    }
   }
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
@@ -194,6 +232,59 @@ export default class ReplayReader {
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
   private _sortedRRWebEvents: RecordingFrame[] = [];
   private _sortedSpanFrames: SpanFrame[] = [];
+  private _clipOffset = 0;
+
+  private _applyClipWindow = (clipWindow: ClipWindow) => {
+    const startedAtMs = clamp(
+      clipWindow.startTimestamp,
+      this._replayRecord.started_at.getTime(),
+      this._replayRecord.finished_at.getTime()
+    );
+    const finishedAtMs = clamp(
+      clipWindow.endTimestamp,
+      startedAtMs,
+      this._replayRecord.finished_at.getTime()
+    );
+
+    this._clipOffset = startedAtMs - this._replayRecord.started_at.getTime();
+    this._errors = trimFramesToClipWindow(
+      this._errors,
+      startedAtMs,
+      finishedAtMs,
+      this._clipOffset
+    );
+    this._sortedBreadcrumbFrames = trimFramesToClipWindow(
+      this._sortedBreadcrumbFrames,
+      startedAtMs,
+      finishedAtMs,
+      this._clipOffset
+    );
+    this._sortedRRWebEvents = trimFramesToClipWindow(
+      this._sortedRRWebEvents,
+      startedAtMs,
+      finishedAtMs,
+      this._clipOffset
+    );
+    this._sortedSpanFrames = trimFramesToClipWindow(
+      this._sortedSpanFrames,
+      startedAtMs,
+      finishedAtMs,
+      this._clipOffset
+    );
+
+    // const minEventTimestamp = Math.min(
+    //   startedAtMs,
+    //   this._sortedRRWebEvents[0]?.timestamp ?? Infinity
+    // );
+    // const maxEventTimestamp = Math.max(
+    //   finishedAtMs,
+    //   this._sortedRRWebEvents.at(-1)?.timestamp ?? 0
+    // );
+
+    this._replayRecord.started_at = new Date(startedAtMs);
+    this._replayRecord.finished_at = new Date(finishedAtMs);
+    this._replayRecord.duration = duration(finishedAtMs - startedAtMs);
+  };
 
   toJSON = () => this._cacheKey;
 
@@ -278,8 +369,8 @@ export default class ReplayReader {
     this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
   );
 
-  getChapterFrames = memoize(() =>
-    [
+  getChapterFrames = memoize(() => {
+    return [
       ...this.getPerfFrames(),
       ...this._sortedBreadcrumbFrames.filter(frame =>
         ['replay.init', 'replay.mutations', 'replay.hydrate-error'].includes(
@@ -287,8 +378,8 @@ export default class ReplayReader {
         )
       ),
       ...this._errors,
-    ].sort(sortFrames)
-  );
+    ].sort(sortFrames);
+  });
 
   getPerfFrames = memoize(() =>
     [
@@ -329,4 +420,6 @@ export default class ReplayReader {
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
+
+  getClipOffset = () => this._clipOffset;
 }

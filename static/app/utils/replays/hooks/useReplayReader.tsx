@@ -6,9 +6,13 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 type Props = {
   orgSlug: string;
   replaySlug: string;
+  clipWindow?: {
+    endTimestamp: number;
+    startTimestamp: number;
+  };
 };
 
-export default function useReplayReader({orgSlug, replaySlug}: Props) {
+export default function useReplayReader({orgSlug, replaySlug, clipWindow}: Props) {
   const replayId = parseReplayId(replaySlug);
 
   const {attachments, errors, replayRecord, ...replayData} = useReplayData({
@@ -16,10 +20,9 @@ export default function useReplayReader({orgSlug, replaySlug}: Props) {
     replayId,
   });
 
-  const replay = useMemo(
-    () => ReplayReader.factory({attachments, errors, replayRecord}),
-    [attachments, errors, replayRecord]
-  );
+  const replay = useMemo(() => {
+    return ReplayReader.factory({attachments, errors, replayRecord, clipWindow});
+  }, [attachments, clipWindow, errors, replayRecord]);
 
   return {
     ...replayData,

@@ -60,9 +60,17 @@ function ReplayPreview({
   replaySlug,
 }: Props) {
   const routes = useRoutes();
+  const clipWindow = useMemo(
+    () => ({
+      startTimestamp: eventTimestampMs - 10000,
+      endTimestamp: eventTimestampMs + 5000,
+    }),
+    [eventTimestampMs]
+  );
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
+    clipWindow,
   });
 
   const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
