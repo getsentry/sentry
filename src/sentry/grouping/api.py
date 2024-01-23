@@ -7,7 +7,12 @@ from sentry import features, options
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
+from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.strategies.base import (
+    DEFAULT_GROUPING_ENHANCEMENTS_BASE,
+    DEFAULT_GROUPING_FINGERPRINTING_BASES,
+    GroupingContext,
+)
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
     expand_title_template,
@@ -29,7 +34,6 @@ from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.grouping.fingerprinting import FingerprintingRules
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
 
@@ -62,6 +66,7 @@ class GroupingConfigNotFound(LookupError):
 class GroupingConfig(TypedDict):
     id: str
     enhancements: Enhancements
+    fingerprinting: FingerprintingRules
 
 
 class GroupingConfigLoader:
@@ -73,6 +78,7 @@ class GroupingConfigLoader:
         return {
             "id": self._get_config_id(project),
             "enhancements": self._get_enhancements(project),
+            "fingerprinting": self._get_fingerprinting(project),
         }
 
     def _get_enhancements(self, project):
@@ -98,6 +104,39 @@ class GroupingConfigLoader:
         except InvalidEnhancerConfig:
             rv = get_default_enhancements()
         cache.set(cache_key, rv)
+        return rv
+
+    def _get_fingerprinting(self, project: Project) -> FingerprintingRules:
+        """
+        Returns the fingerprinting rules for a project.
+        Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
+        """
+
+        config_id = self._get_config_id(project)
+
+        from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+
+        if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
+            bases = CONFIGURATIONS[config_id].fingerprinting_bases
+        else:
+            bases = []
+        rules = project.get_option("sentry:fingerprinting_rules")
+        if not rules:
+            return FingerprintingRules([], bases=bases)
+
+        from sentry.utils.cache import cache
+        from sentry.utils.hashlib import md5_text
+
+        cache_key = "fingerprinting-rules:" + md5_text(rules).hexdigest()
+        rv = cache.get(cache_key)
+        if rv is not None:
+            return FingerprintingRules.from_json(rv, bases=bases)
+
+        try:
+            rv = FingerprintingRules.from_config_string(rules, bases=bases)
+        except InvalidFingerprintingConfig:
+            rv = FingerprintingRules([], bases=bases)
+        cache.set(cache_key, rv.to_json())
         return rv
 
     def _get_config_id(self, project):
@@ -161,30 +200,27 @@ def get_default_enhancements(config_id=None):
     return Enhancements(rules=[], bases=[base]).dumps()
 
 
-def get_projects_default_fingerprinting_bases(
-    project: Project, config_id: str | None = None
-) -> Sequence[str] | None:
-    """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
-    from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+def get_default_fingerprinting(config_id: str | None = None) -> FingerprintingRules:
+    """Returns the default fingerprinting rules."""
+    bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    config_id = (
-        config_id
-        # TODO: add fingerprinting config to GroupingConfigLoader and use that here
-        or PrimaryGroupingConfigLoader()._get_config_id(project)
-        or DEFAULT_GROUPING_CONFIG
-    )
+    if config_id is not None:
+        bases = CONFIGURATIONS[config_id].fingerprinting_bases
 
-    bases = CONFIGURATIONS[config_id].fingerprinting_bases
-    return bases
+    return FingerprintingRules([], bases=bases).as_dict()
 
 
-def get_default_grouping_config_dict(id=None):
+def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
-    if id is None:
+    if config_id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
-        id = DEFAULT_GROUPING_CONFIG
-    return {"id": id, "enhancements": get_default_enhancements(id)}
+        config_id = DEFAULT_GROUPING_CONFIG
+    return {
+        "id": config_id,
+        "enhancements": get_default_enhancements(config_id),
+        "fingerprinting": get_default_fingerprinting(config_id),
+    }
 
 
 def load_grouping_config(config_dict=None):
@@ -204,41 +240,10 @@ def load_default_grouping_config():
     return load_grouping_config(config_dict=None)
 
 
-def get_fingerprinting_config_for_project(
-    project: Project, config_id: str | None = None
-) -> FingerprintingRules:
-    """
-    Returns the fingerprinting rules for a project.
-    Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
-    """
-
-    from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
-
-    if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
-        bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
-    else:
-        bases = []
-    rules = project.get_option("sentry:fingerprinting_rules")
-    if not rules:
-        return FingerprintingRules([], bases=bases)
-
-    from sentry.utils.cache import cache
-    from sentry.utils.hashlib import md5_text
-
-    cache_key = "fingerprinting-rules:" + md5_text(rules).hexdigest()
-    rv = cache.get(cache_key)
-    if rv is not None:
-        return FingerprintingRules.from_json(rv, bases=bases)
-
-    try:
-        rv = FingerprintingRules.from_config_string(rules, bases=bases)
-    except InvalidFingerprintingConfig:
-        rv = FingerprintingRules([], bases=bases)
-    cache.set(cache_key, rv.to_json())
-    return rv
-
-
-def apply_server_fingerprinting(event, config, allow_custom_title=True):
+def apply_server_fingerprinting(
+    event: Event, grouping_config: GroupingConfig, allow_custom_title: bool = True
+) -> None:
+    config = grouping_config["fingerprinting"]
     client_fingerprint = event.get("fingerprint")
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:

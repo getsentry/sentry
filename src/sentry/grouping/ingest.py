@@ -16,7 +16,6 @@ from sentry.grouping.api import (
     GroupingConfigNotFound,
     apply_server_fingerprinting,
     detect_synthetic_exception,
-    get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
@@ -121,7 +120,7 @@ def calculate_event_grouping(
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
             apply_server_fingerprinting(
                 event.data.data,
-                get_fingerprinting_config_for_project(project),
+                grouping_config,
                 allow_custom_title=True,
             )
 

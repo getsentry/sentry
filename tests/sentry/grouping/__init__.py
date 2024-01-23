@@ -1,4 +1,5 @@
 import os
+from copy import copy
 
 import pytest
 from django.utils.functional import cached_property
@@ -74,21 +75,24 @@ class FingerprintInput:
     def create_event(self, grouping_config=None):
         input = dict(self.data)
 
-        config = FingerprintingRules.from_json(
+        grouping_config = copy(grouping_config)
+
+        grouping_config["fingerprinting"] = FingerprintingRules.from_json(
             {"rules": input.pop("_fingerprinting_rules"), "version": 1}
         )
+
         mgr = EventManager(data=input, grouping_config=grouping_config)
         mgr.normalize()
         data = mgr.get_data()
 
         data.setdefault("fingerprint", ["{{ default }}"])
-        apply_server_fingerprinting(data, config)
+        apply_server_fingerprinting(data, grouping_config=grouping_config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
         evt = eventstore.backend.create_event(data=data)
-        return config, evt
+        return grouping_config["fingerprinting"], evt
 
 
 fingerprint_input = list(

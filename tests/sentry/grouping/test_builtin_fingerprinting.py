@@ -4,11 +4,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.grouping.api import (
-    apply_server_fingerprinting,
-    get_default_grouping_config_dict,
-    get_fingerprinting_config_for_project,
-)
+from sentry.grouping.api import apply_server_fingerprinting, get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import (
     FINGERPRINTING_BASES,
     BuiltInFingerprintingRules,
@@ -482,8 +478,7 @@ class BuiltInFingerprintingTest(TestCase):
         mgr.normalize()
         data = mgr.get_data()
         data.setdefault("fingerprint", ["{{ default }}"])
-        fingerprinting_config = get_fingerprinting_config_for_project(project=self.project)
-        apply_server_fingerprinting(data, fingerprinting_config)
+        apply_server_fingerprinting(data, grouping_config=GROUPING_CONFIG)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
