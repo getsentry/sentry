@@ -134,9 +134,7 @@ describe('StacktraceLink', function () {
     render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
       context: RouterContextFixture(),
     });
-    expect(
-      await screen.findByText('Tell us where your source code is')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Set up Code Mapping')).toBeInTheDocument();
   });
 
   it('renders source url link', async function () {
@@ -165,9 +163,7 @@ describe('StacktraceLink', function () {
       context: RouterContextFixture(),
     });
     expect(
-      await screen.findByRole('button', {
-        name: 'Tell us where your source code is',
-      })
+      await screen.findByRole('button', {name: 'Set up Code Mapping'})
     ).toBeInTheDocument();
   });
 

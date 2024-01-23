@@ -73,7 +73,7 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    expect(screen.getByText('Tell us where your source code is')).toBeInTheDocument();
+    expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
 
     // Links to GitHub with one integration
     expect(screen.getByText('GitHub')).toBeInTheDocument();
