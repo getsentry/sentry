@@ -1,7 +1,13 @@
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional, Sequence, TypedDict
+from typing import Any, Dict, List, Mapping, Sequence, Set, TypedDict
+
+import sentry_sdk
 
 from sentry.models.project import Project
+from sentry.sentry_metrics.visibility.errors import (
+    InvalidBlockedMetricError,
+    MalformedBlockedMetricsPayloadError,
+)
 from sentry.utils import json
 
 BLOCKED_METRICS_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
@@ -14,11 +20,19 @@ class BlockedMetricsRelayConfig(TypedDict):
 @dataclass(frozen=True)
 class BlockedMetric:
     metric_mri: str
-    tags: Optional[Sequence[str]] = None
+    tags: Set[str]
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]):
-        return BlockedMetric(metric_mri=dictionary["metric_mri"], tags=dictionary.get("tags"))
+        if "metric_mri" not in dictionary:
+            raise InvalidBlockedMetricError("Missing metric_mri in the dictionary")
+
+        return BlockedMetric(
+            metric_mri=dictionary["metric_mri"], tags=set(dictionary.get("tags") or [])
+        )
+
+    def merge(self, other: "BlockedMetric") -> "BlockedMetric":
+        return BlockedMetric(metric_mri=self.metric_mri, tags=self.tags.union(other.tags))
 
     def to_dict(self) -> Mapping[str, Any]:
         return self.__dict__
@@ -34,17 +48,38 @@ class BlockedMetrics:
         if not json_payload:
             return BlockedMetrics(metrics=[])
 
-        blocked_metrics_payload = json.loads(json_payload)
+        try:
+            blocked_metrics_payload = json.loads(json_payload)
+        except ValueError as e:
+            sentry_sdk.capture_exception(e)
+            raise MalformedBlockedMetricsPayloadError(
+                f"Invalid blocked metrics payload for project {project.id}"
+            )
+
         if not isinstance(blocked_metrics_payload, list):
-            raise Exception(f"Invalid blocked metrics payload for project {project.id}")
+            raise MalformedBlockedMetricsPayloadError(
+                f"The blocked metrics payload is not a list for {project.id}"
+            )
 
         blocked_metrics = []
         for blocked_metric in blocked_metrics_payload:
             blocked_metrics.append(BlockedMetric.from_dict(blocked_metric))
 
-        return BlockedMetrics(metrics=blocked_metrics)
+        return BlockedMetrics(metrics=blocked_metrics)._merge_blocked_metrics()
+
+    def _merge_blocked_metrics(self) -> "BlockedMetrics":
+        metrics_map: Dict[str, BlockedMetric] = {}
+        for metric in self.metrics:
+            if (duplicated_metric := metrics_map.get(metric.metric_mri)) is not None:
+                metrics_map[metric.metric_mri] = metric.merge(duplicated_metric)
+            else:
+                metrics_map[metric.metric_mri] = metric
+
+        self.metrics = list(metrics_map.values())
+        return self
 
     def save_to_project(self, project: Project):
+        self._merge_blocked_metrics()
         blocked_metrics_payload = [blocked_metric.to_dict() for blocked_metric in self.metrics]
         json_payload = json.dumps(blocked_metrics_payload)
         project.update_option(BLOCKED_METRICS_PROJECT_OPTION_KEY, json_payload)
