@@ -446,10 +446,7 @@ class BaseApiClient(TrackResponseMixin):
         rpc_integration, rpc_org_integrations = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
-        if (
-            integration_service.get_integration(integration_id=rpc_integration.id).status
-            == ObjectStatus.DISABLED
-        ):
+        if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
             return
 
         org = None
