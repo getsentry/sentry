@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pytz
 import sentry_sdk
 from croniter import CroniterBadDateError, croniter
@@ -28,6 +30,8 @@ SCHEDULE_TYPES = {
     "crontab": ScheduleType.CRONTAB,
     "interval": ScheduleType.INTERVAL,
 }
+
+IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
 
