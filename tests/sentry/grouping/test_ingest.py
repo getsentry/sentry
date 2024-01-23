@@ -4,7 +4,11 @@ from time import time
 from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
-from sentry.grouping.ingest import _calculate_background_grouping
+from sentry.grouping.ingest import (
+    _calculate_background_grouping,
+    calculate_event_grouping,
+    calculate_secondary_hash,
+)
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -128,3 +132,39 @@ class SecondaryGroupingTest(TestCase):
         with self.tasks():
             event3 = manager.save(project.id)
         assert event3.group_id == event2.group_id
+
+    @patch("sentry_sdk.capture_exception")
+    @patch("sentry.event_manager.calculate_secondary_hash", wraps=calculate_secondary_hash)
+    def test_handles_errors_with_secondary_grouping(
+        self,
+        mock_calculate_secondary_hash: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        secondary_grouping_error = Exception("nope")
+        secondary_grouping_config = "legacy:2019-03-12"
+
+        def mock_calculate_event_grouping(project, event, grouping_config):
+            # We only want `calculate_event_grouping` to error inside of `calculate_secondary_hash`,
+            # not anywhere else it's called
+            if grouping_config["id"] == secondary_grouping_config:
+                raise secondary_grouping_error
+            else:
+                return calculate_event_grouping(project, event, grouping_config)
+
+        project = self.project
+        project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
+        project.update_option("sentry:secondary_grouping_config", secondary_grouping_config)
+        project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
+
+        with patch(
+            "sentry.grouping.ingest.calculate_event_grouping",
+            wraps=mock_calculate_event_grouping,
+        ):
+            manager = EventManager({"message": "foo 123"})
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            assert mock_calculate_secondary_hash.call_count == 1
+            mock_capture_exception.assert_called_with(secondary_grouping_error)
+            # This proves the secondary grouping crash didn't crash the overall grouping process
+            assert event.group
