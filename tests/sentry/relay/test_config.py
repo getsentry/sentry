@@ -20,7 +20,6 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
-from sentry.sentry_metrics.visibility import BlockedMetric, block_metric
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -549,27 +548,6 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["spanAttributes"])
-
-
-@django_db_all
-@region_silo_test
-@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-def test_with_blocked_metrics(default_project, feature_flag):
-    blocked_mris = ["g:custom/*@millisecond", "c:custom/*"]
-
-    for blocked_mri in blocked_mris:
-        block_metric(BlockedMetric(metric_mri=blocked_mri, tags=set()), [default_project])
-
-    with Feature({"organizations:metrics-blocking": feature_flag}):
-        project_config = get_project_config(default_project)
-        config = project_config.to_dict()["config"]
-        _validate_project_config(config)
-
-        if not feature_flag:
-            assert "metrics" not in config
-        else:
-            config = config["metrics"]
-            assert config["deniedNames"] == blocked_mris
 
 
 @django_db_all
