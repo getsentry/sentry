@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from yaml import serialize
 
 from sentry import features, release_health, tsdb
+from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -26,6 +27,7 @@ from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
