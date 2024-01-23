@@ -460,6 +460,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       apiMethod="PUT"
                       apiEndpoint={`${filtersEndpoint}${filter.id}/`}
                       initialData={{[filter.id]: filter.active}}
+                      saveOnBlur
                       onFieldChange={(name, value) => {
                         trackAnalytics('settings.inbound_filter_updated', {
                           organization,
