@@ -25,6 +25,7 @@ import FileChange from './fileChange';
 import RepositorySwitcher from './repositorySwitcher';
 import withReleaseRepos from './withReleaseRepos';
 
+// TODO(scttcper): Some props are no longer used, but required because of the HoC
 interface FilesChangedProps extends RouteComponentProps<{release: string}, {}> {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
