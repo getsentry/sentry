@@ -561,7 +561,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         }
 
     def test_group_status_to_color_obj_correct_length(self):
-        # We want to check for the values because GroupHistoryStatus.UNRESOVED and GroupHistoryStatus.ONGOING have the same value
+        # We want to check for the values because GroupHistoryStatus.UNRESOLVED and GroupHistoryStatus.ONGOING have the same value
         enum_values = set()
         for attr_name in dir(GroupHistoryStatus):
             if not callable(getattr(GroupHistoryStatus, attr_name)) and not attr_name.startswith(
