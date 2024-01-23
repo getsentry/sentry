@@ -114,3 +114,31 @@ class IntegrationEventAction(EventAction, abc.ABC):
             external_id=external_id,
             notification_uuid=notification_uuid if notification_uuid else "",
         )
+
+    def record_notification_not_send_due_to_user_issue(
+        self,
+        event: GroupEvent,
+        external_id: str,
+        rule: Rule | None = None,
+        notification_uuid: str | None = None,
+    ) -> None:
+        # Currently these actions can only be triggered by issue alerts
+        analytics.record(
+            f"integrations.{self.provider}.notification_not_sent.user_issue",
+            category="issue_alert",
+            organization_id=event.organization.id,
+            project_id=event.project_id,
+            group_id=event.group_id,
+            notification_uuid=notification_uuid if notification_uuid else "",
+            alert_id=rule.id if rule else None,
+        )
+        analytics.record(
+            "alert..not.sent",
+            provider=self.provider,
+            alert_id=rule.id if rule else "",
+            alert_type="issue_alert",
+            organization_id=event.organization.id,
+            project_id=event.project_id,
+            external_id=external_id,
+            notification_uuid=notification_uuid if notification_uuid else "",
+        )

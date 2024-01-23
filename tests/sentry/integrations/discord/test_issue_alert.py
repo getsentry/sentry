@@ -12,6 +12,7 @@ from sentry.integrations.discord.message_builder.base.component import DiscordCo
 from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
+from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiTimeoutError
 from sentry.testutils.cases import RuleTestCase, TestCase
@@ -56,6 +57,7 @@ class DiscordIssueAlertTest(RuleTestCase):
                 "tags": self.tags,
             }
         )
+        self.rule.rule = Rule.objects.create(project=self.project, label="test rule")
 
         responses.add(
             method=responses.POST,
@@ -125,6 +127,22 @@ class DiscordIssueAlertTest(RuleTestCase):
             external_id=self.channel_id,
             notification_uuid=notification_uuid,
         )
+
+    @responses.activate
+    @mock.patch("sentry.analytics.record")
+    def test_basic_failed(self, mock_record):
+        responses.add(
+            responses.POST, url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}", status=403
+        )
+        notification_uuid = str(uuid4())
+        results = list(
+            self.rule.after(self.event, self.get_state(), notification_uuid=notification_uuid)
+        )
+        assert len(results) == 1
+
+        results[0].callback(self.event, futures=[])
+
+        # need to verify that mock_record was called with alert.not.sent etc.
 
     @responses.activate
     def test_has_releases(self):
