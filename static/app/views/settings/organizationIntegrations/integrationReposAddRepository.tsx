@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -74,7 +75,7 @@ export function IntegrationReposAddRepository({
     [debouncedSearchRepositoriesRequest, onSearchError]
   );
 
-  const addRepo = (selection: {value: string}) => {
+  const addRepo = async (selection: {value: string}) => {
     setAdding(true);
 
     const migratableRepo = currentRepositories.find(item => {
@@ -90,14 +91,17 @@ export function IntegrationReposAddRepository({
     } else {
       promise = addRepository(api, organization.slug, selection.value, integration);
     }
-    promise.then(
-      repo => {
-        onAddRepository(repo);
-        setAdding(false);
-        RepositoryStore.resetRepositories();
-      },
-      () => setAdding(false)
-    );
+
+    try {
+      const repo = await promise;
+      onAddRepository(repo);
+      addSuccessMessage(t('Repository added'));
+      RepositoryStore.resetRepositories();
+    } catch (error) {
+      addErrorMessage(t('Unable to add repository.'));
+    } finally {
+      setAdding(false);
+    }
   };
 
   const dropdownItems = useMemo(() => {

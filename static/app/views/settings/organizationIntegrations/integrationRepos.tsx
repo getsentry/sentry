@@ -16,7 +16,8 @@ import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {IntegrationReposAddRepository} from 'sentry/views/settings/organizationIntegrations/integrationReposAddRepository';
+
+import {IntegrationReposAddRepository} from './integrationReposAddRepository';
 
 type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps & {
