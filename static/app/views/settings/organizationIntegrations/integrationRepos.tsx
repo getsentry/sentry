@@ -39,10 +39,6 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
     };
   }
 
-  componentDidMount() {
-    super.componentDidMount();
-  }
-
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, integration} = this.props;
     return [
