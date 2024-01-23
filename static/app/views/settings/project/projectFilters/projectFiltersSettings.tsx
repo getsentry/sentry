@@ -75,64 +75,72 @@ const filterDescriptions = {
   },
 };
 
-const DEPRECATED_LEGACY_BROWSER_SUBFILTERS = {
+const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
     icon: iconIe,
-    helpText: 'Version 8 and lower',
+    helpText: '(Deprecated) Version 8 and lower',
     title: 'Internet Explorer',
+    legacy: true,
   },
   ie9: {
     icon: iconIe,
-    helpText: 'Version 9',
-    title: 'Internet Explorer',
+    helpText: '(Deprecated) Version 9',
+    title: 'Internet Explore',
+    legacy: true,
   },
   ie10: {
     icon: iconIe,
-    helpText: 'Version 10',
+    helpText: '(Deprecated) Version 10',
     title: 'Internet Explorer',
+    legacy: true,
   },
   ie11: {
     icon: iconIe,
-    helpText: 'Version 11',
+    helpText: '(Deprecated) Version 11',
     title: 'Internet Explorer',
+    legacy: true,
   },
   safari_pre_6: {
     icon: iconSafari,
-    helpText: 'Version 5 and lower',
+    helpText: '(Deprecated) Version 5 and lower',
     title: 'Safari',
+    legacy: true,
   },
   opera_pre_15: {
     icon: iconOpera,
-    helpText: 'Version 14 and lower',
+    helpText: '(Deprecated) Version 14 and lower',
     title: 'Opera',
+    legacy: true,
   },
   opera_mini_pre_8: {
     icon: iconOpera,
-    helpText: 'Version 8 and lower',
+    helpText: '(Deprecated) Version 8 and lower',
     title: 'Opera Mini',
+    legacy: true,
   },
   android_pre_4: {
     icon: iconAndroid,
-    helpText: 'Version 3 and lower',
+    helpText: '(Deprecated) Version 3 and lower',
     title: 'Android',
+    legacy: true,
   },
   edge_pre_79: {
     icon: iconEdgeLegacy,
-    helpText: 'Version 18 and lower',
-    title: 'Edge (Legacy)',
+    helpText: '(Deprecated) Version 18 and lower',
+    title: 'Edge',
+    legacy: true,
   },
-};
-
-const NEW_LEGACY_BROWSER_SUBFILTERS = {
   ie: {
     icon: iconIe,
     title: 'Internet Explorer',
     helpText: 'Verison 11 and lower',
+    legacy: false,
   },
   safari: {
     icon: iconSafari,
     title: 'Safari',
     helpText: 'Version 11 and lower',
+    legacy: false,
   },
   opera: {
     icon: iconOpera,
@@ -143,38 +151,41 @@ const NEW_LEGACY_BROWSER_SUBFILTERS = {
     icon: iconOpera,
     title: 'Opera Mini',
     helpText: 'Version 34 and lower',
+    legacy: false,
   },
   android: {
     icon: iconAndroid,
     title: 'Android',
     helpText: 'Version 3 and lower',
+    legacy: false,
   },
   edge: {
     icon: iconEdgeLegacy,
     title: 'Edge',
     helpText: 'Version 78 and lower',
+    legacy: false,
   },
   firefox: {
     icon: iconFirefox,
     title: 'Firefox',
     helpText: 'Version 66 and lower',
+    legacy: false,
   },
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
     helpText: 'Version 62 and lower',
+    legacy: false,
   },
 };
 
 type FormFieldProps = React.ComponentProps<typeof FormField>;
 
 type RowProps = {
-  browserSubfilters:
-    | typeof NEW_LEGACY_BROWSER_SUBFILTERS
-    | typeof DEPRECATED_LEGACY_BROWSER_SUBFILTERS;
   data: {
     active: string[] | boolean;
   };
+  hasLegacyBrowserUpdate: boolean;
   onToggle: (
     data: RowProps['data'],
     filters: RowState['subfilters'],
@@ -192,11 +203,10 @@ type RowState = {
 class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   constructor(props) {
     super(props);
-    const {browserSubfilters} = props;
 
     let initialSubfilters;
     if (props.data.active === true) {
-      initialSubfilters = new Set(Object.keys(browserSubfilters));
+      initialSubfilters = new Set(Object.keys(LEGACY_BROWSER_SUBFILTERS));
     } else if (props.data.active === false) {
       initialSubfilters = new Set();
     } else {
@@ -212,16 +222,13 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 
   handleToggleSubfilters = (subfilter, e) => {
     let {subfilters} = this.state;
-    const {browserSubfilters} = this.props;
 
     if (subfilter === true) {
-      subfilters = new Set(Object.keys(browserSubfilters));
+      subfilters = new Set(Object.keys(LEGACY_BROWSER_SUBFILTERS));
     } else if (subfilter === false) {
       subfilters = new Set();
     } else if (subfilters.has(subfilter)) {
       subfilters.delete(subfilter);
-    } else if ([...subfilters].some(sf => sf.startsWith(subfilter))) {
-      subfilters = new Set([...subfilters].filter(sub => !sub.startsWith(subfilter)));
     } else {
       subfilters.add(subfilter);
     }
@@ -237,7 +244,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
   };
 
   render() {
-    const {disabled, browserSubfilters} = this.props;
+    const {disabled} = this.props;
     return (
       <div>
         {!disabled && (
@@ -270,28 +277,36 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         )}
 
         <FilterGrid>
-          {Object.keys(browserSubfilters).map(key => {
-            const subfilter = browserSubfilters[key];
-            return (
-              <FilterGridItem key={key}>
-                <FilterGridIcon src={subfilter.icon} />
-                <div>
-                  <FilterTitle>{subfilter.title}</FilterTitle>
-                  <FilterDescription>{subfilter.helpText}</FilterDescription>
-                </div>
-                <Switch
-                  aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                  isActive={[...this.state.subfilters].some(
-                    sf => sf === key || sf.startsWith(key)
-                  )}
-                  isDisabled={disabled}
-                  css={{flexShrink: 0, marginLeft: 6}}
-                  toggle={this.handleToggleSubfilters.bind(this, key)}
-                  size="lg"
-                />
-              </FilterGridItem>
-            );
-          })}
+          {Object.keys(LEGACY_BROWSER_SUBFILTERS)
+            .filter(key => {
+              if (this.props.hasLegacyBrowserUpdate) {
+                if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
+                  return true;
+                }
+                return [...this.state.subfilters].includes(key);
+              }
+              return LEGACY_BROWSER_SUBFILTERS[key].legacy;
+            })
+            .map(key => {
+              const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+              return (
+                <FilterGridItem key={key}>
+                  <FilterGridIcon src={subfilter.icon} />
+                  <div>
+                    <FilterTitle>{subfilter.title}</FilterTitle>
+                    <FilterDescription>{subfilter.helpText}</FilterDescription>
+                  </div>
+                  <Switch
+                    aria-label={`${subfilter.title} ${subfilter.helpText}`}
+                    isActive={[...this.state.subfilters].some(sf => sf === key)}
+                    isDisabled={disabled}
+                    css={{flexShrink: 0, marginLeft: 6}}
+                    toggle={this.handleToggleSubfilters.bind(this, key)}
+                    size="lg"
+                  />
+                </FilterGridItem>
+              );
+            })}
         </FilterGrid>
       </div>
     );
@@ -377,6 +392,8 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
   const organization = useOrganization();
   const {projectId: projectSlug} = params;
 
+  const hasLegacyBrowserUpdate = organization.features.includes('legacy-browser-update');
+
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const filtersEndpoint = `${projectEndpoint}filters/`;
 
@@ -391,12 +408,6 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
   });
 
   const filterList = filterListData ?? [];
-
-  const LEGACY_BROWSER_SUBFILTERS = organization.features.includes(
-    'legacy-browser-update'
-  )
-    ? NEW_LEGACY_BROWSER_SUBFILTERS
-    : DEPRECATED_LEGACY_BROWSER_SUBFILTERS;
 
   const handleLegacyChange = useCallback(
     ({
@@ -473,7 +484,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                               onToggle={(_data, subfilters, event) =>
                                 handleLegacyChange({onChange, onBlur, event, subfilters})
                               }
-                              browserSubfilters={LEGACY_BROWSER_SUBFILTERS}
+                              hasLegacyBrowserUpdate={hasLegacyBrowserUpdate}
                             />
                           )}
                         </FormField>
