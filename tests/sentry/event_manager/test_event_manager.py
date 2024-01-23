@@ -2451,14 +2451,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     )
     def test_perf_issue_slow_db_issue_is_created(self):
         def attempt_to_generate_slow_db_issue() -> Event:
-            for _ in range(100):
-                event = self.create_performance_issue(
-                    event_data=make_event(**get_event("slow-db-spans")),
-                    issue_type=PerformanceSlowDBQueryGroupType,
-                )
-                last_event = event
-
-            return last_event
+            return self.create_performance_issue(
+                event_data=make_event(**get_event("slow-db-spans")),
+                issue_type=PerformanceSlowDBQueryGroupType,
+            )
 
         # Should not create the group without the feature flag
         last_event = attempt_to_generate_slow_db_issue()
