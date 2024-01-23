@@ -519,7 +519,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             ));
           }}
         >
-          {t('Tell us where your source code is')}
+          {t('Set up Code Mapping')}
         </FixMappingButton>
       </StacktraceLinkWrapper>
     );
