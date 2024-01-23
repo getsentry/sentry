@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # to avoid a circular import
 import logging
-from typing import Mapping, Optional, Union
+from typing import Mapping, Optional
 from urllib.parse import urlencode
 
 from requests import Response
@@ -112,10 +112,10 @@ class DiscordClient(ApiClient):
 
     def track_response_data(
         self,
-        code: Union[str, int],
+        code: str | int,
         span: Span | None = None,
-        error: Optional[str] = None,
-        resp: Optional[Response] = None,
+        error: Exception | None = None,
+        resp: Response | None = None,
         extra: Optional[Mapping[str, str]] = None,
     ) -> None:
         if code == status.HTTP_403_FORBIDDEN:
