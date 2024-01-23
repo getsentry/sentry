@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -197,6 +197,8 @@ export const MetricWidgetBody = memo(
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
+    const [isDrawing, setIsDrawing] = useState(false);
+    const enabled = !isDrawing;
 
     const {data, isLoading, isError, error} = useMetricsDataZoom(
       {
@@ -208,7 +210,8 @@ export const MetricWidgetBody = memo(
         environments,
         datetime,
       },
-      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'},
+      {enabled}
     );
 
     const chartRef = useRef<ReactEchartsRef>(null);
@@ -254,6 +257,18 @@ export const MetricWidgetBody = memo(
       [onChange]
     );
 
+    const handleDrawFocusArea = useCallback(() => {
+      setIsDrawing(true);
+    }, [setIsDrawing]);
+
+    const handleAddFocusArea = useCallback(
+      (area: FocusArea) => {
+        setIsDrawing(false);
+        addFocusArea?.(area);
+      },
+      [addFocusArea]
+    );
+
     if (!chartSeries || !data || isError) {
       return (
         <StyledMetricWidgetBody>
@@ -288,10 +303,11 @@ export const MetricWidgetBody = memo(
           displayType={displayType}
           operation={metricsQuery.op}
           widgetIndex={widgetIndex}
-          addFocusArea={addFocusArea}
+          addFocusArea={handleAddFocusArea}
           focusArea={focusArea}
           removeFocusArea={removeFocusArea}
           height={chartHeight}
+          drawFocusArea={handleDrawFocusArea}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
