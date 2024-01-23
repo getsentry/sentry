@@ -21,11 +21,11 @@ const pageErrorContext = createContext<{
   pageAlert?: PageAlertOptions;
 }>({
   pageAlert: undefined,
-  setPageError: (_: React.ReactNode | undefined) => {},
-  setPageInfo: (_: React.ReactNode | undefined) => {},
-  setPageMuted: (_: React.ReactNode | undefined) => {},
-  setPageSuccess: (_: React.ReactNode | undefined) => {},
-  setPageWarning: (_: React.ReactNode | undefined) => {},
+  setPageError: (_: React.ReactNode | undefined) => void,
+  setPageInfo: (_: React.ReactNode | undefined) => void,
+  setPageMuted: (_: React.ReactNode | undefined) => void,
+  setPageSuccess: (_: React.ReactNode | undefined) => void,
+  setPageWarning: (_: React.ReactNode | undefined) => void
 });
 
 export function PageAlertProvider({children}: {children: React.ReactNode}) {
