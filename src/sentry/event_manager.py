@@ -142,6 +142,8 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
 
+HIGH_SEVERITY_THRESHOLD = 0.1
+
 
 @dataclass
 class GroupInfo:
@@ -1816,8 +1818,8 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
 
     if features.has("projects:issue-priority", project, actor=None):
         priority = _get_priority_for_group(severity, kwargs)
-        kwargs.update({"priority": priority})
-        group_data["metadata"].update({"initial_priority": priority})
+        kwargs["priority"] = priority
+        group_data["metadata"]["initial_priority"] = priority
 
     return Group.objects.create(
         project=project,
@@ -2069,15 +2071,15 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         return PriorityLevel.HIGH
 
     elif level == logging.WARNING:
-        if not severity_score or severity_score < 0.1:
+        if severity_score is None or severity_score < HIGH_SEVERITY_THRESHOLD:
             return PriorityLevel.MEDIUM
 
-        return PriorityLevel.HIGH  # severity_score >= 0.1
+        return PriorityLevel.HIGH  # severity_score >= HIGH_SEVERITY_THRESHOLD
     elif level == logging.ERROR:
-        if not severity_score or severity_score >= 0.1:
+        if severity_score is None or severity_score >= HIGH_SEVERITY_THRESHOLD:
             return PriorityLevel.HIGH
 
-        return PriorityLevel.MEDIUM  # severity_score < 0.1
+        return PriorityLevel.MEDIUM  # severity_score < HIGH_SEVERITY_THRESHOLD
 
     logger.warning("unknown log level %s or severity score %s", level, severity_score)
     return PriorityLevel.MEDIUM
