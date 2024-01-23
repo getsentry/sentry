@@ -796,7 +796,6 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
-    # If it's a black listed field, we consider it as incompatible with on demand.
     if field in _IGNORED_METRIC_FIELDS:
         return True
 
