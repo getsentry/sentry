@@ -9,10 +9,14 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
 import {
   IconCheckmark,
+  IconChevron,
   IconClose,
   IconEdit,
+  IconInfo,
+  IconInput,
   IconLightning,
   IconReleases,
+  IconSliders,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -284,7 +288,7 @@ function ToggleNameEditButton(props: ButtonProps) {
       borderless
       size="sm"
       onClick={props.onClick}
-      icon={<IconEdit />}
+      icon={<IconSliders />}
     />
   );
 }
