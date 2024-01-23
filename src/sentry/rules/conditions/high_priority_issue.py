@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, Sequence
 
+from sentry.event_manager import HIGH_SEVERITY_THRESHOLD
 from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -9,8 +10,6 @@ from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
-
-HIGH_SEVERITY_THRESHOLD = 0.1
 
 
 class HighPriorityIssueCondition(EventCondition):
