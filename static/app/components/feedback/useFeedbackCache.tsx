@@ -21,7 +21,7 @@ function isIssueEndpointUrl(query) {
 
 export default function useFeedbackCache() {
   const queryClient = useQueryClient();
-  const {getItemQueryKeys, getListQueryKey} = useFeedbackQueryKeys();
+  const {getItemQueryKeys, listQueryKey} = useFeedbackQueryKeys();
 
   const updateCachedQueryKey = useCallback(
     (queryKey: ApiQueryKey, payload: Partial<FeedbackIssue>) => {
@@ -52,8 +52,7 @@ export default function useFeedbackCache() {
 
   const updateCachedListPage = useCallback(
     (ids: TFeedbackIds, payload: Partial<FeedbackIssue>) => {
-      const queryKey = getListQueryKey();
-      const listData = queryClient.getQueryData<ListCache>(queryKey);
+      const listData = queryClient.getQueryData<ListCache>(listQueryKey);
       if (listData) {
         const pages = listData.pages.map(([data, statusText, resp]) => [
           data.map(item =>
@@ -62,10 +61,10 @@ export default function useFeedbackCache() {
           statusText,
           resp,
         ]);
-        queryClient.setQueryData(queryKey, {...listData, pages});
+        queryClient.setQueryData(listQueryKey, {...listData, pages});
       }
     },
-    [getListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const updateCached = useCallback(
@@ -93,15 +92,14 @@ export default function useFeedbackCache() {
 
   const invalidateCachedListPage = useCallback(
     (ids: TFeedbackIds) => {
-      const queryKey = getListQueryKey();
       queryClient.invalidateQueries({
-        queryKey,
+        queryKey: listQueryKey,
         refetchPage: ([results]: ApiResult<FeedbackIssueList>) => {
           return ids === 'all' || results.some(item => ids.includes(item.id));
         },
       });
     },
-    [getListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const invalidateCached = useCallback(
@@ -112,8 +110,13 @@ export default function useFeedbackCache() {
     [invalidateCachedIssue, invalidateCachedListPage]
   );
 
+  const invalidateListCache = useCallback(() => {
+    invalidateCachedListPage('all');
+  }, [invalidateCachedListPage]);
+
   return {
     updateCached,
     invalidateCached,
+    invalidateListCache,
   };
 }
