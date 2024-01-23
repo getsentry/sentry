@@ -2082,10 +2082,17 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
 
             return PriorityLevel.MEDIUM  # severity_score < HIGH_SEVERITY_THRESHOLD
 
-        logger.warning("unknown log level %s or severity score %s", level, severity_score)
+        logger.warning("Unknown log level %s or severity score %s", level, severity_score)
         return PriorityLevel.MEDIUM
     except Exception as e:
-        logger.warning("Failed to calculate priority for group", repr(e))
+        logger.exception(
+            "Failed to calculate priority for group",
+            repr(e),
+            extra={
+                "severity": severity,
+                "kwargs": kwargs,
+            },
+        )
 
         return PriorityLevel.MEDIUM
 
