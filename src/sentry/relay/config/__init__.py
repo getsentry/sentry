@@ -196,8 +196,8 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
 
 
 class SlidingWindow(TypedDict):
-    window_seconds: int
-    granularity_seconds: int
+    windowSeconds: int
+    granularitySeconds: int
 
 
 class CardinalityLimit(TypedDict):
@@ -231,8 +231,8 @@ def get_metrics_config() -> Mapping[str, Any]:
             {
                 "id": namespace,
                 "window": {
-                    "window_seconds": quota["window_seconds"],
-                    "granularity_seconds": quota["granularity_seconds"],
+                    "windowSeconds": quota["window_seconds"],
+                    "granularitySeconds": quota["granularity_seconds"],
                 },
                 "limit": quota["limit"],
                 "scope": "organization",
