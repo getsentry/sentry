@@ -282,8 +282,6 @@ module = [
     "sentry.features.handler",
     "sentry.features.manager",
     "sentry.grouping.fingerprinting",
-    "sentry.grouping.strategies.base",
-    "sentry.grouping.strategies.configurations",
     "sentry.grouping.strategies.hierarchical",
     "sentry.grouping.strategies.legacy",
     "sentry.grouping.strategies.newstyle",
