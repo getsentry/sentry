@@ -50,8 +50,6 @@ from sentry.notifications.utils.participants import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
-from sentry.services.hybrid_cloud.organization.model import RpcTeam
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -224,7 +222,9 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def get_suggested_assignees(identity: RpcIdentity, project: Project, event: Event) -> list[str]:
+def get_suggested_assignees(
+    identity: RpcIdentity | None, project: Project, event: Event
+) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
     suggested_assignees, _ = get_owners(project, event, None)
     if features.has("organizations:streamline-targeting-context", project.organization):
@@ -242,11 +242,13 @@ def get_suggested_assignees(identity: RpcIdentity, project: Project, event: Even
         assignee_texts = []
         for assignee in suggested_assignees:
             if assignee.actor_type == ActorType.USER:
-                assignee_identity = identity_service.get_identity(
-                    filter={"provider_id": identity.idp_id, "user_id": assignee.id}
-                )
+                assignee_identity = None
+                if identity:
+                    assignee_identity = identity_service.get_identity(
+                        filter={"provider_id": identity.idp_id, "user_id": assignee.id}
+                    )
                 if assignee_identity is None:
-                    assignee_as_user = RpcUser(id=assignee.id)
+                    assignee_as_user = assignee.resolve()
                     assignee_text = (
                         f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
                     )
@@ -254,8 +256,7 @@ def get_suggested_assignees(identity: RpcIdentity, project: Project, event: Even
                     assignee_text = f"<@{assignee_identity.external_id}>"
                 assignee_texts.append(assignee_text)
             else:
-                assignee_as_team = RpcTeam(id=assignee.id)
-                assignee_texts.append(f"#{assignee_as_team.name}")
+                assignee_texts.append(f"#{assignee.slug}")
         return assignee_texts
     return []
 

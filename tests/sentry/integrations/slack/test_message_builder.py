@@ -26,14 +26,20 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.identity import Identity, IdentityStatus
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.utils.actions import MessageAction
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -49,6 +55,7 @@ def build_test_message_blocks(
     event: Event | None = None,
     link_to_event: bool = False,
     tags: dict[str, str] | None = None,
+    suggested_assignees: str | None = None,
     mentions: str | None = None,
 ) -> dict[str, Any]:
     project = group.project
@@ -121,6 +128,14 @@ def build_test_message_blocks(
         ],
     }
     blocks.append(actions)
+
+    if suggested_assignees:
+        suggested_assignees_text = f"Suggested Assignee(s): {suggested_assignees}"
+        suggested_assignees_section = {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": suggested_assignees_text},
+        }
+        blocks.append(suggested_assignees_section)
 
     if mentions:
         mentions_text = f"Mentions: {mentions}"
@@ -408,6 +423,99 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert isinstance(ret, dict)
         for section in ret["blocks"]:
             assert section["type"] != "actions"
+
+    @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:streamline-targeting-context")
+    def test_issue_alert_with_suggested_assignees(self):
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="home-repo",
+            integration_id=self.integration.id,
+        )
+        # suspect commits, with and without slack identity linked
+        commit_no_identity = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=self.create_commit_author(project=self.project, user=self.user),
+            key="qwertyuiopiuytrewq",
+            message="This is a suspect commit!",
+        )
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
+            self.identity = Identity.objects.create(
+                external_id="UXXXXXXX2",
+                idp=self.idp,
+                user=user2,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
+        commit_with_identity = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=self.create_commit_author(project=self.project, user=user2),
+            key="asdfghjkljhgfdsa",
+            message="Another suspect commit!",
+        )
+
+        # ownership rules; one should have the issue auto-assigned while the other will be suggested
+        team2 = self.create_team(organization=self.organization, name="bar")
+        g_rule1 = Rule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        g_rule2 = Rule(Matcher("level", "error"), [Owner("", team2.slug)])
+        ProjectOwnership.objects.create(
+            project_id=self.project.id, schema=dump_schema([g_rule1, g_rule2]), fallthrough=True
+        )
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "stacktrace": {"frames": [{"filename": "foo.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit_no_identity.id},
+        )
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=user2.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit_with_identity.id},
+        )
+
+        expected_blocks = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suggested_assignees=f"{self.user.get_display_name()}, <@{self.identity.external_id}>, #{team2.name}",
+        )
+        expected_blocks["blocks"][3]["elements"][2]["initial_option"] = {
+            "text": {"type": "plain_text", "text": f"{self.team.slug}"},
+            "value": f"team:{self.team.id}",
+        }
+
+        # TODO tomorrow: the below assertion will need to be changed to make sure we have the correct team assigned (based on rules); might also need to make it flexible since i'm not sure how order will work
+
+        actual_blocks = SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo"}, identity=self.identity
+        ).build()
+
+        # print(expected_blocks)
+        # print(actual_blocks)
+        assert actual_blocks == expected_blocks
 
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
