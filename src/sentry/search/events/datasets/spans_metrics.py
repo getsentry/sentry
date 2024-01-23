@@ -535,7 +535,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        if self.builder.use_count_per_op:
+        if self.builder.use_count_per_segment:
             return Function(
                 "sumIf",
                 [

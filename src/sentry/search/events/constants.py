@@ -322,11 +322,6 @@ SPAN_METRIC_DURATION_COLUMNS = {
     for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
 }
-SPAN_METRIC_COUNT_COLUMNS = {
-    key
-    for key, value in SPAN_METRICS_MAP.items()
-    if value.endswith("@none") and value.startswith("c:")
-}
 SPAN_METRIC_BYTES_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
