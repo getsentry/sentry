@@ -2061,28 +2061,33 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
     """
     Returns priority for an event based on severity score and log level.
     """
-    level = kwargs.get("level", None)
-    severity_score = severity.get("severity", None)
+    try:
+        level = kwargs.get("level", None)
+        severity_score = severity.get("severity", None)
 
-    if level in [logging.INFO, logging.DEBUG]:
-        return PriorityLevel.LOW
+        if level in [logging.INFO, logging.DEBUG]:
+            return PriorityLevel.LOW
 
-    elif level == logging.FATAL:
-        return PriorityLevel.HIGH
-
-    elif level == logging.WARNING:
-        if severity_score is None or severity_score < HIGH_SEVERITY_THRESHOLD:
-            return PriorityLevel.MEDIUM
-
-        return PriorityLevel.HIGH  # severity_score >= HIGH_SEVERITY_THRESHOLD
-    elif level == logging.ERROR:
-        if severity_score is None or severity_score >= HIGH_SEVERITY_THRESHOLD:
+        elif level == logging.FATAL:
             return PriorityLevel.HIGH
 
-        return PriorityLevel.MEDIUM  # severity_score < HIGH_SEVERITY_THRESHOLD
+        elif level == logging.WARNING:
+            if severity_score is None or severity_score < HIGH_SEVERITY_THRESHOLD:
+                return PriorityLevel.MEDIUM
 
-    logger.warning("unknown log level %s or severity score %s", level, severity_score)
-    return PriorityLevel.MEDIUM
+            return PriorityLevel.HIGH  # severity_score >= HIGH_SEVERITY_THRESHOLD
+        elif level == logging.ERROR:
+            if severity_score is None or severity_score >= HIGH_SEVERITY_THRESHOLD:
+                return PriorityLevel.HIGH
+
+            return PriorityLevel.MEDIUM  # severity_score < HIGH_SEVERITY_THRESHOLD
+
+        logger.warning("unknown log level %s or severity score %s", level, severity_score)
+        return PriorityLevel.MEDIUM
+    except Exception as e:
+        logger.warning("Failed to calculate priority for group", repr(e))
+
+        return PriorityLevel.MEDIUM
 
 
 def _get_severity_score(event: Event) -> Tuple[float, str]:
