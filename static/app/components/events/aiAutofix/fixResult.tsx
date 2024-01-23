@@ -8,7 +8,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ExperimentalFeatureBadge} from '../aiSuggestedSolution/experimentalFeatureBadge';
@@ -47,11 +47,11 @@ export function FixResult({autofixData, onRetry}: Props) {
             <PreviewContent>
               {autofixData.errorMessage ? (
                 <Fragment>
-                  <PrefixText>Something went wrong:</PrefixText>
+                  <PrefixText>{t('Something went wrong:')}</PrefixText>
                   {autofixData.errorMessage && <span>{autofixData.errorMessage}</span>}
                 </Fragment>
               ) : (
-                <span>Something went wrong.</span>
+                <span>{t('Something went wrong.')}</span>
               )}
             </PreviewContent>
             <Button size="xs" onClick={onRetry}>
@@ -61,7 +61,7 @@ export function FixResult({autofixData, onRetry}: Props) {
         ) : hasNoFix ? (
           <Content>
             <PreviewContent>
-              <span>Could not find a fix.</span>
+              <span>{t('Could not find a fix.')}</span>
             </PreviewContent>
             <Button size="xs" onClick={onRetry}>
               {t('Try Again')}
@@ -71,11 +71,14 @@ export function FixResult({autofixData, onRetry}: Props) {
           <Content>
             <PreviewContent>
               <PrefixText>
-                {`Pull request #${autofixData.fix!.prNumber} created in `}
-                <RepoLink href={makeGithubRepoUrl(autofixData.fix!.repoName)}>
-                  {autofixData.fix!.repoName}
-                </RepoLink>
-                :
+                {tct('Pull request #[prNumber] created in [repository]:', {
+                  prNumber: autofixData.fix!.prNumber,
+                  repository: (
+                    <RepoLink href={makeGithubRepoUrl(autofixData.fix!.repoName)}>
+                      {autofixData.fix!.repoName}
+                    </RepoLink>
+                  ),
+                })}
               </PrefixText>
               <PrTitle>{autofixData.fix!.title}</PrTitle>
             </PreviewContent>
