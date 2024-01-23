@@ -362,7 +362,7 @@ const Dropdowns = styled(PageFilterBar)<{hidden: boolean}>`
   /* hide the dropdowns when the title is being edited, used to match title input width
      and prevent layout shifts */
   height: ${p => (p.hidden ? '0' : 'auto')};
-  overflow: ${p => (p.hidden ? 'hidden' : 'auto')};
+  overflow: ${p => (p.hidden ? 'hidden' : 'initial')};
   flex-wrap: wrap;
 `;
 
