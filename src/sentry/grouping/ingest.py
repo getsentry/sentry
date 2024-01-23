@@ -167,3 +167,38 @@ def _calculate_background_grouping(
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
         return calculate_event_grouping(project, event, config)
+
+
+def should_run_secondary_grouping(project: Project) -> bool:
+    result = False
+    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
+    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
+        result = True
+    return result
+
+
+def calculate_secondary_hash(
+    project: Project, job: Job, secondary_grouping_config: GroupingConfig
+) -> None | CalculatedHashes:
+    """Calculate secondary hash for event using a fallback grouping config for a period of time.
+    This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
+    when the customer changes the grouping config.
+    This causes extra load in save_event processing.
+    """
+    secondary_hashes = None
+    try:
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.secondary_calculate_event_grouping",
+        ):
+            # create a copy since `_calculate_event_grouping` modifies the event to add all sorts
+            # of grouping info and we don't want the backup grouping data in there
+            event_copy = copy.deepcopy(job["event"])
+            secondary_hashes = calculate_event_grouping(
+                project, event_copy, secondary_grouping_config
+            )
+    except Exception:
+        sentry_sdk.capture_exception()
+
+    return secondary_hashes
