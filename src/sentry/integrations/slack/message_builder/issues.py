@@ -218,18 +218,20 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
-def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
-    return (
-        text
-        + "\n"
-        + "\n".join(
-            [
-                action_text
-                for action_text in [build_action_text(identity, action) for action in actions]
-                if action_text
-            ]
-        )
+def get_action_text(
+    text: str, actions: Sequence[Any], identity: RpcIdentity, use_block_kit: bool
+) -> str:
+    action_text = "\n".join(
+        [
+            action_text
+            for action_text in [build_action_text(identity, action) for action in actions]
+            if action_text
+        ]
     )
+    if use_block_kit:
+        return action_text
+
+    return text + "\n" + action_text
 
 
 def build_actions(
@@ -244,7 +246,7 @@ def build_actions(
     use_block_kit = features.has("organizations:slack-block-kit", project.organization)
 
     if actions and identity:
-        text = get_action_text(text, actions, identity)
+        text = get_action_text(text, actions, identity, use_block_kit)
         return [], text, "_actioned_issue"
 
     status = group.get_status()
@@ -365,7 +367,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
-
         if self.escape_text:
             text = escape_slack_text(text)
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
@@ -375,7 +376,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # This link does not contain user input (it's a static label and a url), must not escape it.
         text += build_attachment_replay_link(self.group, self.event) or ""
-
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -388,10 +388,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
+
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, text, color = build_actions(
+            payload_actions, action_text, color = build_actions(
                 self.group, project, text, color, self.actions, self.identity
             )
         else:
@@ -421,7 +422,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 fallback=self.build_fallback_text(obj, project.slug),
                 fields=fields,
                 footer=footer,
-                text=text,
+                text=action_text,
                 title=title,
                 title_link=title_link,
                 ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
@@ -430,8 +431,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up the blocks for newer issue alert formatting #
 
         # build title block
-        if text and not self.actions:
+        if text:
             text = f"```{text.lstrip(' ')}```"
+            if self.actions:
+                text += "\n" + action_text
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"
 
         if self.group.issue_category == GroupCategory.ERROR:
@@ -457,7 +460,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         context = {
             "Events": get_group_global_count(self.group),
             "Users Affected": self.group.count_users_seen(),
-            "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").title(),
+            "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
             "First Seen": time_since(self.group.first_seen),
         }
         context_text = ""
@@ -511,10 +514,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         blocks.append(self.get_divider())
 
+        block_id = {"issue": self.group.id}
+        if rule_id:
+            block_id["rule"] = rule_id
+
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps({"issue": self.group.id}),
+            block_id=json.dumps(block_id),
             skip_fallback=self.skip_fallback,
         )
 
