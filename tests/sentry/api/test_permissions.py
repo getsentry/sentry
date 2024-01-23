@@ -1,3 +1,5 @@
+from rest_framework.request import Request
+
 from sentry.api.permissions import (
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
@@ -11,9 +13,9 @@ from sentry.testutils.cases import TestCase
 class PermissionsTest(TestCase):
     def setUp(self):
         # self.user is superuser and staff user by default
-        self.request = self.make_request(user=self.user)
+        self.request = Request(self.make_request(user=self.user))
         self.request.superuser = Superuser(self.request)
-        self.request.staff = Staff(self.request)
+        self.request.staff = Staff(self.request)  # type: ignore[attr-defined]
 
     def _activate_superuser(self):
         self.request.superuser.uid = str(self.user.id)
