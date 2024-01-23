@@ -115,7 +115,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -141,6 +141,8 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
+
+HIGH_SEVERITY_THRESHOLD = 0.1
 
 
 @dataclass
@@ -1811,7 +1813,13 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # add severity to metadata for alert filtering
-    group_data["metadata"].update(_get_severity_metadata_for_group(event))
+    severity = _get_severity_metadata_for_group(event)
+    group_data["metadata"].update(severity)
+
+    if features.has("projects:issue-priority", project, actor=None):
+        priority = _get_priority_for_group(severity, kwargs)
+        kwargs["priority"] = priority
+        group_data["metadata"]["initial_priority"] = priority
 
     return Group.objects.create(
         project=project,
@@ -2047,6 +2055,46 @@ def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
             return {}
 
     return {}
+
+
+def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, Any]) -> int:
+    """
+    Returns priority for an event based on severity score and log level.
+    """
+    try:
+        level = kwargs.get("level", None)
+        severity_score = severity.get("severity", None)
+
+        if level in [logging.INFO, logging.DEBUG]:
+            return PriorityLevel.LOW
+
+        elif level == logging.FATAL:
+            return PriorityLevel.HIGH
+
+        elif level == logging.WARNING:
+            if severity_score is None or severity_score < HIGH_SEVERITY_THRESHOLD:
+                return PriorityLevel.MEDIUM
+
+            return PriorityLevel.HIGH  # severity_score >= HIGH_SEVERITY_THRESHOLD
+        elif level == logging.ERROR:
+            if severity_score is None or severity_score >= HIGH_SEVERITY_THRESHOLD:
+                return PriorityLevel.HIGH
+
+            return PriorityLevel.MEDIUM  # severity_score < HIGH_SEVERITY_THRESHOLD
+
+        logger.warning("Unknown log level %s or severity score %s", level, severity_score)
+        return PriorityLevel.MEDIUM
+    except Exception as e:
+        logger.exception(
+            "Failed to calculate priority for group",
+            repr(e),
+            extra={
+                "severity": severity,
+                "kwargs": kwargs,
+            },
+        )
+
+        return PriorityLevel.MEDIUM
 
 
 def _get_severity_score(event: Event) -> Tuple[float, str]:
@@ -2553,26 +2601,6 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         event_id = event.event_id
 
         performance_problems = job["performance_problems"]
-        if features.has("organizations:issue-platform-extra-logging", project.organization):
-            if performance_problems and len(performance_problems) > 0:
-                logger.warning(
-                    "Detected %s performance problems",
-                    len(performance_problems),
-                    extra={
-                        "performance_problems": performance_problems,
-                        "project_id": project.id,
-                        "event_id": event_id,
-                    },
-                )
-            else:
-                logger.warning(
-                    "No performance problems detected",
-                    extra={
-                        "project_id": project.id,
-                        "event_id": event_id,
-                    },
-                )
-
         for problem in performance_problems:
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,

@@ -7,7 +7,7 @@ from typing import Mapping
 
 from django.utils import timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -65,9 +65,6 @@ def schedule_auto_resolution():
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
     project = Project.objects.get_from_cache(id=project_id)
-    organization = project.organization
-    flag_enabled = features.has("organizations:issue-platform-crons-sd", organization)
-
     age = project.get_option("sentry:resolve_age", None)
     if not age:
         return
@@ -85,13 +82,12 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         "status": GroupStatus.UNRESOLVED,
     }
 
-    if flag_enabled:
-        enabled_auto_resolve_types = [
-            group_type.type_id
-            for group_type in grouptype.registry.all()
-            if group_type.enable_auto_resolve
-        ]
-        filter_conditions["type__in"] = enabled_auto_resolve_types
+    enabled_auto_resolve_types = [
+        group_type.type_id
+        for group_type in grouptype.registry.all()
+        if group_type.enable_auto_resolve
+    ]
+    filter_conditions["type__in"] = enabled_auto_resolve_types
 
     queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
 

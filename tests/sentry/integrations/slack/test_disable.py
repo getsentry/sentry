@@ -36,7 +36,9 @@ class SlackClientDisable(TestCase):
 
         self.organization = self.create_organization(owner=self.user)
 
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.event.project.organization,
+            self.user,
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX1",
@@ -45,7 +47,6 @@ class SlackClientDisable(TestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        self.integration.add_organization(self.event.project.organization, self.user)
         self.payload = {"channel": "#announcements", "message": "i'm ooo next week"}
 
     def tearDown(self):

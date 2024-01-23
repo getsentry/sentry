@@ -67,7 +67,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 "name": "queue_url",
                 "label": "Queue URL",
                 "type": "url",
-                "placeholder": "https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
+                "placeholder": "https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
             },
             {
                 "name": "region",

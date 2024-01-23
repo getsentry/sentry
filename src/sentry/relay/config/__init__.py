@@ -18,7 +18,7 @@ from typing import (
 import sentry_sdk
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, quotas, utils
+from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
@@ -44,6 +44,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
+from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -192,6 +193,55 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
     else:
         metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
+
+
+class SlidingWindow(TypedDict):
+    windowSeconds: int
+    granularitySeconds: int
+
+
+class CardinalityLimit(TypedDict):
+    id: str
+    window: SlidingWindow
+    limit: int
+    scope: Literal["organization"]
+    namespace: Optional[str]
+
+
+def get_metrics_config() -> Mapping[str, Any]:
+    metrics_config = {}
+
+    cardinality_limits: List[CardinalityLimit] = []
+    cardinality_options = {
+        "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
+    }
+    cardinality_options.update(
+        (namespace.value, option)
+        for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
+    )
+    for namespace, option_name in cardinality_options.items():
+        option = options.get(option_name)
+        if not option or not len(option) == 1:
+            # Multiple quotas are not supported
+            continue
+
+        quota = option[0]
+
+        cardinality_limits.append(
+            {
+                "id": namespace,
+                "window": {
+                    "windowSeconds": quota["window_seconds"],
+                    "granularitySeconds": quota["granularity_seconds"],
+                },
+                "limit": quota["limit"],
+                "scope": "organization",
+                "namespace": namespace,
+            }
+        )
+    metrics_config["cardinalityLimits"] = cardinality_limits
+
+    return metrics_config
 
 
 def get_project_config(
@@ -364,6 +414,8 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
+    add_experimental_config(config, "metrics", get_metrics_config)
+
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
             config,
@@ -392,6 +444,10 @@ def _get_project_config(
             ),
         }
 
+    lcp_and_cls_is_optional = features.has(
+        "organizations:performance-score-optional-lcp-and-cls", project.organization
+    )
+
     if features.has("organizations:performance-calculate-score-relay", project.organization):
         config["performanceScore"] = {
             "profiles": [
@@ -410,7 +466,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": False,
+                            "optional": lcp_and_cls_is_optional,
                         },
                         {
                             "measurement": "fid",
@@ -424,7 +480,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": False,
+                            "optional": lcp_and_cls_is_optional,
                         },
                         {
                             "measurement": "ttfb",
@@ -452,10 +508,10 @@ def _get_project_config(
                         },
                         {
                             "measurement": "lcp",
-                            "weight": 0.0,
+                            "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "fid",
@@ -545,7 +601,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": False,
+                            "optional": lcp_and_cls_is_optional,
                         },
                         {
                             "measurement": "fid",
@@ -559,7 +615,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": False,
+                            "optional": lcp_and_cls_is_optional,
                         },
                         {
                             "measurement": "ttfb",
@@ -590,7 +646,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": False,
+                            "optional": lcp_and_cls_is_optional,
                         },
                         {
                             "measurement": "fid",
@@ -604,7 +660,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": False,
+                            "optional": lcp_and_cls_is_optional,
                         },
                         {
                             "measurement": "ttfb",

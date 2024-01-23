@@ -4,14 +4,13 @@ import functools
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.request import Request
 from yaml import serialize
 
 from sentry import features, release_health, tsdb
-from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -27,9 +26,6 @@ from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -160,34 +156,6 @@ class GroupStatsMixin:
                 }
 
             return self.query_tsdb(item_list, query_params, user=user, **kwargs)
-
-
-# Serializer for User Feedback
-# Used to expose the linked integration issues for a list of feedbacks (groups)
-class ExternalIssueSerializer(Serializer):
-    def get_attrs(self, item_list: List[ExternalIssue], user: User, **kwargs: Any):
-        group_linked_issues = {}
-        for ei in item_list:
-            # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
-            integration = integration_service.get_integration(integration_id=ei.integration_id)
-            if integration is None:
-                continue
-            installation = integration.get_installation(organization_id=ei.organization.id)
-            if hasattr(installation, "get_issue_display_name"):
-                group_linked_issues[ei] = {
-                    "id": str(ei.id),
-                    "key": ei.key,
-                    "title": ei.title,
-                    "description": ei.description,
-                    "displayName": installation.get_issue_display_name(ei),
-                    "integrationKey": integration.provider,
-                    "integrationName": integration.name,
-                }
-
-        return group_linked_issues
-
-    def serialize(self, obj, attrs, user, **kwargs):
-        return attrs
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):

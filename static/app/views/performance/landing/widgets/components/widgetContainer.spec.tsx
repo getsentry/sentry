@@ -2,7 +2,7 @@ import {
   initializeData as _initializeData,
   InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -274,9 +274,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
         />
       </PageErrorProvider>
     );
-
-    // Provider update is after request promise.
-    await act(async () => {});
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Transactions Per Minute'

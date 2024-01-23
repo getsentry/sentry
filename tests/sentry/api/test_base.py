@@ -4,12 +4,15 @@ from unittest.mock import MagicMock
 from django.http import HttpRequest, QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from sentry_sdk import Scope
 from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.base import Endpoint, EndpointSiloLimit
+from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.permissions import SuperuserPermission
 from sentry.models.apikey import ApiKey
 from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
@@ -31,6 +34,17 @@ class DummyEndpoint(Endpoint):
 
     def get(self, request):
         return Response({"ok": True})
+
+
+class DummySuperuserPermissionEndpoint(DummyEndpoint):
+    permission_classes = (SuperuserPermission,)
+
+
+class DummySuperuserOrAnyPermissionEndpoint(DummyEndpoint):
+    permission_classes = (
+        SuperuserPermission,
+        AllowAny,
+    )
 
 
 class DummyErroringEndpoint(Endpoint):
@@ -82,9 +96,6 @@ class DummyPaginationEndpoint(Endpoint):
         )
 
 
-_dummy_endpoint = DummyEndpoint.as_view()
-
-
 class DummyPaginationStreamingEndpoint(Endpoint):
     permission_classes = ()
 
@@ -104,6 +115,7 @@ class DummyPaginationStreamingEndpoint(Endpoint):
         )
 
 
+_dummy_endpoint = DummyEndpoint.as_view()
 _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 
@@ -575,3 +587,25 @@ class FunctionSiloLimitTest(APITestCase):
     def test_with_monolith_mode(self):
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
+
+
+class SuperuserPermissionTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.request = self.make_request(user=self.user, method="GET")
+        self.superuser_permission_view = DummySuperuserPermissionEndpoint().as_view()
+        self.superuser_or_any_permission_view = DummySuperuserOrAnyPermissionEndpoint().as_view()
+
+    def test_superuser_exception_raised(self):
+        response = self.superuser_permission_view(self.request)
+        response_detail = response.data["detail"]
+
+        assert response.status_code == SuperuserRequired.status_code
+        assert response_detail["code"] == SuperuserRequired.code
+        assert response_detail["message"] == SuperuserRequired.message
+
+    @mock.patch("sentry.api.permissions.is_active_superuser", return_value=True)
+    def test_superuser_or_any_no_exception_raised(self, mock_is_active_superuser):
+        response = self.superuser_or_any_permission_view(self.request)
+
+        assert response.status_code == 200, response.content
