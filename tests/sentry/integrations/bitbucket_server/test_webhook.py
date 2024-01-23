@@ -168,7 +168,7 @@ class RefsChangedWebhookTest(WebhookTestBase):
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/rest/api/1.0/projects/my-project/repos/marcos/commits",
-            body=ConnectionError('Unable to reach host: https://api.bitbucket.org'),
+            body=ConnectionError("Unable to reach host: https://api.bitbucket.org"),
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
