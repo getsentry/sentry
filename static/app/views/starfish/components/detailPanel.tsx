@@ -6,8 +6,8 @@ import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import localStorage from 'sentry/utils/localStorage';
 import useKeyPress from 'sentry/utils/useKeyPress';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
 
@@ -24,22 +24,11 @@ type DetailState = {
 
 const SLIDEOUT_STORAGE_KEY = 'starfish-panel-slideout-direction';
 
-function getSlideOutDirection(): 'Right' | 'Bottom' {
-  const localValue = localStorage.getItem(SLIDEOUT_STORAGE_KEY) || 'Right';
-  if (localValue !== 'Bottom' && localValue !== 'Right') {
-    return 'Right';
-  }
-  return localValue;
-}
-
-function setSlideOutDirection(direction: 'Right' | 'Bottom') {
-  localStorage.setItem(SLIDEOUT_STORAGE_KEY, direction);
-}
-
 export default function Detail({children, detailKey, onClose, onOpen}: DetailProps) {
   const [state, setState] = useState<DetailState>({collapsed: true});
-  const [slideDirection, setSlideDirection] = useState<'Right' | 'Bottom'>(
-    getSlideOutDirection()
+  const [slidePosition, setSlidePosition] = useLocalStorageState<'right' | 'bottom'>(
+    SLIDEOUT_STORAGE_KEY,
+    'right'
   );
   const escapeKeyPressed = useKeyPress('Escape');
 
@@ -51,10 +40,6 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
       setState({collapsed: true});
     }
   }, [detailKey]);
-
-  useEffect(() => {
-    setSlideOutDirection(slideDirection);
-  }, [slideDirection]);
 
   const panelRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(panelRef, () => {
@@ -76,7 +61,7 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
 
   return (
     <SlideOverPanel
-      slideDirection={slideDirection}
+      slidePosition={slidePosition}
       collapsed={state.collapsed}
       ref={panelRef}
       onOpen={onOpen}
@@ -87,10 +72,10 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
           size="zero"
           borderless
           aria-label={t('Dock to the bottom')}
-          disabled={slideDirection === 'Bottom'}
+          disabled={slidePosition === 'bottom'}
           icon={<IconPanel size="sm" direction="down" />}
           onClick={() => {
-            setSlideDirection('Bottom');
+            setSlidePosition('bottom');
           }}
         />
         <PanelButton
@@ -98,10 +83,10 @@ export default function Detail({children, detailKey, onClose, onOpen}: DetailPro
           size="zero"
           borderless
           aria-label={t('Dock to the right')}
-          disabled={slideDirection === 'Right'}
+          disabled={slidePosition === 'right'}
           icon={<IconPanel size="sm" direction="right" />}
           onClick={() => {
-            setSlideDirection('Right');
+            setSlidePosition('right');
           }}
         />
         <CloseButton
