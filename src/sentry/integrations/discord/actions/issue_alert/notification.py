@@ -1,5 +1,7 @@
 from typing import Any, Generator, Optional, Sequence
 
+from rest_framework import status
+
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
@@ -49,16 +51,17 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             try:
                 client.send_message(channel_id, message, notification_uuid=notification_uuid)
             except ApiError as e:
-                self.logger.error(
-                    "rule.fail.discord_post",
-                    extra={
-                        "error": str(e),
-                        "project_id": event.project_id,
-                        "event_id": event.event_id,
-                        "guild_id": integration.external_id,
-                        "channel_id": channel_id,
-                    },
-                )
+                if e.code != status.HTTP_403_FORBIDDEN:
+                    self.logger.error(
+                        "rule.fail.discord_post",
+                        extra={
+                            "error": str(e),
+                            "project_id": event.project_id,
+                            "event_id": event.event_id,
+                            "guild_id": integration.external_id,
+                            "channel_id": channel_id,
+                        },
+                    )
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel_id, rule, notification_uuid)
 

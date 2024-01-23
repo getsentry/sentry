@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Mapping, Optional, Union
+
+from requests import Response
+from sentry_sdk.tracing import Span
 
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.shared_integrations.response.mapping import MappingApiResponse
+from sentry.utils import metrics
 
 from .utils import logger
 
+DISCORD_DATADOG_METRIC = "integrations.discord.http_response"
 DISCORD_BASE_URL = "https://discord.com/api/v10"
 
 # https://discord.com/developers/docs/resources/guild#get-guild
@@ -108,6 +113,29 @@ class DiscordClient(ApiClient):
         return self.get(
             CHANNEL_URL.format(channel_id=channel_id), headers=self.prepare_auth_header()
         )
+
+    def track_response_data(
+        self,
+        code: Union[str, int],
+        span: Span | None = None,
+        error: Optional[str] = None,
+        resp: Optional[Response] = None,
+        extra: Optional[Mapping[str, str]] = None,
+    ) -> None:
+        metrics.incr(
+            DISCORD_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"status": code},
+        )
+
+        extra = {
+            **(extra or {}),
+            self.integration_type: self.name,
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
+        }
+        extra.update(getattr(self, "logging_context", None) or {})
+        self.logger.info("%s.http_response", self.integration_type, extra=extra)
 
     def send_message(
         self, channel_id: str, message: DiscordMessageBuilder, notification_uuid: str | None = None
