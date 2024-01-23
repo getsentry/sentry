@@ -205,7 +205,7 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.FAILED_TO_FETCH]: {
     resources: {
       description: tct(
-        '[errorTypes] occur is an error with Fetch API. To learn more about how to fix these errors, check out these resources:',
+        '[errorTypes] occur when there is an error with Fetch API. To learn more about how to fix these errors, check out these resources:',
         {errorTypes: <b>Failed to Fetch errors</b>}
       ),
       links: [
