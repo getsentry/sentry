@@ -2,19 +2,24 @@ from typing import Any, List, Optional, Tuple
 
 from snuba_sdk import Condition, Granularity
 
+from sentry.api import event_search
 from sentry.search.events import constants
+from sentry.search.events import filter as event_filter
 from sentry.search.events.builder import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
-from sentry.search.events.types import QueryBuilderConfig, SelectType
+from sentry.search.events.fields import is_function
+from sentry.search.events.types import QueryBuilderConfig, SelectType, WhereType
 
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
+    use_count_per_segment = True
+    use_count_per_op = True
 
     def __init__(
         self,
@@ -40,11 +45,39 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
 
         return None
 
+    def resolve_where(self, parsed_terms: event_filter.ParsedTerms) -> List[WhereType]:
+        """
+        use count_by_segment if filter ONLY includes segment OR release, or nothing at all.
+        """
+        for term in parsed_terms:
+            if isinstance(term, event_search.SearchFilter):
+                key = self.format_search_filter(term)
+                if key not in ["transaction", "release"]:
+                    self.use_count_per_segment = False
+                if key not in ["span.op"]:
+                    self.use_count_per_op = False
+
+        return super().resolve_where(parsed_terms)
+
     def resolve_select(
         self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
     ) -> List[SelectType]:
-        if selected_columns and "transaction" in selected_columns:
-            self.has_transaction = True
+        if selected_columns:
+            if "transaction" in selected_columns:
+                self.has_transaction = True
+
+            for column in selected_columns:
+                if is_function(column):
+                    continue
+
+                """
+                use count_by_op if group by is ONLY OP and requesting count().
+                """
+                if column not in ["transaction", "release"]:
+                    self.use_count_per_segment = False
+                if column not in ["span.op"]:
+                    self.use_count_per_op = False
+
         return super().resolve_select(selected_columns, equations)
 
     def resolve_metric_index(self, value: str) -> Optional[int]:

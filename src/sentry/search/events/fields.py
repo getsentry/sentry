@@ -2212,7 +2212,7 @@ class MetricsFunction(SnQLFunction):
                     self.snql_metric_layer is not None,
                 ]
             )
-            == 1
+            >= 1
         )
 
         # assert that no duplicate argument names are used

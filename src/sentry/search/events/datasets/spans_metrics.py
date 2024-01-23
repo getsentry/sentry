@@ -102,20 +102,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count",
-                    snql_distribution=lambda args, alias: Function(
-                        "countIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "equals",
-                                [
-                                    Column("metric_id"),
-                                    self.resolve_metric("span.self_time"),
-                                ],
-                            ),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_distribution_count,
+                    snql_counter=self._resolve_counter_count,
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -526,6 +514,57 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     [
                         metric_condition,
                         condition,
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_counter_count(
+        self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
+    ) -> SelectType:
+        if self.builder.use_count_per_op:
+            return Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function(
+                        "equals", [Column("metric_id"), self.resolve_metric("span.count_per_op")]
+                    ),
+                ],
+                alias,
+            )
+
+        if self.builder.use_count_per_op:
+            return Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function(
+                        "equals",
+                        [Column("metric_id"), self.resolve_metric("span.count_per_segment")],
+                    ),
+                ],
+                alias,
+            )
+
+        return None
+
+    def _resolve_distribution_count(
+        self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
+    ) -> SelectType:
+        if self.builder.use_count_per_op or self.builder.use_count_per_segment:
+            return None
+
+        return Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        self.resolve_metric("span.self_time"),
                     ],
                 ),
             ],

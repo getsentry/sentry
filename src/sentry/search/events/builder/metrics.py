@@ -538,37 +538,41 @@ class MetricsQueryBuilder(QueryBuilder):
     ) -> Optional[SelectType]:
         if snql_function.snql_distribution is not None:
             resolved_function = snql_function.snql_distribution(arguments, alias)
-            if not resolve_only:
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.distributions.append(resolved_function)
-                # Still add to aggregates so groupby is correct
-                self.aggregates.append(resolved_function)
-            return resolved_function
+            if resolved_function is not None:
+                if not resolve_only:
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.distributions.append(resolved_function)
+                    # Still add to aggregates so groupby is correct
+                    self.aggregates.append(resolved_function)
+                return resolved_function
         if snql_function.snql_set is not None:
             resolved_function = snql_function.snql_set(arguments, alias)
-            if not resolve_only:
-                self.sets.append(resolved_function)
-                # Still add to aggregates so groupby is correct
-                self.aggregates.append(resolved_function)
-            return resolved_function
+            if resolved_function is not None:
+                if not resolve_only:
+                    self.sets.append(resolved_function)
+                    # Still add to aggregates so groupby is correct
+                    self.aggregates.append(resolved_function)
+                return resolved_function
         if snql_function.snql_counter is not None:
             resolved_function = snql_function.snql_counter(arguments, alias)
-            if not resolve_only:
-                self.counters.append(resolved_function)
-                # Still add to aggregates so groupby is correct
-                self.aggregates.append(resolved_function)
-            return resolved_function
+            if resolved_function is not None:
+                if not resolve_only:
+                    self.counters.append(resolved_function)
+                    # Still add to aggregates so groupby is correct
+                    self.aggregates.append(resolved_function)
+                return resolved_function
         if snql_function.snql_metric_layer is not None:
             resolved_function = snql_function.snql_metric_layer(arguments, alias)
-            if not resolve_only:
-                self.aggregates.append(resolved_function)
-                if snql_function.is_percentile:
-                    self.percentiles.append(resolved_function)
-                else:
-                    self.metrics_layer_functions.append(resolved_function)
-            return resolved_function
+            if resolved_function is not None:
+                if not resolve_only:
+                    self.aggregates.append(resolved_function)
+                    if snql_function.is_percentile:
+                        self.percentiles.append(resolved_function)
+                    else:
+                        self.metrics_layer_functions.append(resolved_function)
+                return resolved_function
         return None
 
     def resolve_metric_index(self, value: str) -> Optional[int]:

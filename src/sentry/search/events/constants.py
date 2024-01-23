@@ -295,8 +295,12 @@ SPAN_METRICS_MAP = {
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
+    "span.count_per_op": "c:spans/count_per_op@none",
+    "span.count_per_segment": "c:spans/count_per_segment@none",
 }
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+COUNT_PER_OP = "c:spans/count_per_op@none"
+COUNT_PER_SEGMENT = "c:spans/count_per_segment@none"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 
@@ -317,6 +321,11 @@ SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
+}
+SPAN_METRIC_COUNT_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@none") and value.startswith("c:")
 }
 SPAN_METRIC_BYTES_COLUMNS = {
     key
