@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {hasStacktraceLinkInFrameFeature} from 'sentry/components/events/interfaces/frame/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
@@ -44,20 +45,26 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
         const {slug} = component.sentryApp;
         const onClickRecordInteraction = handleRecordInteraction(slug);
         return (
-          <OpenInLink
+          <Tooltip
             key={component.uuid}
-            data-test-id={`stacktrace-link-${slug}`}
-            href={url}
-            onClick={onClickRecordInteraction}
-            onContextMenu={onClickRecordInteraction}
-            openInNewTab
-            hasInFrameFeature={hasInFrameFeature}
+            title={component.sentryApp.name}
+            disabled={!hasInFrameFeature}
+            skipWrapper
           >
-            <SentryAppComponentIcon sentryAppComponent={component} />
-            <OpenInName hasInFrameFeature={hasInFrameFeature}>
-              {component.sentryApp.name}
-            </OpenInName>
-          </OpenInLink>
+            <OpenInLink
+              aria-label={component.sentryApp.name}
+              href={url}
+              onClick={onClickRecordInteraction}
+              onContextMenu={onClickRecordInteraction}
+              openInNewTab
+            >
+              <SentryAppComponentIcon
+                sentryAppComponent={component}
+                size={hasInFrameFeature ? 16 : 20}
+              />
+              {!hasInFrameFeature && <span>{component.sentryApp.name}</span>}
+            </OpenInLink>
+          </Tooltip>
         );
       })}
     </OpenInContainer>
@@ -86,9 +93,8 @@ const OpenInContainer = styled('div')<{
   ${p =>
     p.hasInFrameFeature
       ? css`
-          color: ${p.theme.linkColor};
           animation: ${fadeIn} 0.2s ease-in-out forwards;
-          padding: ${space(0)};
+          padding: 0;
         `
       : css`
           color: ${p.theme.subText};
@@ -99,22 +105,9 @@ const OpenInContainer = styled('div')<{
         `}
 `;
 
-const OpenInLink = styled(ExternalLink)<{hasInFrameFeature: boolean}>`
+const OpenInLink = styled(ExternalLink)`
   display: flex;
   gap: ${space(0.75)};
   align-items: center;
-  ${p => (p.hasInFrameFeature ? `` : `color: ${p.theme.gray300};`)}
-`;
-
-export const OpenInName = styled('span')<{hasInFrameFeature: boolean}>`
-  ${p =>
-    p.hasInFrameFeature
-      ? css`
-          &:hover {
-            text-decoration: underline;
-            text-decoration-color: ${p.theme.linkUnderline};
-            text-underline-offset: ${space(0.5)};
-          }
-        `
-      : ``}
+  color: ${p => p.theme.gray300};
 `;

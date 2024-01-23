@@ -134,6 +134,9 @@ function shouldShowCodecovFeatures(
   );
 }
 
+/**
+ * TODO(scttcper): Should be removed w/ GA issue-details-stacktrace-link-in-frame
+ */
 function shouldShowCodecovPrompt(
   organization: Organization,
   match: StacktraceLinkResult

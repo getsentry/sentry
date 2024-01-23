@@ -25,13 +25,14 @@ class PagerDutyActionHandlerTest(FireTest):
                 "service_name": "hellboi",
             }
         ]
-        self.integration = self.create_provider_integration(
+        self.integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
             metadata={"service": service},
         )
-        org_integration = self.integration.add_organization(self.organization, self.user)
 
         self.service = add_service(
             org_integration,

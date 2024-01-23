@@ -110,24 +110,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     integrationdocs.DOC_FOLDER = os.environ["INTEGRATION_DOC_FOLDER"]
 
-    if not settings.configured:
-        # only configure the db if its not already done
-        test_db = os.environ.get("DB", "postgres")
-        if test_db == "postgres":
-            settings.DATABASES["default"].update(
-                {
-                    "ENGINE": "sentry.db.postgres",
-                    "USER": "postgres",
-                    "NAME": "sentry",
-                    "HOST": "127.0.0.1",
-                }
-            )
-            # postgres requires running full migration all the time
-            # since it has to install stored functions which come from
-            # an actual migration.
-        else:
-            raise RuntimeError("oops, wrong database: %r" % test_db)
-
     configure_split_db()
 
     # Ensure we can test secure ssl settings

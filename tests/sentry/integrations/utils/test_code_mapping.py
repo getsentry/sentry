@@ -333,10 +333,9 @@ class TestDerivedCodeMappings(TestCase):
 class TestConvertStacktraceFramePathToSourcePath(TestCase):
     def setUp(self):
         super()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(provider="example", name="Example")
-            self.integration.add_organization(self.organization, self.user)
-            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        self.integration, self.oi = self.create_provider_integration_for(
+            self.organization, self.user, provider="example", name="Example"
+        )
 
         self.repo = self.create_repo(
             project=self.project,
