@@ -145,16 +145,14 @@ class ExternalIssueSerializerTestCase(TestCase, APITestCase):
         )
 
         req = self.make_request()
-        result = serialize(
-            [group_1, group_2],
+        # test serializer on group 1
+        group_1_issues = serialize(
+            [external_issue_1a, external_issue_1b],
             request=req,
             serializer=ExternalIssueSerializer(),
         )
 
-        assert len(result) == 2
-
         # group 1 should have 2 issues
-        group_1_issues = result[0]["externalIssues"]
         assert len(group_1_issues) == 2
         assert group_1_issues[0].get("key") == external_issue_1a.key
         assert group_1_issues[1].get("key") == external_issue_1b.key
@@ -167,8 +165,14 @@ class ExternalIssueSerializerTestCase(TestCase, APITestCase):
         assert group_1_issues[0].get("integrationName") == integration_github.name
         assert group_1_issues[1].get("integrationName") == integration_jira.name
 
+        # test serializer on group 2
+        group_2_issues = serialize(
+            [external_issue_2a, external_issue_2b, external_issue_2c],
+            request=req,
+            serializer=ExternalIssueSerializer(),
+        )
+
         # group 2 should have 3 issues
-        group_2_issues = result[1]["externalIssues"]
         assert len(group_2_issues) == 3
         assert group_2_issues[0].get("key") == external_issue_2a.key
         assert group_2_issues[1].get("key") == external_issue_2b.key
