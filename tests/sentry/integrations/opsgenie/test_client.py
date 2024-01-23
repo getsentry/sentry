@@ -18,10 +18,14 @@ METADATA = {
 
 class OpsgenieClientTest(APITestCase):
     def create_integration(self):
-        integration = self.create_provider_integration(
-            provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="opsgenie",
+            name="test-app",
+            external_id=EXTERNAL_ID,
+            metadata=METADATA,
         )
-        org_integration = integration.add_organization(self.organization, self.user)
         org_integration.config = {
             "team_table": [
                 {"id": "team-123", "integration_key": "1234-ABCD", "team": "default team"},

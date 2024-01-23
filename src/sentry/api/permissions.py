@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Sequence
 
-from rest_framework import permissions
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry import features
@@ -14,6 +14,7 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.auth import access
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.services.hybrid_cloud import extract_id_from
@@ -28,22 +29,50 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class RelayPermission(permissions.BasePermission):
+class RelayPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return getattr(request, "relay", None) is not None
 
 
-class SystemPermission(permissions.BasePermission):
+class SystemPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return is_system_auth(request.auth)
 
 
-class NoPermission(permissions.BasePermission):
+class NoPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return False
 
 
-class ScopedPermission(permissions.BasePermission):
+class SuperuserPermission(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return is_active_superuser(request)
+
+
+class StaffPermission(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return is_active_staff(request)
+
+
+# XXX(schew2381): This is a temporary permission that does NOT perform an OR
+# between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
+# if the feature flag is enabled, and otherwise uses SuperuserPermission. We
+# need this to handle the transition for endpoints that will only be accessible to
+# staff but not superuser, that currently use SuperuserPermission. Once the
+# feature is rolled out, we can delete this permission and use StaffPermission
+class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        enforce_staff_permission = features.has("auth:enterprise-staff-cookie", actor=request.user)
+
+        active_superuser = not enforce_staff_permission and SuperuserPermission().has_permission(
+            request, view
+        )
+        active_staff = enforce_staff_permission and StaffPermission().has_permission(request, view)
+
+        return active_superuser or active_staff
+
+
+class ScopedPermission(BasePermission):
     """
     Permissions work depending on the type of authentication:
 
@@ -73,15 +102,6 @@ class ScopedPermission(permissions.BasePermission):
         return any(s in allowed_scopes for s in current_scopes)
 
     def has_object_permission(self, request: Request, view: object, obj: Any) -> bool:
-        return False
-
-
-class SuperuserPermission(permissions.BasePermission):
-    def has_permission(self, request: Request, view: object) -> bool:
-        if is_active_superuser(request):
-            return True
-        if request.user.is_authenticated and request.user.is_superuser:
-            raise SuperuserRequired
         return False
 
 
@@ -163,7 +183,6 @@ class SentryPermission(ScopedPermission):
         elif request.user.is_authenticated:
             # session auth needs to confirm various permissions
             if self.needs_sso(request, org_context.organization):
-
                 logger.info(
                     "access.must-sso",
                     extra=extra,
