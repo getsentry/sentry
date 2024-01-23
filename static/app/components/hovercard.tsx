@@ -167,7 +167,7 @@ const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadiusTop};
+  border-radius: 8px 8px 0 0;
   font-weight: 600;
   word-wrap: break-word;
   padding: ${space(1.5)};

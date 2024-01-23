@@ -51,12 +51,12 @@ class GetRelocationsTest(APITestCase):
         # Add 1 relocation of each status.
         common = {
             "creator_id": self.superuser.id,
-            "owner_id": self.owner.id,
             "latest_task_attempts": 1,
         }
         Relocation.objects.create(
             uuid=UUID("ccef828a-03d8-4dd0-918a-487ffecf8717"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=1),
+            owner_id=self.owner.id,
             status=Relocation.Status.IN_PROGRESS.value,
             step=Relocation.Step.IMPORTING.value,
             scheduled_pause_at_step=Relocation.Step.POSTPROCESSING.value,
@@ -69,6 +69,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("af3d45ee-ce76-4de0-90c1-fc739da29523"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=2),
+            owner_id=self.owner.id,
             status=Relocation.Status.PAUSE.value,
             step=Relocation.Step.IMPORTING.value,
             want_org_slugs=["bar"],
@@ -80,6 +81,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("1ecc8862-7a3a-4114-bbc1-b6b80eb90197"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=3),
+            owner_id=self.superuser.id,
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
             want_org_slugs=["foo"],
@@ -92,6 +94,7 @@ class GetRelocationsTest(APITestCase):
         Relocation.objects.create(
             uuid=UUID("8f478ea5-6250-4133-8539-2c0103f9d271"),
             date_added=TEST_DATE_ADDED + timedelta(seconds=4),
+            owner_id=self.superuser.id,
             status=Relocation.Status.FAILURE.value,
             failure_reason="Some failure reason",
             step=Relocation.Step.VALIDATING.value,
@@ -150,7 +153,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
 
-    def test_single_query_partial_uuid(self):
+    def test_good_single_query_partial_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=ccef828a")
 
@@ -158,7 +161,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_single_query_full_uuid(self):
+    def test_good_single_query_full_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(
             f"{self.path}?query=af3d45ee%2Dce76%2D4de0%2D90c1%2Dfc739da29523"
@@ -168,7 +171,7 @@ class GetRelocationsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
 
-    def test_single_query_org_slug(self):
+    def test_good_single_query_org_slug(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=foo")
 
@@ -177,7 +180,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_single_query_username(self):
+    def test_good_single_query_username(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=alice")
 
@@ -186,7 +189,7 @@ class GetRelocationsTest(APITestCase):
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
         assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_single_query_letter(self):
+    def test_good_single_query_letter(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=b")
 
@@ -196,10 +199,39 @@ class GetRelocationsTest(APITestCase):
         assert response.data[1]["status"] == Relocation.Status.PAUSE.name
         assert response.data[2]["status"] == Relocation.Status.IN_PROGRESS.name
 
-    def test_multiple_queries(self):
+    def test_good_multiple_queries(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=foo%20alice")
 
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+
+    def test_good_superuser_but_not_enabled(self):
+        self.login_as(user=self.superuser, superuser=False)
+        response = self.client.get(f"{self.path}")
+
+        # Only show user's own relocations.
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+        assert response.data[0]["status"] == Relocation.Status.FAILURE.name
+        assert response.data[1]["status"] == Relocation.Status.SUCCESS.name
+
+    def test_good_no_regular_user(self):
+        self.login_as(user=self.owner, superuser=False)
+        response = self.client.get(f"{self.path}")
+
+        # Only show user's own relocations.
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+        assert response.data[0]["status"] == Relocation.Status.PAUSE.name
+        assert response.data[1]["status"] == Relocation.Status.IN_PROGRESS.name
+
+    def test_good_no_regular_user_with_query(self):
+        self.login_as(user=self.owner, superuser=False)
+        response = self.client.get(f"{self.path}?query=alice")
+
+        # Only show user's own relocations.
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
@@ -218,18 +250,6 @@ class GetRelocationsTest(APITestCase):
         response = self.client.get(f"{self.path}")
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    def test_bad_regular_user(self):
-        self.login_as(user=self.owner, superuser=False)
-        response = self.client.get(f"{self.path}")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    def test_bad_no_superuser(self):
-        self.login_as(user=self.superuser, superuser=False)
-        response = self.client.get(f"{self.path}")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @region_silo_test

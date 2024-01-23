@@ -3,22 +3,21 @@ import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SwitchOrganization} from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
+import SwitchOrganization from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 describe('SwitchOrganization', function () {
   const routerContext = RouterContextFixture();
   it('can list organizations', async function () {
+    OrganizationsStore.load([
+      OrganizationFixture({name: 'Organization 1'}),
+      OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
+    ]);
+
     jest.useFakeTimers();
-    render(
-      <SwitchOrganization
-        canCreateOrganization={false}
-        organizations={[
-          OrganizationFixture({name: 'Organization 1'}),
-          OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
-        ]}
-      />,
-      {context: RouterContextFixture()}
-    );
+    render(<SwitchOrganization canCreateOrganization={false} />, {
+      context: RouterContextFixture(),
+    });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -41,25 +40,23 @@ describe('SwitchOrganization', function () {
   });
 
   it('uses organizationUrl when customer domain is enabled', async function () {
+    OrganizationsStore.load([
+      OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+      OrganizationFixture({
+        name: 'Organization 2',
+        slug: 'org2',
+        links: {
+          organizationUrl: 'http://org2.sentry.io',
+          regionUrl: 'http://eu.sentry.io',
+        },
+        features: ['customer-domains'],
+      }),
+    ]);
+
     jest.useFakeTimers();
-    render(
-      <SwitchOrganization
-        canCreateOrganization={false}
-        organizations={[
-          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
-          OrganizationFixture({
-            name: 'Organization 2',
-            slug: 'org2',
-            links: {
-              organizationUrl: 'http://org2.sentry.io',
-              regionUrl: 'http://eu.sentry.io',
-            },
-            features: ['customer-domains'],
-          }),
-        ]}
-      />,
-      {context: routerContext}
-    );
+    render(<SwitchOrganization canCreateOrganization={false} />, {
+      context: routerContext,
+    });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -80,25 +77,23 @@ describe('SwitchOrganization', function () {
   });
 
   it('does not use organizationUrl when customer domain is disabled', async function () {
+    OrganizationsStore.load([
+      OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+      OrganizationFixture({
+        name: 'Organization 2',
+        slug: 'org2',
+        links: {
+          organizationUrl: 'http://org2.sentry.io',
+          regionUrl: 'http://eu.sentry.io',
+        },
+        features: [],
+      }),
+    ]);
+
     jest.useFakeTimers();
-    render(
-      <SwitchOrganization
-        canCreateOrganization={false}
-        organizations={[
-          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
-          OrganizationFixture({
-            name: 'Organization 2',
-            slug: 'org2',
-            links: {
-              organizationUrl: 'http://org2.sentry.io',
-              regionUrl: 'http://eu.sentry.io',
-            },
-            features: [],
-          }),
-        ]}
-      />,
-      {context: routerContext}
-    );
+    render(<SwitchOrganization canCreateOrganization={false} />, {
+      context: routerContext,
+    });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -126,16 +121,15 @@ describe('SwitchOrganization', function () {
       },
       features: ['customer-domains'],
     });
-    render(
-      <SwitchOrganization
-        canCreateOrganization={false}
-        organizations={[
-          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
-          currentOrg,
-        ]}
-      />,
-      {organization: currentOrg}
-    );
+
+    OrganizationsStore.load([
+      OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+      currentOrg,
+    ]);
+
+    render(<SwitchOrganization canCreateOrganization={false} />, {
+      organization: currentOrg,
+    });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -171,24 +165,24 @@ describe('SwitchOrganization', function () {
       },
       features: [],
     });
-    render(
-      <SwitchOrganization
-        canCreateOrganization={false}
-        organizations={[
-          OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
-          OrganizationFixture({
-            name: 'Organization 3',
-            slug: 'org3',
-            links: {
-              organizationUrl: 'http://org3.sentry.io',
-              regionUrl: 'http://eu.sentry.io',
-            },
-            features: ['customer-domains'],
-          }),
-        ]}
-      />,
-      {organization: currentOrg, context: routerContext}
-    );
+
+    OrganizationsStore.load([
+      OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
+      OrganizationFixture({
+        name: 'Organization 3',
+        slug: 'org3',
+        links: {
+          organizationUrl: 'http://org3.sentry.io',
+          regionUrl: 'http://eu.sentry.io',
+        },
+        features: ['customer-domains'],
+      }),
+    ]);
+
+    render(<SwitchOrganization canCreateOrganization={false} />, {
+      organization: currentOrg,
+      context: routerContext,
+    });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -210,7 +204,7 @@ describe('SwitchOrganization', function () {
 
   it('shows "Create an Org" if they have permission', async function () {
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization organizations={[]} />, {
+    render(<SwitchOrganization canCreateOrganization />, {
       context: routerContext,
     });
 
@@ -227,7 +221,7 @@ describe('SwitchOrganization', function () {
 
   it('does not have "Create an Org" if they do not have permission', async function () {
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} organizations={[]} />);
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -248,7 +242,7 @@ describe('SwitchOrganization', function () {
     });
 
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization organizations={[]} />, {
+    render(<SwitchOrganization canCreateOrganization />, {
       organization: currentOrg,
     });
 
@@ -269,13 +263,10 @@ describe('SwitchOrganization', function () {
       status: {id: 'pending_deletion', name: 'pending_deletion'},
     });
 
+    OrganizationsStore.load([OrganizationFixture(), orgPendingDeletion]);
+
     jest.useFakeTimers();
-    render(
-      <SwitchOrganization
-        canCreateOrganization
-        organizations={[OrganizationFixture(), orgPendingDeletion]}
-      />
-    );
+    render(<SwitchOrganization canCreateOrganization />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -285,17 +276,14 @@ describe('SwitchOrganization', function () {
   });
 
   it('renders when there is no current organization', async function () {
+    OrganizationsStore.load([
+      OrganizationFixture({name: 'Organization 1'}),
+      OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
+    ]);
+
     // This can occur when disabled members of an organization will not have a current organization.
     jest.useFakeTimers();
-    render(
-      <SwitchOrganization
-        canCreateOrganization={false}
-        organizations={[
-          OrganizationFixture({name: 'Organization 1'}),
-          OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
-        ]}
-      />
-    );
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));

@@ -35,7 +35,7 @@ type PromptCheckParams = {
   /**
    * The prompt feature name
    */
-  feature: string;
+  feature: string | string[];
   organization: OrganizationSummary;
   /**
    * The numeric project ID as a string

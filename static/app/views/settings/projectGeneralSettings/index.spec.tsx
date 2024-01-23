@@ -8,7 +8,6 @@ import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
-  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -386,17 +385,18 @@ describe('projectGeneralSettings', function () {
 
       // Click "Save"
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-      await act(tick);
 
       // API endpoint should have been called
-      expect(putMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            resolveAge: 12,
-          },
-        })
-      );
+      await waitFor(() => {
+        expect(putMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {
+              resolveAge: 12,
+            },
+          })
+        );
+      });
 
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     });

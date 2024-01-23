@@ -311,6 +311,7 @@ export enum GroupActivityType {
   MARK_REVIEWED = 'mark_reviewed',
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
+  SET_PRIORITY = 'set_priority',
 }
 
 interface GroupActivityBase {
@@ -531,6 +532,14 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
+export interface GroupActivitySetPriority extends GroupActivityBase {
+  data: {
+    priority: PriorityLevel;
+    reason: string;
+  };
+  type: GroupActivityType.SET_PRIORITY;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -582,7 +591,8 @@ export type GroupActivity =
   | GroupActivityAssigned
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
-  | GroupActivitySetEscalating;
+  | GroupActivitySetEscalating
+  | GroupActivitySetPriority;
 
 export type Activity = GroupActivity;
 
@@ -675,6 +685,12 @@ export const enum GroupSubstatus {
   ONGOING = 'ongoing',
   REGRESSED = 'regressed',
   NEW = 'new',
+}
+
+export const enum PriorityLevel {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
 }
 
 // TODO(ts): incomplete
