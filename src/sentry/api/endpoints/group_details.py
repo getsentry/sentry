@@ -223,7 +223,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     ),
                 )
                 integration_issues = serialize(
-                    [external_issues],
+                    external_issues,
                     request,
                     serializer=ExternalIssueSerializer(),
                 )
