@@ -207,7 +207,12 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 
     let initialSubfilters;
     if (props.data.active === true) {
-      initialSubfilters = new Set(Object.keys(LEGACY_BROWSER_SUBFILTERS));
+      initialSubfilters = new Set(
+        Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
+          key =>
+            LEGACY_BROWSER_SUBFILTERS[key].legacy === !this.props.hasLegacyBrowserUpdate
+        )
+      );
     } else if (props.data.active === false) {
       initialSubfilters = new Set();
     } else {
@@ -225,7 +230,12 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     let {subfilters} = this.state;
 
     if (subfilter === true) {
-      subfilters = new Set(Object.keys(LEGACY_BROWSER_SUBFILTERS));
+      subfilters = new Set(
+        Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
+          key =>
+            LEGACY_BROWSER_SUBFILTERS[key].legacy === !this.props.hasLegacyBrowserUpdate
+        )
+      );
     } else if (subfilter === false) {
       subfilters = new Set();
     } else if (subfilters.has(subfilter)) {
