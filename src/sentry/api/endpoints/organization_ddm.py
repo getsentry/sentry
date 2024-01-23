@@ -12,7 +12,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
 from sentry.api.serializers.models.correlations import CorrelationsSerializer
-from sentry.api.serializers.models.metrics_blocking import BlockedMetricsSerializer
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
@@ -24,11 +23,6 @@ from sentry.sentry_metrics.querying.metadata.code_locations import (
 from sentry.sentry_metrics.querying.metadata.correlations import (
     MetricCorrelations,
     get_metric_correlations,
-)
-from sentry.sentry_metrics.visibility.metrics_blocking import (
-    BlockedMetric,
-    block_metric,
-    get_blocked_metrics,
 )
 
 
@@ -129,32 +123,3 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
             )
 
         return Response(response, status=200)
-
-
-@region_silo_endpoint
-class OrganizationDDMMetricEndpoint(OrganizationEndpoint):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
-    }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
-    def get(self, request: Request, organization) -> Response:
-        projects = self.get_projects(request, organization)
-        if len(projects) != 1:
-            raise InvalidParams("Blocked metrics can only be retrieved by a single project at once")
-
-        blocked_metrics = get_blocked_metrics(projects[0])
-        return Response(
-            serialize(blocked_metrics, request.user, BlockedMetricsSerializer), status=200
-        )
-
-    def post(self, request: Request, organization) -> Response:
-        projects = self.get_projects(request, organization)
-
-        blocked_metric = BlockedMetric(
-            metric_mri=request.GET["metric"], tags=request.GET.getlist("tag")
-        )
-        block_metric(blocked_metric, projects)
-
-        return Response(status=200)

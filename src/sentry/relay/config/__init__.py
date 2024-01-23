@@ -44,7 +44,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.visibility.metrics_blocking import get_blocked_metrics_for_relay_config
+from sentry.sentry_metrics.visibility import get_blocked_metrics_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo

@@ -89,12 +89,17 @@ class BlockedMetrics:
         return self
 
 
-def get_blocked_metrics(project: Project) -> BlockedMetrics:
-    return BlockedMetrics.load_from_project(project)
+def get_blocked_metrics(projects: Sequence[Project]) -> Mapping[int, BlockedMetrics]:
+    blocked_metrics_by_project = {}
+
+    for project in projects:
+        blocked_metrics_by_project[project.id] = BlockedMetrics.load_from_project(project)
+
+    return blocked_metrics_by_project
 
 
 def get_blocked_metrics_for_relay_config(project: Project) -> BlockedMetricsRelayConfig:
-    blocked_metrics = get_blocked_metrics(project)
+    blocked_metrics = get_blocked_metrics([project])[project.id]
     denied_names = [blocked_metric.metric_mri for blocked_metric in blocked_metrics.metrics]
 
     return BlockedMetricsRelayConfig(deniedNames=denied_names)

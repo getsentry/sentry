@@ -7,6 +7,7 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.visibility import BlockedMetric, block_metric
 from sentry.silo import SiloMode
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
@@ -130,6 +131,8 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         project_1 = self.create_project()
         project_2 = self.create_project()
 
+        block_metric(BlockedMetric("s:custom/user@none", set()), [project_1])
+
         metrics = (
             ("s:custom/user@none", "set", project_1),
             ("s:custom/user@none", "set", project_2),
@@ -156,7 +159,10 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
         assert data[0]["project_ids"] == [project_1.id]
+        assert data[0]["blockedForProjects"] == []
         assert data[1]["mri"] == "d:custom/page_load@millisecond"
         assert data[1]["project_ids"] == [project_2.id]
+        assert data[1]["blockedForProjects"] == []
         assert data[2]["mri"] == "s:custom/user@none"
         assert sorted(data[2]["project_ids"]) == sorted([project_1.id, project_2.id])
+        assert data[2]["blockedForProjects"] == [{"blockedTags": [], "projectId": project_1.id}]

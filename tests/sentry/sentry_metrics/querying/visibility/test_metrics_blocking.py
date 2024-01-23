@@ -2,13 +2,11 @@ import pytest
 
 from sentry.sentry_metrics.visibility import (
     BlockedMetric,
+    InvalidBlockedMetricError,
+    MalformedBlockedMetricsPayloadError,
     block_metric,
     get_blocked_metrics,
     get_blocked_metrics_for_relay_config,
-)
-from sentry.sentry_metrics.visibility.errors import (
-    InvalidBlockedMetricError,
-    MalformedBlockedMetricsPayloadError,
 )
 from sentry.sentry_metrics.visibility.metrics_blocking import BLOCKED_METRICS_PROJECT_OPTION_KEY
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -42,7 +40,7 @@ def test_get_blocked_metrics(default_project):
     for mri, tags in data:
         block_metric(BlockedMetric(metric_mri=mri, tags=set(tags)), [default_project])
 
-    blocked_metrics = get_blocked_metrics(default_project)
+    blocked_metrics = get_blocked_metrics([default_project])[default_project.id]
     assert len(blocked_metrics.metrics) == 2
     assert blocked_metrics.metrics[0] == BlockedMetric(data[0][0], data[0][1])
     assert blocked_metrics.metrics[1] == BlockedMetric(data[1][0], data[1][1])
@@ -61,7 +59,7 @@ def test_get_blocked_metrics_with_invalid_payload(default_project, json_payload,
     default_project.update_option(BLOCKED_METRICS_PROJECT_OPTION_KEY, json_payload)
 
     with pytest.raises(expected_error):
-        get_blocked_metrics(default_project)
+        get_blocked_metrics([default_project])
 
 
 @django_db_all

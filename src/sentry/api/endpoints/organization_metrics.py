@@ -6,7 +6,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
@@ -27,7 +26,6 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
 
@@ -75,16 +73,13 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
-        try:
-            metric = get_single_metric_info(
-                projects,
-                metric_name,
-                use_case_id=get_use_case_id(request),
-            )
-        except InvalidParams as e:
-            raise ResourceDoesNotExist(e)
-        except (InvalidField, DerivedMetricParseException) as exc:
-            raise ParseError(detail=str(exc))
+
+        # TODO: add blocked status.
+        metric = get_single_metric_info(
+            projects,
+            metric_name,
+            use_case_id=get_use_case_id(request),
+        )
 
         return Response(metric, status=200)
 
