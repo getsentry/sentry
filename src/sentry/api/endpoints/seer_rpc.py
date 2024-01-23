@@ -141,7 +141,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         return Response(data=result)
 
 
-def autofix_callback(result: dict) -> bool:
+def autofix_callback(result: dict) -> None:
     group: Group = Group.objects.get(id=result["issue_id"])
 
     metadata = group.data.get("metadata", {})
@@ -167,11 +167,9 @@ def autofix_callback(result: dict) -> bool:
             "status": "COMPLETED",
             "fix": None,
         }
+
     group.data["metadata"] = metadata
-
     group.save()
-
-    return True
 
 
 seer_method_registry = {

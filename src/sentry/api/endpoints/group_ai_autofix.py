@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
+import requests
 from django.conf import settings
 from django.http import HttpResponse
 
@@ -16,7 +17,6 @@ from sentry.models.group import Group
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.net.http import connection_from_url
 from sentry.tasks.ai_autofix import check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -24,8 +24,6 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
-
-seer_connection_pool = connection_from_url(settings.AI_AUTOFIX_URL, retries=0)
 
 TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
@@ -86,7 +84,8 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         base_commit: Commit | None = None
         for commit in commits:
             repo: Repository = Repository.objects.get(id=commit.repository_id)
-            # Hardcoded to only accept getsentry/sentry repo for now
+            # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
+            # supports more than just getsentry/sentry, we can remove this, and instead feature flag by project
             if repo.external_id == "getsentry/sentry":
                 base_commit = commit
                 break
@@ -108,20 +107,17 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
 
         try:
-            seer_connection_pool.urlopen(
-                "POST",
-                "/v0/automation/autofix",
-                body=json.dumps(
-                    {
-                        "base_commit_sha": base_commit.key,
-                        "issue": {
-                            "id": str(group.id),
-                            "title": group.title,
-                            "events": [event_stacktrace],
-                        },
-                        "additional_context": data.get("additional_context", ""),
-                    }
-                ),
+            requests.post(
+                f"{settings.AI_AUTOFIX_URL}/v0/automation/autofix",
+                json={
+                    "base_commit_sha": base_commit.key,
+                    "issue": {
+                        "id": str(group.id),
+                        "title": group.title,
+                        "events": [event_stacktrace],
+                    },
+                    "additional_context": data.get("additional_context", ""),
+                },
                 headers={"content-type": "application/json;charset=utf-8"},
             )
 
