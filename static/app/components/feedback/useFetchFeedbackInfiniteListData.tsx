@@ -35,8 +35,8 @@ function uniqueIssues(issues: FeedbackIssueList) {
 }
 
 export default function useFetchFeedbackInfiniteListData() {
-  const {getListQueryKey} = useFeedbackQueryKeys();
-  const queryKey = getListQueryKey();
+  const {listQueryKey} = useFeedbackQueryKeys();
+
   const {
     data,
     error,
@@ -48,7 +48,7 @@ export default function useFetchFeedbackInfiniteListData() {
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
   } = useInfiniteApiQuery<FeedbackIssueList>({
-    queryKey,
+    queryKey: listQueryKey,
   });
 
   const issues = useMemo(
