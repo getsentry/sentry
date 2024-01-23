@@ -1,6 +1,5 @@
 import {Theme} from '@emotion/react';
 import compact from 'lodash/compact';
-import mean from 'lodash/mean';
 import moment from 'moment';
 
 import {
@@ -327,8 +326,8 @@ export function filterSessionsInTimeWindow(
   });
 
   const groups = sessions.groups.map(group => {
-    const series = {};
-    const totals = {};
+    const series: Record<string, number[]> = {};
+    const totals: Record<string, number> = {};
     Object.keys(group.series).forEach(field => {
       totals[field] = 0;
       series[field] = group.series[field].filter((value, index) => {
@@ -340,7 +339,9 @@ export function filterSessionsInTimeWindow(
         return isBetween;
       });
       if (field.startsWith('p50')) {
-        totals[field] = mean(series[field]);
+        // Calculate the mean of the current field.
+        const base = series[field] ?? [];
+        totals[field] = base.reduce((acc, curr) => acc + curr, 0) / base.length;
       }
       if (field.startsWith('count_unique')) {
         // E.g. users
