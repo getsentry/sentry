@@ -40,7 +40,7 @@ class BlockedMetrics:
     metrics: List[BlockedMetric]
 
     @classmethod
-    def load_from_project(cls, project: Project, repair_on_read: bool = False) -> "BlockedMetrics":
+    def load_from_project(cls, project: Project, repair: bool = False) -> "BlockedMetrics":
         json_payload = project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY)
         if not json_payload:
             return BlockedMetrics(metrics=[])
@@ -48,7 +48,7 @@ class BlockedMetrics:
         try:
             blocked_metrics_payload = json.loads(json_payload)
         except ValueError:
-            if repair_on_read:
+            if repair:
                 project.delete_option(BLOCKED_METRICS_PROJECT_OPTION_KEY)
 
             raise MalformedBlockedMetricsPayloadError(
@@ -56,7 +56,7 @@ class BlockedMetrics:
             )
 
         if not isinstance(blocked_metrics_payload, list):
-            if repair_on_read:
+            if repair:
                 project.delete_option(BLOCKED_METRICS_PROJECT_OPTION_KEY)
 
             raise MalformedBlockedMetricsPayloadError(
@@ -99,7 +99,9 @@ def get_blocked_metrics(projects: Sequence[Project]) -> Mapping[int, BlockedMetr
     blocked_metrics_by_project = {}
 
     for project in projects:
-        blocked_metrics_by_project[project.id] = BlockedMetrics.load_from_project(project)
+        blocked_metrics_by_project[project.id] = BlockedMetrics.load_from_project(
+            project=project, repair=False
+        )
 
     return blocked_metrics_by_project
 
@@ -120,7 +122,7 @@ def get_blocked_metrics_for_relay_config(project: Project) -> BlockedMetricsRela
 
 def block_metric(blocked_metric: BlockedMetric, projects: Sequence[Project]):
     for project in projects:
-        # By default, we want to be extra careful, and we will repair the invalid configuration by resetting it.
-        BlockedMetrics.load_from_project(project=project, repair_on_read=True).add_blocked_metric(
+        # We want to repair the settings in case of issues only when writing data.
+        BlockedMetrics.load_from_project(project=project, repair=True).add_blocked_metric(
             blocked_metric=blocked_metric
         ).save_to_project(project=project)

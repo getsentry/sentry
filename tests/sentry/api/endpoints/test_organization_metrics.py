@@ -3,12 +3,12 @@ from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.visibility import BlockedMetric, block_metric
+from sentry.sentry_metrics.visibility import BlockedMetric, block_metric, get_blocked_metrics
 from sentry.silo import SiloMode
 from sentry.testutils.cases import (
     APITestCase,
     MetricsAPIBaseTestCase,
-    OrganizationMetricMetaIntegrationTestCase,
+    OrganizationMetricsIntegrationTestCase,
 )
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -49,18 +49,13 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
 
 @region_silo_test
-class OrganizationMetricsTest(OrganizationMetricMetaIntegrationTestCase):
+class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-index"
 
     @property
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
-
-    def setUp(self):
-        super().setUp()
-        self.proj2 = self.create_project(organization=self.organization)
-        self.transaction_proj = self.create_project(organization=self.organization)
 
     def test_metrics_meta_sessions(self):
         response = self.get_success_response(
@@ -129,3 +124,12 @@ class OrganizationMetricsTest(OrganizationMetricMetaIntegrationTestCase):
         assert data[2]["mri"] == "s:custom/user@none"
         assert sorted(data[2]["project_ids"]) == sorted([project_1.id, project_2.id])
         assert data[2]["blockedForProjects"] == [{"blockedTags": [], "projectId": project_1.id}]
+
+    def test_block_metric(self):
+        metrics = ["s:custom/user@none", "c:custom/clicks@none"]
+
+        response = self.get_success_response(
+            self.organization.slug, method="POST", project=[self.project.id], metrics=metrics
+        )
+        assert response.status_code == 200
+        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 2
