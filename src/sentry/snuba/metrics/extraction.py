@@ -294,8 +294,12 @@ _STANDARD_METRIC_FIELDS = [
     "geo.country_code",
 ]
 
-# Query fields that we do not consider for the extraction since they are not needed.
-_BLACKLISTED_METRIC_FIELDS = ["event.type", "project"]
+# Query fields that are not considered
+_IGNORED_METRIC_FIELDS = ["event.type",  # on-demand extraction is enabled only for event.type:"transaction"
+                          "project",  # on-demand extraction specs are emitted per project
+                          "timestamp.to_day",  # relative time windows are not supported
+                          "timestamp.to_hour"  # relative time windows are not supported
+                          ]
 
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
@@ -791,8 +795,8 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
-    # If it's a black listed field, we consider it as compatible with on demand.
-    if field in _BLACKLISTED_METRIC_FIELDS:
+    # If it's a black listed field, we consider it as incompatible with on demand.
+    if field in _IGNORED_METRIC_FIELDS:
         return True
 
     try:
@@ -876,7 +880,7 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
     ret_val: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
-            if token.key.name not in _BLACKLISTED_METRIC_FIELDS:
+            if token.key.name not in _IGNORED_METRIC_FIELDS:
                 ret_val.append(token)
         elif isinstance(token, ParenExpression):
             ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))
