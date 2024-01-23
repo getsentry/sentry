@@ -22,13 +22,8 @@ import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {
-  MobileCursors,
-  MobileSortKeys,
-} from 'sentry/views/starfish/views/screens/constants';
 import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 
@@ -196,29 +191,6 @@ function ScreenSummary() {
               <ErrorBoundary mini>
                 <AppStartWidgets additionalFilters={[`transaction:${transactionName}`]} />
               </ErrorBoundary>
-              <EventSamplesContainer>
-                <ErrorBoundary mini>
-                  <div>
-                    <EventSamples
-                      cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                      sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                      release={primaryRelease}
-                      transaction={transactionName}
-                      showDeviceClassSelector
-                    />
-                  </div>
-                </ErrorBoundary>
-                <ErrorBoundary mini>
-                  <div>
-                    <EventSamples
-                      cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                      sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                      release={secondaryRelease}
-                      transaction={transactionName}
-                    />
-                  </div>
-                </ErrorBoundary>
-              </EventSamplesContainer>
               <ErrorBoundary mini>
                 <SpanOperationTable
                   transaction={transactionName}
@@ -265,11 +237,4 @@ const Container = styled('div')`
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }
-`;
-
-const EventSamplesContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin-top: ${space(2)};
-  gap: ${space(2)};
 `;

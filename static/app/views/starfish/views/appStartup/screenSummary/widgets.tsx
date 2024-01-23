@@ -126,6 +126,7 @@ const WidgetLayout = styled('div')`
   grid-template-columns: 33% 33% 33%;
   grid-template-rows: 140px 140px;
   gap: ${space(1)};
+  margin-bottom: ${space(2)};
 
   ${Panel} {
     height: 100%;
