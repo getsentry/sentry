@@ -51,6 +51,7 @@ class ElevatedMode(ABC):
         pass
 
 
+# TODO(schew2381): Delete this method after the feature flag is removed
 def has_elevated_mode(request: Request) -> bool:
     """
     This is a temporary helper method that checks if the user on the request has
