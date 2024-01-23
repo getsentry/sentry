@@ -26,7 +26,7 @@ function buildUserTeamsQueryKey(orgSlug: string): ApiQueryKey {
  * const {teams, isLoading, isError} = useUserTeams();
  * ```
  */
-export function useUserTeams(): UseTeamsResult {
+export function useUserTeams(isOrgOwner?: boolean): UseTeamsResult {
   const {organization} = useLegacyStore(OrganizationStore);
   const storeState = useLegacyStore(TeamStore);
 
@@ -54,8 +54,10 @@ export function useUserTeams(): UseTeamsResult {
 
   const isSuperuser = isActiveSuperuser();
   const teams = useMemo<Team[]>(() => {
-    return isSuperuser ? storeState.teams : storeState.teams.filter(t => t.isMember);
-  }, [storeState.teams, isSuperuser]);
+    return isSuperuser || isOrgOwner
+      ? storeState.teams
+      : storeState.teams.filter(t => t.isMember);
+  }, [storeState.teams, isSuperuser, isOrgOwner]);
 
   return {
     teams,

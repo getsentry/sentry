@@ -5,9 +5,14 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 
 import {useUserTeams} from './useUserTeams';
+
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: jest.fn(),
+}));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,5 +70,36 @@ describe('useUserTeams', () => {
 
     expect(teams.length).toBe(1);
     expect(teams).toEqual(userTeams);
+  });
+
+  it('superuser loads all teams', function () {
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
+
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
+    // User teams marked loaded because hasMore is false
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
+    expect(TeamStore.getState().loadedUserTeams).toBe(true);
+
+    const {result} = reactHooks.renderHook(useUserTeams, {wrapper});
+    const {teams} = result.current;
+
+    expect(teams.length).toBe(2);
+    expect(teams).toEqual(userTeams.concat(nonUserTeams));
+  });
+
+  it('Org owner can load all teams', function () {
+    const userTeams = [TeamFixture({id: '1', isMember: true})];
+    const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
+    // User teams marked loaded because hasMore is false
+    TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
+    expect(TeamStore.getState().loadedUserTeams).toBe(true);
+
+    // Pass isOrgOwner as true
+    const {result} = reactHooks.renderHook(() => useUserTeams(true), {wrapper});
+    const {teams} = result.current;
+
+    expect(teams.length).toBe(2);
+    expect(teams).toEqual(userTeams.concat(nonUserTeams));
   });
 });
