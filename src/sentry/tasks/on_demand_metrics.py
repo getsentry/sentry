@@ -188,6 +188,7 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> int:
         organization = query.widget.dashboard.organization
         enabled_features = on_demand_metrics_feature_flags(organization)
         widget_query_count += 1
+        counter_set_widget_states += 1
 
         widget_specs = _get_widget_on_demand_specs(query, organization)
 
@@ -219,7 +220,6 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> int:
             is_low_cardinality=is_low_cardinality,
             enabled_features=enabled_features,
         )
-        counter_set_widget_states += 1
 
     metrics.incr(
         "tasks.on_demand_metrics.widget_queries.per_run.no_spec",
