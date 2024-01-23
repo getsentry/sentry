@@ -551,6 +551,13 @@ function GroupActivityItem({
       case GroupActivityType.SET_ESCALATING: {
         return getEscalatingMessage(activity.data);
       }
+      case GroupActivityType.SET_PRIORITY: {
+        const {data} = activity;
+        return tct(
+          '[actor] updated the priority value of this issue to be X priority after [reason]',
+          {author, priority: data.priority, reason: data.reason}
+        );
+      }
 
       default:
         return ''; // should never hit (?)
