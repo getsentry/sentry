@@ -553,12 +553,24 @@ function GroupActivityItem({
       }
       case GroupActivityType.SET_PRIORITY: {
         const {data} = activity;
-        return tct(
-          '[actor] updated the priority value of this issue to be X priority after [reason]',
-          {author, priority: data.priority, reason: data.reason}
-        );
+        switch (data.reason) {
+          case 'escalating':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it escalated',
+              {author, priority: data.priority}
+            );
+          case 'ongoing':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it was marked as ongoing',
+              {author, priority: data.priority}
+            );
+          default:
+            return tct(
+              '[author] updated the priority value of this issue to be [priority]',
+              {author, priority: data.priority}
+            );
+        }
       }
-
       default:
         return ''; // should never hit (?)
     }
