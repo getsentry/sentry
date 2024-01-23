@@ -784,7 +784,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     and group them together by monitor ID (ensuring order is preserved) and
     execute each group using a ThreadPoolWorker.
 
-    By batching we're able to process check-ins in paralell while guaranteeing
+    By batching we're able to process check-ins in parallel while guaranteeing
     that no check-ins are processed out of order per monitor environment.
     """
     batch = message.payload
@@ -861,13 +861,13 @@ def process_single(message: Message[KafkaPayload]):
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    paralell = False
+    parallel = False
     """
-    Does the consumer process unrelated check-ins in paralell?
+    Does the consumer process unrelated check-ins in parallel?
     """
 
-    def __init__(self, paralell=False) -> None:
-        self.paralell = paralell
+    def __init__(self, parallel=False) -> None:
+        self.parallel = parallel
 
     def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         batch_processor = RunTask(
@@ -891,7 +891,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        if self.paralell:
+        if self.parallel:
             return self.create_paralell_worker(commit)
         else:
             return self.create_synchronous_worker(commit)
