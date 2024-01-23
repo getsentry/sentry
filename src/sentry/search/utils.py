@@ -355,9 +355,7 @@ def parse_user_value(value: str, user: User | RpcUser) -> RpcUser:
     except IndexError:
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
-        rpc_users = user_service.get_many(filter=dict(user_ids=[0]))
-        assert rpc_users
-        return rpc_users[0]
+        return RpcUser(id=0)
 
 
 class LatestReleaseOrders(Enum):
