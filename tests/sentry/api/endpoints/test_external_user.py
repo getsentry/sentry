@@ -34,8 +34,7 @@ class ExternalUserTest(APITestCase):
         }
 
     def test_without_feature_flag(self):
-        with self.feature({"organizations:integrations-codeowners": False}):
-            response = self.get_error_response(self.org_slug, status_code=403, **self.data)
+        response = self.get_error_response(self.org_slug, status_code=403, **self.data)
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_missing_provider(self):
