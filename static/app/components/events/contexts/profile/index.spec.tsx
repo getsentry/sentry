@@ -1,12 +1,13 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventContext} from 'sentry/components/events/contexts/profile';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const organization = Organization({
+const organization = OrganizationFixture({
   features: ['profiling'],
 });
 
@@ -17,7 +18,7 @@ const profileContext = {
 };
 
 const event = EventFixture();
-const project = TestStubs.Project();
+const project = ProjectFixture();
 
 describe('profile event context', function () {
   beforeEach(function () {

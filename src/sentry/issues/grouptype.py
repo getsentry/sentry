@@ -168,8 +168,6 @@ class GroupType:
 
         When the feature flag is removed, we can remove the organization parameter from this method.
         """
-        if not features.has("organizations:issue-platform-crons-sd", organization):
-            return True
         return cls.enable_escalation_detection
 
     @classmethod
@@ -358,6 +356,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     enable_escalation_detection = False
+    released = True
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
@@ -447,6 +446,7 @@ class ProfileFunctionRegressionType(GroupType):
     description = "Function Regression"
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
+    released = True
 
 
 @dataclass(frozen=True)
@@ -481,9 +481,18 @@ class MonitorCheckInMissed(GroupType):
 
 @dataclass(frozen=True)
 class ReplayDeadClickType(GroupType):
+    # This is not currently used
     type_id = 5001
     slug = "replay_click_dead"
     description = "Dead Click Detected"
+    category = GroupCategory.REPLAY.value
+
+
+@dataclass(frozen=True)
+class ReplayRageClickType(GroupType):
+    type_id = 5002
+    slug = "replay_click_rage"
+    description = "Rage Click Detected"
     category = GroupCategory.REPLAY.value
 
 

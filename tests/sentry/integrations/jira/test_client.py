@@ -9,13 +9,13 @@ from responses.matchers import header_matcher, query_string_matcher
 
 from sentry.integrations.jira.client import JiraCloudClient
 from sentry.integrations.utils.atlassian_connect import get_query_hash
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 mock_jwt = "my-jwt-token"
 control_address = "http://controlserver"
@@ -34,7 +34,9 @@ def mock_authorize_request(prepared_request: PreparedRequest):
 @control_silo_test
 class JiraClientTest(TestCase):
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -44,7 +46,6 @@ class JiraClientTest(TestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         install = self.integration.get_installation(self.organization.id)
         self.jira_client = install.get_client()
 
@@ -130,10 +131,16 @@ class JiraClientTest(TestCase):
                 if is_proxy:
                     assert request.headers[PROXY_OI_HEADER] is not None
 
-        responses.add(
+        jira_response = responses.add(
             method=responses.GET,
-            # Use regex to create responses both from proxy and integration
             url=re.compile(rf"\S+{self.jira_client.SERVER_INFO_URL}$"),
+            json={"ok": True},
+            status=200,
+        )
+
+        control_proxy_response = add_control_silo_proxy_response(
+            method=responses.GET,
+            path=self.jira_client.SERVER_INFO_URL,
             json={"ok": True},
             status=200,
         )
@@ -145,6 +152,7 @@ class JiraClientTest(TestCase):
 
             assert client.SERVER_INFO_URL in request.url
             assert client.base_url in request.url
+            assert jira_response.call_count == 1
             client.assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -155,14 +163,16 @@ class JiraClientTest(TestCase):
 
             assert client.SERVER_INFO_URL in request.url
             assert client.base_url in request.url
+            assert jira_response.call_count == 2
             client.assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
+        assert control_proxy_response.call_count == 0
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = JiraCloudProxyTestClient(integration=self.integration, verify_ssl=True)
             client.get_server_info()
             request = responses.calls[0].request
 
-            assert client.SERVER_INFO_URL in request.url
+            assert control_proxy_response.call_count == 1
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)

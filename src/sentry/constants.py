@@ -273,6 +273,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.age_comparison.AgeComparisonFilter",
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
     "sentry.rules.filters.issue_severity.IssueSeverityFilter",
@@ -615,6 +616,7 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+ALL_ACCESS_PROJECT_ID = -1
 ALL_ACCESS_PROJECTS_SLUG = "$all"
 
 # Most number of events for the top-n graph

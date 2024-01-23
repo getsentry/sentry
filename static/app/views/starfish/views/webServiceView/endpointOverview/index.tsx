@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -23,7 +23,7 @@ import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -203,7 +203,6 @@ export default function EndpointOverview() {
             height={80}
             data={[percentileData, avgLine]}
             loading={loading}
-            utc={false}
             grid={{
               left: '8px',
               right: '0',
@@ -242,13 +241,12 @@ export default function EndpointOverview() {
             height={80}
             data={[throughputResults, tpsLine]}
             loading={loading}
-            utc={false}
             isLineChart
             definedAxisTicks={2}
             disableXAxis
             chartColors={[THROUGHPUT_COLOR]}
             aggregateOutputFormat="rate"
-            rateUnit={RateUnits.PER_SECOND}
+            rateUnit={RateUnit.PER_SECOND}
             grid={{
               left: '8px',
               right: '0',
@@ -256,7 +254,7 @@ export default function EndpointOverview() {
               bottom: '0',
             }}
             tooltipFormatterOptions={{
-              valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
+              valueFormatter: value => formatRate(value, RateUnit.PER_SECOND),
             }}
           />
           <SidebarSpacer />
@@ -285,7 +283,6 @@ export default function EndpointOverview() {
             height={80}
             data={[results['http_error_count()']]}
             loading={loading}
-            utc={false}
             grid={{
               left: '8px',
               right: '0',

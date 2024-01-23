@@ -67,6 +67,7 @@ export const backend: PlatformKey[] = [
   'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java',
   'java-appengine',
   'java-log4j',
@@ -296,19 +297,24 @@ export const releaseHealth: PlatformKey[] = [
   'native-crashpad',
   'native-breakpad',
   'native-qt',
+  'electron',
+  'javascript-electron',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
-const replayBackendPlatforms: readonly PlatformKey[] = [
+export const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'elixir',
   'go-echo',
   'go-fasthttp',
+  'go',
   'go-gin',
+  'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java-spring',
   'java-spring-boot',
   'node',
@@ -331,7 +337,7 @@ const replayBackendPlatforms: readonly PlatformKey[] = [
 ];
 
 // These are the frontend platforms that can set up replay.
-const replayFrontendPlatforms: readonly PlatformKey[] = [
+export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'capacitor',
   'electron',
   'javascript-angular',
@@ -372,3 +378,90 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   'javascript',
   ...replayBackendPlatforms,
 ];
+
+const customMetricBackendPlatforms: readonly PlatformKey[] = [
+  'bun',
+  'dotnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'php',
+  'php-laravel',
+  // TODO: Enable once metrics are available for Symfony
+  // 'php-symfony',
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pymongo',
+  'python-pylons',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+  'rust',
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  'node-azurefunctions',
+];
+
+const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'electron',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-backbone',
+  'javascript-capacitor',
+  'javascript-electron',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-vue',
+  'javascript',
+];
+
+// These are all the platforms that can set up custom metrics.
+export const customMetricPlatforms: Set<PlatformKey> = new Set([
+  ...customMetricFrontendPlatforms,
+  ...customMetricBackendPlatforms,
+]);
+
+/**
+ * The list of platforms for which we have created onboarding instructions.
+ * Should be a subset of the list of `customMetricPlatforms`.
+ */
+export const customMetricOnboardingPlatforms = new Set(
+  [...customMetricPlatforms].filter(
+    p =>
+      // Legacy platforms that do not have in-product docs
+      ![
+        'javascript-backbone',
+        'javascript-capacitor',
+        'javascript-electron',
+        'python-pylons',
+        'python-tryton',
+      ].includes(p)
+  )
+);

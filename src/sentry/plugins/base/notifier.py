@@ -17,7 +17,9 @@ class Notifier:
     def should_notify(self, group, event):
         project = group.project
 
-        rate_limited = ratelimits.is_limited(project=project, key=self.get_conf_key(), limit=10)
+        rate_limited = ratelimits.backend.is_limited(
+            project=project, key=self.get_conf_key(), limit=10
+        )
 
         if rate_limited:
             self.logger.info("notification.rate_limited", extra={"project_id": project.id})

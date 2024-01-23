@@ -3,8 +3,6 @@ import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -12,6 +10,7 @@ import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
@@ -210,7 +209,7 @@ export function Provider({
   replay,
   value = {},
 }: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const user = useUser();
   const organization = useOrganization();
   const events = replay?.getRRWebFrames();
   const savedReplayConfigRef = useRef<ReplayConfig>(
@@ -373,7 +372,7 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.purple200,
         },
-        plugins: organization.features.includes('session-replay-enable-canvas')
+        plugins: organization.features.includes('session-replay-enable-canvas-replayer')
           ? [CanvasReplayerPlugin(events)]
           : [],
         skipInactive: savedReplayConfigRef.current.skip ?? true,
@@ -448,11 +447,11 @@ export function Provider({
 
       trackAnalytics('replay.play-pause', {
         organization,
-        user_email: config.user.email,
+        user_email: user.email,
         play,
       });
     },
-    [getCurrentTime, config.user.email, organization]
+    [getCurrentTime, user.email, organization]
   );
 
   useEffect(() => {

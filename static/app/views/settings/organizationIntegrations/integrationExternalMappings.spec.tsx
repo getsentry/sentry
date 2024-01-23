@@ -1,3 +1,5 @@
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -73,7 +75,7 @@ describe('IntegrationExternalMappings', function () {
     const {container} = render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -95,7 +97,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -122,7 +124,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={MOCK_TEAM_MAPPINGS}
         type="team"
         onCreate={onCreateMock}
@@ -155,7 +157,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={MOCK_USER_MAPPINGS}
         type="user"
         onCreate={onCreateMock}

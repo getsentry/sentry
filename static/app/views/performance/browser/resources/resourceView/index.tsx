@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -36,9 +37,10 @@ const {
 } = BrowserStarfishFields;
 
 export const DEFAULT_RESOURCE_TYPES = [
-  'resource.script',
-  'resource.css',
-  'resource.font',
+  ResourceSpanOps.SCRIPT,
+  ResourceSpanOps.CSS,
+  ResourceSpanOps.FONT,
+  ResourceSpanOps.IMAGE,
 ];
 
 type Option = {
@@ -95,11 +97,11 @@ function ResourceTypeSelector({value}: {value?: string}) {
     ...(hasImageView
       ? [
           {
-            value: 'resource.img',
+            value: ResourceSpanOps.IMAGE,
             label: (
               <span>
                 {`${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`}
-                <FeatureBadge type="alpha"> </FeatureBadge>
+                <FeatureBadge type="new"> </FeatureBadge>
               </span>
             ),
           },

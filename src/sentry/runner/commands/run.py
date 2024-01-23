@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import os
 import signal
-import sys
 from multiprocessing import cpu_count
 from typing import Optional
 
@@ -232,13 +231,7 @@ def run_worker(**options):
             **options,
         )
         worker.start()
-        try:
-            sys.exit(worker.exitcode)
-        except AttributeError:
-            # `worker.exitcode` was added in a newer version of Celery:
-            # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forward compatible
-            pass
+        raise SystemExit(worker.exitcode)
 
 
 @run.command()
@@ -468,43 +461,6 @@ def ingest_consumer(consumer_type, **options):
     run_processor_with_signals(consumer)
 
 
-@run.command("occurrences-ingest-consumer")
-@kafka_options(
-    "occurrence-consumer",
-    include_batching_options=True,
-    allow_force_cluster=False,
-    default_max_batch_size=20,
-)
-@strict_offset_reset_option()
-@configuration
-@click.option(
-    "--processes",
-    "num_processes",
-    default=1,
-    type=int,
-)
-@click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-@click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
-def occurrences_ingest_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-occurrences", options["group_id"])
-    from django.conf import settings
-
-    from sentry.utils import metrics
-
-    consumer_type = settings.KAFKA_INGEST_OCCURRENCES
-
-    # Our batcher expects the time in seconds
-    options["max_batch_time"] = int(options["max_batch_time"] / 1000)
-
-    from sentry.issues.run import get_occurrences_ingest_consumer
-
-    with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
-        consumer = get_occurrences_ingest_consumer(consumer_type, **options)
-        run_processor_with_signals(consumer)
-
-
 @run.command("consumer")
 @log_options()
 @click.argument(
@@ -599,7 +555,7 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
     initialize_arroyo_main()
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
-    run_processor_with_signals(processor)
+    run_processor_with_signals(processor, consumer_name)
 
 
 @run.command("dev-consumer")
@@ -649,22 +605,6 @@ def dev_consumer(consumer_names):
     while True:
         for processor in processors:
             processor._run_once()
-
-
-@run.command("ingest-monitors")
-@log_options()
-@click.option("--topic", default="ingest-monitors", help="Topic to get monitor check-in data from.")
-@kafka_options("ingest-monitors")
-@strict_offset_reset_option()
-@configuration
-def monitors_consumer(**options):
-    from sentry.consumers import print_deprecation_warning
-
-    print_deprecation_warning("ingest-monitors", options["group_id"])
-    from sentry.monitors.consumers import get_monitor_check_ins_consumer
-
-    consumer = get_monitor_check_ins_consumer(**options)
-    run_processor_with_signals(consumer)
 
 
 @run.command("backpressure-monitor")

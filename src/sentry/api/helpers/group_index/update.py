@@ -71,7 +71,7 @@ def handle_discard(
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
         raise rest_framework.exceptions.ValidationError(
-            detail="Only error issues can be discarded.", code=400
+            detail="Only error issues can be discarded."
         )
     # grouped by project_id
     groups_to_delete = defaultdict(list)
@@ -202,7 +202,7 @@ def update_groups(
             },
         )
         if not serializer.is_valid():
-            raise serializers.ValidationError(serializer.errors, code=400)
+            raise serializers.ValidationError(serializer.errors)
 
     if serializer is None:
         return
@@ -554,10 +554,6 @@ def update_groups(
                 )
                 new_substatus = GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
 
-        has_escalating_issues = len(group_list) > 0 and features.has(
-            "organizations:escalating-issues", group_list[0].organization
-        )
-
         with transaction.atomic(router.db_for_write(Group)):
             # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
             #                we should centralize the logic for validating and defaulting substatus values
@@ -567,7 +563,7 @@ def update_groups(
             )
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.IGNORED:
-                if new_substatus == GroupSubStatus.UNTIL_ESCALATING and has_escalating_issues:
+                if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
                     result["statusDetails"] = handle_archived_until_escalating(
                         group_list, acting_user, projects, sender=update_groups
                     )

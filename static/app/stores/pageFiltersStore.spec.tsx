@@ -1,3 +1,5 @@
+import {waitFor} from 'sentry-test/reactTestingLibrary';
+
 import {
   pinFilter,
   updateDateTime,
@@ -39,6 +41,16 @@ describe('PageFiltersStore', function () {
     updateProjects([1]);
     await tick();
     expect(PageFiltersStore.getState().selection.projects).toEqual([1]);
+  });
+
+  it('does not update if projects has same value', async function () {
+    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    PageFiltersStore.updateProjects([1], []);
+
+    await waitFor(() => PageFiltersStore.getState().selection.projects[0] === 1);
+    PageFiltersStore.updateProjects([1], []);
+    await tick();
+    expect(triggerSpy).toHaveBeenCalledTimes(1);
   });
 
   it('updateDateTime()', async function () {
@@ -86,11 +98,44 @@ describe('PageFiltersStore', function () {
     });
   });
 
+  it('does not update if datetime has same value', async function () {
+    const now = Date.now();
+    const start = new Date(now);
+    const end = new Date(now + 1000);
+
+    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    PageFiltersStore.updateDateTime({end, start, period: null, utc: null});
+
+    await waitFor(() => PageFiltersStore.getState().selection.datetime.start === start);
+
+    PageFiltersStore.updateDateTime({
+      end: new Date(end.getTime()),
+      start: new Date(start.getTime()),
+      period: null,
+      utc: null,
+    });
+    await tick();
+
+    expect(triggerSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('updateEnvironments()', async function () {
     expect(PageFiltersStore.getState().selection.environments).toEqual([]);
     updateEnvironments(['alpha']);
     await tick();
     expect(PageFiltersStore.getState().selection.environments).toEqual(['alpha']);
+  });
+
+  it('does not update if environments has same value', async function () {
+    PageFiltersStore.updateEnvironments(['alpha']);
+    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    await waitFor(
+      () => PageFiltersStore.getState().selection.environments[0] === 'alpha'
+    );
+    expect(triggerSpy).toHaveBeenCalledTimes(1);
+    PageFiltersStore.updateEnvironments(['alpha']);
+    await tick();
+    expect(triggerSpy).toHaveBeenCalledTimes(1);
   });
 
   it('updatePersistence()', async function () {

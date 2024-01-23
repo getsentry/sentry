@@ -181,14 +181,13 @@ export interface CodecovResponse {
   lineCoverage?: LineCoverage[];
 }
 
-export type StacktraceLinkResult = {
+export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
-  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   sourceUrl?: string;
-};
+}
 
 export type StacktraceErrorMessage =
   | 'file_not_found'
@@ -356,16 +355,19 @@ export interface OrganizationIntegrationProvider extends BaseIntegrationProvider
   aspects: IntegrationAspects;
 }
 
-export interface Integration {
-  accountType: string;
-  domainName: string;
-  gracePeriodEnd: string;
-  icon: string;
+interface CommonIntegration {
+  accountType: string | null;
+  domainName: string | null;
+  gracePeriodEnd: string | null;
+  icon: string | null;
   id: string;
   name: string;
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+}
+
+export interface Integration extends CommonIntegration {
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -381,21 +383,12 @@ type ConfigData = {
   installationType?: string;
 };
 
-export type OrganizationIntegration = {
-  accountType: string | null;
+export interface OrganizationIntegration extends CommonIntegration {
   configData: ConfigData | null;
   configOrganization: Field[];
-  domainName: string | null;
   externalId: string;
-  gracePeriodEnd: string;
-  icon: string | null;
-  id: string;
-  name: string;
   organizationId: string;
-  organizationIntegrationStatus: ObjectStatus;
-  provider: OrganizationIntegrationProvider;
-  status: ObjectStatus;
-};
+}
 
 // we include the configOrganization when we need it
 export interface IntegrationWithConfig extends Integration {

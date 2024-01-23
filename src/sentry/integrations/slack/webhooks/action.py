@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -29,9 +29,10 @@ from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum
@@ -74,6 +75,12 @@ RESOLVE_SELECTOR = {
         {"label": "In the next release", "value": "resolved:inNextRelease"},
         {"label": "In the current release", "value": "resolved:inCurrentRelease"},
     ],
+}
+
+RESOLVE_OPTIONS = {
+    "Immediately": "resolved",
+    "In the next release": "resolved:inNextRelease",
+    "In the current release": "resolved:inCurrentRelease",
 }
 
 
@@ -160,14 +167,26 @@ class SlackActionEndpoint(Endpoint):
                 "action_type": action_type,
             },
         )
+        channel_id = None
+        response_url = None
+        view = None
+        if features.has("organizations:slack-block-kit", group.project.organization):
+            # the channel ID and response URL are in a different place if it's coming from a modal
+            view = slack_request.data.get("view")
+            if view:
+                private_metadata = view.get("private_metadata")
+                if private_metadata:
+                    data = json.loads(private_metadata)
+                    channel_id = data.get("channel_id")
+                    response_url = data.get("orig_response_url")
 
         if error.status_code == 403:
             text = UNLINK_IDENTITY_MESSAGE.format(
                 associate_url=build_unlinking_url(
                     slack_request.integration.id,
                     slack_request.user_id,
-                    slack_request.channel_id,
-                    slack_request.response_url,
+                    channel_id or slack_request.channel_id,
+                    response_url or slack_request.response_url,
                 ),
                 user_email=user.email,
                 org_name=group.organization.name,
@@ -253,19 +272,64 @@ class SlackActionEndpoint(Endpoint):
             user_id=user.id,
         )
 
+    def build_resolve_modal_payload(self, callback_id):
+        formatted_resolve_options = []
+        for text, value in RESOLVE_OPTIONS.items():
+            formatted_resolve_options.append(
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                    "value": value,
+                }
+            )
+
+        return {
+            "type": "modal",
+            "title": {"type": "plain_text", "text": "Resolve Issue"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "Resolve"},
+                    "accessory": {
+                        "type": "static_select",
+                        "initial_option": {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Immediately",
+                                "emoji": True,
+                            },
+                            "value": "resolved",
+                        },
+                        "options": formatted_resolve_options,
+                        "action_id": "static_select-action",
+                    },
+                }
+            ],
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "submit": {"type": "plain_text", "text": "Resolve"},
+            "private_metadata": callback_id,
+            "callback_id": callback_id,
+        }
+
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
         # but seems like there's no other solutions [1]:
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
-        callback_id = json.dumps(
-            {
-                "issue": group.id,
-                "orig_response_url": slack_request.data["response_url"],
-                "is_message": _is_message(slack_request.data),
-            }
-        )
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        callback_id = {
+            "issue": group.id,
+            "orig_response_url": slack_request.data["response_url"],
+            "is_message": _is_message(slack_request.data),
+        }
+        if use_block_kit and slack_request.data.get("channel"):
+            callback_id["channel_id"] = slack_request.data["channel"]["id"]
+
+        callback_id = json.dumps(callback_id)
 
         dialog = {
             "callback_id": callback_id,
@@ -279,10 +343,25 @@ class SlackActionEndpoint(Endpoint):
             "trigger_id": slack_request.data["trigger_id"],
         }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
-        try:
-            slack_client.post("/dialog.open", data=payload)
-        except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+
+        if use_block_kit:
+            # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
+            modal_payload = self.build_resolve_modal_payload(callback_id)
+            try:
+                payload = {
+                    "view": json.dumps(modal_payload),
+                    "trigger_id": slack_request.data["trigger_id"],
+                }
+                headers = {"content-type": "application/json; charset=utf-8"}
+                slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
+            except ApiError as e:
+                logger.exception("slack.action.response-error", extra={"error": str(e)})
+
+        else:
+            try:
+                slack_client.post("/dialog.open", data=payload)
+            except ApiError as e:
+                logger.exception("slack.action.response-error", extra={"error": str(e)})
 
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -324,6 +403,54 @@ class SlackActionEndpoint(Endpoint):
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
         original_tags_from_request = slack_request.get_tags()
+
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        if use_block_kit and slack_request.type == "view_submission":
+            # TODO: if we use modals for something other than resolve, this will need to be more specific
+
+            # Masquerade a status action
+            selection = None
+            view = slack_request.data.get("view")
+            if view:
+                state = view.get("state")
+            if state:
+                values = state.get("values")
+            if values:
+                for value in values:
+                    for val in values[value]:
+                        selection = values[value][val]["selected_option"]["value"]
+                        if selection:
+                            break
+
+            if not selection:
+                return self.respond()
+
+            action = MessageAction(name="status", value=selection)
+
+            try:
+                self.on_status(request, identity_user, group, action)
+            except client.ApiError as error:
+                return self.api_error(slack_request, group, identity_user, error, "status_dialog")
+
+            attachment = SlackIssuesMessageBuilder(
+                group,
+                identity=identity,
+                actions=[action],
+                tags=original_tags_from_request,
+                skip_fallback=True,
+            ).build()
+            body = self.construct_reply(
+                attachment, is_message=slack_request.callback_data["is_message"]
+            )
+            # use the original response_url to update the link attachment
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            try:
+                private_metadata = json.loads(slack_request.data["view"]["private_metadata"])
+                slack_client.post(private_metadata["orig_response_url"], data=body, json=True)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+            return self.respond()
+
         # Handle status dialog submission
         if (
             slack_request.type == "dialog_submission"
@@ -367,7 +494,11 @@ class SlackActionEndpoint(Endpoint):
         # Handle interaction actions
         for action in action_list:
             try:
-                if action.name == "status":
+                if action.name == "status" or (
+                    use_block_kit
+                    and action.name
+                    in ("ignored:forever", "ignored:until_escalating", "unresolved:ongoing")
+                ):
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
                     self.on_assign(request, identity_user, group, action)
@@ -384,6 +515,32 @@ class SlackActionEndpoint(Endpoint):
 
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
+
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+
+        if use_block_kit:
+            response = SlackIssuesMessageBuilder(
+                group, identity=identity, actions=action_list, tags=original_tags_from_request
+            ).build()
+            # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
+            # response so the unfurling endpoint understands the payload
+            if (
+                slack_request.data.get("container")
+                and slack_request.data["container"].get("is_app_unfurl")
+                and "text" in response
+            ):
+                del response["text"]
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+
+            if not slack_request.data.get("response_url"):
+                # XXX: when you click an option in a modal dropdown it submits the request even though "Submit" has not been clicked
+                return self.respond()
+            try:
+                slack_client.post(slack_request.data["response_url"], data=response, json=True)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+
+            return self.respond(response)
 
         attachment = SlackIssuesMessageBuilder(
             group, identity=identity, actions=action_list, tags=original_tags_from_request
@@ -422,10 +579,44 @@ class SlackActionEndpoint(Endpoint):
         return action_option
 
     @classmethod
-    def get_action_list(cls, slack_request: SlackActionRequest) -> List[MessageAction]:
+    def get_action_list(
+        cls, slack_request: SlackActionRequest, use_block_kit: bool
+    ) -> List[MessageAction]:
+        action_data = slack_request.data.get("actions")
+        if use_block_kit and action_data:
+            # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
+            # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
+            if action_data[0].get("action_id"):
+                action_list = []
+                for action_data in action_data:
+                    if action_data.get("type") in ("static_select", "external_select"):
+                        action = BlockKitMessageAction(
+                            name=action_data["action_id"],
+                            label=action_data["selected_option"]["text"]["text"],
+                            type=action_data["type"],
+                            value=action_data["selected_option"]["value"],
+                            action_id=action_data["action_id"],
+                            block_id=action_data["block_id"],
+                            selected_options=[
+                                {"value": action_data.get("selected_option", {}).get("value")}
+                            ],
+                        )
+                        # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
+                    else:
+                        action = BlockKitMessageAction(
+                            name=action_data["action_id"],
+                            label=action_data["text"]["text"],
+                            type=action_data["type"],
+                            value=action_data["value"],
+                            action_id=action_data["action_id"],
+                            block_id=action_data["block_id"],
+                        )
+                    action_list.append(action)
+
+                return action_list
         return [
             MessageAction(**action_data)
-            for action_data in slack_request.data.get("actions", [])
+            for action_data in action_data or []
             if "name" in action_data
         ]
 
@@ -446,8 +637,14 @@ class SlackActionEndpoint(Endpoint):
 
         action_option = self.get_action_option(slack_request=slack_request)
 
-        # If a user is just clicking our auto response in the messages tab we just return a 200
-        if action_option == "sentry_docs_link_clicked":
+        # If a user is just clicking a button link we return a 200
+        if action_option in (
+            "sentry_docs_link_clicked",
+            "grace_period_warning",
+            "integration_disabled_slack",
+            "trial_end_warning",
+            "link_clicked",
+        ):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:
@@ -459,7 +656,25 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
-        action_list = self.get_action_list(slack_request=slack_request)
+        _, org_integrations = integration_service.get_organization_contexts(
+            integration_id=slack_request.integration.id
+        )
+        use_block_kit = False
+        if len(org_integrations):
+            org_context = organization_service.get_organization_by_id(
+                id=org_integrations[0].organization_id
+            )
+            if org_context:
+                use_block_kit = any(
+                    [
+                        True
+                        if features.has("organizations:slack-block-kit", org_context.organization)
+                        else False
+                        for oi in org_integrations
+                    ]
+                )
+
+        action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:

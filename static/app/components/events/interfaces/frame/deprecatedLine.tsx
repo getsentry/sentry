@@ -5,8 +5,10 @@ import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
+import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
   FrameSourceMapDebuggerData,
   SourceMapsDebuggerModal,
@@ -14,12 +16,12 @@ import {
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
-import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {
+  Config,
   Frame,
   Organization,
   PlatformKey,
@@ -28,6 +30,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -36,6 +39,7 @@ import {combineStatus} from '../debugMeta/utils';
 
 import Context from './context';
 import DefaultTitle from './defaultTitle';
+import {OpenInContextLine} from './openInContextLine';
 import {PackageStatusIcon} from './packageStatus';
 import {FunctionNameToggleIcon} from './symbol';
 import {AddressToggleIcon} from './togglableAddress';
@@ -45,6 +49,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasStacktraceLinkInFrameFeature,
   isExpandable,
 } from './utils';
 
@@ -57,6 +62,7 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
 ];
 
 export interface DeprecatedLineProps {
+  config: Config;
   data: Frame;
   event: Event;
   registers: Record<string, string>;
@@ -101,6 +107,7 @@ interface Props extends DeprecatedLineProps {
 }
 
 type State = {
+  isHovering: boolean;
   isExpanded?: boolean;
 };
 
@@ -128,6 +135,15 @@ export class DeprecatedLine extends Component<Props, State> {
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
   state: State = {
     isExpanded: this.props.isExpanded,
+    isHovering: false,
+  };
+
+  handleMouseEnter = () => {
+    this.setState({isHovering: true});
+  };
+
+  handleMouseLeave = () => {
+    this.setState({isHovering: false});
   };
 
   toggleContext = evt => {
@@ -208,7 +224,6 @@ export class DeprecatedLine extends Component<Props, State> {
       return null;
     }
 
-    const {isHoverPreviewed} = this.props;
     const {isExpanded} = this.state;
 
     return (
@@ -216,8 +231,7 @@ export class DeprecatedLine extends Component<Props, State> {
         className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
         size="zero"
-        title={t('Toggle Context')}
-        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        aria-label={t('Toggle Context')}
         onClick={this.toggleContext}
       >
         <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
@@ -298,7 +312,9 @@ export class DeprecatedLine extends Component<Props, State> {
       lockAddress,
       isSubFrame,
       hiddenFrameCount,
+      event,
     } = this.props;
+    const {isHovering, isExpanded} = this.state;
     const organization = this.props.organization;
     const anrCulprit =
       isANR &&
@@ -330,6 +346,21 @@ export class DeprecatedLine extends Component<Props, State> {
       sdk_version: this.props.event.sdk?.version,
     };
 
+    const activeLineNumber = data.lineNo;
+    const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
+    const hasInFrameFeature = hasStacktraceLinkInFrameFeature(
+      organization,
+      this.props.config?.user
+    );
+    // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
+    const hasStacktraceLink =
+      (data.inApp || event.platform === 'csharp') &&
+      !!data.filename &&
+      (isHovering || isExpanded);
+    const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
+    const showSentryAppStacktraceLinkInFrame =
+      showStacktraceLinkInFrame && this.props.components.length > 0;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
@@ -337,6 +368,8 @@ export class DeprecatedLine extends Component<Props, State> {
           data-test-id="title"
           isSubFrame={!!isSubFrame}
           hasToggle={!!hiddenFrameCount}
+          onMouseEnter={() => this.handleMouseEnter()}
+          onMouseLeave={() => this.handleMouseLeave()}
         >
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
@@ -358,6 +391,24 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
+            {showStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={data}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={this.props.event}
+                />
+              </ErrorBoundary>
+            )}
+            {showSentryAppStacktraceLinkInFrame && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={data.lineNo}
+                  filename={data.filename || ''}
+                  components={this.props.components}
+                />
+              </ErrorBoundary>
+            )}
             {this.renderShowHideToggle()}
             {shouldShowSourceMapDebuggerButton ? (
               <Fragment>
@@ -446,8 +497,10 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 }
 
-export default withOrganization(
-  withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
+export default withConfig(
+  withOrganization(
+    withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
+  )
 );
 
 const RepeatedFrames = styled('div')`

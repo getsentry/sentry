@@ -1,6 +1,7 @@
-import {Members} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,24 +11,31 @@ import App from 'sentry/views/app';
 
 describe('Docs Search Modal', function () {
   beforeEach(function () {
+    const organization = OrganizationFixture();
+
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [organization],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: organization,
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [ProjectFixture({slug: 'foo-project'})],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [Team({slug: 'foo-team'})],
+      body: [TeamFixture({slug: 'foo-team'})],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: Members(),
+      body: MembersFixture(),
     });
 
     MockApiClient.addMockResponse({
@@ -38,13 +46,6 @@ describe('Docs Search Modal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
     });
 
     MockApiClient.addMockResponse({

@@ -1,3 +1,99 @@
+24.1.0
+------
+
+### Various fixes & improvements
+
+- feat(ddm-onboarding): Add dotnet instructions (#63194) by @ArthurKnaus
+- fix(hybridcloud) Add org slug route for prompts-activity (#63122) by @markstory
+- Fix typo in symx metrics (#63201) by @Swatinem
+- chore(app-start): Add screen total referrer (#63192) by @narsaynorath
+- ref(metrics_extraction): Metric spec versioning preparation (#63114) by @armenzg
+- feat(ds): Only show Get Samples if org is dynamically sampled (#63193) by @matejminar
+- feat(ddm-onboarding): Add js server instructions (#63189) by @ArthurKnaus
+- chore(ddm): remove addWidgets functionality (#63188) by @obostjancic
+- feat(ddm): new query default (#63187) by @obostjancic
+- feat(ddm-onboarding): Add electron instructions (#63186) by @ArthurKnaus
+- ref(ddm): Disable DDM via env var (#63178) by @jan-auer
+- profiling(ref): specify int type for profiling.flamegraph.profile-set.size option (#63175) by @viglia
+- feat(ddm): Move settings out of metrics selector (#63104) by @matejminar
+- fix(flutter-web): hide unactionable missing source context errors (#62998) by @buenaflor
+- ref(profiling): add option to handle the size of the profiles set to compute the flamegraph (#63112) by @viglia
+- fix(self-hosted): Superuser can set options in self-hosted (#63068) by @hubertdeng123
+- feat(partnerships): adding org slug to agreement component (#63156) by @sentaur-athena
+- feat: apitoken last characters option (#62972) by @mdtro
+- fix: remove lodash/find usages (#63150) by @anonrig
+- fix(performance): simplify `extractSpanURLString` method (#63153) by @anonrig
+- ref(escalating issues): Remove backend feature flag references (#63036) by @ceorourke
+- fix: remove lodash/flatmap usages (#63149) by @anonrig
+- fix(events): remove lodash/assign usage (#63148) by @anonrig
+- fix(webVitals): remove lodash/toUpper usage (#63146) by @anonrig
+
+_Plus 677 more_
+
+23.12.1
+-------
+
+### Various fixes & improvements
+
+- migrations(crons): Add is_muted to MonitorEnvironment (#62115) by @rjo100
+- chore(logs): Remove logging for entire response object (#62123) by @leeandher
+- ref: factor out our remaining pkg_resources usages (#62084) by @asottile-sentry
+- ref: upgrade jsonschema (#62087) by @asottile-sentry
+- Revert "ref: upgrade to python 3.11 (#59730)" (f3ad67ad) by @getsentry-bot
+- fix(integrations) Make social auth user update silo safe (#62092) by @markstory
+- fix(hybridcloud) Return early when we can't find organizations (#62126) by @markstory
+- profiling: test idle callback finish strategy (#62171) by @JonasBa
+- Revert "test(backup): Remove @targets decorator and improve assert message (#61719)" (2f81e776) by @getsentry-bot
+- ref(tests): Remove TestStubs from contextPickerModal, customResolutionModal, debugMeta (#62132) by @billyvg
+- chore: remove lodash usages (#61593) by @anonrig
+- ref: upgrade to python 3.11 (#59730) by @asottile-sentry
+- Revert "feat(replays): Remove scalar query optimization (#61815)" (08821e13) by @getsentry-bot
+- feat(ddm): Handle dashboard naming collision (#62163) by @ArthurKnaus
+- feat(ddm): Explicitly pass codeLocations to the ddm/meta endopint (#62155) by @iambriccardo
+- fix(ddm): Metrics meta stale time (#62162) by @ArthurKnaus
+- feat(ddm): Update PHP onboarding docs link (#62159) by @ArthurKnaus
+- fix(ddm): Grouped chart crashing without data (#62158) by @ArthurKnaus
+- feat(ddm): Add PHP onboarding (#62156) by @ArthurKnaus
+- fix(onboarding-docs): Prism console warning language text (#62154) by @ArthurKnaus
+- feat(setting): Add audit log to add team (#62129) by @ykamo001
+- fix(open-pr-comments): template nits (#62130) by @cathteng
+- fix(suspect-commits): Fix code mapping for files without a slash (#61896) by @malwilley
+- feat(replays): Add click.react_component_name as searchable field (#62027) by @cmanallen
+
+_Plus 100 more_
+
+23.12.0
+-------
+
+### Various fixes & improvements
+
+- fix(craft): Set craft artifact provider to none (#62001) by @hubertdeng123
+- fix(starfish): Obey `utc` URL parameter (#61963) by @gggritso
+- ref(stats-detectors): Move classes for better imports (#61959) by @Zylphrex
+- feat(devserver) Bake in options to streamline devserver + ngrok (#61953) by @markstory
+- feat(replays): Remove scalar query optimization (#61815) by @cmanallen
+- fix(ddm): display all code locations (#61994) by @obostjancic
+- ref: upgrade to python 3.9 (#36860) by @asottile-sentry
+- feat(ddm): Move feedback button to header (#61997) by @ArthurKnaus
+- feat(inbound-filters): Relax pattern for matching ChunkLoadError(s) (#61988) by @iambriccardo
+- feat(discover): Add support for p90 in discover (#61990) by @iambriccardo
+- feat(ddm): Rename ddm to metrics (#61993) by @matejminar
+- fix(ddm): code location copy event propagation (#61987) by @obostjancic
+- feat(alerts): fade out custom percentiles (#61926) by @obostjancic
+- Fix Craft publish (#61982) by @chadwhitacre
+- ref(crons): Move tolerance fields out in monitor form (#61807) by @davidenwang
+- fix(replay): Fix alignment of FeatureBadge in Replay Details tabs (#61970) by @ryan953
+- feat(backup): Add creator/owner email/username to GET /relocations/ (#61969) by @azaslavsky
+- feat(crons): Sort DISABLED monitors to the end (#61950) by @evanpurkhiser
+- nit: Allow skipping scope_list argument in util func (#61967) by @schew2381
+- feat(staff): Create initial staff class for _admin mode (#61653) by @schew2381
+- Revert "ref: remove self-hosted cloudbuild (#61727)" (ae39b423) by @getsentry-bot
+- feat(spans): Groundwork for indexed spans tests (#61766) by @wmak
+- fix(user token): Stop leaking API token (#61941) by @ykamo001
+- fix(slack); Check for existence of org_context (#61966) by @ceorourke
+
+_Plus 934 more_
+
 23.11.2
 -------
 

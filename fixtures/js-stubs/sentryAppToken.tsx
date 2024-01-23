@@ -1,6 +1,6 @@
 import {InternalAppApiToken} from 'sentry/types';
 
-export function SentryAppToken(
+export function SentryAppTokenFixture(
   params: Partial<InternalAppApiToken> = {}
 ): InternalAppApiToken {
   return {
@@ -12,6 +12,7 @@ export function SentryAppToken(
     application: null,
     id: '1',
     state: 'active',
+    tokenLastCharacters: 'oken',
     ...params,
   };
 }

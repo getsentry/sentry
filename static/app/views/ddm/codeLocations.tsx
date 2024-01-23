@@ -11,15 +11,19 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame} from 'sentry/types';
+import {Frame, MRI} from 'sentry/types';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 
-import {MetricCodeLocationFrame, MetricMetaCodeLocation} from '../../utils/metrics/index';
+import {MetricCodeLocationFrame, MetricRange} from '../../utils/metrics/index';
 
-export function CodeLocations({mri}: {mri: string}) {
-  const {data, isLoading, isError, refetch} = useMetricsCodeLocations(mri);
+export type CodeLocationsProps = MetricRange & {
+  mri?: MRI;
+};
 
-  if (isLoading) {
+export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
+  const {data, isFetching, isError, refetch} = useMetricsCodeLocations(mri, rangeOpts);
+
+  if (isFetching) {
     return <LoadingIndicator />;
   }
 
@@ -27,7 +31,20 @@ export function CodeLocations({mri}: {mri: string}) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  if (!Array.isArray(data?.codeLocations) || data?.codeLocations.length === 0) {
+  if (!mri) {
+    return (
+      <CenterContent>
+        <EmptyMessage
+          style={{margin: 'auto'}}
+          icon={<IconSearch size="xxl" />}
+          title={t('Nothing to show!')}
+          description={t('Choose a metric to display data.')}
+        />
+      </CenterContent>
+    );
+  }
+
+  if (!Array.isArray(data?.metrics) || data?.metrics.length === 0) {
     return (
       <CenterContent>
         <EmptyMessage
@@ -40,18 +57,18 @@ export function CodeLocations({mri}: {mri: string}) {
     );
   }
 
-  const codeLocations = data?.codeLocations ?? [];
+  const codeLocations = data.metrics[0].codeLocations ?? [];
 
   // We only want to show the first 5 code locations
-  const reversedCodeLocations = codeLocations.slice(0, 5);
+  const codeLocationsToShow = codeLocations.slice(0, 5);
   return (
     <CodeLocationsWrapper>
-      {reversedCodeLocations.map((location, index) => (
+      {codeLocationsToShow.slice(0, 5).map((location, index) => (
         <CodeLocation
           key={`location-${index}`}
           codeLocation={location}
           isFirst={index === 0}
-          isLast={index === reversedCodeLocations.length - 1}
+          isLast={index === codeLocationsToShow.length - 1}
         />
       ))}
     </CodeLocationsWrapper>
@@ -59,7 +76,7 @@ export function CodeLocations({mri}: {mri: string}) {
 }
 
 type CodeLocationProps = {
-  codeLocation: MetricMetaCodeLocation;
+  codeLocation: MetricCodeLocationFrame;
   isFirst?: boolean;
   isLast?: boolean;
 };
@@ -71,12 +88,7 @@ function CodeLocation({codeLocation, isFirst, isLast}: CodeLocationProps) {
     setShowContext(prevState => !prevState);
   }, []);
 
-  const frameToShow = codeLocation.frames[0];
-  if (!frameToShow) {
-    return null;
-  }
-
-  const hasContext = !!frameToShow.contextLine;
+  const hasContext = !!codeLocation.contextLine;
 
   return (
     <CodeLocationWrapper>
@@ -95,14 +107,14 @@ function CodeLocation({codeLocation, isFirst, isLast}: CodeLocationProps) {
           <DefaultLineTitleWrapper>
             <LeftLineTitle>
               <DefaultTitle
-                frame={frameToShow as Frame}
+                frame={codeLocation as Frame}
                 isHoverPreviewed={false}
                 platform="other"
               />
             </LeftLineTitle>
             <DefaultLineActionButtons>
               <CopyToClipboardButton
-                text={`${frameToShow.filename}:${frameToShow.lineNo}`}
+                text={`${codeLocation.filename}:${codeLocation.lineNo}`}
                 size="zero"
                 iconSize="xs"
                 borderless
@@ -116,7 +128,7 @@ function CodeLocation({codeLocation, isFirst, isLast}: CodeLocationProps) {
           </DefaultLineTitleWrapper>
         </DefaultLine>
         {showContext && hasContext && (
-          <CodeLocationContext frame={frameToShow} isLast={isLast} />
+          <CodeLocationContext codeLocation={codeLocation} isLast={isLast} />
         )}
       </DefaultLineWrapper>
     </CodeLocationWrapper>
@@ -151,31 +163,31 @@ function ToggleCodeLocationContextButton({
 }
 
 type CodeLocationContextProps = {
-  frame: MetricCodeLocationFrame;
+  codeLocation: MetricCodeLocationFrame;
   isLast?: boolean;
 };
 
-function CodeLocationContext({frame, isLast}: CodeLocationContextProps) {
-  const lineNo = frame.lineNo ?? 0;
+function CodeLocationContext({codeLocation, isLast}: CodeLocationContextProps) {
+  const lineNo = codeLocation.lineNo ?? 0;
 
   const preContextLines: [number, string][] = useMemo(
-    () => frame.preContext?.map((line, index) => [lineNo - 5 + index, line]) ?? [],
-    [frame.preContext, lineNo]
+    () => codeLocation.preContext?.map((line, index) => [lineNo - 5 + index, line]) ?? [],
+    [codeLocation.preContext, lineNo]
   );
 
   const postContextLines: [number, string][] = useMemo(
-    () => frame.postContext?.map((line, index) => [lineNo + index, line]) ?? [],
-    [frame.postContext, lineNo]
+    () => codeLocation.postContext?.map((line, index) => [lineNo + index, line]) ?? [],
+    [codeLocation.postContext, lineNo]
   );
 
   return (
     <SourceContextWrapper isLast={isLast}>
       {preContextLines.map(line => (
-        <ContextLine key={`pre-${line[1]}`} line={line} isActive={false} />
+        <ContextLine key={`pre-${line[0]}-${line[1]}`} line={line} isActive={false} />
       ))}
-      <ContextLine line={[lineNo, frame.contextLine ?? '']} isActive />
+      <ContextLine line={[lineNo, codeLocation.contextLine ?? '']} isActive />
       {postContextLines.map(line => (
-        <ContextLine key={`post-${line[1]}`} line={line} isActive={false} />
+        <ContextLine key={`post-${line[0]}-${line[1]}`} line={line} isActive={false} />
       ))}
     </SourceContextWrapper>
   );

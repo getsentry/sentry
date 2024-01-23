@@ -6,10 +6,10 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test.utils import override_settings
 
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
@@ -45,18 +45,23 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         last_checkin = datetime.now() - timedelta(minutes=1)
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
-        def add_status_monitor(status_key: str, date: datetime | None = None):
-            monitor_status = getattr(MonitorStatus, status_key)
-            # TODO(rjo100): this is precursor to removing the MonitorStatus values from Monitors
+        def add_status_monitor(
+            env_status_key: str,
+            mon_status_key: str = "ACTIVE",
+            date: datetime | None = None,
+        ):
+            env_status = getattr(MonitorStatus, env_status_key)
+            mon_status = getattr(ObjectStatus, mon_status_key)
+
             monitor = self._create_monitor(
-                status=ObjectStatus.ACTIVE,
-                name=status_key,
+                status=mon_status,
+                name=f"{mon_status_key}-{env_status_key}",
             )
             self._create_monitor_environment(
                 monitor,
                 name="jungle",
                 last_checkin=(date or last_checkin) - timedelta(seconds=30),
-                status=monitor_status,
+                status=env_status,
             )
             self._create_monitor_environment(
                 monitor,
@@ -69,11 +74,14 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         # Subsort next checkin time
         monitor_active = add_status_monitor("ACTIVE")
         monitor_ok = add_status_monitor("OK")
-        monitor_disabled = add_status_monitor("DISABLED")
-        monitor_error_older_checkin = add_status_monitor("ERROR", last_checkin_older)
+        monitor_disabled = add_status_monitor("OK", "DISABLED")
+        monitor_error_older_checkin = add_status_monitor("ERROR", "ACTIVE", last_checkin_older)
         monitor_error = add_status_monitor("ERROR")
         monitor_missed_checkin = add_status_monitor("MISSED_CHECKIN")
         monitor_timed_out = add_status_monitor("TIMEOUT")
+
+        monitor_muted = add_status_monitor("ACTIVE")
+        monitor_muted.update(is_muted=True)
 
         response = self.get_success_response(
             self.organization.slug, params={"environment": "jungle"}
@@ -87,6 +95,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_missed_checkin,
                 monitor_ok,
                 monitor_active,
+                monitor_muted,
                 monitor_disabled,
             ],
         )
@@ -335,3 +344,35 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert assign_monitor_seat.called
         assert response.data["status"] == "disabled"
         assert monitor.status == ObjectStatus.DISABLED
+
+    def test_disabled_creating_new_monitor(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "my-monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        with self.feature("organizations:crons-disable-new-projects"):
+            response = self.get_error_response(self.organization.slug, **data, status_code=400)
+
+        assert (
+            response.data
+            == "Creating monitors in projects without pre-existing monitors is temporarily disabled"
+        )
+
+    def test_disabled_creating_with_existing_monitors(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "my-monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        self.project.flags.has_cron_monitors = True
+        self.project.save()
+
+        with self.feature("organizations:crons-disable-new-projects"):
+            response = self.get_success_response(self.organization.slug, **data)
+
+        assert response.data["slug"] == "my-monitor"

@@ -188,6 +188,8 @@ class IssueListOverview extends Component<Props, State> {
     ) {
       const loadedFromCache = this.loadFromCache();
       if (!loadedFromCache) {
+        // It's possible the projects query parameter is not yet ready and this
+        // request will be repeated in componentDidUpdate
         this.fetchData();
       }
     }
@@ -215,8 +217,12 @@ class IssueListOverview extends Component<Props, State> {
       this.fetchTags();
     }
 
+    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
+
     // Wait for saved searches to load before we attempt to fetch stream data
-    if (this.props.savedSearchLoading) {
+    // Selection changing could indicate that the projects query parameter has populated
+    // and we should refetch data.
+    if (this.props.savedSearchLoading && !selectionChanged) {
       return;
     }
 
@@ -253,8 +259,6 @@ class IssueListOverview extends Component<Props, State> {
       location: prevProps.location,
     });
     const newSort = this.getSort();
-
-    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
 
     // If any important url parameter changed or saved search changed
     // reload data.
@@ -804,7 +808,6 @@ class IssueListOverview extends Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
-    const {organization} = this.props;
     const {actionTakenGroupData} = this.state;
     const query = this.getQuery();
 
@@ -840,8 +843,7 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        const hasEscalatingIssues = organization.features.includes('escalating-issues');
-        this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
+        this.onIssueAction(ignoredIds, 'Archived');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -1299,7 +1301,6 @@ class IssueListOverview extends Component<Props, State> {
                     groupIds={groupIds}
                     displayReprocessingLayout={displayReprocessingActions}
                     query={query}
-                    sort={this.getSort()}
                     selectedProjectIds={selection.projects}
                     loading={issuesLoading}
                     error={error}

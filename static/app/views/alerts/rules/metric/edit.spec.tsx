@@ -1,3 +1,7 @@
+import {MemberFixture} from 'sentry-fixture/member';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -52,7 +56,7 @@ describe('MetricRulesEdit', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
+      body: [MemberFixture()],
     });
   });
 
@@ -63,7 +67,7 @@ describe('MetricRulesEdit', function () {
 
   it('renders and edits trigger', async function () {
     const {organization, project} = initializeOrg();
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRuleFixture();
     const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
@@ -78,10 +82,10 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id,
+          ruleId: rule.id!,
         }}
         userTeamIds={[]}
         organization={organization}
@@ -152,7 +156,7 @@ describe('MetricRulesEdit', function () {
 
   it('removes warning trigger', async function () {
     const {organization, project} = initializeOrg();
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRuleFixture();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,
       alertThreshold: 13,
@@ -173,10 +177,10 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{
           projectId: project.slug,
-          ruleId: rule.id,
+          ruleId: rule.id!,
         }}
         userTeamIds={[]}
         organization={organization}
@@ -232,7 +236,7 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         userTeamIds={[]}
         onChangeTitle={() => {}}
         params={{

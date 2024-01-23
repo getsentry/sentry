@@ -1,7 +1,6 @@
 import pytest
 import responses
 
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
@@ -19,10 +18,14 @@ METADATA = {
 
 class OpsgenieClientTest(APITestCase):
     def create_integration(self):
-        integration = Integration.objects.create(
-            provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="opsgenie",
+            name="test-app",
+            external_id=EXTERNAL_ID,
+            metadata=METADATA,
         )
-        org_integration = integration.add_organization(self.organization, self.user)
         org_integration.config = {
             "team_table": [
                 {"id": "team-123", "integration_key": "1234-ABCD", "team": "default team"},

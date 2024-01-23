@@ -1,6 +1,7 @@
 import type {Location} from 'history';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -20,7 +21,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';
 
-const mockedLocation = TestStubs.location({
+const mockedLocation = LocationFixture({
   query: {
     field: ['issue', 'transaction.duration'],
   },
@@ -35,7 +36,7 @@ const dataRow: EventData = {
 };
 
 const renderEventContext = (location?: Location, eventView?: EventView) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <EventContext

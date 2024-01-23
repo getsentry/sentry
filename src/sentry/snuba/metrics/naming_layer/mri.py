@@ -34,9 +34,10 @@ __all__ = (
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, cast
+from typing import Optional, Sequence, cast
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (
     AVAILABLE_GENERIC_OPERATIONS,
@@ -48,9 +49,9 @@ from sentry.snuba.metrics.utils import (
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
-# This regex allows for a string of words composed of small letters alphabet characters with
+# This regex allows for a string of words composed of small letters alphanumeric characters with
 # allowed the underscore character, optionally separated by a single dot
-MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
+MRI_NAME_REGEX = r"([a-z0-9_]+(?:\.[a-z0-9_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
@@ -290,6 +291,15 @@ def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
     return parsed_mri.namespace == "custom"
 
 
+def is_measurement(parsed_mri: ParsedMRI) -> bool:
+    """
+    A measurement won't use the custom namespace, but will be under the transaction namespace.
+
+    This checks the namespace, and name to match what we consider to be a standard + custom measurement.
+    """
+    return parsed_mri.namespace == "transactions" and parsed_mri.name.startswith("measurements.")
+
+
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     """
     A custom measurement won't use the custom namespace, but will be under the transaction namespace.
@@ -306,7 +316,7 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     )
 
 
-def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
+def get_entity_key_from_entity_type(entity_type: str, generic_metrics: bool) -> EntityKey:
     entity_name_suffixes = {
         "c": "counters",
         "s": "sets",
@@ -314,11 +324,18 @@ def get_available_operations(parsed_mri: ParsedMRI) -> List[str]:
         "g": "gauges",
     }
 
+    if generic_metrics:
+        return EntityKey(f"generic_metrics_{entity_name_suffixes[entity_type]}")
+    else:
+        return EntityKey(f"metrics_{entity_name_suffixes[entity_type]}")
+
+
+def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
-        entity_key = f"metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, False).value
         return AVAILABLE_OPERATIONS[entity_key]
     else:
-        entity_key = f"generic_metrics_{entity_name_suffixes[parsed_mri.entity]}"
+        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]

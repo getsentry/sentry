@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -13,14 +14,27 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ScreensView, YAxis} from 'sentry/views/starfish/views/screens';
+import {PlatformSelector} from 'sentry/views/starfish/views/screens/platformSelector';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 export default function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  const project = useMemo(() => {
+    if (selection.projects.length !== 1) {
+      return null;
+    }
+    return projects.find(p => p.id === String(selection.projects));
+  }, [projects, selection.projects]);
 
   return (
     <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
@@ -28,7 +42,14 @@ export default function PageloadModule() {
         <PageAlertProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Mobile')}</Layout.Title>
+              <HeaderWrapper>
+                <Layout.Title>{t('Mobile')}</Layout.Title>
+                {organization.features.includes(
+                  'performance-screens-platform-selector'
+                ) &&
+                  project &&
+                  isCrossPlatform(project) && <PlatformSelector />}
+              </HeaderWrapper>
             </Layout.HeaderContent>
           </Layout.Header>
 
@@ -55,7 +76,11 @@ export default function PageloadModule() {
                     </OnboardingContainer>
                   )}
                   {!onboardingProject && (
-                    <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                    <ScreensView
+                      yAxes={[YAxis.TTID, YAxis.TTFD]}
+                      chartHeight={240}
+                      project={project}
+                    />
                   )}
                 </ErrorBoundary>
               </PageFiltersContainer>
@@ -81,4 +106,8 @@ const Container = styled('div')`
 
 const OnboardingContainer = styled('div')`
   margin-top: ${space(2)};
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
 `;

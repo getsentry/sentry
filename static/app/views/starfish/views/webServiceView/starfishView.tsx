@@ -9,7 +9,7 @@ import {EventsStats} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -144,7 +144,6 @@ export function StarfishView(props: BaseStarfishViewProps) {
               height={142}
               data={seriesByName[yAxis[2]]}
               loading={loading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -167,7 +166,6 @@ export function StarfishView(props: BaseStarfishViewProps) {
               height={142}
               data={seriesByName[yAxis[0]]}
               loading={loading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',
@@ -175,13 +173,13 @@ export function StarfishView(props: BaseStarfishViewProps) {
                 bottom: '0',
               }}
               aggregateOutputFormat="rate"
-              rateUnit={RateUnits.PER_SECOND}
+              rateUnit={RateUnit.PER_SECOND}
               definedAxisTicks={2}
               stacked
               isLineChart
               chartColors={[THROUGHPUT_COLOR]}
               tooltipFormatterOptions={{
-                valueFormatter: value => formatRate(value, RateUnits.PER_SECOND),
+                valueFormatter: value => formatRate(value, RateUnit.PER_SECOND),
               }}
             />
           </MiniChartPanel>
@@ -193,7 +191,6 @@ export function StarfishView(props: BaseStarfishViewProps) {
               height={142}
               data={seriesByName[yAxis[1]]}
               loading={loading}
-              utc={false}
               grid={{
                 left: '0',
                 right: '0',

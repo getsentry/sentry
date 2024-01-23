@@ -37,7 +37,7 @@ const Placeholder = styled(
   justify-content: center;
   align-items: center;
 
-  background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundSecondary)};
+  background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
   ${p => p.error && `color: ${p.theme.red200};`}
   width: ${p => p.width};
   height: ${p => p.height};

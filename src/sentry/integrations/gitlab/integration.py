@@ -21,11 +21,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
-    FileBlameInfo,
-    SourceLineInfo,
-)
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
@@ -177,14 +173,11 @@ class GitlabIntegration(
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
-        try:
-            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-                repo, filepath, ref, lineno
-            )
-            if blame_range is None:
-                return None
-        except ApiError as e:
-            raise e
+        blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+            repo, filepath, ref, lineno
+        )
+        if blame_range is None:
+            return None
 
         try:
             commit = max(
@@ -210,11 +203,6 @@ class GitlabIntegration(
                 "commitAuthorName": commitInfo.get("committer_name"),
                 "commitAuthorEmail": commitInfo.get("committer_email"),
             }
-
-    def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
-    ) -> Sequence[FileBlameInfo]:
-        return self.get_blame_for_files(files, extra=extra)
 
 
 class InstallationForm(forms.Form):
@@ -277,7 +265,7 @@ class InstallationForm(forms.Form):
     )
     client_secret = forms.CharField(
         label=_("GitLab Application Secret"),
-        widget=forms.TextInput(attrs={"placeholder": _("XXXXXXXXXXXXXXXXXXXXXXXXXXX")}),
+        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
     )
 
     def clean_url(self):
@@ -390,8 +378,10 @@ class GitlabIntegrationProvider(IntegrationProvider):
             access_token=access_token,
             verify_ssl=installation_data["verify_ssl"],
         )
+
+        requested_group = installation_data["group"]
         try:
-            resp = client.get_group(installation_data["group"])
+            resp = client.get_group(requested_group)
             return resp.json
         except ApiError as e:
             self.get_logger().info(
@@ -399,13 +389,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 extra={
                     "base_url": installation_data["url"],
                     "verify_ssl": installation_data["verify_ssl"],
-                    "group": installation_data["group"],
+                    "group": requested_group,
                     "include_subgroups": installation_data["include_subgroups"],
                     "error_message": str(e),
                     "error_status": e.code,
                 },
             )
-            raise IntegrationError("The requested GitLab group could not be found.")
+            raise IntegrationError(
+                f"The requested GitLab group {requested_group} could not be found."
+            )
 
     def get_pipeline_views(self):
         return [
@@ -468,6 +460,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
+            },
+            "post_install_data": {
+                "redirect_url_format": absolute_uri(
+                    f"/settings/{{org_slug}}/integrations/{self.key}/"
+                ),
             },
         }
         return integration

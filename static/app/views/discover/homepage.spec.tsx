@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -22,13 +24,13 @@ describe('Discover > Homepage', () => {
   let initialData, organization, mockHomepage, measurementsMetaMock;
 
   beforeEach(() => {
-    organization = Organization({
+    organization = OrganizationFixture({
       features,
     });
     initialData = initializeOrg({
       organization,
       router: {
-        location: TestStubs.location(),
+        location: LocationFixture(),
       },
     });
 
@@ -130,7 +132,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['project'],
@@ -254,7 +256,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -290,7 +292,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -326,7 +328,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -358,7 +360,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -388,7 +390,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -414,7 +416,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -440,10 +442,7 @@ describe('Discover > Homepage', () => {
   });
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({id: 1}),
-      TestStubs.Project({id: 2}),
-    ]);
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'}), ProjectFixture({id: '2'})]);
     jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),
       state: {
@@ -478,7 +477,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },

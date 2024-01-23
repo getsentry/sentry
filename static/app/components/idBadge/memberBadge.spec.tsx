@@ -1,4 +1,6 @@
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {MemberFixture} from 'sentry-fixture/member';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +10,7 @@ describe('MemberBadge', function () {
   let member;
   const routerContext = RouterContextFixture();
   beforeEach(() => {
-    member = TestStubs.Member();
+    member = MemberFixture();
   });
 
   it('renders with link when member and orgId are supplied', function () {
@@ -48,9 +50,9 @@ describe('MemberBadge', function () {
   });
 
   it('can coalesce using username', function () {
-    member.user = TestStubs.User({
-      name: null,
-      email: null,
+    member.user = UserFixture({
+      name: undefined,
+      email: undefined,
       username: 'the-batman',
     });
 
@@ -60,10 +62,10 @@ describe('MemberBadge', function () {
   });
 
   it('can coalesce using ipaddress', function () {
-    member.user = TestStubs.User({
-      name: null,
-      email: null,
-      username: null,
+    member.user = UserFixture({
+      name: undefined,
+      email: undefined,
+      username: undefined,
       ipAddress: '127.0.0.1',
     });
     render(<MemberBadge member={member} />);

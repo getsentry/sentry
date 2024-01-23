@@ -1,3 +1,6 @@
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
+
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import ModalStore from 'sentry/stores/modalStore';
@@ -10,11 +13,11 @@ describe('GuideStore', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = TestStubs.Config({
-      user: TestStubs.User({
+    ConfigStore.config = ConfigFixture({
+      user: UserFixture({
         id: '5',
         isSuperuser: false,
-        dateJoined: new Date(2020, 0, 1),
+        dateJoined: '2020-01-01T00:00:00',
       }),
     });
     GuideStore.init();

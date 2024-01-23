@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import pickBy from 'lodash/pickBy';
 
 import Alert from 'sentry/components/alert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -66,6 +66,7 @@ export function DatabaseLandingPage() {
 
   const chartFilters = {
     'span.module': ModuleName.DB,
+    has: 'span.description',
   };
 
   const tableFilters = {
@@ -78,9 +79,9 @@ export function DatabaseLandingPage() {
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
-  const queryListResponse = useSpanMetrics(
-    pickBy(tableFilters, value => value !== undefined),
-    [
+  const queryListResponse = useSpanMetrics({
+    filters: pickBy(tableFilters, value => value !== undefined),
+    fields: [
       'project.id',
       'span.group',
       'span.description',
@@ -89,23 +90,35 @@ export function DatabaseLandingPage() {
       'sum(span.self_time)',
       'time_spent_percentage()',
     ],
-    [sort],
-    LIMIT,
+    sorts: [sort],
+    limit: LIMIT,
     cursor,
-    'api.starfish.use-span-list'
-  );
+    referrer: 'api.starfish.use-span-list',
+  });
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    chartFilters,
-    ['spm()'],
-    'api.starfish.span-landing-page-metrics-chart'
+    {
+      filters: chartFilters,
+      yAxis: ['spm()'],
+      referrer: 'api.starfish.span-landing-page-metrics-chart',
+    }
   );
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    chartFilters,
-    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
+    filters: chartFilters,
+    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.span-landing-page-metrics-chart',
+  });
+
+  const isCriticalDataLoading =
+    isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;
+
+  const isAnyCriticalDataAvailable =
+    (queryListResponse.data ?? []).length > 0 ||
+    durationData[`${selectedAggregate}(span.self_time)`].data?.some(
+      ({value}) => value > 0
+    ) ||
+    throughputData['spm()'].data?.some(({value}) => value > 0);
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
@@ -132,8 +145,15 @@ export function DatabaseLandingPage() {
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          {!onboardingProject && <NoDataMessage Wrapper={AlertBanner} />}
+          {!onboardingProject && !isCriticalDataLoading && (
+            <NoDataMessage
+              Wrapper={AlertBanner}
+              isDataAvailable={isAnyCriticalDataAvailable}
+            />
+          )}
+
           <FloatingFeedbackWidget />
+
           <PaddedContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
@@ -152,16 +172,23 @@ export function DatabaseLandingPage() {
                   series={throughputData['spm()']}
                   isLoading={isThroughputDataLoading}
                 />
+
                 <DurationChart
                   series={durationData[`${selectedAggregate}(span.self_time)`]}
                   isLoading={isDurationDataLoading}
                 />
               </ChartContainer>
-              <FilterOptionsContainer>
-                <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
 
-                <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+              <FilterOptionsContainer>
+                <SelectorContainer>
+                  <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                </SelectorContainer>
+
+                <SelectorContainer>
+                  <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                </SelectorContainer>
               </FilterOptionsContainer>
+
               <SearchBarContainer>
                 <SearchBar
                   query={spanDescription}
@@ -190,8 +217,12 @@ const PaddedContainer = styled('div')`
 
 const ChartContainer = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr 1fr;
+    gap: ${space(2)};
+  }
 `;
 
 function AlertBanner(props) {
@@ -199,11 +230,22 @@ function AlertBanner(props) {
 }
 
 const FilterOptionsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
-  max-width: 800px;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex-wrap: nowrap;
+  }
+`;
+
+const SelectorContainer = styled('div')`
+  flex-basis: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex-basis: auto;
+  }
 `;
 
 const SearchBarContainer = styled('div')`

@@ -1,8 +1,11 @@
 import selectEvent from 'react-select-event';
-import {Groups} from 'sentry-fixture/groups';
-import {Organization} from 'sentry-fixture/organization';
-import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
-import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {GroupsFixture} from 'sentry-fixture/groups';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
+import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -43,15 +46,15 @@ describe('ProjectAlertsCreate', function () {
     TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfigurationFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: ProjectAlertRule(),
+      body: ProjectAlertRuleFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
@@ -84,19 +87,19 @@ describe('ProjectAlertsCreate', function () {
     const wrapper = render(
       <AlertsContainer>
         <AlertBuilderProjectProvider
-          {...TestStubs.routeComponentProps()}
+          {...RouteComponentPropsFixture()}
           params={params}
           organization={organization}
           hasMetricAlerts={false}
         >
           <ProjectAlertsCreate
-            {...TestStubs.routeComponentProps()}
+            {...RouteComponentPropsFixture()}
             hasMetricAlerts={false}
             members={[]}
             params={params}
             organization={organization}
             project={project}
-            location={TestStubs.location({
+            location={LocationFixture({
               pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
               query: {createFromWizard: 'true'},
               ...location,
@@ -148,7 +151,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: ProjectAlertRule(),
+        body: ProjectAlertRuleFixture(),
       });
 
       // Change name of alert rule
@@ -191,7 +194,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: ProjectAlertRule(),
+        body: ProjectAlertRuleFixture(),
       });
       // delete node
       await userEvent.click(screen.getByLabelText('Delete Node'));
@@ -241,7 +244,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: ProjectAlertRule(),
+        body: ProjectAlertRuleFixture(),
       });
 
       // Change name of alert rule
@@ -286,7 +289,7 @@ describe('ProjectAlertsCreate', function () {
         mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
-          body: ProjectAlertRule(),
+          body: ProjectAlertRuleFixture(),
         });
       });
 
@@ -497,7 +500,7 @@ describe('ProjectAlertsCreate', function () {
 
   describe('test preview chart', () => {
     it('valid preview table', async () => {
-      const groups = Groups();
+      const groups = GroupsFixture();
       const date = new Date();
       for (let i = 0; i < groups.length; i++) {
         groups[i].lastTriggered = String(date);
@@ -638,7 +641,7 @@ describe('ProjectAlertsCreate', function () {
 
   it('shows archived to escalating instead of ignored to unresolved', async () => {
     createWrapper({
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture(),
     });
     await selectEvent.select(screen.getByText('Add optional trigger...'), [
       'The issue changes state from archived to escalating',
@@ -653,7 +656,7 @@ describe('ProjectAlertsCreate', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/',
       method: 'POST',
-      body: ProjectAlertRule(),
+      body: ProjectAlertRuleFixture(),
     });
 
     createWrapper({organization: {features: ['noisy-alert-warning']}});

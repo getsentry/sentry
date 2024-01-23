@@ -36,6 +36,7 @@ from sentry.models.user import User
 from sentry.signals import project_created
 from sentry.silo import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -389,6 +390,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
+    @with_feature("organizations:codecov-integration")
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -491,6 +493,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
+    @with_feature("organizations:codecov-integration")
     def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
         responses.add(
             responses.GET,
@@ -499,6 +502,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
         data = {"codecovAccess": True}
         self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_setting_codecov_without_paid_plan_forbidden(self):
+        data = {"codecovAccess": True}
+        self.get_error_response(self.organization.slug, status_code=403, **data)
 
     def test_setting_trusted_relays_forbidden(self):
         data = {

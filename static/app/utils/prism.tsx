@@ -35,18 +35,28 @@ const PRISM_LANGUAGE_MAP: Record<string, string> = Object.fromEntries(
 // Aliases that don't already exist in Prism.js
 // https://prismjs.com/#supported-languages
 const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
+  cc: 'cpp',
   erl: 'erlang',
-  ex: 'elixr',
+  ex: 'elixir',
   h: 'c',
+  m: 'objectivec',
+  pl: 'perl',
+  pm: 'perl',
+  pyx: 'python',
+  rs: 'rust',
+
+  // Ruby
+  jbuilder: 'ruby',
+  ru: 'ruby',
   rake: 'ruby',
 
-  // JS aliases
+  // JS
   cjs: 'javascript',
   mjs: 'javascript',
-
-  // No offical support for Vue SFC, but HTML gets pretty close
-  // https://github.com/PrismJS/prism/issues/1665
-  vue: 'html',
+  jsbundle: 'javascript',
+  bundle: 'javascript',
+  vue: 'javascript',
+  svelte: 'javascript',
 };
 
 export const getPrismLanguage = (lang: string) => {

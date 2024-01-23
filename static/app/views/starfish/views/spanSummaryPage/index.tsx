@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
+import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
@@ -8,6 +9,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
+import {formatSpanOperation} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -17,7 +19,6 @@ import {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {getSpanOperationDescription} from 'sentry/views/starfish/views/spanSummaryPage/getSpanOperationDescription';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanSummaryView} from 'sentry/views/starfish/views/spanSummaryPage/spanSummaryView';
 import {
@@ -60,14 +61,11 @@ function SpanSummaryPage({params, location}: Props) {
       isAValidSort
     )[0] ?? DEFAULT_SORT; // We only allow one sort on this table in this view
 
-  const {data, isLoading: isSpanMetricsLoading} = useSpanMetrics(
+  const {data, isLoading: isSpanMetricsLoading} = useSpanMetrics({
     filters,
-    ['span.op', 'span.group', 'project.id', 'sps()'],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-page-metrics'
-  );
+    fields: ['span.op', 'span.group', 'project.id', 'sps()'],
+    referrer: 'api.starfish.span-summary-page-metrics',
+  });
 
   const spanMetrics = data[0] ?? {};
 
@@ -76,7 +74,7 @@ function SpanSummaryPage({params, location}: Props) {
     ['span.group']: groupId,
   };
 
-  const title = [getSpanOperationDescription(span['span.op']), t('Summary')].join(' ');
+  const title = [startCase(formatSpanOperation(span['span.op'])), t('Summary')].join(' ');
 
   const crumbs: Crumb[] = [];
   crumbs.push({

@@ -21,7 +21,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.tasks.integrations.github.pr_comment import (
-    PullRequestIssue,
     format_comment,
     get_comment_contents,
     get_top_5_issues_by_count,
@@ -29,6 +28,7 @@ from sentry.tasks.integrations.github.pr_comment import (
     github_comment_workflow,
     pr_to_issue_query,
 )
+from sentry.tasks.integrations.github.utils import PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -344,10 +344,12 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     def test_comment_workflow(self, mock_metrics, mock_issues):
         groups = [g.id for g in Group.objects.all()]
+        titles = [g.title for g in Group.objects.all()]
+        culprits = [g.culprit for g in Group.objects.all()]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
         responses.add(
@@ -361,7 +363,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[0].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
@@ -370,7 +372,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=timezone.utc))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):

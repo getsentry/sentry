@@ -122,7 +122,11 @@ def _resolve_last_org(session, user, org_context=None):
 
         if user is not None and not isinstance(user, AnonymousUser):
             org_context = organization_service.get_organization_by_slug(
-                slug=last_org_slug, only_visible=False, user_id=user.id
+                slug=last_org_slug,
+                only_visible=False,
+                user_id=user.id,
+                include_projects=False,
+                include_teams=False,
             )
 
     if org_context and org_context.member:
@@ -255,7 +259,10 @@ class _ClientConfig:
 
         if self._is_superuser() and superuser.ORG_ID is not None:
             org_context = organization_service.get_organization_by_id(
-                id=superuser.ORG_ID, user_id=None
+                id=superuser.ORG_ID,
+                user_id=None,
+                include_projects=False,
+                include_teams=False,
             )
             if org_context and org_context.organization:
                 yield "superuserUrl", generate_organization_url(org_context.organization.slug)
@@ -353,6 +360,7 @@ class _ClientConfig:
                 "tracePropagationTargets": settings.SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS or [],
             },
             "regions": self.regions,
+            "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": settings.DEMO_MODE,
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(

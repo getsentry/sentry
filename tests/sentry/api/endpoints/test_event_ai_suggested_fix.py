@@ -81,7 +81,7 @@ def openai_policy():
 
 
 @django_db_all
-def test_consent(client, default_project, test_event, openai_policy):
+def test_consent(client, monkeypatch, default_user, default_project, test_event, openai_policy):
     path = reverse(
         "sentry-api-0-event-ai-fix-suggest",
         kwargs={
@@ -104,7 +104,69 @@ def test_consent(client, default_project, test_event, openai_policy):
     assert response.status_code == 403
     assert response.json() == {"restriction": "subprocessor"}
 
+    openai_policy["result"] = "pii_certification_required"
+    response = client.get(path)
+    assert response.status_code == 403
+    assert response.json() == {"restriction": "pii_certification_required"}
+
     openai_policy["result"] = "allowed"
     response = client.get(path)
     assert response.status_code == 200
     assert response.json() == {"suggestion": "AI generated response"}
+
+
+@django_db_all
+def test_describe_event_for_ai(client, default_project, test_event, openai_policy):
+    from sentry.api.endpoints.event_ai_suggested_fix import describe_event_for_ai
+
+    event_data = {
+        "exception": {
+            "values": [
+                {
+                    "type": "ArithmeticError",
+                    "value": "division by zero",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "divide",
+                                "filename": "math_operations.py",
+                                "lineno": 27,
+                                "context_line": "result = 1 / 0",
+                                "pre_context": [
+                                    "def divide(x, y):",
+                                    "    # Attempt to divide by zero",
+                                ],
+                                "post_context": ["    return result", ""],
+                                "in_app": True,
+                            },
+                            None,  # Edge case, just to make sure it doesn't break
+                            {
+                                "function": "calculate",
+                                "filename": "main.py",
+                                "lineno": 15,
+                                "context_line": "divide(10, 0)",
+                                "pre_context": ["def calculate():", "    # Calculate division"],
+                                "post_context": ["    print('Calculation complete')", ""],
+                                "in_app": True,
+                            },
+                        ]
+                    },
+                }
+            ]
+        }
+    }
+    exceptions = describe_event_for_ai(event=event_data, model="gpt-3.5-turbo")
+    assert len(exceptions.get("exceptions", [])) == 1, "Should have one exception in the event data"
+    exception = exceptions["exceptions"][0]
+    assert exception["type"] == "ArithmeticError", "Exception type should be 'ArithmeticError'"
+    assert (
+        exception["message"] == "division by zero"
+    ), "Exception message should be 'division by zero'"
+    assert "stacktrace" in exception, "Exception should have a stacktrace"
+    assert len(exception["stacktrace"]) == 2, "Stacktrace should have two frames"
+    assert (
+        exception["stacktrace"][0]["func"] == "calculate"
+    ), "First frame function should be 'calculate'"
+    assert (
+        exception["stacktrace"][1]["func"] == "divide"
+    ), "Second frame function should be 'divide'"

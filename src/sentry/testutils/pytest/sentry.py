@@ -4,6 +4,7 @@ import collections
 import os
 import random
 import shutil
+import string
 import sys
 from datetime import datetime
 from hashlib import md5
@@ -15,6 +16,10 @@ from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
+from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
+from sentry.types import region
+from sentry.types.region import Region, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -42,6 +47,31 @@ def configure_split_db() -> None:
     settings.DATABASES["default"]["NAME"] = "region"
 
     settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+
+def _configure_test_env_regions() -> None:
+
+    # Assign a random name on every test run, as a reminder that test setup and
+    # assertions should not depend on this value. If you need to test behavior that
+    # depends on region attributes, use `override_regions` in your test case.
+    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+
+    default_region = Region(
+        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+    )
+
+    settings.SENTRY_REGION = region_name
+    settings.SENTRY_MONOLITH_REGION = region_name
+
+    # This not only populates the environment with the default region, but also
+    # ensures that a TestEnvRegionDirectory instance is injected into global state.
+    # See sentry.testutils.region.get_test_env_directory, which relies on it.
+    region.set_global_directory(TestEnvRegionDirectory([default_region]))
+
+    settings.SENTRY_SUBNET_SECRET = "secret"
+    settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
+
+    monkey_patch_single_process_silo_mode_state()
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -79,24 +109,6 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.utils import integrationdocs
 
     integrationdocs.DOC_FOLDER = os.environ["INTEGRATION_DOC_FOLDER"]
-
-    if not settings.configured:
-        # only configure the db if its not already done
-        test_db = os.environ.get("DB", "postgres")
-        if test_db == "postgres":
-            settings.DATABASES["default"].update(
-                {
-                    "ENGINE": "sentry.db.postgres",
-                    "USER": "postgres",
-                    "NAME": "sentry",
-                    "HOST": "127.0.0.1",
-                }
-            )
-            # postgres requires running full migration all the time
-            # since it has to install stored functions which come from
-            # an actual migration.
-        else:
-            raise RuntimeError("oops, wrong database: %r" % test_db)
 
     configure_split_db()
 
@@ -208,7 +220,8 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
-    settings.SENTRY_REGION = None
+
+    _configure_test_env_regions()
 
     # ID controls
     settings.SENTRY_USE_BIG_INTS = True

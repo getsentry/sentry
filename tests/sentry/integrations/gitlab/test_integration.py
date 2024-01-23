@@ -24,6 +24,7 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
+from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
 @control_silo_test
@@ -107,9 +108,11 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert req_params["client_id"] == ["client_id"]
         assert req_params["client_secret"] == ["client_secret"]
 
-        assert resp.status_code == 200
-
-        self.assertDialogSuccess(resp)
+        assert resp.status_code == 302
+        assert (
+            resp["Location"]
+            == f"http://testserver/settings/{self.organization.slug}/integrations/gitlab/"
+        )
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
@@ -189,9 +192,13 @@ class GitlabIntegrationTest(IntegrationTestCase):
             "https://gitlab.example.com/oauth/token",
             json={"access_token": "access-token-value"},
         )
+
+        group_that_does_not_exist = "cool-group"
         responses.add(responses.GET, "https://gitlab.example.com/api/v4/user", json={"id": 9})
         responses.add(
-            responses.GET, "https://gitlab.example.com/api/v4/groups/cool-group", status=404
+            responses.GET,
+            f"https://gitlab.example.com/api/v4/groups/{group_that_does_not_exist}",
+            status=404,
         )
         resp = self.client.get(
             "{}?{}".format(
@@ -200,7 +207,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             )
         )
         assert resp.status_code == 200
-        self.assertContains(resp, "GitLab group could not be found")
+        self.assertContains(resp, f"GitLab group {group_that_does_not_exist} could not be found")
 
     @responses.activate
     def test_get_group_id(self):
@@ -667,9 +674,12 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         assert req_params["client_id"] == ["client_id"]
         assert req_params["client_secret"] == ["client_secret"]
 
-        assert resp.status_code == 200
+        assert resp.status_code == 302
 
-        self.assertDialogSuccess(resp)
+        assert (
+            resp["Location"]
+            == f"http://testserver/settings/{self.organization.slug}/integrations/gitlab/"
+        )
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
@@ -801,14 +811,15 @@ class GitlabProxyApiClientTest(GitLabTestCase):
     def test_integration_proxy_is_active(self):
         gitlab_id = 123
         commit = "a" * 40
-        responses.add(
+        gitlab_response = responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
             json=json.loads(GET_COMMIT_RESPONSE),
         )
-        responses.add(
+
+        control_proxy_response = add_control_silo_proxy_response(
             method=responses.GET,
-            url=f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
+            path=f"api/v4/projects/{gitlab_id}/repository/commits/{commit}",
             json=json.loads(GET_COMMIT_RESPONSE),
         )
 
@@ -825,6 +836,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
                 == request.url
             )
             assert client.base_url in request.url
+            assert gitlab_response.call_count == 1
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -839,6 +851,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
                 == request.url
             )
             assert client.base_url in request.url
+            assert gitlab_response.call_count == 2
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -848,9 +861,6 @@ class GitlabProxyApiClientTest(GitLabTestCase):
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 
-            assert (
-                f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
-                == request.url
-            )
+            assert control_proxy_response.call_count == 1
             assert client.base_url not in request.url
             assert_proxy_request(request, is_proxy=True)

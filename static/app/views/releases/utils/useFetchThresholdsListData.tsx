@@ -34,7 +34,8 @@ export default function useFetchThresholdsListData({
     {
       staleTime: 0,
       enabled:
-        (organization.features?.includes('releases-v2') ||
+        (organization.features?.includes('releases-v2-internal') ||
+          organization.features?.includes('releases-v2') ||
           organization.features?.includes('releases-v2-st')) ??
         false,
     }

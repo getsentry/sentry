@@ -126,10 +126,10 @@ def get_openai_client() -> OpenAI:
     return openai_client
 
 
-def get_openai_policy(organization):
+def get_openai_policy(organization, user):
     """Uses a signal to determine what the policy for OpenAI should be."""
     results = openai_policy_check.send(
-        sender=EventAiSuggestedFixEndpoint, organization=organization
+        sender=EventAiSuggestedFixEndpoint, organization=organization, user=user
     )
     result = "allowed"
 
@@ -221,6 +221,8 @@ def describe_event_for_ai(event, model):
         if frames:
             stacktrace = []
             for frame in reversed(frames):
+                if frame is None:
+                    continue
                 stack_frame: dict[str, Any] = {}
                 set_if_value(stack_frame, "func", frame.get("function"))
                 set_if_value(stack_frame, "module", frame.get("module"))
@@ -292,10 +294,10 @@ def reduce_stream(response):
 
 @region_silo_endpoint
 class EventAiSuggestedFixEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
     # go away
     private = True
     enforce_rate_limit = True
@@ -324,14 +326,17 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         # Check the OpenAI access policy
-        policy = get_openai_policy(request.organization)
+        policy = get_openai_policy(request.organization, request.user)
         policy_failure = None
         stream = request.GET.get("stream") == "yes"
+
         if policy == "subprocessor":
             policy_failure = "subprocessor"
         elif policy == "individual_consent":
             if request.GET.get("consent") != "yes":
                 policy_failure = "individual_consent"
+        elif policy == "pii_certification_required":
+            policy_failure = "pii_certification_required"
         elif policy == "allowed":
             pass
         else:

@@ -6,10 +6,13 @@ import type {
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getReplayConfigOptions,
   getReplayConfigureDescription,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {
@@ -17,9 +20,9 @@ export enum VueVersion {
   VUE2 = 'vue2',
 }
 
-type PlaformOptionKey = 'siblingOption';
+type PlatformOptionKey = 'siblingOption';
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Vue Version'),
     items: [
@@ -52,7 +55,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(),`
+          new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
     }
   ],${
@@ -279,14 +282,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      configurations: [
-        {
-          description: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
-          }),
-          configurations: getSetupConfiguration({...params, isReplaySelected: true}),
-        },
-      ],
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
+      }),
+      configurations: getSetupConfiguration(params),
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],
@@ -297,6 +297,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   replayOnboardingNpm: replayOnboarding,
+  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
 };
 
 export default docs;

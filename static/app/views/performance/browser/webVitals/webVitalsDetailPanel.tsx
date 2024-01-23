@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import toUpper from 'lodash/toUpper';
 
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import GridEditable, {
@@ -165,7 +164,7 @@ export function WebVitalsDetailPanel({
             <span>
               {tct(
                 "A number rating how impactful a performance improvement on this page would be to your application's [webVital] Performance Score.",
-                {webVital: webVital ? toUpper(webVital) : ''}
+                {webVital: webVital?.toUpperCase() ?? ''}
               )}
               <br />
               <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
@@ -233,23 +232,21 @@ export function WebVitalsDetailPanel({
   };
 
   const webVitalScore = projectScore[`${webVital}Score`];
+  const webVitalValue = projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as
+    | number
+    | undefined;
 
   return (
     <PageAlertProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
-        {webVital && webVitalScore !== undefined && (
+        {webVital && (
           <WebVitalDescription
             value={
-              webVital !== 'cls'
-                ? getDuration(
-                    (projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number) /
-                      1000,
-                    2,
-                    true
-                  )
-                : (
-                    projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as number
-                  )?.toFixed(2)
+              webVitalValue !== undefined
+                ? webVital !== 'cls'
+                  ? getDuration(webVitalValue / 1000, 2, true)
+                  : webVitalValue?.toFixed(2)
+                : undefined
             }
             webVital={webVital}
             score={webVitalScore}

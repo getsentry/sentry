@@ -6,6 +6,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
@@ -114,6 +115,16 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
 
         for config in configs:
             assert config.get("value") is None
+
+    @with_feature("organizations:data-forwarding")
+    def test_allow_plugin_with_feature_enabled(self):
+        self.get_success_response(self.organization.slug, self.project.slug, "amazon-sqs")
+
+    @with_feature({"organizations:data-forwarding": False})
+    def test_disallow_plugin_with_feature_disabled(self):
+        self.get_error_response(
+            self.organization.slug, self.project.slug, "amazon-sqs", status_code=403
+        )
 
 
 @region_silo_test

@@ -1,5 +1,5 @@
 import {Series} from 'sentry/types/echarts';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
@@ -25,13 +25,12 @@ export function ThroughputChart({series, isLoading}: Props) {
         }}
         data={[series]}
         loading={isLoading}
-        utc={false}
         chartColors={[THROUGHPUT_COLOR]}
         isLineChart
         aggregateOutputFormat="rate"
-        rateUnit={RateUnits.PER_MINUTE}
+        rateUnit={RateUnit.PER_MINUTE}
         tooltipFormatterOptions={{
-          valueFormatter: value => formatRate(value, RateUnits.PER_MINUTE),
+          valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
         }}
       />
     </ChartPanel>

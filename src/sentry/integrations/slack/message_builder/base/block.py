@@ -45,7 +45,6 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             title = tag["title"]
             value = tag["value"]
             fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
-
         return {"type": "section", "fields": fields}
 
     @staticmethod
@@ -62,17 +61,52 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_external_select_action(action, initial_option):
+        action = {
+            "type": "external_select",
+            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
+            "action_id": action.name,
+        }
+        if initial_option:
+            action["initial_option"] = initial_option
+
+        return action
+
+    @staticmethod
     def get_button_action(action):
         button = {
             "type": "button",
-            "action_id": action.value,
             "text": {"type": "plain_text", "text": action.label},
-            "value": action.value,
         }
+        if action.value:
+            button["action_id"] = action.value
+            button["value"] = action.value
+
+        if action.action_id:
+            button["action_id"] = action.action_id
+
         if action.url:
             button["url"] = action.url
+            button["value"] = "link_clicked"
 
         return button
+
+    @staticmethod
+    def get_link_button(action):
+        return {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": action.label,
+            },
+            "accessory": {
+                "type": "button",
+                "text": {"type": "plain_text", "text": action.name, "emoji": True},
+                "style": action.style,
+                "value": action.value,
+                "url": action.url,
+            },
+        }
 
     @staticmethod
     def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
@@ -118,10 +152,12 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         fallback_text: Optional[str] = None,
         color: Optional[str] = None,
         block_id: Optional[dict[str, int]] = None,
+        callback_id: Optional[str] = None,
+        skip_fallback: bool = False,
     ) -> SlackBlock:
         blocks: dict[str, Any] = {"blocks": list(args)}
 
-        if fallback_text:
+        if fallback_text and not skip_fallback:
             blocks["text"] = fallback_text
 
         if color:
@@ -130,6 +166,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         # put the block_id into the first block
         if block_id:
             blocks["blocks"][0]["block_id"] = block_id
+
+        if callback_id:
+            blocks["callback_id"] = callback_id
 
         return blocks
 

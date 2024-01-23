@@ -59,7 +59,7 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
                     return Response(
                         {"detail": "Bitbucket Repository has no issue tracker."}, status=400
                     )
-                raise e
+                raise
             return Response(
                 [
                     {"label": "#{} {}".format(i["id"], i["title"]), "value": i["id"]}

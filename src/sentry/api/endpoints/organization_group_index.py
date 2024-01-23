@@ -12,10 +12,10 @@ from sentry import features, search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
+from sentry.api.bases import OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
-    ValidationError,
     build_query_params_from_request,
     calculate_stats_period,
     delete_groups,
@@ -23,12 +23,13 @@ from sentry.api.helpers.group_index import (
     track_slo_response,
     update_groups,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
-from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
+from sentry.api.utils import get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -136,7 +137,7 @@ def inbox_search(
 
 
 @region_silo_endpoint
-class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

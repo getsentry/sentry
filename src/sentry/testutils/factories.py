@@ -61,6 +61,7 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.external_actor import ExternalActor
@@ -71,6 +72,7 @@ from sentry.models.integrations.integration_feature import (
     IntegrationFeature,
     IntegrationTypes,
 )
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import (
@@ -112,6 +114,8 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -380,7 +384,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user_auth_token(user, scope_list: List[str], **kwargs) -> ApiToken:
+    def create_user_auth_token(user, scope_list: List[str] = None, **kwargs) -> ApiToken:
+        if scope_list is None:
+            scope_list = []
         return ApiToken.objects.create(
             user=user,
             scope_list=scope_list,
@@ -580,6 +586,13 @@ class Factories:
             release.update(authors=[str(author.id)], commit_count=1, last_commit_id=commit.id)
 
         return release
+
+    def create_group_release(project: Project, group: Group, release: Release) -> GroupRelease:
+        return GroupRelease.objects.create(
+            project_id=project.id,
+            group_id=group.id,
+            release_id=release.id,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -831,6 +844,7 @@ class Factories:
                 )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
@@ -1512,12 +1526,46 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
-        return IdentityProvider.objects.create(
-            type=integration.provider,
-            external_id=integration.external_id,
-            config={},
-        )
+    def create_provider_integration(**integration_params: Any) -> Integration:
+        return Integration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_provider_integration_for(
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        integration = Integration.objects.create(**integration_params)
+        org_integration = integration.add_organization(organization, user)
+        assert org_integration is not None
+        return integration, org_integration
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_integration(**integration_params: Any) -> OrganizationIntegration:
+        return OrganizationIntegration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_provider(
+        integration: Integration | None = None,
+        config: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> IdentityProvider:
+        if integration is not None:
+            integration_values = dict(
+                type=integration.provider,
+                external_id=integration.external_id,
+            )
+            if any((key in kwargs) for key in integration_values):
+                raise ValueError(
+                    "Values from integration should not be in kwargs: "
+                    + repr(list(integration_values.keys()))
+                )
+            kwargs.update(integration_values)
+
+        return IdentityProvider.objects.create(config=config or {}, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

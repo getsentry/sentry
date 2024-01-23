@@ -84,7 +84,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize(org, user=as_user)
 
     def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
+        self,
+        *,
+        id: int,
+        user_id: Optional[int] = None,
+        slug: Optional[str] = None,
+        include_projects: Optional[bool] = True,
+        include_teams: Optional[bool] = True,
     ) -> Optional[RpcUserOrganizationContext]:
         membership: Optional[RpcOrganizationMember] = None
         if user_id is not None:
@@ -99,7 +105,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return RpcUserOrganizationContext(
-            user_id=user_id, organization=serialize_rpc_organization(org), member=membership
+            user_id=user_id,
+            organization=serialize_rpc_organization(
+                org, include_projects=include_projects, include_teams=include_teams
+            ),
+            member=membership,
         )
 
     def get_org_by_slug(
@@ -120,7 +130,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: str
+        self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
     ) -> List[RpcOrganization]:
         organizations = Organization.objects.get_for_user(user=user, scope=scope)
         return list(map(serialize_rpc_organization, organizations))
@@ -633,6 +643,15 @@ class ControlOrganizationCheckService(OrganizationCheckService):
 
         return None
 
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        # See RegionOrganizationCheckService below
+        org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
+        if org_mapping is None:
+            return False
+        if only_visible and org_mapping.status != OrganizationStatus.ACTIVE:
+            return False
+        return True
+
 
 class RegionOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
@@ -646,6 +665,18 @@ class RegionOrganizationCheckService(OrganizationCheckService):
             logger.info("Organization by slug [%s] not found", slug)
 
         return None
+
+    def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
+        # See ControlOrganizationCheckService above
+        try:
+            org = Organization.objects.get_from_cache(id=id)
+            if only_visible and org.status != OrganizationStatus.ACTIVE:
+                raise Organization.DoesNotExist
+            return True
+        except Organization.DoesNotExist:
+            pass
+
+        return False
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):

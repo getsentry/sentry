@@ -1,6 +1,6 @@
-import {type Event, EventOrGroupType, EventsStats as TEventsStats} from 'sentry/types';
+import {type Event, EventOrGroupType, EventsStats} from 'sentry/types';
 
-export function EventsStats(params = {}): TEventsStats {
+export function EventsStatsFixture(params = {}): EventsStats {
   return {
     data: [
       [new Date().getTime(), [{count: 321}, {count: 79}]],
@@ -10,7 +10,7 @@ export function EventsStats(params = {}): TEventsStats {
   };
 }
 
-export function DetailedEvents(): Event[] {
+export function DetailedEventsFixture(): Event[] {
   return [
     {
       eventID: '807f0de4d8c246098f21f8e0f1684f3d',

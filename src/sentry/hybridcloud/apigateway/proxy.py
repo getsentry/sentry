@@ -9,11 +9,11 @@ from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
-from django.http import HttpRequest, StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
+from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import request as external_request
 from requests.exceptions import Timeout
-from rest_framework.exceptions import NotFound
 
 from sentry.api.exceptions import RequestTimeout
 from sentry.models.integrations.sentry_app import SentryApp
@@ -30,8 +30,19 @@ from sentry.types.region import (
     get_region_by_name,
     get_region_for_organization,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# Endpoints that handle uploaded files have higher timeouts configured
+# and we need to honor those timeouts when proxying.
+# See frontend/templates/sites-enabled/sentry.io in getsentry/ops
+ENDPOINT_TIMEOUT_OVERRIDE = {
+    "sentry-api-0-chunk-upload": 90.0,
+    "sentry-api-0-organization-release-files": 90.0,
+    "sentry-api-0-project-release-files": 90.0,
+    "sentry-api-0-dsym-files": 90.0,
+}
 
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
@@ -62,8 +73,6 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
 class _body_with_length:
     """Wraps an HttpRequest with a __len__ so that the request library does not assume length=0 in all cases"""
 
-    request: HttpRequest
-
     def __init__(self, request: HttpRequest):
         self.request = request
 
@@ -77,74 +86,87 @@ class _body_with_length:
         return self.request.read(size)
 
 
-def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
+def proxy_request(request: HttpRequest, org_slug: str, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a remote location given an org_slug"""
 
     try:
         region = get_region_for_organization(org_slug)
     except RegionResolutionError as e:
-        logger.info("region_resolution_error", extra={"org_slug": org_slug})
-        raise NotFound from e
+        logger.info("region_resolution_error", extra={"org_slug": org_slug, "error": str(e)})
+        return HttpResponse(status=404)
 
-    return proxy_region_request(request, region)
+    return proxy_region_request(request, region, url_name)
 
 
 def proxy_sentryappinstallation_request(
-    request: HttpRequest, installation_uuid: str
-) -> StreamingHttpResponse:
+    request: HttpRequest, installation_uuid: str, url_name: str
+) -> HttpResponseBase:
     """Take a django request object and proxy it to a remote location given a sentryapp installation uuid"""
     try:
         installation = SentryAppInstallation.objects.get(uuid=installation_uuid)
     except SentryAppInstallation.DoesNotExist as e:
-        logger.info("region_resolution_error", extra={"installation_uuid": installation_uuid})
-        raise NotFound from e
+        logger.info(
+            "region_resolution_error",
+            extra={"installation_uuid": installation_uuid, "error": str(e)},
+        )
+        return HttpResponse(status=404)
+
     try:
         organization_mapping = OrganizationMapping.objects.get(
             organization_id=installation.organization_id
         )
         region = get_region_by_name(organization_mapping.region_name)
     except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info("region_resolution_error", extra={"installation_id": installation_uuid})
-        raise NotFound from e
+        logger.info(
+            "region_resolution_error", extra={"installation_id": installation_uuid, "error": str(e)}
+        )
+        return HttpResponse(status=404)
 
-    return proxy_region_request(request, region)
+    return proxy_region_request(request, region, url_name)
 
 
-def proxy_sentryapp_request(request: HttpRequest, app_slug: str) -> StreamingHttpResponse:
+def proxy_sentryapp_request(request: HttpRequest, app_slug: str, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to the region of the organization that owns a sentryapp"""
     try:
         sentry_app = SentryApp.objects.get(slug=app_slug)
     except SentryApp.DoesNotExist as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_slug})
-        raise NotFound from e
+        logger.info("region_resolution_error", extra={"app_slug": app_slug, "error": str(e)})
+        return HttpResponse(status=404)
+
     try:
         organization_mapping = OrganizationMapping.objects.get(organization_id=sentry_app.owner_id)
         region = get_region_by_name(organization_mapping.region_name)
     except (RegionResolutionError, OrganizationMapping.DoesNotExist) as e:
-        logger.info("region_resolution_error", extra={"app_slug": app_slug})
-        raise NotFound from e
+        logger.info("region_resolution_error", extra={"app_slug": app_slug, "error": str(e)})
+        return HttpResponse(status=404)
 
-    return proxy_region_request(request, region)
+    return proxy_region_request(request, region, url_name)
 
 
-def proxy_region_request(request: HttpRequest, region: Region) -> StreamingHttpResponse:
+def proxy_region_request(
+    request: HttpRequest, region: Region, url_name: str
+) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a region silo"""
     target_url = urljoin(region.address, request.path)
     header_dict = clean_proxy_headers(request.headers)
+
     # TODO: use requests session for connection pooling capabilities
     assert request.method is not None
     query_params = request.GET
+
+    timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
+    metric_tags = {"region": region.name, "url_name": url_name}
     try:
-        assert not request._read_started  # type: ignore
-        resp = external_request(
-            request.method,
-            url=target_url,
-            headers=header_dict,
-            params=dict(query_params) if query_params is not None else None,
-            data=_body_with_length(request),  # type: ignore
-            stream=True,
-            timeout=settings.GATEWAY_PROXY_TIMEOUT,
-        )
+        with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
+            resp = external_request(
+                request.method,
+                url=target_url,
+                headers=header_dict,
+                params=dict(query_params) if query_params is not None else None,
+                data=_body_with_length(request),
+                stream=True,
+                timeout=timeout,
+            )
     except Timeout:
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()

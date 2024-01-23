@@ -10,6 +10,7 @@ from typing import (
     Dict,
     List,
     Literal,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -28,6 +29,8 @@ from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
+    QueryOp,
+    QueryToken,
     SearchFilter,
     SearchKey,
     SearchValue,
@@ -35,6 +38,7 @@ from sentry.api.event_search import (
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
@@ -46,6 +50,53 @@ from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
+
+
+# This helps us control the different spec versions
+# in order to migrate customers from invalid specs
+class SpecVersion(NamedTuple):
+    version: int
+    flags: set[str] = set()
+
+
+class OnDemandMetricSpecVersioning:
+    """
+    This class helps iterate over all spec versions we support with get_spec_versions.
+
+    If spec_versions only has one item that means we only have one metric spec being collected.
+
+    In order to add a new spec version update spec_versions with the flags which you will use
+    within OnDemandMetricSpec. You also need to adjust get_query_spec_version to return the spec
+    version you want for a specific feature flag.
+
+    Once we're ready to abandon a version:
+    - coalesce the spec_versions
+    - clear the feature/flags mapping in get_query_spec_version
+    - remove any associated customizations to OnDemandMetricSpec
+
+    When there's a single version we should not have any flags and get_query_spec_version
+    should return the default spec version.
+    """
+
+    spec_versions = [
+        SpecVersion(1),
+    ]
+
+    @classmethod
+    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
+        """Return spec version based on feature flag enabled for an organization."""
+        _ = Organization.objects.get_from_cache(id=organization_id)
+        return cls.spec_versions[0]
+
+    @classmethod
+    def get_spec_versions(cls: Any) -> Sequence[SpecVersion]:
+        """Get all spec versions."""
+        return cls.spec_versions
+
+    @classmethod
+    def get_default_spec_version(cls: Any) -> SpecVersion:
+        return cls.spec_versions[0]
+
 
 # Name component of MRIs used for custom alert metrics.
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
@@ -249,9 +300,6 @@ _BLACKLISTED_METRIC_FIELDS = ["event.type", "project"]
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
-QueryOp = Literal["AND", "OR"]
-QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
-
 Variables = Dict[str, Any]
 
 query_builder = UnresolvedQuery(
@@ -320,6 +368,32 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+def _check_event_type_transaction(
+    query: Sequence[QueryToken], is_top_level_call: bool = True
+) -> bool:
+    transaction_filter = False
+
+    for token in query:
+        if isinstance(token, SearchFilter):
+            if token.key.name == "event.type" and token.value.value == "transaction":
+                transaction_filter = True
+                break
+        elif isinstance(token, ParenExpression):
+            contains_transaction = _check_event_type_transaction(
+                token.children, is_top_level_call=False
+            )
+            if contains_transaction:
+                transaction_filter = True
+                break
+
+    # Only if we are top level call, and we didn't find any transaction filter, we throw an exception, otherwise it
+    # means we are in a nested expression and not finding a transaction doesn't mean we never found it.
+    if is_top_level_call and not transaction_filter:
+        raise ValueError("event.type:transaction not found in the query")
+
+    return transaction_filter
+
+
 def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
     # If we have `message:something` we convert it to `message:*something*` since we want to perform `contains` matching
     # exactly how discover does it.
@@ -359,22 +433,89 @@ def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]
     return transformed_query
 
 
-def _parse_search_query(
-    query: Optional[str], removed_blacklisted: bool = False
+def parse_search_query(
+    query: Optional[str],
+    removed_blacklisted: bool = False,
+    force_transaction_event_type: bool = False,
 ) -> Sequence[QueryToken]:
     """
     Parses a search query with the discover grammar and performs some transformations on the AST in order to account for
     edge cases.
     """
     tokens = cast(Sequence[QueryToken], event_search.parse_search_query(query))
+
+    # We might want to force the `event.type:transaction` to be in the query, as a validation step.
+    if force_transaction_event_type:
+        _check_event_type_transaction(tokens)
+
     # As first step, we transform the search query by applying basic transformations.
     tokens = _transform_search_query(tokens)
 
     # As second step, if enabled, we remove elements from the query which are blacklisted.
     if removed_blacklisted:
-        tokens = _cleanup_query(_remove_blacklisted_search_filters(tokens))
+        tokens = cleanup_search_query(_remove_blacklisted_search_filters(tokens))
 
     return tokens
+
+
+def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
+    """
+    Recreates a valid query from an original query that has had on demand search filters removed.
+
+    When removing filters from a query it is possible to create invalid queries.
+    For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
+    would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
+
+    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which
+    would be cleaned to "release:internal or os.name:android"
+    """
+    tokens = list(tokens)
+
+    # remove empty parens
+    removed_empty_parens: List[QueryToken] = []
+    for token in tokens:
+        if not isinstance(token, ParenExpression):
+            removed_empty_parens.append(token)
+        else:
+            children = cleanup_search_query(token.children)
+            if len(children) > 0:
+                removed_empty_parens.append(ParenExpression(children))
+
+    # remove AND and OR operators at the start of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
+        removed_empty_parens.pop(0)
+
+    # remove AND and OR operators at the end of the query
+    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[-1], str):
+        removed_empty_parens.pop()
+
+    # remove AND and OR operators that are next to each other
+    ret_val = []
+    previous_token: Optional[QueryToken] = None
+
+    for token in removed_empty_parens:
+        # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
+        if isinstance(token, str) and isinstance(previous_token, str):
+            token = cast(QueryOp, token.upper())
+            # this handles two AND/OR operators next to each other, we must drop one of them
+            # if we have an AND do nothing (AND will be merged in the previous token see comment below)
+            # if we have an OR the resulting operator will be an OR
+            # AND OR => OR
+            # OR OR => OR
+            # OR AND => OR
+            # AND AND => AND
+            if token == "OR":
+                previous_token = "OR"
+            continue
+        elif previous_token is not None:
+            ret_val.append(previous_token)
+        previous_token = token
+
+    # take care of the last token (if any)
+    if previous_token is not None:
+        ret_val.append(previous_token)
+
+    return ret_val
 
 
 def _parse_function(aggregate: str) -> Tuple[str, List[str], str]:
@@ -559,7 +700,7 @@ def _get_groupbys_support(groupbys: Sequence[str]) -> SupportedBy:
 
 def _get_query_supported_by(query: Optional[str]) -> SupportedBy:
     try:
-        parsed_query = _parse_search_query(query=query, removed_blacklisted=False)
+        parsed_query = parse_search_query(query=query, removed_blacklisted=False)
 
         standard_metrics = _is_standard_metrics_query(parsed_query)
         on_demand_metrics = _is_on_demand_supported_query(parsed_query)
@@ -679,7 +820,7 @@ def to_standard_metrics_query(query: str) -> str:
         "transaction.duration:>=1s AND browser.version:1" -> ""
     """
     try:
-        tokens = _parse_search_query(query=query, removed_blacklisted=False)
+        tokens = parse_search_query(query=query, removed_blacklisted=False)
     except InvalidSearchQuery:
         logger.exception("Failed to parse search query: %s", query)
         raise
@@ -694,7 +835,7 @@ def to_standard_metrics_tokens(tokens: Sequence[QueryToken]) -> Sequence[QueryTo
     that has all on-demand filters removed and can be run using only standard metrics.
     """
     remaining_tokens = _remove_on_demand_search_filters(tokens)
-    cleaned_query = _cleanup_query(remaining_tokens)
+    cleaned_query = cleanup_search_query(remaining_tokens)
     return cleaned_query
 
 
@@ -745,66 +886,6 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
     return ret_val
 
 
-def _cleanup_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
-    """
-    Recreates a valid query from an original query that has had on demand search filters removed.
-
-    When removing filters from a query it is possible to create invalid queries.
-    For example removing the on demand filters from "transaction.duration:>=1s OR browser.version:1 AND environment:dev"
-    would result in "OR AND environment:dev" which is not a valid query this should be cleaned to "environment:dev.
-
-    "release:internal and browser.version:1 or os.name:android" => "release:internal or and os.name:android" which
-    would be cleaned to "release:internal or os.name:android"
-    """
-    tokens = list(tokens)
-
-    # remove empty parens
-    removed_empty_parens: List[QueryToken] = []
-    for token in tokens:
-        if not isinstance(token, ParenExpression):
-            removed_empty_parens.append(token)
-        else:
-            children = _cleanup_query(token.children)
-            if len(children) > 0:
-                removed_empty_parens.append(ParenExpression(children))
-
-    # remove AND and OR operators at the start of the query
-    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[0], str):
-        removed_empty_parens.pop(0)
-
-    # remove AND and OR operators at the end of the query
-    while len(removed_empty_parens) > 0 and isinstance(removed_empty_parens[-1], str):
-        removed_empty_parens.pop()
-
-    # remove AND and OR operators that are next to each other
-    ret_val = []
-    previous_token: Optional[QueryToken] = None
-
-    for token in removed_empty_parens:
-        # this loop takes care of removing consecutive AND/OR operators (keeping only one of them)
-        if isinstance(token, str) and isinstance(previous_token, str):
-            token = cast(QueryOp, token.upper())
-            # this handles two AND/OR operators next to each other, we must drop one of them
-            # if we have an AND do nothing (AND will be merged in the previous token see comment below)
-            # if we have an OR the resulting operator will be an OR
-            # AND OR => OR
-            # OR OR => OR
-            # OR AND => OR
-            # AND AND => AND
-            if token == "OR":
-                previous_token = "OR"
-            continue
-        elif previous_token is not None:
-            ret_val.append(previous_token)
-        previous_token = token
-
-    # take care of the last token (if any)
-    if previous_token is not None:
-        ret_val.append(previous_token)
-
-    return ret_val
-
-
 def _remove_redundant_parentheses(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     """
     Removes redundant parentheses in the form (((expr))) since they are not needed and might lead to parsing issues
@@ -821,6 +902,33 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
         return value
+
+
+def are_specs_equal(spec_1: MetricSpec, spec_2: MetricSpec) -> bool:
+    equal = True
+    if spec_1.keys() != spec_2.keys():
+        equal = False
+
+    if equal:
+        for key, value in spec_1.items():
+            if key == "tags":
+                return _compare_lists(spec_1["tags"], spec_2["tags"])
+
+            elif spec_2.get(key) != value:
+                equal = False
+
+    return equal
+
+
+def _compare_lists(list_1: Sequence[Any], list_2: Sequence[Any]) -> bool:
+    if len(list_1) != len(list_2):
+        return False
+
+    for _, value in enumerate(list_1):
+        if value not in list_2:
+            return False
+
+    return True
 
 
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
@@ -995,6 +1103,7 @@ class OnDemandMetricSpec:
     query: str
     groupbys: Sequence[str]
     spec_type: MetricSpecType
+    spec_version: SpecVersion
 
     # Public fields.
     op: MetricOperationType
@@ -1010,12 +1119,16 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-        use_updated_env_logic: bool = True,
+        spec_version: Optional[SpecVersion] = None,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.use_updated_env_logic = use_updated_env_logic
+        self.spec_version = (
+            spec_version
+            if spec_version
+            else OnDemandMetricSpecVersioning.get_default_spec_version()
+        )
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1072,7 +1185,7 @@ class OnDemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         str_to_hash = self._query_str_for_hash
-        hash = hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        hash = hashlib.shake_128(bytes(str_to_hash, encoding="utf-8")).hexdigest(4)
         with sentry_sdk.start_span(op="OnDemandMetricSpec.query_hash", description=hash) as span:
             span.set_tag("str_to_hash", str_to_hash)
         return hash
@@ -1227,22 +1340,14 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.use_updated_env_logic:
-                conditions = [ParenExpression(children=conditions)] if conditions else []
-                # This transformation is equivalent to (new_conditions) AND (conditions).
-                extended_conditions = [ParenExpression(children=new_conditions)] + conditions
-            else:
-                # This transformation is not behaving correctly since it can violate precedence rules. Since we use
-                # an AND condition for the environment, it will bind with higher priority than an OR specified in the
-                # user query, effectively resulting in the wrong condition (e.g., (X AND Y) OR Z != X AND (Y OR Z)).
-                #
-                # This transformation is equivalent to new_conditions and conditions.
-                extended_conditions = new_conditions + conditions
+            conditions = [ParenExpression(children=conditions)] if conditions else []
+            # This transformation is equivalent to (new_conditions) AND (conditions).
+            extended_conditions = [ParenExpression(children=new_conditions)] + conditions
 
         return QueryParsingResult(conditions=extended_conditions)
 
     @staticmethod
-    def _aggregate_conditions(parsed_field) -> Optional[RuleCondition]:
+    def _aggregate_conditions(parsed_field: FieldParsingResult) -> Optional[RuleCondition]:
         # We have to handle the special case for the "count_if" function, however it may be better to build some
         # better abstracted code to handle third-party rule conditions injection.
         if parsed_field.function == "count_if":
@@ -1305,7 +1410,7 @@ class OnDemandMetricSpec:
     def _parse_query(value: str) -> QueryParsingResult:
         """Parse query string into our internal AST format."""
         try:
-            conditions = _parse_search_query(query=value, removed_blacklisted=True)
+            conditions = parse_search_query(query=value, removed_blacklisted=True)
 
             # In order to avoid having issues with the parsing logic, we want to remove any unnecessary parentheses
             # that are not needed, since if we had the parentheses this might lead to a different conditions tree, which

@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -55,7 +56,7 @@ function renderComponent({
 }
 
 describe('Discover -> CellAction', function () {
-  const location: Location = TestStubs.location({
+  const location: Location = LocationFixture({
     query: {
       id: '42',
       name: 'best query',
@@ -132,7 +133,7 @@ describe('Discover -> CellAction', function () {
 
     it('exclude button appends exclusions', async function () {
       const excludeView = EventView.fromLocation(
-        TestStubs.location({
+        LocationFixture({
           query: {...location.query, query: '!transaction:nope'},
         })
       );

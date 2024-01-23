@@ -1,3 +1,5 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -17,17 +19,17 @@ describe('ProjectDetail > ProjectIssues', function () {
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
 
     filteredEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=7d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
 
     newIssuesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved%20is%3Afor_review&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
 
     MockApiClient.addMockResponse({
@@ -54,14 +56,14 @@ describe('ProjectDetail > ProjectIssues', function () {
   it('renders a list', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [GroupFixture(), GroupFixture({id: '2'})],
     });
     render(
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
         context: routerContext,
@@ -77,7 +79,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       <ProjectIssues
         api={new MockApiClient()}
         organization={organization}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
         location={router.location}
       />,
       {
@@ -107,7 +109,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
         context: routerContext,
@@ -137,7 +139,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         api={new MockApiClient()}
         organization={organization}
         location={router.location}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
       />,
       {
         context: routerContext,
@@ -167,7 +169,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       <ProjectIssues
         organization={organization}
         api={new MockApiClient()}
-        projectId={project.id}
+        projectId={parseInt(project.id, 10)}
         location={{
           ...router.location,
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},

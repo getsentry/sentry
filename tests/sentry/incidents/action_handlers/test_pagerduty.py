@@ -7,7 +7,6 @@ from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 
@@ -26,13 +25,14 @@ class PagerDutyActionHandlerTest(FireTest):
                 "service_name": "hellboi",
             }
         ]
-        self.integration = Integration.objects.create(
+        self.integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
             metadata={"service": service},
         )
-        org_integration = self.integration.add_organization(self.organization, self.user)
 
         self.service = add_service(
             org_integration,

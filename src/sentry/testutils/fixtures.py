@@ -10,11 +10,16 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.identity import IdentityProvider
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
@@ -188,6 +193,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_release(project=project, user=user, *args, **kwargs)
+
+    def create_group_release(self, project: Project = None, *args, **kwargs) -> GroupRelease:
+        if project is None:
+            project = self.project
+        return Factories.create_group_release(project, *args, **kwargs)
 
     def create_release_file(self, release_id=None, file=None, name=None, dist_id=None):
         if release_id is None:
@@ -443,13 +453,36 @@ class Fixtures:
         oi_params: Mapping[str, Any] | None = None,
         **kwargs: Any,
     ) -> Integration:
+        """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
+
+    def create_provider_integration(self, **integration_params: Any) -> Integration:
+        """Create an integration tied to a provider but no particular organization."""
+        return Factories.create_provider_integration(**integration_params)
+
+    def create_provider_integration_for(
+        self,
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        """Create an integration tied to a provider, then add an organization."""
+        return Factories.create_provider_integration_for(organization, user, **integration_params)
+
+    def create_organization_integration(self, **integration_params: Any) -> OrganizationIntegration:
+        """Create an OrganizationIntegration entity."""
+        return Factories.create_organization_integration(**integration_params)
 
     def create_identity(self, *args, **kwargs):
         return Factories.create_identity(*args, **kwargs)
 
-    def create_identity_provider(self, *args, **kwargs):
-        return Factories.create_identity_provider(*args, **kwargs)
+    def create_identity_provider(
+        self,
+        integration: Integration | None = None,
+        config: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> IdentityProvider:
+        return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
         if "actor" not in kwargs:

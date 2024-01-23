@@ -4,6 +4,7 @@ import hashlib
 import importlib.metadata
 import inspect
 import os.path
+import random
 import re
 import time
 from contextlib import contextmanager
@@ -47,6 +48,12 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.auth.staff import COOKIE_DOMAIN as STAFF_COOKIE_DOMAIN
+from sentry.auth.staff import COOKIE_NAME as STAFF_COOKIE_NAME
+from sentry.auth.staff import COOKIE_PATH as STAFF_COOKIE_PATH
+from sentry.auth.staff import COOKIE_SALT as STAFF_COOKIE_SALT
+from sentry.auth.staff import COOKIE_SECURE as STAFF_COOKIE_SECURE
+from sentry.auth.staff import Staff
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
 from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
@@ -107,7 +114,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
@@ -280,6 +287,7 @@ class BaseTestCase(Fixtures):
         request.user = user or AnonymousUser()
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
+        request.staff = Staff(request)
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
@@ -291,7 +299,13 @@ class BaseTestCase(Fixtures):
     # a lot of tests changing
     @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
-        self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
+        self,
+        user,
+        organization_id=None,
+        organization_ids=None,
+        superuser=False,
+        superuser_sso=True,
+        staff=False,
     ):
         if isinstance(user, OrganizationMember):
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -339,6 +353,22 @@ class BaseTestCase(Fixtures):
                 path=SU_COOKIE_PATH,
                 domain=SU_COOKIE_DOMAIN,
                 secure=SU_COOKIE_SECURE or None,
+                expires=None,
+            )
+        # XXX(schew2381): Same as above, but for staff
+        if not staff:
+            request.staff._set_logged_out()
+        elif request.user.is_staff and staff:
+            request.staff.set_logged_in(request.user)
+            self.save_cookie(
+                name=STAFF_COOKIE_NAME,
+                value=signing.get_cookie_signer(salt=STAFF_COOKIE_NAME + STAFF_COOKIE_SALT).sign(
+                    request.staff.token
+                ),
+                max_age=None,
+                path=STAFF_COOKIE_PATH,
+                domain=STAFF_COOKIE_DOMAIN,
+                secure=STAFF_COOKIE_SECURE or None,
                 expires=None,
             )
         # Save the session values.
@@ -475,8 +505,9 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
                             region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-                        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                            mode, region
+                        with (
+                            SingleProcessSiloModeState.exit(),
+                            SingleProcessSiloModeState.enter(mode, region),
                         ):
                             return old_request(**request)
             return old_request(**request)
@@ -1275,6 +1306,31 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_span(self, span):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps([span])
+            ).status_code
+            == 200
+        )
+
+    def store_spans(self, spans):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/spans/insert", data=json.dumps(spans)
+            ).status_code
+            == 200
+        )
+
+    def store_metric_summary(self, metric_summary):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
+                data=json.dumps([metric_summary]),
+            ).status_code
+            == 200
+        )
+
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -1342,6 +1398,106 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+
+
+class BaseSpansTestCase(SnubaTestCase):
+    def _random_span_id(self):
+        random_number = random.randint(0, 100000000)
+        return hex(random_number)[2:]
+
+    def store_segment(
+        self,
+        project_id: int,
+        trace_id: str,
+        transaction_id: str,
+        span_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        transaction: Optional[str] = None,
+        duration: int = 10,
+        tags: Optional[Mapping[str, Any]] = None,
+        measurements: Optional[Mapping[str, Union[int, float]]] = None,
+        timestamp: Optional[datetime] = None,
+    ):
+        if span_id is None:
+            span_id = self._random_span_id()
+        if timestamp is None:
+            timestamp = datetime.now(tz=timezone.utc)
+
+        payload = {
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "duration_ms": int(duration),
+            "exclusive_time_ms": 5,
+            "is_segment": True,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "sentry_tags": {"transaction": transaction or "/hello"},
+            "retention_days": 90,
+        }
+
+        if tags:
+            payload["tags"] = tags
+        if transaction_id:
+            payload["event_id"] = transaction_id
+        if profile_id:
+            payload["profile_id"] = profile_id
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
+
+        self.store_span(payload)
+
+    def store_indexed_span(
+        self,
+        project_id: int,
+        trace_id: str,
+        transaction_id: str,
+        span_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        transaction: Optional[str] = None,
+        op: Optional[str] = None,
+        duration: int = 10,
+        tags: Optional[Mapping[str, Any]] = None,
+        timestamp: Optional[datetime] = None,
+        store_only_summary: bool = False,
+        store_metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+    ):
+        if span_id is None:
+            span_id = self._random_span_id()
+        if timestamp is None:
+            timestamp = datetime.now(tz=timezone.utc)
+
+        payload = {
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "duration_ms": int(duration),
+            "exclusive_time_ms": 5,
+            "is_segment": False,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "sentry_tags": {"transaction": transaction or "/hello", "op": op or "http"},
+            "retention_days": 90,
+        }
+
+        if tags:
+            payload["tags"] = tags
+        if transaction_id:
+            payload["event_id"] = transaction_id
+        if profile_id:
+            payload["profile_id"] = profile_id
+        if store_metrics_summary:
+            payload["_metrics_summary"] = store_metrics_summary
+
+        # We want to give the caller the possibility to store only a summary since the database does not deduplicate
+        # on the span_id which makes the assumptions of a unique span_id in the database invalid.
+        if not store_only_summary:
+            self.store_span(payload)
+
+        if "_metrics_summary" in payload:
+            self.store_metric_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2071,26 +2227,28 @@ class ProfilesSnubaTestCase(
             profile_context["profile_id"] = uuid4().hex
         profile_id = profile_context.get("profile_id")
 
-        timestamp = transaction["timestamp"]
-
         self.store_event(transaction, project_id=project.id)
 
+        timestamp = transaction["timestamp"]
         functions = [
-            {**function, "fingerprint": self.function_fingerprint(function)}
+            {
+                **function,
+                "self_times_ns": list(map(int, function["self_times_ns"])),
+                "fingerprint": self.function_fingerprint(function),
+            }
             for function in functions
         ]
-
         functions_payload = {
-            "project_id": project.id,
-            "profile_id": profile_id,
-            "transaction_name": transaction["transaction"],
+            "functions": functions,
             # the transaction platform doesn't quite match the
             # profile platform, but should be fine for tests
             "platform": transaction["platform"],
-            "functions": functions,
-            "timestamp": timestamp,
-            # TODO: should reflect the org
+            "profile_id": profile_id,
+            "project_id": project.id,
+            "received": int(datetime.now(tz=timezone.utc).timestamp()),
             "retention_days": 90,
+            "timestamp": int(timestamp),
+            "transaction_name": transaction["transaction"],
         }
 
         if extras is not None:
@@ -2619,6 +2777,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
+    def assert_performance_issue_blocks(
+        self,
+        blocks,
+        org_slug,
+        project_slug,
+        group,
+        referrer,
+        alert_type="workflow",
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f"<{issue_link}|*N+1 Query*>  \ndb - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            blocks[2]["elements"][0]["text"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
+        )
+
     def assert_generic_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2628,6 +2809,29 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             attachment["footer"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
+        )
+
+    def assert_generic_issue_blocks(
+        self,
+        blocks,
+        org_slug,
+        project_slug,
+        group,
+        referrer,
+        alert_type="workflow",
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f"<{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \n{TEST_ISSUE_OCCURRENCE.evidence_display[0].value}"
+        )
+        assert (
+            blocks[2]["elements"][0]["text"]
+            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
 
@@ -2668,9 +2872,7 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             name="Personal Installation",
             provider="msteams",
         )
-        self.idp = self.create_identity_provider(
-            integration=self.integration, type="msteams", external_id=self.tenant_id, config={}
-        )
+        self.idp = self.create_identity_provider(integration=self.integration)
         self.user_id_1 = "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
         self.user_1 = self.user
         self.identity_1 = self.create_identity(

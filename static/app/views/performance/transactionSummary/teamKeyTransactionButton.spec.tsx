@@ -1,5 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -17,24 +19,24 @@ async function clickTeamKeyTransactionDropdown() {
 }
 
 describe('TeamKeyTransactionButton', function () {
-  const organization = Organization({features: ['performance-view']});
+  const organization = OrganizationFixture({features: ['performance-view']});
   const teams = [
-    Team({id: '1', slug: 'team1', name: 'Team 1'}),
-    Team({id: '2', slug: 'team2', name: 'Team 2'}),
+    TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
+    TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
-  const project = TestStubs.Project({teams});
+  const project = ProjectFixture({teams});
   const eventView = new EventView({
     id: '1',
     name: 'my query',
     fields: [{field: 'count()'}],
     sorts: [{field: 'count', kind: 'desc'}],
     query: '',
-    project: [project.id],
+    project: [parseInt(project.id, 10)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
     environment: [],
-    createdBy: TestStubs.User(),
+    createdBy: UserFixture(),
     display: 'line',
     team: ['myteams'],
     topEvents: '5',

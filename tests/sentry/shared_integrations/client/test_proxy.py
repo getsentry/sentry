@@ -5,13 +5,14 @@ from django.test import override_settings
 from pytest import raises
 from requests import Request
 
+from sentry.net.http import Session
 from sentry.shared_integrations.client.proxy import (
     IntegrationProxyClient,
     get_control_silo_ip_address,
 )
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 
 control_address = "http://controlserver"
@@ -81,15 +82,17 @@ class IntegrationProxyClientTest(TestCase):
         prepared_request = Request(method="DELETE", url=self.test_url).prepare()
         raw_url = prepared_request.url
         raw_headers = prepared_request.headers
-        for header in [PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER]:
+        for header in [PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER, PROXY_PATH]:
             assert header not in raw_headers
 
         client = self.client_cls(org_integration_id=self.oi_id)
         client.finalize_request(prepared_request)
         assert not mock_authorize.called
         assert prepared_request.url != raw_url
-        for header in [PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER]:
+        assert prepared_request.url == "http://controlserver/api/0/internal/integration-proxy/"
+        for header in [PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER, PROXY_PATH]:
             assert header in prepared_request.headers
+        assert prepared_request.headers[PROXY_PATH] == "get?query=1&user=me"
 
     @override_settings(SILO_MODE=SiloMode.REGION)
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
@@ -160,6 +163,17 @@ class IntegrationProxyClientTest(TestCase):
         # Assert control silo ip address was not validated
         assert mock_get_control_silo_ip_address.call_count == 0
         assert mock_is_control_silo_ip_address.call_count == 0
+
+    @patch.object(Session, "send")
+    def test_custom_timeout(self, mock_session_send):
+        client = self.client_cls(org_integration_id=self.oi_id)
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
+        assert mock_session_send.call_count == 1
+        assert mock_session_send.mock_calls[0].kwargs["timeout"] == 20
 
 
 def test_get_control_silo_ip_address():

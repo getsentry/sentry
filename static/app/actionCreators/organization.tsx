@@ -40,6 +40,13 @@ async function fetchOrg(
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);
 
+  Sentry.configureScope(scope => {
+    // XXX(dcramer): this is duplicated in sdk.py on the backend
+    scope.setTag('organization', org.id);
+    scope.setTag('organization.slug', org.slug);
+    scope.setContext('organization', {id: org.id, slug: org.slug});
+  });
+
   return org;
 }
 
@@ -158,7 +165,7 @@ export function fetchOrganizationDetails(
       isInitialFetch
     );
 
-    ProjectsStore.loadInitialData(projects);
+    ProjectsStore.loadInitialData(projects ?? []);
 
     const teamPageLinks = resp?.getResponseHeader('Link');
     if (teamPageLinks) {

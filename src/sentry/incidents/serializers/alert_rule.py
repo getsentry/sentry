@@ -107,7 +107,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "event_types",
         ]
         extra_kwargs = {
-            "name": {"min_length": 1, "max_length": 64},
+            "name": {"min_length": 1, "max_length": 256},
             "include_all_projects": {"default": False},
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},

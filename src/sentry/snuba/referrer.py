@@ -64,6 +64,12 @@ class Referrer(Enum):
         "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
+
+    # DDM
+    API_DDM_FETCH_SPANS = "api.ddm.fetch.spans"
+    API_DDM_FETCH_METRICS_SUMMARIES = "api.ddm.fetch.metrics_summaries"
+    API_DDM_METRICS_DATA = "api.ddm.metrics.data"
+
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
@@ -421,6 +427,11 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
     API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"
     API_STARFISH_MOBILE_STARTUP_BAR_CHART = "api.starfish.mobile-startup-bar-chart"
+    API_STARFISH_MOBILE_STARTUP_SERIES = "api.starfish.mobile-startup-series"
+    API_STARFISH_MOBILE_STARTUP_EVENT_SAMPLES = "api.starfish.mobile-startup-event-samples"
+    API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
+    API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
+    API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
@@ -434,6 +445,7 @@ class Referrer(Enum):
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
+    API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
@@ -713,6 +725,7 @@ class Referrer(Enum):
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_4_alert_event_frequency = "tsdb-modelid:4.alert_event_frequency"
     TSDB_MODELID_4_alert_event_frequency_percent = "tsdb-modelid:4.alert_event_frequency_percent"
+    TSDB_MODELID_20_alert_event_frequency = "tsdb-modelid:20.alert_event_frequency"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
     TSDB_MODELID_300_alert_event_uniq_user_frequency = (
         "tsdb-modelid:300.alert_event_uniq_user_frequency"

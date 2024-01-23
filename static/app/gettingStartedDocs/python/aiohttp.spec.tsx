@@ -15,7 +15,7 @@ describe('aiohttp onboarding docs', function () {
 
     // Renders install instructions
     expect(
-      screen.getByText(textWithMarkupMatcher(/\$ pip install --upgrade sentry-sdk/))
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
     ).toBeInTheDocument();
   });
 
@@ -26,7 +26,7 @@ describe('aiohttp onboarding docs', function () {
 
     // Does not render config option
     expect(
-      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
+      screen.queryByText(textWithMarkupMatcher(/traces_sample_rate: 1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does not render config option

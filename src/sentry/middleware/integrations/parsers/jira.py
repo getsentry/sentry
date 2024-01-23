@@ -53,7 +53,12 @@ class JiraRequestParser(BaseRequestParser):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
+        integration = self.get_integration_from_request()
+        if not integration:
+            raise Integration.DoesNotExist()
+
         regions = self.get_regions_from_organizations()
+
         if len(regions) == 0:
             logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
@@ -66,12 +71,13 @@ class JiraRequestParser(BaseRequestParser):
                 self.provider,
                 extra={"path": self.request.path, "regions": regions},
             )
-            return self.get_response_from_control_silo()
 
         if self.view_class in self.immediate_response_region_classes:
             return self.get_response_from_region_silo(region=regions[0])
 
         if self.view_class in self.outbox_response_region_classes:
-            return self.get_response_from_outbox_creation(regions=regions)
+            return self.get_response_from_outbox_creation_for_integration(
+                regions=regions, integration=integration
+            )
 
         return self.get_response_from_control_silo()

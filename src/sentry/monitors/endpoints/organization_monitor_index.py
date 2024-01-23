@@ -3,7 +3,7 @@ from typing import List
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 
-from sentry import audit_log, quotas
+from sentry import audit_log, features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -131,6 +131,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         queryset = queryset.annotate(
             environment_status_ordering=Case(
+                # Sort DISABLED and is_muted monitors to the bottom of the list
+                When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
                 When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
                 default=Subquery(
                     monitor_environments_query.annotate(
@@ -214,6 +216,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = validator.validated_data
+
+        if (
+            features.has("organizations:crons-disable-new-projects", organization)
+            and not result["project"].flags.has_cron_monitors
+        ):
+            return self.respond(
+                "Creating monitors in projects without pre-existing monitors is temporarily disabled",
+                status=400,
+            )
 
         try:
             monitor = Monitor.objects.create(
