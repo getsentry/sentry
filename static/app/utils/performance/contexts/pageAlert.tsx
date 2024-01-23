@@ -21,11 +21,11 @@ const pageErrorContext = createContext<{
   pageAlert?: PageAlertOptions;
 }>({
   pageAlert: undefined,
-  setPageError: (_: React.ReactNode | undefined) => void,
-  setPageInfo: (_: React.ReactNode | undefined) => void,
-  setPageMuted: (_: React.ReactNode | undefined) => void,
-  setPageSuccess: (_: React.ReactNode | undefined) => void,
-  setPageWarning: (_: React.ReactNode | undefined) => void
+  setPageError: (_: React.ReactNode | undefined) => {},
+  setPageInfo: (_: React.ReactNode | undefined) => {},
+  setPageMuted: (_: React.ReactNode | undefined) => {},
+  setPageSuccess: (_: React.ReactNode | undefined) => {},
+  setPageWarning: (_: React.ReactNode | undefined) => {},
 });
 
 export function PageAlertProvider({children}: {children: React.ReactNode}) {
@@ -67,16 +67,16 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
 }
 
 export function PageAlert() {
-  const {pageAlert: pageError} = useContext(pageErrorContext);
-  if (!pageError || !pageError.message) {
+  const {pageAlert} = useContext(pageErrorContext);
+  if (!pageAlert || !pageAlert.message) {
     return null;
   }
 
-  const isStringError = typeof pageError === 'string';
-  const message = isStringError ? pageError : pageError.message;
+  const isStringError = typeof pageAlert === 'string';
+  const message = isStringError ? pageAlert : pageAlert.message;
 
   return (
-    <Alert type={pageError.type} data-test-id="page-error-alert" showIcon>
+    <Alert type={pageAlert.type} data-test-id="page-error-alert" showIcon>
       <Fragment>{message}</Fragment>
     </Alert>
   );
