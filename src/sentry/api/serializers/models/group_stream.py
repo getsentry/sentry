@@ -4,13 +4,12 @@ import functools
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
-from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -25,9 +24,6 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -158,34 +154,6 @@ class GroupStatsMixin:
                 }
 
             return self.query_tsdb(item_list, query_params, user=user, **kwargs)
-
-
-# Serializer for External Issues Model
-# Maps an external issue to to additional integration information such as key or name
-class ExternalIssueSerializer(Serializer):
-    def get_attrs(self, item_list: List[ExternalIssue], user: User, **kwargs: Any):
-        result = {}
-        for item in item_list:
-            # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
-            integration = integration_service.get_integration(integration_id=item.integration_id)
-            if integration is None:
-                continue
-            installation = integration.get_installation(organization_id=item.organization.id)
-            if hasattr(installation, "get_issue_display_name"):
-                result[item] = {
-                    "id": str(item.id),
-                    "key": item.key,
-                    "title": item.title,
-                    "description": item.description,
-                    "displayName": installation.get_issue_display_name(item),
-                    "integrationKey": integration.provider,
-                    "integrationName": integration.name,
-                }
-
-        return result
-
-    def serialize(self, obj, attrs, user, **kwargs):
-        return attrs
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
