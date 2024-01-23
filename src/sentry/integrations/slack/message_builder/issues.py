@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
@@ -228,10 +228,12 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
 
 
 def get_suggested_assignees(
-    identity: RpcIdentity | None, project: Project, event: Event
+    identity: RpcIdentity | None, project: Project, event: GroupEvent
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
-    suggested_assignees, _ = get_owners(project, event, None)
+    suggested_assignees, outcome = get_owners(project, event, None)
+    if outcome == "everyone":  # we don't want every user in the project to be a suggested assignee
+        suggested_assignees = []
     if features.has("organizations:streamline-targeting-context", project.organization):
         try:
             suspect_commit_users = RpcActor.many_from_object(
@@ -540,7 +542,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(action_block)
 
         # suggested assignees
-        suggested_assignees = get_suggested_assignees(self.identity, self.group.project, self.event)
+        suggested_assignees = get_suggested_assignees(
+            self.identity, self.group.project, self.event or self.group.get_latest_event()
+        )
         if len(suggested_assignees) > 0:
             suggested_assignee_text = "Suggested Assignees: "
             for idx, assignee in enumerate(suggested_assignees):
