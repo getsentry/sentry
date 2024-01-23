@@ -17,7 +17,7 @@ import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnb
 import {StepProps} from './types';
 
 const PROMO_CODE_ERROR_MSG = t(
-  'That promotional code has already been claimed, does not have enough uses, is no longer valid, or never existed.'
+  'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
 );
 
 function GetStarted(props: StepProps) {

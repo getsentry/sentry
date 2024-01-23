@@ -146,7 +146,7 @@ describe('Relocation', function () {
       await userEvent.type(promoCodeInput, 'free-hugs');
       await userEvent.click(continueButton);
       expect(addErrorMessage).toHaveBeenCalledWith(
-        'That promotional code has already been claimed, does not have enough uses, is no longer valid, or never existed.'
+        'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
       );
     });
   });
