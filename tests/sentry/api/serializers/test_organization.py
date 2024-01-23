@@ -90,8 +90,6 @@ class OrganizationSerializerTest(TestCase):
             "performance-tracing-without-performance",
             "invite-members",
             "invite-members-rate-limits",
-            "issue-platform-api-crons-sd",
-            "issue-platform-crons-sd",
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
