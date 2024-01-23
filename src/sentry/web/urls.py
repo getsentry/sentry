@@ -534,6 +534,11 @@ urlpatterns += [
                     name="sentry-customer-domain-organization-settings",
                 ),
                 re_path(
+                    r"^plugins/",
+                    react_page_view,
+                    name="sentry-customer-domain-plugins-settings",
+                ),
+                re_path(
                     r"^projects/",
                     react_page_view,
                     name="sentry-customer-domain-projects-settings",
