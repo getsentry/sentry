@@ -128,7 +128,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   edge_pre_79: {
     icon: iconEdgeLegacy,
     helpText: '(Deprecated) Version 18 and lower',
-    title: 'Edge',
+    title: 'Edge (Legacy)',
     legacy: true,
   },
   ie: {
