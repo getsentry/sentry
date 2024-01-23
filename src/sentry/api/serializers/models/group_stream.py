@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import functools
 from abc import abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.request import Request
+from yaml import serialize
 
 from sentry import features, release_health, tsdb
-from sentry.api.serializers import serialize
 from sentry.api.serializers.base import Serializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
@@ -35,6 +36,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import resolve_column, resolve_conditions
 
@@ -165,28 +167,45 @@ class GroupStatsMixin:
 # Serializer for User Feedback
 # Used to expose the linked integration issues for a list of feedbacks (groups)
 class ExternalIssueSerializer(Serializer):
-    def get_attrs(self, item_list: List[ExternalIssue], user: User, **kwargs: Any):
-        group_linked_issues = {}
-        for ei in item_list:
-            # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
-            integration = integration_service.get_integration(integration_id=ei.integration_id)
-            if integration is None:
-                continue
-            installation = integration.get_installation(organization_id=ei.organization.id)
-            if hasattr(installation, "get_issue_display_name"):
-                group_linked_issues[ei] = {
-                    "id": str(ei.id),
-                    "key": ei.key,
-                    "title": ei.title,
-                    "description": ei.description,
-                    "displayName": installation.get_issue_display_name(ei),
-                    "integrationKey": integration.provider,
-                    "integrationName": integration.name,
-                }
+    def get_attrs(
+        self, item_list: List[Group], user: User, **kwargs: Any
+    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
+        result = defaultdict(dict)
+        for item in item_list:
+            # Get the external issues for the group
+            external_issues = ExternalIssue.objects.filter(
+                id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
+                    "linked_id", flat=True
+                ),
+            )
 
-        return group_linked_issues
+            group_linked_issues = []
+            for ei in external_issues:
+                # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
+                integration = integration_service.get_integration(integration_id=ei.integration_id)
+                if integration is None:
+                    continue
+                installation = integration.get_installation(organization_id=ei.organization.id)
+                if hasattr(installation, "get_issue_display_name"):
+                    group_linked_issues.append(
+                        {
+                            "id": str(ei.id),
+                            "key": ei.key,
+                            "title": ei.title,
+                            "description": ei.description,
+                            "displayName": installation.get_issue_display_name(ei),
+                            "integrationKey": integration.provider,
+                            "integrationName": integration.name,
+                        }
+                    )
 
-    def serialize(self, obj, attrs, user, **kwargs):
+            result[item.id] = group_linked_issues
+
+        return {item: {"externalIssues": result.get(item.id, {})} for item in item_list}
+
+    def serialize(
+        self, obj: Group, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
         return attrs
 
 
