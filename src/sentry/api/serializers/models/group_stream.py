@@ -8,9 +8,9 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.request import Request
-from yaml import serialize
 
 from sentry import features, release_health, tsdb
+from sentry.api.serializers import serialize
 from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
