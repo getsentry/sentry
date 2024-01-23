@@ -9,8 +9,8 @@ export function hasDDMFeature(organization: Organization) {
   return organization.features.includes('ddm-ui');
 }
 
-export function hasDDMStaffFeature(organization: Organization) {
-  return organization.features.includes('ddm-staff');
+export function hasDashboardImportFeature(organization: Organization) {
+  return organization.features.includes('ddm-dashboard-import');
 }
 
 /**

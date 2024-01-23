@@ -1503,8 +1503,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
-    # Enables admin features for DDM
-    "organizations:ddm-staff": False,
+    # Enables import of metric dashboards
+    "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enable inbound filters to be turned on by default for new Javascript Projects

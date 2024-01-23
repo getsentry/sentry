@@ -24,7 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMStaffFeature} from 'sentry/utils/metrics/features';
+import {hasDashboardImportFeature} from 'sentry/utils/metrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -315,7 +315,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                         toggle={this.toggleTemplates}
                       />
                     </TemplateSwitch>
-                    {hasDDMStaffFeature(organization) && (
+                    {hasDashboardImportFeature(organization) && (
                       <Button
                         onClick={() => {
                           openDashboardImport(organization);
