@@ -62,23 +62,6 @@ class DiscordIssueAlertTest(RuleTestCase):
             url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
         )
-        responses.add(
-            method=responses.GET,
-            url=f"https://discord.com/api/v10/channels/{self.channel_id}",
-            json={"permission_overwrites": [{"id": self.discord_integration.id, "deny": "0"}]},
-        )
-
-    def get_post_call_request_body(self, response_calls):
-        """
-        Helper method to get the body
-
-        Was `responses.calls[0].request.body` but since there are 2 responses now, need to specify
-        """
-        post_call_request_body = [
-            call.request.body for call in response_calls if call.request.method == "POST"
-        ]
-        assert post_call_request_body
-        return post_call_request_body[0]
 
     @responses.activate
     @mock.patch("sentry.analytics.record")
@@ -91,7 +74,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         results[0].callback(self.event, futures=[])
 
-        body = self.get_post_call_request_body(responses.calls)
+        body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
         embed = data["embeds"][0]
@@ -156,7 +139,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         results[0].callback(self.event, futures=[])
 
-        body = self.get_post_call_request_body(responses.calls)
+        body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
         buttons = data["components"][0]["components"]
@@ -183,7 +166,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         results[0].callback(self.event, futures=[])
 
-        body = self.get_post_call_request_body(responses.calls)
+        body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
         buttons = data["components"][0]["components"]
@@ -210,7 +193,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         results[0].callback(self.event, futures=[])
 
-        body = self.get_post_call_request_body(responses.calls)
+        body = responses.calls[0].request.body
         data = json.loads(bytes.decode(body, "utf-8"))
 
         buttons = data["components"][0]["components"]
