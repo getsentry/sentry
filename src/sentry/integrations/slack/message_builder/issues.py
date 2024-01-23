@@ -30,6 +30,9 @@ from sentry.integrations.slack.message_builder import (
     SlackAttachment,
     SlackBlock,
 )
+from sentry.utils.committers import get_serialized_event_file_committers
+
+from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackAttachment, SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
@@ -594,6 +597,39 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         block_id = {"issue": self.group.id}
         if rule_id:
             block_id["rule"] = rule_id
+
+        # add suspect commit info
+        if self.event:
+            author = None
+            commit_id = None
+            commit_link = None
+            pr_link = None
+            committers = get_serialized_event_file_committers(project, self.event)
+            if committers:
+                committer = committers[0]
+                # TODO show the user's Slack name if their identity is linked
+                author = committer.get("author", {}).get("email")
+                commits = committer.get("commits")
+                if commits:
+                    commit_id = commits[0].get("id")
+                    pull_request = commits.get("pullRequest")["externalUrl"]
+                    if pull_request:
+                        pr_link = pull_request.get("externalUrl")
+                        repo_base = pull_request.get("repository", {}).get("url")
+
+            if author and commit_id:
+                sc_text = ":eyes: *Suspect Commit*\n "
+                if repo_base:
+                    commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
+                sc_text += f"{author} committed {commit_id}"
+                if commit_link:
+                    sc_text += f"{author} committed {commit_link}"
+                if pr_link:
+                    view_pr_button = MessageAction(name="View Pull Request", style="primary", url=pr_link)
+                    suspect_commit_block = self.get_link_button(view_pr_button, sc_text)
+                    blocks.append(suspect_commit_block)
+                else:
+                    suspect_commit_block = self.get_markdown_block(sc_text)
 
         return self._build_blocks(
             *blocks,

@@ -95,12 +95,12 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return button
 
     @staticmethod
-    def get_link_button(action):
+    def get_link_button(action: MessageAction, text: str | None = None):
         return {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": action.label,
+                "text": text if text else action.label,
             },
             "accessory": {
                 "type": "button",
