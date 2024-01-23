@@ -9,6 +9,7 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -57,6 +58,9 @@ class ActivityManager(BaseManager["Activity"]):
                 datetime=group.first_seen,
             )
         )
+
+        if not features.has("projects:issue-priority", group.project):
+            activities.exclude(type=ActivityType.SET_PRIORITY.value)
 
         return activities[:num]
 
