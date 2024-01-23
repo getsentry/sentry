@@ -30,14 +30,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(
+            self.integration, self.oi = self.create_provider_integration_for(
+                self.org,
+                self.user,
                 provider="github",
                 name="getsentry",
                 external_id="1234",
                 metadata={"domain_name": "github.com/getsentry"},
             )
-
-            self.oi = self.integration.add_organization(self.org, self.user)
 
         self.repo = self.create_repo(
             project=self.project,

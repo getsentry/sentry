@@ -39,7 +39,7 @@ cssutils==2.4.0
 datadog==0.44.0
 distlib==0.3.4
 distro==1.8.0
-django==4.2.8
+django==3.2.23
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
@@ -186,7 +186,7 @@ sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-sdk==2.0.20
+snuba-sdk==2.0.23
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.4

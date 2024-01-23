@@ -1567,7 +1567,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": False,
+    "organizations:integrations-codeowners": True,
     # Enable integration functionality to work deployment integrations like Vercel
     "organizations:integrations-deployment": True,
     # Enable integration functionality to work with enterprise alert rules
@@ -1590,6 +1590,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-issue-sync": True,
     # Enable comments of related issues on open PRs
     "organizations:integrations-open-pr-comment": False,
+    # Enable comments of related issues on open PRs for Javascript
+    "organizations:integrations-open-pr-comment-js": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
@@ -1619,10 +1621,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
     "organizations:issue-platform": False,
-    # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": True,
-    # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": True,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
@@ -3993,7 +3991,7 @@ ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host and SILO_MODE != "REGION":
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.region-api-url-template"] = ""
-    CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}"]
+    CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
     SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"

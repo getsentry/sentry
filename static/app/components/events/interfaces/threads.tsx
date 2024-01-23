@@ -1,7 +1,9 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
@@ -349,12 +351,30 @@ export function Threads({
         stackTraceNotFound={stackTraceNotFound}
         wrapTitle={false}
       >
-        {childrenProps => (
-          <Fragment>
-            {!organization.features.includes('anr-improvements') && renderPills()}
-            {renderContent(childrenProps)}
-          </Fragment>
-        )}
+        {childrenProps => {
+          // TODO(scttcper): These are duplicated from renderContent, should consolidate
+          const stackType = childrenProps.display.includes('minified')
+            ? StackType.MINIFIED
+            : StackType.ORIGINAL;
+          const isRaw = childrenProps.display.includes('raw-stack-trace');
+          const stackTrace = getThreadStacktrace(
+            stackType !== StackType.ORIGINAL,
+            activeThread
+          );
+
+          return (
+            <Fragment>
+              {!organization.features.includes('anr-improvements') && renderPills()}
+
+              {stackTrace && !isRaw && (
+                <ErrorBoundary customComponent={null}>
+                  <StacktraceBanners event={event} stacktrace={stackTrace} />
+                </ErrorBoundary>
+              )}
+              {renderContent(childrenProps)}
+            </Fragment>
+          );
+        }}
       </TraceEventDataSection>
     </Fragment>
   );
