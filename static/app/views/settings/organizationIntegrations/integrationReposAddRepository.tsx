@@ -8,7 +8,6 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import {space} from 'sentry/styles/space';
 import type {Integration, IntegrationRepository, Repository} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -143,7 +142,6 @@ export function IntegrationReposAddRepository({
         onSelect={addRepo}
         onChange={searchResult.searchable ? handleSearchRepositories : undefined}
         emptyMessage={t('No repositories available')}
-        menuHeader={<StyledReposLabel>{t('Repositories')}</StyledReposLabel>}
         noResultsMessage={t('No repositories found')}
         searchPlaceholder={t('Search Repositories')}
         busy={dropdownBusy}
@@ -158,13 +156,6 @@ export function IntegrationReposAddRepository({
     </DropdownWrapper>
   );
 }
-
-const StyledReposLabel = styled('div')`
-  width: 250px;
-  font-size: 0.875em;
-  padding: ${space(1)} 0;
-  text-transform: uppercase;
-`;
 
 const DropdownWrapper = styled('div')`
   text-transform: none;
