@@ -579,12 +579,20 @@ def test_spec_ignore_project() -> None:
 
 
 def test_spec_ignore_timestamp() -> None:
-    with_timestamp_to_hour = OnDemandMetricSpec("count()", "transaction.duration:>=1 timestamp.to_hour:-1h")
-    with_timestamp_to_day = OnDemandMetricSpec("count()", "transaction.duration:>=1 timestamp.to_day:-1d")
+    with_timestamp_to_hour = OnDemandMetricSpec(
+        "count()", "transaction.duration:>=1 timestamp.to_hour:-1h"
+    )
+    with_timestamp_to_day = OnDemandMetricSpec(
+        "count()", "transaction.duration:>=1 timestamp.to_day:-1d"
+    )
 
     without_timestamp = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
-    assert with_timestamp_to_hour.condition == with_timestamp_to_day.condition == without_timestamp.condition
+    assert (
+        with_timestamp_to_hour.condition
+        == with_timestamp_to_day.condition
+        == without_timestamp.condition
+    )
 
 
 @django_db_all
