@@ -161,8 +161,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         logger.info("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
-    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
-
     try:
         project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
@@ -211,6 +209,8 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     logger.info("github.pr_comment.comment_body", extra={"body": comment_body})
 
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
+
+    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
 
     try:
         create_or_update_comment(
