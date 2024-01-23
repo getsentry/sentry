@@ -171,7 +171,5 @@ const DropdownWrapper = styled('div')`
 `;
 
 const RepoName = styled('div')`
-  flex-shrink: 1;
-  min-width: 0;
   font-weight: normal;
 `;
