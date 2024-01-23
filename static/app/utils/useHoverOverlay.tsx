@@ -13,6 +13,49 @@ import {useTheme} from '@emotion/react';
 import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
+function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
+  return [
+    {
+      name: 'hide',
+      enabled: false,
+    },
+    {
+      name: 'computeStyles',
+      options: {
+        // Using the `transform` attribute causes our borders to get blurry
+        // in chrome. See [0]. This just causes it to use `top` / `left`
+        // positions, which should be fine.
+        //
+        // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+        gpuAcceleration: false,
+      },
+    },
+    {
+      name: 'arrow',
+      options: {
+        element: arrowElement,
+        // Set padding to avoid the arrow reaching the side of the tooltip
+        // and overflowing out of the rounded border
+        padding: 4,
+      },
+    },
+    {
+      name: 'offset',
+      options: {
+        offset: [0, offset],
+      },
+    },
+    {
+      name: 'preventOverflow',
+      enabled: true,
+      options: {
+        padding: 12,
+        altAxis: true,
+      },
+    },
+  ];
+}
+
 /**
  * How long to wait before opening the overlay
  */
@@ -112,46 +155,7 @@ function useHoverOverlay(
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
 
   const modifiers = useMemo(
-    () => [
-      {
-        name: 'hide',
-        enabled: false,
-      },
-      {
-        name: 'computeStyles',
-        options: {
-          // Using the `transform` attribute causes our borders to get blurry
-          // in chrome. See [0]. This just causes it to use `top` / `left`
-          // positions, which should be fine.
-          //
-          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
-          gpuAcceleration: false,
-        },
-      },
-      {
-        name: 'arrow',
-        options: {
-          element: arrowElement,
-          // Set padding to avoid the arrow reaching the side of the tooltip
-          // and overflowing out of the rounded border
-          padding: 4,
-        },
-      },
-      {
-        name: 'offset',
-        options: {
-          offset: [0, offset],
-        },
-      },
-      {
-        name: 'preventOverflow',
-        enabled: true,
-        options: {
-          padding: 12,
-          altAxis: true,
-        },
-      },
-    ],
+    () => makeDefaultPopperModifiers(arrowElement, offset),
     [arrowElement, offset]
   );
 

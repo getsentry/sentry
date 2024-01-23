@@ -230,7 +230,7 @@ function DropdownMenuList({
     [rootOverlayState, overlayState, state]
   );
   return (
-    <FocusScope>
+    <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
         <DropdownMenuContext.Provider value={contextValue}>
           <StyledOverlay>
