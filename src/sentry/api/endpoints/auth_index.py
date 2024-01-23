@@ -88,9 +88,6 @@ class BaseAuthIndexEndpoint(Endpoint):
                     "verify.user.inputs",
                     extra={
                         "user": request.user.id,
-                        "interface": interface,
-                        "challenge": challenge,
-                        "response": response,
                         "authenticated": authenticated,
                     },
                 )
@@ -120,7 +117,7 @@ class BaseAuthIndexEndpoint(Endpoint):
             if authenticated:
                 metrics.incr("auth.password.success", sample_rate=1.0, skip_internal=False)
             return authenticated
-        getsentry_logger.error(
+        getsentry_logger.info(
             "verify.user.inputs.failed",
             extra={"user": request.user.id, "validator": validator.validated_data},
         )
