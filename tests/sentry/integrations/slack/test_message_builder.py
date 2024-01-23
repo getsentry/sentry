@@ -130,7 +130,7 @@ def build_test_message_blocks(
     blocks.append(actions)
 
     if suggested_assignees:
-        suggested_assignees_text = f"Suggested Assignee(s): {suggested_assignees}"
+        suggested_assignees_text = f"Suggested Assignees: {suggested_assignees}"
         suggested_assignees_section = {
             "type": "context",
             "elements": [{"type": "mrkdwn", "text": suggested_assignees_text}],
@@ -514,7 +514,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             user2.save()
         expected_blocks["blocks"][4]["elements"][0][
             "text"
-        ] = f"Suggested Assignee(s): #{self.team.slug}, <mailto:{user2.email}|{user2.name}>"
+        ] = f"Suggested Assignees: #{self.team.slug}, <mailto:{user2.email}|{user2.name}>"
         assert (
             SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
@@ -532,7 +532,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             )
         expected_blocks["blocks"][4]["elements"][0][
             "text"
-        ] = f"Suggested Assignee(s): #{self.team.slug}, <@{self.identity.external_id}>"
+        ] = f"Suggested Assignees: #{self.team.slug}, <@{self.identity.external_id}>"
         assert (
             SlackIssuesMessageBuilder(
                 group, event.for_group(group), tags={"foo"}, identity=self.identity

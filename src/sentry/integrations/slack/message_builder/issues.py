@@ -73,21 +73,6 @@ def time_since(value: datetime):
     return f"{diff} ago"
 
 
-def time_since(value: datetime):
-    """
-    Display the relative time
-    """
-    now = timezone.now()
-    if value < (now - timedelta(days=5)):
-        return value.date()
-    diff = timesince(value, now)
-    if diff == timesince(now, now):
-        return "Just now"
-    if diff == "1 day":
-        return _("Yesterday")
-    return f"{diff} ago"
-
-
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     actor = ActorTuple.from_actor_identifier(assignee)
 
@@ -557,7 +542,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # suggested assignees
         suggested_assignees = get_suggested_assignees(self.identity, self.group.project, self.event)
         if len(suggested_assignees) > 0:
-            suggested_assignee_text = "Suggested Assignee(s): "
+            suggested_assignee_text = "Suggested Assignees: "
             for idx, assignee in enumerate(suggested_assignees):
                 if idx != 0:
                     suggested_assignee_text += ", "
