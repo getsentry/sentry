@@ -22,7 +22,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
   const api = useApi({
     persistInFlight: false,
   });
-  const {getListQueryKey} = useFeedbackQueryKeys();
+  const {listQueryKey} = useFeedbackQueryKeys();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
@@ -41,7 +41,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
       const options = isSingleId
         ? {}
         : ids === 'all'
-        ? getListQueryKey()[1]!
+        ? listQueryKey[1]!
         : {query: {id: ids}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
