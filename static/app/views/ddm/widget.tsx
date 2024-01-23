@@ -197,8 +197,7 @@ export const MetricWidgetBody = memo(
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
-    const [isDrawing, setIsDrawing] = useState(false);
-    const enabled = !isDrawing;
+    const [allowDataUpdates, setAllowDataUpdates] = useState(true);
 
     const {data, isLoading, isError, error} = useMetricsDataZoom(
       {
@@ -211,7 +210,7 @@ export const MetricWidgetBody = memo(
         datetime,
       },
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'},
-      {enabled}
+      {refetchInterval: allowDataUpdates ? undefined : false}
     );
 
     const chartRef = useRef<ReactEchartsRef>(null);
@@ -258,16 +257,13 @@ export const MetricWidgetBody = memo(
     );
 
     const handleDrawFocusArea = useCallback(() => {
-      setIsDrawing(true);
-    }, [setIsDrawing]);
+      setAllowDataUpdates(false);
+    }, []);
 
-    const handleAddFocusArea = useCallback(
-      (area: FocusArea) => {
-        setIsDrawing(false);
-        addFocusArea?.(area);
-      },
-      [addFocusArea]
-    );
+    const handleRemoveFocusArea = useCallback(() => {
+      setAllowDataUpdates(true);
+      removeFocusArea?.();
+    }, [removeFocusArea]);
 
     if (!chartSeries || !data || isError) {
       return (
@@ -303,9 +299,9 @@ export const MetricWidgetBody = memo(
           displayType={displayType}
           operation={metricsQuery.op}
           widgetIndex={widgetIndex}
-          addFocusArea={handleAddFocusArea}
+          addFocusArea={addFocusArea}
           focusArea={focusArea}
-          removeFocusArea={removeFocusArea}
+          removeFocusArea={handleRemoveFocusArea}
           height={chartHeight}
           drawFocusArea={handleDrawFocusArea}
         />

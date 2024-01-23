@@ -54,12 +54,17 @@ export function useMetricsData(
   const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
     [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
     {
+      ...options,
       retry: 0,
       staleTime: 0,
       refetchOnReconnect: true,
       refetchOnWindowFocus: true,
-      refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
-      ...options,
+      refetchInterval: data => {
+        if (options.refetchInterval === false) {
+          return false;
+        }
+        return getRefetchInterval(data, queryToSend.interval);
+      },
     }
   );
   mapToMRIFields(metricsApiRepsonse.data, [field]);
