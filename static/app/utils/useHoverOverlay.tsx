@@ -9,7 +9,6 @@ import {
 } from 'react';
 import {PopperProps, usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
@@ -102,11 +101,11 @@ function useHoverOverlay(
     containerDisplayMode = 'inline-block',
   }: UseHoverOverlayProps
 ) {
-  const [isVisible, setVisible] = useState(false);
-  const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
   const theme = useTheme();
+  const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
 
-  const isOpen = forceVisible ?? isVisible;
+  const isVisibleRef = useRef(false);
+  const isOpen = forceVisible ?? isVisibleRef.current;
 
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -166,10 +165,15 @@ function useHoverOverlay(
   const delayHideTimeoutRef = useRef<number | undefined>(undefined);
 
   // When the component is unmounted, make sure to stop the timeouts
+  // No need to reset value of refs to undefined since they will be garbage collected anyways
   useEffect(() => {
     return () => {
-      window.clearTimeout(delayOpenTimeoutRef.current);
-      window.clearTimeout(delayHideTimeoutRef.current);
+      if (typeof delayHideTimeoutRef.current === 'number') {
+        window.clearTimeout(delayHideTimeoutRef.current);
+      }
+      if (typeof delayOpenTimeoutRef.current === 'number') {
+        window.clearTimeout(delayOpenTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -179,33 +183,44 @@ function useHoverOverlay(
       return;
     }
 
-    window.clearTimeout(delayHideTimeoutRef.current);
-    window.clearTimeout(delayOpenTimeoutRef.current);
+    if (typeof delayHideTimeoutRef.current === 'number') {
+      window.clearTimeout(delayHideTimeoutRef.current);
+      delayHideTimeoutRef.current = undefined;
+    }
+    if (typeof delayOpenTimeoutRef.current === 'number') {
+      window.clearTimeout(delayOpenTimeoutRef.current);
+      delayOpenTimeoutRef.current = undefined;
+    }
 
     if (delay === 0) {
-      setVisible(true);
+      isVisibleRef.current = true;
       return;
     }
 
     delayOpenTimeoutRef.current = window.setTimeout(
-      () => setVisible(true),
+      () => (isVisibleRef.current = true),
       delay ?? OPEN_DELAY
     );
   }, [delay, showOnlyOnOverflow, triggerElement]);
 
   const handleMouseLeave = useCallback(() => {
-    window.clearTimeout(delayOpenTimeoutRef.current);
-    window.clearTimeout(delayHideTimeoutRef.current);
+    if (typeof delayHideTimeoutRef.current === 'number') {
+      window.clearTimeout(delayHideTimeoutRef.current);
+      delayHideTimeoutRef.current = undefined;
+    }
+    if (typeof delayOpenTimeoutRef.current === 'number') {
+      window.clearTimeout(delayOpenTimeoutRef.current);
+      delayOpenTimeoutRef.current = undefined;
+    }
 
     if (!isHoverable && !displayTimeout) {
-      setVisible(false);
+      isVisibleRef.current = false;
       return;
     }
 
-    delayHideTimeoutRef.current = window.setTimeout(
-      () => setVisible(false),
-      displayTimeout ?? CLOSE_DELAY
-    );
+    delayHideTimeoutRef.current = window.setTimeout(() => {
+      isVisibleRef.current = false;
+    }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout]);
 
   /**
@@ -230,28 +245,43 @@ function useHoverOverlay(
       // a basic element (type=string) or a class/function component
       // (type=function or object). Because we can't rely on the child element
       // implementing forwardRefs we wrap it with a span tag for the ref
-
       if (
         isValidElement(triggerChildren) &&
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
-        const triggerStyle = {
-          ...triggerChildren.props.style,
-          ...(showUnderline && theme.tooltipUnderline(underlineColor)),
-        };
+        if (showUnderline) {
+          const triggerStyle = {
+            ...triggerChildren.props.style,
+            ...theme.tooltipUnderline(underlineColor),
+          };
+
+          return cloneElement<any>(
+            triggerChildren,
+            Object.assign(props, {style: triggerStyle})
+          );
+        }
 
         // Basic DOM nodes can be cloned and have more props applied.
-        return cloneElement<any>(triggerChildren, {...props, style: triggerStyle});
+        return cloneElement<any>(
+          triggerChildren,
+          Object.assign(props, {
+            style: triggerChildren.props.style,
+          })
+        );
       }
 
-      const ourContainerProps = {
-        ...props,
-        containerDisplayMode,
-        style: showUnderline ? theme.tooltipUnderline(underlineColor) : undefined,
+      const ourContainerProps = Object.assign(props, {
+        style: {
+          ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
+          ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
+          maxWidth: '100%',
+        },
         className,
-      };
+      });
 
-      return <Container {...ourContainerProps}>{triggerChildren}</Container>;
+      // Using an inline-block solves the container being smaller
+      // than the elements it is wrapping
+      return <span {...ourContainerProps}>{triggerChildren}</span>;
     },
     [
       className,
@@ -267,27 +297,44 @@ function useHoverOverlay(
   );
 
   const reset = useCallback(() => {
-    if (isVisible) {
-      setVisible(false);
+    if (isVisibleRef.current) {
+      isVisibleRef.current = false;
     }
 
-    window.clearTimeout(delayOpenTimeoutRef.current);
-    window.clearTimeout(delayHideTimeoutRef.current);
-  }, [isVisible, setVisible, delayOpenTimeoutRef, delayHideTimeoutRef]);
+    if (typeof delayHideTimeoutRef.current === 'number') {
+      window.clearTimeout(delayHideTimeoutRef.current);
+      delayHideTimeoutRef.current = undefined;
+    }
+    if (typeof delayOpenTimeoutRef.current === 'number') {
+      window.clearTimeout(delayOpenTimeoutRef.current);
+      delayOpenTimeoutRef.current = undefined;
+    }
+  }, [delayOpenTimeoutRef, delayHideTimeoutRef]);
 
-  const overlayProps = {
-    id: describeById,
-    ref: setOverlayElement,
-    style: styles.popper,
-    onMouseEnter: isHoverable ? handleMouseEnter : undefined,
-    onMouseLeave: isHoverable ? handleMouseLeave : undefined,
-  };
+  const overlayProps = useMemo(() => {
+    return {
+      id: describeById,
+      ref: setOverlayElement,
+      style: styles.popper,
+      onMouseEnter: isHoverable ? handleMouseEnter : undefined,
+      onMouseLeave: isHoverable ? handleMouseLeave : undefined,
+    };
+  }, [
+    describeById,
+    setOverlayElement,
+    styles.popper,
+    isHoverable,
+    handleMouseEnter,
+    handleMouseLeave,
+  ]);
 
-  const arrowProps = {
-    ref: setArrowElement,
-    style: styles.arrow,
-    placement: state?.placement,
-  };
+  const arrowProps = useMemo(() => {
+    return {
+      ref: setArrowElement,
+      style: styles.arrow,
+      placement: state?.placement,
+    };
+  }, [setArrowElement, styles.arrow, state?.placement]);
 
   return {
     wrapTrigger,
@@ -300,12 +347,5 @@ function useHoverOverlay(
     reset,
   };
 }
-
-// Using an inline-block solves the container being smaller
-// than the elements it is wrapping
-const Container = styled('span')<{containerDisplayMode: React.CSSProperties['display']}>`
-  ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
-  max-width: 100%;
-`;
 
 export {useHoverOverlay, UseHoverOverlayProps};
