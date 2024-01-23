@@ -170,17 +170,16 @@ def schedule_on_demand_check() -> None:
     time_limit=120,
     expires=180,
 )
-def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> int:
+def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
     if not options.get("on_demand_metrics.check_widgets.enable"):
-        return 0
+        return
 
     widget_query_count = 0
     widget_query_high_cardinality_count = 0
     widget_query_no_spec_count = 0
-    counter_set_widget_states = 0
 
     for query in DashboardWidgetQuery.objects.filter(id__in=widget_query_ids).select_related(
         "widget__dashboard__organization"
@@ -188,7 +187,6 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> int:
         organization = query.widget.dashboard.organization
         enabled_features = on_demand_metrics_feature_flags(organization)
         widget_query_count += 1
-        counter_set_widget_states += 1
 
         widget_specs = _get_widget_on_demand_specs(query, organization)
 
@@ -236,7 +234,6 @@ def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> int:
         amount=widget_query_count,
         sample_rate=1.0,
     )
-    return counter_set_widget_states
 
 
 def _get_widget_on_demand_specs(
