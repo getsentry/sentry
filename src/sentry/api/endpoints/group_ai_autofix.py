@@ -45,12 +45,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             RateLimitCategory.IP: RateLimit(5, 1),
             RateLimitCategory.USER: RateLimit(5, 1),
             RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
-        },
-        "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 1),
-        },
+        }
     }
 
     def post(self, request: Request, group: Group) -> HttpResponse:
