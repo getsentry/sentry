@@ -13,7 +13,6 @@ import {
 import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -23,7 +22,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
@@ -31,14 +29,22 @@ import {
   internalIntegrationForms,
   publicIntegrationForms,
 } from 'sentry/data/forms/sentryApplication';
-import {IconAdd, IconDelete} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types';
+import {
+  InternalAppApiToken,
+  NewInternalAppApiToken,
+  Organization,
+  Scope,
+  SentryApp,
+} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
+import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -144,6 +150,7 @@ type Props = RouteComponentProps<{appSlug?: string}, {}> & {
 
 type State = DeprecatedAsyncView['state'] & {
   app: SentryApp | null;
+  newTokens: NewInternalAppApiToken[];
   tokens: InternalAppApiToken[];
 };
 
@@ -155,6 +162,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       ...super.getDefaultState(),
       app: null,
       tokens: [],
+      newTokens: [],
     };
   }
 
@@ -235,7 +243,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {
     evt.preventDefault();
-    const {app, tokens} = this.state;
+    const {app, newTokens} = this.state;
     if (!app) {
       return;
     }
@@ -243,64 +251,49 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     const api = this.api;
 
     const token = await addSentryAppToken(api, app);
-    const newTokens = tokens.concat(token);
-    this.setState({tokens: newTokens});
+    const updatedNewTokens = newTokens.concat(token);
+    this.setState({newTokens: updatedNewTokens});
   };
 
-  onRemoveToken = async (token: InternalAppApiToken, evt: React.MouseEvent) => {
-    evt.preventDefault();
+  onRemoveToken = async (token: InternalAppApiToken) => {
     const {app, tokens} = this.state;
     if (!app) {
       return;
     }
 
     const api = this.api;
-    const newTokens = tokens.filter(tok => tok.token !== token.token);
+    const newTokens = tokens.filter(tok => tok.id !== token.id);
 
-    await removeSentryAppToken(api, app, token.token);
+    await removeSentryAppToken(api, app, token.id);
     this.setState({tokens: newTokens});
   };
 
+  handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
+    const {tokens, newTokens} = this.state;
+    const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
+    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
+    this.setState({tokens: updatedTokens, newTokens: updatedNewTokens});
+  };
+
   renderTokens = () => {
-    const {tokens} = this.state;
-    if (tokens.length > 0) {
-      return tokens.map(token => (
-        <StyledPanelItem key={token.token}>
-          <TokenItem>
-            <Tooltip
-              disabled={this.showAuthInfo}
-              position="right"
-              containerDisplayMode="inline"
-              title={t(
-                'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
-              )}
-            >
-              <TextCopyInput aria-label={t('Token value')}>
-                {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
-              </TextCopyInput>
-            </Tooltip>
-          </TokenItem>
-          <CreatedDate>
-            <CreatedTitle>Created:</CreatedTitle>
-            <DateTime
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000),
-              })}
-            />
-          </CreatedDate>
-          <Button
-            onClick={this.onRemoveToken.bind(this, token)}
-            size="sm"
-            icon={<IconDelete />}
-            data-test-id="token-delete"
-          >
-            {t('Revoke')}
-          </Button>
-        </StyledPanelItem>
-      ));
+    const {tokens, newTokens} = this.state;
+    if (tokens.length < 1 && newTokens.length < 1) {
+      return <EmptyMessage description={t('No tokens created yet.')} />;
     }
-    return <EmptyMessage description={t('No tokens created yet.')} />;
+    const tokens_to_display = tokens.map(token => (
+      <ApiTokenRow key={token.id} token={token} onRemove={this.onRemoveToken} />
+    ));
+    tokens_to_display.push(
+      ...newTokens.map(newToken => (
+        <NewTokenHandler
+          key={newToken.id}
+          token={getDynamicText({value: newToken.token, fixed: 'ORG_AUTH_TOKEN'})}
+          handleGoBack={() => this.handleFinishNewToken(newToken)}
+        />
+      ))
+    );
+
+    return tokens_to_display;
   };
 
   onFieldChange = (name: string, value: FieldValue): void => {
@@ -502,28 +495,6 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 }
 
 export default withOrganization(SentryApplicationDetails);
-
-const StyledPanelItem = styled(PanelItem)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const TokenItem = styled('div')`
-  width: 70%;
-`;
-
-const CreatedTitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  margin-bottom: 2px;
-`;
-
-const CreatedDate = styled('div')`
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
-  margin: 0 10px;
-`;
 
 const AvatarPreview = styled('div')`
   flex: 1;

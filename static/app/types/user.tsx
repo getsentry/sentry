@@ -77,15 +77,14 @@ interface BaseApiToken {
 }
 
 // API Tokens should not be using and storing the token values in the application, as the tokens are secrets.
-// This is an intermediate and temporary object until we can deprecate InternalAppApiToken having "token"
-export interface UserAppApiToken extends BaseApiToken {
+export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
   tokenLastCharacters: string;
 }
 
-// We include the token for API tokens used for internal apps
-export interface InternalAppApiToken extends UserAppApiToken {
+// We include the token for new API tokens
+export interface NewInternalAppApiToken extends InternalAppApiToken {
   token: string;
 }
 
