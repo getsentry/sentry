@@ -26,7 +26,7 @@ type Props = {groupId: string; projectId?: number};
 
 export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 
-const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_OP} =
+const {SPAN_GROUP, SPAN_DOMAIN, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_OP} =
   SpanIndexedField;
 const imageWidth = '200px';
 const imageHeight = '180px';
@@ -125,9 +125,16 @@ function SampleImagesChartPanelBody(props: {
   return (
     <ImageWrapper>
       {images.map(resource => {
+        const hasSpanDomain = Boolean(resource[SPAN_DOMAIN]);
+        const isRelativeUrl = resource[SPAN_DESCRIPTION].startsWith('/');
+
+        const src =
+          isRelativeUrl && hasSpanDomain
+            ? `${resource[SPAN_DOMAIN]}${resource[SPAN_DESCRIPTION]}`
+            : resource[SPAN_DESCRIPTION];
         return (
           <ImageContainer
-            src={resource[SPAN_DESCRIPTION]}
+            src={src}
             showImage={isImagesEnabled}
             fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
             size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
