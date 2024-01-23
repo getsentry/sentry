@@ -25,6 +25,7 @@ import {
   Group,
   GroupActivityType,
   Organization as TOrganization,
+  PriorityLevel,
   Project,
 } from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -724,6 +725,45 @@ describe('GroupActivity', function () {
       );
       expect(activity).toHaveTextContent(
         'abc1 is greater than or equal to abc2 compared via release date'
+      );
+    });
+
+    it('renders a set priority activity for escalating issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.HIGH,
+              reason: 'escalating',
+            },
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be high after it escalated'
+      );
+    });
+    it('renders a set priority activity for ongoing issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.LOW,
+              reason: 'ongoing',
+            },
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be low after it was marked as ongoing'
       );
     });
   });
