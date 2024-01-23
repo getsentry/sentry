@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import bannerBackground from 'sentry-images/spot/ai-suggestion-banner-background.svg';
@@ -5,12 +6,16 @@ import bannerSentaur from 'sentry-images/spot/ai-suggestion-banner-sentaur.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -23,6 +28,11 @@ type Props = {
 };
 
 export function Banner({onButtonClick, additionalContext, setAdditionalContext}: Props) {
+  const {isStaff} = ConfigStore.get('user');
+  const [piiCertified, setPiiCertified] = useState(false);
+
+  const showPiiMessage = isStaff && !piiCertified;
+
   return (
     <Wrapper>
       <Body>
@@ -52,23 +62,46 @@ export function Banner({onButtonClick, additionalContext, setAdditionalContext}:
             <Background src={bannerBackground} />
             <Stars src={bannerStars} />
             <Sentaur src={bannerSentaur} />
-            <ViewSuggestionButton size="xs" onClick={onButtonClick}>
+            <ViewSuggestionButton
+              size="xs"
+              onClick={onButtonClick}
+              disabled={showPiiMessage}
+            >
               {t('Try your luck')}
             </ViewSuggestionButton>
           </Action>
         </Header>
-        <AdditionalContextArea>
-          <AdditionalContextLabel>
-            {t('Additional Context (Optional)')}
-          </AdditionalContextLabel>
-          <StyledTextArea
-            value={additionalContext}
-            placeholder={t(
-              'Add additional context to help the AI find a better solution'
-            )}
-            onChange={e => setAdditionalContext(e.target.value)}
-          />
-        </AdditionalContextArea>
+        {showPiiMessage ? (
+          <PiiArea>
+            <EmptyMessage
+              icon={<IconFlag size="xl" />}
+              title={t('PII Certification Required')}
+              description={t(
+                'Before using this feature, please confirm that there is no personally identifiable information in this event.'
+              )}
+              action={
+                <ButtonBar gap={2}>
+                  <Button priority="primary" onClick={() => setPiiCertified(true)}>
+                    {t('Certify No PII')}
+                  </Button>
+                </ButtonBar>
+              }
+            />
+          </PiiArea>
+        ) : (
+          <AdditionalContextArea>
+            <AdditionalContextLabel>
+              {t('Additional Context (Optional)')}
+            </AdditionalContextLabel>
+            <StyledTextArea
+              value={additionalContext}
+              placeholder={t(
+                'Add additional context to help the AI find a better solution'
+              )}
+              onChange={e => setAdditionalContext(e.target.value)}
+            />
+          </AdditionalContextArea>
+        )}
       </Body>
     </Wrapper>
   );
@@ -187,6 +220,11 @@ const AdditionalContextLabel = styled('label')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
+`;
+
+const PiiArea = styled('div')`
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.panelBorderRadius};
 `;
 
 const AdditionalContextArea = styled('div')`
