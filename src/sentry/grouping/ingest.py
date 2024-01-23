@@ -198,7 +198,7 @@ def calculate_secondary_hash(
             secondary_hashes = calculate_event_grouping(
                 project, event_copy, secondary_grouping_config
             )
-    except Exception:
-        sentry_sdk.capture_exception()
+    except Exception as err:
+        sentry_sdk.capture_exception(err)
 
     return secondary_hashes
