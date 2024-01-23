@@ -113,12 +113,12 @@ function FilesChanged({activeReleaseRepo, releaseRepos, projectSlug}: FilesChang
             </Fragment>
           ) : (
             <EmptyState>
-              {!activeReleaseRepo
-                ? t('There are no changed files associated with this release.')
-                : t(
+              {activeReleaseRepo
+                ? t(
                     'There are no changed files associated with this release in the %s repository.',
                     activeReleaseRepo.name
-                  )}
+                  )
+                : t('There are no changed files associated with this release.')}
             </EmptyState>
           )}
         </Layout.Main>
