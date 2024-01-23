@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import List, Set
+from typing import Any, List, Set
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 
@@ -130,6 +130,7 @@ class JavascriptParser(LanguageParser):
 
         return functions
 
+    @staticmethod
     def _get_function_name_conditions(stackframe_level: int, function_names: List[str]):
         """
         For Javascript we need a special case of matching both for the function name itself and for
@@ -153,6 +154,7 @@ class JavascriptParser(LanguageParser):
         )
         return function_name_conditions
 
+    @staticmethod
     def _get_function_name_functions(stackframe_level: int, function_names: List[str]):
         """
         This is used in the multi_if. We need to account for the special Javascript cases in order to
@@ -212,7 +214,11 @@ class JavascriptParser(LanguageParser):
         )
 
 
-PATCH_PARSERS = {"py": PythonParser}
+PATCH_PARSERS: dict[str, Any] = {"py": PythonParser}
 
 # for testing the Javascript parser, feature flagged
-BETA_PATCH_PARSERS = {"py": PythonParser, "js": JavascriptParser, "jsx": JavascriptParser}
+BETA_PATCH_PARSERS: dict[str, Any] = {
+    "py": PythonParser,
+    "js": JavascriptParser,
+    "jsx": JavascriptParser,
+}
