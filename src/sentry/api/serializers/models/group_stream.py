@@ -160,29 +160,29 @@ class GroupStatsMixin:
             return self.query_tsdb(item_list, query_params, user=user, **kwargs)
 
 
-# Serializer for User Feedback
-# Used to expose the linked integration issues for a list of feedbacks (groups)
+# Serializer for External Issues Model
+# Maps an external issue to to additional integration information such as key or name
 class ExternalIssueSerializer(Serializer):
     def get_attrs(self, item_list: List[ExternalIssue], user: User, **kwargs: Any):
-        group_linked_issues = {}
-        for ei in item_list:
+        result = {}
+        for item in item_list:
             # Get the integration (e.g. Jira, GitHub, etc) associated with that issue
-            integration = integration_service.get_integration(integration_id=ei.integration_id)
+            integration = integration_service.get_integration(integration_id=item.integration_id)
             if integration is None:
                 continue
-            installation = integration.get_installation(organization_id=ei.organization.id)
+            installation = integration.get_installation(organization_id=item.organization.id)
             if hasattr(installation, "get_issue_display_name"):
-                group_linked_issues[ei] = {
-                    "id": str(ei.id),
-                    "key": ei.key,
-                    "title": ei.title,
-                    "description": ei.description,
-                    "displayName": installation.get_issue_display_name(ei),
+                result[item] = {
+                    "id": str(item.id),
+                    "key": item.key,
+                    "title": item.title,
+                    "description": item.description,
+                    "displayName": installation.get_issue_display_name(item),
                     "integrationKey": integration.provider,
                     "integrationName": integration.name,
                 }
 
-        return group_linked_issues
+        return result
 
     def serialize(self, obj, attrs, user, **kwargs):
         return attrs
