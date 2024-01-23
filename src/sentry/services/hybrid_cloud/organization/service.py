@@ -47,7 +47,9 @@ class OrganizationService(RpcService):
         return DatabaseBackedOrganizationService()
 
     def get(self, id: int) -> Optional[RpcOrganization]:
-        org_context = self.get_organization_by_id(id=id)
+        org_context = self.get_organization_by_id(
+            id=id, include_projects=False, include_teams=False
+        )
         return org_context.organization if org_context else None
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
