@@ -2421,6 +2421,15 @@ SENTRY_SCOPES = {
     "email",
 }
 
+SENTRY_READONLY_SCOPES = {
+    "org:read",
+    "member:read",
+    "team:read",
+    "project:read",
+    "event:read",
+    "alerts:read",
+}
+
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:read": {"org:read"},
     "org:write": {"org:read", "org:write"},
