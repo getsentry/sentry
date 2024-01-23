@@ -25,6 +25,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
