@@ -7,15 +7,15 @@ import {Button} from 'sentry/components/button';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {User} from 'sentry/types';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 
 type UpdateUserOptionsVariables = Partial<User['options']>;
 
 export function NewIssueExperienceButton() {
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
   const api = useApi();
 
   const newIssueExperienceEnabled =

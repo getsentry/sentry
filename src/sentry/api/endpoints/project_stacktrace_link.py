@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Mapping, Optional
+from typing import List, TypedDict
 
 from django.http import QueryDict
 from rest_framework.request import Request
@@ -23,11 +23,24 @@ from sentry.services.hybrid_cloud.integration import integration_service
 logger = logging.getLogger(__name__)
 
 
-def generate_context(parameters: QueryDict) -> Dict[str, Optional[str]]:
+class StacktraceLinkContext(TypedDict):
+    file: str
+    filename: str
+    platform: str | None
+    abs_path: str | None
+    commit_id: str | None
+    group_id: str | None
+    line_no: str | None
+    module: str | None
+    package: str | None
+    sdk_name: str | None
+
+
+def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
     return {
-        "file": parameters.get("file"),
+        "file": parameters.get("file", ""),
         # XXX: Temp change to support try_path_munging until refactored
-        "filename": parameters.get("file"),
+        "filename": parameters.get("file", ""),
         "commit_id": parameters.get("commitId"),
         "platform": parameters.get("platform"),
         "sdk_name": parameters.get("sdkName"),
@@ -42,7 +55,7 @@ def generate_context(parameters: QueryDict) -> Dict[str, Optional[str]]:
 def set_top_tags(
     scope: Scope,
     project: Project,
-    ctx: Mapping[str, Optional[str]],
+    ctx: StacktraceLinkContext,
     has_code_mappings: bool,
 ) -> None:
     try:
@@ -109,7 +122,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project) -> Response:
         ctx = generate_context(request.GET)
-        filepath = ctx.get("file")
+        filepath = ctx["file"]
         if not filepath:
             return Response({"detail": "Filepath is required"}, status=400)
 

@@ -28,9 +28,7 @@ import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {
   Frame,
@@ -41,6 +39,7 @@ import {
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -102,8 +101,8 @@ function NativeFrame({
    */
   isHoverPreviewed = false,
 }: Props) {
+  const user = useUser();
   const organization = useOrganization();
-  const {user} = useLegacyStore(ConfigStore);
 
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
