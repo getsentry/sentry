@@ -34,9 +34,11 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
+from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
@@ -215,12 +217,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     )
 
             if "integrationIssues" in expand:
+                external_issues = ExternalIssue.objects.filter(
+                    id__in=GroupLink.objects.filter(group_id__in=[group.id]).values_list(
+                        "linked_id", flat=True
+                    ),
+                )
                 integration_issues = serialize(
-                    group,
+                    [external_issues],
                     request,
                     serializer=ExternalIssueSerializer(),
                 )
-                data.update({"integrationIssues": integration_issues.get("externalIssues")})
+                data.update({"integrationIssues": integration_issues})
 
             data.update(
                 {
