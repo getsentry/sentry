@@ -4,3 +4,7 @@ class InvalidMetricsQueryError(Exception):
 
 class MetricsQueryExecutionError(Exception):
     pass
+
+
+class LatestReleaseNotFoundError(Exception):
+    pass

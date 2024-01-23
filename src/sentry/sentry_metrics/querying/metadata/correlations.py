@@ -28,6 +28,7 @@ from sentry.sentry_metrics.querying.metadata.utils import (
     get_snuba_conditions_from_query,
     transform_conditions_to_tags,
     transform_conditions_with,
+    transform_latest_release_condition,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -152,6 +153,7 @@ class CorrelationsSource(ABC):
     ) -> Sequence[Segment]:
         conditions = get_snuba_conditions_from_query(query)
         conditions = add_environments_condition(conditions, environments)
+        conditions = transform_latest_release_condition(conditions, self.projects)
 
         return self._get_segments(
             metric_mri=metric_mri,

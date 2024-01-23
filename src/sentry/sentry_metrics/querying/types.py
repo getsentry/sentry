@@ -1,6 +1,6 @@
 from typing import List, Optional, Sequence, Tuple, Union
 
-from snuba_sdk import Formula, Timeseries
+from snuba_sdk import BooleanCondition, Condition, Formula, Timeseries
 
 # Type representing the aggregate value from Snuba, which can be null, int, float or list.
 ResultValue = Optional[Union[int, float, List[Optional[Union[int, float]]]]]
@@ -16,3 +16,5 @@ GroupKey = Tuple[Group, ...]
 GroupsCollection = Sequence[Sequence[Group]]
 # Type representing the possible expressions for a query.
 QueryExpression = Union[Timeseries, Formula]
+# Type representing the possible conditions for a query.
+QueryCondition = Union[BooleanCondition, Condition]
