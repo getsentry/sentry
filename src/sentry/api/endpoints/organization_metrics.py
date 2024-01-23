@@ -57,7 +57,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 
-        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
+        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
 
@@ -74,10 +74,9 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
 
-        # TODO: add blocked status.
         metric = get_single_metric_info(
-            projects,
-            metric_name,
+            projects=projects,
+            metric_name=metric_name,
             use_case_id=get_use_case_id(request),
         )
 

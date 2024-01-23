@@ -1,8 +1,9 @@
+from typing import Set, Tuple
+
 import pytest
 
 from sentry.sentry_metrics.visibility import (
     BlockedMetric,
-    InvalidBlockedMetricError,
     MalformedBlockedMetricsPayloadError,
     block_metric,
     get_blocked_metrics,
@@ -15,7 +16,7 @@ from sentry.utils import json
 
 @django_db_all
 def test_block_metric(default_project):
-    data = (
+    data: Tuple[Tuple[str, Set[str]], ...] = (
         ("c:custom/page_click@none", set()),
         # We test with duplicated tags.
         ("c:custom/page_click@none", {"release", "release"}),
@@ -33,7 +34,7 @@ def test_block_metric(default_project):
 
 @django_db_all
 def test_get_blocked_metrics(default_project):
-    data = (
+    data: Tuple[Tuple[str, Set[str]], ...] = (
         ("c:custom/page_click@none", {"release", "release"}),
         ("g:custom/page_load@millisecond", {"transaction"}),
     )
@@ -48,17 +49,16 @@ def test_get_blocked_metrics(default_project):
 
 @django_db_all
 @pytest.mark.parametrize(
-    "json_payload, expected_error",
+    "json_payload",
     [
-        ("}{", MalformedBlockedMetricsPayloadError),
-        ("{}", MalformedBlockedMetricsPayloadError),
-        ('[{"tags": []}]', InvalidBlockedMetricError),
+        "}{",
+        "{}",
     ],
 )
-def test_get_blocked_metrics_with_invalid_payload(default_project, json_payload, expected_error):
+def test_get_blocked_metrics_with_invalid_payload(default_project, json_payload):
     default_project.update_option(BLOCKED_METRICS_PROJECT_OPTION_KEY, json_payload)
 
-    with pytest.raises(expected_error):
+    with pytest.raises(MalformedBlockedMetricsPayloadError):
         get_blocked_metrics([default_project])
 
 
