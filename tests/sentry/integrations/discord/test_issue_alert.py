@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
-from sentry.integrations.discord.client import MESSAGE_URL, DiscordClient
+from sentry.integrations.discord.client import MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
@@ -21,78 +21,6 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
-
-
-class DiscordIssueAlertFailTest(RuleTestCase):
-    rule_cls = DiscordNotifyServiceAction
-
-    def setUp(self):
-        self.guild_id = "guild-id"
-        self.channel_id = "12345678910"
-        self.discord_user_id = "user1234"
-        self.discord_integration = self.create_integration(
-            provider="discord",
-            name="Cool server",
-            external_id=self.guild_id,
-            organization=self.organization,
-        )
-        self.provider = self.create_identity_provider(integration=self.discord_integration)
-        self.identity = self.create_identity(
-            user=self.user, identity_provider=self.provider, external_id=self.discord_user_id
-        )
-        self.event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "Event message",
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
-        )
-        self.tags = "environment, user"
-        self.rule = self.get_rule(
-            data={
-                "server": self.discord_integration.id,
-                "channel_id": self.channel_id,
-                "tags": self.tags,
-            }
-        )
-
-    @responses.activate
-    @mock.patch("sentry.analytics.record")
-    def test_basic_failed(self, mock_record):
-        responses.add(
-            responses.POST,
-            url=f"{DiscordClient.base_url}{MESSAGE_URL.format(channel_id=self.channel_id)}",
-            status=403,
-        )
-        notification_uuid = str(uuid4())
-        results = list(
-            self.rule.after(self.event, self.get_state(), notification_uuid=notification_uuid)
-        )
-        assert len(results) == 1
-
-        results[0].callback(self.event, futures=[])
-
-        # need to verify that mock_record was called with alert.not.sent etc.
-        mock_record.assert_any_call(
-            "integrations.discord.notification_not_sent.user_issue",
-            category="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.event.group_id,
-            notification_uuid=notification_uuid,
-            alert_id=None,
-        )
-        mock_record.assert_called_with(
-            "alert.not.sent",
-            provider="discord",
-            alert_id="",
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            external_id=self.channel_id,
-            notification_uuid=notification_uuid,
-        )
 
 
 class DiscordIssueAlertTest(RuleTestCase):
@@ -131,7 +59,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
         responses.add(
             method=responses.POST,
-            url=f"{DiscordClient.base_url}{MESSAGE_URL.format(channel_id=self.channel_id)}",
+            url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
         )
 
