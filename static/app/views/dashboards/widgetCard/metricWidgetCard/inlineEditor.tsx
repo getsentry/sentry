@@ -279,7 +279,13 @@ function SubmitButton({loading, ...buttonProps}: {loading: boolean} & ButtonProp
 
 function ToggleNameEditButton(props: ButtonProps) {
   return (
-    <Button {...props} borderless size="sm" onClick={props.onClick} icon={<IconEdit />} />
+    <StyledIconButton
+      {...props}
+      borderless
+      size="sm"
+      onClick={props.onClick}
+      icon={<IconEdit />}
+    />
   );
 }
 
@@ -349,6 +355,7 @@ const ActionButtonsWrapper = styled('div')`
 
 const FirstRowWrapper = styled('div')`
   display: flex;
+  gap: ${space(0.5)};
 `;
 
 const DropdownInputWrapper = styled('div')`
@@ -367,5 +374,9 @@ const Dropdowns = styled(PageFilterBar)<{hidden: boolean}>`
 `;
 
 const WidgetTitleInput = styled(Input)`
+  height: ${EDITOR_ELEMENT_HEIGHT};
+`;
+
+const StyledIconButton = styled(Button)`
   height: ${EDITOR_ELEMENT_HEIGHT};
 `;
