@@ -118,6 +118,7 @@ class Enhancements:
     # from cache.
     # See ``_get_project_enhancements_config`` in src/sentry/grouping/api.py.
 
+    @sentry_sdk.tracing.trace
     def __init__(self, rules, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
@@ -269,6 +270,7 @@ class Enhancements:
             [x._to_config_structure(self.version) for x in self.rules],
         ]
 
+    @sentry_sdk.tracing.trace
     def dumps(self):
         encoded = msgpack.dumps(self._to_config_structure())
 
@@ -297,6 +299,7 @@ class Enhancements:
         )
 
     @classmethod
+    @sentry_sdk.tracing.trace
     def loads(cls, data):
         if isinstance(data, str):
             data = data.encode("ascii", "ignore")
@@ -314,9 +317,11 @@ class Enhancements:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
     @classmethod
+    @sentry_sdk.tracing.trace
     def from_config_string(self, s, bases=None, id=None):
         try:
             tree = enhancements_grammar.parse(s)
+            rules = EnhancementsVisitor().visit(tree)
         except ParseError as e:
             context = e.text[e.pos : e.pos + 33]
             if len(context) == 33:
@@ -324,7 +329,12 @@ class Enhancements:
             raise InvalidEnhancerConfig(
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
-        return EnhancementsVisitor(bases, id).visit(tree)
+
+        return Enhancements(
+            rules,
+            bases=bases,
+            id=id,
+        )
 
 
 class Rule:
@@ -418,21 +428,13 @@ class EnhancementsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
-    def __init__(self, bases, id=None):
-        self.bases = bases
-        self.id = id
-
-    def visit_enhancements(self, node, children):
+    def visit_enhancements(self, node, children) -> list[Rule]:
         rules = []
         for child in children:
             if not isinstance(child, str) and child is not None:
                 rules.append(child)
 
-        return Enhancements(
-            rules,
-            bases=self.bases,
-            id=self.id,
-        )
+        return rules
 
     def visit_line(self, node, children):
         _, line, _ = children
